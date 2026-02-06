@@ -1,11 +1,9 @@
 <script setup>
 import {Link} from '@inertiajs/vue3';
 import {ChatDotRound, ArrowRight} from '@element-plus/icons-vue';
-// Убедись, что путь к компоненту кнопки верный.
-// В прошлом шаге мы создали StartButton.vue, здесь импорт StartBtn.vue
 import StartBtn from "@/Components/Site/StartBtn.vue";
 
-// You can customize these links
+// Ссылки
 const links = [
     {text: 'Ссылка куда-то', url: '/link1'},
     {text: 'Ссылка куда-то', url: '/link2'},
@@ -25,7 +23,6 @@ const links = [
          class="fixed max-w-[1400px] left-[20rem] pointer-events-none z-0"/>
 
     <!-- Основной контейнер с градиентом -->
-    <!-- Убрал bg-[#141414], добавил класс main-gradient -->
     <div class="h-screen text-white overflow-hidden main-gradient relative z-10">
         <div class="w-[1440px] mx-auto flex flex-col justify-between h-full">
             <!-- Header -->
@@ -60,25 +57,30 @@ const links = [
             </header>
 
             <!-- Main Content -->
-            <main class="flex-1 flex flex-col items-center justify-end mb-[15%] px-8">
+            <main class="flex-1 flex flex-col items-center justify-center pb-[10%] px-8">
 
-                <StartBtn />
+                <div class="scale-110 mb-10">
+                    <StartBtn />
+                </div>
 
-                <div class="mt-8 w-full flex justify-center">
-                    <div class="grid grid-cols-2 gap-4 w-full max-w-[800px]">
+                <div class="w-full flex justify-center">
+                    <div class="grid grid-cols-2 gap-6 w-full max-w-[600px]">
                         <Link
                             v-for="(link, index) in links"
                             :key="index"
                             :href="link.url"
                             class="block w-full"
                         >
+                            <!-- Добавляем динамический класс для стилизации четных/нечетных кнопок под стиль StartBtn -->
                             <button
-                                class="flex backdrop-blur-md items-center gap-2 bg-[#202020]/60 py-3 px-5 link-button rounded-[4px] w-full transition-colors duration-300 group">
-                                <el-icon class="group-hover:text-[#ec4899] transition-colors">
+                                class="flex items-center gap-3 py-4 px-6 link-button w-full transition-all duration-500 ease-out group"
+                                :class="index === 0 ? 'link-left' : 'link-right'"
+                            >
+                                <el-icon class="text-gray-400 group-hover:text-white transition-colors text-lg">
                                     <ChatDotRound/>
                                 </el-icon>
-                                <span class="flex-1 text-left">{{ link.text }}</span>
-                                <el-icon class="ml-2 group-hover:translate-x-1 transition-transform">
+                                <span class="flex-1 text-left text-gray-200 group-hover:text-white font-light tracking-wide text-lg transition-colors">{{ link.text }}</span>
+                                <el-icon class="text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all duration-300">
                                     <ArrowRight/>
                                 </el-icon>
                             </button>
@@ -93,11 +95,8 @@ const links = [
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Imbue:opsz,wght@10..100,100..900&display=swap');
 
+/* Обновленный градиент по вашему запросу */
 .main-gradient {
-    /* Градиент сверху вниз (180deg).
-       Верх: полупрозрачный розовый (просвечивают круги и пикачу).
-       Низ: черный.
-    */
     background: linear-gradient(180deg, rgba(255, 42, 191, 0.09) 0%, rgba(0, 0, 0, 0.56) 100%);
 }
 
@@ -134,25 +133,43 @@ const links = [
     top: -200px;
 }
 
-/* Стили кнопок ссылок */
+/* Базовые стили для кнопок-ссылок */
 .link-button {
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    border-top: 1px solid rgba(255, 255, 255, 0.3);
-    /* Добавляем легкую тень для читаемости на фоне градиента */
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    background: rgba(20, 20, 20, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
 }
 
+/* Левая кнопка: Розовый акцент */
+.link-left {
+    background: linear-gradient(90deg, rgba(45, 20, 45, 0.3) 0%, rgba(20, 20, 20, 0.6) 100%);
+    //box-shadow: inset 2px 0 0 0 rgba(255, 42, 191, 0.2); /* Еле заметная полоска */
+}
+
+.link-left:hover {
+    background: linear-gradient(90deg, rgba(55, 25, 55, 0.5) 0%, rgba(25, 25, 25, 0.7) 100%);
+    border-color: rgba(255, 42, 191, 0.4); /* Рамка подсвечивается */
+    box-shadow: inset 2px 0 15px rgba(255, 42, 191, 0.15), 0 0 20px rgba(255, 42, 191, 0.1); /* Мягкое свечение */
+}
+
+/* Правая кнопка: Бирюзовый акцент */
+.link-right {
+    background: linear-gradient(90deg, rgba(20, 20, 20, 0.6) 0%, rgba(20, 35, 35, 0.3) 100%);
+    //box-shadow: inset -2px 0 0 0 rgba(42, 255, 220, 0.2); /* Еле заметная полоска */
+}
+
+.link-right:hover {
+    background: linear-gradient(90deg, rgba(25, 25, 25, 0.7) 0%, rgba(25, 45, 45, 0.5) 100%);
+    border-color: rgba(42, 255, 220, 0.4); /* Рамка подсвечивается */
+    box-shadow: inset -2px 0 15px rgba(42, 255, 220, 0.15), 0 0 20px rgba(42, 255, 220, 0.1); /* Мягкое свечение */
+}
+
+/* Общий эффект приподнимания */
 .link-button:hover {
-    background: #2b2b2b;
-    border-color: rgba(236, 72, 153, 0.5); /* Розовая подсветка при наведении */
-}
-
-.imbue {
-    font-family: "Imbue", serif;
-    font-optical-sizing: auto;
-    font-weight: 500;
-    font-style: normal;
-    letter-spacing: 17%;
+    transform: translateY(-2px);
 }
 
 .logo-text {
