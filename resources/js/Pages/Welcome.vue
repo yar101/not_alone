@@ -5,7 +5,7 @@ import StartBtn from "@/Components/Site/StartBtn.vue";
 
 /**
  * Список ссылок для навигации.
- * Структура объектов исправлена для корректной компиляции.
+ * Исправлена структура для обеспечения стабильной компиляции.
  */
 const links = [
     { text: 'Ссылка куда-то', url: '/link1' },
@@ -21,9 +21,13 @@ const links = [
         <div class="circle3"/>
     </div>
 
-    <!-- Фоновое изображение с адаптивным позиционированием -->
+    <!-- Фоновое изображение (Пикачу) с адаптивным позиционированием -->
     <img src="/pika.png" alt="pika"
          class="fixed max-w-[800px] md:max-w-[1400px] left-1/2 -translate-x-1/3 max-[756px]:-translate-y-[20%] md:left-[20rem] md:translate-x-0 opacity-20 md:opacity-100 pointer-events-none z-0"/>
+
+    <!-- Адаптивное изображение звезды (фиксировано в правой нижней части) -->
+    <img src="/star.png" alt="star"
+         class="fixed w-[200px] sm:w-[350px] md:w-[500px] lg:w-[570px] rotate-[15deg] opacity-[30%] md:opacity-[50%] right-[2%] bottom-[5%] md:right-[5%] md:bottom-[8%] pointer-events-none z-0 transition-all duration-700 ease-in-out"/>
 
     <!-- Основной контейнер с градиентным фоном -->
     <div class="min-h-screen text-white overflow-x-hidden main-gradient relative z-10 flex flex-col">
@@ -38,12 +42,12 @@ const links = [
                                  transform="rotate(-15 50 50)"/>
                         <line x1="20" y1="60" x2="80" y2="40" stroke="#ec4899" stroke-width="2"/>
                     </svg>
-                    <h1 class="logo-text text-6xl md:text-[96px]">no alone</h1>
+                    <h1 class="logo-text text-5xl sm:text-6xl md:text-[96px]">no alone</h1>
                 </div>
 
                 <!-- Контактная информация -->
                 <div class="flex flex-col sm:flex-row items-center gap-4 md:gap-8 text-lg md:text-xl">
-                    <a href="https://t.me/no_alone" class="flex items-center gap-2 hover:text-pink-400 transition-colors duration-300">
+                    <a href="https://t.me/no_alone" class="flex items-center gap-2 hover:text-cyan-400 transition-colors duration-300">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.67-.52.36-.99.53-1.42.52-.47-.01-1.37-.26-2.03-.48-.82-.27-1.47-.42-1.42-.88.03-.24.37-.48 1.02-.73 3.99-1.74 6.66-2.89 8-3.45 3.81-1.58 4.6-1.85 5.12-1.86.11 0 .37.03.53.16.14.11.18.26.2.37.01.08.03.29.01.45z"/>
                         </svg>
@@ -61,14 +65,14 @@ const links = [
             <!-- Основной контент -->
             <main class="flex-1 flex flex-col items-center justify-center py-10 md:pb-[12%] px-6">
 
-                <!-- Главная кнопка -->
-                <div class="scale-75 sm:scale-90 md:scale-110 mb-10 md:mb-16 transform transition-transform">
+                <!-- Главная кнопка (START) -->
+                <div class="scale-110 sm:scale-105 md:scale-125 mb-14 md:mb-16 transform transition-transform">
                     <StartBtn />
                 </div>
 
                 <!-- Блок со ссылками -->
                 <div class="w-full flex justify-center">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 w-full max-w-[650px]">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-8 w-full max-w-[600px]">
                         <Link
                             v-for="(link, index) in links"
                             :key="index"
@@ -76,13 +80,13 @@ const links = [
                             class="block w-full"
                         >
                             <button
-                                class="flex items-center gap-4 py-4 md:py-5 px-6 link-button w-full transition-all duration-500 ease-out group"
+                                class="flex items-center gap-4 py-3.5 md:py-4 px-4 md:px-6 link-button w-full transition-all duration-500 ease-out group"
                                 :class="index === 0 ? 'link-left' : 'link-right'"
                             >
-                                <el-icon class="text-gray-400 group-hover:text-white transition-colors text-xl">
+                                <el-icon class="text-gray-400 group-hover:text-white transition-colors text-sm md:text-xl">
                                     <ChatDotRound/>
                                 </el-icon>
-                                <span class="flex-1 text-left text-gray-200 group-hover:text-white font-light tracking-widest text-base md:text-lg uppercase transition-colors">
+                                <span class="flex-1 text-left text-gray-200 group-hover:text-white text-[18px] md:text-[20px] transition-colors">
                                     {{ link.text }}
                                 </span>
                                 <el-icon class="text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all duration-300">
@@ -94,7 +98,7 @@ const links = [
                 </div>
             </main>
 
-            <!-- Пустой блок для баланса flex-justify-between, если нужен футер — добавить сюда -->
+            <!-- Балансировочный отступ -->
             <div class="h-8 md:h-16"></div>
         </div>
     </div>
@@ -144,7 +148,6 @@ const links = [
     overflow: hidden;
 }
 
-/* Левая колонка (розовое свечение) */
 .link-left {
     background: linear-gradient(90deg, rgba(45, 20, 45, 0.25) 0%, rgba(20, 20, 20, 0.5) 100%);
 }
@@ -154,7 +157,6 @@ const links = [
     box-shadow: inset 2px 0 20px rgba(255, 42, 191, 0.12), 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
-/* Правая колонка (бирюзовое свечение) */
 .link-right {
     background: linear-gradient(90deg, rgba(20, 20, 20, 0.5) 0%, rgba(20, 35, 35, 0.25) 100%);
 }
@@ -177,7 +179,6 @@ const links = [
     letter-spacing: -0.02em;
 }
 
-/* Плавный скролл и оптимизация */
 html {
     scroll-behavior: smooth;
 }
