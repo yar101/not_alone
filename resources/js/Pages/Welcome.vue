@@ -1,85 +1,90 @@
 <script setup>
-import {Link} from '@inertiajs/vue3';
-import {ChatDotRound, ArrowRight} from '@element-plus/icons-vue';
+import { Link } from '@inertiajs/vue3';
+import { ChatDotRound, ArrowRight } from '@element-plus/icons-vue';
 import StartBtn from "@/Components/Site/StartBtn.vue";
 
-// Ссылки
+/**
+ * Список ссылок для навигации.
+ * Структура объектов исправлена для корректной компиляции.
+ */
 const links = [
-    {text: 'Ссылка куда-то', url: '/link1'},
-    {text: 'Ссылка куда-то', url: '/link2'},
+    { text: 'Ссылка куда-то', url: '/link1' },
+    { text: 'Ссылка куда-то', url: '/link2' }
 ];
 </script>
 
 <template>
-    <!-- Фоновые элементы (круги) -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+    <!-- Декоративные фоновые элементы (круги) -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div class="circle1"/>
         <div class="circle2"/>
         <div class="circle3"/>
     </div>
 
-    <!-- Фоновая картинка -->
+    <!-- Фоновое изображение с адаптивным позиционированием -->
     <img src="/pika.png" alt="pika"
-         class="fixed max-w-[1400px] left-[20rem] pointer-events-none z-0"/>
+         class="fixed max-w-[800px] md:max-w-[1400px] left-1/2 -translate-x-1/3 max-[756px]:-translate-y-[20%] md:left-[20rem] md:translate-x-0 opacity-20 md:opacity-100 pointer-events-none z-0"/>
 
-    <!-- Основной контейнер с градиентом -->
-    <div class="h-screen text-white overflow-hidden main-gradient relative z-10">
-        <div class="w-[1440px] mx-auto flex flex-col justify-between h-full">
-            <!-- Header -->
-            <header class="flex items-center justify-between p-8">
-                <!-- Logo -->
-                <div class="flex items-center gap-4">
-                    <svg class="w-24 h-24" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Основной контейнер с градиентным фоном -->
+    <div class="min-h-screen text-white overflow-x-hidden main-gradient relative z-10 flex flex-col">
+        <div class="max-w-[1440px] w-full mx-auto flex flex-col justify-between flex-1">
+
+            <!-- Шапка сайта -->
+            <header class="flex flex-col md:flex-row items-center justify-between p-6 md:p-8 gap-6">
+                <!-- Логотип -->
+                <div class="flex items-center gap-3 md:gap-4">
+                    <svg class="w-16 h-16 md:w-24 h-24" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <ellipse cx="50" cy="50" rx="35" ry="35" stroke="#ec4899" stroke-width="2"
                                  transform="rotate(-15 50 50)"/>
                         <line x1="20" y1="60" x2="80" y2="40" stroke="#ec4899" stroke-width="2"/>
                     </svg>
-                    <h1 class="logo-text">no alone</h1>
+                    <h1 class="logo-text text-6xl md:text-[96px]">no alone</h1>
                 </div>
 
-                <!-- Contact Info -->
-                <div class="flex items-center gap-6 text-xl">
-                    <a href="https://t.me/no_alone" class="flex items-center gap-2 hover:text-pink-400 transition">
+                <!-- Контактная информация -->
+                <div class="flex flex-col sm:flex-row items-center gap-4 md:gap-8 text-lg md:text-xl">
+                    <a href="https://t.me/no_alone" class="flex items-center gap-2 hover:text-pink-400 transition-colors duration-300">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path
-                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.67-.52.36-.99.53-1.42.52-.47-.01-1.37-.26-2.03-.48-.82-.27-1.47-.42-1.42-.88.03-.24.37-.48 1.02-.73 3.99-1.74 6.66-2.89 8-3.45 3.81-1.58 4.6-1.85 5.12-1.86.11 0 .37.03.53.16.14.11.18.26.2.37.01.08.03.29.01.45z"/>
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.67-.52.36-.99.53-1.42.52-.47-.01-1.37-.26-2.03-.48-.82-.27-1.47-.42-1.42-.88.03-.24.37-.48 1.02-.73 3.99-1.74 6.66-2.89 8-3.45 3.81-1.58 4.6-1.85 5.12-1.86.11 0 .37.03.53.16.14.11.18.26.2.37.01.08.03.29.01.45z"/>
                         </svg>
                         no_alone
                     </a>
-                    <a href="mailto:adm@na.ru" class="flex items-center gap-2 hover:text-pink-400 transition">
+                    <a href="mailto:adm@na.ru" class="flex items-center gap-2 hover:text-pink-400 transition-colors duration-300">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path
-                                d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
                         </svg>
                         adm@na.ru
                     </a>
                 </div>
             </header>
 
-            <!-- Main Content -->
-            <main class="flex-1 flex flex-col items-center justify-center pb-[10%] px-8">
+            <!-- Основной контент -->
+            <main class="flex-1 flex flex-col items-center justify-center py-10 md:pb-[12%] px-6">
 
-                <div class="scale-110 mb-10">
+                <!-- Главная кнопка -->
+                <div class="scale-75 sm:scale-90 md:scale-110 mb-10 md:mb-16 transform transition-transform">
                     <StartBtn />
                 </div>
 
+                <!-- Блок со ссылками -->
                 <div class="w-full flex justify-center">
-                    <div class="grid grid-cols-2 gap-6 w-full max-w-[600px]">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 w-full max-w-[650px]">
                         <Link
                             v-for="(link, index) in links"
                             :key="index"
                             :href="link.url"
                             class="block w-full"
                         >
-                            <!-- Добавляем динамический класс для стилизации четных/нечетных кнопок под стиль StartBtn -->
                             <button
-                                class="flex items-center gap-3 py-4 px-6 link-button w-full transition-all duration-500 ease-out group"
+                                class="flex items-center gap-4 py-4 md:py-5 px-6 link-button w-full transition-all duration-500 ease-out group"
                                 :class="index === 0 ? 'link-left' : 'link-right'"
                             >
-                                <el-icon class="text-gray-400 group-hover:text-white transition-colors text-lg">
+                                <el-icon class="text-gray-400 group-hover:text-white transition-colors text-xl">
                                     <ChatDotRound/>
                                 </el-icon>
-                                <span class="flex-1 text-left text-gray-200 group-hover:text-white font-light tracking-wide text-lg transition-colors">{{ link.text }}</span>
+                                <span class="flex-1 text-left text-gray-200 group-hover:text-white font-light tracking-widest text-base md:text-lg uppercase transition-colors">
+                                    {{ link.text }}
+                                </span>
                                 <el-icon class="text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all duration-300">
                                     <ArrowRight/>
                                 </el-icon>
@@ -88,6 +93,9 @@ const links = [
                     </div>
                 </div>
             </main>
+
+            <!-- Пустой блок для баланса flex-justify-between, если нужен футер — добавить сюда -->
+            <div class="h-8 md:h-16"></div>
         </div>
     </div>
 </template>
@@ -95,87 +103,82 @@ const links = [
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Imbue:opsz,wght@10..100,100..900&display=swap');
 
-/* Обновленный градиент по вашему запросу */
+/* Кастомный градиент фона */
 .main-gradient {
-    background: linear-gradient(180deg, rgba(255, 42, 191, 0.09) 0%, rgba(0, 0, 0, 0.56) 100%);
+    background: linear-gradient(180deg, rgba(255, 42, 191, 0.09) 0%, rgba(0, 0, 0, 0.56) 100%) fixed;
 }
 
-.circle1 {
-    width: 1000px;
-    height: 1000px;
+/* Фоновые круги */
+.circle1, .circle2, .circle3 {
     border-radius: 50%;
     background: rgba(74, 70, 200, 0.04);
-    box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.02);
+    box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.02);
     position: absolute;
-    right: -200px;
-    top: -200px;
+    right: -15%;
+    top: -10%;
 }
 
-.circle2 {
-    width: 800px;
-    height: 800px;
-    border-radius: 50%;
-    background: rgba(74, 70, 200, 0.04);
-    box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.02);
-    position: absolute;
-    right: -200px;
-    top: -200px;
+.circle1 { width: 1000px; height: 1000px; }
+.circle2 { width: 800px; height: 800px; }
+.circle3 { width: 600px; height: 600px; }
+
+@media (max-width: 1024px) {
+    .circle1 { width: 700px; height: 700px; }
+    .circle2 { width: 550px; height: 550px; }
+    .circle3 { width: 400px; height: 400px; }
 }
 
-.circle3 {
-    width: 600px;
-    height: 600px;
-    border-radius: 50%;
-    background: rgba(74, 70, 200, 0.04);
-    box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.02);
-    position: absolute;
-    right: -200px;
-    top: -200px;
+@media (max-width: 640px) {
+    .circle1 { width: 400px; height: 400px; right: -20%; }
+    .circle2 { width: 300px; height: 300px; right: -15%; }
+    .circle3 { width: 200px; height: 200px; right: -10%; }
 }
 
-/* Базовые стили для кнопок-ссылок */
+/* Стили кнопок-ссылок */
 .link-button {
-    background: rgba(20, 20, 20, 0.6);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 2px;
+    background: rgba(20, 20, 20, 0.5);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 3px;
     position: relative;
     overflow: hidden;
 }
 
-/* Левая кнопка: Розовый акцент */
+/* Левая колонка (розовое свечение) */
 .link-left {
-    background: linear-gradient(90deg, rgba(45, 20, 45, 0.3) 0%, rgba(20, 20, 20, 0.6) 100%);
-    //box-shadow: inset 2px 0 0 0 rgba(255, 42, 191, 0.2); /* Еле заметная полоска */
+    background: linear-gradient(90deg, rgba(45, 20, 45, 0.25) 0%, rgba(20, 20, 20, 0.5) 100%);
 }
 
 .link-left:hover {
-    background: linear-gradient(90deg, rgba(55, 25, 55, 0.5) 0%, rgba(25, 25, 25, 0.7) 100%);
-    border-color: rgba(255, 42, 191, 0.4); /* Рамка подсвечивается */
-    box-shadow: inset 2px 0 15px rgba(255, 42, 191, 0.15), 0 0 20px rgba(255, 42, 191, 0.1); /* Мягкое свечение */
+    border-color: rgba(255, 42, 191, 0.35);
+    box-shadow: inset 2px 0 20px rgba(255, 42, 191, 0.12), 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
-/* Правая кнопка: Бирюзовый акцент */
+/* Правая колонка (бирюзовое свечение) */
 .link-right {
-    background: linear-gradient(90deg, rgba(20, 20, 20, 0.6) 0%, rgba(20, 35, 35, 0.3) 100%);
-    //box-shadow: inset -2px 0 0 0 rgba(42, 255, 220, 0.2); /* Еле заметная полоска */
+    background: linear-gradient(90deg, rgba(20, 20, 20, 0.5) 0%, rgba(20, 35, 35, 0.25) 100%);
 }
 
 .link-right:hover {
-    background: linear-gradient(90deg, rgba(25, 25, 25, 0.7) 0%, rgba(25, 45, 45, 0.5) 100%);
-    border-color: rgba(42, 255, 220, 0.4); /* Рамка подсвечивается */
-    box-shadow: inset -2px 0 15px rgba(42, 255, 220, 0.15), 0 0 20px rgba(42, 255, 220, 0.1); /* Мягкое свечение */
+    border-color: rgba(42, 255, 220, 0.35);
+    box-shadow: inset -2px 0 20px rgba(42, 255, 220, 0.12), 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
-/* Общий эффект приподнимания */
 .link-button:hover {
-    transform: translateY(-2px);
+    transform: translateY(-3px);
 }
 
+/* Логотип */
 .logo-text {
     font-family: "Imbue", serif;
-    font-size: 96px;
     color: #C8467E;
-    text-shadow: 0 0 20px rgba(200, 70, 126, 0.3);
+    text-shadow: 0 0 30px rgba(200, 70, 126, 0.25);
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+}
+
+/* Плавный скролл и оптимизация */
+html {
+    scroll-behavior: smooth;
 }
 </style>
