@@ -95,6 +95,9 @@ onUnmounted(() => {
                     class="site-modal-sheet"
                     :class="variant === 'pink' ? 'site-modal-pink' : 'site-modal-cyan'"
                 >
+                    <!-- Mobile drag handle -->
+                    <div class="site-modal-handle" />
+
                     <!-- Close button -->
                     <button
                         v-if="closeable"
@@ -137,7 +140,7 @@ onUnmounted(() => {
     top: 50%;
     left: 50%;
     transform: translateX(-50%) translateY(-50%);
-    width: 40%;
+    width: 60%;
     height: 80%;
     max-height: 90vh;
     background: linear-gradient(160deg, rgb(18, 13, 22) 0%, rgb(8, 8, 12) 100%);
@@ -150,7 +153,15 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
     .site-modal-sheet {
-        width: 92%;
+        top: auto;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 88svh;
+        max-height: 88svh;
+        transform: none;
+        border-radius: 16px 16px 0 0;
     }
 }
 
@@ -166,6 +177,22 @@ onUnmounted(() => {
         0 -20px 60px rgba(42, 255, 220, 0.06),
         0 -1px 0 rgba(42, 255, 220, 0.18);
     border-top-color: rgba(42, 255, 220, 0.18);
+}
+
+.site-modal-handle {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .site-modal-handle {
+        display: block;
+        width: 36px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.18);
+        border-radius: 2px;
+        margin: 0.6rem auto 0;
+        flex-shrink: 0;
+    }
 }
 
 .site-modal-close {
@@ -202,6 +229,13 @@ onUnmounted(() => {
     padding-top: 1.5rem;
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+@media (max-width: 768px) {
+    .site-modal-body {
+        padding: 1.25rem;
+        padding-top: 1rem;
+    }
 }
 
 .site-modal-body::-webkit-scrollbar {
@@ -253,11 +287,13 @@ onUnmounted(() => {
 @media (max-width: 768px) {
     .sheet-enter-from,
     .sheet-leave-to {
-        transform: translateX(-50%) translateY(calc(-50% + 60px));
+        transform: translateY(100%);
+        opacity: 1;
     }
     .sheet-enter-to,
     .sheet-leave-from {
-        transform: translateX(-50%) translateY(-50%);
+        transform: translateY(0);
+        opacity: 1;
     }
 }
 </style>
