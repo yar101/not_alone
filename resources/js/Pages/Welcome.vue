@@ -1,16 +1,9 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
-import { ChatDotRound, ArrowRight } from '@element-plus/icons-vue';
+import { ref } from 'vue';
 import StartBtn from "@/Components/Site/StartBtn.vue";
+import FirstModal from "@/Components/Site/FirstModal.vue";
 
-/**
- * Список ссылок для навигации.
- * Исправлена структура для обеспечения стабильной компиляции.
- */
-const links = [
-    { text: 'Ссылка куда-то', url: '/link1' },
-    { text: 'Ссылка куда-то', url: '/link2' }
-];
+const showFirstModal = ref(false);
 </script>
 
 <template>
@@ -66,36 +59,25 @@ const links = [
             <main class="flex-1 flex flex-col items-center justify-center py-10 md:pb-[12%] px-6">
 
                 <!-- Главная кнопка (START) -->
-                <div class="scale-110 sm:scale-105 md:scale-125 mb-14 md:mb-16 transform transition-transform">
+                <div class="scale-110 sm:scale-105 backdrop-blur md:scale-125 mb-14 md:mb-16 transform transition-transform">
                     <StartBtn />
                 </div>
 
-                <!-- Блок со ссылками -->
+                <!-- Кнопка модалки -->
                 <div class="w-full flex justify-center">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-8 w-full max-w-[600px]">
-                        <Link
-                            v-for="(link, index) in links"
-                            :key="index"
-                            :href="link.url"
-                            class="block w-full"
+                    <div class="w-full max-w-[550px]">
+                        <button
+                            class="flex items-center justify-center gap-4 py-3.5 md:py-4 px-4 md:px-6 link-button w-full transition-all duration-500 ease-out group link-left"
+                            @click="showFirstModal = true"
                         >
-                            <button
-                                class="flex items-center gap-4 py-3.5 md:py-4 px-4 md:px-6 link-button w-full transition-all duration-500 ease-out group"
-                                :class="index === 0 ? 'link-left' : 'link-right'"
-                            >
-                                <el-icon class="text-gray-400 group-hover:text-white transition-colors text-sm md:text-xl">
-                                    <ChatDotRound/>
-                                </el-icon>
-                                <span class="flex-1 text-left text-gray-200 group-hover:text-white text-[18px] md:text-[20px] transition-colors">
-                                    {{ link.text }}
-                                </span>
-                                <el-icon class="text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all duration-300">
-                                    <ArrowRight/>
-                                </el-icon>
-                            </button>
-                        </Link>
+                            <span class="text-gray-200 group-hover:text-white transition-colors">
+                                FAQ
+                            </span>
+                        </button>
                     </div>
                 </div>
+
+                <FirstModal :show="showFirstModal" @close="showFirstModal = false" />
             </main>
 
             <!-- Балансировочный отступ -->
@@ -146,6 +128,13 @@ const links = [
     border-radius: 3px;
     position: relative;
     overflow: hidden;
+
+    font-family: "Imbue", serif;
+    color: #C8467E;
+    text-shadow: 0 0 30px rgba(200, 70, 126, 0.25);
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+    font-size: 42px;
 }
 
 .link-left {
