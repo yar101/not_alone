@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref, shallowRef } from 'vue';
 import {
     QuestionFilled,
     User,
@@ -166,7 +166,10 @@ const faqCategories = [
     },
 ];
 
-const activeCategory = ref(faqCategories[0]);
+const activeCategory = shallowRef(faqCategories[0]);
+const activeIndex = computed(() =>
+    faqCategories.findIndex((c) => c === activeCategory.value) + 1,
+);
 
 function setCategory(cat) {
     activeCategory.value = cat;
@@ -176,8 +179,10 @@ function setCategory(cat) {
 <template>
     <SiteModal :show="show" variant="pink" @close="emit('close')">
         <div class="faq-layout">
-            <!-- Sidebar (desktop) / Tab bar (mobile) -->
+
+            <!-- ── Sidebar ── -->
             <nav class="faq-sidebar">
+                <div class="faq-sidebar__label">Разделы</div>
                 <FaqItem
                     v-for="cat in faqCategories"
                     :key="cat.id"
@@ -191,14 +196,19 @@ function setCategory(cat) {
                 </FaqItem>
             </nav>
 
-            <!-- Divider (desktop only) -->
+            <!-- ── Divider ── -->
             <div class="faq-divider" />
 
-            <!-- Content panel -->
+            <!-- ── Content ── -->
             <div class="faq-content">
                 <Transition name="panel-fade" mode="out-in">
                     <div :key="activeCategory.id" class="faq-content-inner">
-                        <h3 class="faq-content__title">{{ activeCategory.title }}</h3>
+                        <div class="faq-content__header">
+                            <span class="faq-content__counter">
+                                {{ String(activeIndex).padStart(2, '0') }} / {{ String(faqCategories.length).padStart(2, '0') }}
+                            </span>
+                            <h3 class="faq-content__title">{{ activeCategory.title }}</h3>
+                        </div>
                         <div class="faq-accordions">
                             <FaqDetail
                                 v-for="item in activeCategory.questions"
@@ -210,11 +220,14 @@ function setCategory(cat) {
                     </div>
                 </Transition>
             </div>
+
         </div>
     </SiteModal>
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Imbue:opsz,wght@10..100,100;10..100,200;10..100,300&display=swap');
+
 .faq-layout {
     display: flex;
     flex-direction: row;
@@ -225,31 +238,53 @@ function setCategory(cat) {
 
 /* ── Sidebar ─────────────────────────────────── */
 .faq-sidebar {
-    width: 38%;
+    width: 37%;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.15rem;
+    gap: 0.1rem;
     overflow-y: auto;
-    padding: 0.25rem 0;
+    padding: 0 0 0.5rem;
+    background: linear-gradient(
+        180deg,
+        rgba(200, 70, 126, 0.06) 0%,
+        rgba(200, 70, 126, 0.02) 40%,
+        transparent 100%
+    );
+    border-radius: 8px 0 0 8px;
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+    scrollbar-color: rgba(255, 255, 255, 0.06) transparent;
 }
 
-.faq-sidebar::-webkit-scrollbar {
-    width: 3px;
-}
+.faq-sidebar::-webkit-scrollbar { width: 3px; }
 .faq-sidebar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.06);
     border-radius: 2px;
+}
+
+.faq-sidebar__label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(200, 70, 126, 0.45);
+    padding: 0.5rem 0.9rem;
+    margin-bottom: 0.15rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 /* ── Divider ─────────────────────────────────── */
 .faq-divider {
     width: 1px;
-    background: rgba(255, 255, 255, 0.07);
     flex-shrink: 0;
-    margin: 0 0.5rem;
+    margin: 0 0.6rem;
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(255, 255, 255, 0.08) 15%,
+        rgba(255, 255, 255, 0.08) 85%,
+        transparent
+    );
 }
 
 /* ── Content ─────────────────────────────────── */
@@ -258,27 +293,44 @@ function setCategory(cat) {
     overflow-y: auto;
     min-width: 0;
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+    scrollbar-color: rgba(255, 255, 255, 0.06) transparent;
 }
 
-.faq-content::-webkit-scrollbar {
-    width: 3px;
-}
+.faq-content::-webkit-scrollbar { width: 3px; }
 .faq-content::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.06);
     border-radius: 2px;
 }
 
 .faq-content-inner {
-    padding: 0.25rem 0.5rem 0.5rem;
+    padding: 0 0.5rem 0.5rem;
+}
+
+.faq-content__header {
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.faq-content__counter {
+    display: block;
+    font-family: 'Courier New', 'Courier', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    color: rgba(200, 70, 126, 0.55);
+    margin-bottom: 0.3rem;
 }
 
 .faq-content__title {
-    font-size: 1rem;
-    font-weight: 400;
-    color: rgba(255, 255, 255, 0.9);
-    margin-bottom: 0.75rem;
+    font-family: 'Imbue', serif;
+    font-size: 1.55rem;
+    font-weight: 200;
     letter-spacing: 0.02em;
+    line-height: 1.2;
+    color: rgba(255, 255, 255, 0.92);
+    text-shadow:
+        0 0 25px rgba(200, 70, 126, 0.35),
+        0 0 60px rgba(200, 70, 126, 0.15);
 }
 
 .faq-accordions {
@@ -286,69 +338,46 @@ function setCategory(cat) {
     flex-direction: column;
 }
 
-/* ── Panel fade transition ───────────────────── */
+.faq-cat-icon {
+    width: 16px;
+    height: 16px;
+}
+
+/* ── Panel fade ──────────────────────────────── */
 .panel-fade-enter-active,
 .panel-fade-leave-active {
-    transition: opacity 0.16s ease, transform 0.16s ease;
+    transition: opacity 0.18s ease, transform 0.18s ease;
 }
-
 .panel-fade-leave-to {
     opacity: 0;
-    transform: translateX(-8px);
+    transform: translateX(-10px);
 }
-
 .panel-fade-enter-from {
     opacity: 0;
-    transform: translateX(8px);
-}
-
-.faq-cat-icon {
-    width: 18px;
-    height: 18px;
-}
-
-@media (min-width: 1440px) {
-    .faq-cat-icon {
-        width: 22px;
-        height: 22px;
-    }
-}
-
-@media (min-width: 2000px) {
-    .faq-cat-icon {
-        width: 24px;
-        height: 24px;
-    }
+    transform: translateX(10px);
 }
 
 /* ── Large screens ───────────────────────────── */
 @media (min-width: 1440px) {
-    .faq-content__title {
-        font-size: 1.2rem;
-        margin-bottom: 1rem;
-    }
-
-    .faq-divider {
-        margin: 0 0.75rem;
-    }
+    .faq-cat-icon { width: 19px; height: 19px; }
+    .faq-content__title { font-size: 1.85rem; }
+    .faq-content__counter { font-size: 0.72rem; }
+    .faq-sidebar__label { font-size: 0.68rem; }
+    .faq-divider { margin: 0 0.85rem; }
 }
 
 @media (min-width: 2000px) {
-    .faq-content__title {
-        font-size: 1.35rem;
-        margin-bottom: 1.2rem;
-    }
-
-    .faq-divider {
-        margin: 0 1rem;
-    }
+    .faq-cat-icon { width: 22px; height: 22px; }
+    .faq-content__title { font-size: 2.1rem; }
+    .faq-content__counter { font-size: 0.78rem; }
+    .faq-divider { margin: 0 1rem; }
 }
 
 /* ── Mobile ──────────────────────────────────── */
 @media (max-width: 767px) {
     .faq-layout {
         flex-direction: column;
-        gap: 1rem;
+        gap: 0.75rem;
     }
 
     .faq-sidebar {
@@ -357,25 +386,24 @@ function setCategory(cat) {
         flex-shrink: 0;
         overflow-x: auto;
         overflow-y: hidden;
-        gap: 0.5rem;
-        padding: 0.25rem 0;
+        gap: 0.45rem;
+        padding: 0.15rem 0 0.35rem;
+        background: none;
+        border-radius: 0;
         scrollbar-width: none;
     }
 
-    .faq-sidebar::-webkit-scrollbar {
-        display: none;
-    }
+    .faq-sidebar::-webkit-scrollbar { display: none; }
+    .faq-sidebar__label { display: none; }
+    .faq-divider { display: none; }
 
-    .faq-divider {
-        display: none;
-    }
+    .faq-content { flex: 1; }
 
-    .faq-content {
-        flex: 1;
-    }
+    .faq-content-inner { padding: 0; }
 
-    .faq-content-inner {
-        padding: 0;
+    .faq-content__title {
+        font-size: 1.25rem;
+        text-shadow: 0 0 18px rgba(200, 70, 126, 0.3);
     }
 }
 </style>
