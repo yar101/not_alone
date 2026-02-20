@@ -1,7 +1,6 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useForm, usePage, router } from '@inertiajs/vue3';
-import { computed } from 'vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 
 const props = defineProps({
@@ -36,13 +35,48 @@ function submitLogin() {
 const registerForm = useForm({
     name: '',
     gender: '',
-    age: '',
+    birth_date: '',
     email: '',
     password: '',
     password_confirmation: '',
 });
 
+// ── Birth date selects ─────────────────────────────────────
+const bdDay   = ref('');
+const bdMonth = ref('');
+const bdYear  = ref('');
+
+const currentYear = new Date().getFullYear();
+
+const monthNames = [
+    'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
+];
+
+const yearOptions = computed(() => {
+    const years = [];
+    for (let y = currentYear - 18; y >= currentYear - 100; y--) {
+        years.push(y);
+    }
+    return years;
+});
+
+const dayOptions = computed(() => {
+    if (!bdMonth.value) return Array.from({ length: 31 }, (_, i) => i + 1);
+    const month = parseInt(bdMonth.value);
+    const year  = bdYear.value ? parseInt(bdYear.value) : 2000;
+    const days  = new Date(year, month, 0).getDate();
+    return Array.from({ length: days }, (_, i) => i + 1);
+});
+
 function submitRegister() {
+    if (bdDay.value && bdMonth.value && bdYear.value) {
+        const mm = String(bdMonth.value).padStart(2, '0');
+        const dd = String(bdDay.value).padStart(2, '0');
+        registerForm.birth_date = `${bdYear.value}-${mm}-${dd}`;
+    } else {
+        registerForm.birth_date = '';
+    }
     registerForm.post(route('register'), {
         onFinish: () => registerForm.reset('password', 'password_confirmation'),
     });
@@ -212,20 +246,37 @@ function submitRegister() {
                     </div>
 
                     <div class="auth-field">
-                        <label class="auth-field-label">Возраст</label>
-                        <input
-                            v-model="registerForm.age"
-                            type="number"
-                            min="18"
-                            max="120"
-                            class="auth-input"
-                            :class="{ 'auth-input--error': registerForm.errors.age }"
-                            placeholder="18"
-                        />
+                        <label class="auth-field-label">Дата рождения</label>
+                        <div class="auth-dob-group">
+                            <select
+                                v-model="bdDay"
+                                class="auth-select"
+                                :class="{ 'auth-input--error': registerForm.errors.birth_date }"
+                            >
+                                <option value="" disabled>День</option>
+                                <option v-for="d in dayOptions" :key="d" :value="d">{{ d }}</option>
+                            </select>
+                            <select
+                                v-model="bdMonth"
+                                class="auth-select"
+                                :class="{ 'auth-input--error': registerForm.errors.birth_date }"
+                            >
+                                <option value="" disabled>Месяц</option>
+                                <option v-for="(name, idx) in monthNames" :key="idx + 1" :value="idx + 1">{{ name }}</option>
+                            </select>
+                            <select
+                                v-model="bdYear"
+                                class="auth-select"
+                                :class="{ 'auth-input--error': registerForm.errors.birth_date }"
+                            >
+                                <option value="" disabled>Год</option>
+                                <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
+                            </select>
+                        </div>
                         <Transition name="err-fade">
-                            <p v-show="registerForm.errors.age" class="auth-error">
+                            <p v-show="registerForm.errors.birth_date" class="auth-error">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                {{ registerForm.errors.age }}
+                                {{ registerForm.errors.birth_date }}
                             </p>
                         </Transition>
                     </div>
@@ -445,13 +496,42 @@ function submitRegister() {
     border-color: rgba(200, 70, 126, 0.6);
 }
 
-/* Remove number spinner arrows */
-.auth-input[type="number"]::-webkit-inner-spin-button,
-.auth-input[type="number"]::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
+/* ── Date of birth selects ────────────────────────────── */
+.auth-dob-group {
+    display: flex;
+    gap: 0.5rem;
 }
-.auth-input[type="number"] { -moz-appearance: textfield; }
+
+.auth-select {
+    flex: 1;
+    min-width: 0;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 0.72rem 0.5rem;
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 0.9rem;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    font-family: inherit;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='rgba(255,255,255,0.3)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    padding-right: 1.5rem;
+}
+
+.auth-select:focus {
+    border-color: rgba(200, 70, 126, 0.45);
+    box-shadow: 0 0 0 3px rgba(200, 70, 126, 0.08);
+}
+
+.auth-select option {
+    background: #1a1a2e;
+    color: rgba(255, 255, 255, 0.88);
+}
 
 /* ── Error messages ───────────────────────────────────── */
 .auth-error {

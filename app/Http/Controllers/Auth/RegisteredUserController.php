@@ -31,19 +31,19 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'name'     => ['required', 'string', 'max:100', 'regex:/^\p{L}+(\s\p{L}+)?$/u'],
-            'gender'   => ['required', 'in:male,female,other'],
-            'age'      => ['required', 'integer', 'min:18', 'max:120'],
-            'email'    => 'required|string|lowercase|email|max:255|unique:' . User::class,
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'name'       => ['required', 'string', 'max:100', 'regex:/^\p{L}+(\s\p{L}+)?$/u'],
+            'gender'     => ['required', 'in:male,female,other'],
+            'birth_date' => ['required', 'date', 'before:' . now()->subYears(18)->toDateString()],
+            'email'      => 'required|string|lowercase|email|max:255|unique:' . User::class,
+            'password'   => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
         $user = User::create([
-            'name'     => $request->name,
-            'gender'   => $request->gender,
-            'age'      => $request->age,
-            'email'    => $request->email,
-            'password' => Hash::make($request->password),
+            'name'       => $request->name,
+            'gender'     => $request->gender,
+            'birth_date' => $request->birth_date,
+            'email'      => $request->email,
+            'password'   => Hash::make($request->password),
         ]);
 
         event(new Registered($user));
