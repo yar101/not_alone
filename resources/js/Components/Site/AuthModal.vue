@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { useForm, usePage, router } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 
 const props = defineProps({
@@ -8,6 +9,9 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
+
+const page = usePage();
+const authUser = computed(() => page.props.auth?.user ?? null);
 
 const tab = ref('login');
 
@@ -48,8 +52,29 @@ function submitRegister() {
 <template>
     <SiteModal :show="show" variant="pink" :compact="true" @close="emit('close')">
         <div class="auth-modal">
-            <!-- Tab switcher -->
-            <div class="auth-tabs">
+            <!-- Already logged in -->
+            <Transition name="tab-slide" mode="out-in">
+                <div v-if="authUser" class="auth-known-user">
+                    <div class="auth-known-avatar">
+                        {{ authUser.email.charAt(0).toUpperCase() }}
+                    </div>
+                    <p class="auth-known-greeting">Добро пожаловать</p>
+                    <p class="auth-known-email">{{ authUser.email }}</p>
+                    <a :href="route('dashboard')" class="auth-submit auth-known-continue">
+                        Продолжить
+                    </a>
+                    <button
+                        type="button"
+                        class="auth-known-logout"
+                        @click="router.post(route('logout'))"
+                    >
+                        Выйти из аккаунта
+                    </button>
+                </div>
+
+                <!-- Tab switcher (shown only when not logged in) -->
+                <div v-else class="auth-tabs-wrapper">
+                    <div class="auth-tabs">
                 <button
                     class="auth-tab"
                     :class="{ 'auth-tab--active': tab === 'login' }"
@@ -273,6 +298,8 @@ function submitRegister() {
                     </p>
                 </form>
             </Transition>
+                </div><!-- /.auth-tabs-wrapper -->
+            </Transition>
         </div>
     </SiteModal>
 </template>
@@ -286,6 +313,68 @@ function submitRegister() {
     gap: 1.25rem;
 }
 
+/* ── Already logged in ────────────────────────────────── */
+.auth-known-user {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 1rem 0 0.5rem;
+    text-align: center;
+}
+
+.auth-known-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(200, 70, 126, 0.35), rgba(200, 70, 126, 0.1));
+    border: 1px solid rgba(200, 70, 126, 0.4);
+    box-shadow: 0 0 20px rgba(200, 70, 126, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 0.4rem;
+}
+
+.auth-known-greeting {
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(200, 70, 126, 0.55);
+    margin: 0;
+}
+
+.auth-known-email {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.85);
+    margin: 0 0 0.6rem;
+}
+
+.auth-known-continue {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    margin-top: 0.25rem;
+}
+
+.auth-known-logout {
+    background: none;
+    border: none;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.25);
+    cursor: pointer;
+    font-family: inherit;
+    transition: color 0.2s ease;
+    padding: 0.25rem 0;
+}
+
+.auth-known-logout:hover {
+    color: rgba(220, 100, 140, 0.7);
+}
+
 /* ── Tab switcher ──────────────────────────────────────── */
 .auth-tabs {
     display: flex;
@@ -293,6 +382,7 @@ function submitRegister() {
     background: rgba(255, 255, 255, 0.03);
     border-radius: 10px;
     padding: 4px;
+    margin-bottom: 0.5rem;
 }
 
 .auth-tab {
