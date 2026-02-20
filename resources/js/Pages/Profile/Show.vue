@@ -5,20 +5,19 @@ import ProfileHeader from '@/Components/Profile/ProfileHeader.vue';
 import ProfileAbout from '@/Components/Profile/ProfileAbout.vue';
 import ProfileTraits from '@/Components/Profile/ProfileTraits.vue';
 import ProfileInterests from '@/Components/Profile/ProfileInterests.vue';
-import ProfileVoice from '@/Components/Profile/ProfileVoice.vue';
 import ProfileLanguages from '@/Components/Profile/ProfileLanguages.vue';
 import ProfileChecklist from '@/Components/Profile/ProfileChecklist.vue';
+import ProfilePinnedCard from '@/Components/Profile/ProfilePinnedCard.vue';
+import ProfilePosts from '@/Components/Profile/ProfilePosts.vue';
 
 const props = defineProps({
-    profileUser:  { type: Object, required: true },
-    isOwner:      { type: Boolean, default: false },
-    allTraits:    { type: Array, default: () => [] },
+    profileUser:   { type: Object, required: true },
+    isOwner:       { type: Boolean, default: false },
+    allTraits:     { type: Array, default: () => [] },
     allCategories: { type: Array, default: () => [] },
 });
 
-const checklistVisible = computed(() =>
-    props.isOwner && !props.profileUser.checklist_snoozed
-);
+const checklistVisible = computed(() => props.isOwner);
 
 // ── driver.js Tour ─────────────────────────────────────────
 const TOUR_KEY = 'profile_tour_done';
@@ -80,7 +79,7 @@ onMounted(async () => {
                 element: '#tour-checklist',
                 popover: {
                     title: 'Чеклист',
-                    description: 'Отслеживай прогресс заполнения профиля. Можно скрыть когда надоест.',
+                    description: 'Отслеживай прогресс заполнения профиля.',
                     side: 'top',
                 },
             }] : []),
@@ -100,43 +99,70 @@ onMounted(async () => {
 
     <div class="page-wrap">
         <div class="profile-container">
-            <ProfileHeader
-                :user="profileUser"
-                :is-owner="isOwner"
-            />
+            <!-- Full-width header -->
+            <div class="header-row anim-card" style="--anim-i: 0">
+                <ProfileHeader
+                    :user="profileUser"
+                    :is-owner="isOwner"
+                    :voice-url="profileUser.voice_url"
+                />
+            </div>
 
-            <ProfileAbout
-                :about="profileUser.about"
-                :is-owner="isOwner"
-            />
+            <!-- Two-column grid -->
+            <div class="profile-grid">
+                <!-- Sidebar -->
+                <aside class="profile-sidebar">
+                    <div class="anim-card" style="--anim-i: 1">
+                        <ProfileChecklist
+                            v-if="checklistVisible"
+                            :user="profileUser"
+                        />
+                    </div>
+                    <div class="anim-card" style="--anim-i: 2">
+                        <ProfileLanguages
+                            :languages="profileUser.languages"
+                            :is-owner="isOwner"
+                        />
+                    </div>
+                    <div class="anim-card" style="--anim-i: 3">
+                        <ProfileTraits
+                            :traits="profileUser.traits"
+                            :all-traits="allTraits"
+                            :is-owner="isOwner"
+                            :gender="profileUser.gender"
+                        />
+                    </div>
+                    <div class="anim-card" style="--anim-i: 4">
+                        <ProfileInterests
+                            :interests="profileUser.interests"
+                            :all-categories="allCategories"
+                            :is-owner="isOwner"
+                        />
+                    </div>
+                </aside>
 
-            <ProfileTraits
-                :traits="profileUser.traits"
-                :all-traits="allTraits"
-                :is-owner="isOwner"
-                :gender="profileUser.gender"
-            />
-
-            <ProfileInterests
-                :interests="profileUser.interests"
-                :all-categories="allCategories"
-                :is-owner="isOwner"
-            />
-
-            <ProfileVoice
-                :voice-url="profileUser.voice_url"
-                :is-owner="isOwner"
-            />
-
-            <ProfileLanguages
-                :languages="profileUser.languages"
-                :is-owner="isOwner"
-            />
-
-            <ProfileChecklist
-                v-if="checklistVisible"
-                :user="profileUser"
-            />
+                <!-- Main column -->
+                <main class="profile-main">
+                    <div class="anim-card" style="--anim-i: 1">
+                        <ProfileAbout
+                            :about="profileUser.about"
+                            :is-owner="isOwner"
+                        />
+                    </div>
+                    <div class="anim-card" style="--anim-i: 2">
+                        <ProfilePinnedCard
+                            :user="profileUser"
+                            :is-owner="isOwner"
+                        />
+                    </div>
+                    <div class="anim-card" style="--anim-i: 3">
+                        <ProfilePosts
+                            :posts="profileUser.posts"
+                            :is-owner="isOwner"
+                        />
+                    </div>
+                </main>
+            </div>
         </div>
     </div>
 </template>
@@ -183,6 +209,17 @@ onMounted(async () => {
 .driver-popover-arrow-side-right.driver-popover-arrow { border-right-color: #16162a !important; }
 .driver-popover-arrow-side-top.driver-popover-arrow   { border-top-color: #16162a !important; }
 .driver-popover-arrow-side-bottom.driver-popover-arrow{ border-bottom-color: #16162a !important; }
+
+/* Fade-in animation */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.anim-card {
+    animation: fadeInUp 0.45s ease both;
+    animation-delay: calc(var(--anim-i, 0) * 0.07s);
+}
 </style>
 
 <style scoped>
@@ -195,10 +232,41 @@ onMounted(async () => {
 }
 
 .profile-container {
-    max-width: 680px;
+    max-width: 960px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: 1rem;
+}
+
+.header-row { width: 100%; }
+
+.profile-grid {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 1rem;
+    align-items: start;
+}
+
+.profile-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.profile-main {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+@media (max-width: 900px) {
+    .profile-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Mobile order: main first, then sidebar */
+    .profile-sidebar { order: 2; }
+    .profile-main    { order: 1; }
 }
 </style>

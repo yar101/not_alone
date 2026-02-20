@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { VideoPlay, VideoPause, Close, Microphone } from '@element-plus/icons-vue';
 
 const props = defineProps({
     voiceUrl: { type: String, default: null },
@@ -121,12 +122,12 @@ onUnmounted(() => {
                 @ended="onEnded"
             />
             <button class="play-btn" @click="togglePlay">
-                {{ playing ? '⏸' : '▶' }}
+                <el-icon><component :is="playing ? VideoPause : VideoPlay" /></el-icon>
             </button>
             <div class="progress-bar">
                 <div class="progress-fill" :style="{ width: progress + '%' }" />
             </div>
-            <button v-if="isOwner" class="delete-btn" @click="deleteVoice" title="Удалить">✕</button>
+            <button v-if="isOwner" class="delete-btn" @click="deleteVoice" title="Удалить"><el-icon><Close /></el-icon></button>
         </div>
 
         <!-- Owner recording UI -->
@@ -135,7 +136,7 @@ onUnmounted(() => {
                 Запишите голосовое приветствие до {{ MAX_SECONDS }} секунд
             </p>
             <button v-if="!recording" class="record-btn" @click="startRecording">
-                🎙 Начать запись
+                <el-icon><Microphone /></el-icon> Начать запись
             </button>
             <div v-else class="recording-active">
                 <div class="rec-dot" />
@@ -147,7 +148,7 @@ onUnmounted(() => {
         <!-- Owner re-record when voice exists -->
         <div v-if="isOwner && voiceUrl" class="rerecord-row">
             <button v-if="!recording" class="rerecord-btn" @click="startRecording">
-                🎙 Перезаписать
+                <el-icon><Microphone /></el-icon> Перезаписать
             </button>
             <div v-else class="recording-active">
                 <div class="rec-dot" />
@@ -166,6 +167,13 @@ onUnmounted(() => {
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.07);
     border-radius: 16px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    cursor: default;
+}
+.block-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.12);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.35), 0 0 0 1px rgba(200,70,126,0.06);
 }
 .block-header { margin-bottom: 0.75rem; }
 .block-title { font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(200,70,126,0.6); margin: 0; }

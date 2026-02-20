@@ -32,7 +32,7 @@ function submit() {
         </div>
 
         <p v-if="about" class="about-text">{{ about }}</p>
-        <p v-else-if="isOwner" class="about-empty">Расскажи о себе — нажми ✏️ чтобы добавить</p>
+        <p v-else-if="isOwner" class="about-empty">Расскажи о себе — нажми <el-icon class="inline-icon"><Edit /></el-icon> чтобы добавить</p>
         <p v-else class="about-empty">Пользователь пока ничего не написал</p>
 
         <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
@@ -60,6 +60,13 @@ function submit() {
     border: 1px solid rgba(255,255,255,0.07);
     border-radius: 16px;
     position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    cursor: default;
+}
+.block-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.12);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.35), 0 0 0 1px rgba(200,70,126,0.06);
 }
 .block-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; min-height: 1.5rem; }
 .block-title { font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(200,70,126,0.6); margin: 0; }
@@ -74,7 +81,8 @@ function submit() {
 .block-card:hover .edit-btn { opacity: 1; }
 .edit-btn:hover { color: rgba(200,70,126,0.9); background: rgba(200,70,126,0.1); }
 .about-text { color: rgba(255,255,255,0.8); font-size: 0.95rem; line-height: 1.65; margin: 0; white-space: pre-wrap; }
-.about-empty { color: rgba(255,255,255,0.25); font-size: 0.9rem; font-style: italic; margin: 0; }
+.about-empty { color: rgba(255,255,255,0.25); font-size: 0.9rem; font-style: italic; margin: 0; display: flex; align-items: center; gap: 0.25rem; flex-wrap: wrap; }
+.inline-icon { font-size: 0.9rem; vertical-align: middle; }
 
 .edit-form { padding: 0.5rem 0.25rem; }
 .edit-title { font-size: 1.1rem; font-weight: 600; color: rgba(255,255,255,0.9); margin: 0 0 1rem; }

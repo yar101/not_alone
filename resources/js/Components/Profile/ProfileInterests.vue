@@ -149,6 +149,13 @@ function openEdit() {
     border: 1px solid rgba(255,255,255,0.07);
     border-radius: 16px;
     position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    cursor: default;
+}
+.block-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.12);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.35), 0 0 0 1px rgba(200,70,126,0.06);
 }
 .block-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; min-height: 1.5rem; }
 .block-title { font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(200,70,126,0.6); margin: 0; }
@@ -169,6 +176,11 @@ function openEdit() {
     padding: 0.3rem 0.75rem; border-radius: 20px;
     background: rgba(200,70,126,0.1); border: 1px solid rgba(200,70,126,0.25);
     color: rgba(255,255,255,0.8); font-size: 0.85rem;
+    transition: transform 0.15s, border-color 0.15s;
+}
+.tag:hover {
+    transform: scale(1.06);
+    border-color: rgba(200,70,126,0.5);
 }
 .empty { color: rgba(255,255,255,0.25); font-size: 0.9rem; font-style: italic; margin: 0; }
 

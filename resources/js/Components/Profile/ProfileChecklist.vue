@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { Check, Minus, Trophy } from '@element-plus/icons-vue';
 
 const props = defineProps({
     user: { type: Object, required: true },
@@ -18,16 +18,6 @@ const items = computed(() => [
 const doneCount = computed(() => items.value.filter(i => i.done).length);
 const allDone = computed(() => doneCount.value === items.value.length);
 const pct = computed(() => Math.round((doneCount.value / items.value.length) * 100));
-
-const form = useForm({ snooze: '' });
-
-function snooze(type) {
-    form.snooze = type;
-    form.patch(route('profile.update.checklist'), {
-        preserveState: true,
-        preserveScroll: true,
-    });
-}
 </script>
 
 <template>
@@ -44,18 +34,12 @@ function snooze(type) {
 
         <ul class="checklist-items">
             <li v-for="item in items" :key="item.key" class="checklist-item" :class="{ done: item.done }">
-                <span class="item-icon">{{ item.done ? '✓' : '○' }}</span>
+                <el-icon class="item-icon"><component :is="item.done ? Check : Minus" /></el-icon>
                 <span class="item-label">{{ item.label }}</span>
             </li>
         </ul>
 
-        <div v-if="!allDone" class="checklist-dismiss">
-            <span class="dismiss-label">Скрыть на:</span>
-            <button class="dismiss-btn" @click="snooze('day')">1 день</button>
-            <button class="dismiss-btn" @click="snooze('week')">1 неделю</button>
-            <button class="dismiss-btn dismiss-btn--forever" @click="snooze('forever')">навсегда</button>
-        </div>
-        <p v-else class="checklist-complete">🎉 Профиль заполнен полностью!</p>
+        <p v-if="allDone" class="checklist-complete"><el-icon class="trophy-icon"><Trophy /></el-icon> Профиль заполнен полностью!</p>
     </div>
 </template>
 
@@ -65,6 +49,13 @@ function snooze(type) {
     background: rgba(200,70,126,0.05);
     border: 1px solid rgba(200,70,126,0.2);
     border-radius: 16px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    cursor: default;
+}
+.checklist-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(200,70,126,0.35);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.35), 0 0 0 1px rgba(200,70,126,0.08);
 }
 .checklist-header { margin-bottom: 1rem; }
 .checklist-title-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
@@ -75,20 +66,11 @@ function snooze(type) {
 
 .checklist-items { list-style: none; padding: 0; margin: 0 0 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
 .checklist-item { display: flex; align-items: center; gap: 0.6rem; }
-.item-icon { font-size: 0.85rem; width: 16px; text-align: center; transition: color 0.2s; color: rgba(255,255,255,0.25); }
+.item-icon { font-size: 0.85rem; width: 16px; flex-shrink: 0; transition: color 0.2s; color: rgba(255,255,255,0.25); }
 .checklist-item.done .item-icon { color: rgba(200,70,126,0.8); }
+.trophy-icon { font-size: 1rem; vertical-align: middle; color: rgba(200,70,126,0.8); }
 .item-label { font-size: 0.88rem; color: rgba(255,255,255,0.55); transition: all 0.2s; }
 .checklist-item.done .item-label { color: rgba(255,255,255,0.3); text-decoration: line-through; }
 
-.checklist-dismiss { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-.dismiss-label { font-size: 0.78rem; color: rgba(255,255,255,0.3); }
-.dismiss-btn {
-    padding: 0.2rem 0.65rem; border-radius: 12px; font-size: 0.78rem;
-    border: 1px solid rgba(255,255,255,0.1); background: transparent;
-    color: rgba(255,255,255,0.4); cursor: pointer; font-family: inherit; transition: all 0.2s;
-}
-.dismiss-btn:hover { border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.65); }
-.dismiss-btn--forever { color: rgba(200,70,126,0.5); border-color: rgba(200,70,126,0.2); }
-.dismiss-btn--forever:hover { border-color: rgba(200,70,126,0.4); color: rgba(200,70,126,0.8); }
-.checklist-complete { font-size: 0.9rem; color: rgba(200,70,126,0.7); margin: 0; text-align: center; }
+.checklist-complete { font-size: 0.9rem; color: rgba(200,70,126,0.7); margin: 0; text-align: center; display: flex; align-items: center; justify-content: center; gap: 0.35rem; }
 </style>
