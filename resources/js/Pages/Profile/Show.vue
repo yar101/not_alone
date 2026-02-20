@@ -1,0 +1,204 @@
+<script setup>
+import { ref, computed, onMounted } from 'vue';
+import { Head, usePage } from '@inertiajs/vue3';
+import ProfileHeader from '@/Components/Profile/ProfileHeader.vue';
+import ProfileAbout from '@/Components/Profile/ProfileAbout.vue';
+import ProfileTraits from '@/Components/Profile/ProfileTraits.vue';
+import ProfileInterests from '@/Components/Profile/ProfileInterests.vue';
+import ProfileVoice from '@/Components/Profile/ProfileVoice.vue';
+import ProfileLanguages from '@/Components/Profile/ProfileLanguages.vue';
+import ProfileChecklist from '@/Components/Profile/ProfileChecklist.vue';
+
+const props = defineProps({
+    profileUser:  { type: Object, required: true },
+    isOwner:      { type: Boolean, default: false },
+    allTraits:    { type: Array, default: () => [] },
+    allCategories: { type: Array, default: () => [] },
+});
+
+const checklistVisible = computed(() =>
+    props.isOwner && !props.profileUser.checklist_snoozed
+);
+
+// ── driver.js Tour ─────────────────────────────────────────
+const TOUR_KEY = 'profile_tour_done';
+
+onMounted(async () => {
+    if (!props.isOwner) return;
+    if (localStorage.getItem(TOUR_KEY)) return;
+
+    const { driver } = await import('driver.js');
+    await import('driver.js/dist/driver.css');
+
+    const driverObj = driver({
+        showProgress: true,
+        nextBtnText: 'Далее →',
+        prevBtnText: '← Назад',
+        doneBtnText: 'Готово',
+        steps: [
+            {
+                element: '#tour-header',
+                popover: {
+                    title: 'Твой профиль',
+                    description: 'Здесь отображается основная информация. Наведи мышь и нажми ✏️ чтобы отредактировать.',
+                    side: 'bottom',
+                },
+            },
+            {
+                element: '#tour-about',
+                popover: {
+                    title: 'Обо мне',
+                    description: 'Расскажи о себе — это первое, что видят другие пользователи.',
+                    side: 'bottom',
+                },
+            },
+            {
+                element: '#tour-traits',
+                popover: {
+                    title: 'Черты характера',
+                    description: 'Выбери черты, которые тебя описывают. До 10 вариантов.',
+                    side: 'bottom',
+                },
+            },
+            {
+                element: '#tour-interests',
+                popover: {
+                    title: 'Интересы',
+                    description: 'Добавь свои увлечения — так легче найти собеседника.',
+                    side: 'bottom',
+                },
+            },
+            {
+                element: '#tour-voice',
+                popover: {
+                    title: 'Голосовое',
+                    description: 'Запиши короткое приветствие до 27 секунд — живой голос лучше любого текста.',
+                    side: 'top',
+                },
+            },
+            ...(checklistVisible.value ? [{
+                element: '#tour-checklist',
+                popover: {
+                    title: 'Чеклист',
+                    description: 'Отслеживай прогресс заполнения профиля. Можно скрыть когда надоест.',
+                    side: 'top',
+                },
+            }] : []),
+        ],
+        onDestroyStarted: () => {
+            localStorage.setItem(TOUR_KEY, '1');
+            driverObj.destroy();
+        },
+    });
+
+    driverObj.drive();
+});
+</script>
+
+<template>
+    <Head :title="profileUser.name + ' — профиль'" />
+
+    <div class="page-wrap">
+        <div class="profile-container">
+            <ProfileHeader
+                :user="profileUser"
+                :is-owner="isOwner"
+            />
+
+            <ProfileAbout
+                :about="profileUser.about"
+                :is-owner="isOwner"
+            />
+
+            <ProfileTraits
+                :traits="profileUser.traits"
+                :all-traits="allTraits"
+                :is-owner="isOwner"
+                :gender="profileUser.gender"
+            />
+
+            <ProfileInterests
+                :interests="profileUser.interests"
+                :all-categories="allCategories"
+                :is-owner="isOwner"
+            />
+
+            <ProfileVoice
+                :voice-url="profileUser.voice_url"
+                :is-owner="isOwner"
+            />
+
+            <ProfileLanguages
+                :languages="profileUser.languages"
+                :is-owner="isOwner"
+            />
+
+            <ProfileChecklist
+                v-if="checklistVisible"
+                :user="profileUser"
+            />
+        </div>
+    </div>
+</template>
+
+<!-- driver.js dark theme override (non-scoped, applies globally) -->
+<style>
+.driver-popover {
+    background: #16162a !important;
+    border: 1px solid rgba(200, 70, 126, 0.3) !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+    border-radius: 12px !important;
+}
+.driver-popover-title {
+    color: #ffffff !important;
+    font-size: 1rem !important;
+}
+.driver-popover-description {
+    color: rgba(255, 255, 255, 0.65) !important;
+    font-size: 0.88rem !important;
+    line-height: 1.55 !important;
+}
+.driver-popover-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.07) !important;
+}
+.driver-popover-prev-btn,
+.driver-popover-next-btn,
+.driver-popover-done-btn {
+    background: rgba(200, 70, 126, 0.15) !important;
+    border: 1px solid rgba(200, 70, 126, 0.35) !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+    border-radius: 8px !important;
+    text-shadow: none !important;
+}
+.driver-popover-prev-btn:hover,
+.driver-popover-next-btn:hover,
+.driver-popover-done-btn:hover {
+    background: rgba(200, 70, 126, 0.3) !important;
+}
+.driver-popover-progress-text {
+    color: rgba(255, 255, 255, 0.35) !important;
+}
+.driver-popover-arrow-side-left.driver-popover-arrow  { border-left-color: #16162a !important; }
+.driver-popover-arrow-side-right.driver-popover-arrow { border-right-color: #16162a !important; }
+.driver-popover-arrow-side-top.driver-popover-arrow   { border-top-color: #16162a !important; }
+.driver-popover-arrow-side-bottom.driver-popover-arrow{ border-bottom-color: #16162a !important; }
+</style>
+
+<style scoped>
+.page-wrap {
+    min-height: 100vh;
+    background: radial-gradient(ellipse at 20% 30%, rgba(200, 70, 126, 0.07) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 70%, rgba(100, 60, 180, 0.06) 0%, transparent 60%),
+                #0d0d18;
+    padding: 2rem 1rem 4rem;
+}
+
+.profile-container {
+    max-width: 680px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+</style>

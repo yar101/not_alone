@@ -94,7 +94,7 @@ function submitRegister() {
                     </div>
                     <p class="auth-known-greeting">Добро пожаловать</p>
                     <p class="auth-known-email">{{ authUser.email }}</p>
-                    <a :href="route('dashboard')" class="auth-submit auth-known-continue">
+                    <a :href="route('profile')" class="auth-submit auth-known-continue">
                         Продолжить
                     </a>
                     <button
