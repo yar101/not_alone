@@ -26,11 +26,11 @@ watch(
     async () => {
         if (props.show) {
             document.body.style.overflow = 'hidden';
-            showSlot.value = true;        // монтируем контейнер
-            await nextTick();             // ждём, пока Vue отрисует контейнер
-            localShow.value = true;       // теперь <Transition> видит вход элемента
+            showSlot.value = true;
+            await nextTick();
+            localShow.value = true;
         } else {
-            localShow.value = false;      // запускаем leave-анимацию
+            localShow.value = false;
             document.body.style.overflow = '';
             setTimeout(() => {
                 showSlot.value = false;
@@ -81,7 +81,7 @@ onUnmounted(() => {
                 />
             </Transition>
 
-            <!-- Bottom sheet panel -->
+            <!-- Panel -->
             <Transition
                 enter-active-class="sheet-enter-active"
                 enter-from-class="sheet-enter-from"
@@ -95,6 +95,9 @@ onUnmounted(() => {
                     class="site-modal-sheet"
                     :class="variant === 'pink' ? 'site-modal-pink' : 'site-modal-cyan'"
                 >
+                    <!-- Ambient orbs -->
+                    <div class="site-modal-ambient" :class="variant === 'pink' ? 'ambient-pink' : 'ambient-cyan'" />
+
                     <!-- Mobile drag handle -->
                     <div class="site-modal-handle" />
 
@@ -104,13 +107,14 @@ onUnmounted(() => {
                         @click="close"
                         class="site-modal-close"
                         :class="variant === 'pink' ? 'site-modal-close-pink' : 'site-modal-close-cyan'"
+                        aria-label="Закрыть"
                     >
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
 
-                    <!-- Scrollable content -->
+                    <!-- Content -->
                     <div class="site-modal-body">
                         <slot />
                     </div>
@@ -128,13 +132,17 @@ onUnmounted(() => {
     pointer-events: none;
 }
 
+/* ── Backdrop ──────────────────────────────────────── */
 .site-modal-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(2, 1, 6, 0.82);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     pointer-events: all;
 }
 
+/* ── Sheet ─────────────────────────────────────────── */
 .site-modal-sheet {
     position: absolute;
     top: 50%;
@@ -143,12 +151,15 @@ onUnmounted(() => {
     width: 60%;
     height: 80%;
     max-height: 90vh;
-    background: linear-gradient(160deg, rgb(18, 13, 22) 0%, rgb(8, 8, 12) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 12px;
+    background:
+        linear-gradient(135deg, rgba(200, 70, 126, 0.05) 0%, transparent 45%),
+        linear-gradient(160deg, rgb(16, 11, 20) 0%, rgb(7, 6, 11) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
     pointer-events: all;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 @media (max-width: 768px) {
@@ -161,26 +172,97 @@ onUnmounted(() => {
         height: 88svh;
         max-height: 88svh;
         transform: none;
-        border-radius: 16px 16px 0 0;
+        border-radius: 20px 20px 0 0;
     }
 }
 
 .site-modal-pink {
+    border-top-color: rgba(200, 70, 126, 0.3);
     box-shadow:
-        0 -20px 60px rgba(200, 70, 126, 0.08),
-        0 -1px 0 rgba(200, 70, 126, 0.2);
-    border-top-color: rgba(200, 70, 126, 0.2);
+        0 0 0 1px rgba(200, 70, 126, 0.08),
+        0 -30px 80px rgba(200, 70, 126, 0.12),
+        0 40px 100px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(200, 70, 126, 0.18),
+        inset 0 0 80px rgba(200, 70, 126, 0.04);
 }
 
 .site-modal-cyan {
+    border-top-color: rgba(42, 255, 220, 0.25);
     box-shadow:
-        0 -20px 60px rgba(42, 255, 220, 0.06),
-        0 -1px 0 rgba(42, 255, 220, 0.18);
-    border-top-color: rgba(42, 255, 220, 0.18);
+        0 0 0 1px rgba(42, 255, 220, 0.06),
+        0 -30px 80px rgba(42, 255, 220, 0.08),
+        0 40px 100px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(42, 255, 220, 0.15),
+        inset 0 0 80px rgba(42, 255, 220, 0.03);
 }
 
+/* ── Ambient orbs ──────────────────────────────────── */
+.site-modal-ambient {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.site-modal-ambient::before,
+.site-modal-ambient::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(50px);
+}
+
+.ambient-pink::before {
+    top: -80px;
+    left: -60px;
+    width: 320px;
+    height: 320px;
+    background: radial-gradient(circle, rgba(200, 70, 126, 0.18) 0%, transparent 70%);
+    animation: orb-drift-a 9s ease-in-out infinite alternate;
+}
+
+.ambient-pink::after {
+    bottom: -100px;
+    right: -80px;
+    width: 380px;
+    height: 380px;
+    background: radial-gradient(circle, rgba(130, 40, 160, 0.12) 0%, transparent 70%);
+    animation: orb-drift-b 13s ease-in-out infinite alternate;
+}
+
+.ambient-cyan::before {
+    top: -80px;
+    right: -60px;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(42, 255, 220, 0.1) 0%, transparent 70%);
+    animation: orb-drift-a 9s ease-in-out infinite alternate;
+}
+
+.ambient-cyan::after {
+    bottom: -100px;
+    left: -80px;
+    width: 360px;
+    height: 360px;
+    background: radial-gradient(circle, rgba(0, 120, 200, 0.1) 0%, transparent 70%);
+    animation: orb-drift-b 13s ease-in-out infinite alternate;
+}
+
+@keyframes orb-drift-a {
+    from { transform: translate(0, 0) scale(1); }
+    to   { transform: translate(25px, 18px) scale(1.12); }
+}
+
+@keyframes orb-drift-b {
+    from { transform: translate(0, 0) scale(1); }
+    to   { transform: translate(-20px, -25px) scale(1.08); }
+}
+
+/* ── Handle ────────────────────────────────────────── */
 .site-modal-handle {
     display: none;
+    position: relative;
+    z-index: 2;
 }
 
 @media (max-width: 768px) {
@@ -188,90 +270,89 @@ onUnmounted(() => {
         display: block;
         width: 36px;
         height: 4px;
-        background: rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.15);
         border-radius: 2px;
-        margin: 0.6rem auto 0;
+        margin: 0.65rem auto 0;
         flex-shrink: 0;
     }
 }
 
+/* ── Close button ──────────────────────────────────── */
 .site-modal-close {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
-    color: rgba(255, 255, 255, 0.35);
-    background: transparent;
-    border: none;
+    top: 1.1rem;
+    right: 1.1rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.4);
     cursor: pointer;
-    padding: 0.35rem;
-    border-radius: 4px;
-    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
     z-index: 10;
     flex-shrink: 0;
 }
 
 .site-modal-close:hover {
     color: rgba(255, 255, 255, 0.9);
+    transform: scale(1.08);
 }
 
 .site-modal-close-pink:hover {
-    background: rgba(200, 70, 126, 0.15);
+    background: rgba(200, 70, 126, 0.18);
+    border-color: rgba(200, 70, 126, 0.4);
+    box-shadow: 0 0 12px rgba(200, 70, 126, 0.25);
 }
 
 .site-modal-close-cyan:hover {
     background: rgba(42, 255, 220, 0.12);
+    border-color: rgba(42, 255, 220, 0.35);
+    box-shadow: 0 0 12px rgba(42, 255, 220, 0.2);
 }
 
+/* ── Body ──────────────────────────────────────────── */
 .site-modal-body {
     flex: 1;
     overflow-y: auto;
     padding: 2rem;
     padding-top: 1.5rem;
+    position: relative;
+    z-index: 1;
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+    scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
 }
 
 @media (max-width: 768px) {
     .site-modal-body {
         padding: 1.25rem;
-        padding-top: 1rem;
+        padding-top: 2.75rem;
     }
 }
 
-.site-modal-body::-webkit-scrollbar {
-    width: 4px;
-}
-
-.site-modal-body::-webkit-scrollbar-track {
-    background: transparent;
-}
-
+.site-modal-body::-webkit-scrollbar { width: 3px; }
+.site-modal-body::-webkit-scrollbar-track { background: transparent; }
 .site-modal-body::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
     border-radius: 2px;
 }
 
-/* Transitions */
+/* ── Transitions ───────────────────────────────────── */
 .backdrop-enter-active,
-.backdrop-leave-active {
-    transition: opacity 0.3s ease;
-}
+.backdrop-leave-active { transition: opacity 0.3s ease; }
 .backdrop-enter-from,
-.backdrop-leave-to {
-    opacity: 0;
-}
+.backdrop-leave-to { opacity: 0; }
 .backdrop-enter-to,
-.backdrop-leave-from {
-    opacity: 1;
-}
+.backdrop-leave-from { opacity: 1; }
 
 .sheet-enter-active {
-    transition: transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-                opacity 0.35s ease;
+    transition: transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.35s ease;
 }
 .sheet-leave-active {
-    transition: transform 0.3s cubic-bezier(0.55, 0, 1, 0.45),
-                opacity 0.25s ease;
+    transition: transform 0.3s cubic-bezier(0.55, 0, 1, 0.45), opacity 0.25s ease;
 }
 .sheet-enter-from,
 .sheet-leave-to {
@@ -286,14 +367,8 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
     .sheet-enter-from,
-    .sheet-leave-to {
-        transform: translateY(100%);
-        opacity: 1;
-    }
+    .sheet-leave-to { transform: translateY(100%); opacity: 1; }
     .sheet-enter-to,
-    .sheet-leave-from {
-        transform: translateY(0);
-        opacity: 1;
-    }
+    .sheet-leave-from { transform: translateY(0); opacity: 1; }
 }
 </style>

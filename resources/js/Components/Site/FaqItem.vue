@@ -37,7 +37,7 @@ defineProps({
         background 0.22s ease,
         color 0.22s ease,
         box-shadow 0.25s ease;
-    border-radius: 0 8px 8px 0;
+
 }
 
 .faq-nav-item:hover:not(.faq-nav-item--active) {
