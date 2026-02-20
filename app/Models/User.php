@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -22,6 +23,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'birth_date',
         'about',
         'voice_path',
+        'avatar_path',
+        'pinned_body',
+        'pinned_photo_path',
         'timezone',
         'profile_checklist_snoozed_until',
         'email',
@@ -50,6 +54,16 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->birth_date ? Carbon::parse($this->birth_date)->age : null;
     }
 
+    public function getAvatarUrlAttribute(): ?string
+    {
+        return $this->avatar_path ? Storage::url($this->avatar_path) : null;
+    }
+
+    public function getPinnedPhotoUrlAttribute(): ?string
+    {
+        return $this->pinned_photo_path ? Storage::url($this->pinned_photo_path) : null;
+    }
+
     public function traits(): BelongsToMany
     {
         return $this->belongsToMany(PersonalityTrait::class, 'user_traits', 'user_id', 'trait_id')
@@ -66,5 +80,10 @@ class User extends Authenticatable implements MustVerifyEmail
     public function languages(): HasMany
     {
         return $this->hasMany(UserLanguage::class)->orderBy('language_code');
+    }
+
+    public function posts(): HasMany
+    {
+        return $this->hasMany(Post::class)->latest();
     }
 }

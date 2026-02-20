@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Interest;
 use App\Models\InterestCategory;
 use App\Models\PersonalityTrait;
+use App\Models\Post;
 use App\Models\User;
 use App\Models\UserLanguage;
 use Illuminate\Http\RedirectResponse;
@@ -17,7 +18,7 @@ class UserProfileController extends Controller
 {
     public function show(User $user): Response
     {
-        $user->load(['traits', 'interests.category', 'languages']);
+        $user->load(['traits', 'interests.category', 'languages', 'posts' => fn ($q) => $q->latest()]);
 
         $checklistSnoozed = false;
         if ($user->profile_checklist_snoozed_until !== null) {
@@ -33,22 +34,31 @@ class UserProfileController extends Controller
             'allTraits'    => $allTraits,
             'allCategories' => $allCategories,
             'profileUser' => [
-                'id'         => $user->id,
-                'name'       => $user->name,
-                'gender'     => $user->gender,
-                'age'        => $user->age,
-                'birth_date' => $user->birth_date?->toDateString(),
-                'about'      => $user->about,
-                'voice_url'  => $user->voice_path ? Storage::url($user->voice_path) : null,
-                'timezone'   => $user->timezone,
-                'traits'     => $user->traits->map(fn ($t) => ['id' => $t->id, 'name_ru' => $t->name_ru]),
-                'interests'  => $user->interests->map(fn ($i) => [
+                'id'               => $user->id,
+                'name'             => $user->name,
+                'gender'           => $user->gender,
+                'age'              => $user->age,
+                'birth_date'       => $user->birth_date?->toDateString(),
+                'about'            => $user->about,
+                'voice_url'        => $user->voice_path ? Storage::url($user->voice_path) : null,
+                'avatar_url'       => $user->avatar_url,
+                'pinned_body'      => $user->pinned_body,
+                'pinned_photo_url' => $user->pinned_photo_url,
+                'timezone'         => $user->timezone,
+                'traits'           => $user->traits->map(fn ($t) => ['id' => $t->id, 'name_ru' => $t->name_ru]),
+                'interests'        => $user->interests->map(fn ($i) => [
                     'id'       => $i->id,
                     'name_ru'  => $i->name_ru,
                     'category' => ['id' => $i->category->id, 'name_ru' => $i->category->name_ru],
                 ]),
-                'languages'  => $user->languages->pluck('language_code'),
+                'languages'        => $user->languages->pluck('language_code'),
                 'checklist_snoozed' => $checklistSnoozed,
+                'posts'            => $user->posts->map(fn ($p) => [
+                    'id'         => $p->id,
+                    'body'       => $p->body,
+                    'photo_url'  => $p->photo_url,
+                    'created_at' => $p->created_at->translatedFormat('d M Y'),
+                ]),
             ],
             'isOwner' => auth()->id() === $user->id,
         ]);
@@ -149,6 +159,94 @@ class UserProfileController extends Controller
             'forever' => now()->addYears(100),
         };
         $request->user()->update(['profile_checklist_snoozed_until' => $until]);
+        return back();
+    }
+
+    public function updateAvatar(Request $request): RedirectResponse
+    {
+        $request->validate(['avatar' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096']]);
+        $user = $request->user();
+        if ($user->avatar_path) {
+            Storage::disk('public')->delete($user->avatar_path);
+        }
+        $ext  = $request->file('avatar')->getClientOriginalExtension() ?: 'jpg';
+        $path = $request->file('avatar')->storeAs('avatars', "{$user->id}.{$ext}", 'public');
+        $user->update(['avatar_path' => $path]);
+        return back();
+    }
+
+    public function deleteAvatar(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        if ($user->avatar_path) {
+            Storage::disk('public')->delete($user->avatar_path);
+            $user->update(['avatar_path' => null]);
+        }
+        return back();
+    }
+
+    public function updatePinnedCard(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'body'  => ['nullable', 'string', 'max:5000'],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ]);
+        $user = $request->user();
+        $body = $request->input('body');
+        $data = ['pinned_body' => $body ? strip_tags($body, '<p><br><strong><em><u><s><ul><ol><li>') : null];
+        if ($request->hasFile('photo')) {
+            if ($user->pinned_photo_path) {
+                Storage::disk('public')->delete($user->pinned_photo_path);
+            }
+            $ext  = $request->file('photo')->getClientOriginalExtension() ?: 'jpg';
+            $path = $request->file('photo')->storeAs('pinned', "{$user->id}.{$ext}", 'public');
+            $data['pinned_photo_path'] = $path;
+        }
+        $user->update($data);
+        return back();
+    }
+
+    public function deletePinnedPhoto(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        if ($user->pinned_photo_path) {
+            Storage::disk('public')->delete($user->pinned_photo_path);
+            $user->update(['pinned_photo_path' => null]);
+        }
+        return back();
+    }
+
+    public function storePost(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'body'  => ['required', 'string', 'max:2000'],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ]);
+        $user = $request->user();
+        $photoPath = null;
+        if ($request->hasFile('photo')) {
+            $ext       = $request->file('photo')->getClientOriginalExtension() ?: 'jpg';
+            $photoPath = $request->file('photo')->storeAs(
+                "posts/{$user->id}",
+                time() . '.' . $ext,
+                'public'
+            );
+        }
+        Post::create([
+            'user_id'    => $user->id,
+            'body'       => $request->input('body'),
+            'photo_path' => $photoPath,
+        ]);
+        return back();
+    }
+
+    public function destroyPost(Request $request, Post $post): RedirectResponse
+    {
+        abort_if($post->user_id !== $request->user()->id, 403);
+        if ($post->photo_path) {
+            Storage::disk('public')->delete($post->photo_path);
+        }
+        $post->delete();
         return back();
     }
 }
