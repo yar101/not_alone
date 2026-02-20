@@ -2,8 +2,10 @@
 import { ref } from 'vue';
 import StartBtn from "@/Components/Site/StartBtn.vue";
 import FirstModal from "@/Components/Site/FirstModal.vue";
+import AuthModal from "@/Components/Site/AuthModal.vue";
 
 const showFirstModal = ref(false);
+const showAuthModal = ref(false);
 </script>
 
 <template>
@@ -60,7 +62,7 @@ const showFirstModal = ref(false);
 
                 <!-- Главная кнопка (START) -->
                 <div class="scale-110 sm:scale-105 backdrop-blur md:scale-125 mb-14 md:mb-16 transform transition-transform">
-                    <StartBtn />
+                    <StartBtn @click="showAuthModal = true" />
                 </div>
 
                 <!-- Кнопка модалки -->
@@ -78,6 +80,7 @@ const showFirstModal = ref(false);
                 </div>
 
                 <FirstModal :show="showFirstModal" @close="showFirstModal = false" />
+                <AuthModal :show="showAuthModal" @close="showAuthModal = false" />
             </main>
 
             <!-- Балансировочный отступ -->

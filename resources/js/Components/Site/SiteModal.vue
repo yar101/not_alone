@@ -15,6 +15,10 @@ const props = defineProps({
         default: 'pink',
         validator: (v) => ['pink', 'cyan'].includes(v),
     },
+    compact: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const emit = defineEmits(['close']);
@@ -93,7 +97,10 @@ onUnmounted(() => {
                 <div
                     v-if="localShow"
                     class="site-modal-sheet"
-                    :class="variant === 'pink' ? 'site-modal-pink' : 'site-modal-cyan'"
+                    :class="[
+                        variant === 'pink' ? 'site-modal-pink' : 'site-modal-cyan',
+                        compact ? 'site-modal-sheet--compact' : ''
+                    ]"
                 >
                     <!-- Ambient orbs -->
                     <div class="site-modal-ambient" :class="variant === 'pink' ? 'ambient-pink' : 'ambient-cyan'" />
@@ -173,6 +180,14 @@ onUnmounted(() => {
         max-height: 88svh;
         transform: none;
         border-radius: 20px 20px 0 0;
+    }
+}
+
+@media (min-width: 769px) {
+    .site-modal-sheet--compact {
+        width: clamp(420px, 25vw, 520px);
+        height: auto;
+        max-height: 90vh;
     }
 }
 
