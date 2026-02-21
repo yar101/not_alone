@@ -225,9 +225,12 @@ onMounted(async () => {
 <style scoped>
 .page-wrap {
     min-height: 100vh;
-    background: radial-gradient(ellipse at 20% 30%, rgba(200, 70, 126, 0.07) 0%, transparent 60%),
-                radial-gradient(ellipse at 80% 70%, rgba(100, 60, 180, 0.06) 0%, transparent 60%),
-                #0d0d18;
+    background:
+        radial-gradient(ellipse at 15% 20%, rgba(200,70,126,0.13) 0%, transparent 55%),
+        radial-gradient(ellipse at 85% 10%, rgba(120,60,200,0.09) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(100,60,180,0.12) 0%, transparent 55%),
+        radial-gradient(ellipse at 50% 100%, rgba(150,40,90,0.07) 0%, transparent 45%),
+        #0d0d18;
     padding: 2rem 1rem 4rem;
 }
 

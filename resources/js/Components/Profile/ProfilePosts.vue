@@ -182,16 +182,24 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 .posts-list { display: flex; flex-direction: column; gap: 1rem; }
 
 .post-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07);
+    background: rgba(255,255,255,0.045);
+    border: 1px solid rgba(255,255,255,0.09);
     border-radius: 16px;
     overflow: hidden;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    position: relative;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.2s ease;
+}
+.post-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px; z-index: 1;
+    background: linear-gradient(90deg, transparent 0%, rgba(200,70,126,0.4) 40%, rgba(120,70,200,0.3) 70%, transparent 100%);
 }
 .post-card:hover {
     transform: translateY(-2px);
-    border-color: rgba(255,255,255,0.12);
-    box-shadow: 0 8px 28px rgba(0,0,0,0.35), 0 0 0 1px rgba(200,70,126,0.06);
+    border-color: rgba(200,70,126,0.2);
+    box-shadow: 0 12px 36px rgba(0,0,0,0.4), 0 0 0 1px rgba(200,70,126,0.08), 0 0 40px rgba(200,70,126,0.06);
 }
 
 /* Square photo — Instagram style */
@@ -228,8 +236,13 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 }
 
 .post-date {
-    font-size: 0.78rem;
-    color: rgba(255,255,255,0.3);
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.07);
+    padding: 0.15rem 0.55rem;
+    border-radius: 20px;
+    letter-spacing: 0.02em;
 }
 
 .post-delete-btn {

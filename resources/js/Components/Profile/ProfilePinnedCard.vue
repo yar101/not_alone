@@ -107,6 +107,11 @@ function toggleMark(mark) {
         v-if="hasContent || isOwner"
         class="pinned-card block-card"
     >
+        <!-- Premium pinned badge -->
+        <div v-if="hasContent" class="pinned-badge" aria-hidden="true">
+            <el-icon><Paperclip /></el-icon>
+        </div>
+
         <!-- Placeholder for owner when empty -->
         <div
             v-if="!hasContent && isOwner"
@@ -188,16 +193,27 @@ function toggleMark(mark) {
 
 <style scoped>
 .pinned-card {
-    background: rgba(200,70,126,0.04);
-    border: 1px solid rgba(200,70,126,0.15);
+    background: linear-gradient(135deg, rgba(200,70,126,0.08) 0%, rgba(140,60,180,0.04) 100%);
+    border: 1px solid rgba(200,70,126,0.22);
     border-radius: 16px;
     overflow: hidden;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.2s ease;
+}
+.pinned-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(200,70,126,0.65) 35%, rgba(200,70,126,0.45) 65%, transparent 100%);
 }
 .pinned-card:hover {
     transform: translateY(-2px);
-    border-color: rgba(200,70,126,0.25);
-    box-shadow: 0 8px 28px rgba(0,0,0,0.35), 0 0 0 1px rgba(200,70,126,0.06);
+    border-color: rgba(200,70,126,0.38);
+    box-shadow: 0 12px 36px rgba(0,0,0,0.4), 0 0 50px rgba(200,70,126,0.09), 0 0 0 1px rgba(200,70,126,0.12);
+}
+.pinned-badge {
+    position: absolute; top: 0.65rem; right: 0.75rem; z-index: 3;
+    color: rgba(200,70,126,0.5); font-size: 0.85rem;
+    pointer-events: none;
 }
 
 .pinned-placeholder {

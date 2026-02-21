@@ -1,8 +1,9 @@
 <script setup>
-import { ref, computed, onUnmounted } from 'vue';
+import { ref, computed } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
-import { Edit, Setting, Camera, VideoPlay, VideoPause, Microphone, Close } from '@element-plus/icons-vue';
+import { Edit, Setting, Camera } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import ProfileVoice from '@/Components/Profile/ProfileVoice.vue';
 
 const props = defineProps({
     user: { type: Object, required: true },
@@ -95,117 +96,27 @@ function deleteAvatar() {
     });
 }
 
-// ── Voice ──────────────────────────────────────────────────
-const MAX_SECONDS = 27;
-
-const audioEl = ref(null);
-const playing = ref(false);
-const progress = ref(0);
-
-function togglePlay() {
-    if (!audioEl.value) return;
-    if (playing.value) {
-        audioEl.value.pause();
-    } else {
-        audioEl.value.play();
-    }
-}
-
-function onTimeUpdate() {
-    const el = audioEl.value;
-    if (!el || !el.duration) return;
-    progress.value = (el.currentTime / el.duration) * 100;
-}
-
-function onEnded() {
-    playing.value = false;
-    progress.value = 0;
-}
-
-const recording = ref(false);
-const countdown = ref(MAX_SECONDS);
-const chunks = ref([]);
-let mediaRecorder = null;
-let countdownTimer = null;
-
-const mimeType = computed(() => {
-    if (typeof MediaRecorder === 'undefined') return 'audio/webm';
-    if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) return 'audio/webm;codecs=opus';
-    if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) return 'audio/ogg;codecs=opus';
-    return 'audio/mp4';
-});
-
-async function startRecording() {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        chunks.value = [];
-        mediaRecorder = new MediaRecorder(stream, { mimeType: mimeType.value });
-        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.value.push(e.data); };
-        mediaRecorder.onstop = uploadRecording;
-        mediaRecorder.start();
-        recording.value = true;
-        countdown.value = MAX_SECONDS;
-
-        countdownTimer = setInterval(() => {
-            countdown.value--;
-            if (countdown.value <= 0) stopRecording();
-        }, 1000);
-    } catch (e) {
-        alert('Не удалось получить доступ к микрофону');
-    }
-}
-
-function stopRecording() {
-    if (!mediaRecorder) return;
-    clearInterval(countdownTimer);
-    mediaRecorder.stop();
-    mediaRecorder.stream.getTracks().forEach(t => t.stop());
-    recording.value = false;
-}
-
-function uploadRecording() {
-    const ext = mimeType.value.includes('mp4') ? 'mp4' : mimeType.value.includes('ogg') ? 'ogg' : 'webm';
-    const blob = new Blob(chunks.value, { type: mimeType.value });
-    const file = new File([blob], `voice.${ext}`, { type: mimeType.value });
-    const formData = new FormData();
-    formData.append('voice', file);
-
-    router.post(route('profile.update.voice'), formData, {
-        preserveState: true,
-        preserveScroll: true,
-        forceFormData: true,
-    });
-}
-
-function deleteVoice() {
-    if (!confirm('Удалить голосовое?')) return;
-    router.delete(route('profile.delete.voice'), {
-        preserveState: true,
-        preserveScroll: true,
-    });
-}
-
-onUnmounted(() => {
-    clearInterval(countdownTimer);
-});
 </script>
 
 <template>
     <div id="tour-header" class="profile-header">
-        <div
-            class="profile-avatar"
-            :class="{ 'avatar-clickable': isOwner }"
-            @click="onAvatarClick"
-        >
-            <img
-                v-if="user.avatar_url"
-                :src="user.avatar_url"
-                alt="Avatar"
-                class="avatar-img"
-            />
-            <span v-else class="avatar-letter">{{ user.name.charAt(0).toUpperCase() }}</span>
-            <div v-if="isOwner" class="avatar-overlay">
-                <el-icon class="avatar-overlay-icon"><Camera /></el-icon>
+        <!-- Decorative blobs -->
+        <div class="header-orb header-orb--pink" aria-hidden="true"></div>
+        <div class="header-orb header-orb--purple" aria-hidden="true"></div>
+
+        <!-- Avatar with animated ring -->
+        <div class="avatar-ring" :class="{ 'avatar-clickable': isOwner }" @click="onAvatarClick">
+            <div class="profile-avatar">
+                <img
+                    v-if="user.avatar_url"
+                    :src="user.avatar_url"
+                    alt="Avatar"
+                    class="avatar-img"
+                />
+                <span v-else class="avatar-letter">{{ user.name.charAt(0).toUpperCase() }}</span>
+                <div v-if="isOwner" class="avatar-overlay">
+                    <el-icon class="avatar-overlay-icon"><Camera /></el-icon>
+                </div>
             </div>
         </div>
 
@@ -228,50 +139,9 @@ onUnmounted(() => {
                 <span v-if="user.timezone" class="meta-tz">{{ user.timezone }}</span>
             </div>
 
-            <!-- Compact voice section inside header -->
+            <!-- Voice player / recorder -->
             <div id="tour-voice" class="voice-row">
-                <!-- Playback -->
-                <template v-if="voiceUrl">
-                    <audio
-                        ref="audioEl"
-                        :src="voiceUrl"
-                        @timeupdate="onTimeUpdate"
-                        @play="playing = true"
-                        @pause="playing = false"
-                        @ended="onEnded"
-                    />
-                    <button class="voice-play-btn" @click="togglePlay" :title="playing ? 'Пауза' : 'Воспроизвести'">
-                        <el-icon><component :is="playing ? VideoPause : VideoPlay" /></el-icon>
-                    </button>
-                    <div class="voice-progress-bar">
-                        <div class="voice-progress-fill" :style="{ width: progress + '%' }" />
-                    </div>
-                    <button v-if="isOwner" class="voice-delete-btn" @click="deleteVoice" title="Удалить голосовое"><el-icon><Close /></el-icon></button>
-                </template>
-
-                <!-- Owner record UI when no voice -->
-                <template v-else-if="isOwner">
-                    <template v-if="!recording">
-                        <button class="voice-record-btn" @click="startRecording"><el-icon><Microphone /></el-icon> Записать приветствие</button>
-                    </template>
-                    <div v-else class="voice-recording-active">
-                        <div class="voice-rec-dot" />
-                        <span class="voice-rec-time">{{ countdown }}с</span>
-                        <button class="voice-stop-btn" @click="stopRecording">Стоп</button>
-                    </div>
-                </template>
-
-                <!-- Re-record row when voice exists -->
-                <template v-if="isOwner && voiceUrl">
-                    <template v-if="!recording">
-                        <button class="voice-rerecord-btn" @click="startRecording"><el-icon><Microphone /></el-icon></button>
-                    </template>
-                    <div v-else class="voice-recording-active">
-                        <div class="voice-rec-dot" />
-                        <span class="voice-rec-time">{{ countdown }}с</span>
-                        <button class="voice-stop-btn" @click="stopRecording">Стоп</button>
-                    </div>
-                </template>
+                <ProfileVoice :voice-url="voiceUrl" :is-owner="isOwner" />
             </div>
         </div>
 
@@ -330,26 +200,62 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     gap: 1.25rem;
-    padding: 1.5rem;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 16px;
+    padding: 2rem 1.75rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 20px;
     position: relative;
+    overflow: hidden;
     flex-wrap: wrap;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.profile-header::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(200,70,126,0.55) 35%, rgba(140,80,200,0.45) 65%, transparent 100%);
+}
+.profile-header:hover {
+    border-color: rgba(200,70,126,0.2);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 0 60px rgba(200,70,126,0.07), 0 0 0 1px rgba(200,70,126,0.1);
 }
 
+/* Orbs */
+.header-orb {
+    position: absolute; border-radius: 50%; pointer-events: none;
+    filter: blur(42px); z-index: 0;
+}
+.header-orb--pink  { width: 220px; height: 220px; top: -80px; right: 80px; background: rgba(200,70,126,0.13); }
+.header-orb--purple { width: 180px; height: 180px; bottom: -70px; right: 10px; background: rgba(100,60,180,0.11); }
+
+/* All children above orbs */
+.profile-header > *:not(.header-orb) { position: relative; z-index: 1; }
+
+/* Animated ring around avatar */
+@keyframes ringRotate {
+    from { background-position: 0% 50%; }
+    to   { background-position: 100% 50%; }
+}
+.avatar-ring {
+    width: 100px; height: 100px;
+    border-radius: 50%; padding: 2.5px; flex-shrink: 0;
+    background: linear-gradient(135deg, rgba(200,70,126,0.9) 0%, rgba(140,80,200,0.7) 50%, rgba(200,70,126,0.9) 100%);
+    background-size: 200% 200%;
+    animation: ringRotate 3s linear infinite;
+}
+.avatar-clickable { cursor: pointer; }
+
 .profile-avatar {
-    width: 88px; height: 88px; flex-shrink: 0;
+    width: 100%; height: 100%;
     border-radius: 50%;
     background: linear-gradient(135deg, rgba(200,70,126,0.35), rgba(200,70,126,0.1));
-    border: 1px solid rgba(200,70,126,0.4);
+    border: none;
     display: flex; align-items: center; justify-content: center;
     font-size: 2rem; font-weight: 500; color: rgba(255,255,255,0.9);
     position: relative;
     overflow: hidden;
 }
-
-.avatar-clickable { cursor: pointer; }
 
 .avatar-img {
     width: 100%; height: 100%;
@@ -375,8 +281,12 @@ onUnmounted(() => {
 .profile-info { flex: 1; min-width: 0; }
 
 .profile-name {
-    font-size: 1.5rem; font-weight: 600;
-    color: rgba(255,255,255,0.95); margin: 0 0 0.3rem;
+    font-size: 1.7rem; font-weight: 700; margin: 0 0 0.3rem;
+    background: linear-gradient(135deg, #fff 0%, rgba(230,170,200,0.9) 55%, rgba(180,130,220,0.85) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: rgba(255,255,255,0.95); /* fallback */
 }
 
 .profile-meta {
@@ -390,59 +300,6 @@ onUnmounted(() => {
 .voice-row {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    flex-wrap: wrap;
-}
-
-.voice-play-btn {
-    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
-    background: rgba(200,70,126,0.15); border: 1px solid rgba(200,70,126,0.35);
-    color: #fff; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;
-    display: flex; align-items: center; justify-content: center;
-}
-.voice-play-btn:hover { background: rgba(200,70,126,0.3); }
-
-.voice-progress-bar {
-    flex: 1; min-width: 60px; max-width: 180px;
-    height: 3px; background: rgba(255,255,255,0.1);
-    border-radius: 2px; overflow: hidden;
-}
-.voice-progress-fill { height: 100%; background: rgba(200,70,126,0.7); transition: width 0.1s; }
-
-.voice-delete-btn {
-    background: none; border: none; color: rgba(255,255,255,0.25);
-    font-size: 0.8rem; cursor: pointer; transition: color 0.2s; padding: 0.2rem;
-}
-.voice-delete-btn:hover { color: rgba(220,80,100,0.8); }
-
-.voice-record-btn {
-    padding: 0.35rem 0.85rem; border-radius: 20px;
-    border: 1px solid rgba(200,70,126,0.3);
-    background: rgba(200,70,126,0.08);
-    color: rgba(255,255,255,0.65); font-size: 0.82rem; cursor: pointer;
-    font-family: inherit; transition: all 0.2s;
-}
-.voice-record-btn:hover { background: rgba(200,70,126,0.18); color: #fff; }
-
-.voice-rerecord-btn {
-    background: none; border: none; cursor: pointer;
-    font-size: 1rem; opacity: 0.45; transition: opacity 0.2s;
-    padding: 0.1rem;
-}
-.voice-rerecord-btn:hover { opacity: 0.9; }
-
-.voice-recording-active { display: flex; align-items: center; gap: 0.5rem; }
-.voice-rec-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: #e04060;
-    animation: blink 1s ease-in-out infinite;
-}
-@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
-.voice-rec-time { font-size: 0.88rem; font-variant-numeric: tabular-nums; color: rgba(255,255,255,0.7); }
-.voice-stop-btn {
-    padding: 0.25rem 0.7rem; border-radius: 16px;
-    border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05);
-    color: rgba(255,255,255,0.7); font-size: 0.8rem; cursor: pointer; font-family: inherit;
 }
 
 /* Action buttons — always in DOM when isOwner, no layout shift */

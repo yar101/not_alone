@@ -56,20 +56,38 @@ function submit() {
 <style scoped>
 .block-card {
     padding: 1.25rem 1.5rem;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07);
+    background: rgba(255,255,255,0.045);
+    border: 1px solid rgba(255,255,255,0.09);
     border-radius: 16px;
     position: relative;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    overflow: hidden;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.2s ease;
     cursor: default;
+}
+.block-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(200,70,126,0.4) 40%, rgba(120,70,200,0.3) 70%, transparent 100%);
+    border-radius: 16px 16px 0 0;
 }
 .block-card:hover {
     transform: translateY(-2px);
-    border-color: rgba(255,255,255,0.12);
-    box-shadow: 0 8px 28px rgba(0,0,0,0.35), 0 0 0 1px rgba(200,70,126,0.06);
+    border-color: rgba(200,70,126,0.2);
+    box-shadow: 0 12px 36px rgba(0,0,0,0.4), 0 0 0 1px rgba(200,70,126,0.08), 0 0 40px rgba(200,70,126,0.06);
 }
 .block-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; min-height: 1.5rem; }
-.block-title { font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(200,70,126,0.6); margin: 0; }
+.block-title {
+    font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase;
+    color: rgba(200,70,126,0.8); margin: 0;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.block-title::before {
+    content: '';
+    display: block; width: 3px; height: 12px; border-radius: 2px; flex-shrink: 0;
+    background: linear-gradient(180deg, rgba(200,70,126,0.95) 0%, rgba(140,60,200,0.75) 100%);
+}
 .edit-btn {
     display: flex; align-items: center; justify-content: center;
     width: 26px; height: 26px; border-radius: 7px;
