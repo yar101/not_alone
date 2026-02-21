@@ -242,7 +242,12 @@ onMounted(async () => {
     gap: 1rem;
 }
 
-.header-row { width: 100%; }
+.header-row {
+    width: 100%;
+    position: sticky;
+    top: 1rem;
+    z-index: 10;
+}
 
 .profile-grid {
     display: grid;
@@ -255,6 +260,11 @@ onMounted(async () => {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    position: sticky;
+    top: 12.5rem; /* header (~166px) + top: 1rem + 1rem gap */
+    max-height: calc(100vh - 12.5rem - 1rem);
+    overflow-y: auto;
+    scrollbar-width: none;
 }
 
 .profile-main {

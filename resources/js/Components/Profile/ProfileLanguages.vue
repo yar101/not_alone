@@ -83,7 +83,7 @@ function openEdit() {
         <p v-else-if="isOwner" class="empty">Укажи языки, которыми владеешь</p>
         <p v-else class="empty">Не указано</p>
 
-        <SiteModal :show="editModal" variant="pink" :compact="false" @close="editModal = false">
+        <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
             <div class="edit-form">
                 <h3 class="edit-title">Языки</h3>
                 <div class="lang-grid">

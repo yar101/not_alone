@@ -55,7 +55,7 @@ function openEdit() {
 <template>
     <div id="tour-traits" class="block-card">
         <div class="block-header">
-            <h2 class="block-title">Черты характера</h2>
+            <h2 class="block-title">Характер</h2>
             <button v-if="isOwner" class="edit-btn" @click="openEdit" title="Редактировать">
                 <el-icon><Edit /></el-icon>
             </button>
@@ -67,9 +67,9 @@ function openEdit() {
         <p v-else-if="isOwner" class="empty">Добавь свои черты характера</p>
         <p v-else class="empty">Не указано</p>
 
-        <SiteModal :show="editModal" variant="pink" :compact="false" @close="editModal = false">
+        <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
             <div class="edit-form">
-                <h3 class="edit-title">Черты характера</h3>
+                <h3 class="edit-title">Характер</h3>
                 <p class="edit-hint">Выбери подходящие (до 10)</p>
                 <input
                     v-model="traitSearch"

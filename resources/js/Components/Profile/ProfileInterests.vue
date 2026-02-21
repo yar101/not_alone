@@ -96,7 +96,7 @@ function openEdit() {
         <p v-else-if="isOwner" class="empty">Добавь свои интересы</p>
         <p v-else class="empty">Не указано</p>
 
-        <SiteModal :show="editModal" variant="pink" :compact="false" @close="editModal = false">
+        <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
             <div class="edit-form">
                 <h3 class="edit-title">Интересы</h3>
                 <p class="edit-hint">Выбери по категориям (до 10)</p>

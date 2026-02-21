@@ -233,16 +233,11 @@ function deleteAvatar() {
 .profile-header > *:not(.header-orb) { position: relative; z-index: 1; }
 
 /* Animated ring around avatar */
-@keyframes ringRotate {
-    from { background-position: 0% 50%; }
-    to   { background-position: 100% 50%; }
-}
 .avatar-ring {
     width: 100px; height: 100px;
     border-radius: 50%; padding: 2.5px; flex-shrink: 0;
-    background: linear-gradient(135deg, rgba(200,70,126,0.9) 0%, rgba(140,80,200,0.7) 50%, rgba(200,70,126,0.9) 100%);
-    background-size: 200% 200%;
-    animation: ringRotate 3s linear infinite;
+    background: linear-gradient(135deg, rgba(200,70,126,0.9) 0%, rgba(140,80,200,0.7) 100%);
+    box-shadow: 0 0 12px rgba(200,70,126,0.5), 0 0 28px rgba(200,70,126,0.2);
 }
 .avatar-clickable { cursor: pointer; }
 
