@@ -3,19 +3,14 @@ import { ref, computed } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import { Edit, Setting, Camera } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
-import ProfileVoice from '@/Components/Profile/ProfileVoice.vue';
 
 const props = defineProps({
     user: { type: Object, required: true },
     isOwner: { type: Boolean, default: false },
-    voiceUrl: { type: String, default: null },
 });
 
 const editModal = ref(false);
 const avatarInput = ref(null);
-
-const GENDERS = { male: 'Мужской', female: 'Женский', other: 'Другой' };
-const genderLabel = computed(() => GENDERS[props.user.gender] ?? '');
 
 const form = useForm({
     gender: props.user.gender ?? '',
@@ -95,28 +90,45 @@ function deleteAvatar() {
         onSuccess: () => editModal.value = false,
     });
 }
-
 </script>
 
 <template>
-    <div id="tour-header" class="profile-header">
-        <!-- Decorative blobs -->
-        <div class="header-orb header-orb--pink" aria-hidden="true"></div>
-        <div class="header-orb header-orb--purple" aria-hidden="true"></div>
+    <div id="tour-header" class="profile-card">
 
-        <!-- Avatar with animated ring -->
-        <div class="avatar-ring" :class="{ 'avatar-clickable': isOwner }" @click="onAvatarClick">
-            <div class="profile-avatar">
-                <img
-                    v-if="user.avatar_url"
-                    :src="user.avatar_url"
-                    alt="Avatar"
-                    class="avatar-img"
-                />
-                <span v-else class="avatar-letter">{{ user.name.charAt(0).toUpperCase() }}</span>
-                <div v-if="isOwner" class="avatar-overlay">
-                    <el-icon class="avatar-overlay-icon"><Camera /></el-icon>
+        <!-- Action buttons (absolute top-right) -->
+        <div class="card-actions">
+            <template v-if="isOwner">
+                <button class="action-pill" @click="editModal = true" title="Редактировать">
+                    <el-icon><Edit /></el-icon>
+                </button>
+                <a :href="route('settings.edit')" class="action-pill" title="Настройки">
+                    <el-icon><Setting /></el-icon>
+                </a>
+            </template>
+            <button v-else class="subscribe-btn">Подписаться</button>
+        </div>
+
+        <!-- Avatar + Name row (left-aligned) -->
+        <div class="card-body">
+            <div class="hero-avatar-area">
+                <div class="avatar-ring" :class="{ 'avatar-clickable': isOwner }" @click="onAvatarClick">
+                    <div class="profile-avatar">
+                        <img
+                            v-if="user.avatar_url"
+                            :src="user.avatar_url"
+                            class="avatar-img"
+                            alt="Avatar"
+                        />
+                        <span v-else class="avatar-letter">{{ user.name.charAt(0).toUpperCase() }}</span>
+                        <div v-if="isOwner" class="avatar-overlay">
+                            <el-icon class="avatar-overlay-icon"><Camera /></el-icon>
+                        </div>
+                    </div>
                 </div>
+            </div>
+
+            <div class="card-info">
+                <h1 class="hero-name">{{ user.name }}</h1>
             </div>
         </div>
 
@@ -129,31 +141,7 @@ function deleteAvatar() {
             @change="onAvatarChange"
         />
 
-        <div class="profile-info">
-            <h1 class="profile-name">{{ user.name }}</h1>
-            <div class="profile-meta">
-                <span v-if="user.age">{{ user.age }} лет</span>
-                <span v-if="user.gender" class="meta-sep">·</span>
-                <span v-if="user.gender">{{ genderLabel }}</span>
-                <span v-if="user.timezone" class="meta-sep">·</span>
-                <span v-if="user.timezone" class="meta-tz">{{ user.timezone }}</span>
-            </div>
-
-            <!-- Voice player / recorder -->
-            <div id="tour-voice" class="voice-row">
-                <ProfileVoice :voice-url="voiceUrl" :is-owner="isOwner" />
-            </div>
-        </div>
-
-        <div v-if="isOwner" class="header-actions">
-            <button class="action-btn edit-btn" @click="editModal = true" title="Редактировать">
-                <el-icon><Edit /></el-icon>
-            </button>
-            <a :href="route('settings.edit')" class="action-btn settings-btn" title="Настройки">
-                <el-icon><Setting /></el-icon>
-            </a>
-        </div>
-
+        <!-- Edit modal -->
         <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
             <div class="edit-form">
                 <h3 class="edit-title">Редактировать профиль</h3>
@@ -196,48 +184,90 @@ function deleteAvatar() {
 </template>
 
 <style scoped>
-.profile-header {
+.profile-card {
+    position: relative;
+    border-radius: 20px 20px 0 0;
+    border-bottom: none;
+    padding: 1.5rem 2rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* Avatar + Name flex row */
+.card-body {
     display: flex;
     align-items: center;
     gap: 1.25rem;
-    padding: 2rem 1.75rem;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.09);
-    border-radius: 20px;
-    position: relative;
-    overflow: hidden;
-    flex-wrap: wrap;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
-.profile-header::before {
+
+.card-info {
+    flex: 1;
+    min-width: 0;
+}
+.profile-card::before {
     content: '';
     position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent 0%, rgba(200,70,126,0.55) 35%, rgba(140,80,200,0.45) 65%, transparent 100%);
-}
-.profile-header:hover {
-    border-color: rgba(200,70,126,0.2);
-    box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 0 60px rgba(200,70,126,0.07), 0 0 0 1px rgba(200,70,126,0.1);
+    background: linear-gradient(90deg, transparent, rgba(200,70,126,0.5) 35%, rgba(140,80,200,0.4) 65%, transparent);
 }
 
-/* Orbs */
-.header-orb {
-    position: absolute; border-radius: 50%; pointer-events: none;
-    filter: blur(42px); z-index: 0;
+/* Action buttons */
+.card-actions {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
 }
-.header-orb--pink  { width: 220px; height: 220px; top: -80px; right: 80px; background: rgba(200,70,126,0.13); }
-.header-orb--purple { width: 180px; height: 180px; bottom: -70px; right: 10px; background: rgba(100,60,180,0.11); }
 
-/* All children above orbs */
-.profile-header > *:not(.header-orb) { position: relative; z-index: 1; }
+.action-pill {
+    width: 32px; height: 32px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.4);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 0.95rem;
+    opacity: 1;
+    transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+.action-pill:hover {
+    color: rgba(200,70,126,0.9);
+    background: rgba(200,70,126,0.1);
+    border-color: rgba(200,70,126,0.3);
+}
 
-/* Animated ring around avatar */
+.subscribe-btn {
+    padding: 0.42rem 1.2rem;
+    border-radius: 20px;
+    font-size: 0.84rem;
+    background: linear-gradient(135deg, rgba(200,70,126,0.28), rgba(140,60,200,0.18));
+    border: 1px solid rgba(200,70,126,0.4);
+    color: rgba(255,255,255,0.9);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+.subscribe-btn:hover {
+    background: linear-gradient(135deg, rgba(200,70,126,0.42), rgba(140,60,200,0.3));
+}
+
+/* Avatar area */
+.hero-avatar-area {
+    flex-shrink: 0;
+}
+
 .avatar-ring {
-    width: 100px; height: 100px;
-    border-radius: 50%; padding: 2.5px; flex-shrink: 0;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    padding: 2.5px;
+    flex-shrink: 0;
     background: linear-gradient(135deg, rgba(200,70,126,0.9) 0%, rgba(140,80,200,0.7) 100%);
-    box-shadow: 0 0 12px rgba(200,70,126,0.5), 0 0 28px rgba(200,70,126,0.2);
+    box-shadow: 0 0 16px rgba(200,70,126,0.5), 0 0 36px rgba(200,70,126,0.2);
 }
 .avatar-clickable { cursor: pointer; }
 
@@ -245,9 +275,8 @@ function deleteAvatar() {
     width: 100%; height: 100%;
     border-radius: 50%;
     background: linear-gradient(135deg, rgba(200,70,126,0.35), rgba(200,70,126,0.1));
-    border: none;
     display: flex; align-items: center; justify-content: center;
-    font-size: 2rem; font-weight: 500; color: rgba(255,255,255,0.9);
+    font-size: 2.2rem; font-weight: 500; color: rgba(255,255,255,0.9);
     position: relative;
     overflow: hidden;
 }
@@ -270,63 +299,21 @@ function deleteAvatar() {
 }
 .profile-avatar:hover .avatar-overlay { opacity: 1; }
 .avatar-overlay-icon { font-size: 1.4rem; color: #fff; }
-
 .hidden-input { display: none; }
 
-.profile-info { flex: 1; min-width: 0; }
-
-.profile-name {
-    font-size: 1.7rem; font-weight: 700; margin: 0 0 0.3rem;
+/* Name */
+.hero-name {
+    font-size: 1.85rem;
+    font-weight: 700;
+    margin: 0;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     background: linear-gradient(135deg, #fff 0%, rgba(230,170,200,0.9) 55%, rgba(180,130,220,0.85) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    color: rgba(255,255,255,0.95); /* fallback */
-}
-
-.profile-meta {
-    display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem;
-    font-size: 0.9rem; color: rgba(255,255,255,0.5);
-    margin-bottom: 0.65rem;
-}
-.meta-sep { opacity: 0.4; }
-
-/* Voice row inside header */
-.voice-row {
-    display: flex;
-    align-items: center;
-}
-
-/* Action buttons — always in DOM when isOwner, no layout shift */
-.header-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-}
-
-.action-btn {
-    display: flex; align-items: center; justify-content: center;
-    width: 30px; height: 30px; border-radius: 8px;
-    border: none; background: transparent; cursor: pointer;
-    color: rgba(255,255,255,0.25);
-    font-size: 1rem;
-    transition: color 0.2s ease, background 0.2s ease;
-    text-decoration: none;
-    padding: 0;
-}
-.edit-btn {
-    opacity: 0;
-    transition: opacity 0.2s ease, color 0.2s ease, background 0.2s ease;
-}
-.profile-header:hover .edit-btn {
-    opacity: 1;
-}
-.action-btn:hover {
-    color: rgba(200,70,126,0.9);
-    background: rgba(200,70,126,0.1);
 }
 
 /* Edit form */

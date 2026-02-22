@@ -1,88 +1,233 @@
 <script setup>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import { Check, Minus, Trophy } from '@element-plus/icons-vue';
 
 const props = defineProps({
     user: { type: Object, required: true },
 });
 
+const open = ref(false);
+
 const items = computed(() => [
-    { key: 'about',     label: 'Заполни "Обо мне"',              done: !!props.user.about },
-    { key: 'traits',    label: 'Добавь черты характера',          done: props.user.traits.length > 0 },
-    { key: 'interests', label: 'Добавь интересы',                 done: props.user.interests.length > 0 },
-    { key: 'voice',     label: 'Запиши голосовое приветствие',    done: !!props.user.voice_url },
-    { key: 'languages', label: 'Укажи языки',                     done: props.user.languages.length > 0 },
-    { key: 'timezone',  label: 'Укажи часовой пояс',              done: !!props.user.timezone },
+    { key: 'about',     label: 'Заполни «Обо мне»',       done: !!props.user.about },
+    { key: 'traits',    label: 'Добавь черты характера',   done: props.user.traits.length > 0 },
+    { key: 'interests', label: 'Добавь интересы',          done: props.user.interests.length > 0 },
+    { key: 'voice',     label: 'Запиши голосовое',         done: !!props.user.voice_url },
+    { key: 'languages', label: 'Укажи языки',              done: props.user.languages.length > 0 },
+    { key: 'timezone',  label: 'Укажи часовой пояс',       done: !!props.user.timezone },
 ]);
 
 const doneCount = computed(() => items.value.filter(i => i.done).length);
-const allDone = computed(() => doneCount.value === items.value.length);
-const pct = computed(() => Math.round((doneCount.value / items.value.length) * 100));
+const allDone   = computed(() => doneCount.value === items.value.length);
+const pct       = computed(() => Math.round(doneCount.value / items.value.length * 100));
+
+// SVG circle: r=15, circumference ≈ 94.25
+const CIRC = 2 * Math.PI * 15;
+const strokeDash = computed(() => ({
+    strokeDasharray: CIRC,
+    strokeDashoffset: CIRC * (1 - doneCount.value / items.value.length),
+}));
 </script>
 
 <template>
-    <div id="tour-checklist" class="checklist-card">
-        <div class="checklist-header">
-            <div class="checklist-title-row">
-                <h2 class="checklist-title">Заполни профиль</h2>
-                <span class="checklist-count">{{ doneCount }}/{{ items.length }}</span>
+    <div class="cl-widget">
+        <Transition name="cl-panel-fade">
+            <div v-if="open" class="cl-panel">
+                <div class="cl-panel-head">
+                    <span class="cl-panel-title">Заполни профиль</span>
+                    <button class="cl-close" @click="open = false">✕</button>
+                </div>
+                <div class="cl-progress-bar">
+                    <div class="cl-progress-fill" :style="{ width: pct + '%' }" />
+                </div>
+                <ul class="cl-items">
+                    <li
+                        v-for="item in items"
+                        :key="item.key"
+                        class="cl-item"
+                        :class="{ done: item.done }"
+                    >
+                        <el-icon class="cl-item-icon">
+                            <component :is="item.done ? Check : Minus" />
+                        </el-icon>
+                        {{ item.label }}
+                    </li>
+                </ul>
+                <p v-if="allDone" class="cl-complete">
+                    <el-icon><Trophy /></el-icon> Профиль заполнен!
+                </p>
             </div>
-            <div class="progress-bar">
-                <div class="progress-fill" :style="{ width: pct + '%' }" />
-            </div>
-        </div>
+        </Transition>
 
-        <ul class="checklist-items">
-            <li v-for="item in items" :key="item.key" class="checklist-item" :class="{ done: item.done }">
-                <el-icon class="item-icon"><component :is="item.done ? Check : Minus" /></el-icon>
-                <span class="item-label">{{ item.label }}</span>
-            </li>
-        </ul>
-
-        <p v-if="allDone" class="checklist-complete"><el-icon class="trophy-icon"><Trophy /></el-icon> Профиль заполнен полностью!</p>
+        <button
+            class="cl-trigger"
+            :class="{ done: allDone }"
+            :title="'Заполнение профиля: ' + doneCount + '/' + items.length"
+            @click="open = !open"
+        >
+            <svg class="cl-svg" viewBox="0 0 36 36">
+                <circle class="cl-track" cx="18" cy="18" r="15" />
+                <circle class="cl-fill" cx="18" cy="18" r="15" :style="strokeDash" />
+            </svg>
+            <span class="cl-label">{{ doneCount }}<small>/{{ items.length }}</small></span>
+        </button>
     </div>
 </template>
 
 <style scoped>
-.checklist-card {
-    padding: 1.25rem 1.5rem;
-    background: linear-gradient(135deg, rgba(200,70,126,0.08) 0%, rgba(140,60,180,0.04) 100%);
-    border: 1px solid rgba(200,70,126,0.22);
-    border-radius: 16px;
-    overflow: hidden;
+.cl-widget {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+
+.cl-trigger {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(14,10,24,0.92);
+    backdrop-filter: blur(14px);
+    cursor: pointer;
     position: relative;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-    cursor: default;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.55), 0 0 0 1px rgba(200,70,126,0.2);
+    transition: box-shadow 0.2s;
 }
-.checklist-card::before {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent 0%, rgba(200,70,126,0.6) 50%, transparent 100%);
+.cl-trigger:hover {
+    box-shadow: 0 4px 24px rgba(0,0,0,0.6), 0 0 16px rgba(200,70,126,0.3), 0 0 0 1px rgba(200,70,126,0.35);
 }
-.checklist-card:hover {
-    transform: translateY(-2px);
-    border-color: rgba(200,70,126,0.35);
-    box-shadow: 0 8px 28px rgba(0,0,0,0.35), 0 0 0 1px rgba(200,70,126,0.08);
+.cl-trigger.done {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 18px rgba(200,70,126,0.4), 0 0 0 1px rgba(200,70,126,0.45);
 }
-.checklist-header { margin-bottom: 1rem; }
-.checklist-title-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
-.checklist-title { font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.85); margin: 0; }
-.checklist-count { font-size: 0.8rem; color: rgba(200,70,126,0.7); }
-.progress-bar { height: 5px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
-.progress-fill {
+
+.cl-svg {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    transform: rotate(-90deg);
+}
+.cl-track {
+    fill: none;
+    stroke: rgba(255,255,255,0.07);
+    stroke-width: 3;
+}
+.cl-fill {
+    fill: none;
+    stroke: rgba(200,70,126,0.85);
+    stroke-width: 3;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.5s ease;
+}
+
+.cl-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    position: relative;
+    z-index: 1;
+    line-height: 1;
+}
+.cl-label small {
+    font-size: 0.58rem;
+    opacity: 0.55;
+}
+
+.cl-panel {
+    width: 230px;
+    padding: 1rem 1rem 0.85rem;
+    background: rgba(14,10,24,0.94);
+    backdrop-filter: blur(18px);
+    border: 1px solid rgba(200,70,126,0.2);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.65), 0 0 0 1px rgba(200,70,126,0.06);
+}
+
+.cl-panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.65rem;
+}
+.cl-panel-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.85);
+}
+.cl-close {
+    background: none; border: none;
+    color: rgba(255,255,255,0.3);
+    cursor: pointer; font-size: 0.8rem; padding: 0;
+}
+.cl-close:hover { color: rgba(255,255,255,0.7); }
+
+.cl-progress-bar {
+    height: 4px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 2px;
+    margin-bottom: 0.85rem;
+    overflow: hidden;
+}
+.cl-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, rgba(200,70,126,0.9) 0%, rgba(140,60,200,0.75) 100%);
-    box-shadow: 0 0 8px rgba(200,70,126,0.45);
-    transition: width 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    border-radius: 2px;
+    background: linear-gradient(90deg, rgba(200,70,126,0.9), rgba(140,60,200,0.75));
+    box-shadow: 0 0 8px rgba(200,70,126,0.4);
+    transition: width 0.5s cubic-bezier(0.25,0.46,0.45,0.94);
 }
 
-.checklist-items { list-style: none; padding: 0; margin: 0 0 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
-.checklist-item { display: flex; align-items: center; gap: 0.6rem; }
-.item-icon { font-size: 0.85rem; width: 16px; flex-shrink: 0; transition: color 0.2s, filter 0.2s; color: rgba(255,255,255,0.25); }
-.checklist-item.done .item-icon { color: rgba(200,70,126,0.8); filter: drop-shadow(0 0 4px rgba(200,70,126,0.5)); }
-.trophy-icon { font-size: 1rem; vertical-align: middle; color: rgba(200,70,126,0.8); filter: drop-shadow(0 0 6px rgba(200,70,126,0.5)); }
-.item-label { font-size: 0.88rem; color: rgba(255,255,255,0.55); transition: all 0.2s; }
-.checklist-item.done .item-label { color: rgba(255,255,255,0.3); text-decoration: line-through; text-decoration-color: rgba(200,70,126,0.35); }
+.cl-items {
+    list-style: none; padding: 0; margin: 0 0 0.75rem;
+    display: flex; flex-direction: column; gap: 0.45rem;
+}
+.cl-item {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-size: 0.82rem; color: rgba(255,255,255,0.5);
+}
+.cl-item-icon {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.2);
+    flex-shrink: 0;
+}
+.cl-item.done .cl-item-icon {
+    color: rgba(200,70,126,0.8);
+    filter: drop-shadow(0 0 4px rgba(200,70,126,0.5));
+}
+.cl-item.done {
+    color: rgba(255,255,255,0.28);
+    text-decoration: line-through;
+    text-decoration-color: rgba(200,70,126,0.3);
+}
 
-.checklist-complete { font-size: 0.9rem; color: rgba(200,70,126,0.7); margin: 0; text-align: center; display: flex; align-items: center; justify-content: center; gap: 0.35rem; }
+.cl-complete {
+    font-size: 0.82rem;
+    color: rgba(200,70,126,0.75);
+    margin: 0;
+    display: flex; align-items: center; gap: 0.3rem;
+}
+
+/* Panel animation */
+.cl-panel-fade-enter-active {
+    transition: opacity 0.2s, transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+.cl-panel-fade-enter-from {
+    opacity: 0;
+    transform: scale(0.88) translateY(6px);
+    transform-origin: bottom right;
+}
+.cl-panel-fade-leave-active {
+    transition: opacity 0.15s, transform 0.15s ease-in;
+}
+.cl-panel-fade-leave-to {
+    opacity: 0;
+    transform: scale(0.92) translateY(4px);
+    transform-origin: bottom right;
+}
+
+@media (max-width: 640px) {
+    .cl-widget { bottom: 0.75rem; right: 0.75rem; }
+}
 </style>
