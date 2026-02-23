@@ -14,7 +14,6 @@ const editModal = ref(false);
 const openCat = ref(null);
 const interestSearch = ref('');
 
-// Group current interests by category
 const byCategory = computed(() => {
     const map = {};
     for (const i of props.interests) {
@@ -26,7 +25,6 @@ const byCategory = computed(() => {
 });
 
 const selected = ref(new Set(props.interests.map(i => i.id)));
-
 const form = useForm({ interest_ids: [] });
 
 const filteredCategories = computed(() => {
@@ -77,9 +75,9 @@ function openEdit() {
 </script>
 
 <template>
-    <div id="tour-interests" class="block-card">
-        <div class="block-header">
-            <h2 class="block-title">Интересы</h2>
+    <div id="tour-interests" class="block-section">
+        <div class="section-header">
+            <span class="section-title">Интересы</span>
             <button v-if="isOwner" class="edit-btn" @click="openEdit" title="Редактировать">
                 <el-icon><Edit /></el-icon>
             </button>
@@ -87,7 +85,7 @@ function openEdit() {
 
         <div v-if="interests.length">
             <div v-for="(items, catName) in byCategory" :key="catName" class="cat-group">
-                <div class="cat-name">{{ catName }}</div>
+                <div class="cat-label">{{ catName }}</div>
                 <div class="tags-row">
                     <span v-for="i in items" :key="i.id" class="tag">{{ i.name_ru }}</span>
                 </div>
@@ -143,105 +141,98 @@ function openEdit() {
 </template>
 
 <style scoped>
-.block-card {
-    padding: 1.25rem 1.5rem;
-    background: rgba(255,255,255,0.045);
-    border: 1px solid rgba(255,255,255,0.09);
-    border-radius: 16px;
+.block-section {
+    padding: 1.5rem 2rem;
     position: relative;
-    overflow: hidden;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.2s ease;
     cursor: default;
 }
-.block-card::before {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent 0%, rgba(200,70,126,0.4) 40%, rgba(120,70,200,0.3) 70%, transparent 100%);
-    border-radius: 16px 16px 0 0;
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.9rem;
 }
-.block-card:hover {
-    transform: translateY(-2px);
-    border-color: rgba(200,70,126,0.2);
-    box-shadow: 0 12px 36px rgba(0,0,0,0.4), 0 0 0 1px rgba(200,70,126,0.08), 0 0 40px rgba(200,70,126,0.06);
+
+.section-title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #FE28A2;
 }
-.block-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; min-height: 1.5rem; }
-.block-title {
-    font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase;
-    color: rgba(200,70,126,0.8); margin: 0;
-    display: flex; align-items: center; gap: 0.5rem;
-}
-.block-title::before {
-    content: '';
-    display: block; width: 3px; height: 12px; border-radius: 2px; flex-shrink: 0;
-    background: linear-gradient(180deg, rgba(200,70,126,0.95) 0%, rgba(140,60,200,0.75) 100%);
-}
+
 .edit-btn {
     display: flex; align-items: center; justify-content: center;
-    width: 26px; height: 26px; border-radius: 7px;
+    width: 26px; height: 26px;
     border: none; background: transparent; cursor: pointer;
-    color: rgba(255,255,255,0.25); font-size: 0.95rem; padding: 0;
+    color: rgba(255,255,255,0.2); font-size: 0.95rem; padding: 0;
     opacity: 0;
-    transition: opacity 0.2s ease, color 0.2s ease, background 0.2s ease;
+    transition: opacity 0.15s, color 0.15s;
 }
-.block-card:hover .edit-btn { opacity: 1; }
-.edit-btn:hover { color: rgba(200,70,126,0.9); background: rgba(200,70,126,0.1); }
+.block-section:hover .edit-btn { opacity: 1; }
+.edit-btn:hover { color: rgba(254,40,162,0.9); }
+
 .cat-group { margin-bottom: 0.75rem; }
-.cat-name { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 0.35rem; }
+.cat-group:last-child { margin-bottom: 0; }
+.cat-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 0.4rem;
+}
 .tags-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .tag {
-    padding: 0.3rem 0.75rem; border-radius: 20px;
-    background: linear-gradient(135deg, rgba(100,60,200,0.15) 0%, rgba(200,70,126,0.1) 100%);
-    border: 1px solid rgba(120,70,200,0.3);
-    color: rgba(255,255,255,0.8); font-size: 0.85rem;
-    transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    padding: 0.28rem 0.65rem;
+    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.8);
+    font-size: 1rem;
 }
-.tag:hover {
-    transform: scale(1.06);
-    background: linear-gradient(135deg, rgba(100,60,200,0.28) 0%, rgba(200,70,126,0.18) 100%);
-    border-color: rgba(140,70,220,0.55);
-    box-shadow: 0 2px 12px rgba(120,60,200,0.22);
-}
-.empty { color: rgba(255,255,255,0.25); font-size: 0.9rem; font-style: italic; margin: 0; }
+.empty { color: rgba(255,255,255,0.25); font-size: 1rem; font-style: italic; margin: 0; }
 
+/* ── Форма редактирования ─────────────────────────────────── */
 .edit-form { padding: 0.5rem 0.25rem; }
 .edit-title { font-size: 1.1rem; font-weight: 600; color: rgba(255,255,255,0.9); margin: 0 0 0.25rem; }
-.edit-hint { font-size: 0.8rem; color: rgba(255,255,255,0.35); margin: 0 0 0.75rem; }
+.edit-hint { font-size: 0.82rem; color: rgba(255,255,255,0.35); margin: 0 0 0.75rem; }
 .search-input {
     width: 100%; padding: 0.55rem 0.9rem; margin-bottom: 0.75rem;
     background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 8px; color: rgba(255,255,255,0.88); font-size: 0.88rem; font-family: inherit;
-    box-sizing: border-box; outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    border-radius: 6px; color: rgba(255,255,255,0.88); font-size: 0.9rem; font-family: inherit;
+    box-sizing: border-box; outline: none; transition: border-color 0.15s;
 }
 .search-input::placeholder { color: rgba(255,255,255,0.25); }
-.search-input:focus { border-color: rgba(200,70,126,0.45); box-shadow: 0 0 0 3px rgba(200,70,126,0.08); }
-.categories { display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 1rem; }
-.cat-block { border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; }
+.search-input:focus { border-color: rgba(254,40,162,0.5); }
+.categories { display: flex; flex-direction: column; gap: 0.2rem; margin-bottom: 1rem; }
+.cat-block { border: 1px solid rgba(255,255,255,0.07); border-radius: 6px; }
 .cat-header {
-    width: 100%; display: flex; align-items: center; justify-content: space-between;
-    padding: 0.65rem 1rem;
+    width: 100%; display: flex; align-items: center;
+    padding: 0.6rem 0.9rem;
     background: rgba(255,255,255,0.03); border: none; color: rgba(255,255,255,0.75);
     font-size: 0.9rem; cursor: pointer; font-family: inherit; text-align: left;
+    border-radius: 6px;
 }
-.cat-count { color: rgba(200,70,126,0.7); font-size: 0.8rem; margin-left: 0.5rem; }
-.cat-arrow { color: rgba(255,255,255,0.4); font-size: 1.1rem; transition: transform 0.2s; margin-left: auto; }
+.cat-count { color: rgba(254,40,162,0.75); font-size: 0.8rem; margin-left: 0.4rem; }
+.cat-arrow { color: rgba(255,255,255,0.35); font-size: 1.1rem; transition: transform 0.2s; margin-left: auto; }
 .cat-arrow.open { transform: rotate(90deg); }
-.cat-interests { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0.65rem 1rem; background: rgba(0,0,0,0.15); }
+.cat-interests { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0.6rem 0.9rem; background: rgba(0,0,0,0.12); border-radius: 0 0 6px 6px; }
 .interest-btn {
-    padding: 0.3rem 0.75rem; border-radius: 20px;
+    padding: 0.25rem 0.65rem;
+    border-radius: 3px;
     border: 1px solid rgba(255,255,255,0.1); background: transparent;
-    color: rgba(255,255,255,0.5); font-size: 0.83rem; cursor: pointer; font-family: inherit; transition: all 0.2s;
+    color: rgba(255,255,255,0.5); font-size: 0.88rem; cursor: pointer; font-family: inherit; transition: all 0.15s;
 }
-.interest-btn.active { border-color: rgba(200,70,126,0.5); background: rgba(200,70,126,0.15); color: #fff; }
+.interest-btn.active { border-color: rgba(254,40,162,0.55); background: rgba(254,40,162,0.1); color: #fff; }
 .interest-btn:disabled:not(.active) { opacity: 0.3; cursor: not-allowed; }
-.no-results { color: rgba(255,255,255,0.3); font-size: 0.88rem; text-align: center; padding: 1rem 0; margin: 0; }
+.no-results { color: rgba(255,255,255,0.3); font-size: 0.9rem; text-align: center; padding: 1rem 0; margin: 0; }
 .save-btn {
-    width: 100%; padding: 0.8rem;
-    border-radius: 10px; border: 1px solid rgba(200,70,126,0.35);
-    background: linear-gradient(135deg, rgba(200,70,126,0.25), rgba(200,70,126,0.1));
-    color: #fff; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: all 0.2s;
+    width: 100%; padding: 0.75rem;
+    border-radius: 6px; border: 1px solid rgba(254,40,162,0.4);
+    background: rgba(254,40,162,0.1);
+    color: #fff; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: background 0.15s;
 }
-.save-btn:hover:not(:disabled) { background: linear-gradient(135deg, rgba(200,70,126,0.38), rgba(200,70,126,0.18)); }
-.save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.save-btn:hover:not(:disabled) { background: rgba(254,40,162,0.2); }
+.save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 </style>

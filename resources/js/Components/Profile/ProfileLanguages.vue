@@ -67,9 +67,9 @@ function openEdit() {
 </script>
 
 <template>
-    <div id="tour-languages" class="block-card">
-        <div class="block-header">
-            <h2 class="block-title">Языки</h2>
+    <div id="tour-languages" class="block-section">
+        <div class="section-header">
+            <span class="section-title">Языки</span>
             <button v-if="isOwner" class="edit-btn" @click="openEdit" title="Редактировать">
                 <el-icon><Edit /></el-icon>
             </button>
@@ -96,90 +96,73 @@ function openEdit() {
                         @click="toggleLang(l.code)"
                     >{{ l.flag }} {{ l.name }}</button>
                 </div>
-                <button class="save-btn" :disabled="form.processing" @click="submit">
-                    Сохранить
-                </button>
+                <button class="save-btn" :disabled="form.processing" @click="submit">Сохранить</button>
             </div>
         </SiteModal>
     </div>
 </template>
 
 <style scoped>
-.block-card {
-    padding: 1.25rem 1.5rem;
-    background: rgba(255,255,255,0.045);
-    border: 1px solid rgba(255,255,255,0.09);
-    border-radius: 16px;
+.block-section {
+    padding: 1.5rem 2rem;
     position: relative;
-    overflow: hidden;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.2s ease;
     cursor: default;
 }
-.block-card::before {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent 0%, rgba(200,70,126,0.4) 40%, rgba(120,70,200,0.3) 70%, transparent 100%);
-    border-radius: 16px 16px 0 0;
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.9rem;
 }
-.block-card:hover {
-    transform: translateY(-2px);
-    border-color: rgba(200,70,126,0.2);
-    box-shadow: 0 12px 36px rgba(0,0,0,0.4), 0 0 0 1px rgba(200,70,126,0.08), 0 0 40px rgba(200,70,126,0.06);
+
+.section-title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #FE28A2;
 }
-.block-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; min-height: 1.5rem; }
-.block-title {
-    font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase;
-    color: rgba(200,70,126,0.8); margin: 0;
-    display: flex; align-items: center; gap: 0.5rem;
-}
-.block-title::before {
-    content: '';
-    display: block; width: 3px; height: 12px; border-radius: 2px; flex-shrink: 0;
-    background: linear-gradient(180deg, rgba(200,70,126,0.95) 0%, rgba(140,60,200,0.75) 100%);
-}
+
 .edit-btn {
     display: flex; align-items: center; justify-content: center;
-    width: 26px; height: 26px; border-radius: 7px;
+    width: 26px; height: 26px;
     border: none; background: transparent; cursor: pointer;
-    color: rgba(255,255,255,0.25); font-size: 0.95rem; padding: 0;
+    color: rgba(255,255,255,0.2); font-size: 0.95rem; padding: 0;
     opacity: 0;
-    transition: opacity 0.2s ease, color 0.2s ease, background 0.2s ease;
+    transition: opacity 0.15s, color 0.15s;
 }
-.block-card:hover .edit-btn { opacity: 1; }
-.edit-btn:hover { color: rgba(200,70,126,0.9); background: rgba(200,70,126,0.1); }
-.tags-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.tag {
-    padding: 0.3rem 0.75rem; border-radius: 20px;
-    background: linear-gradient(135deg, rgba(200,70,126,0.13) 0%, rgba(180,60,100,0.08) 100%);
-    border: 1px solid rgba(200,70,126,0.28);
-    color: rgba(255,255,255,0.8); font-size: 0.85rem;
-    transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-}
-.tag:hover {
-    transform: scale(1.06);
-    background: linear-gradient(135deg, rgba(200,70,126,0.25) 0%, rgba(180,60,100,0.18) 100%);
-    border-color: rgba(200,70,126,0.52);
-    box-shadow: 0 2px 12px rgba(200,70,126,0.18);
-}
-.empty { color: rgba(255,255,255,0.25); font-size: 0.9rem; font-style: italic; margin: 0; }
+.block-section:hover .edit-btn { opacity: 1; }
+.edit-btn:hover { color: rgba(254,40,162,0.9); }
 
+.tags-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.tag {
+    padding: 0.28rem 0.65rem;
+    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.8);
+    font-size: 1rem;
+}
+.empty { color: rgba(255,255,255,0.25); font-size: 1rem; font-style: italic; margin: 0; }
+
+/* ── Форма редактирования ─────────────────────────────────── */
 .edit-form { padding: 0.5rem 0.25rem; }
 .edit-title { font-size: 1.1rem; font-weight: 600; color: rgba(255,255,255,0.9); margin: 0 0 0.75rem; }
-.lang-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+.lang-grid { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
 .lang-btn {
-    padding: 0.35rem 0.85rem; border-radius: 20px;
+    padding: 0.3rem 0.75rem;
+    border-radius: 3px;
     border: 1px solid rgba(255,255,255,0.1); background: transparent;
-    color: rgba(255,255,255,0.5); font-size: 0.85rem; cursor: pointer; font-family: inherit; transition: all 0.2s;
+    color: rgba(255,255,255,0.5); font-size: 0.9rem; cursor: pointer; font-family: inherit; transition: all 0.15s;
 }
-.lang-btn.active { border-color: rgba(200,70,126,0.5); background: rgba(200,70,126,0.15); color: #fff; }
+.lang-btn.active { border-color: rgba(254,40,162,0.55); background: rgba(254,40,162,0.1); color: #fff; }
 .save-btn {
-    width: 100%; padding: 0.8rem;
-    border-radius: 10px; border: 1px solid rgba(200,70,126,0.35);
-    background: linear-gradient(135deg, rgba(200,70,126,0.25), rgba(200,70,126,0.1));
-    color: #fff; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: all 0.2s;
+    width: 100%; padding: 0.75rem;
+    border-radius: 6px; border: 1px solid rgba(254,40,162,0.4);
+    background: rgba(254,40,162,0.1);
+    color: #fff; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: background 0.15s;
 }
-.save-btn:hover:not(:disabled) { background: linear-gradient(135deg, rgba(200,70,126,0.38), rgba(200,70,126,0.18)); }
-.save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.save-btn:hover:not(:disabled) { background: rgba(254,40,162,0.2); }
+.save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 </style>

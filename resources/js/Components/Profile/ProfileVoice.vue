@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import WaveSurfer from 'wavesurfer.js';
 import { router } from '@inertiajs/vue3';
 
@@ -8,7 +8,7 @@ const props = defineProps({
     isOwner:  { type: Boolean, default: false },
 });
 
-// ── WaveSurfer player ──────────────────────────────────────
+// ── WaveSurfer ──────────────────────────────────────────────
 const waveformEl  = ref(null);
 const playing     = ref(false);
 const currentSec  = ref(0);
@@ -17,7 +17,7 @@ const wsReady     = ref(false);
 let   ws          = null;
 
 function fmt(s) {
-    if (!s || !isFinite(s) || isNaN(s) || s === 0) return '0:00';
+    if (!s || !isFinite(s) || isNaN(s)) return '0:00';
     return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 }
 
@@ -33,30 +33,23 @@ function initWaveSurfer() {
     ws = WaveSurfer.create({
         container:     waveformEl.value,
         url:           props.voiceUrl,
-        waveColor:     'rgba(255,255,255,0.28)',
-        progressColor: 'rgba(200,70,126,0.9)',
+        waveColor:     'rgba(255,255,255,0.22)',
+        progressColor: '#FE28A2',
         cursorColor:   'transparent',
-        barWidth:      3,
+        barWidth:      2,
         barGap:        2,
-        barRadius:     3,
+        barRadius:     1,
         height:        28,
         normalize:     true,
         interact:      true,
         backend:       'WebAudio',
     });
 
-    ws.on('ready', (dur) => {
-        totalSec.value = dur;
-        wsReady.value  = true;
-    });
-
-    ws.on('timeupdate', (sec) => {
-        currentSec.value = sec;
-    });
-
-    ws.on('play',   () => { playing.value = true; });
-    ws.on('pause',  () => { playing.value = false; });
-    ws.on('finish', () => {
+    ws.on('ready',      (dur) => { totalSec.value = dur; wsReady.value = true; });
+    ws.on('timeupdate', (sec) => { currentSec.value = sec; });
+    ws.on('play',       ()    => { playing.value = true; });
+    ws.on('pause',      ()    => { playing.value = false; });
+    ws.on('finish',     ()    => {
         playing.value    = false;
         currentSec.value = 0;
         ws?.seekTo(0);
@@ -68,15 +61,29 @@ function togglePlay() {
     ws.playPause();
 }
 
-// Re-init when voiceUrl changes (after recording upload).
-// nextTick ensures v-if="voiceUrl" has rendered the container before WaveSurfer mounts.
-watch(() => props.voiceUrl, async (url) => {
-    if (url) { await nextTick(); initWaveSurfer(); }
-    else if (ws) { ws.destroy(); ws = null; wsReady.value = false; }
+// Главный фикс: следим за template ref напрямую.
+// flush:'post' — элемент полностью в DOM когда callback выполняется.
+watch(waveformEl, (el) => {
+    if (el && props.voiceUrl) {
+        initWaveSurfer();
+    } else if (!el && ws) {
+        ws.destroy();
+        ws = null;
+        wsReady.value = false;
+    }
+}, { flush: 'post' });
+
+// Перезапуск при смене URL (перезапись голосового)
+watch(() => props.voiceUrl, (url, oldUrl) => {
+    if (!url) {
+        if (ws) { ws.destroy(); ws = null; wsReady.value = false; playing.value = false; }
+    } else if (url !== oldUrl && waveformEl.value) {
+        initWaveSurfer();
+    }
 });
 
 onMounted(() => {
-    if (props.voiceUrl) initWaveSurfer();
+    if (props.voiceUrl && waveformEl.value) initWaveSurfer();
 });
 
 onUnmounted(() => {
@@ -85,9 +92,69 @@ onUnmounted(() => {
     clearInterval(timer);
 });
 
-// ── Recording ─────────────────────────────────────────────
-const MAX_SEC   = 27;
+// ── Recording state (объявлено до isDiskSpinning) ───────────
 const recording = ref(false);
+
+// ── Диск: вращение + плавный возврат ───────────────────────
+const diskEl        = ref(null);
+const returnStyle   = ref({});
+let   returnTimeout = null;
+
+// Диск крутится при воспроизведении И при записи
+const isDiskSpinning = computed(() => playing.value || recording.value);
+
+// Читаем текущий угол поворота из CSS-матрицы трансформации
+function getCurrentAngle() {
+    if (!diskEl.value) return 0;
+    const t = window.getComputedStyle(diskEl.value).transform;
+    if (!t || t === 'none') return 0;
+    const m = t.split('(')[1]?.split(')')[0]?.split(',');
+    if (!m) return 0;
+    const angle = Math.atan2(parseFloat(m[1]), parseFloat(m[0])) * (180 / Math.PI);
+    return angle < 0 ? angle + 360 : angle;
+}
+
+watch(isDiskSpinning, (spinning) => {
+    clearTimeout(returnTimeout);
+
+    if (spinning) {
+        // Запуск — убираем стили возврата, отдаём управление CSS-анимации
+        returnStyle.value = {};
+    } else {
+        // Остановка — читаем текущий угол ДО обновления DOM (default flush:'pre')
+        const angle = getCurrentAngle();
+
+        // Выбираем кратчайший путь: вперёд до 360 или назад до 0
+        const toForward = 360 - angle;
+        const toBack    = angle;
+        const targetAngle  = toForward <= toBack ? 360 : 0;
+        const distanceDeg  = Math.min(toForward, toBack);
+        // Длительность пропорциональна расстоянию, минимум 0.2s, максимум 0.75s
+        const duration = (0.2 + (distanceDeg / 180) * 0.55).toFixed(2);
+
+        // Шаг 1: фиксируем диск на текущем угле (убираем CSS-анимацию)
+        returnStyle.value = {
+            animation:  'none',
+            transform:  `rotate(${angle}deg)`,
+            transition: 'none',
+        };
+
+        // Шаг 2: два rAF гарантируют что браузер закоммитил шаг 1 перед стартом transition
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            returnStyle.value = {
+                animation:  'none',
+                transform:  `rotate(${targetAngle}deg)`,
+                transition: `transform ${duration}s cubic-bezier(0.4, 0, 0.2, 1)`,
+            };
+            returnTimeout = setTimeout(() => {
+                returnStyle.value = {};
+            }, parseFloat(duration) * 1000 + 50);
+        }));
+    }
+});
+
+// ── Recording ───────────────────────────────────────────────
+const MAX_SEC   = 27;
 const countdown = ref(MAX_SEC);
 const chunks    = ref([]);
 let   mr        = null;
@@ -102,7 +169,6 @@ const mime = computed(() => {
 
 async function startRecording() {
     try {
-        // Stop WaveSurfer if playing
         if (ws && playing.value) ws.pause();
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         chunks.value = [];
@@ -131,281 +197,216 @@ function upload() {
     const blob = new Blob(chunks.value, { type: mime.value });
     const fd   = new FormData();
     fd.append('voice', new File([blob], `voice.${ext}`, { type: mime.value }));
-    router.post(route('profile.update.voice'), fd, { preserveState: true, preserveScroll: true, forceFormData: true });
+    router.post(route('profile.update.voice'), fd, {
+        preserveState: true, preserveScroll: true, forceFormData: true,
+    });
 }
 
 function deleteVoice() {
     if (!confirm('Удалить голосовое?')) return;
-    if (ws) { ws.destroy(); ws = null; wsReady.value = false; }
+    if (ws) { ws.destroy(); ws = null; wsReady.value = false; playing.value = false; }
     router.delete(route('profile.delete.voice'), { preserveState: true, preserveScroll: true });
 }
 </script>
 
 <template>
-    <!-- ── PLAYER ───────────────────────────────────────────── -->
-    <div v-if="voiceUrl" class="vp-wrap">
-        <!-- Play / Pause -->
-        <button
-            class="vp-play"
-            :class="{ playing, loading: !wsReady }"
-            :disabled="!wsReady"
-            @click="togglePlay"
-            :title="playing ? 'Пауза' : 'Играть'"
-        >
-            <!-- Spinner while loading -->
-            <svg v-if="!wsReady" class="vp-icon vp-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <circle cx="12" cy="12" r="9" stroke-opacity="0.25"/>
-                <path d="M12 3a9 9 0 0 1 9 9" stroke-linecap="round"/>
-            </svg>
-            <!-- Play icon -->
-            <svg v-else-if="!playing" class="vp-icon" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M8 5.14v14l11-7-11-7z"/>
-            </svg>
-            <!-- Pause icon -->
-            <svg v-else class="vp-icon vp-icon--pause" viewBox="0 0 24 24" fill="currentColor">
-                <rect x="6" y="5" width="4" height="14" rx="1"/>
-                <rect x="14" y="5" width="4" height="14" rx="1"/>
-            </svg>
-        </button>
-
-        <!-- WaveSurfer container + time -->
-        <div class="vp-body">
-            <div ref="waveformEl" class="vp-waveform" />
-            <div class="vp-times">
-                <span class="vp-time-cur">{{ fmt(currentSec) }}</span>
-                <span class="vp-time-sep">·</span>
-                <span class="vp-time-tot">{{ fmt(totalSec) }}</span>
-            </div>
+    <div class="voice-wrap">
+        <!-- Диск — вращается при воспроизведении и при записи, плавно возвращается в 0 -->
+        <div class="disk-wrap">
+            <img
+                ref="diskEl"
+                src="/profile_disk.png"
+                class="disk"
+                :class="{ spinning: isDiskSpinning && !returnStyle.transform }"
+                :style="returnStyle"
+                alt=""
+            />
         </div>
 
-        <!-- Owner controls -->
-        <div v-if="isOwner" class="vp-owner">
-            <button class="vp-delete" @click="deleteVoice" title="Удалить">
+        <!-- Плеер -->
+        <div v-if="voiceUrl" class="player">
+            <button
+                class="play-btn"
+                :disabled="!wsReady"
+                @click="togglePlay"
+                :title="playing ? 'Пауза' : 'Играть'"
+            >
+                <svg v-if="!wsReady" class="icon-loading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="12" cy="12" r="9" stroke-opacity="0.2"/>
+                    <path d="M12 3a9 9 0 0 1 9 9" stroke-linecap="round"/>
+                </svg>
+                <svg v-else-if="!playing" class="icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5.14v14l11-7-11-7z"/>
+                </svg>
+                <svg v-else class="icon" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="6" y="5" width="4" height="14" rx="1"/>
+                    <rect x="14" y="5" width="4" height="14" rx="1"/>
+                </svg>
+            </button>
+
+            <div class="player-track">
+                <div ref="waveformEl" class="waveform" />
+                <div class="times">{{ fmt(currentSec) }} / {{ fmt(totalSec) }}</div>
+            </div>
+
+            <button v-if="isOwner" class="del-btn" @click="deleteVoice" title="Удалить">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
             </button>
         </div>
-    </div>
 
-    <!-- ── RECORDING ACTIVE ──────────────────────────────────── -->
-    <div v-else-if="recording" class="vr-wrap">
-        <div class="vr-dot-wrap">
-            <span class="vr-ring vr-ring--1"/>
-            <span class="vr-ring vr-ring--2"/>
-            <span class="vr-dot"/>
+        <!-- Запись идёт -->
+        <div v-else-if="recording" class="recording">
+            <span class="rec-dot" />
+            <span class="rec-timer">{{ countdown }}с</span>
+            <button class="stop-btn" @click="stopRecording">Стоп</button>
         </div>
-        <div class="vr-bars">
-            <span v-for="i in 7" :key="i" class="vr-bar" :style="{ animationDelay: (i * 80) + 'ms' }"/>
-        </div>
-        <span class="vr-time">0:{{ String(countdown).padStart(2, '0') }}</span>
-        <button class="vr-stop" @click="stopRecording">Стоп</button>
-    </div>
 
-    <!-- ── RECORD TRIGGER ────────────────────────────────────── -->
-    <button v-else-if="isOwner" class="vt-btn" @click="startRecording">
-        <svg class="vt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-            <line x1="12" y1="19" x2="12" y2="22"/>
-        </svg>
-        Записать голосовое
-    </button>
+        <!-- Кнопка записи -->
+        <button v-else-if="isOwner" class="rec-btn" @click="startRecording">
+            + Голосовое
+        </button>
+    </div>
 </template>
 
 <style scoped>
-/* ── PLAYER ────────────────────────────────────────────────── */
-.vp-wrap {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.65rem;
-    padding: 0.45rem 0.65rem 0.45rem 0.45rem;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 28px;
-    max-width: 340px;
+.voice-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
     width: 100%;
 }
 
-/* Play button */
-.vp-play {
-    width: 36px; height: 36px; flex-shrink: 0;
-    border-radius: 50%;
-    border: none;
-    background: linear-gradient(135deg, rgba(200,70,126,0.9) 0%, rgba(140,60,200,0.8) 100%);
-    color: #fff;
+/* ── Диск ─────────────────────────────────────────────────── */
+.disk-wrap {
+    display: flex;
+    justify-content: center;
+}
+.disk {
+    width: 190px;
+    height: 190px;
+    display: block;
+    will-change: transform;
+}
+@keyframes diskSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+.disk.spinning {
+    animation: diskSpin 5s linear infinite;
+}
+
+/* ── Плеер ────────────────────────────────────────────────── */
+.player {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.03);
+    box-sizing: border-box;
+}
+
+.play-btn {
+    width: 28px; height: 28px;
+    flex-shrink: 0;
+    border: 1px solid rgba(255,255,255,0.18);
+    background: transparent;
+    color: rgba(255,255,255,0.75);
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
-    box-shadow: 0 0 0 0 rgba(200,70,126,0);
-    transition: box-shadow 0.25s ease, transform 0.15s ease, opacity 0.2s;
+    transition: border-color 0.15s, color 0.15s;
 }
-.vp-play:hover:not(:disabled) {
-    transform: scale(1.07);
-    box-shadow: 0 0 18px rgba(200,70,126,0.45);
+.play-btn:hover:not(:disabled) {
+    border-color: #FE28A2;
+    color: #FE28A2;
 }
-.vp-play.playing {
-    box-shadow: 0 0 0 3px rgba(200,70,126,0.2), 0 0 14px rgba(200,70,126,0.3);
-}
-.vp-play.loading { opacity: 0.65; cursor: default; }
+.play-btn:disabled { opacity: 0.4; cursor: default; }
 
-.vp-icon { width: 16px; height: 16px; }
-.vp-icon--pause { width: 14px; height: 14px; }
+.icon { width: 12px; height: 12px; }
+@keyframes spin360 { to { transform: rotate(360deg); } }
+.icon-loading { width: 12px; height: 12px; animation: spin360 0.8s linear infinite; }
 
-@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-.vp-spinner { animation: spin 0.9s linear infinite; }
-
-/* Body: waveform + time */
-.vp-body {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
+.player-track {
     flex: 1;
     min-width: 0;
-}
-
-/* WaveSurfer container */
-.vp-waveform {
-    width: 100%;
-    cursor: pointer;
-}
-
-/* Time */
-.vp-times {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-size: 0.7rem;
-    font-variant-numeric: tabular-nums;
-    color: rgba(255,255,255,0.35);
-    padding-left: 1px;
-}
-.vp-time-sep { opacity: 0.4; }
-.vp-time-tot { color: rgba(255,255,255,0.25); }
-
-/* Owner controls */
-.vp-owner {
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
-    flex-shrink: 0;
+    gap: 0.15rem;
 }
-.vp-delete {
-    width: 22px; height: 22px;
+.waveform { width: 100%; cursor: pointer; }
+.times {
+    font-size: 0.7rem;
+    font-variant-numeric: tabular-nums;
+    color: rgba(255,255,255,0.28);
+    line-height: 1;
+}
+
+.del-btn {
+    width: 18px; height: 18px;
+    flex-shrink: 0;
     background: none; border: none; padding: 0;
-    display: flex; align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.18);
     cursor: pointer;
-    transition: color 0.2s, opacity 0.2s;
-    opacity: 0.35;
-    color: rgba(255,255,255,0.6);
-}
-.vp-delete svg { width: 14px; height: 14px; }
-.vp-delete:hover { color: rgba(220,70,80,0.9); opacity: 1; }
-
-
-/* ── RECORDING ACTIVE ──────────────────────────────────────── */
-.vr-wrap {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.7rem;
-    padding: 0.4rem 0.85rem 0.4rem 0.5rem;
-    background: rgba(224,60,80,0.07);
-    border: 1px solid rgba(224,60,80,0.2);
-    border-radius: 28px;
-}
-
-/* Red dot with rings */
-.vr-dot-wrap {
-    position: relative;
-    width: 14px; height: 14px;
-    flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
+    transition: color 0.15s;
 }
-.vr-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: #e04060;
-    position: relative; z-index: 1;
-}
-.vr-ring {
-    position: absolute;
-    border-radius: 50%;
-    border: 1.5px solid rgba(224,60,80,0.5);
-    animation: ringExpand 1.4s ease-out infinite;
-}
-.vr-ring--1 { width: 14px; height: 14px; animation-delay: 0s; }
-.vr-ring--2 { width: 14px; height: 14px; animation-delay: 0.5s; }
-@keyframes ringExpand {
-    0%   { transform: scale(0.8); opacity: 0.8; }
-    100% { transform: scale(2.2); opacity: 0; }
-}
+.del-btn svg { width: 11px; height: 11px; }
+.del-btn:hover { color: #FE28A2; }
 
-/* Mini animated bars during recording */
-.vr-bars {
+/* ── Запись ───────────────────────────────────────────────── */
+.recording {
     display: flex;
     align-items: center;
-    gap: 2px;
-    height: 20px;
+    gap: 0.6rem;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid rgba(254,40,162,0.35);
+    box-sizing: border-box;
 }
-@keyframes vrBar {
-    0%, 100% { height: 4px; }
-    50%       { height: 16px; }
+@keyframes recBlink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.2; }
 }
-.vr-bar {
-    width: 3px; height: 8px;
-    border-radius: 2px;
-    background: rgba(224,60,80,0.7);
-    animation: vrBar 0.65s ease-in-out infinite;
+.rec-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #FE28A2;
+    flex-shrink: 0;
+    animation: recBlink 1s ease-in-out infinite;
 }
-
-.vr-time {
-    font-size: 0.82rem;
+.rec-timer {
+    flex: 1;
+    font-size: 0.88rem;
     font-variant-numeric: tabular-nums;
     color: rgba(255,255,255,0.6);
-    min-width: 2.2ch;
 }
-
-.vr-stop {
-    padding: 0.25rem 0.75rem;
-    border-radius: 16px;
+.stop-btn {
+    padding: 0.18rem 0.6rem;
     border: 1px solid rgba(255,255,255,0.15);
     background: transparent;
-    color: rgba(255,255,255,0.55);
-    font-size: 0.78rem;
+    color: rgba(255,255,255,0.5);
+    font-size: 0.82rem;
     cursor: pointer;
     font-family: inherit;
-    transition: border-color 0.2s, color 0.2s;
+    transition: border-color 0.15s, color 0.15s;
 }
-.vr-stop:hover {
-    border-color: rgba(255,255,255,0.3);
-    color: rgba(255,255,255,0.85);
-}
+.stop-btn:hover { border-color: rgba(255,255,255,0.4); color: #fff; }
 
-
-/* ── RECORD TRIGGER BUTTON ─────────────────────────────────── */
-.vt-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    padding: 0;
-    background: none;
-    border: none;
-    color: rgba(200,70,126,0.55);
-    font-size: 0.83rem;
+/* ── Кнопка записи ────────────────────────────────────────── */
+.rec-btn {
+    padding: 0.5rem 0.6rem;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: transparent;
+    color: rgba(255,255,255,0.3);
+    font-size: 0.88rem;
     font-family: inherit;
     cursor: pointer;
-    transition: color 0.2s ease, text-shadow 0.2s ease;
-    letter-spacing: 0.01em;
+    text-align: center;
+    transition: border-color 0.15s, color 0.15s;
 }
-.vt-btn:hover {
-    color: rgba(200,70,126,1);
-    text-shadow: 0 0 12px rgba(200,70,126,0.3);
-}
-.vt-icon {
-    width: 14px; height: 14px;
-    flex-shrink: 0;
-    transition: filter 0.2s;
-}
-.vt-btn:hover .vt-icon {
-    filter: drop-shadow(0 0 4px rgba(200,70,126,0.5));
+.rec-btn:hover {
+    border-color: rgba(254,40,162,0.5);
+    color: rgba(255,255,255,0.7);
 }
 </style>
