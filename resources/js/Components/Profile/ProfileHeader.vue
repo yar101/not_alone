@@ -4,6 +4,9 @@ import { useForm, router } from '@inertiajs/vue3';
 import { Edit, Setting, Camera } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 
+// ── Временный рейтинг (убрать после внедрения рейтинга) ──
+const devRating = ref(420); // 0–1000
+
 const props = defineProps({
     user: { type: Object, required: true },
     isOwner: { type: Boolean, default: false },
@@ -76,7 +79,6 @@ function onAvatarChange(e) {
     const fd = new FormData();
     fd.append('avatar', file);
     router.post(route('profile.update.avatar'), fd, {
-        preserveState: true,
         preserveScroll: true,
         forceFormData: true,
     });
@@ -85,7 +87,6 @@ function onAvatarChange(e) {
 
 function deleteAvatar() {
     router.delete(route('profile.delete.avatar'), {
-        preserveState: true,
         preserveScroll: true,
         onSuccess: () => editModal.value = false,
     });
@@ -94,6 +95,18 @@ function deleteAvatar() {
 
 <template>
     <div id="tour-header" class="profile-header">
+
+        <!-- DEV: переключалка рейтинга (fixed в углу) — убрать после внедрения рейтинга -->
+        <div class="star-switcher">
+            <span class="star-sw-label">DEV рейтинг</span>
+            <input
+                v-model.number="devRating"
+                type="number"
+                min="0"
+                max="1000"
+                class="star-sw-input"
+            />
+        </div>
 
         <!-- Аватар по центру -->
         <div class="header-avatar-area">
@@ -113,10 +126,11 @@ function deleteAvatar() {
             </div>
         </div>
 
-        <!-- Строка: рейтинг | имя | действия -->
-        <div class="header-info-row">
-            <div class="header-rating">
-                <img src="/rating_5_star.png" class="rating-img" alt="rating" />
+        <!-- Нижняя строка: 3-колоночный грид (рейтинг | имя | действия) -->
+        <div class="header-bottom-row">
+            <div class="header-left">
+                <img src="/stars/10.png" class="star-img" alt="rating" />
+                <span class="rating-num">{{ devRating }}</span>
             </div>
             <h1 class="header-name">{{ user.name }}</h1>
             <div class="header-actions">
@@ -186,11 +200,13 @@ function deleteAvatar() {
 <style scoped>
 .profile-header {
     flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
     background: transparent;
     border: 1px solid rgba(255,255,255,0.08);
     border-bottom: none;
     padding-top: 1.75rem;
-    font-family: 'Brygada 1918', Georgia, serif;
+    font-family: 'Figtree', sans-serif;
 }
 
 /* Avatar */
@@ -240,28 +256,76 @@ function deleteAvatar() {
 .avatar-overlay-icon { font-size: 1.4rem; color: #fff; }
 .hidden-input { display: none; }
 
-/* 3-column info row */
-.header-info-row {
+/* Нижняя строка: 3-колоночный грид */
+.header-bottom-row {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
-    align-items: center;
-    padding: 0.5rem 2rem 1.25rem;
+    align-items: end;
+    padding: 0 1rem 1rem;
+    gap: 1rem;
+}
+
+.header-left {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: flex-start;
     gap: 0.5rem;
 }
 
-.header-rating {
-    justify-self: start;
-    display: flex;
-    align-items: center;
-}
-.rating-img {
-    width: 60px;
-    height: auto;
+.star-img {
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
     display: block;
 }
 
+.rating-num {
+    font-family: "Imbue", serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-size: 4rem;
+    line-height: 0.85;
+    color: rgba(255, 70, 200, 0.75);
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+}
+
+/* DEV: переключалка звёзд (fixed в углу экрана) */
+.star-switcher {
+    position: fixed;
+    bottom: 1.25rem;
+    left: 1.25rem;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(10,10,15,0.92);
+    border: 1px solid rgba(255,255,255,0.12);
+    padding: 0.35rem 0.55rem;
+    backdrop-filter: blur(8px);
+}
+.star-sw-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.2);
+    margin-right: 0.2rem;
+}
+.star-sw-input {
+    width: 64px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.85);
+    font-size: 0.88rem;
+    font-family: inherit;
+    padding: 0.2rem 0.4rem;
+    text-align: center;
+    outline: none;
+}
+.star-sw-input:focus { border-color: #FE28A2; }
+
 .header-name {
-    justify-self: center;
     font-size: 2.6rem;
     font-weight: 700;
     margin: 0;
@@ -275,6 +339,7 @@ function deleteAvatar() {
 
 .header-actions {
     justify-self: end;
+    align-self: end;
     display: flex;
     gap: 0.4rem;
     align-items: center;
@@ -314,7 +379,7 @@ function deleteAvatar() {
 
 /* Edit form */
 .edit-form { padding: 0.5rem 0.25rem; }
-.edit-title { font-size: 1.1rem; font-weight: 600; color: #fff; margin: 0 0 1.25rem; font-family: 'Brygada 1918', Georgia, serif; }
+.edit-title { font-size: 1.1rem; font-weight: 600; color: #fff; margin: 0 0 1.25rem; font-family: 'Figtree', sans-serif; }
 .edit-field { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
 .edit-label { font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(254,40,162,0.6); }
 .edit-select {

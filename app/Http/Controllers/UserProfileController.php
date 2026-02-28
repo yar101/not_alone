@@ -170,7 +170,7 @@ class UserProfileController extends Controller
             Storage::disk('public')->delete($user->avatar_path);
         }
         $ext  = $request->file('avatar')->getClientOriginalExtension() ?: 'jpg';
-        $path = $request->file('avatar')->storeAs('avatars', "{$user->id}.{$ext}", 'public');
+        $path = $request->file('avatar')->storeAs('avatars', "{$user->id}_" . time() . ".{$ext}", 'public');
         $user->update(['avatar_path' => $path]);
         return back();
     }

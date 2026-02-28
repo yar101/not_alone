@@ -268,7 +268,7 @@ onMounted(async () => {
     color: rgba(255, 255, 255, 0.9) !important;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8) !important;
     border-radius: 4px !important;
-    font-family: 'Brygada 1918', Georgia, serif !important;
+    font-family: 'Figtree', sans-serif !important;
 }
 .driver-popover-title {
     color: #ffffff !important;
@@ -314,7 +314,7 @@ onMounted(async () => {
     background: #0a0a0f;
     padding: 0 1.5rem;
     box-sizing: border-box;
-    font-family: 'Brygada 1918', Georgia, serif;
+    font-family: 'Figtree', sans-serif;
 }
 
 .profile-container {
@@ -332,10 +332,11 @@ onMounted(async () => {
 .profile-tabs {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     flex-shrink: 0;
     background: transparent;
     border: 1px solid rgba(255,255,255,0.08);
-    border-top: none;
+    border-top: 1px solid rgba(255,255,255,0.08);
     padding: 6px 8px;
     gap: 5px;
     margin-bottom: 1.25rem;
@@ -452,12 +453,11 @@ onMounted(async () => {
 }
 
 .ga-key {
-    font-size: 0.7rem;
+    font-size: 0.78rem;
     font-weight: 600;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: #FE28A2;
-    opacity: 0.7;
 }
 
 .ga-val {
