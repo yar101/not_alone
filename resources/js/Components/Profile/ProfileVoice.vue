@@ -203,7 +203,7 @@ function upload() {
 }
 
 function deleteVoice() {
-    if (!confirm('Удалить голосовое?')) return;
+    if (!confirm('Удалить аудио?')) return;
     if (ws) { ws.destroy(); ws = null; wsReady.value = false; playing.value = false; }
     router.delete(route('profile.delete.voice'), { preserveState: true, preserveScroll: true });
 }
@@ -271,7 +271,7 @@ function deleteVoice() {
                 <line x1="12" y1="19" x2="12" y2="22"/>
                 <line x1="8" y1="22" x2="16" y2="22"/>
             </svg>
-            <span>Записать голосовое</span>
+            <span>Записать аудио</span>
         </button>
     </div>
 </template>

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { Check, Minus, Trophy } from '@element-plus/icons-vue';
+import { Check, Minus } from '@element-plus/icons-vue';
 
 const props = defineProps({
     user: { type: Object, required: true },
@@ -12,7 +12,7 @@ const items = computed(() => [
     { key: 'about',     label: 'Заполни «Обо мне»',       done: !!props.user.about },
     { key: 'traits',    label: 'Добавь черты характера',   done: props.user.traits.length > 0 },
     { key: 'interests', label: 'Добавь интересы',          done: props.user.interests.length > 0 },
-    { key: 'voice',     label: 'Запиши голосовое',         done: !!props.user.voice_url },
+    { key: 'voice',     label: 'Запиши аудио',         done: !!props.user.voice_url },
     { key: 'languages', label: 'Укажи языки',              done: props.user.languages.length > 0 },
     { key: 'timezone',  label: 'Укажи часовой пояс',       done: !!props.user.timezone },
 ]);
@@ -30,7 +30,20 @@ const strokeDash = computed(() => ({
 </script>
 
 <template>
-    <div class="cl-widget">
+    <div v-if="!allDone" class="cl-widget">
+        <button
+            class="cl-trigger"
+            :class="{ done: allDone }"
+            :title="'Заполнение профиля: ' + doneCount + '/' + items.length"
+            @click="open = !open"
+        >
+            <svg class="cl-svg" viewBox="0 0 36 36">
+                <circle class="cl-track" cx="18" cy="18" r="15" />
+                <circle class="cl-fill" cx="18" cy="18" r="15" :style="strokeDash" />
+            </svg>
+            <span class="cl-label">{{ doneCount }}<small>/{{ items.length }}</small></span>
+        </button>
+
         <Transition name="cl-panel-fade">
             <div v-if="open" class="cl-panel">
                 <div class="cl-panel-head">
@@ -53,33 +66,18 @@ const strokeDash = computed(() => ({
                         {{ item.label }}
                     </li>
                 </ul>
-                <p v-if="allDone" class="cl-complete">
-                    <el-icon><Trophy /></el-icon> Профиль заполнен!
-                </p>
+
             </div>
         </Transition>
-
-        <button
-            class="cl-trigger"
-            :class="{ done: allDone }"
-            :title="'Заполнение профиля: ' + doneCount + '/' + items.length"
-            @click="open = !open"
-        >
-            <svg class="cl-svg" viewBox="0 0 36 36">
-                <circle class="cl-track" cx="18" cy="18" r="15" />
-                <circle class="cl-fill" cx="18" cy="18" r="15" :style="strokeDash" />
-            </svg>
-            <span class="cl-label">{{ doneCount }}<small>/{{ items.length }}</small></span>
-        </button>
     </div>
 </template>
 
 <style scoped>
 .cl-widget {
-    position: fixed;
-    bottom: 1.5rem;
-    right: 1.5rem;
-    z-index: 200;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    z-index: 10;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
@@ -215,19 +213,15 @@ const strokeDash = computed(() => ({
 }
 .cl-panel-fade-enter-from {
     opacity: 0;
-    transform: scale(0.88) translateY(6px);
-    transform-origin: bottom right;
+    transform: scale(0.88) translateY(-6px);
+    transform-origin: top right;
 }
 .cl-panel-fade-leave-active {
     transition: opacity 0.15s, transform 0.15s ease-in;
 }
 .cl-panel-fade-leave-to {
     opacity: 0;
-    transform: scale(0.92) translateY(4px);
-    transform-origin: bottom right;
-}
-
-@media (max-width: 640px) {
-    .cl-widget { bottom: 0.75rem; right: 0.75rem; }
+    transform: scale(0.92) translateY(-4px);
+    transform-origin: top right;
 }
 </style>

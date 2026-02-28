@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import { Edit, Setting, Camera } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import ProfileChecklist from '@/Components/Profile/ProfileChecklist.vue';
 import { Cropper, CircleStencil } from 'vue-advanced-cropper';
 import 'vue-advanced-cropper/dist/style.css';
 
@@ -159,33 +160,24 @@ function deleteAvatar() {
 <template>
     <div id="tour-header" class="profile-header">
 
-        <!-- DEV: переключалка рейтинга (fixed в углу) — убрать после внедрения рейтинга -->
-        <div class="star-switcher">
-            <span class="star-sw-label">DEV рейтинг</span>
-            <input
-                v-model.number="devRating"
-                type="number"
-                min="0"
-                max="1000"
-                class="star-sw-input"
-            />
-        </div>
-
         <!-- Аватар по центру -->
         <div class="header-avatar-area">
-            <div class="avatar-ring" :class="{ 'avatar-clickable': isOwner || user.avatar_url }" @click="onAvatarClick">
-                <div class="profile-avatar">
-                    <img
-                        v-if="user.avatar_url"
-                        :src="user.avatar_url"
-                        class="avatar-img"
-                        alt="Avatar"
-                    />
-                    <span v-else class="avatar-letter">{{ user.name.charAt(0).toUpperCase() }}</span>
-                    <div v-if="isOwner" class="avatar-overlay">
-                        <el-icon class="avatar-overlay-icon"><Camera /></el-icon>
+            <div class="avatar-wrapper">
+                <div class="avatar-ring" :class="{ 'avatar-clickable': isOwner || user.avatar_url }" @click="onAvatarClick">
+                    <div class="profile-avatar">
+                        <img
+                            v-if="user.avatar_url"
+                            :src="user.avatar_url"
+                            class="avatar-img"
+                            alt="Avatar"
+                        />
+                        <span v-else class="avatar-letter">{{ user.name.charAt(0).toUpperCase() }}</span>
+                        <div v-if="isOwner" class="avatar-overlay">
+                            <el-icon class="avatar-overlay-icon"><Camera /></el-icon>
+                        </div>
                     </div>
                 </div>
+                <ProfileChecklist v-if="isOwner" :user="user" />
             </div>
         </div>
 
@@ -320,7 +312,7 @@ function deleteAvatar() {
 .profile-header {
     flex-shrink: 0;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     background: transparent;
     border: 1px solid rgba(255,255,255,0.18);
     border-bottom: 1px solid rgba(255,255,255,0.18);
@@ -334,6 +326,11 @@ function deleteAvatar() {
     display: flex;
     justify-content: center;
     padding-bottom: 1rem;
+}
+
+.avatar-wrapper {
+    position: relative;
+    display: inline-flex;
 }
 
 .avatar-ring {
@@ -449,40 +446,6 @@ function deleteAvatar() {
     background: linear-gradient(90deg, rgba(254,40,162,0.9), rgba(254,40,162,0.4));
 }
 
-/* DEV: переключалка звёзд (fixed в углу экрана) */
-.star-switcher {
-    position: fixed;
-    bottom: 1.25rem;
-    left: 1.25rem;
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    background: rgba(10,10,15,0.92);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 3px;
-    padding: 0.35rem 0.55rem;
-    backdrop-filter: blur(8px);
-}
-.star-sw-label {
-    font-size: 0.68rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.2);
-    margin-right: 0.2rem;
-}
-.star-sw-input {
-    width: 64px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.15);
-    color: rgba(255,255,255,0.85);
-    font-size: 0.88rem;
-    font-family: inherit;
-    padding: 0.2rem 0.4rem;
-    text-align: center;
-    outline: none;
-}
-.star-sw-input:focus { border-color: #FE28A2; }
 
 .header-name {
     font-size: 2.6rem;

@@ -7,7 +7,6 @@ import ProfileAbout from '@/Components/Profile/ProfileAbout.vue';
 import ProfileTraits from '@/Components/Profile/ProfileTraits.vue';
 import ProfileInterests from '@/Components/Profile/ProfileInterests.vue';
 import ProfileLanguages from '@/Components/Profile/ProfileLanguages.vue';
-import ProfileChecklist from '@/Components/Profile/ProfileChecklist.vue';
 import ProfilePinnedCard from '@/Components/Profile/ProfilePinnedCard.vue';
 import ProfilePosts from '@/Components/Profile/ProfilePosts.vue';
 import ProfileVoice from '@/Components/Profile/ProfileVoice.vue';
@@ -91,7 +90,7 @@ onMounted(async () => {
             {
                 element: '#tour-voice',
                 popover: {
-                    title: 'Голосовое',
+                    title: 'Аудио',
                     description: 'Запиши приветствие до 27 секунд.',
                     side: 'bottom',
                 },
@@ -268,9 +267,6 @@ onMounted(async () => {
 
                 </Transition>
             </div>
-
-            <!-- Checklist widget (owner only) -->
-            <ProfileChecklist v-if="isOwner" :user="profileUser" />
 
         </div>
     </div>
