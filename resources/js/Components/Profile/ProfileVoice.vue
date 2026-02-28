@@ -215,7 +215,7 @@ function deleteVoice() {
         <div class="disk-wrap">
             <img
                 ref="diskEl"
-                src="/profile_disk.png"
+                :src="!voiceUrl && !isOwner ? '/profile_disk_crashed.png' : '/profile_disk.png'"
                 class="disk"
                 :class="{ spinning: isDiskSpinning && !returnStyle.transform }"
                 :style="returnStyle"
@@ -262,6 +262,9 @@ function deleteVoice() {
             <span class="rec-timer">{{ countdown }}с</span>
             <button class="stop-btn" @click="stopRecording">Стоп</button>
         </div>
+
+        <!-- Гость: аудио нет -->
+        <div v-else-if="!isOwner" class="no-audio">Аудио отсутствует</div>
 
         <!-- Кнопка записи -->
         <button v-else-if="isOwner" class="rec-btn" @click="startRecording">
@@ -402,6 +405,15 @@ function deleteVoice() {
     transition: border-color 0.15s, color 0.15s;
 }
 .stop-btn:hover { border-color: rgba(255,255,255,0.4); color: #fff; }
+
+/* ── Гость без аудио ─────────────────────────────────────── */
+.no-audio {
+    text-align: center;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.2);
+}
 
 /* ── Кнопка записи ────────────────────────────────────────── */
 .rec-btn {
