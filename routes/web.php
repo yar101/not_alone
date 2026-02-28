@@ -15,10 +15,6 @@ Route::get('/', function () {
     ]);
 });
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
-
 // Public profile page
 Route::get('/users/{user}', [UserProfileController::class, 'show'])->name('profile.show');
 
@@ -28,7 +24,7 @@ Route::get('/profile', function () {
 })->middleware('auth')->name('profile');
 
 // Profile editing endpoints (owner only)
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/profile/about',      [UserProfileController::class, 'updateAbout'])->name('profile.update.about');
     Route::patch('/profile/traits',     [UserProfileController::class, 'updateTraits'])->name('profile.update.traits');
     Route::patch('/profile/interests',  [UserProfileController::class, 'updateInterests'])->name('profile.update.interests');
@@ -49,7 +45,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // Account settings (email, password, delete)
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/settings',    [ProfileController::class, 'edit'])->name('settings.edit');
     Route::patch('/settings',  [ProfileController::class, 'update'])->name('settings.update');
     Route::delete('/settings', [ProfileController::class, 'destroy'])->name('settings.destroy');

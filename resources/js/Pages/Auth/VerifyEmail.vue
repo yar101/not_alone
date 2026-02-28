@@ -1,7 +1,5 @@
 <script setup>
 import { computed } from 'vue';
-import GuestLayout from '@/Layouts/GuestLayout.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
@@ -22,40 +20,170 @@ const verificationLinkSent = computed(
 </script>
 
 <template>
-    <GuestLayout>
-        <Head title="Email Verification" />
+    <Head title="Подтверждение email" />
 
-        <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-            Thanks for signing up! Before getting started, could you verify your
-            email address by clicking on the link we just emailed to you? If you
-            didn't receive the email, we will gladly send you another.
-        </div>
+    <div class="verify-page">
+        <div class="verify-card">
 
-        <div
-            class="mb-4 text-sm font-medium text-green-600 dark:text-green-400"
-            v-if="verificationLinkSent"
-        >
-            A new verification link has been sent to the email address you
-            provided during registration.
-        </div>
+            <!-- Icon -->
+            <div class="verify-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="M2 7l10 7 10-7"/>
+                </svg>
+            </div>
 
-        <form @submit.prevent="submit">
-            <div class="mt-4 flex items-center justify-between">
-                <PrimaryButton
-                    :class="{ 'opacity-25': form.processing }"
+            <h1 class="verify-title">Подтвердите email</h1>
+
+            <p class="verify-text">
+                Мы отправили письмо со ссылкой для подтверждения на ваш адрес.
+                Перейдите по ссылке в письме, чтобы активировать аккаунт.
+            </p>
+
+            <p v-if="verificationLinkSent" class="verify-sent">
+                Письмо отправлено повторно. Проверьте папку «Входящие» и «Спам».
+            </p>
+
+            <form @submit.prevent="submit" class="verify-actions">
+                <button
+                    type="submit"
+                    class="verify-btn-primary"
                     :disabled="form.processing"
                 >
-                    Resend Verification Email
-                </PrimaryButton>
+                    {{ form.processing ? 'Отправляем…' : 'Отправить повторно' }}
+                </button>
 
                 <Link
                     :href="route('logout')"
                     method="post"
                     as="button"
-                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-gray-400 dark:hover:text-gray-100 dark:focus:ring-offset-gray-800"
-                    >Log Out</Link
+                    class="verify-btn-ghost"
                 >
-            </div>
-        </form>
-    </GuestLayout>
+                    Выйти
+                </Link>
+            </form>
+
+        </div>
+    </div>
 </template>
+
+<style scoped>
+.verify-page {
+    min-height: 100vh;
+    background: #0a0a0f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.5rem;
+    font-family: 'Figtree', sans-serif;
+    box-sizing: border-box;
+}
+
+.verify-card {
+    width: 100%;
+    max-width: 420px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.025);
+    padding: 2.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    text-align: center;
+}
+
+.verify-icon {
+    width: 3rem;
+    height: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(254, 40, 162, 0.3);
+    border-radius: 3px;
+    background: rgba(254, 40, 162, 0.06);
+    color: #FE28A2;
+    flex-shrink: 0;
+}
+.verify-icon svg {
+    width: 1.4rem;
+    height: 1.4rem;
+}
+
+.verify-title {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.92);
+    letter-spacing: -0.01em;
+}
+
+.verify-text {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.65;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.verify-sent {
+    margin: 0;
+    font-size: 0.85rem;
+    color: rgba(74, 222, 128, 0.85);
+    border: 1px solid rgba(74, 222, 128, 0.2);
+    border-radius: 3px;
+    background: rgba(74, 222, 128, 0.05);
+    padding: 0.55rem 0.9rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.verify-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    width: 100%;
+    margin-top: 0.25rem;
+}
+
+.verify-btn-primary {
+    width: 100%;
+    padding: 0.65rem 1rem;
+    border: 1px solid rgba(254, 40, 162, 0.5);
+    border-radius: 3px;
+    background: rgba(254, 40, 162, 0.1);
+    color: #FE28A2;
+    font-size: 0.9rem;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.verify-btn-primary:hover:not(:disabled) {
+    background: rgba(254, 40, 162, 0.18);
+    border-color: rgba(254, 40, 162, 0.75);
+}
+.verify-btn-primary:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.verify-btn-ghost {
+    width: 100%;
+    padding: 0.55rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 0.85rem;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    transition: border-color 0.15s, color 0.15s;
+    display: block;
+    box-sizing: border-box;
+}
+.verify-btn-ghost:hover {
+    border-color: rgba(255, 255, 255, 0.18);
+    color: rgba(255, 255, 255, 0.55);
+}
+</style>

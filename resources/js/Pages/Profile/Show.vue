@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch, nextTick, onMounted, computed } from 'vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { gsap } from 'gsap';
 import ProfileHeader from '@/Components/Profile/ProfileHeader.vue';
 import ProfileAbout from '@/Components/Profile/ProfileAbout.vue';
@@ -17,6 +17,19 @@ const props = defineProps({
     allTraits:     { type: Array, default: () => [] },
     allCategories: { type: Array, default: () => [] },
 });
+
+// ── Email verification banner ─────────────────────────────────
+const page = usePage();
+const showVerificationBanner = computed(() =>
+    props.isOwner && !page.props.auth?.user?.email_verified_at
+);
+const verificationForm = useForm({});
+const resendSent = ref(false);
+function resendVerification() {
+    verificationForm.post(route('verification.send'), {
+        onSuccess: () => { resendSent.value = true; },
+    });
+}
 
 // ── Gender label ─────────────────────────────────────────────
 const genderLabel = computed(() => ({
@@ -136,6 +149,30 @@ onMounted(async () => {
 
     <div class="profile-page">
         <div class="profile-container">
+
+            <!-- Email verification banner -->
+            <div v-if="showVerificationBanner" class="verify-banner">
+                <span class="verify-banner__icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </span>
+                <span class="verify-banner__text">
+                    Подтвердите email — мы отправили письмо на
+                    <strong>{{ page.props.auth.user.email }}</strong>
+                </span>
+                <span v-if="resendSent" class="verify-banner__sent">Письмо отправлено</span>
+                <button
+                    v-else
+                    class="verify-banner__btn"
+                    :disabled="verificationForm.processing"
+                    @click="resendVerification"
+                >
+                    Отправить повторно
+                </button>
+            </div>
 
             <ProfileHeader :user="profileUser" :is-owner="isOwner" />
 
@@ -319,6 +356,70 @@ onMounted(async () => {
 </style>
 
 <style scoped>
+/* ── Verification banner ──────────────────────────────────── */
+.verify-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 1rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    border-radius: 3px;
+    background: rgba(234, 179, 8, 0.06);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+.verify-banner__icon {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    color: rgba(234, 179, 8, 0.8);
+}
+.verify-banner__icon svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.verify-banner__text {
+    flex: 1;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.6);
+    min-width: 0;
+}
+.verify-banner__text strong {
+    color: rgba(255, 255, 255, 0.85);
+    font-weight: 500;
+}
+
+.verify-banner__sent {
+    font-size: 0.82rem;
+    color: rgba(74, 222, 128, 0.8);
+    white-space: nowrap;
+}
+
+.verify-banner__btn {
+    flex-shrink: 0;
+    padding: 0.3rem 0.75rem;
+    border: 1px solid rgba(234, 179, 8, 0.35);
+    border-radius: 3px;
+    background: transparent;
+    color: rgba(234, 179, 8, 0.85);
+    font-size: 0.8rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+.verify-banner__btn:hover:not(:disabled) {
+    border-color: rgba(234, 179, 8, 0.7);
+    color: rgba(234, 179, 8, 1);
+}
+.verify-banner__btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
 /* ── Страница ─────────────────────────────────────────────── */
 .profile-page {
     height: 100vh;
