@@ -29,6 +29,7 @@
         "driver.js": "^1.4.0",
         "element-plus": "^2.13.1",
         "gsap": "^3.14.2",
+        "vue-advanced-cropper": "^2.8.9",
         "wavesurfer.js": "^7.12.1"
     }
 }

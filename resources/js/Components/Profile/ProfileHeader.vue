@@ -1,11 +1,15 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import { Edit, Setting, Camera } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import { Cropper, CircleStencil } from 'vue-advanced-cropper';
+import 'vue-advanced-cropper/dist/style.css';
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 // ── Временный рейтинг (убрать после внедрения рейтинга) ──
-const devRating = ref(420); // 0–1000
+const devRating = ref(73); // 0–100
 
 const props = defineProps({
     user: { type: Object, required: true },
@@ -14,6 +18,24 @@ const props = defineProps({
 
 const editModal = ref(false);
 const avatarInput = ref(null);
+const lightboxOpen = ref(false);
+
+// ── Кроп ──────────────────────────────────────────────────────
+const cropModal = ref(false);
+const cropSrc = ref('');
+const cropperRef = ref(null);
+const cropError = ref('');
+const cropUploading = ref(false);
+const cropWrapHeight = ref(380);
+
+function onEsc(e) {
+    if (e.key === 'Escape') {
+        lightboxOpen.value = false;
+        if (cropModal.value) cancelCrop();
+    }
+}
+onMounted(() => document.addEventListener('keydown', onEsc));
+onUnmounted(() => document.removeEventListener('keydown', onEsc));
 
 const form = useForm({
     gender: props.user.gender ?? '',
@@ -71,18 +93,59 @@ function submitEdit() {
 
 function onAvatarClick() {
     if (props.isOwner) avatarInput.value?.click();
+    else if (props.user.avatar_url) lightboxOpen.value = true;
 }
 
 function onAvatarChange(e) {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const fd = new FormData();
-    fd.append('avatar', file);
-    router.post(route('profile.update.avatar'), fd, {
-        preserveScroll: true,
-        forceFormData: true,
-    });
     e.target.value = '';
+    if (!file) return;
+
+    cropError.value = '';
+    if (file.size > MAX_FILE_SIZE) {
+        cropError.value = 'Файл слишком большой. Максимум 5 МБ.';
+        cropModal.value = true;
+        return;
+    }
+
+    const url = URL.createObjectURL(file);
+    cropSrc.value = url;
+
+    const img = new Image();
+    img.onload = () => {
+        const ratio = img.naturalHeight / img.naturalWidth;
+        cropWrapHeight.value = Math.min(380, Math.max(200, Math.round(420 * ratio)));
+    };
+    img.src = url;
+
+    cropModal.value = true;
+}
+
+function cancelCrop() {
+    cropModal.value = false;
+    cropSrc.value = '';
+    cropError.value = '';
+    cropWrapHeight.value = 380;
+}
+
+function applyCrop() {
+    if (cropError.value || !cropperRef.value) return;
+    const { canvas } = cropperRef.value.getResult();
+    if (!canvas) return;
+
+    cropUploading.value = true;
+    canvas.toBlob(blob => {
+        const fd = new FormData();
+        fd.append('avatar', blob, 'avatar.jpg');
+        router.post(route('profile.update.avatar'), fd, {
+            preserveScroll: true,
+            forceFormData: true,
+            onFinish: () => {
+                cropUploading.value = false;
+                cancelCrop();
+            },
+        });
+    }, 'image/jpeg', 0.92);
 }
 
 function deleteAvatar() {
@@ -110,7 +173,7 @@ function deleteAvatar() {
 
         <!-- Аватар по центру -->
         <div class="header-avatar-area">
-            <div class="avatar-ring" :class="{ 'avatar-clickable': isOwner }" @click="onAvatarClick">
+            <div class="avatar-ring" :class="{ 'avatar-clickable': isOwner || user.avatar_url }" @click="onAvatarClick">
                 <div class="profile-avatar">
                     <img
                         v-if="user.avatar_url"
@@ -129,8 +192,16 @@ function deleteAvatar() {
         <!-- Нижняя строка: 3-колоночный грид (рейтинг | имя | действия) -->
         <div class="header-bottom-row">
             <div class="header-left">
-                <img src="/stars/10.png" class="star-img" alt="rating" />
-                <span class="rating-num">{{ devRating }}</span>
+                <div class="rating-block">
+                    <span class="rating-label">Рейтинг</span>
+                    <div class="rating-inner">
+                        <img src="/stars/10.png" class="star-img" alt="rating" />
+                        <span class="rating-num">{{ devRating }}</span>
+                    </div>
+                    <div class="rating-bar-track">
+                        <div class="rating-bar-fill"></div>
+                    </div>
+                </div>
             </div>
             <h1 class="header-name">{{ user.name }}</h1>
             <div class="header-actions">
@@ -154,6 +225,55 @@ function deleteAvatar() {
             class="hidden-input"
             @change="onAvatarChange"
         />
+
+        <!-- Lightbox -->
+        <Teleport to="body">
+            <Transition name="lb">
+                <div v-if="lightboxOpen" class="lightbox" @click="lightboxOpen = false">
+                    <img :src="user.avatar_url" class="lightbox-img" alt="Avatar" @click.stop />
+                </div>
+            </Transition>
+        </Teleport>
+
+        <!-- Crop modal -->
+        <SiteModal :show="cropModal" variant="pink" :compact="true" @close="cancelCrop">
+            <div class="crop-form">
+                <h3 class="edit-title">Обрезка фото</h3>
+
+                <div v-if="cropError" class="crop-error">{{ cropError }}</div>
+
+                <template v-else>
+                    <div class="crop-wrap" :style="{ height: cropWrapHeight + 'px' }">
+                        <Cropper
+                            ref="cropperRef"
+                            :src="cropSrc"
+                            :stencil-component="CircleStencil"
+                            :stencil-props="{ movable: true, resizable: true }"
+                            :default-size="{ width: 300, height: 300 }"
+                            background-class="cropper-bg"
+                            class="cropper"
+                        />
+                    </div>
+
+                    <div class="crop-rotate-row">
+                        <button class="crop-rotate-btn" type="button" @click="cropperRef.rotate(-90)" title="Повернуть влево">↺</button>
+                        <button class="crop-rotate-btn" type="button" @click="cropperRef.rotate(90)" title="Повернуть вправо">↻</button>
+                    </div>
+                </template>
+
+                <div class="crop-actions">
+                    <button class="crop-cancel-btn" type="button" @click="cancelCrop">Отмена</button>
+                    <button
+                        class="save-btn"
+                        type="button"
+                        :disabled="!!cropError || cropUploading"
+                        @click="applyCrop"
+                    >
+                        {{ cropUploading ? 'Загрузка...' : 'Сохранить' }}
+                    </button>
+                </div>
+            </div>
+        </SiteModal>
 
         <!-- Edit modal -->
         <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
@@ -203,7 +323,7 @@ function deleteAvatar() {
     position: relative;
     overflow: hidden;
     background: transparent;
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
     border-bottom: none;
     padding-top: 1.75rem;
     font-family: 'Figtree', sans-serif;
@@ -217,7 +337,7 @@ function deleteAvatar() {
 }
 
 .avatar-ring {
-    width: 120px; height: 120px;
+    width: 200px; height: 200px;
     border-radius: 50%;
     padding: 2px;
     flex-shrink: 0;
@@ -267,28 +387,65 @@ function deleteAvatar() {
 
 .header-left {
     display: flex;
-    flex-direction: row;
     align-items: flex-end;
-    justify-content: flex-start;
-    gap: 0.5rem;
+}
+
+.rating-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.55rem 0.85rem 0.5rem;
+    border: 1px solid rgba(254,40,162,0.35);
+    background: rgba(254,40,162,0.04);
+    box-shadow: inset 0 0 16px rgba(254,40,162,0.05);
+    position: relative;
+}
+
+.rating-label {
+    font-family: 'Figtree', sans-serif;
+    font-size: 0.58rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(254,40,162,0.55);
+}
+
+.rating-inner {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.4rem;
+    line-height: 1;
 }
 
 .star-img {
-    width: 50px;
-    height: 50px;
+    width: 26px;
+    height: 26px;
     object-fit: contain;
     display: block;
+    margin-bottom: 0.2rem;
+    opacity: 0.85;
 }
 
 .rating-num {
-    font-family: "Imbue", serif;
-    font-optical-sizing: auto;
-    font-weight: 400;
-    font-size: 4rem;
+    font-family: 'Dosis', sans-serif;
+    font-weight: 300;
+    font-size: 2.5rem;
     line-height: 0.85;
-    color: rgba(255, 70, 200, 0.75);
-    letter-spacing: -0.03em;
+    color: #fff;
+    letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
+}
+
+.rating-bar-track {
+    height: 1px;
+    background: rgba(255,255,255,0.1);
+    margin-top: 0.1rem;
+}
+
+.rating-bar-fill {
+    height: 100%;
+    width: 73%;
+    background: linear-gradient(90deg, rgba(254,40,162,0.9), rgba(254,40,162,0.4));
 }
 
 /* DEV: переключалка звёзд (fixed в углу экрана) */
@@ -412,4 +569,102 @@ function deleteAvatar() {
 }
 .save-btn:hover:not(:disabled) { background: rgba(254,40,162,0.16); }
 .save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Crop modal */
+.crop-form { padding: 0.5rem 0.25rem; }
+
+/* Затемнение фона за пределами круга */
+:deep(.vue-advanced-cropper__background),
+:deep(.vue-advanced-cropper__image-wrapper) {
+    background: #000;
+}
+
+.cropper-bg { background: #111; }
+
+.crop-wrap {
+    width: 100%;
+    background: #000;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+}
+
+.cropper {
+    width: 100%;
+    height: 100%;
+}
+
+.crop-rotate-row {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.crop-rotate-btn {
+    width: 38px; height: 38px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: transparent;
+    color: rgba(255,255,255,0.55);
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: color 0.15s, border-color 0.15s;
+}
+.crop-rotate-btn:hover {
+    color: #FE28A2;
+    border-color: rgba(254,40,162,0.4);
+}
+
+.crop-error {
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(254,40,162,0.4);
+    background: rgba(254,40,162,0.06);
+    color: rgba(254,40,162,0.9);
+    font-size: 0.9rem;
+}
+
+.crop-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.crop-cancel-btn {
+    flex: 0 0 auto;
+    padding: 0.8rem 1.25rem;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: transparent;
+    color: rgba(255,255,255,0.4);
+    font-size: 0.95rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: color 0.15s, border-color 0.15s;
+}
+.crop-cancel-btn:hover { color: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.2); }
+
+/* Lightbox */
+.lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    background: rgba(0,0,0,0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-out;
+    backdrop-filter: blur(6px);
+}
+
+.lightbox-img {
+    max-width: min(80vw, 640px);
+    max-height: 80vh;
+    object-fit: contain;
+    border-radius: 50%;
+    border: 1px solid rgba(254,40,162,0.4);
+    box-shadow: 0 0 60px rgba(254,40,162,0.15);
+    cursor: default;
+}
+
+.lb-enter-active, .lb-leave-active { transition: opacity 0.2s ease; }
+.lb-enter-from, .lb-leave-to { opacity: 0; }
 </style>

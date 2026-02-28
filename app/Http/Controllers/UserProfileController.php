@@ -164,7 +164,7 @@ class UserProfileController extends Controller
 
     public function updateAvatar(Request $request): RedirectResponse
     {
-        $request->validate(['avatar' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096']]);
+        $request->validate(['avatar' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120']]);
         $user = $request->user();
         if ($user->avatar_path) {
             Storage::disk('public')->delete($user->avatar_path);

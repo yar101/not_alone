@@ -335,8 +335,8 @@ onMounted(async () => {
     justify-content: center;
     flex-shrink: 0;
     background: transparent;
-    border: 1px solid rgba(255,255,255,0.08);
-    border-top: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-top: 1px solid rgba(255,255,255,0.18);
     padding: 6px 8px;
     gap: 5px;
     margin-bottom: 1.25rem;
@@ -407,14 +407,14 @@ onMounted(async () => {
 .about-top-grid {
     display: grid;
     grid-template-columns: 1fr 300px;
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
     overflow: hidden;
     margin-bottom: 0;
 }
 
 .about-top-grid :deep(.block-section) {
     border: none;
-    border-right: 1px solid rgba(255,255,255,0.08);
+    border-right: 1px solid rgba(255,255,255,0.18);
 }
 
 .about-voice-col {
@@ -426,13 +426,13 @@ onMounted(async () => {
 
 /* ── Слитая панель ────────────────────────────────────────── */
 .fused-panel {
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
     border-top: none;
     overflow: hidden;
 }
 
 .fused-panel :deep(.block-section) {
-    border-top: 1px solid rgba(255,255,255,0.08);
+    border-top: 1px solid rgba(255,255,255,0.18);
     background: transparent;
 }
 
@@ -474,7 +474,7 @@ onMounted(async () => {
 .coming-soon-block {
     padding: 4rem 2rem;
     text-align: center;
-    border: 1px solid rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15);
 }
 .coming-soon-title {
     font-size: 1.1rem;
@@ -495,7 +495,7 @@ onMounted(async () => {
     }
     .about-top-grid :deep(.block-section) {
         border-right: none;
-        border-bottom: 1px solid rgba(255,255,255,0.08);
+        border-bottom: 1px solid rgba(255,255,255,0.18);
     }
     .about-voice-col { padding: 1.25rem; }
 }
