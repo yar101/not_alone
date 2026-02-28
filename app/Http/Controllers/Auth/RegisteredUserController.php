@@ -32,7 +32,7 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name'       => ['required', 'string', 'max:100', 'regex:/^\p{L}+(\s\p{L}+)?$/u'],
-            'gender'     => ['required', 'in:male,female,other'],
+            'gender'     => ['required', 'in:male,female'],
             'birth_date' => ['required', 'date', 'before:' . now()->subYears(18)->toDateString()],
             'email'      => 'required|string|lowercase|email|max:255|unique:' . User::class,
             'password'   => ['required', 'confirmed', Rules\Password::defaults()],

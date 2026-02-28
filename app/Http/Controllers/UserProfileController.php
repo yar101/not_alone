@@ -99,7 +99,7 @@ class UserProfileController extends Controller
     public function updateHeader(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'gender'     => ['nullable', 'in:male,female,other'],
+            'gender'     => ['nullable', 'in:male,female'],
             'birth_date' => ['nullable', 'date', 'before:' . now()->subYears(18)->toDateString()],
             'timezone'   => ['nullable', 'string', 'max:60', 'timezone:all'],
         ]);
@@ -116,7 +116,7 @@ class UserProfileController extends Controller
 
     public function updateGender(Request $request): RedirectResponse
     {
-        $data = $request->validate(['gender' => ['required', 'in:male,female,other']]);
+        $data = $request->validate(['gender' => ['required', 'in:male,female']]);
         $request->user()->update($data);
         return back();
     }

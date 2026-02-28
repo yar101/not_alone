@@ -494,10 +494,10 @@ onMounted(async () => {
 }
 
 .gender-icon {
-    width: 20px;
-    height: 20px;
+    width: 1.25em;
+    height: 1.25em;
     flex-shrink: 0;
-    margin-block: -8px;
+    margin-block: -0.125em;
 }
 .gender-icon--female { color: #FE28A2; }
 .gender-icon--male   { color: #A78BFA; }
