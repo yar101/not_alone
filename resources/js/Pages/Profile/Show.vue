@@ -191,9 +191,6 @@ onMounted(async () => {
                     @click="switchTab('posts')"
                 >
                     Публикации
-                    <span v-if="profileUser.posts && profileUser.posts.length" class="tab-badge">
-                        {{ profileUser.posts.length }}
-                    </span>
                 </button>
                 <button
                     class="tab-btn"
@@ -453,13 +450,13 @@ onMounted(async () => {
 }
 
 .tab-btn {
-    padding: 0.45rem 1rem;
+    padding: 0.5rem 1.1rem;
     border: none;
     border-radius: 3px;
     background: transparent;
-    color: rgba(255,255,255,0.3);
-    font-size: 0.78rem;
-    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.55);
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     cursor: pointer;
     font-family: inherit;
@@ -470,23 +467,12 @@ onMounted(async () => {
     white-space: nowrap;
 }
 .tab-btn.active {
-    background: rgba(254, 40, 162, 0.12);
+    background: rgba(254, 40, 162, 0.14);
     color: #FE28A2;
 }
 .tab-btn:hover:not(.active) {
-    background: rgba(255,255,255,0.05);
-    color: rgba(255,255,255,0.6);
-}
-
-.tab-badge {
-    font-size: 0.7rem;
-    padding: 0.05rem 0.3rem;
-    border: 1px solid rgba(254,40,162,0.4);
-    border-radius: 3px;
-    color: rgba(254,40,162,0.8);
-    background: transparent;
-    letter-spacing: 0;
-    text-transform: none;
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.8);
 }
 
 /* ── Контент ──────────────────────────────────────────────── */
