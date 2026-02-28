@@ -1,6 +1,6 @@
 import '../css/app.css';
+import 'element-plus/theme-chalk/dark/css-vars.css';
 import './bootstrap';
-import 'element-plus/theme-chalk/dark/css-vars.css'
 
 import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';

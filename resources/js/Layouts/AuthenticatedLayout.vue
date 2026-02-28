@@ -72,9 +72,9 @@ const showingNavigationDropdown = ref(false);
 
                                     <template #content>
                                         <DropdownLink
-                                            :href="route('profile.edit')"
+                                            :href="route('settings.edit')"
                                         >
-                                            Profile
+                                            Настройки
                                         </DropdownLink>
                                         <DropdownLink
                                             :href="route('logout')"
@@ -164,8 +164,8 @@ const showingNavigationDropdown = ref(false);
                         </div>
 
                         <div class="mt-3 space-y-1">
-                            <ResponsiveNavLink :href="route('profile.edit')">
-                                Profile
+                            <ResponsiveNavLink :href="route('settings.edit')">
+                                Настройки
                             </ResponsiveNavLink>
                             <ResponsiveNavLink
                                 :href="route('logout')"
