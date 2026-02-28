@@ -164,7 +164,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 .add-post-btn {
     width: 100%;
     padding: 0.7rem;
-    border-radius: 10px;
+    border-radius: 3px;
     border: 1px dashed rgba(200,70,126,0.35);
     background: transparent;
     color: rgba(200,70,126,0.7);
@@ -184,7 +184,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 .post-card {
     background: rgba(255,255,255,0.045);
     border: 1px solid rgba(255,255,255,0.09);
-    border-radius: 16px;
+    border-radius: 3px;
     overflow: hidden;
     position: relative;
     backdrop-filter: blur(8px);
@@ -241,14 +241,14 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
     background: rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.07);
     padding: 0.15rem 0.55rem;
-    border-radius: 20px;
+    border-radius: 3px;
     letter-spacing: 0.02em;
 }
 
 .post-delete-btn {
     background: none; border: none; cursor: pointer;
     color: rgba(255,255,255,0.2); font-size: 0.85rem;
-    padding: 0.2rem 0.4rem; border-radius: 6px;
+    padding: 0.2rem 0.4rem; border-radius: 3px;
     transition: color 0.2s, background 0.2s;
 }
 .post-delete-btn:hover { color: rgba(200,70,126,0.8); background: rgba(200,70,126,0.08); }
@@ -274,7 +274,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
     max-width: 90vw;
     max-height: 90vh;
     object-fit: contain;
-    border-radius: 8px;
+    border-radius: 3px;
     cursor: default;
     box-shadow: 0 16px 64px rgba(0,0,0,0.7);
 }
@@ -296,7 +296,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
     width: 100%; box-sizing: border-box;
     background: rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 10px;
+    border-radius: 3px;
     padding: 0.75rem;
     color: rgba(255,255,255,0.85);
     font-size: 0.92rem;
@@ -320,7 +320,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 }
 .photo-preview {
     width: 100%; max-height: 200px;
-    object-fit: cover; border-radius: 10px;
+    object-fit: cover; border-radius: 3px;
     display: block;
 }
 .remove-photo-btn {
@@ -337,7 +337,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
     font-size: 0.85rem;
     color: rgba(200,70,126,0.7);
     border: 1px dashed rgba(200,70,126,0.3);
-    border-radius: 8px;
+    border-radius: 3px;
     padding: 0.4rem 0.85rem;
     transition: all 0.2s;
     display: inline-block;
@@ -345,7 +345,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 .photo-label:hover .photo-btn { color: rgba(200,70,126,1); border-color: rgba(200,70,126,0.6); }
 
 .save-btn {
-    width: 100%; padding: 0.8rem; border-radius: 10px;
+    width: 100%; padding: 0.8rem; border-radius: 3px;
     border: 1px solid rgba(200,70,126,0.35);
     background: linear-gradient(135deg, rgba(200,70,126,0.25), rgba(200,70,126,0.1));
     color: #fff; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: all 0.2s;
@@ -366,7 +366,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 .preview-card {
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 14px;
+    border-radius: 3px;
     overflow: hidden;
 }
 

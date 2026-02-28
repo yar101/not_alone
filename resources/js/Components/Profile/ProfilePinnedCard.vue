@@ -195,7 +195,7 @@ function toggleMark(mark) {
 .pinned-card {
     background: linear-gradient(135deg, rgba(200,70,126,0.08) 0%, rgba(140,60,180,0.04) 100%);
     border: 1px solid rgba(200,70,126,0.22);
-    border-radius: 16px;
+    border-radius: 3px;
     overflow: hidden;
     position: relative;
     transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.2s ease;
@@ -273,7 +273,7 @@ function toggleMark(mark) {
 .edit-title { font-size: 1.1rem; font-weight: 600; color: rgba(255,255,255,0.9); margin: 0 0 1rem; }
 
 .photo-preview-wrap { position: relative; margin-bottom: 0.75rem; }
-.photo-preview { width: 100%; max-height: 260px; object-fit: cover; border-radius: 10px; display: block; }
+.photo-preview { width: 100%; max-height: 260px; object-fit: cover; border-radius: 3px; display: block; }
 .remove-photo-btn {
     position: absolute; top: 0.4rem; right: 0.4rem;
     background: rgba(0,0,0,0.6); border: none;
@@ -288,7 +288,7 @@ function toggleMark(mark) {
     font-size: 0.85rem;
     color: rgba(200,70,126,0.7);
     border: 1px dashed rgba(200,70,126,0.3);
-    border-radius: 8px;
+    border-radius: 3px;
     padding: 0.4rem 0.85rem;
     transition: all 0.2s;
     display: inline-block;
@@ -299,7 +299,7 @@ function toggleMark(mark) {
     display: flex; gap: 0.35rem; margin-bottom: 0.5rem;
 }
 .toolbar-btn {
-    padding: 0.3rem 0.6rem; border-radius: 6px;
+    padding: 0.3rem 0.6rem; border-radius: 3px;
     border: 1px solid rgba(255,255,255,0.1);
     background: transparent; color: rgba(255,255,255,0.6);
     font-size: 0.88rem; cursor: pointer; font-family: inherit;
@@ -327,7 +327,7 @@ function toggleMark(mark) {
     max-width: 90vw;
     max-height: 90vh;
     object-fit: contain;
-    border-radius: 8px;
+    border-radius: 3px;
     cursor: default;
     box-shadow: 0 16px 64px rgba(0,0,0,0.7);
 }
@@ -337,7 +337,7 @@ function toggleMark(mark) {
     min-height: 120px;
     background: rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 10px;
+    border-radius: 3px;
     padding: 0.75rem;
     color: rgba(255,255,255,0.85);
     font-size: 0.92rem;

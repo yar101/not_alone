@@ -142,7 +142,7 @@ const strokeDash = computed(() => ({
     background: rgba(14,10,24,0.94);
     backdrop-filter: blur(18px);
     border: 1px solid rgba(200,70,126,0.2);
-    border-radius: 16px;
+    border-radius: 3px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.65), 0 0 0 1px rgba(200,70,126,0.06);
 }
 
@@ -167,13 +167,13 @@ const strokeDash = computed(() => ({
 .cl-progress-bar {
     height: 4px;
     background: rgba(255,255,255,0.07);
-    border-radius: 2px;
+    border-radius: 3px;
     margin-bottom: 0.85rem;
     overflow: hidden;
 }
 .cl-progress-fill {
     height: 100%;
-    border-radius: 2px;
+    border-radius: 3px;
     background: linear-gradient(90deg, rgba(200,70,126,0.9), rgba(140,60,200,0.75));
     box-shadow: 0 0 8px rgba(200,70,126,0.4);
     transition: width 0.5s cubic-bezier(0.25,0.46,0.45,0.94);

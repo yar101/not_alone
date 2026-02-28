@@ -162,7 +162,7 @@ onUnmounted(() => {
         linear-gradient(135deg, rgba(200, 70, 126, 0.05) 0%, transparent 45%),
         linear-gradient(160deg, rgb(16, 11, 20) 0%, rgb(7, 6, 11) 100%);
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 16px;
+    border-radius: 3px;
     pointer-events: all;
     display: flex;
     flex-direction: column;
@@ -179,7 +179,7 @@ onUnmounted(() => {
         height: 88svh;
         max-height: 88svh;
         transform: none;
-        border-radius: 20px 20px 0 0;
+        border-radius: 3px 3px 0 0;
     }
 }
 
@@ -286,7 +286,7 @@ onUnmounted(() => {
         width: 36px;
         height: 4px;
         background: rgba(255, 255, 255, 0.15);
-        border-radius: 2px;
+        border-radius: 3px;
         margin: 0.65rem auto 0;
         flex-shrink: 0;
     }
@@ -352,7 +352,7 @@ onUnmounted(() => {
 .site-modal-body::-webkit-scrollbar-track { background: transparent; }
 .site-modal-body::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.08);
-    border-radius: 2px;
+    border-radius: 3px;
 }
 
 /* ── Transitions ───────────────────────────────────── */

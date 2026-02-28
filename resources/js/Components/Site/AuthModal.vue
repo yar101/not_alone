@@ -230,12 +230,6 @@ function submitRegister() {
                                 :class="{ 'auth-gender-btn--active': registerForm.gender === 'female' }"
                                 @click="registerForm.gender = 'female'"
                             >Женский</button>
-                            <button
-                                type="button"
-                                class="auth-gender-btn"
-                                :class="{ 'auth-gender-btn--active': registerForm.gender === 'other' }"
-                                @click="registerForm.gender = 'other'"
-                            >Другой</button>
                         </div>
                         <Transition name="err-fade">
                             <p v-show="registerForm.errors.gender" class="auth-error">
@@ -431,7 +425,7 @@ function submitRegister() {
     display: flex;
     gap: 4px;
     background: rgba(255, 255, 255, 0.03);
-    border-radius: 10px;
+    border-radius: 3px;
     padding: 4px;
     margin-bottom: 0.5rem;
 }
@@ -440,7 +434,7 @@ function submitRegister() {
     flex: 1;
     padding: 0.55rem 0.75rem;
     font-size: 0.9rem;
-    border-radius: 7px;
+    border-radius: 3px;
     border: none;
     background: transparent;
     color: rgba(255, 255, 255, 0.45);
@@ -478,7 +472,7 @@ function submitRegister() {
     width: 100%;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
+    border-radius: 3px;
     padding: 0.72rem 0.9rem;
     color: rgba(255, 255, 255, 0.88);
     font-size: 0.95rem;
@@ -507,7 +501,7 @@ function submitRegister() {
     min-width: 0;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
+    border-radius: 3px;
     padding: 0.72rem 0.5rem;
     color: rgba(255, 255, 255, 0.88);
     font-size: 0.9rem;
@@ -552,7 +546,7 @@ function submitRegister() {
 .auth-gender-btn {
     flex: 1;
     padding: 0.5rem 0.5rem;
-    border-radius: 20px;
+    border-radius: 3px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: transparent;
     color: rgba(255, 255, 255, 0.45);
@@ -594,7 +588,7 @@ function submitRegister() {
     width: 17px;
     height: 17px;
     flex-shrink: 0;
-    border-radius: 5px;
+    border-radius: 3px;
     border: 1px solid rgba(255, 255, 255, 0.18);
     background: rgba(255, 255, 255, 0.04);
     display: flex;
@@ -641,7 +635,7 @@ function submitRegister() {
 .auth-submit {
     width: 100%;
     padding: 0.85rem;
-    border-radius: 10px;
+    border-radius: 3px;
     border: 1px solid rgba(200, 70, 126, 0.35);
     background: linear-gradient(135deg, rgba(200, 70, 126, 0.25), rgba(200, 70, 126, 0.1));
     color: #fff;

@@ -21,7 +21,7 @@ const props = defineProps({
 
 // ── Gender label ─────────────────────────────────────────────
 const genderLabel = computed(() => ({
-    male: 'Мужской', female: 'Женский', other: 'Другой',
+    male: 'Мужской', female: 'Женский',
 }[props.profileUser.gender] ?? '—'));
 
 // ── Tabs ─────────────────────────────────────────────────────
@@ -194,12 +194,28 @@ onMounted(async () => {
                             <!-- Пол / Возраст -->
                             <div class="fused-section ga-section anim-block">
                                 <div class="ga-item">
-                                    <span class="ga-key">Пол</span>
-                                    <span class="ga-val">{{ genderLabel }}</span>
+                                    <span class="ga-label">Пол</span>
+                                    <span v-if="profileUser.gender" class="ga-tag ga-tag--gender">
+                                        <!-- Female ♀ -->
+                                        <svg v-if="profileUser.gender === 'female'" class="gender-icon gender-icon--female" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="9" r="6"/>
+                                            <line x1="12" y1="15" x2="12" y2="21"/>
+                                            <line x1="9" y1="19" x2="15" y2="19"/>
+                                        </svg>
+                                        <!-- Male ♂ -->
+                                        <svg v-else-if="profileUser.gender === 'male'" class="gender-icon gender-icon--male" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="10" cy="14" r="6"/>
+                                            <line x1="14.5" y1="9.5" x2="21" y2="3"/>
+                                            <polyline points="16 3 21 3 21 8"/>
+                                        </svg>
+                                        {{ genderLabel }}
+                                    </span>
+                                    <span v-else class="ga-empty">—</span>
                                 </div>
                                 <div class="ga-item">
-                                    <span class="ga-key">Возраст</span>
-                                    <span class="ga-val">{{ profileUser.age ?? '—' }}</span>
+                                    <span class="ga-label">Возраст</span>
+                                    <span v-if="profileUser.age" class="ga-tag">{{ profileUser.age }} лет</span>
+                                    <span v-else class="ga-empty">—</span>
                                 </div>
                             </div>
 
@@ -267,7 +283,7 @@ onMounted(async () => {
     border: 1px solid rgba(224, 24, 108, 0.3) !important;
     color: rgba(255, 255, 255, 0.9) !important;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8) !important;
-    border-radius: 4px !important;
+    border-radius: 3px !important;
     font-family: 'Figtree', sans-serif !important;
 }
 .driver-popover-title {
@@ -337,6 +353,7 @@ onMounted(async () => {
     background: transparent;
     border: 1px solid rgba(255,255,255,0.18);
     border-top: 1px solid rgba(255,255,255,0.18);
+    border-radius: 0 0 3px 3px;
     padding: 6px 8px;
     gap: 5px;
     margin-bottom: 1.25rem;
@@ -345,7 +362,7 @@ onMounted(async () => {
 .tab-btn {
     padding: 0.5rem 1.2rem;
     border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 0;
+    border-radius: 3px;
     background: transparent;
     color: rgba(255,255,255,0.35);
     font-size: 1rem;
@@ -408,6 +425,7 @@ onMounted(async () => {
     display: grid;
     grid-template-columns: 1fr 300px;
     border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 3px 3px 0 0;
     overflow: hidden;
     margin-bottom: 0;
 }
@@ -428,6 +446,7 @@ onMounted(async () => {
 .fused-panel {
     border: 1px solid rgba(255,255,255,0.18);
     border-top: none;
+    border-radius: 0 0 3px 3px;
     overflow: hidden;
 }
 
@@ -443,16 +462,16 @@ onMounted(async () => {
 /* ── Пол / Возраст ────────────────────────────────────────── */
 .ga-section {
     display: flex;
-    gap: 3rem;
+    gap: 2rem;
 }
 
 .ga-item {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.5rem;
 }
 
-.ga-key {
+.ga-label {
     font-size: 0.78rem;
     font-weight: 600;
     letter-spacing: 0.12em;
@@ -460,10 +479,33 @@ onMounted(async () => {
     color: #FE28A2;
 }
 
-.ga-val {
-    font-size: 1.1rem;
-    color: rgba(255,255,255,0.85);
-    font-weight: 500;
+.ga-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.28rem 0.65rem;
+    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.8);
+    font-size: 1rem;
+    align-self: flex-start;
+    overflow: visible;
+}
+
+.gender-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    margin-block: -8px;
+}
+.gender-icon--female { color: #FE28A2; }
+.gender-icon--male   { color: #A78BFA; }
+
+.ga-empty {
+    color: rgba(255,255,255,0.25);
+    font-size: 1rem;
+    font-style: italic;
 }
 
 /* ── Остальные табы ───────────────────────────────────────── */
@@ -475,6 +517,7 @@ onMounted(async () => {
     padding: 4rem 2rem;
     text-align: center;
     border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 3px;
 }
 .coming-soon-title {
     font-size: 1.1rem;

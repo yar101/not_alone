@@ -285,7 +285,6 @@ function deleteAvatar() {
                     <div class="gender-group">
                         <button type="button" class="gender-btn" :class="{ active: form.gender === 'male' }"   @click="form.gender = 'male'">Мужской</button>
                         <button type="button" class="gender-btn" :class="{ active: form.gender === 'female' }" @click="form.gender = 'female'">Женский</button>
-                        <button type="button" class="gender-btn" :class="{ active: form.gender === 'other' }"  @click="form.gender = 'other'">Другой</button>
                     </div>
                 </div>
 
@@ -325,6 +324,7 @@ function deleteAvatar() {
     background: transparent;
     border: 1px solid rgba(255,255,255,0.18);
     border-bottom: none;
+    border-radius: 3px 3px 0 0;
     padding-top: 1.75rem;
     font-family: 'Figtree', sans-serif;
 }
@@ -396,6 +396,7 @@ function deleteAvatar() {
     gap: 0.3rem;
     padding: 0.55rem 0.85rem 0.5rem;
     border: 1px solid rgba(254,40,162,0.35);
+    border-radius: 3px;
     background: rgba(254,40,162,0.04);
     box-shadow: inset 0 0 16px rgba(254,40,162,0.05);
     position: relative;
@@ -459,6 +460,7 @@ function deleteAvatar() {
     gap: 0.35rem;
     background: rgba(10,10,15,0.92);
     border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 3px;
     padding: 0.35rem 0.55rem;
     backdrop-filter: blur(8px);
 }
@@ -505,6 +507,7 @@ function deleteAvatar() {
 .action-pill {
     width: 30px; height: 30px;
     border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 3px;
     background: transparent;
     color: rgba(255,255,255,0.35);
     display: flex; align-items: center; justify-content: center;
@@ -524,6 +527,7 @@ function deleteAvatar() {
     font-weight: 500;
     background: transparent;
     border: 1px solid #FE28A2;
+    border-radius: 3px;
     color: #fff;
     cursor: pointer;
     font-family: inherit;
@@ -541,6 +545,7 @@ function deleteAvatar() {
 .edit-label { font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(254,40,162,0.6); }
 .edit-select {
     background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 3px;
     padding: 0.6rem 0.75rem;
     color: rgba(255,255,255,0.85); font-size: 0.9rem; font-family: inherit; outline: none;
 }
@@ -550,13 +555,13 @@ function deleteAvatar() {
 .gender-group { display: flex; gap: 0.5rem; }
 .gender-btn {
     flex: 1; padding: 0.45rem;
-    border: 1px solid rgba(255,255,255,0.1); background: transparent;
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 3px; background: transparent;
     color: rgba(255,255,255,0.4); font-size: 0.88rem; cursor: pointer; font-family: inherit; transition: all 0.15s;
 }
 .gender-btn.active { border-color: #FE28A2; color: #fff; }
 .delete-avatar-btn {
     padding: 0.4rem 0.85rem; font-size: 0.85rem;
-    border: 1px solid rgba(254,40,162,0.35); background: transparent;
+    border: 1px solid rgba(254,40,162,0.35); border-radius: 3px; background: transparent;
     color: rgba(254,40,162,0.8); cursor: pointer; font-family: inherit; transition: all 0.15s;
     align-self: flex-start;
 }
@@ -564,6 +569,7 @@ function deleteAvatar() {
 .save-btn {
     width: 100%; margin-top: 0.5rem; padding: 0.8rem;
     border: 1px solid rgba(254,40,162,0.45);
+    border-radius: 3px;
     background: rgba(254,40,162,0.08);
     color: #fff; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: background 0.15s;
 }
@@ -603,6 +609,7 @@ function deleteAvatar() {
 .crop-rotate-btn {
     width: 38px; height: 38px;
     border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 3px;
     background: transparent;
     color: rgba(255,255,255,0.55);
     font-size: 1.1rem;
@@ -619,6 +626,7 @@ function deleteAvatar() {
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
     border: 1px solid rgba(254,40,162,0.4);
+    border-radius: 3px;
     background: rgba(254,40,162,0.06);
     color: rgba(254,40,162,0.9);
     font-size: 0.9rem;
@@ -633,6 +641,7 @@ function deleteAvatar() {
     flex: 0 0 auto;
     padding: 0.8rem 1.25rem;
     border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 3px;
     background: transparent;
     color: rgba(255,255,255,0.4);
     font-size: 0.95rem;

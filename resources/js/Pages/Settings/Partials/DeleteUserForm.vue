@@ -78,7 +78,7 @@ const closeModal = () => {
     padding: 1.5rem;
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 16px;
+    border-radius: 3px;
 }
 .card-header { margin-bottom: 1.5rem; }
 .card-label {
@@ -90,7 +90,7 @@ const closeModal = () => {
 .card-desc { font-size: 0.85rem; color: rgba(255,255,255,0.35); margin: 0; }
 .danger-btn {
     padding: 0.65rem 1.5rem;
-    border-radius: 10px;
+    border-radius: 3px;
     border: 1px solid rgba(220,60,60,0.35);
     background: rgba(220,60,60,0.08);
     color: rgba(220,100,100,0.9);
@@ -112,7 +112,7 @@ const closeModal = () => {
     padding: 0.65rem 0.9rem;
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 8px;
+    border-radius: 3px;
     color: rgba(255,255,255,0.88);
     font-size: 0.92rem;
     font-family: inherit;
@@ -128,7 +128,7 @@ const closeModal = () => {
 .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; }
 .cancel-btn {
     padding: 0.65rem 1.25rem;
-    border-radius: 10px;
+    border-radius: 3px;
     border: 1px solid rgba(255,255,255,0.1);
     background: rgba(255,255,255,0.04);
     color: rgba(255,255,255,0.6);
@@ -140,7 +140,7 @@ const closeModal = () => {
 .cancel-btn:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); }
 .confirm-danger-btn {
     padding: 0.65rem 1.25rem;
-    border-radius: 10px;
+    border-radius: 3px;
     border: 1px solid rgba(220,60,60,0.4);
     background: rgba(220,60,60,0.15);
     color: rgba(255,255,255,0.9);

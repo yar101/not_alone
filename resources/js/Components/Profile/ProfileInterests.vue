@@ -14,16 +14,6 @@ const editModal = ref(false);
 const openCat = ref(null);
 const interestSearch = ref('');
 
-const byCategory = computed(() => {
-    const map = {};
-    for (const i of props.interests) {
-        const cat = i.category.name_ru;
-        if (!map[cat]) map[cat] = [];
-        map[cat].push(i);
-    }
-    return map;
-});
-
 const selected = ref(new Set(props.interests.map(i => i.id)));
 const form = useForm({ interest_ids: [] });
 
@@ -83,13 +73,8 @@ function openEdit() {
             </button>
         </div>
 
-        <div v-if="interests.length">
-            <div v-for="(items, catName) in byCategory" :key="catName" class="cat-group">
-                <div class="cat-label">{{ catName }}</div>
-                <div class="tags-row">
-                    <span v-for="i in items" :key="i.id" class="tag">{{ i.name_ru }}</span>
-                </div>
-            </div>
+        <div v-if="interests.length" class="tags-row">
+            <span v-for="i in interests" :key="i.id" class="tag">{{ i.name_ru }}</span>
         </div>
         <p v-else-if="isOwner" class="empty">Добавь свои интересы</p>
         <p v-else class="empty">Не указано</p>
@@ -173,15 +158,6 @@ function openEdit() {
 .block-section:hover .edit-btn { opacity: 1; }
 .edit-btn:hover { color: rgba(254,40,162,0.9); }
 
-.cat-group { margin-bottom: 0.75rem; }
-.cat-group:last-child { margin-bottom: 0; }
-.cat-label {
-    font-size: 0.72rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.3);
-    margin-bottom: 0.4rem;
-}
 .tags-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .tag {
     padding: 0.28rem 0.65rem;
@@ -200,24 +176,24 @@ function openEdit() {
 .search-input {
     width: 100%; padding: 0.55rem 0.9rem; margin-bottom: 0.75rem;
     background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 6px; color: rgba(255,255,255,0.88); font-size: 0.9rem; font-family: inherit;
+    border-radius: 3px; color: rgba(255,255,255,0.88); font-size: 0.9rem; font-family: inherit;
     box-sizing: border-box; outline: none; transition: border-color 0.15s;
 }
 .search-input::placeholder { color: rgba(255,255,255,0.25); }
 .search-input:focus { border-color: rgba(254,40,162,0.5); }
 .categories { display: flex; flex-direction: column; gap: 0.2rem; margin-bottom: 1rem; }
-.cat-block { border: 1px solid rgba(255,255,255,0.07); border-radius: 6px; }
+.cat-block { border: 1px solid rgba(255,255,255,0.07); border-radius: 3px; }
 .cat-header {
     width: 100%; display: flex; align-items: center;
     padding: 0.6rem 0.9rem;
     background: rgba(255,255,255,0.03); border: none; color: rgba(255,255,255,0.75);
     font-size: 0.9rem; cursor: pointer; font-family: inherit; text-align: left;
-    border-radius: 6px;
+    border-radius: 3px;
 }
 .cat-count { color: rgba(254,40,162,0.75); font-size: 0.8rem; margin-left: 0.4rem; }
 .cat-arrow { color: rgba(255,255,255,0.35); font-size: 1.1rem; transition: transform 0.2s; margin-left: auto; }
 .cat-arrow.open { transform: rotate(90deg); }
-.cat-interests { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0.6rem 0.9rem; background: rgba(0,0,0,0.12); border-radius: 0 0 6px 6px; }
+.cat-interests { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0.6rem 0.9rem; background: rgba(0,0,0,0.12); border-radius: 0 0 3px 3px; }
 .interest-btn {
     padding: 0.25rem 0.65rem;
     border-radius: 3px;
@@ -229,7 +205,7 @@ function openEdit() {
 .no-results { color: rgba(255,255,255,0.3); font-size: 0.9rem; text-align: center; padding: 1rem 0; margin: 0; }
 .save-btn {
     width: 100%; padding: 0.75rem;
-    border-radius: 6px; border: 1px solid rgba(254,40,162,0.4);
+    border-radius: 3px; border: 1px solid rgba(254,40,162,0.4);
     background: rgba(254,40,162,0.1);
     color: #fff; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: background 0.15s;
 }

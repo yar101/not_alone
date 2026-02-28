@@ -159,7 +159,7 @@ function openEdit() {
 .lang-btn.active { border-color: rgba(254,40,162,0.55); background: rgba(254,40,162,0.1); color: #fff; }
 .save-btn {
     width: 100%; padding: 0.75rem;
-    border-radius: 6px; border: 1px solid rgba(254,40,162,0.4);
+    border-radius: 3px; border: 1px solid rgba(254,40,162,0.4);
     background: rgba(254,40,162,0.1);
     color: #fff; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: background 0.15s;
 }

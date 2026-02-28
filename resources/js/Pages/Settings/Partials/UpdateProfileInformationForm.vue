@@ -87,7 +87,7 @@ const form = useForm({
     padding: 1.5rem;
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 16px;
+    border-radius: 3px;
 }
 .card-header { margin-bottom: 1.5rem; }
 .card-label {
@@ -103,7 +103,7 @@ const form = useForm({
     padding: 0.65rem 0.9rem;
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 8px;
+    border-radius: 3px;
     color: rgba(255,255,255,0.88);
     font-size: 0.92rem;
     font-family: inherit;
@@ -126,7 +126,7 @@ const form = useForm({
 .card-actions { display: flex; align-items: center; gap: 1rem; padding-top: 0.25rem; }
 .save-btn {
     padding: 0.65rem 1.5rem;
-    border-radius: 10px;
+    border-radius: 3px;
     border: 1px solid rgba(200,70,126,0.35);
     background: linear-gradient(135deg, rgba(200,70,126,0.25), rgba(200,70,126,0.1));
     color: #fff; font-size: 0.92rem; cursor: pointer; font-family: inherit; transition: all 0.2s;

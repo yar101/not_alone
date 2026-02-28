@@ -265,7 +265,13 @@ function deleteVoice() {
 
         <!-- Кнопка записи -->
         <button v-else-if="isOwner" class="rec-btn" @click="startRecording">
-            + Голосовое
+            <svg class="rec-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="2" width="6" height="12" rx="3"/>
+                <path d="M5 10a7 7 0 0 0 14 0"/>
+                <line x1="12" y1="19" x2="12" y2="22"/>
+                <line x1="8" y1="22" x2="16" y2="22"/>
+            </svg>
+            <span>Записать голосовое</span>
         </button>
     </div>
 </template>
@@ -305,6 +311,7 @@ function deleteVoice() {
     gap: 0.5rem;
     padding: 0.5rem 0.6rem;
     border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 3px;
     background: rgba(255,255,255,0.03);
     box-sizing: border-box;
 }
@@ -313,6 +320,7 @@ function deleteVoice() {
     width: 28px; height: 28px;
     flex-shrink: 0;
     border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 3px;
     background: transparent;
     color: rgba(255,255,255,0.75);
     display: flex; align-items: center; justify-content: center;
@@ -345,15 +353,15 @@ function deleteVoice() {
 }
 
 .del-btn {
-    width: 18px; height: 18px;
+    width: 26px; height: 26px;
     flex-shrink: 0;
     background: none; border: none; padding: 0;
-    color: rgba(255,255,255,0.18);
+    color: rgba(255,255,255,0.25);
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     transition: color 0.15s;
 }
-.del-btn svg { width: 11px; height: 11px; }
+.del-btn svg { width: 16px; height: 16px; stroke-width: 2.5; }
 .del-btn:hover { color: #FE28A2; }
 
 /* ── Запись ───────────────────────────────────────────────── */
@@ -363,6 +371,7 @@ function deleteVoice() {
     gap: 0.6rem;
     padding: 0.5rem 0.6rem;
     border: 1px solid rgba(254,40,162,0.35);
+    border-radius: 3px;
     box-sizing: border-box;
 }
 @keyframes recBlink {
@@ -384,6 +393,7 @@ function deleteVoice() {
 .stop-btn {
     padding: 0.18rem 0.6rem;
     border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 3px;
     background: transparent;
     color: rgba(255,255,255,0.5);
     font-size: 0.82rem;
@@ -395,18 +405,31 @@ function deleteVoice() {
 
 /* ── Кнопка записи ────────────────────────────────────────── */
 .rec-btn {
-    padding: 0.5rem 0.6rem;
-    border: 1px solid rgba(255,255,255,0.1);
-    background: transparent;
-    color: rgba(255,255,255,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid rgba(254,40,162,0.3);
+    border-radius: 3px;
+    background: rgba(254,40,162,0.05);
+    color: rgba(255,255,255,0.55);
     font-size: 0.88rem;
     font-family: inherit;
     cursor: pointer;
     text-align: center;
-    transition: border-color 0.15s, color 0.15s;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
 }
 .rec-btn:hover {
-    border-color: rgba(254,40,162,0.5);
-    color: rgba(255,255,255,0.7);
+    border-color: rgba(254,40,162,0.65);
+    background: rgba(254,40,162,0.1);
+    color: #fff;
 }
+.rec-btn-icon {
+    width: 15px; height: 15px;
+    flex-shrink: 0;
+    color: rgba(254,40,162,0.7);
+    transition: color 0.2s;
+}
+.rec-btn:hover .rec-btn-icon { color: #FE28A2; }
 </style>

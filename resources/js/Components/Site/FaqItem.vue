@@ -117,7 +117,7 @@ defineProps({
         flex-shrink: 0;
         width: auto;
         border-left: none;
-        border-radius: 20px;
+        border-radius: 3px;
         padding: 0.45rem 0.85rem 0.45rem 0.55rem;
         border: 1px solid rgba(255, 255, 255, 0.07);
         gap: 0.45rem;

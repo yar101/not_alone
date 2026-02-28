@@ -251,7 +251,7 @@ function setCategory(cat) {
         rgba(200, 70, 126, 0.02) 40%,
         transparent 100%
     );
-    border-radius: 8px 0 0 8px;
+    border-radius: 3px 0 0 3px;
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.06) transparent;
 }
@@ -259,7 +259,7 @@ function setCategory(cat) {
 .faq-sidebar::-webkit-scrollbar { width: 3px; }
 .faq-sidebar::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.06);
-    border-radius: 2px;
+    border-radius: 3px;
 }
 
 .faq-sidebar__label {
@@ -299,7 +299,7 @@ function setCategory(cat) {
 .faq-content::-webkit-scrollbar { width: 3px; }
 .faq-content::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.06);
-    border-radius: 2px;
+    border-radius: 3px;
 }
 
 .faq-content-inner {

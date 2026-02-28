@@ -148,7 +148,7 @@ function openEdit() {
 .search-input {
     width: 100%; padding: 0.55rem 0.9rem; margin-bottom: 0.75rem;
     background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 6px; color: rgba(255,255,255,0.88); font-size: 0.9rem; font-family: inherit;
+    border-radius: 3px; color: rgba(255,255,255,0.88); font-size: 0.9rem; font-family: inherit;
     box-sizing: border-box; outline: none; transition: border-color 0.15s;
 }
 .search-input::placeholder { color: rgba(255,255,255,0.25); }
@@ -170,7 +170,7 @@ function openEdit() {
 .no-results { color: rgba(255,255,255,0.3); font-size: 0.9rem; text-align: center; padding: 0.5rem 0 1rem; margin: 0; }
 .save-btn {
     width: 100%; padding: 0.75rem;
-    border-radius: 6px; border: 1px solid rgba(254,40,162,0.4);
+    border-radius: 3px; border: 1px solid rgba(254,40,162,0.4);
     background: rgba(254,40,162,0.1);
     color: #fff; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: background 0.15s;
 }
