@@ -347,49 +347,49 @@ onMounted(async () => {
 /* ── Таббар ───────────────────────────────────────────────── */
 .profile-tabs {
     display: flex;
-    flex-wrap: wrap;
     justify-content: center;
     flex-shrink: 0;
     background: transparent;
-    border: 1px solid rgba(255,255,255,0.18);
-    border-top: 1px solid rgba(255,255,255,0.18);
-    border-radius: 0 0 3px 3px;
-    padding: 6px 8px;
-    gap: 5px;
-    margin-bottom: 1.25rem;
+    border: none;
+    padding: 0.5rem 0.75rem;
+    gap: 0.2rem;
 }
 
 .tab-btn {
-    padding: 0.5rem 1.2rem;
-    border: 1px solid rgba(255,255,255,0.1);
+    padding: 0.45rem 1rem;
+    border: none;
     border-radius: 3px;
     background: transparent;
-    color: rgba(255,255,255,0.35);
-    font-size: 1rem;
+    color: rgba(255,255,255,0.3);
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
     cursor: pointer;
     font-family: inherit;
-    transition: border-color 0.15s, color 0.15s;
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    letter-spacing: 0.02em;
+    transition: background 0.2s ease, color 0.2s ease;
+    white-space: nowrap;
 }
 .tab-btn.active {
-    border-color: #FE28A2;
-    color: #fff;
-    font-weight: 600;
+    background: rgba(254, 40, 162, 0.12);
+    color: #FE28A2;
 }
 .tab-btn:hover:not(.active) {
-    color: rgba(255,255,255,0.65);
-    border-color: rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.6);
 }
 
 .tab-badge {
-    font-size: 0.72rem;
-    padding: 0.05rem 0.35rem;
-    border: 1px solid rgba(254,40,162,0.35);
+    font-size: 0.7rem;
+    padding: 0.05rem 0.3rem;
+    border: 1px solid rgba(254,40,162,0.4);
+    border-radius: 3px;
     color: rgba(254,40,162,0.8);
     background: transparent;
+    letter-spacing: 0;
+    text-transform: none;
 }
 
 /* ── Контент ──────────────────────────────────────────────── */

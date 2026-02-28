@@ -323,8 +323,8 @@ function deleteAvatar() {
     overflow: hidden;
     background: transparent;
     border: 1px solid rgba(255,255,255,0.18);
-    border-bottom: none;
-    border-radius: 3px 3px 0 0;
+    border-bottom: 1px solid rgba(255,255,255,0.18);
+    border-radius: 3px;
     padding-top: 1.75rem;
     font-family: 'Figtree', sans-serif;
 }
