@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\Idol\ApplicationController as IdolApplicationController;
+use App\Http\Controllers\Idol\QuizController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserProfileController;
 use Illuminate\Foundation\Application;
@@ -49,6 +52,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/settings',    [ProfileController::class, 'edit'])->name('settings.edit');
     Route::patch('/settings',  [ProfileController::class, 'update'])->name('settings.update');
     Route::delete('/settings', [ProfileController::class, 'destroy'])->name('settings.destroy');
+});
+
+// Idol routes
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/idol/apply', [IdolApplicationController::class, 'show'])->name('idol.apply');
+    Route::post('/idol/apply', [IdolApplicationController::class, 'store'])->name('idol.apply.store');
+    Route::get('/idol/quiz/status', [QuizController::class, 'status'])->name('idol.quiz.status');
+    Route::post('/idol/quiz/start', [QuizController::class, 'start'])->name('idol.quiz.start');
+    Route::post('/idol/quiz/answer', [QuizController::class, 'answer'])->name('idol.quiz.answer');
+});
+
+// Notification routes
+Route::middleware('auth')->group(function () {
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+    Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+
+    Route::get('/notifications/service', [NotificationController::class, 'service'])->name('notifications.service');
+    Route::patch('/notifications/service/read-all', [NotificationController::class, 'markAllServiceRead'])->name('notifications.service.read-all');
+    Route::patch('/broadcasts/{id}/read', [NotificationController::class, 'markBroadcastRead'])->name('broadcasts.read');
 });
 
 require __DIR__.'/auth.php';
