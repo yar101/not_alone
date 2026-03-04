@@ -9,6 +9,11 @@ import 'vue-advanced-cropper/dist/style.css';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
+// ── Pluralization ──────────────────────────────────────────────
+const agePR = new Intl.PluralRules('ru');
+const ageForms = { one: 'год', few: 'года', many: 'лет', other: 'лет' };
+function ageLabel(n) { return `${n} ${ageForms[agePR.select(n)]}`; }
+
 // ── Временный рейтинг (убрать после внедрения рейтинга) ──
 const devRating = ref(73); // 0–100
 
@@ -195,7 +200,21 @@ function deleteAvatar() {
                     </div>
                 </div>
             </div>
-            <h1 class="header-name">{{ user.name }}</h1>
+            <div class="header-name-wrap">
+                <h1 class="header-name">{{ user.name }}</h1>
+                <div v-if="user.gender || user.age" class="header-meta">
+                    <span v-if="user.gender" class="meta-badge" :class="'meta-badge--' + user.gender">
+                        <svg v-if="user.gender === 'female'" class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="9" r="6"/><line x1="12" y1="15" x2="12" y2="21"/><line x1="9" y1="19" x2="15" y2="19"/>
+                        </svg>
+                        <svg v-else class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="10" cy="14" r="6"/><line x1="14.5" y1="9.5" x2="21" y2="3"/><polyline points="16 3 21 3 21 8"/>
+                        </svg>
+                        {{ user.gender === 'female' ? 'Женский' : 'Мужской' }}
+                    </span>
+                    <span v-if="user.age" class="meta-badge meta-badge--age">{{ ageLabel(user.age) }}</span>
+                </div>
+            </div>
             <div class="header-actions">
                 <template v-if="isOwner">
                     <button class="action-pill" @click="editModal = true" title="Редактировать">
@@ -447,6 +466,14 @@ function deleteAvatar() {
 }
 
 
+.header-name-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+}
+
 .header-name {
     font-size: 2.6rem;
     font-weight: 700;
@@ -457,6 +484,49 @@ function deleteAvatar() {
     text-overflow: ellipsis;
     color: #fff;
     letter-spacing: -0.01em;
+}
+
+.header-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.meta-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.18rem 0.6rem;
+    border-radius: 3px;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.meta-badge--female {
+    border-color: rgba(254, 40, 162, 0.3);
+    background: rgba(254, 40, 162, 0.06);
+    color: rgba(254, 40, 162, 0.85);
+}
+
+.meta-badge--male {
+    border-color: rgba(167, 139, 250, 0.3);
+    background: rgba(167, 139, 250, 0.06);
+    color: rgba(167, 139, 250, 0.85);
+}
+
+.meta-badge--age {
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.meta-icon {
+    width: 0.85em;
+    height: 0.85em;
+    flex-shrink: 0;
 }
 
 .header-actions {

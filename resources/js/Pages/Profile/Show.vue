@@ -34,11 +34,6 @@ function resendVerification() {
     });
 }
 
-// ── Gender label ─────────────────────────────────────────────
-const genderLabel = computed(() => ({
-    male: 'Мужской', female: 'Женский',
-}[props.profileUser.gender] ?? '—'));
-
 // ── Tabs ─────────────────────────────────────────────────────
 const tab = ref('about');
 const tabDir = ref(1);  // +1 → slide-left, -1 → slide-right
@@ -225,36 +220,8 @@ onMounted(async () => {
                             </div>
                         </div>
 
-                        <!-- Слитая панель: пол/возраст + характер + интересы + языки -->
+                        <!-- Слитая панель: характер + интересы + языки -->
                         <div class="fused-panel">
-                            <!-- Пол / Возраст -->
-                            <div class="fused-section ga-section anim-block">
-                                <div class="ga-item">
-                                    <span class="ga-label">Пол</span>
-                                    <span v-if="profileUser.gender" class="ga-tag ga-tag--gender">
-                                        <!-- Female ♀ -->
-                                        <svg v-if="profileUser.gender === 'female'" class="gender-icon gender-icon--female" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                                            <circle cx="12" cy="9" r="6"/>
-                                            <line x1="12" y1="15" x2="12" y2="21"/>
-                                            <line x1="9" y1="19" x2="15" y2="19"/>
-                                        </svg>
-                                        <!-- Male ♂ -->
-                                        <svg v-else-if="profileUser.gender === 'male'" class="gender-icon gender-icon--male" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                                            <circle cx="10" cy="14" r="6"/>
-                                            <line x1="14.5" y1="9.5" x2="21" y2="3"/>
-                                            <polyline points="16 3 21 3 21 8"/>
-                                        </svg>
-                                        {{ genderLabel }}
-                                    </span>
-                                    <span v-else class="ga-empty">—</span>
-                                </div>
-                                <div class="ga-item">
-                                    <span class="ga-label">Возраст</span>
-                                    <span v-if="profileUser.age" class="ga-tag">{{ profileUser.age }} лет</span>
-                                    <span v-else class="ga-empty">—</span>
-                                </div>
-                            </div>
-
                             <div id="tour-traits" class="anim-block">
                                 <ProfileTraits
                                     :traits="profileUser.traits"
@@ -498,7 +465,6 @@ onMounted(async () => {
     height: 100%;
     overflow-y: auto;
     padding-bottom: 2rem;
-    padding-right: 0.75rem;
     scrollbar-gutter: stable;
     scrollbar-width: thin;
     scrollbar-color: rgba(254,40,162,0.25) transparent;
@@ -552,57 +518,8 @@ onMounted(async () => {
     background: transparent;
 }
 
-.fused-section {
-    padding: 1.25rem 2rem;
-}
-
-/* ── Пол / Возраст ────────────────────────────────────────── */
-.ga-section {
-    display: flex;
-    gap: 2rem;
-}
-
-.ga-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.ga-label {
-    font-size: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: #FE28A2;
-}
-
-.ga-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.28rem 0.65rem;
-    border-radius: 3px;
-    border: 1px solid rgba(255,255,255,0.12);
-    background: rgba(255,255,255,0.04);
-    color: rgba(255,255,255,0.8);
-    font-size: 1rem;
-    align-self: flex-start;
-    overflow: visible;
-}
-
-.gender-icon {
-    width: 1.25em;
-    height: 1.25em;
-    flex-shrink: 0;
-    margin-block: -0.125em;
-}
-.gender-icon--female { color: #FE28A2; }
-.gender-icon--male   { color: #A78BFA; }
-
-.ga-empty {
-    color: rgba(255,255,255,0.25);
-    font-size: 1rem;
-    font-style: italic;
+.fused-panel > :first-child :deep(.block-section) {
+    border-top: none;
 }
 
 /* ── Остальные табы ───────────────────────────────────────── */
