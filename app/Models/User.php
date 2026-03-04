@@ -31,6 +31,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'profile_checklist_snoozed_until',
         'email',
         'password',
+        'is_idol',
+        'idol_quiz_cooldown_until',
+        'idol_quiz_passed_at',
     ];
 
     protected $hidden = [
@@ -47,6 +50,9 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
             'birth_date' => 'date',
             'profile_checklist_snoozed_until' => 'datetime',
+            'is_idol' => 'boolean',
+            'idol_quiz_cooldown_until' => 'datetime',
+            'idol_quiz_passed_at' => 'datetime',
         ];
     }
 
@@ -86,6 +92,16 @@ class User extends Authenticatable implements MustVerifyEmail
     public function posts(): HasMany
     {
         return $this->hasMany(Post::class)->latest();
+    }
+
+    public function idolQuizSessions(): HasMany
+    {
+        return $this->hasMany(IdolQuizSession::class);
+    }
+
+    public function idolApplication()
+    {
+        return $this->hasOne(IdolApplication::class);
     }
 
     public function sendEmailVerificationNotification(): void

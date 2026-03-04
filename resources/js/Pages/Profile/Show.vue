@@ -256,10 +256,28 @@ onMounted(async () => {
                     </div>
 
                     <div v-else-if="tab === 'services'" key="services" class="tab-panel">
-                        <div class="anim-block coming-soon-block">
-                            <p class="coming-soon-title">Услуги</p>
-                            <p class="coming-soon-text">Раздел в разработке</p>
-                        </div>
+                        <!-- If profileUser is an idol -->
+                        <template v-if="profileUser.is_idol">
+                            <div class="anim-block coming-soon-block">
+                                <p class="coming-soon-title">🌟 Услуги Айдола</p>
+                                <p class="coming-soon-text">Услуги появятся здесь совсем скоро</p>
+                            </div>
+                        </template>
+                        <!-- If owner and not idol -->
+                        <template v-else-if="isOwner">
+                            <div class="anim-block idol-cta-block">
+                                <div class="idol-cta-icon">✨</div>
+                                <p class="idol-cta-title">Стань Айдолом</p>
+                                <p class="idol-cta-text">Айдолы могут предоставлять уникальные услуги другим участникам платформы. Пройди тест и подай заявку!</p>
+                                <Link href="/idol/apply" class="idol-cta-btn">Стать Айдолом</Link>
+                            </div>
+                        </template>
+                        <template v-else>
+                            <div class="anim-block coming-soon-block">
+                                <p class="coming-soon-title">Услуги</p>
+                                <p class="coming-soon-text">Раздел в разработке</p>
+                            </div>
+                        </template>
                     </div>
 
                     <div v-else key="content" class="tab-panel">
@@ -546,6 +564,34 @@ onMounted(async () => {
     color: rgba(255,255,255,0.15);
     margin: 0;
 }
+
+/* ── Idol CTA block ──────────────────────────────────────── */
+.idol-cta-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 2rem;
+    text-align: center;
+    background: rgba(200, 70, 126, 0.04);
+    border: 1px solid rgba(200, 70, 126, 0.15);
+    border-radius: 16px;
+}
+.idol-cta-icon { font-size: 2.5rem; }
+.idol-cta-title { font-size: 1.25rem; color: rgba(255,255,255,0.9); margin: 0; font-weight: 600; }
+.idol-cta-text { font-size: 0.85rem; color: rgba(255,255,255,0.45); margin: 0; max-width: 320px; line-height: 1.6; }
+.idol-cta-btn {
+    margin-top: 0.5rem;
+    padding: 0.6rem 1.5rem;
+    background: linear-gradient(135deg, #C8467E, #a03466);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: opacity 0.15s;
+}
+.idol-cta-btn:hover { opacity: 0.85; }
 
 /* ── Адаптив ──────────────────────────────────────────────── */
 @media (max-width: 700px) {

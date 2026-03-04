@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
+import NotificationBell from '@/Components/NotificationBell.vue';
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
@@ -8,6 +9,9 @@ const initials = computed(() => user.value?.name?.charAt(0).toUpperCase() ?? '?'
 const profileHref = computed(() =>
     user.value ? route('profile.show', { user: user.value.id }) : '/'
 );
+const isIdol = computed(() => page.props.is_idol);
+const idolStatus = computed(() => page.props.idol_status);
+const showIdolBtn = computed(() => user.value && !isIdol.value && idolStatus.value !== 'pending');
 </script>
 
 <template>
@@ -15,18 +19,28 @@ const profileHref = computed(() =>
         <header class="app-header">
             <Link href="/" class="app-logo">NoAlone</Link>
 
-            <Link :href="profileHref" class="user-chip">
-                <div class="user-avatar">
-                    <img
-                        v-if="user?.avatar_url"
-                        :src="user.avatar_url"
-                        class="user-avatar__img"
-                        alt="Аватар"
-                    />
-                    <span v-else class="user-avatar__initials">{{ initials }}</span>
-                </div>
-                <span class="user-name">{{ user?.name }}</span>
-            </Link>
+            <div class="header-right">
+                <Link
+                    v-if="showIdolBtn"
+                    href="/idol/apply"
+                    class="become-idol-btn"
+                >Стать Айдолом</Link>
+
+                <NotificationBell v-if="user" />
+
+                <Link :href="profileHref" class="user-chip">
+                    <div class="user-avatar">
+                        <img
+                            v-if="user?.avatar_url"
+                            :src="user.avatar_url"
+                            class="user-avatar__img"
+                            alt="Аватар"
+                        />
+                        <span v-else class="user-avatar__initials">{{ initials }}</span>
+                    </div>
+                    <span class="user-name">{{ user?.name }}</span>
+                </Link>
+            </div>
         </header>
 
         <main class="app-main">
@@ -145,6 +159,32 @@ const profileHref = computed(() =>
     display: flex;
     flex-direction: column;
     min-height: 0;
+}
+
+/* ── Header right group ───────────────────────────────────── */
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ── Become Idol button ───────────────────────────────────── */
+.become-idol-btn {
+    padding: 0.3rem 0.85rem;
+    border-radius: 20px;
+    border: 1px solid rgba(200, 70, 126, 0.45);
+    color: #C8467E;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.18s;
+    white-space: nowrap;
+    background: rgba(200, 70, 126, 0.06);
+}
+.become-idol-btn:hover {
+    background: rgba(200, 70, 126, 0.15);
+    border-color: rgba(200, 70, 126, 0.7);
+    box-shadow: 0 0 12px rgba(200, 70, 126, 0.25);
 }
 
 /* ── Mobile ──────────────────────────────────────────────── */
