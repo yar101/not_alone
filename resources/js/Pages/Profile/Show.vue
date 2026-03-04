@@ -1,6 +1,9 @@
 <script setup>
 import { ref, watch, nextTick, onMounted, computed } from 'vue';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
+import AppLayout from '@/Layouts/AppLayout.vue';
+
+defineOptions({ layout: AppLayout });
 import { gsap } from 'gsap';
 import ProfileHeader from '@/Components/Profile/ProfileHeader.vue';
 import ProfileAbout from '@/Components/Profile/ProfileAbout.vue';
@@ -419,9 +422,8 @@ onMounted(async () => {
 
 /* ── Страница ─────────────────────────────────────────────── */
 .profile-page {
-    height: 100vh;
+    height: calc(100vh - 60px);
     overflow: hidden;
-    background: #0a0a0f;
     padding: 0 1.5rem;
     box-sizing: border-box;
     font-family: 'Figtree', sans-serif;
@@ -496,12 +498,20 @@ onMounted(async () => {
     height: 100%;
     overflow-y: auto;
     padding-bottom: 2rem;
+    padding-right: 0.75rem;
+    scrollbar-gutter: stable;
     scrollbar-width: thin;
     scrollbar-color: rgba(254,40,162,0.25) transparent;
 }
-.tab-panel::-webkit-scrollbar { width: 2px; }
-.tab-panel::-webkit-scrollbar-track { background: transparent; }
-.tab-panel::-webkit-scrollbar-thumb { background: rgba(254,40,162,0.3); }
+.tab-panel::-webkit-scrollbar { width: 3px; }
+.tab-panel::-webkit-scrollbar-track {
+    background: transparent;
+    margin-block: 0.5rem;
+}
+.tab-panel::-webkit-scrollbar-thumb {
+    background: rgba(254,40,162,0.28);
+    border-radius: 999px;
+}
 
 /* ── About: верхняя сетка ─────────────────────────────────── */
 .about-top-grid {
@@ -511,6 +521,10 @@ onMounted(async () => {
     border-radius: 3px 3px 0 0;
     overflow: hidden;
     margin-bottom: 0;
+}
+
+.about-top-grid > :first-child {
+    min-width: 0;
 }
 
 .about-top-grid :deep(.block-section) {

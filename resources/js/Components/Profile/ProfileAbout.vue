@@ -44,9 +44,9 @@ function submit() {
                     class="edit-textarea"
                     placeholder="Напиши что-нибудь о себе…"
                     rows="5"
-                    maxlength="1000"
+                    maxlength="200"
                 />
-                <div class="char-count">{{ form.about.length }}/1000</div>
+                <div class="char-count">{{ form.about.length }}/200</div>
                 <p v-if="form.errors.about" class="edit-error">{{ form.errors.about }}</p>
                 <button class="save-btn" :disabled="form.processing" @click="submit">Сохранить</button>
             </div>
@@ -89,10 +89,13 @@ function submit() {
 
 .about-text {
     color: rgba(255,255,255,0.82);
-    font-size: 1.05rem;
-    line-height: 1.7;
+    font-size: 0.95rem;
+    line-height: 1.65;
     margin: 0;
     white-space: pre-wrap;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    min-width: 0;
 }
 .about-empty {
     color: rgba(255,255,255,0.25);

@@ -38,7 +38,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'remember_token',
     ];
 
-    protected $appends = ['age'];
+    protected $appends = ['age', 'avatar_url'];
 
     protected function casts(): array
     {

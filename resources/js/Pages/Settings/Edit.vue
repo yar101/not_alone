@@ -3,6 +3,9 @@ import DeleteUserForm from './Partials/DeleteUserForm.vue';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm.vue';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm.vue';
 import { Head, Link } from '@inertiajs/vue3';
+import AppLayout from '@/Layouts/AppLayout.vue';
+
+defineOptions({ layout: AppLayout });
 
 defineProps({
     mustVerifyEmail: { type: Boolean },
@@ -32,12 +35,11 @@ defineProps({
 
 <style scoped>
 .page-wrap {
-    min-height: 100vh;
     background:
         radial-gradient(ellipse at 20% 30%, rgba(200, 70, 126, 0.07) 0%, transparent 60%),
-        radial-gradient(ellipse at 80% 70%, rgba(100, 60, 180, 0.06) 0%, transparent 60%),
-        #0d0d18;
+        radial-gradient(ellipse at 80% 70%, rgba(100, 60, 180, 0.06) 0%, transparent 60%);
     padding: 2rem 1rem 4rem;
+    flex: 1;
 }
 
 .settings-container {

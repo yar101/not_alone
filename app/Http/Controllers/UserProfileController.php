@@ -66,7 +66,7 @@ class UserProfileController extends Controller
 
     public function updateAbout(Request $request): RedirectResponse
     {
-        $data = $request->validate(['about' => ['nullable', 'string', 'max:1000']]);
+        $data = $request->validate(['about' => ['nullable', 'string', 'max:200']]);
         $request->user()->update($data);
         return back();
     }
