@@ -48,7 +48,7 @@ function switchTab(name) {
 watch(tab, async () => {
     await nextTick();
     gsap.from('.tab-panel > .anim-block', {
-        y: 20, opacity: 0, duration: 0.35, stagger: 0.07, ease: 'power2.out',
+        y: 14, opacity: 0, duration: 0.32, ease: 'power2.out',
     });
 });
 
@@ -58,8 +58,8 @@ const TOUR_KEY = 'profile_tour_done';
 onMounted(async () => {
     // Initial entrance animation
     await nextTick();
-    gsap.from('.tab-panel > .anim-block', {
-        y: 20, opacity: 0, duration: 0.35, stagger: 0.07, ease: 'power2.out',
+    gsap.from('.page-block', {
+        y: 16, opacity: 0, duration: 0.4, stagger: 0.08, ease: 'power2.out',
     });
 
     if (!props.isOwner) return;
@@ -172,10 +172,10 @@ onMounted(async () => {
                 </button>
             </div>
 
-            <ProfileHeader :user="profileUser" :is-owner="isOwner" />
+            <ProfileHeader class="page-block" :user="profileUser" :is-owner="isOwner" />
 
             <!-- Tab bar -->
-            <div class="profile-tabs">
+            <div class="profile-tabs page-block">
                 <button
                     class="tab-btn"
                     :class="{ active: tab === 'about' }"
@@ -207,7 +207,7 @@ onMounted(async () => {
             </div>
 
             <!-- Tab panels -->
-            <div class="tab-content-wrap">
+            <div class="tab-content-wrap page-block">
                 <Transition :name="tabDir > 0 ? 'slide-left' : 'slide-right'" mode="out-in">
 
                     <div v-if="tab === 'about'" key="about" class="tab-panel">
@@ -483,6 +483,7 @@ onMounted(async () => {
 .about-top-grid {
     display: grid;
     grid-template-columns: 1fr 300px;
+    background: #06060e;
     border: 1px solid rgba(255,255,255,0.18);
     border-radius: 3px 3px 0 0;
     overflow: hidden;
@@ -507,6 +508,7 @@ onMounted(async () => {
 
 /* ── Слитая панель ────────────────────────────────────────── */
 .fused-panel {
+    background: #06060e;
     border: 1px solid rgba(255,255,255,0.18);
     border-top: none;
     border-radius: 0 0 3px 3px;
@@ -515,7 +517,7 @@ onMounted(async () => {
 
 .fused-panel :deep(.block-section) {
     border-top: 1px solid rgba(255,255,255,0.18);
-    background: transparent;
+    background: #06060e;
 }
 
 .fused-panel > :first-child :deep(.block-section) {

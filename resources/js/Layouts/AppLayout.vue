@@ -41,7 +41,7 @@ const profileHref = computed(() =>
 /* ── Layout wrap ─────────────────────────────────────────── */
 .app-wrap {
     min-height: 100vh;
-    background: #0d0d18;
+    background: #0a0a14;
     display: flex;
     flex-direction: column;
 }
