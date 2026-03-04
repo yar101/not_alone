@@ -1,12 +1,12 @@
 <script setup>
 /**
  * Компонент элегантной кнопки в стиле "Start"
- * Использует шрифт Imbue и внутренние тени для создания эффекта обводки
+ * Использует шрифт Brygada 1918 и внутренние тени для создания эффекта обводки
  */
 defineProps({
     label: {
         type: String,
-        default: 'START'
+        default: 'НАЧАТЬ'
     }
 });
 
@@ -24,8 +24,8 @@ const handleClick = (event) => {
 </template>
 
 <style scoped>
-/* Подключаем шрифт Imbue (можно также вынести в глобальные стили) */
-@import url('https://fonts.googleapis.com/css2?family=Imbue:opsz,wght@10..100,200;10..100,300&display=swap');
+/* Подключаем шрифт Brygada 1918 (можно также вынести в глобальные стили) */
+@import url('https://fonts.googleapis.com/css2?family=Brygada+1918:ital,wght@0,400..700;1,400..700&display=swap');
 
 .start-button {
     /* Сброс стандартных стилей браузера */
@@ -59,20 +59,20 @@ const handleClick = (event) => {
 
 .label {
     color: #ffffff;
-    font-size: 110px;
-    letter-spacing: 0.12em;
+    font-size: 80px;
+    letter-spacing: 0.02em;
     text-transform: uppercase;
 
     /* Применяем шрифт Imbue */
-    font-family: "Imbue", serif;
-    font-weight: 300;
+    font-family: "Brygada 1918", serif;
+    font-weight: 100;
 
     /* Усиленное свечение букв */
     text-shadow: 0 0 15px rgba(255, 255, 255, 0.3),
     0 0 2px rgba(255, 255, 255, 0.5);
 
     /* Центровка (компенсация letter-spacing) */
-    padding-left: 0.12em;
+    padding-left: 0.02em;
     position: relative;
     z-index: 2;
     opacity: 0.95;

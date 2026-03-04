@@ -73,7 +73,7 @@ const showAuthModal = ref(false);
                             @click="showFirstModal = true"
                         >
                             <span class="text-gray-200 group-hover:text-white transition-colors">
-                                FAQ
+                                Справка
                             </span>
                         </button>
                     </div>
@@ -90,6 +90,7 @@ const showAuthModal = ref(false);
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Brygada+1918:ital,wght@0,400..700;1,400..700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Imbue:opsz,wght@10..100,100..900&display=swap');
 
 /* Кастомный градиент фона */
@@ -132,12 +133,13 @@ const showAuthModal = ref(false);
     position: relative;
     overflow: hidden;
 
-    font-family: "Imbue", serif;
+    font-family: "Brygada 1918", serif;
+    font-weight: 400;
     color: #C8467E;
     text-shadow: 0 0 30px rgba(200, 70, 126, 0.25);
     line-height: 0.9;
-    letter-spacing: -0.02em;
-    font-size: 42px;
+    letter-spacing: 0.08em;
+    font-size: 28px;
 }
 
 .link-left {
