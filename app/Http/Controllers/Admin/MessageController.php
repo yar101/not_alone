@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Events\NewNotification;
 use App\Http\Controllers\Controller;
 use App\Models\AdminBroadcast;
 use App\Models\User;
@@ -16,13 +17,14 @@ class MessageController extends Controller
             ->latest()
             ->get()
             ->map(fn($b) => [
-                'id' => $b->id,
-                'title' => $b->title,
-                'body' => $b->body,
-                'target' => $b->target,
-                'target_user' => $b->target_user_id ? User::find($b->target_user_id)?->only('id', 'name', 'email') : null,
-                'admin' => ['name' => $b->admin->name],
-                'created_at' => $b->created_at->toIso8601String(),
+                'id'             => $b->id,
+                'title'          => $b->title,
+                'body'           => $b->body,
+                'target'         => $b->target,
+                'target_user'    => $b->target_user_id ? User::find($b->target_user_id)?->only('id', 'name', 'email') : null,
+                'target_filters' => $b->target_filters,
+                'admin'          => ['name' => $b->admin->name],
+                'created_at'     => $b->created_at->toIso8601String(),
             ]);
 
         return Inertia::render('Admin/Messages/Index', [
@@ -33,19 +35,29 @@ class MessageController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'body' => 'required|string|max:10000',
-            'target' => 'required|in:all,user',
+            'title'          => 'required|string|max:255',
+            'body'           => 'required|string|max:10000',
+            'target'         => 'required|in:all,user,filtered',
             'target_user_id' => 'nullable|required_if:target,user|exists:users,id',
+            'target_filters' => 'nullable|required_if:target,filtered|array',
         ]);
 
         AdminBroadcast::create([
-            'admin_id' => auth('admin')->id(),
-            'title' => $validated['title'],
-            'body' => $validated['body'],
-            'target' => $validated['target'],
+            'admin_id'       => auth('admin')->id(),
+            'title'          => $validated['title'],
+            'body'           => $validated['body'],
+            'target'         => $validated['target'],
             'target_user_id' => $validated['target'] === 'user' ? $validated['target_user_id'] : null,
+            'target_filters' => $validated['target'] === 'filtered' ? $validated['target_filters'] : null,
         ]);
+
+        // Filtered broadcasts — пушим как публичные, каждый пользователь
+        // сам проверит при перезагрузке счётчика, попадает ли он в фильтры
+        if ($validated['target'] === 'user') {
+            broadcast(new NewNotification('private', (int) $validated['target_user_id']));
+        } else {
+            broadcast(new NewNotification('public'));
+        }
 
         return back()->with('success', 'Рассылка отправлена.');
     }

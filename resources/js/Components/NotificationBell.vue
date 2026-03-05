@@ -83,16 +83,32 @@ const totalUnread = computed(() =>
     (page.props.notifications_unread ?? 0) + (page.props.service_unread ?? 0)
 );
 
-let pollInterval;
+function reloadCounts() {
+    router.reload({ only: ['notifications_unread', 'service_unread'] });
+}
+
 onMounted(() => {
     document.addEventListener('click', closeOnOutside);
-    pollInterval = setInterval(() => {
-        router.reload({ only: ['notifications_unread', 'service_unread'] });
-    }, 60000);
+
+    // Публичный канал — рассылки «всем»
+    window.Echo.channel('notifications.global')
+        .listen('.new-notification', reloadCounts);
+
+    // Приватный канал — личные уведомления
+    const userId = page.props.auth?.user?.id;
+    if (userId) {
+        window.Echo.private(`App.Models.User.${userId}`)
+            .listen('.new-notification', reloadCounts);
+    }
 });
+
 onUnmounted(() => {
     document.removeEventListener('click', closeOnOutside);
-    clearInterval(pollInterval);
+    window.Echo.leaveChannel('notifications.global');
+    const userId = page.props.auth?.user?.id;
+    if (userId) {
+        window.Echo.leaveChannel(`private-App.Models.User.${userId}`);
+    }
 });
 </script>
 

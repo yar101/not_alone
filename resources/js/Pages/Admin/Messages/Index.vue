@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, watch, nextTick, computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
+import axios from 'axios';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 defineOptions({ layout: AdminLayout });
@@ -14,17 +15,180 @@ const form = useForm({
     body: '',
     target: 'all',
     target_user_id: '',
+    target_filters: null,
 });
 
 function submit() {
     form.post(route('admin.messages.store'), {
         onSuccess: () => {
             form.reset();
+            selectedUser.value = null;
+            selectedFilteredCount.value = null;
         },
     });
 }
 
-const targetLabel = { all: 'Все пользователи', user: 'Конкретный пользователь' };
+// ─── Picker state ──────────────────────────────────────────────────────────
+const showPicker = ref(false);
+const selectedUser = ref(null);
+const selectedFilteredCount = ref(null);
+
+const pickerUsers = ref([]);
+const pickerLoading = ref(false);
+const pickerPage = ref(1);
+const pickerHasMore = ref(true);
+const pickerTotal = ref(0);
+
+const filters = ref({
+    q: '',
+    is_idol: null,
+    gender: null,
+    age_from: '',
+    age_to: '',
+    registered_from: '',
+    registered_to: '',
+});
+
+const activeFiltersCount = computed(() => {
+    const f = filters.value;
+    return [f.q, f.is_idol, f.gender, f.age_from, f.age_to, f.registered_from, f.registered_to]
+        .filter(v => v !== '' && v !== null).length;
+});
+
+let debounceTimer = null;
+let observer = null;
+
+async function loadUsers(reset = false) {
+    if (pickerLoading.value) return;
+    if (!reset && !pickerHasMore.value) return;
+
+    pickerLoading.value = true;
+    if (reset) {
+        pickerPage.value = 1;
+        pickerHasMore.value = true;
+    }
+
+    try {
+        const params = { ...filters.value, page: pickerPage.value };
+        Object.keys(params).forEach(k => {
+            if (params[k] === '' || params[k] === null) delete params[k];
+        });
+
+        const { data } = await axios.get(route('admin.users.search'), { params });
+        if (reset) {
+            pickerUsers.value = data.data;
+        } else {
+            pickerUsers.value.push(...data.data);
+        }
+        pickerHasMore.value = data.meta.current_page < data.meta.last_page;
+        pickerPage.value = data.meta.current_page + 1;
+        pickerTotal.value = data.meta.total;
+    } finally {
+        pickerLoading.value = false;
+    }
+}
+
+function onFiltersChange() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => loadUsers(true), 300);
+}
+
+watch(filters, onFiltersChange, { deep: true });
+
+function openPicker() {
+    showPicker.value = true;
+    loadUsers(true);
+    nextTick(setupObserver);
+}
+
+function closePicker() {
+    showPicker.value = false;
+    teardownObserver();
+}
+
+function selectUser(user) {
+    selectedUser.value = user;
+    selectedFilteredCount.value = null;
+    form.target_user_id = user.id;
+    form.target_filters = null;
+    closePicker();
+}
+
+function selectAllFiltered() {
+    const activeFilters = { ...filters.value };
+    Object.keys(activeFilters).forEach(k => {
+        if (activeFilters[k] === '' || activeFilters[k] === null) delete activeFilters[k];
+    });
+
+    selectedFilteredCount.value = pickerTotal.value;
+    selectedUser.value = null;
+    form.target_user_id = '';
+    form.target_filters = Object.keys(activeFilters).length ? activeFilters : {};
+    closePicker();
+}
+
+function resetFilters() {
+    filters.value = {
+        q: '',
+        is_idol: null,
+        gender: null,
+        age_from: '',
+        age_to: '',
+        registered_from: '',
+        registered_to: '',
+    };
+}
+
+function clearSelection() {
+    selectedUser.value = null;
+    selectedFilteredCount.value = null;
+    form.target_user_id = '';
+    form.target_filters = null;
+}
+
+function setupObserver() {
+    const sentinel = document.getElementById('picker-sentinel');
+    if (!sentinel) return;
+    observer = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting && pickerHasMore.value && !pickerLoading.value) {
+            loadUsers(false);
+        }
+    }, { threshold: 0.1 });
+    observer.observe(sentinel);
+}
+
+function teardownObserver() {
+    if (observer) { observer.disconnect(); observer = null; }
+}
+
+function filterLabel(key, value) {
+    const labels = {
+        is_idol: { '1': 'Айдолы', '0': 'Не айдолы' },
+        gender: { male: 'Мужчины', female: 'Женщины' },
+    };
+    if (labels[key]) return labels[key][value] ?? value;
+    if (key === 'age_from') return `от ${value} лет`;
+    if (key === 'age_to') return `до ${value} лет`;
+    if (key === 'registered_from') return `рег. с ${value}`;
+    if (key === 'registered_to') return `рег. до ${value}`;
+    if (key === 'q') return `«${value}»`;
+    return value;
+}
+
+function targetLabel(b) {
+    if (b.target === 'all') return 'Все';
+    if (b.target === 'user') {
+        return b.target_user
+            ? (b.target_user.name || b.target_user.email)
+            : `#${b.target_user_id}`;
+    }
+    if (b.target === 'filtered') {
+        const f = b.target_filters;
+        if (!f || !Object.keys(f).length) return 'По фильтру (все)';
+        return 'По фильтру';
+    }
+    return b.target;
+}
 </script>
 
 <template>
@@ -47,16 +211,49 @@ const targetLabel = { all: 'Все пользователи', user: 'Конкр�
                 </div>
                 <div class="field">
                     <label class="field-label">Получатели</label>
-                    <select v-model="form.target" class="field-input">
+                    <select v-model="form.target" class="field-input" @change="clearSelection">
                         <option value="all">Все пользователи</option>
                         <option value="user">Конкретный пользователь</option>
+                        <option value="filtered">По фильтру</option>
                     </select>
                 </div>
+
+                <!-- Конкретный пользователь -->
                 <div class="field" v-if="form.target === 'user'">
-                    <label class="field-label">ID пользователя</label>
-                    <input v-model="form.target_user_id" class="field-input" type="number" placeholder="Введите ID пользователя" />
+                    <label class="field-label">Пользователь</label>
+                    <div v-if="selectedUser" class="user-chip">
+                        <span class="user-chip-avatar">{{ (selectedUser.name || selectedUser.email || '?')[0].toUpperCase() }}</span>
+                        <span class="user-chip-info">
+                            <span class="user-chip-name">{{ selectedUser.name || '—' }}</span>
+                            <span class="user-chip-email">{{ selectedUser.email }}</span>
+                        </span>
+                        <button type="button" class="btn-change" @click="openPicker">Изменить</button>
+                    </div>
+                    <button v-else type="button" class="btn-pick" @click="openPicker">Выбрать пользователя</button>
                     <p v-if="form.errors.target_user_id" class="field-error">{{ form.errors.target_user_id }}</p>
                 </div>
+
+                <!-- По фильтру -->
+                <div class="field" v-if="form.target === 'filtered'">
+                    <label class="field-label">Аудитория</label>
+                    <div v-if="selectedFilteredCount !== null" class="filtered-chip">
+                        <div class="filtered-chip-main">
+                            <span class="filtered-count">{{ selectedFilteredCount.toLocaleString('ru') }} пользователей</span>
+                            <div v-if="form.target_filters && Object.keys(form.target_filters).length" class="filter-tags">
+                                <span
+                                    v-for="(val, key) in form.target_filters"
+                                    :key="key"
+                                    class="filter-tag"
+                                >{{ filterLabel(key, val) }}</span>
+                            </div>
+                            <span v-else class="filtered-hint">без фильтров — все пользователи</span>
+                        </div>
+                        <button type="button" class="btn-change" @click="openPicker">Изменить</button>
+                    </div>
+                    <button v-else type="button" class="btn-pick" @click="openPicker">Настроить фильтры</button>
+                    <p v-if="form.errors.target_filters" class="field-error">{{ form.errors.target_filters }}</p>
+                </div>
+
                 <button type="submit" class="btn-send" :disabled="form.processing">
                     {{ form.processing ? 'Отправка...' : 'Отправить рассылку' }}
                 </button>
@@ -71,9 +268,11 @@ const targetLabel = { all: 'Все пользователи', user: 'Конкр�
                 <div v-for="b in broadcasts" :key="b.id" class="sent-item">
                     <div class="sent-meta">
                         <span class="sent-date">{{ new Date(b.created_at).toLocaleString('ru') }}</span>
-                        <span class="sent-target" :class="b.target === 'all' ? 'target--all' : 'target--user'">
-                            {{ b.target === 'all' ? 'Все' : (b.target_user ? b.target_user.name + ' (' + b.target_user.email + ')' : 'Пользователь #' + b.target_user_id) }}
-                        </span>
+                        <span class="sent-target" :class="{
+                            'target--all': b.target === 'all',
+                            'target--user': b.target === 'user',
+                            'target--filtered': b.target === 'filtered',
+                        }">{{ targetLabel(b) }}</span>
                         <span class="sent-by">{{ b.admin.name }}</span>
                     </div>
                     <p class="sent-headline">{{ b.title }}</p>
@@ -81,6 +280,98 @@ const targetLabel = { all: 'Все пользователи', user: 'Конкр�
                 </div>
             </div>
         </div>
+
+        <!-- User Picker Modal -->
+        <Teleport to="body">
+            <div v-if="showPicker" class="modal-backdrop" @click.self="closePicker">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3 class="modal-title">Выбор пользователей</h3>
+                        <button class="modal-close" @click="closePicker">✕</button>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="filters">
+                        <input v-model="filters.q" class="filter-search" placeholder="Поиск по имени или email..." />
+                        <div class="filter-row">
+                            <div class="filter-group">
+                                <span class="filter-group-label">Айдол</span>
+                                <div class="btn-group">
+                                    <button type="button" :class="['btn-toggle', filters.is_idol === null ? 'active' : '']" @click="filters.is_idol = null">Все</button>
+                                    <button type="button" :class="['btn-toggle', filters.is_idol === '1' ? 'active' : '']" @click="filters.is_idol = '1'">Айдол</button>
+                                    <button type="button" :class="['btn-toggle', filters.is_idol === '0' ? 'active' : '']" @click="filters.is_idol = '0'">Не айдол</button>
+                                </div>
+                            </div>
+                            <div class="filter-group">
+                                <span class="filter-group-label">Пол</span>
+                                <div class="btn-group">
+                                    <button type="button" :class="['btn-toggle', filters.gender === null ? 'active' : '']" @click="filters.gender = null">Все</button>
+                                    <button type="button" :class="['btn-toggle', filters.gender === 'male' ? 'active' : '']" @click="filters.gender = 'male'">М</button>
+                                    <button type="button" :class="['btn-toggle', filters.gender === 'female' ? 'active' : '']" @click="filters.gender = 'female'">Ж</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="filter-row">
+                            <div class="filter-group">
+                                <span class="filter-group-label">Возраст</span>
+                                <div class="filter-range">
+                                    <input v-model="filters.age_from" type="number" class="filter-num" placeholder="от" min="0" max="120" />
+                                    <span class="filter-dash">—</span>
+                                    <input v-model="filters.age_to" type="number" class="filter-num" placeholder="до" min="0" max="120" />
+                                </div>
+                            </div>
+                            <div class="filter-group">
+                                <span class="filter-group-label">Регистрация</span>
+                                <div class="filter-range">
+                                    <input v-model="filters.registered_from" type="date" class="filter-date" />
+                                    <span class="filter-dash">—</span>
+                                    <input v-model="filters.registered_to" type="date" class="filter-date" />
+                                </div>
+                            </div>
+                            <button type="button" class="btn-reset" @click="resetFilters">Сбросить</button>
+                        </div>
+                    </div>
+
+                    <!-- Select all banner (only for filtered mode) -->
+                    <div v-if="form.target === 'filtered' && !pickerLoading && pickerTotal > 0" class="select-all-bar">
+                        <span class="select-all-count">
+                            Найдено: <strong>{{ pickerTotal.toLocaleString('ru') }}</strong> пользователей
+                            <span v-if="activeFiltersCount"> по {{ activeFiltersCount }} фильтрам</span>
+                        </span>
+                        <button type="button" class="btn-select-all" @click="selectAllFiltered">
+                            Выбрать всех ({{ pickerTotal.toLocaleString('ru') }})
+                        </button>
+                    </div>
+
+                    <!-- User list -->
+                    <div class="picker-list">
+                        <div
+                            v-for="user in pickerUsers"
+                            :key="user.id"
+                            class="picker-row"
+                            :class="{ 'picker-row--clickable': form.target === 'user' }"
+                            @click="form.target === 'user' && selectUser(user)"
+                        >
+                            <div class="picker-avatar">{{ (user.name || user.email || '?')[0].toUpperCase() }}</div>
+                            <div class="picker-info">
+                                <span class="picker-name">{{ user.name || '—' }}</span>
+                                <span class="picker-email">{{ user.email }}</span>
+                            </div>
+                            <div class="picker-badges">
+                                <span v-if="user.is_idol" class="badge badge--idol">Айдол</span>
+                                <span v-if="user.gender === 'male'" class="badge badge--male">М</span>
+                                <span v-if="user.gender === 'female'" class="badge badge--female">Ж</span>
+                                <span v-if="user.age" class="badge badge--age">{{ user.age }} лет</span>
+                            </div>
+                        </div>
+
+                        <div id="picker-sentinel" style="height:1px;"></div>
+                        <div v-if="pickerLoading" class="picker-loader">Загрузка...</div>
+                        <div v-if="!pickerLoading && pickerUsers.length === 0" class="picker-empty">Пользователи не найдены</div>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </div>
 </template>
 
@@ -96,7 +387,6 @@ const targetLabel = { all: 'Все пользователи', user: 'Конкр�
     max-width: 600px;
 }
 .compose-title { font-size: 1rem; color: rgba(255,255,255,0.8); margin: 0 0 1.25rem; }
-
 .compose-form { display: flex; flex-direction: column; gap: 1rem; }
 .field { display: flex; flex-direction: column; gap: 0.3rem; }
 .field-label { font-size: 0.8rem; color: rgba(255,255,255,0.45); }
@@ -120,10 +410,59 @@ const targetLabel = { all: 'Все пользователи', user: 'Конкр�
 .btn-send:hover { background: rgba(200,70,126,0.25); }
 .btn-send:disabled { opacity: 0.5; }
 
+/* User chip */
+.user-chip {
+    display: flex; align-items: center; gap: 0.75rem;
+    background: rgba(200,70,126,0.08);
+    border: 1px solid rgba(200,70,126,0.25);
+    border-radius: 10px; padding: 0.6rem 0.75rem;
+}
+.user-chip-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(200,70,126,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem; font-weight: 600; color: #fff; flex-shrink: 0;
+}
+.user-chip-info { display: flex; flex-direction: column; gap: 0.1rem; flex: 1; min-width: 0; }
+.user-chip-name { font-size: 0.9rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-chip-email { font-size: 0.75rem; color: rgba(255,255,255,0.4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Filtered chip */
+.filtered-chip {
+    display: flex; align-items: flex-start; gap: 0.75rem;
+    background: rgba(200,70,126,0.08);
+    border: 1px solid rgba(200,70,126,0.25);
+    border-radius: 10px; padding: 0.7rem 0.75rem;
+}
+.filtered-chip-main { display: flex; flex-direction: column; gap: 0.35rem; flex: 1; min-width: 0; }
+.filtered-count { font-size: 0.92rem; color: #fff; font-weight: 500; }
+.filtered-hint { font-size: 0.78rem; color: rgba(255,255,255,0.35); }
+.filter-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.filter-tag {
+    font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 20px;
+    background: rgba(200,70,126,0.15); color: #C8467E;
+    border: 1px solid rgba(200,70,126,0.3);
+}
+
+.btn-change {
+    padding: 0.3rem 0.7rem; border-radius: 6px;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.6); font-size: 0.78rem; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+}
+.btn-change:hover { background: rgba(255,255,255,0.1); }
+
+.btn-pick {
+    align-self: flex-start;
+    padding: 0.5rem 1rem; border-radius: 8px;
+    background: rgba(200,70,126,0.1); border: 1px solid rgba(200,70,126,0.3);
+    color: #C8467E; font-size: 0.85rem; cursor: pointer; transition: all 0.15s;
+}
+.btn-pick:hover { background: rgba(200,70,126,0.2); }
+
+/* Sent list */
 .sent-section { max-width: 700px; }
 .sent-title { font-size: 1rem; color: rgba(255,255,255,0.6); margin: 0 0 1rem; }
 .sent-empty { color: rgba(255,255,255,0.3); font-size: 0.85rem; }
-
 .sent-list { display: flex; flex-direction: column; gap: 0.75rem; }
 .sent-item {
     background: rgba(255,255,255,0.02);
@@ -132,12 +471,132 @@ const targetLabel = { all: 'Все пользователи', user: 'Конкр�
 }
 .sent-meta { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
 .sent-date { font-size: 0.75rem; color: rgba(255,255,255,0.3); }
-.sent-target {
-    font-size: 0.75rem; padding: 0.15rem 0.55rem; border-radius: 20px;
-}
+.sent-target { font-size: 0.75rem; padding: 0.15rem 0.55rem; border-radius: 20px; }
 .target--all { background: rgba(76,222,143,0.1); color: #4cde8f; }
 .target--user { background: rgba(200,70,126,0.1); color: #C8467E; }
+.target--filtered { background: rgba(139,92,246,0.1); color: #a78bfa; }
 .sent-by { font-size: 0.75rem; color: rgba(255,255,255,0.3); margin-left: auto; }
 .sent-headline { font-size: 0.92rem; color: rgba(255,255,255,0.85); font-weight: 500; margin: 0 0 0.35rem; }
 .sent-body { font-size: 0.82rem; color: rgba(255,255,255,0.5); margin: 0; white-space: pre-wrap; line-height: 1.5; }
+
+/* Modal */
+.modal-backdrop {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center;
+    padding: 1rem;
+}
+.modal {
+    background: #0f0f1e;
+    border: 1px solid rgba(200,70,126,0.25);
+    border-radius: 14px;
+    width: 100%; max-width: 640px;
+    max-height: 85vh;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+}
+.modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    flex-shrink: 0;
+}
+.modal-title { font-size: 1rem; color: #fff; margin: 0; }
+.modal-close {
+    background: none; border: none; color: rgba(255,255,255,0.4);
+    font-size: 1rem; cursor: pointer; padding: 0.25rem; line-height: 1;
+}
+.modal-close:hover { color: #fff; }
+
+/* Filters */
+.filters {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    display: flex; flex-direction: column; gap: 0.75rem;
+    flex-shrink: 0;
+}
+.filter-search {
+    width: 100%; box-sizing: border-box;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px; color: #fff;
+    padding: 0.55rem 0.8rem; font-size: 0.85rem; outline: none;
+}
+.filter-search:focus { border-color: rgba(200,70,126,0.5); }
+.filter-search::placeholder { color: rgba(255,255,255,0.25); }
+.filter-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.filter-group { display: flex; align-items: center; gap: 0.5rem; }
+.filter-group-label { font-size: 0.75rem; color: rgba(255,255,255,0.35); white-space: nowrap; }
+.btn-group { display: flex; gap: 2px; }
+.btn-toggle {
+    padding: 0.25rem 0.6rem; border-radius: 6px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.45); font-size: 0.75rem; cursor: pointer; transition: all 0.15s;
+}
+.btn-toggle:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
+.btn-toggle.active { background: rgba(200,70,126,0.2); border-color: rgba(200,70,126,0.4); color: #C8467E; }
+.filter-range { display: flex; align-items: center; gap: 0.4rem; }
+.filter-num {
+    width: 60px; background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px; color: #fff;
+    padding: 0.25rem 0.4rem; font-size: 0.8rem; outline: none; text-align: center;
+}
+.filter-date {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px; color: rgba(255,255,255,0.7);
+    padding: 0.25rem 0.4rem; font-size: 0.8rem; outline: none; color-scheme: dark;
+}
+.filter-dash { color: rgba(255,255,255,0.25); font-size: 0.8rem; }
+.btn-reset {
+    margin-left: auto;
+    padding: 0.25rem 0.7rem; border-radius: 6px;
+    background: none; border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.35); font-size: 0.75rem; cursor: pointer; white-space: nowrap;
+}
+.btn-reset:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); }
+
+/* Select all bar */
+.select-all-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: 0.65rem 1.25rem;
+    background: rgba(139,92,246,0.06);
+    border-bottom: 1px solid rgba(139,92,246,0.15);
+    flex-shrink: 0;
+}
+.select-all-count { font-size: 0.82rem; color: rgba(255,255,255,0.5); }
+.select-all-count strong { color: #a78bfa; }
+.btn-select-all {
+    padding: 0.35rem 0.9rem; border-radius: 8px;
+    background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.35);
+    color: #a78bfa; font-size: 0.8rem; cursor: pointer; white-space: nowrap; transition: all 0.15s;
+}
+.btn-select-all:hover { background: rgba(139,92,246,0.25); }
+
+/* Picker list */
+.picker-list { overflow-y: auto; flex: 1; padding: 0.5rem 0; }
+.picker-row {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.65rem 1.25rem; transition: background 0.1s;
+}
+.picker-row--clickable { cursor: pointer; }
+.picker-row--clickable:hover { background: rgba(255,255,255,0.04); }
+.picker-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(200,70,126,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem; font-weight: 600; color: #C8467E; flex-shrink: 0;
+}
+.picker-info { display: flex; flex-direction: column; gap: 0.1rem; flex: 1; min-width: 0; }
+.picker-name { font-size: 0.88rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.picker-email { font-size: 0.75rem; color: rgba(255,255,255,0.35); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.picker-badges { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+.badge { font-size: 0.7rem; padding: 0.1rem 0.45rem; border-radius: 20px; }
+.badge--idol { background: rgba(200,70,126,0.15); color: #C8467E; border: 1px solid rgba(200,70,126,0.3); }
+.badge--male { background: rgba(59,130,246,0.1); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
+.badge--female { background: rgba(236,72,153,0.1); color: #f472b6; border: 1px solid rgba(236,72,153,0.2); }
+.badge--age { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.08); }
+.picker-loader { text-align: center; padding: 1rem; font-size: 0.82rem; color: rgba(255,255,255,0.3); }
+.picker-empty { text-align: center; padding: 2rem 1rem; font-size: 0.85rem; color: rgba(255,255,255,0.25); }
 </style>
