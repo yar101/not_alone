@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Events\NewNotification;
 use App\Http\Controllers\Controller;
 use App\Models\IdolApplication;
 use App\Notifications\IdolApprovedNotification;
@@ -81,6 +82,7 @@ class ApplicationController extends Controller
 
         $application->user->update(['is_idol' => true]);
         $application->user->notify(new IdolApprovedNotification());
+        broadcast(new NewNotification('private', $application->user->id));
 
         return back()->with('success', 'Заявка одобрена.');
     }
@@ -111,6 +113,7 @@ class ApplicationController extends Controller
         }
 
         $application->user->notify(new IdolRejectedNotification($validated['rejection_reason']));
+        broadcast(new NewNotification('private', $application->user->id));
 
         return back()->with('success', 'Заявка отклонена.');
     }

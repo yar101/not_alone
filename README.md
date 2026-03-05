@@ -1,66 +1,100 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# NoAlone
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Платформа для айдолов и их фанатов. Laravel 12 + Inertia.js v2 + Vue 3.
 
-## About Laravel
+## Стек
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Backend:** Laravel 12, PostgreSQL
+- **Frontend:** Inertia.js v2, Vue 3 (Composition API), Vite
+- **Auth:** два гарда — `web` (пользователи) и `admin` (администраторы)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Первоначальная настройка
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```bash
+cp .env.example .env
+composer install
+npm install
 
-## Learning Laravel
+php artisan key:generate
+php artisan migrate
+php artisan db:seed --class=AdminSeeder
+```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Запуск
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+Для работы реалтайм-уведомлений нужно запускать **три процесса одновременно** (в разных терминалах):
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+# 1. Laravel dev-сервер
+php artisan serve
 
-## Laravel Sponsors
+# 2. Vite (фронтенд + HMR)
+npm run dev
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# 3. Reverb WebSocket-сервер (реалтайм-уведомления)
+php artisan reverb:start
+```
 
-### Premium Partners
+> Без `reverb:start` колокольчик уведомлений работать не будет (страница не получит push от сервера).
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+> **Примечание:** WebSocket-события (`NewNotification`) используют `ShouldBroadcastNow` и отправляются в Reverb **напрямую**, минуя очередь. Если в будущем переключить на `ShouldBroadcast` — нужно будет также запускать `php artisan queue:work`.
 
-## Contributing
+## Тестовые данные
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Администратор
 
-## Code of Conduct
+Сидер создаёт одного администратора:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+php artisan db:seed --class=AdminSeeder
+```
 
-## Security Vulnerabilities
+| Поле  | Значение              |
+|-------|-----------------------|
+| Email | admin@noalone.test    |
+| Пароль | password             |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Панель доступна по адресу `/admin`.
 
-## License
+### Генерация пользователей
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+php artisan users:generate {count}
+```
+
+**Пример — создать 100 пользователей:**
+
+```bash
+php artisan users:generate 100
+```
+
+**Что создаётся:**
+
+- Русскоязычные имена (Faker `ru_RU`)
+- Пароль `123123` для всех
+- Случайный пол (`male` / `female` / без пола)
+- Случайная дата рождения, возраст 18–50 лет
+- ~40% пользователей становятся айдолами (`is_idol = true` + запись в `idol_applications` со статусом `approved`)
+
+## Структура
+
+```
+app/
+  Http/Controllers/
+    Admin/          — контроллеры админ-панели
+    Idol/           — контроллеры idol flow
+  Models/
+  Console/Commands/
+    GenerateUsers.php
+resources/js/
+  Pages/
+    Admin/          — страницы админ-панели
+    Idol/           — страницы idol flow
+    Profile/        — профиль пользователя
+  Layouts/
+    AppLayout.vue   — шапка для авторизованных страниц
+    AdminLayout.vue — шапка для админ-панели
+routes/
+  web.php
+  admin.php
+```
