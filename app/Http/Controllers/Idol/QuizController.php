@@ -26,9 +26,11 @@ class QuizController extends Controller
             ], 422);
         }
 
-        if ($user->idolQuizSessions()->where('status', 'active')->exists()) {
-            return response()->json(['error' => 'Уже есть активная сессия'], 422);
-        }
+        // Закрываем зависшие активные сессии (не должны существовать, но на случай сбоя)
+        $user->idolQuizSessions()->where('status', 'active')->update([
+            'status' => 'failed',
+            'completed_at' => now(),
+        ]);
 
         // Determine attempt number
         $failedCount = $user->idolQuizSessions()->where('status', 'failed')->count();
@@ -114,7 +116,7 @@ class QuizController extends Controller
             'errors_count' => $session->errors_count,
         ];
 
-        $failedEarly = $session->errors_count > 2 && !$isCorrect;
+        $failedEarly = $session->errors_count > 2;
         $isLastStage = $validated['stage'] === 10;
 
         if ($failedEarly || $isLastStage) {
