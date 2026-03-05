@@ -20,6 +20,29 @@ php artisan migrate
 php artisan db:seed --class=AdminSeeder
 ```
 
+## IDE Helper (автодополнение)
+
+Проект использует [barryvdh/laravel-ide-helper](https://github.com/barryvdh/laravel-ide-helper) для улучшения автодополнения в IDE (PhpStorm, VS Code, Zed и др.).
+
+**Генерация хелперов:**
+
+```bash
+# Хелпер для фасадов Laravel (создаёт _ide_helper.php)
+php artisan ide-helper:generate
+
+# Хелпер для моделей — добавляет PHPDoc с полями и связями (создаёт _ide_helper_models.php)
+php artisan ide-helper:models -N
+
+# Мета-файл для PhpStorm (создаёт .phpstorm.meta.php)
+php artisan ide-helper:meta
+```
+
+> Файлы `_ide_helper.php`, `_ide_helper_models.php` и `.phpstorm.meta.php` добавлены в `.gitignore` — каждый разработчик генерирует их локально.
+
+**Когда перегенерировать:**
+- `ide-helper:models` — после изменения миграций или добавления связей в моделях
+- `ide-helper:generate` — после обновления Laravel или добавления новых фасадов
+
 ## Запуск
 
 Для работы реалтайм-уведомлений нужно запускать **три процесса одновременно** (в разных терминалах):
