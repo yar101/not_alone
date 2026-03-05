@@ -11,49 +11,6 @@ use Illuminate\Http\Request;
 
 class QuizController extends Controller
 {
-    public function status(Request $request): JsonResponse
-    {
-        $user = $request->user();
-        $application = $user->idolApplication;
-
-        if ($user->is_idol) {
-            return response()->json(['phase' => 'approved']);
-        }
-
-        if ($application) {
-            if ($application->status === 'approved') {
-                return response()->json(['phase' => 'approved']);
-            }
-            if ($application->status === 'pending') {
-                return response()->json(['phase' => 'pending']);
-            }
-            if ($application->status === 'rejected') {
-                return response()->json(['phase' => 'rejected', 'reason' => $application->rejection_reason]);
-            }
-        }
-
-        if ($user->idol_quiz_passed_at) {
-            return response()->json(['phase' => 'photo']);
-        }
-
-        $activeSession = $user->idolQuizSessions()->where('status', 'active')->latest()->first();
-        if ($activeSession) {
-            return response()->json([
-                'phase' => 'quiz',
-                'session' => $this->formatSession($activeSession),
-            ]);
-        }
-
-        if ($user->idol_quiz_cooldown_until && now()->lt($user->idol_quiz_cooldown_until)) {
-            return response()->json([
-                'phase' => 'cooldown',
-                'cooldown_until' => $user->idol_quiz_cooldown_until->toIso8601String(),
-            ]);
-        }
-
-        return response()->json(['phase' => 'none']);
-    }
-
     public function start(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -157,10 +114,11 @@ class QuizController extends Controller
             'errors_count' => $session->errors_count,
         ];
 
-        // If last stage, finalize session
-        if ($validated['stage'] === 10) {
-            $session->refresh();
-            $passed = $session->errors_count <= 2;
+        $failedEarly = $session->errors_count > 2 && !$isCorrect;
+        $isLastStage = $validated['stage'] === 10;
+
+        if ($failedEarly || $isLastStage) {
+            $passed = !$failedEarly;
 
             if ($passed) {
                 $session->update(['status' => 'passed', 'completed_at' => now()]);
@@ -180,31 +138,4 @@ class QuizController extends Controller
         return response()->json($result);
     }
 
-    private function formatSession(IdolQuizSession $session): array
-    {
-        $answeredStages = $session->questions()->whereNotNull('answered_at')->pluck('stage')->toArray();
-        $nextStage = empty($answeredStages) ? 1 : (max($answeredStages) + 1);
-
-        $question = $session->questions()->where('stage', $nextStage)->with('question')->first();
-
-        return [
-            'id' => $session->id,
-            'attempt_number' => $session->attempt_number,
-            'errors_count' => $session->errors_count,
-            'answered_stages' => $answeredStages,
-            'current_stage' => $nextStage,
-            'current_question' => $question ? [
-                'stage' => $question->stage,
-                'question_id' => $question->question_id,
-                'question' => $question->question->question,
-                'options' => $question->question->options,
-            ] : null,
-            'all_questions' => $session->questions()->with('question')->get()->map(fn($sq) => [
-                'stage' => $sq->stage,
-                'question_id' => $sq->question_id,
-                'question' => $sq->question->question,
-                'options' => $sq->question->options,
-            ])->toArray(),
-        ];
-    }
 }

@@ -58,7 +58,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/idol/apply', [IdolApplicationController::class, 'show'])->name('idol.apply');
     Route::post('/idol/apply', [IdolApplicationController::class, 'store'])->name('idol.apply.store');
-    Route::get('/idol/quiz/status', [QuizController::class, 'status'])->name('idol.quiz.status');
     Route::post('/idol/quiz/start', [QuizController::class, 'start'])->name('idol.quiz.start');
     Route::post('/idol/quiz/answer', [QuizController::class, 'answer'])->name('idol.quiz.answer');
 });

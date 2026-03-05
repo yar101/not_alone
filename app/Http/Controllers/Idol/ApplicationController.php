@@ -31,6 +31,7 @@ class ApplicationController extends Controller
             $activeSession = $user->idolQuizSessions()->where('status', 'active')->latest()->first();
             if ($activeSession) {
                 $phase = 'quiz';
+                $sessionData = $activeSession->toFrontendData();
             } elseif ($user->idol_quiz_cooldown_until && now()->lt($user->idol_quiz_cooldown_until)) {
                 $phase = 'cooldown';
                 $cooldownUntil = $user->idol_quiz_cooldown_until->toIso8601String();
@@ -39,6 +40,7 @@ class ApplicationController extends Controller
 
         return Inertia::render('Idol/Apply', [
             'phase' => $phase,
+            'session' => $sessionData,
             'cooldown_until' => $cooldownUntil,
             'rejection_reason' => $application?->rejection_reason,
             'quiz_passed' => (bool) $user->idol_quiz_passed_at,

@@ -31,7 +31,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::delete('/questions/{question}', [QuizQuestionController::class, 'destroy'])->name('questions.destroy');
         });
 
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::get('/users/search', [UserController::class, 'search'])->name('users.search');
+        Route::patch('/users/{user}/cooldown', [UserController::class, 'updateCooldown'])->name('users.cooldown.update');
+        Route::delete('/users/{user}/cooldown', [UserController::class, 'clearCooldown'])->name('users.cooldown.clear');
         Route::patch('/users/{user}/reset-quiz', [UserController::class, 'resetQuizProgress'])->name('users.reset-quiz');
 
         Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');

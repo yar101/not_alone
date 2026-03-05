@@ -2,6 +2,7 @@
 import { ref, watch, nextTick, onMounted, computed } from 'vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { StarFilled, MagicStick } from '@element-plus/icons-vue';
 
 defineOptions({ layout: AppLayout });
 import { gsap } from 'gsap';
@@ -78,7 +79,7 @@ onMounted(async () => {
                 element: '#tour-header',
                 popover: {
                     title: 'Твой профиль',
-                    description: 'Нажми ✏️ чтобы отредактировать.',
+                    description: 'Нажми кнопку редактирования чтобы изменить.',
                     side: 'bottom',
                 },
             },
@@ -259,14 +260,14 @@ onMounted(async () => {
                         <!-- If profileUser is an idol -->
                         <template v-if="profileUser.is_idol">
                             <div class="anim-block coming-soon-block">
-                                <p class="coming-soon-title">🌟 Услуги Айдола</p>
+                                <p class="coming-soon-title"><el-icon style="vertical-align: middle; margin-right: 4px"><StarFilled /></el-icon>Услуги Айдола</p>
                                 <p class="coming-soon-text">Услуги появятся здесь совсем скоро</p>
                             </div>
                         </template>
                         <!-- If owner and not idol -->
                         <template v-else-if="isOwner">
                             <div class="anim-block idol-cta-block">
-                                <div class="idol-cta-icon">✨</div>
+                                <el-icon class="idol-cta-icon"><MagicStick /></el-icon>
                                 <p class="idol-cta-title">Стань Айдолом</p>
                                 <p class="idol-cta-text">Айдолы могут предоставлять уникальные услуги другим участникам платформы. Пройди тест и подай заявку!</p>
                                 <Link href="/idol/apply" class="idol-cta-btn">Стать Айдолом</Link>
@@ -577,7 +578,7 @@ onMounted(async () => {
     border: 1px solid rgba(200, 70, 126, 0.15);
     border-radius: 16px;
 }
-.idol-cta-icon { font-size: 2.5rem; }
+.idol-cta-icon { font-size: 2.5rem; display: flex; justify-content: center; }
 .idol-cta-title { font-size: 1.25rem; color: rgba(255,255,255,0.9); margin: 0; font-weight: 600; }
 .idol-cta-text { font-size: 0.85rem; color: rgba(255,255,255,0.45); margin: 0; max-width: 320px; line-height: 1.6; }
 .idol-cta-btn {

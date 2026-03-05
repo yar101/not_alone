@@ -14,6 +14,7 @@ function logout() {
                 <Link :href="route('admin.applications.index')" class="admin-nav__link">Заявки</Link>
                 <Link :href="route('admin.quiz.questions.index')" class="admin-nav__link">Вопросы теста</Link>
                 <Link :href="route('admin.messages.index')" class="admin-nav__link">Рассылки</Link>
+                <Link :href="route('admin.users.index')" class="admin-nav__link">Пользователи</Link>
             </nav>
             <button class="admin-logout" @click="logout">Выйти</button>
         </header>

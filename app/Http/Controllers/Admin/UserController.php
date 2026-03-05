@@ -6,9 +6,67 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class UserController extends Controller
 {
+    public function index(Request $request): Response
+    {
+        $query = User::query()
+            ->whereNotNull('idol_quiz_cooldown_until')
+            ->where('idol_quiz_cooldown_until', '>', now());
+
+        if ($q = $request->q) {
+            $query->where(function ($qb) use ($q) {
+                $qb->where('name', 'ilike', "%{$q}%")
+                   ->orWhere('email', 'ilike', "%{$q}%");
+            });
+        }
+
+        $users = $query->orderBy('idol_quiz_cooldown_until')
+            ->paginate(30)
+            ->withQueryString()
+            ->through(fn(User $u) => [
+                'id'                      => $u->id,
+                'name'                    => $u->name,
+                'email'                   => $u->email,
+                'avatar_url'              => $u->avatar_url,
+                'is_idol'                 => $u->is_idol,
+                'idol_quiz_passed_at'     => $u->idol_quiz_passed_at,
+                'idol_quiz_cooldown_until' => $u->idol_quiz_cooldown_until,
+            ]);
+
+        return Inertia::render('Admin/Users/Index', [
+            'users'  => $users,
+            'filter' => ['q' => $request->q],
+        ]);
+    }
+
+    public function updateCooldown(Request $request, User $user)
+    {
+        $request->validate(['minutes' => 'required|integer']);
+
+        $base = $user->idol_quiz_cooldown_until && $user->idol_quiz_cooldown_until->isFuture()
+            ? $user->idol_quiz_cooldown_until
+            : now();
+
+        $newCooldown = $base->copy()->addMinutes($request->integer('minutes'));
+
+        $user->update([
+            'idol_quiz_cooldown_until' => $newCooldown->isPast() ? null : $newCooldown,
+        ]);
+
+        return back();
+    }
+
+    public function clearCooldown(User $user)
+    {
+        $user->update(['idol_quiz_cooldown_until' => null]);
+
+        return back();
+    }
+
     public function search(Request $request): JsonResponse
     {
         $query = User::query()->select(['id', 'name', 'email', 'is_idol', 'gender', 'birth_date', 'avatar_path', 'created_at']);
