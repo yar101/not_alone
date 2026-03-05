@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { usePage, router } from '@inertiajs/vue3';
 import axios from 'axios';
+import { Promotion, Trophy, CircleClose } from '@element-plus/icons-vue';
 
 const page = usePage();
 const open = ref(false);
@@ -60,11 +61,7 @@ async function markAllNotifsRead() {
 }
 
 async function markServiceItemRead(item) {
-    if (item.source === 'notification') {
-        await axios.patch(route('notifications.read', item.id));
-    } else {
-        await axios.patch(route('broadcasts.read', item.broadcast_id));
-    }
+    await axios.patch(route('notifications.read', item.id));
     item.read_at = new Date().toISOString();
     router.reload({ only: ['service_unread'] });
 }
@@ -239,8 +236,20 @@ onUnmounted(() => {
                                 :class="{ 'notif-item--unread': !item.read_at }"
                                 @click="!item.read_at && markServiceItemRead(item)"
                             >
-                                <div class="notif-icon-wrap icon--broadcast">
-                                    <span class="notif-icon-char">📣</span>
+                                <div
+                                    class="notif-icon-wrap"
+                                    :class="{
+                                        'icon--broadcast': item.type === 'admin_broadcast',
+                                        'icon--success': item.type === 'idol_approved',
+                                        'icon--danger': item.type === 'idol_rejected',
+                                        'icon--default': !item.type,
+                                    }"
+                                >
+                                    <el-icon>
+                                        <Promotion v-if="item.type === 'admin_broadcast'" />
+                                        <Trophy v-else-if="item.type === 'idol_approved'" />
+                                        <CircleClose v-else-if="item.type === 'idol_rejected'" />
+                                    </el-icon>
                                 </div>
                                 <div class="notif-content">
                                     <p v-if="item.title" class="notif-service-title">{{ item.title }}</p>
@@ -393,6 +402,7 @@ onUnmounted(() => {
 .icon--broadcast { background: rgba(139,92,246,0.1); }
 .icon--default { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); font-size: 0.5rem; }
 .notif-icon-char { line-height: 1; }
+.notif-icon-wrap .el-icon { font-size: 1rem; }
 
 /* ── Content ── */
 .notif-content { flex: 1; min-width: 0; }

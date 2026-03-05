@@ -100,8 +100,7 @@ const stages = Array.from({ length: 10 }, (_, i) => i + 1);
                     </svg>
                 </button>
 
-                <Transition name="stage-expand">
-                    <div v-if="expandedStages.has(stage)" class="stage-body">
+                <div v-if="expandedStages.has(stage)" class="stage-body">
                         <!-- Existing questions -->
                         <div v-if="(questions_by_stage[stage] || []).length === 0" class="empty-state">
                             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -212,7 +211,6 @@ const stages = Array.from({ length: 10 }, (_, i) => i + 1);
                             </button>
                         </div>
                     </div>
-                </Transition>
             </div>
         </div>
     </div>
@@ -223,89 +221,73 @@ const stages = Array.from({ length: 10 }, (_, i) => i + 1);
 .page-title { font-size: 1.4rem; color: #fff; margin: 0 0 1.5rem; }
 
 /* ─── Stages list ─────────────────────────────────────────────────── */
-.stages-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.stages-list { display: flex; flex-direction: column; gap: 2px; }
 
 .stage-card {
     background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
     overflow: hidden;
 }
 
 /* ─── Stage header ────────────────────────────────────────────────── */
 .stage-header {
     width: 100%; display: flex; align-items: center; gap: 0.9rem;
-    padding: 0.85rem 1.25rem;
+    padding: 0.75rem 1rem;
     background: transparent; border: none;
     color: #fff; cursor: pointer;
-    transition: background 0.15s;
 }
 .stage-header:hover,
-.stage-header.is-open { background: rgba(200,70,126,0.06); }
+.stage-header.is-open { background: rgba(200,70,126,0.08); }
 
 .stage-badge {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 2rem; height: 2rem; border-radius: 8px; flex-shrink: 0;
-    font-size: 0.8rem; font-weight: 700; letter-spacing: 0.04em;
-    background: linear-gradient(135deg, rgba(200,70,126,0.7) 0%, rgba(150,40,100,0.7) 100%);
+    width: 1.9rem; height: 1.9rem; flex-shrink: 0;
+    font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em;
+    background: rgba(200,70,126,0.6);
     color: #fff;
 }
 
-.stage-title { font-weight: 600; font-size: 0.95rem; }
+.stage-title { font-weight: 600; font-size: 0.92rem; }
 
 .stage-count-pill {
     display: inline-flex; align-items: center; justify-content: center;
-    min-width: 1.5rem; height: 1.3rem; padding: 0 0.45rem;
-    border-radius: 99px; font-size: 0.72rem; font-weight: 600;
-    background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.5);
+    min-width: 1.4rem; height: 1.25rem; padding: 0 0.4rem;
+    font-size: 0.72rem; font-weight: 600;
+    background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5);
+    border: 1px solid rgba(255,255,255,0.1);
 }
 
 .stage-chevron {
     width: 1rem; height: 1rem;
     margin-left: auto; color: rgba(255,255,255,0.3);
-    transition: transform 0.22s ease;
     flex-shrink: 0;
 }
 .stage-chevron.is-open { transform: rotate(180deg); }
 
-/* ─── Stage body animation ────────────────────────────────────────── */
-.stage-expand-enter-active,
-.stage-expand-leave-active {
-    transition: opacity 0.22s ease, transform 0.22s ease;
-    transform-origin: top;
-}
-.stage-expand-enter-from,
-.stage-expand-leave-to {
-    opacity: 0;
-    transform: scaleY(0.95) translateY(-4px);
-}
-
 .stage-body {
-    padding: 0 1.25rem 1.25rem;
-    display: flex; flex-direction: column; gap: 0.75rem;
+    padding: 0 1rem 1rem;
+    display: flex; flex-direction: column; gap: 0.5rem;
+    border-top: 1px solid rgba(255,255,255,0.07);
 }
 
 /* ─── Empty state ─────────────────────────────────────────────────── */
 .empty-state {
     display: flex; align-items: center; gap: 0.6rem;
-    padding: 0.9rem 1rem;
-    border-radius: 8px;
+    padding: 0.75rem 0.85rem;
     background: rgba(255,255,255,0.02);
-    border: 1px dashed rgba(255,255,255,0.08);
+    border: 1px dashed rgba(255,255,255,0.1);
     color: rgba(255,255,255,0.3); font-size: 0.82rem;
 }
-.empty-state svg { width: 1.1rem; height: 1.1rem; flex-shrink: 0; }
+.empty-state svg { width: 1rem; height: 1rem; flex-shrink: 0; }
 
 /* ─── Question item ───────────────────────────────────────────────── */
 .question-item {
     background: rgba(255,255,255,0.025);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 10px;
-    padding: 1rem;
-    transition: border-color 0.15s;
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 0.85rem;
     position: relative;
 }
-.question-item:hover { border-color: rgba(255,255,255,0.12); }
+.question-item:hover { border-color: rgba(255,255,255,0.15); }
 .question-item:hover .q-actions { opacity: 1; }
 
 /* ─── Question view ───────────────────────────────────────────────── */
@@ -318,33 +300,32 @@ const stages = Array.from({ length: 10 }, (_, i) => i + 1);
 }
 
 .q-text {
-    color: rgba(255,255,255,0.9); font-size: 0.92rem;
-    margin: 0 0 0.65rem; padding-right: 2rem; line-height: 1.5;
+    color: rgba(255,255,255,0.9); font-size: 0.9rem;
+    margin: 0 0 0.6rem; padding-right: 2rem; line-height: 1.5;
 }
 
 .q-options {
-    list-style: none; padding: 0; margin: 0 0 0.75rem;
-    display: flex; flex-direction: column; gap: 0.3rem;
+    list-style: none; padding: 0; margin: 0 0 0.65rem;
+    display: flex; flex-direction: column; gap: 2px;
 }
 .q-options li {
-    display: flex; align-items: center; gap: 0.55rem;
-    font-size: 0.83rem; color: rgba(255,255,255,0.45);
-    padding: 0.3rem 0.6rem 0.3rem 0.4rem; border-radius: 6px;
+    display: flex; align-items: center; gap: 0.5rem;
+    font-size: 0.82rem; color: rgba(255,255,255,0.45);
+    padding: 0.28rem 0.55rem 0.28rem 0.35rem;
     background: rgba(255,255,255,0.02); border: 1px solid transparent;
 }
 .q-option--correct {
     color: rgba(255,255,255,0.85);
     background: rgba(76,222,143,0.07);
-    border-color: rgba(76,222,143,0.18);
+    border-color: rgba(76,222,143,0.2);
 }
 
 .opt-letter {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 1.3rem; height: 1.3rem; border-radius: 4px; flex-shrink: 0;
-    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.03em;
+    width: 1.25rem; height: 1.25rem; flex-shrink: 0;
+    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.03em;
     background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.35);
-    border: 1px solid rgba(255,255,255,0.08);
-    transition: background 0.15s, color 0.15s;
+    border: 1px solid rgba(255,255,255,0.1);
 }
 .opt-letter.is-correct {
     background: rgba(76,222,143,0.18); color: #4cde8f;
@@ -354,51 +335,46 @@ const stages = Array.from({ length: 10 }, (_, i) => i + 1);
 .opt-text { flex: 1; }
 
 .correct-badge {
-    margin-left: auto; font-size: 0.68rem; font-weight: 600;
-    color: #4cde8f;
-    background: rgba(76,222,143,0.12); border: 1px solid rgba(76,222,143,0.25);
-    padding: 0.1rem 0.4rem; border-radius: 4px;
+    margin-left: auto; font-size: 0.65rem; font-weight: 700;
+    color: #4cde8f; letter-spacing: 0.04em; text-transform: uppercase;
+    background: rgba(76,222,143,0.1); border: 1px solid rgba(76,222,143,0.25);
+    padding: 0.08rem 0.4rem;
     white-space: nowrap;
 }
 
-/* ─── Question actions (icon buttons) ────────────────────────────── */
+/* ─── Question actions ────────────────────────────────────────────── */
 .q-actions {
-    display: flex; gap: 0.4rem; justify-content: flex-end;
-    opacity: 0; transition: opacity 0.15s;
+    display: flex; gap: 0.35rem; justify-content: flex-end;
+    opacity: 0;
 }
 .btn-edit, .btn-delete {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 1.9rem; height: 1.9rem; border-radius: 7px;
+    width: 1.8rem; height: 1.8rem;
     background: transparent; border: 1px solid transparent; cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
 }
-.btn-edit svg, .btn-delete svg { width: 0.9rem; height: 0.9rem; }
+.btn-edit svg, .btn-delete svg { width: 0.85rem; height: 0.85rem; }
 
-.btn-edit {
-    color: #C8467E; border-color: rgba(200,70,126,0.25);
-}
-.btn-edit:hover { background: rgba(200,70,126,0.12); border-color: rgba(200,70,126,0.45); }
+.btn-edit { color: #C8467E; border-color: rgba(200,70,126,0.3); }
+.btn-edit:hover { background: rgba(200,70,126,0.14); border-color: rgba(200,70,126,0.5); }
 
-.btn-delete {
-    color: #ff6b6b; border-color: rgba(255,80,80,0.2);
-}
-.btn-delete:hover { background: rgba(255,80,80,0.1); border-color: rgba(255,80,80,0.4); }
+.btn-delete { color: #ff6b6b; border-color: rgba(255,80,80,0.25); }
+.btn-delete:hover { background: rgba(255,80,80,0.12); border-color: rgba(255,80,80,0.45); }
 
 /* ─── Edit form ───────────────────────────────────────────────────── */
 .question-edit-form {
-    display: flex; flex-direction: column; gap: 0.65rem;
-    border: 1px solid rgba(108,99,255,0.35);
+    display: flex; flex-direction: column; gap: 0.6rem;
+    border: 1px solid rgba(108,99,255,0.4);
     background: rgba(108,99,255,0.04);
-    border-radius: 10px; padding: 1rem;
-    margin: -1rem;
+    padding: 0.85rem;
+    margin: -0.85rem;
 }
 
 .edit-form-header {
     display: flex; align-items: center; gap: 0.5rem;
-    font-size: 0.82rem; font-weight: 600; color: rgba(150,140,255,0.9);
+    font-size: 0.8rem; font-weight: 600; color: rgba(150,140,255,0.9);
     margin-bottom: 0.1rem;
 }
-.edit-form-header svg { width: 0.9rem; height: 0.9rem; flex-shrink: 0; }
+.edit-form-header svg { width: 0.85rem; height: 0.85rem; flex-shrink: 0; }
 
 /* ─── New question separator + form ──────────────────────────────── */
 .new-question-separator {
@@ -413,28 +389,28 @@ const stages = Array.from({ length: 10 }, (_, i) => i + 1);
 .new-question-separator span { color: #C8467E; white-space: nowrap; }
 
 .new-question-form {
-    display: flex; flex-direction: column; gap: 0.65rem;
+    display: flex; flex-direction: column; gap: 0.6rem;
     background: rgba(200,70,126,0.03);
-    border: 1px solid rgba(200,70,126,0.12);
-    border-radius: 10px; padding: 1rem;
+    border: 1px solid rgba(200,70,126,0.18);
+    padding: 0.85rem;
 }
 
 .new-form-header {
     display: flex; align-items: center; gap: 0.5rem;
-    font-size: 0.82rem; font-weight: 600; color: #C8467E;
+    font-size: 0.8rem; font-weight: 600; color: #C8467E;
     margin-bottom: 0.1rem;
 }
-.new-form-header svg { width: 0.9rem; height: 0.9rem; flex-shrink: 0; }
+.new-form-header svg { width: 0.85rem; height: 0.85rem; flex-shrink: 0; }
 
 /* ─── Shared form elements ────────────────────────────────────────── */
 .q-input {
     background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 7px; color: #fff;
-    padding: 0.5rem 0.75rem; font-size: 0.88rem;
-    outline: none; transition: border-color 0.15s;
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #fff;
+    padding: 0.45rem 0.7rem; font-size: 0.87rem;
+    outline: none; font-family: inherit;
 }
-.q-input:focus { border-color: rgba(200,70,126,0.45); }
+.q-input:focus { border-color: rgba(200,70,126,0.55); }
 .opt-input { flex: 1; }
 
 .option-row { display: flex; align-items: center; gap: 0.5rem; }
@@ -443,42 +419,41 @@ const stages = Array.from({ length: 10 }, (_, i) => i + 1);
 
 .btn-remove-opt {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 1.6rem; height: 1.6rem; border-radius: 5px; flex-shrink: 0;
+    width: 1.5rem; height: 1.5rem; flex-shrink: 0;
     background: transparent; border: none; color: rgba(255,80,80,0.45); cursor: pointer;
-    transition: color 0.15s;
 }
 .btn-remove-opt:hover { color: #ff6b6b; }
 .btn-remove-opt svg { width: 0.75rem; height: 0.75rem; }
 
 .btn-add-opt {
-    align-self: flex-start; padding: 0.25rem 0.65rem; border-radius: 6px; font-size: 0.78rem;
-    border: 1px dashed rgba(255,255,255,0.18); color: rgba(255,255,255,0.35); background: transparent; cursor: pointer;
-    transition: border-color 0.15s, color 0.15s;
+    align-self: flex-start; padding: 0.22rem 0.6rem; font-size: 0.77rem;
+    border: 1px dashed rgba(255,255,255,0.2); color: rgba(255,255,255,0.35); background: transparent; cursor: pointer;
+    font-family: inherit;
 }
-.btn-add-opt:hover { border-color: rgba(255,255,255,0.35); color: rgba(255,255,255,0.6); }
+.btn-add-opt:hover { border-color: rgba(255,255,255,0.38); color: rgba(255,255,255,0.65); }
 
-.edit-actions { display: flex; gap: 0.5rem; }
+.edit-actions { display: flex; gap: 0.4rem; }
 
 .btn-save {
-    padding: 0.4rem 0.9rem; border-radius: 7px; font-size: 0.82rem;
-    background: rgba(76,222,143,0.1); border: 1px solid rgba(76,222,143,0.35); color: #4cde8f; cursor: pointer;
-    transition: background 0.15s;
+    padding: 0.38rem 0.85rem; font-size: 0.82rem;
+    background: rgba(76,222,143,0.1); border: 1px solid rgba(76,222,143,0.4); color: #4cde8f; cursor: pointer;
+    font-family: inherit;
 }
-.btn-save:hover { background: rgba(76,222,143,0.18); }
+.btn-save:hover { background: rgba(76,222,143,0.2); }
 .btn-save:disabled { opacity: 0.4; cursor: default; }
 
 .btn-cancel {
-    padding: 0.4rem 0.9rem; border-radius: 7px; font-size: 0.82rem;
-    background: transparent; border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.4); cursor: pointer;
-    transition: background 0.15s;
+    padding: 0.38rem 0.85rem; font-size: 0.82rem;
+    background: transparent; border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.4); cursor: pointer;
+    font-family: inherit;
 }
-.btn-cancel:hover { background: rgba(255,255,255,0.04); }
+.btn-cancel:hover { background: rgba(255,255,255,0.05); }
 
 .btn-add-question {
-    align-self: flex-start; padding: 0.42rem 1rem; border-radius: 7px; font-size: 0.85rem; font-weight: 500;
-    background: rgba(200,70,126,0.1); border: 1px solid rgba(200,70,126,0.35); color: #C8467E; cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
+    align-self: flex-start; padding: 0.4rem 0.95rem; font-size: 0.84rem; font-weight: 500;
+    background: rgba(200,70,126,0.1); border: 1px solid rgba(200,70,126,0.4); color: #C8467E; cursor: pointer;
+    font-family: inherit;
 }
-.btn-add-question:hover { background: rgba(200,70,126,0.18); border-color: rgba(200,70,126,0.5); }
+.btn-add-question:hover { background: rgba(200,70,126,0.2); border-color: rgba(200,70,126,0.6); }
 .btn-add-question:disabled { opacity: 0.4; cursor: default; }
 </style>

@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Events\NewNotification;
 use App\Http\Controllers\Controller;
+use App\Jobs\FanOutAdminBroadcast;
 use App\Models\AdminBroadcast;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -42,7 +42,7 @@ class MessageController extends Controller
             'target_filters' => 'nullable|required_if:target,filtered|array',
         ]);
 
-        AdminBroadcast::create([
+        $broadcast = AdminBroadcast::create([
             'admin_id'       => auth('admin')->id(),
             'title'          => $validated['title'],
             'body'           => $validated['body'],
@@ -51,14 +51,8 @@ class MessageController extends Controller
             'target_filters' => $validated['target'] === 'filtered' ? $validated['target_filters'] : null,
         ]);
 
-        // Filtered broadcasts — пушим как публичные, каждый пользователь
-        // сам проверит при перезагрузке счётчика, попадает ли он в фильтры
-        if ($validated['target'] === 'user') {
-            broadcast(new NewNotification('private', (int) $validated['target_user_id']));
-        } else {
-            broadcast(new NewNotification('public'));
-        }
+        FanOutAdminBroadcast::dispatch($broadcast);
 
-        return back()->with('success', 'Рассылка отправлена.');
+        return back()->with('success', 'Рассылка поставлена в очередь.');
     }
 }

@@ -29,7 +29,7 @@ function logout() {
 
 .admin-wrap {
     min-height: 100vh;
-    background: #080812;
+    background: #07070f;
     display: flex;
     flex-direction: column;
     font-family: 'Figtree', sans-serif;
@@ -39,40 +39,39 @@ function logout() {
     position: sticky;
     top: 0;
     z-index: 100;
-    height: 56px;
+    height: 52px;
     display: flex;
     align-items: center;
     gap: 2rem;
     padding: 0 2rem;
-    background: rgba(8, 8, 18, 0.97);
-    border-bottom: 1px solid rgba(200, 70, 126, 0.2);
-    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+    background: #07070f;
+    border-bottom: 1px solid rgba(200, 70, 126, 0.45);
 }
 
 .admin-logo {
     font-family: 'Imbue', serif;
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     color: #C8467E;
     text-decoration: none;
     white-space: nowrap;
-    text-shadow: 0 0 20px rgba(200, 70, 126, 0.4);
+    letter-spacing: 0.02em;
     margin-right: 1rem;
 }
 
 .admin-nav {
     display: flex;
-    gap: 0.5rem;
+    gap: 0;
     flex: 1;
 }
 
 .admin-nav__link {
-    padding: 0.35rem 0.9rem;
-    border-radius: 6px;
-    color: rgba(255, 255, 255, 0.6);
+    padding: 0.35rem 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
     text-decoration: none;
-    font-size: 0.875rem;
-    transition: background 0.15s, color 0.15s;
+    font-size: 0.85rem;
+    border-right: 1px solid rgba(255,255,255,0.06);
 }
+.admin-nav__link:first-child { border-left: 1px solid rgba(255,255,255,0.06); }
 .admin-nav__link:hover {
     background: rgba(200, 70, 126, 0.1);
     color: rgba(255, 255, 255, 0.9);
@@ -80,19 +79,18 @@ function logout() {
 
 .admin-logout {
     margin-left: auto;
-    padding: 0.35rem 0.9rem;
-    border-radius: 6px;
-    border: 1px solid rgba(200, 70, 126, 0.3);
+    padding: 0.3rem 0.85rem;
+    border: 1px solid rgba(200, 70, 126, 0.35);
     background: transparent;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.45);
     font-size: 0.8rem;
     cursor: pointer;
-    transition: all 0.15s;
+    font-family: inherit;
 }
 .admin-logout:hover {
-    border-color: rgba(200, 70, 126, 0.6);
-    color: rgba(255, 255, 255, 0.8);
-    background: rgba(200, 70, 126, 0.08);
+    border-color: rgba(200, 70, 126, 0.65);
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(200, 70, 126, 0.1);
 }
 
 .admin-main {
