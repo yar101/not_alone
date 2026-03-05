@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, nextTick, computed } from 'vue';
+import { ref, watch, nextTick, computed, onBeforeUnmount } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import axios from 'axios';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
@@ -26,6 +26,17 @@ function submit() {
             selectedFilteredCount.value = null;
         },
     });
+}
+
+// ─── Detail modal ──────────────────────────────────────────────────────────
+const detailBroadcast = ref(null);
+
+function formatDate(str) {
+    return new Date(str).toLocaleString('ru', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDateShort(str) {
+    return new Date(str).toLocaleDateString('ru', { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 
 // ─── Picker state ──────────────────────────────────────────────────────────
@@ -264,22 +275,96 @@ function targetLabel(b) {
         <div class="sent-section">
             <h2 class="sent-title">Отправленные рассылки</h2>
             <div v-if="broadcasts.length === 0" class="sent-empty">Рассылок пока нет</div>
-            <div v-else class="sent-list">
-                <div v-for="b in broadcasts" :key="b.id" class="sent-item">
-                    <div class="sent-meta">
-                        <span class="sent-date">{{ new Date(b.created_at).toLocaleString('ru') }}</span>
-                        <span class="sent-target" :class="{
-                            'target--all': b.target === 'all',
-                            'target--user': b.target === 'user',
-                            'target--filtered': b.target === 'filtered',
-                        }">{{ targetLabel(b) }}</span>
-                        <span class="sent-by">{{ b.admin.name }}</span>
-                    </div>
-                    <p class="sent-headline">{{ b.title }}</p>
-                    <p class="sent-body">{{ b.body }}</p>
-                </div>
+            <div v-else class="broadcasts-table-wrap">
+                <table class="broadcasts-table">
+                    <thead>
+                        <tr>
+                            <th class="col-num">#</th>
+                            <th class="col-date">Дата</th>
+                            <th class="col-title">Заголовок</th>
+                            <th class="col-target">Получатели</th>
+                            <th class="col-admin">Отправил</th>
+                            <th class="col-action"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="b in broadcasts" :key="b.id" class="bcast-row">
+                            <td class="col-num bcast-id">{{ b.id }}</td>
+                            <td class="col-date bcast-date">{{ formatDateShort(b.created_at) }}</td>
+                            <td class="col-title bcast-title">{{ b.title }}</td>
+                            <td class="col-target">
+                                <span class="sent-target" :class="{
+                                    'target--all': b.target === 'all',
+                                    'target--user': b.target === 'user',
+                                    'target--filtered': b.target === 'filtered',
+                                }">{{ targetLabel(b) }}</span>
+                            </td>
+                            <td class="col-admin bcast-admin">{{ b.admin.name }}</td>
+                            <td class="col-action">
+                                <button class="btn-detail" @click="detailBroadcast = b" title="Детали">→</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
+
+        <!-- Detail Modal -->
+        <Teleport to="body">
+            <div v-if="detailBroadcast" class="modal-backdrop" @click.self="detailBroadcast = null">
+                <div class="modal modal--detail">
+                    <div class="modal-header">
+                        <h3 class="modal-title">Рассылка #{{ detailBroadcast.id }}</h3>
+                        <button class="modal-close" @click="detailBroadcast = null">✕</button>
+                    </div>
+                    <div class="detail-body">
+                        <div class="detail-section">
+                            <p class="detail-label">Заголовок</p>
+                            <p class="detail-value detail-headline">{{ detailBroadcast.title }}</p>
+                        </div>
+                        <div class="detail-section">
+                            <p class="detail-label">Текст</p>
+                            <p class="detail-value detail-text">{{ detailBroadcast.body }}</p>
+                        </div>
+                        <div class="detail-section">
+                            <p class="detail-label">Получатели</p>
+                            <div class="detail-value">
+                                <template v-if="detailBroadcast.target === 'all'">
+                                    <span class="sent-target target--all">Все пользователи</span>
+                                </template>
+                                <template v-else-if="detailBroadcast.target === 'user'">
+                                    <div v-if="detailBroadcast.target_user" class="detail-user">
+                                        <span class="detail-user-name">{{ detailBroadcast.target_user.name || '—' }}</span>
+                                        <span class="detail-user-email">{{ detailBroadcast.target_user.email }}</span>
+                                    </div>
+                                    <span v-else class="sent-target target--user">#{{ detailBroadcast.target_user_id }}</span>
+                                </template>
+                                <template v-else-if="detailBroadcast.target === 'filtered'">
+                                    <div v-if="detailBroadcast.target_filters && Object.keys(detailBroadcast.target_filters).length" class="filter-tags">
+                                        <span
+                                            v-for="(val, key) in detailBroadcast.target_filters"
+                                            :key="key"
+                                            class="filter-tag"
+                                        >{{ filterLabel(key, val) }}</span>
+                                    </div>
+                                    <span v-else class="detail-muted">без фильтров — все пользователи</span>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="detail-section detail-meta-row">
+                            <div>
+                                <p class="detail-label">Отправил</p>
+                                <p class="detail-value">{{ detailBroadcast.admin.name }}</p>
+                            </div>
+                            <div>
+                                <p class="detail-label">Дата отправки</p>
+                                <p class="detail-value">{{ formatDate(detailBroadcast.created_at) }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
 
         <!-- User Picker Modal -->
         <Teleport to="body">
@@ -459,25 +544,62 @@ function targetLabel(b) {
 }
 .btn-pick:hover { background: rgba(200,70,126,0.2); }
 
-/* Sent list */
-.sent-section { max-width: 700px; }
+/* Sent section */
+.sent-section { max-width: 900px; }
 .sent-title { font-size: 1rem; color: rgba(255,255,255,0.6); margin: 0 0 1rem; }
 .sent-empty { color: rgba(255,255,255,0.3); font-size: 0.85rem; }
-.sent-list { display: flex; flex-direction: column; gap: 0.75rem; }
-.sent-item {
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 8px; padding: 1rem;
+
+/* Broadcasts table */
+.broadcasts-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid rgba(255,255,255,0.07); }
+.broadcasts-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.broadcasts-table thead tr { background: rgba(255,255,255,0.03); }
+.broadcasts-table th {
+    padding: 0.6rem 0.9rem; text-align: left;
+    color: rgba(255,255,255,0.35); font-weight: 500; font-size: 0.75rem;
+    border-bottom: 1px solid rgba(255,255,255,0.07); white-space: nowrap;
 }
-.sent-meta { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
-.sent-date { font-size: 0.75rem; color: rgba(255,255,255,0.3); }
-.sent-target { font-size: 0.75rem; padding: 0.15rem 0.55rem; border-radius: 20px; }
+.bcast-row { transition: background 0.1s; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.bcast-row:last-child { border-bottom: none; }
+.bcast-row:hover { background: rgba(200,70,126,0.05); }
+.broadcasts-table td { padding: 0.65rem 0.9rem; color: rgba(255,255,255,0.75); vertical-align: middle; }
+.col-num { width: 48px; }
+.col-date { width: 90px; white-space: nowrap; }
+.col-title { max-width: 220px; }
+.col-target { width: 140px; }
+.col-admin { width: 120px; white-space: nowrap; }
+.col-action { width: 48px; text-align: center; }
+.bcast-id { color: rgba(255,255,255,0.25); font-size: 0.78rem; }
+.bcast-date { color: rgba(255,255,255,0.35); font-size: 0.78rem; }
+.bcast-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bcast-admin { color: rgba(255,255,255,0.4); font-size: 0.8rem; }
+
+.sent-target { font-size: 0.75rem; padding: 0.15rem 0.55rem; border-radius: 20px; white-space: nowrap; display: inline-block; }
 .target--all { background: rgba(76,222,143,0.1); color: #4cde8f; }
 .target--user { background: rgba(200,70,126,0.1); color: #C8467E; }
 .target--filtered { background: rgba(139,92,246,0.1); color: #a78bfa; }
-.sent-by { font-size: 0.75rem; color: rgba(255,255,255,0.3); margin-left: auto; }
-.sent-headline { font-size: 0.92rem; color: rgba(255,255,255,0.85); font-weight: 500; margin: 0 0 0.35rem; }
-.sent-body { font-size: 0.82rem; color: rgba(255,255,255,0.5); margin: 0; white-space: pre-wrap; line-height: 1.5; }
+
+.btn-detail {
+    background: none; border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px; color: rgba(255,255,255,0.4);
+    width: 28px; height: 28px; cursor: pointer;
+    font-size: 0.9rem; line-height: 1; transition: all 0.15s;
+    display: inline-flex; align-items: center; justify-content: center;
+}
+.btn-detail:hover { background: rgba(200,70,126,0.15); border-color: rgba(200,70,126,0.4); color: #C8467E; }
+
+/* Detail modal */
+.modal--detail { max-width: 520px; }
+.detail-body { padding: 1.25rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.25rem; }
+.detail-section { display: flex; flex-direction: column; gap: 0.3rem; }
+.detail-label { font-size: 0.72rem; color: rgba(255,255,255,0.3); margin: 0; text-transform: uppercase; letter-spacing: 0.04em; }
+.detail-value { font-size: 0.9rem; color: rgba(255,255,255,0.85); margin: 0; }
+.detail-headline { font-weight: 600; }
+.detail-text { white-space: pre-wrap; line-height: 1.6; color: rgba(255,255,255,0.65); font-size: 0.85rem; }
+.detail-meta-row { flex-direction: row; gap: 2rem; }
+.detail-muted { font-size: 0.82rem; color: rgba(255,255,255,0.3); }
+.detail-user { display: flex; flex-direction: column; gap: 0.15rem; }
+.detail-user-name { font-size: 0.88rem; color: #fff; }
+.detail-user-email { font-size: 0.78rem; color: rgba(255,255,255,0.4); }
 
 /* Modal */
 .modal-backdrop {
