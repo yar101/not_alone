@@ -42,8 +42,6 @@ class UserProfileController extends Controller
                 'about'            => $user->about,
                 'voice_url'        => $user->voice_path ? Storage::url($user->voice_path) : null,
                 'avatar_url'       => $user->avatar_url,
-                'pinned_body'      => $user->pinned_body,
-                'pinned_photo_url' => $user->pinned_photo_url,
                 'timezone'         => $user->timezone,
                 'traits'           => $user->traits->map(fn ($t) => ['id' => $t->id, 'name_ru' => $t->name_ru]),
                 'interests'        => $user->interests->map(fn ($i) => [
@@ -187,37 +185,6 @@ class UserProfileController extends Controller
         if ($user->avatar_path) {
             Storage::disk('public')->delete($user->avatar_path);
             $user->update(['avatar_path' => null]);
-        }
-        return back();
-    }
-
-    public function updatePinnedCard(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'body'  => ['nullable', 'string', 'max:5000'],
-            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
-        ]);
-        $user = $request->user();
-        $body = $request->input('body');
-        $data = ['pinned_body' => $body ? strip_tags($body, '<p><br><strong><em><u><s><ul><ol><li>') : null];
-        if ($request->hasFile('photo')) {
-            if ($user->pinned_photo_path) {
-                Storage::disk('public')->delete($user->pinned_photo_path);
-            }
-            $ext  = $request->file('photo')->getClientOriginalExtension() ?: 'jpg';
-            $path = $request->file('photo')->storeAs('pinned', "{$user->id}.{$ext}", 'public');
-            $data['pinned_photo_path'] = $path;
-        }
-        $user->update($data);
-        return back();
-    }
-
-    public function deletePinnedPhoto(Request $request): RedirectResponse
-    {
-        $user = $request->user();
-        if ($user->pinned_photo_path) {
-            Storage::disk('public')->delete($user->pinned_photo_path);
-            $user->update(['pinned_photo_path' => null]);
         }
         return back();
     }

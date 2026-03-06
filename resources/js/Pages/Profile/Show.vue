@@ -11,7 +11,6 @@ import ProfileAbout from '@/Components/Profile/ProfileAbout.vue';
 import ProfileTraits from '@/Components/Profile/ProfileTraits.vue';
 import ProfileInterests from '@/Components/Profile/ProfileInterests.vue';
 import ProfileLanguages from '@/Components/Profile/ProfileLanguages.vue';
-import ProfilePinnedCard from '@/Components/Profile/ProfilePinnedCard.vue';
 import ProfilePosts from '@/Components/Profile/ProfilePosts.vue';
 import ProfileVoice from '@/Components/Profile/ProfileVoice.vue';
 
@@ -188,6 +187,10 @@ onMounted(async () => {
                         Подписаться
                     </button>
 
+                </div>
+
+                <!-- Right main: tabs + scrollable tab content -->
+                <div class="profile-main">
                     <div class="profile-tabs page-block">
                         <button
                             class="tab-btn"
@@ -218,10 +221,6 @@ onMounted(async () => {
                             Контент
                         </button>
                     </div>
-                </div>
-
-                <!-- Right main: scrollable tab content -->
-                <div class="profile-main">
                 <div class="tab-content-wrap page-block">
                 <Transition :name="tabDir > 0 ? 'slide-left' : 'slide-right'" mode="out-in">
 
@@ -263,10 +262,10 @@ onMounted(async () => {
 
                     <div v-else-if="tab === 'posts'" key="posts" class="tab-panel">
                         <div class="anim-block">
-                            <ProfilePinnedCard :user="profileUser" :is-owner="isOwner" />
-                        </div>
-                        <div class="anim-block">
-                            <ProfilePosts :posts="profileUser.posts" :is-owner="isOwner" />
+                            <ProfilePosts
+                                :posts="profileUser.posts"
+                                :is-owner="isOwner"
+                            />
                         </div>
                     </div>
 
@@ -478,23 +477,26 @@ onMounted(async () => {
 }
 
 
-/* ── Таббар (vertical) ────────────────────────────────────── */
+/* ── Таббар (horizontal) ──────────────────────────────────── */
 .profile-tabs {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     flex-shrink: 0;
     background: transparent;
     border: none;
-    padding: 0.75rem 0 0.5rem;
-    gap: 0.1rem;
-    margin-top: 0.35rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 0.25rem 0;
+    gap: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-bottom: 0.75rem;
 }
+.profile-tabs::-webkit-scrollbar { display: none; }
 
 .tab-btn {
-    padding: 0.6rem 0.85rem 0.6rem 1rem;
+    padding: 0.55rem 0.85rem;
     border: none;
-    border-radius: 3px;
+    border-radius: 3px 3px 0 0;
     background: transparent;
     color: rgba(255,255,255,0.45);
     font-size: 0.75rem;
@@ -504,33 +506,32 @@ onMounted(async () => {
     font-family: inherit;
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 0.5rem;
-    transition: background 0.18s ease, color 0.18s ease, padding-left 0.18s ease;
+    transition: background 0.18s ease, color 0.18s ease;
     white-space: nowrap;
-    width: 100%;
+    flex-shrink: 0;
     position: relative;
 }
 .tab-btn::before {
     content: '';
     position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%) scaleY(0);
-    width: 2px;
-    height: 60%;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%) scaleX(0);
+    width: 60%;
+    height: 2px;
     background: #FE28A2;
-    border-radius: 0 2px 2px 0;
+    border-radius: 2px 2px 0 0;
     transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.18s ease;
     opacity: 0;
 }
 .tab-btn.active {
     background: rgba(254, 40, 162, 0.08);
     color: rgba(254, 40, 162, 0.95);
-    padding-left: 1.25rem;
 }
 .tab-btn.active::before {
-    transform: translateY(-50%) scaleY(1);
+    transform: translateX(-50%) scaleX(1);
     opacity: 1;
 }
 .tab-btn:hover:not(.active) {
@@ -718,39 +719,6 @@ onMounted(async () => {
     }
     .profile-main {
         padding-left: 0;
-    }
-    /* Horizontal tabs on mobile */
-    .profile-tabs {
-        flex-direction: row;
-        overflow-x: auto;
-        scrollbar-width: none;
-        padding: 0.25rem 0;
-        margin-top: 0.25rem;
-        border-top: none;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    }
-    .profile-tabs::-webkit-scrollbar { display: none; }
-    .tab-btn {
-        flex-shrink: 0;
-        width: auto;
-        justify-content: center;
-        padding-left: 0.85rem;
-    }
-    .tab-btn.active {
-        padding-left: 0.85rem;
-    }
-    /* Swap to bottom indicator on mobile */
-    .tab-btn::before {
-        top: auto;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%) scaleX(0);
-        width: 60%;
-        height: 2px;
-        border-radius: 2px 2px 0 0;
-    }
-    .tab-btn.active::before {
-        transform: translateX(-50%) scaleX(1);
     }
     .profile-main {
         height: 60vh;
