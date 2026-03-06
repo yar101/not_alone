@@ -165,6 +165,16 @@ function deleteAvatar() {
 <template>
     <div id="tour-header" class="profile-header">
 
+        <!-- Кнопки сверху справа -->
+        <div v-if="isOwner" class="header-actions">
+            <button class="action-pill" @click="editModal = true" title="Редактировать">
+                <el-icon><Edit /></el-icon>
+            </button>
+            <a :href="route('settings.edit')" class="action-pill" title="Настройки">
+                <el-icon><Setting /></el-icon>
+            </a>
+        </div>
+
         <!-- Аватар по центру -->
         <div class="header-avatar-area">
             <div class="avatar-wrapper">
@@ -186,45 +196,34 @@ function deleteAvatar() {
             </div>
         </div>
 
-        <!-- Нижняя строка: 3-колоночный грид (рейтинг | имя | действия) -->
-        <div class="header-bottom-row">
-            <div class="header-left">
-                <div class="rating-block">
-                    <span class="rating-label">Рейтинг</span>
-                    <div class="rating-inner">
-                        <img src="/stars/10.png" class="star-img" alt="rating" />
-                        <span class="rating-num">{{ devRating }}</span>
-                    </div>
-                    <div class="rating-bar-track">
-                        <div class="rating-bar-fill"></div>
-                    </div>
-                </div>
+        <!-- Имя + мета -->
+        <div class="header-name-wrap">
+            <h1 class="header-name">{{ user.name }}</h1>
+            <div v-if="user.gender || user.age" class="header-meta">
+                <span v-if="user.gender" class="meta-badge" :class="'meta-badge--' + user.gender">
+                    <svg v-if="user.gender === 'female'" class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="9" r="6"/><line x1="12" y1="15" x2="12" y2="21"/><line x1="9" y1="19" x2="15" y2="19"/>
+                    </svg>
+                    <svg v-else class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="10" cy="14" r="6"/><line x1="14.5" y1="9.5" x2="21" y2="3"/><polyline points="16 3 21 3 21 8"/>
+                    </svg>
+                    {{ user.gender === 'female' ? 'Женский' : 'Мужской' }}
+                </span>
+                <span v-if="user.age" class="meta-badge meta-badge--age">{{ ageLabel(user.age) }}</span>
             </div>
-            <div class="header-name-wrap">
-                <h1 class="header-name">{{ user.name }}</h1>
-                <div v-if="user.gender || user.age" class="header-meta">
-                    <span v-if="user.gender" class="meta-badge" :class="'meta-badge--' + user.gender">
-                        <svg v-if="user.gender === 'female'" class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="9" r="6"/><line x1="12" y1="15" x2="12" y2="21"/><line x1="9" y1="19" x2="15" y2="19"/>
-                        </svg>
-                        <svg v-else class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="10" cy="14" r="6"/><line x1="14.5" y1="9.5" x2="21" y2="3"/><polyline points="16 3 21 3 21 8"/>
-                        </svg>
-                        {{ user.gender === 'female' ? 'Женский' : 'Мужской' }}
-                    </span>
-                    <span v-if="user.age" class="meta-badge meta-badge--age">{{ ageLabel(user.age) }}</span>
+        </div>
+
+        <!-- Рейтинг -->
+        <div class="header-rating">
+            <div class="rating-block">
+                <span class="rating-label">Рейтинг</span>
+                <div class="rating-inner">
+                    <img src="/stars/10.png" class="star-img" alt="rating" />
+                    <span class="rating-num">{{ devRating }}</span>
                 </div>
-            </div>
-            <div class="header-actions">
-                <template v-if="isOwner">
-                    <button class="action-pill" @click="editModal = true" title="Редактировать">
-                        <el-icon><Edit /></el-icon>
-                    </button>
-                    <a :href="route('settings.edit')" class="action-pill" title="Настройки">
-                        <el-icon><Setting /></el-icon>
-                    </a>
-                </template>
-                <button v-else class="subscribe-btn">Подписаться</button>
+                <div class="rating-bar-track">
+                    <div class="rating-bar-fill"></div>
+                </div>
             </div>
         </div>
 
@@ -334,17 +333,47 @@ function deleteAvatar() {
     overflow: visible;
     background: #06060e;
     border: 1px solid rgba(255,255,255,0.18);
-    border-bottom: 1px solid rgba(255,255,255,0.18);
     border-radius: 3px;
-    padding-top: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.75rem 1rem 1.5rem;
     font-family: 'Figtree', sans-serif;
+}
+
+/* Кнопки — абсолютно в правом верхнем углу */
+.header-actions {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.action-pill {
+    width: 32px; height: 32px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 3px;
+    background: transparent;
+    color: rgba(255,255,255,0.35);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.action-pill:hover {
+    color: #FE28A2;
+    border-color: rgba(254,40,162,0.5);
+    background: rgba(254,40,162,0.05);
 }
 
 /* Avatar */
 .header-avatar-area {
     display: flex;
     justify-content: center;
-    padding-bottom: 1rem;
+    padding: 1.5rem 0 1.25rem;
 }
 
 .avatar-wrapper {
@@ -353,7 +382,7 @@ function deleteAvatar() {
 }
 
 .avatar-ring {
-    width: 200px; height: 200px;
+    width: 190px; height: 190px;
     border-radius: 50%;
     padding: 2px;
     flex-shrink: 0;
@@ -367,7 +396,7 @@ function deleteAvatar() {
     border-radius: 50%;
     background: rgba(254,40,162,0.08);
     display: flex; align-items: center; justify-content: center;
-    font-size: 2.5rem; font-weight: 500; color: rgba(255,255,255,0.9);
+    font-size: 2.2rem; font-weight: 500; color: rgba(255,255,255,0.9);
     position: relative;
     overflow: hidden;
 }
@@ -392,96 +421,25 @@ function deleteAvatar() {
 .avatar-overlay-icon { font-size: 1.4rem; color: #fff; }
 .hidden-input { display: none; }
 
-/* Нижняя строка: 3-колоночный грид */
-.header-bottom-row {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: end;
-    padding: 0 1rem 1rem;
-    gap: 1rem;
-}
-
-.header-left {
-    display: flex;
-    align-items: flex-end;
-}
-
-.rating-block {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    padding: 0.55rem 0.85rem 0.5rem;
-    border: 1px solid rgba(254,40,162,0.35);
-    border-radius: 3px;
-    background: rgba(254,40,162,0.04);
-    box-shadow: inset 0 0 16px rgba(254,40,162,0.05);
-    position: relative;
-}
-
-.rating-label {
-    font-family: 'Figtree', sans-serif;
-    font-size: 0.58rem;
-    font-weight: 600;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: rgba(254,40,162,0.55);
-}
-
-.rating-inner {
-    display: flex;
-    align-items: flex-end;
-    gap: 0.4rem;
-    line-height: 1;
-}
-
-.star-img {
-    width: 26px;
-    height: 26px;
-    object-fit: contain;
-    display: block;
-    margin-bottom: 0.2rem;
-    opacity: 0.85;
-}
-
-.rating-num {
-    font-family: 'Dosis', sans-serif;
-    font-weight: 300;
-    font-size: 2.5rem;
-    line-height: 0.85;
-    color: #fff;
-    letter-spacing: -0.02em;
-    font-variant-numeric: tabular-nums;
-}
-
-.rating-bar-track {
-    height: 1px;
-    background: rgba(255,255,255,0.1);
-    margin-top: 0.1rem;
-}
-
-.rating-bar-fill {
-    height: 100%;
-    width: 73%;
-    background: linear-gradient(90deg, rgba(254,40,162,0.9), rgba(254,40,162,0.4));
-}
-
-
+/* Имя */
 .header-name-wrap {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.45rem;
-    min-width: 0;
+    gap: 0.55rem;
+    width: 100%;
+    margin-bottom: 1.25rem;
 }
 
 .header-name {
-    font-size: 2.6rem;
+    font-size: 1.7rem;
     font-weight: 700;
     margin: 0;
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 100%;
     color: #fff;
     letter-spacing: -0.01em;
 }
@@ -529,46 +487,70 @@ function deleteAvatar() {
     flex-shrink: 0;
 }
 
-.header-actions {
-    justify-self: end;
-    align-self: end;
+/* Рейтинг */
+.header-rating {
+    width: 100%;
     display: flex;
+    justify-content: center;
+}
+
+.rating-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.6rem 1rem 0.55rem;
+    border: 1px solid rgba(254,40,162,0.35);
+    border-radius: 3px;
+    background: rgba(254,40,162,0.04);
+    box-shadow: inset 0 0 16px rgba(254,40,162,0.05);
+    min-width: 120px;
+}
+
+.rating-label {
+    font-family: 'Figtree', sans-serif;
+    font-size: 0.58rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(254,40,162,0.55);
+}
+
+.rating-inner {
+    display: flex;
+    align-items: flex-end;
     gap: 0.4rem;
-    align-items: center;
+    line-height: 1;
 }
 
-.action-pill {
-    width: 30px; height: 30px;
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 3px;
-    background: transparent;
-    color: rgba(255,255,255,0.35);
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    text-decoration: none;
-    font-size: 0.9rem;
-    transition: color 0.15s, border-color 0.15s;
-}
-.action-pill:hover {
-    color: #FE28A2;
-    border-color: rgba(254,40,162,0.5);
+.star-img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    display: block;
+    margin-bottom: 0.15rem;
+    opacity: 0.85;
 }
 
-.subscribe-btn {
-    padding: 0.4rem 1.25rem;
-    font-size: 0.9rem;
-    font-weight: 500;
-    background: transparent;
-    border: 1px solid #FE28A2;
-    border-radius: 3px;
+.rating-num {
+    font-family: 'Dosis', sans-serif;
+    font-weight: 300;
+    font-size: 2.2rem;
+    line-height: 0.85;
     color: #fff;
-    cursor: pointer;
-    font-family: inherit;
-    letter-spacing: 0.03em;
-    transition: background 0.15s;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
 }
-.subscribe-btn:hover {
-    background: rgba(254,40,162,0.1);
+
+.rating-bar-track {
+    height: 1px;
+    background: rgba(255,255,255,0.1);
+    margin-top: 0.1rem;
+}
+
+.rating-bar-fill {
+    height: 100%;
+    width: 73%;
+    background: linear-gradient(90deg, rgba(254,40,162,0.9), rgba(254,40,162,0.4));
 }
 
 /* Edit form */
