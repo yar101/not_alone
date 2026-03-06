@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Interest;
 use App\Models\InterestCategory;
 use App\Models\PersonalityTrait;
 use App\Models\Post;
@@ -18,21 +17,12 @@ class UserProfileController extends Controller
 {
     public function show(User $user): Response
     {
-        $user->load(['traits', 'interests.category', 'languages', 'posts' => fn ($q) => $q->latest()]);
-
         $checklistSnoozed = false;
         if ($user->profile_checklist_snoozed_until !== null) {
             $checklistSnoozed = $user->profile_checklist_snoozed_until->isFuture();
         }
 
-        $allTraits = PersonalityTrait::orderBy('sort_order')->get(['id', 'name_ru']);
-        $allCategories = InterestCategory::with(['interests' => fn ($q) => $q->orderBy('sort_order')])
-            ->orderBy('sort_order')
-            ->get();
-
         return Inertia::render('Profile/Show', [
-            'allTraits'    => $allTraits,
-            'allCategories' => $allCategories,
             'profileUser' => [
                 'id'               => $user->id,
                 'name'             => $user->name,
@@ -43,22 +33,28 @@ class UserProfileController extends Controller
                 'voice_url'        => $user->voice_path ? Storage::url($user->voice_path) : null,
                 'avatar_url'       => $user->avatar_url,
                 'timezone'         => $user->timezone,
-                'traits'           => $user->traits->map(fn ($t) => ['id' => $t->id, 'name_ru' => $t->name_ru]),
-                'interests'        => $user->interests->map(fn ($i) => [
-                    'id'       => $i->id,
-                    'name_ru'  => $i->name_ru,
-                    'category' => ['id' => $i->category->id, 'name_ru' => $i->category->name_ru],
-                ]),
-                'languages'        => $user->languages->pluck('language_code'),
                 'checklist_snoozed' => $checklistSnoozed,
-                'posts'            => $user->posts->map(fn ($p) => [
-                    'id'         => $p->id,
-                    'body'       => $p->body,
-                    'photo_url'  => $p->photo_url,
-                    'created_at' => $p->created_at->translatedFormat('d M Y'),
-                ]),
             ],
             'isOwner' => auth()->id() === $user->id,
+
+            // Deferred group "about" — traits, interests, languages + their catalogs
+            'traits'        => Inertia::defer(fn () => $user->load('traits')->traits->map(fn ($t) => ['id' => $t->id, 'name_ru' => $t->name_ru]), 'about'),
+            'interests'     => Inertia::defer(fn () => $user->load('interests.category')->interests->map(fn ($i) => [
+                'id'       => $i->id,
+                'name_ru'  => $i->name_ru,
+                'category' => ['id' => $i->category->id, 'name_ru' => $i->category->name_ru],
+            ]), 'about'),
+            'languages'     => Inertia::defer(fn () => $user->load('languages')->languages->pluck('language_code'), 'about'),
+            'allTraits'     => Inertia::defer(fn () => PersonalityTrait::orderBy('sort_order')->get(['id', 'name_ru']), 'about'),
+            'allCategories' => Inertia::defer(fn () => InterestCategory::with(['interests' => fn ($q) => $q->orderBy('sort_order')])->orderBy('sort_order')->get(), 'about'),
+
+            // Deferred group "posts"
+            'posts' => Inertia::defer(fn () => $user->load(['posts' => fn ($q) => $q->latest()])->posts->map(fn ($p) => [
+                'id'         => $p->id,
+                'body'       => $p->body,
+                'photo_url'  => $p->photo_url,
+                'created_at' => $p->created_at->translatedFormat('d M Y'),
+            ]), 'posts'),
         ]);
     }
 

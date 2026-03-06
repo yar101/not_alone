@@ -18,8 +18,11 @@ function ageLabel(n) { return `${n} ${ageForms[agePR.select(n)]}`; }
 const devRating = ref(73); // 0–100
 
 const props = defineProps({
-    user: { type: Object, required: true },
-    isOwner: { type: Boolean, default: false },
+    user:      { type: Object, required: true },
+    isOwner:   { type: Boolean, default: false },
+    traits:    { default: null },
+    interests: { default: null },
+    languages: { default: null },
 });
 
 const editModal = ref(false);
@@ -228,7 +231,7 @@ function deleteAvatar() {
                         </div>
                     </div>
                 </div>
-                <ProfileChecklist v-if="isOwner" :user="user" />
+                <ProfileChecklist v-if="isOwner" :user="user" :traits="traits" :interests="interests" :languages="languages" />
             </div>
         </div>
 

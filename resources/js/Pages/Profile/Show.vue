@@ -17,8 +17,13 @@ import ProfileVoice from '@/Components/Profile/ProfileVoice.vue';
 const props = defineProps({
     profileUser:   { type: Object, required: true },
     isOwner:       { type: Boolean, default: false },
-    allTraits:     { type: Array, default: () => [] },
-    allCategories: { type: Array, default: () => [] },
+    // Deferred props — no type constraint; Inertia passes null until resolved
+    traits:        { default: null },
+    interests:     { default: null },
+    languages:     { default: null },
+    allTraits:     { default: null },
+    allCategories: { default: null },
+    posts:         { default: null },
 });
 
 // ── Email verification banner ─────────────────────────────────
@@ -182,6 +187,9 @@ onMounted(async () => {
                         :class="{ 'header-flat-bottom': !isOwner }"
                         :user="profileUser"
                         :is-owner="isOwner"
+                        :traits="traits"
+                        :interests="interests"
+                        :languages="languages"
                     />
                     <button v-if="!isOwner" class="sidebar-subscribe-btn">
                         Подписаться
@@ -226,7 +234,7 @@ onMounted(async () => {
 
                     <div v-if="tab === 'about'" key="about" class="tab-panel">
 
-                        <!-- Верх: bio слева, диск+плеер справа -->
+                        <!-- Верх: bio слева, диск+плеер справа (eager — не defer) -->
                         <div class="about-top-grid anim-block">
                             <ProfileAbout :about="profileUser.about" :is-owner="isOwner" />
                             <div id="tour-voice" class="about-voice-col">
@@ -234,11 +242,11 @@ onMounted(async () => {
                             </div>
                         </div>
 
-                        <!-- Слитая панель: характер + интересы + языки -->
-                        <div class="fused-panel">
+                        <!-- Слитая панель: характер + интересы + языки (deferred) -->
+                        <div v-if="Array.isArray(traits)" class="fused-panel">
                             <div id="tour-traits" class="anim-block">
                                 <ProfileTraits
-                                    :traits="profileUser.traits"
+                                    :traits="traits"
                                     :all-traits="allTraits"
                                     :is-owner="isOwner"
                                     :gender="profileUser.gender"
@@ -247,25 +255,30 @@ onMounted(async () => {
 
                             <div id="tour-interests" class="anim-block">
                                 <ProfileInterests
-                                    :interests="profileUser.interests"
+                                    :interests="interests"
                                     :all-categories="allCategories"
                                     :is-owner="isOwner"
                                 />
                             </div>
 
                             <div class="anim-block">
-                                <ProfileLanguages :languages="profileUser.languages" :is-owner="isOwner" />
+                                <ProfileLanguages :languages="languages" :is-owner="isOwner" />
                             </div>
+                        </div>
+                        <div v-else class="about-skeleton fused-panel">
+                            <div class="skeleton-row" />
+                            <div class="skeleton-row skeleton-row--mid" />
+                            <div class="skeleton-row skeleton-row--short" />
                         </div>
 
                     </div>
 
                     <div v-else-if="tab === 'posts'" key="posts" class="tab-panel">
-                        <div class="anim-block">
-                            <ProfilePosts
-                                :posts="profileUser.posts"
-                                :is-owner="isOwner"
-                            />
+                        <div v-if="Array.isArray(posts)" class="anim-block">
+                            <ProfilePosts :posts="posts" :is-owner="isOwner" />
+                        </div>
+                        <div v-else class="posts-skeleton">
+                            <div v-for="n in 6" :key="n" class="posts-skeleton__card" />
                         </div>
                     </div>
 
@@ -696,6 +709,39 @@ onMounted(async () => {
 .sidebar-subscribe-btn:hover {
     background: rgba(254, 40, 162, 0.1);
     color: rgba(254, 40, 162, 1);
+}
+
+/* ── Скелетоны (deferred fallback) ───────────────────────── */
+@keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position:  400px 0; }
+}
+
+.skeleton-row {
+    height: 64px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+    background-size: 800px 100%;
+    animation: shimmer 1.4s infinite linear;
+}
+.skeleton-row:first-child {
+    border-top: none;
+    height: 72px;
+}
+.skeleton-row--mid   { height: 88px; }
+.skeleton-row--short { height: 56px; }
+
+.posts-skeleton {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+}
+.posts-skeleton__card {
+    aspect-ratio: 1;
+    border-radius: 3px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+    background-size: 800px 100%;
+    animation: shimmer 1.4s infinite linear;
 }
 
 /* ── Адаптив ──────────────────────────────────────────────── */

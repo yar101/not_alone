@@ -5,7 +5,7 @@ import { Close, Delete, Plus } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 
 const props = defineProps({
-    posts:   { type: Array, default: () => [] },
+    posts:   { default: null },
     isOwner: { type: Boolean, default: false },
 });
 
@@ -99,7 +99,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
         </div>
 
         <!-- 3-col grid -->
-        <div v-if="posts.length" class="posts-grid">
+        <div v-if="posts?.length" class="posts-grid">
             <div
                 v-for="post in posts" :key="post.id"
                 class="post-tile"

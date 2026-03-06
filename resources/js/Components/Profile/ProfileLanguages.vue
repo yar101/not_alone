@@ -5,8 +5,8 @@ import { Edit } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 
 const props = defineProps({
-    languages: { type: Array, default: () => [] },
-    isOwner: { type: Boolean, default: false },
+    languages: { default: null },
+    isOwner:   { type: Boolean, default: false },
 });
 
 const editModal = ref(false);
@@ -43,7 +43,7 @@ function langInfo(code) {
     return ALL_LANGUAGES.find(l => l.code === code) ?? { code, name: code, flag: '🌐' };
 }
 
-const selected = ref(new Set(props.languages));
+const selected = ref(new Set(Array.isArray(props.languages) ? props.languages : []));
 const form = useForm({ languages: [] });
 
 function toggleLang(code) {
@@ -61,7 +61,7 @@ function submit() {
 }
 
 function openEdit() {
-    selected.value = new Set(props.languages);
+    selected.value = new Set(Array.isArray(props.languages) ? props.languages : []);
     editModal.value = true;
 }
 </script>
@@ -75,7 +75,7 @@ function openEdit() {
             </button>
         </div>
 
-        <div v-if="languages.length" class="tags-row">
+        <div v-if="languages?.length" class="tags-row">
             <span v-for="code in languages" :key="code" class="tag">
                 {{ langInfo(code).flag }} {{ langInfo(code).name }}
             </span>

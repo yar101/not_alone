@@ -5,19 +5,20 @@ import { Edit } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 
 const props = defineProps({
-    interests: { type: Array, default: () => [] },
-    allCategories: { type: Array, default: () => [] },
-    isOwner: { type: Boolean, default: false },
+    interests:     { default: null },
+    allCategories: { default: null },
+    isOwner:       { type: Boolean, default: false },
 });
 
 const editModal = ref(false);
 const openCat = ref(null);
 const interestSearch = ref('');
 
-const selected = ref(new Set(props.interests.map(i => i.id)));
+const selected = ref(new Set(Array.isArray(props.interests) ? props.interests.map(i => i.id) : []));
 const form = useForm({ interest_ids: [] });
 
 const filteredCategories = computed(() => {
+    if (!Array.isArray(props.allCategories)) return [];
     const q = interestSearch.value.trim().toLowerCase();
     if (!q) return props.allCategories;
     return props.allCategories
@@ -57,7 +58,7 @@ function submit() {
 }
 
 function openEdit() {
-    selected.value = new Set(props.interests.map(i => i.id));
+    selected.value = new Set(Array.isArray(props.interests) ? props.interests.map(i => i.id) : []);
     interestSearch.value = '';
     openCat.value = null;
     editModal.value = true;
@@ -73,7 +74,7 @@ function openEdit() {
             </button>
         </div>
 
-        <div v-if="interests.length" class="tags-row">
+        <div v-if="interests?.length" class="tags-row">
             <span v-for="i in interests" :key="i.id" class="tag">{{ i.name_ru }}</span>
         </div>
         <p v-else-if="isOwner" class="empty">Добавь свои интересы</p>
