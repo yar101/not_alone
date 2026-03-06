@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue';
 import { Link, useForm, usePage } from '@inertiajs/vue3';
 
 defineProps({
@@ -12,6 +13,24 @@ const form = useForm({
     name: user.name,
     email: user.email,
 });
+
+const NAME_RE = /^\p{L}+(\s\p{L}+)?$/u;
+const nameError = ref('');
+
+function validateName(value) {
+    if (!value.trim()) return 'Имя обязательно.';
+    if (value.trim().length < 2) return 'Имя слишком короткое.';
+    if (value.trim().length > 100) return 'Имя слишком длинное.';
+    if (!NAME_RE.test(value.trim())) return 'Одно или два слова, только буквы.';
+    return '';
+}
+
+function submit() {
+    nameError.value = validateName(form.name);
+    if (nameError.value) return;
+    form.name = form.name.trim();
+    form.patch(route('settings.update'));
+}
 </script>
 
 <template>
@@ -22,7 +41,7 @@ const form = useForm({
             <p class="card-desc">Обновите имя и email адрес аккаунта.</p>
         </div>
 
-        <form @submit.prevent="form.patch(route('settings.update'))" class="card-form">
+        <form @submit.prevent="submit" class="card-form">
             <div class="field">
                 <label for="name" class="field-label">Имя</label>
                 <input
@@ -30,12 +49,13 @@ const form = useForm({
                     v-model="form.name"
                     type="text"
                     class="field-input"
-                    :class="{ 'field-input--error': form.errors.name }"
+                    :class="{ 'field-input--error': form.errors.name || nameError }"
                     required
                     autofocus
                     autocomplete="name"
+                    @input="nameError = ''"
                 />
-                <p v-if="form.errors.name" class="field-error">{{ form.errors.name }}</p>
+                <p v-if="nameError || form.errors.name" class="field-error">{{ nameError || form.errors.name }}</p>
             </div>
 
             <div class="field">

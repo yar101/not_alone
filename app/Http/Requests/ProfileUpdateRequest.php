@@ -13,10 +13,17 @@ class ProfileUpdateRequest extends FormRequest
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
+    public function messages(): array
+    {
+        return [
+            'name.regex' => 'Имя должно содержать одно или два слова (только буквы).',
+        ];
+    }
+
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:100', 'regex:/^\p{L}+(\s\p{L}+)?$/u'],
             'email' => [
                 'required',
                 'string',

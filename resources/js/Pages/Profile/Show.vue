@@ -11,15 +11,19 @@ import ProfileAbout from '@/Components/Profile/ProfileAbout.vue';
 import ProfileTraits from '@/Components/Profile/ProfileTraits.vue';
 import ProfileInterests from '@/Components/Profile/ProfileInterests.vue';
 import ProfileLanguages from '@/Components/Profile/ProfileLanguages.vue';
-import ProfilePinnedCard from '@/Components/Profile/ProfilePinnedCard.vue';
 import ProfilePosts from '@/Components/Profile/ProfilePosts.vue';
 import ProfileVoice from '@/Components/Profile/ProfileVoice.vue';
 
 const props = defineProps({
     profileUser:   { type: Object, required: true },
     isOwner:       { type: Boolean, default: false },
-    allTraits:     { type: Array, default: () => [] },
-    allCategories: { type: Array, default: () => [] },
+    // Deferred props — no type constraint; Inertia passes null until resolved
+    traits:        { default: null },
+    interests:     { default: null },
+    languages:     { default: null },
+    allTraits:     { default: null },
+    allCategories: { default: null },
+    posts:         { default: null },
 });
 
 // ── Email verification banner ─────────────────────────────────
@@ -173,47 +177,64 @@ onMounted(async () => {
                 </button>
             </div>
 
-            <ProfileHeader class="page-block" :user="profileUser" :is-owner="isOwner" />
+            <!-- Two-column body -->
+            <div class="profile-body">
 
-            <!-- Tab bar -->
-            <div class="profile-tabs page-block">
-                <button
-                    class="tab-btn"
-                    :class="{ active: tab === 'about' }"
-                    @click="switchTab('about')"
-                >
-                    О себе
-                </button>
-                <button
-                    class="tab-btn"
-                    :class="{ active: tab === 'posts' }"
-                    @click="switchTab('posts')"
-                >
-                    Публикации
-                </button>
-                <button
-                    class="tab-btn"
-                    :class="{ active: tab === 'services' }"
-                    @click="switchTab('services')"
-                >
-                    Услуги
-                </button>
-                <button
-                    class="tab-btn"
-                    :class="{ active: tab === 'content' }"
-                    @click="switchTab('content')"
-                >
-                    Контент
-                </button>
-            </div>
+                <!-- Left sidebar: header + vertical tabs -->
+                <div class="profile-sidebar">
+                    <ProfileHeader
+                        class="page-block"
+                        :class="{ 'header-flat-bottom': !isOwner }"
+                        :user="profileUser"
+                        :is-owner="isOwner"
+                        :traits="traits"
+                        :interests="interests"
+                        :languages="languages"
+                    />
+                    <button v-if="!isOwner" class="sidebar-subscribe-btn">
+                        Подписаться
+                    </button>
 
-            <!-- Tab panels -->
-            <div class="tab-content-wrap page-block">
+                </div>
+
+                <!-- Right main: tabs + scrollable tab content -->
+                <div class="profile-main">
+                    <div class="profile-tabs page-block">
+                        <button
+                            class="tab-btn"
+                            :class="{ active: tab === 'about' }"
+                            @click="switchTab('about')"
+                        >
+                            О себе
+                        </button>
+                        <button
+                            class="tab-btn"
+                            :class="{ active: tab === 'posts' }"
+                            @click="switchTab('posts')"
+                        >
+                            Публикации
+                        </button>
+                        <button
+                            class="tab-btn"
+                            :class="{ active: tab === 'services' }"
+                            @click="switchTab('services')"
+                        >
+                            Услуги
+                        </button>
+                        <button
+                            class="tab-btn"
+                            :class="{ active: tab === 'content' }"
+                            @click="switchTab('content')"
+                        >
+                            Контент
+                        </button>
+                    </div>
+                <div class="tab-content-wrap page-block">
                 <Transition :name="tabDir > 0 ? 'slide-left' : 'slide-right'" mode="out-in">
 
                     <div v-if="tab === 'about'" key="about" class="tab-panel">
 
-                        <!-- Верх: bio слева, диск+плеер справа -->
+                        <!-- Верх: bio слева, диск+плеер справа (eager — не defer) -->
                         <div class="about-top-grid anim-block">
                             <ProfileAbout :about="profileUser.about" :is-owner="isOwner" />
                             <div id="tour-voice" class="about-voice-col">
@@ -221,11 +242,11 @@ onMounted(async () => {
                             </div>
                         </div>
 
-                        <!-- Слитая панель: характер + интересы + языки -->
-                        <div class="fused-panel">
+                        <!-- Слитая панель: характер + интересы + языки (deferred) -->
+                        <div v-if="Array.isArray(traits)" class="fused-panel">
                             <div id="tour-traits" class="anim-block">
                                 <ProfileTraits
-                                    :traits="profileUser.traits"
+                                    :traits="traits"
                                     :all-traits="allTraits"
                                     :is-owner="isOwner"
                                     :gender="profileUser.gender"
@@ -234,25 +255,30 @@ onMounted(async () => {
 
                             <div id="tour-interests" class="anim-block">
                                 <ProfileInterests
-                                    :interests="profileUser.interests"
+                                    :interests="interests"
                                     :all-categories="allCategories"
                                     :is-owner="isOwner"
                                 />
                             </div>
 
                             <div class="anim-block">
-                                <ProfileLanguages :languages="profileUser.languages" :is-owner="isOwner" />
+                                <ProfileLanguages :languages="languages" :is-owner="isOwner" />
                             </div>
+                        </div>
+                        <div v-else class="about-skeleton fused-panel">
+                            <div class="skeleton-row" />
+                            <div class="skeleton-row skeleton-row--mid" />
+                            <div class="skeleton-row skeleton-row--short" />
                         </div>
 
                     </div>
 
                     <div v-else-if="tab === 'posts'" key="posts" class="tab-panel">
-                        <div class="anim-block">
-                            <ProfilePinnedCard :user="profileUser" :is-owner="isOwner" />
+                        <div v-if="Array.isArray(posts)" class="anim-block">
+                            <ProfilePosts :posts="posts" :is-owner="isOwner" />
                         </div>
-                        <div class="anim-block">
-                            <ProfilePosts :posts="profileUser.posts" :is-owner="isOwner" />
+                        <div v-else class="posts-skeleton">
+                            <div v-for="n in 6" :key="n" class="posts-skeleton__card" />
                         </div>
                     </div>
 
@@ -289,7 +315,10 @@ onMounted(async () => {
                     </div>
 
                 </Transition>
-            </div>
+                </div><!-- /tab-content-wrap -->
+                </div><!-- /profile-main -->
+
+            </div><!-- /profile-body -->
 
         </div>
     </div>
@@ -424,43 +453,103 @@ onMounted(async () => {
     flex-direction: column;
 }
 
-:deep(#tour-header) { flex-shrink: 0; }
+/* ── Two-column body ──────────────────────────────────────── */
+.profile-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    gap: 1rem;
+}
 
-/* ── Таббар ───────────────────────────────────────────────── */
+.profile-sidebar {
+    width: 300px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    padding-right: 1rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(254,40,162,0.25) transparent;
+}
+.profile-sidebar::-webkit-scrollbar { width: 3px; }
+.profile-sidebar::-webkit-scrollbar-track { background: transparent; }
+.profile-sidebar::-webkit-scrollbar-thumb {
+    background: rgba(254,40,162,0.28);
+    border-radius: 999px;
+}
+
+.profile-main {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding-left: 0.25rem;
+}
+
+
+/* ── Таббар (horizontal) ──────────────────────────────────── */
 .profile-tabs {
     display: flex;
-    justify-content: center;
+    flex-direction: row;
     flex-shrink: 0;
     background: transparent;
     border: none;
-    padding: 0.5rem 0.75rem;
-    gap: 0.2rem;
+    padding: 0.25rem 0;
+    gap: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-bottom: 0.75rem;
 }
+.profile-tabs::-webkit-scrollbar { display: none; }
 
 .tab-btn {
-    padding: 0.5rem 1.1rem;
+    padding: 0.55rem 0.85rem;
     border: none;
-    border-radius: 3px;
+    border-radius: 3px 3px 0 0;
     background: transparent;
-    color: rgba(255,255,255,0.55);
-    font-size: 0.85rem;
-    letter-spacing: 0.08em;
+    color: rgba(255,255,255,0.45);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     cursor: pointer;
     font-family: inherit;
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    transition: background 0.2s ease, color 0.2s ease;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: background 0.18s ease, color 0.18s ease;
     white-space: nowrap;
+    flex-shrink: 0;
+    position: relative;
+}
+.tab-btn::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%) scaleX(0);
+    width: 60%;
+    height: 2px;
+    background: #FE28A2;
+    border-radius: 2px 2px 0 0;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.18s ease;
+    opacity: 0;
 }
 .tab-btn.active {
-    background: rgba(254, 40, 162, 0.14);
-    color: #FE28A2;
+    background: rgba(254, 40, 162, 0.08);
+    color: rgba(254, 40, 162, 0.95);
+}
+.tab-btn.active::before {
+    transform: translateX(-50%) scaleX(1);
+    opacity: 1;
 }
 .tab-btn:hover:not(.active) {
-    background: rgba(255,255,255,0.06);
-    color: rgba(255,255,255,0.8);
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.75);
 }
 
 /* ── Контент ──────────────────────────────────────────────── */
@@ -594,7 +683,94 @@ onMounted(async () => {
 }
 .idol-cta-btn:hover { opacity: 0.85; }
 
+/* ── Subscribe button fused below header ─────────────────── */
+.profile-sidebar :deep(.profile-header.header-flat-bottom) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom: none;
+}
+
+.sidebar-subscribe-btn {
+    width: 100%;
+    padding: 0.5rem;
+    background: rgba(254, 40, 162, 0.05);
+    border: 1px solid rgba(254, 40, 162, 0.35);
+    border-top: none;
+    border-radius: 0 0 3px 3px;
+    color: rgba(254, 40, 162, 0.75);
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+}
+.sidebar-subscribe-btn:hover {
+    background: rgba(254, 40, 162, 0.1);
+    color: rgba(254, 40, 162, 1);
+}
+
+/* ── Скелетоны (deferred fallback) ───────────────────────── */
+@keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position:  400px 0; }
+}
+
+.skeleton-row {
+    height: 64px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+    background-size: 800px 100%;
+    animation: shimmer 1.4s infinite linear;
+}
+.skeleton-row:first-child {
+    border-top: none;
+    height: 72px;
+}
+.skeleton-row--mid   { height: 88px; }
+.skeleton-row--short { height: 56px; }
+
+.posts-skeleton {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+}
+.posts-skeleton__card {
+    aspect-ratio: 1;
+    border-radius: 3px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+    background-size: 800px 100%;
+    animation: shimmer 1.4s infinite linear;
+}
+
 /* ── Адаптив ──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .profile-page {
+        height: auto;
+        overflow: visible;
+        padding: 0 1rem;
+    }
+    .profile-container {
+        height: auto;
+    }
+    .profile-body {
+        flex-direction: column;
+    }
+    .profile-sidebar {
+        width: 100%;
+        overflow: visible;
+        border-right: none;
+        padding-right: 0;
+    }
+    .profile-main {
+        padding-left: 0;
+    }
+    .profile-main {
+        height: 60vh;
+    }
+}
+
 @media (max-width: 700px) {
     .about-top-grid {
         grid-template-columns: 1fr;

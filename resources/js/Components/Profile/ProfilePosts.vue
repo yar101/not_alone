@@ -1,11 +1,11 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
-import { Close } from '@element-plus/icons-vue';
+import { Close, Delete, Plus } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 
 const props = defineProps({
-    posts:   { type: Array, default: () => [] },
+    posts:   { default: null },
     isOwner: { type: Boolean, default: false },
 });
 
@@ -41,11 +41,29 @@ function submitPost() {
     });
 }
 
-function deletePost(postId) {
-    router.delete(route('profile.posts.destroy', postId), {
+// ── Delete confirmation ────────────────────────────────────
+const confirmDeleteId = ref(null);
+
+function confirmDelete(postId) {
+    confirmDeleteId.value = postId;
+}
+
+function deletePost() {
+    router.delete(route('profile.posts.destroy', confirmDeleteId.value), {
         preserveState: true,
         preserveScroll: true,
+        onSuccess: () => {
+            confirmDeleteId.value = null;
+            selectedPost.value = null;
+        },
     });
+}
+
+// ── Post view ─────────────────────────────────────────────
+const selectedPost = ref(null);
+
+function openPost(post) {
+    selectedPost.value = post;
 }
 
 // ── Lightbox ──────────────────────────────────────────────
@@ -60,7 +78,10 @@ function closeLightbox() {
 }
 
 function onKeydown(e) {
-    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'Escape') {
+        if (lightboxSrc.value) { closeLightbox(); return; }
+        selectedPost.value = null;
+    }
 }
 
 onMounted(() => window.addEventListener('keydown', onKeydown));
@@ -69,33 +90,44 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 
 <template>
     <div class="posts-section">
-        <!-- Inline add-post button for owner -->
-        <button v-if="isOwner" class="add-post-btn" @click="createModal = true">
-            + Новая запись
-        </button>
+        <!-- Toolbar: create button for owner -->
+        <div v-if="isOwner" class="posts-toolbar">
+            <button class="post-add-btn" @click="createModal = true">
+                <el-icon class="post-add-btn__icon"><Plus /></el-icon>
+                <span>Новая запись</span>
+            </button>
+        </div>
 
-        <!-- Posts list -->
-        <div v-if="posts.length > 0" class="posts-list">
-            <div v-for="post in posts" :key="post.id" class="post-card block-card">
-                <div v-if="post.photo_url" class="post-photo-wrap" @click="openLightbox(post.photo_url)">
-                    <img :src="post.photo_url" alt="" class="post-photo" />
-                </div>
-                <div class="post-body">
-                    <p class="post-text">{{ post.body }}</p>
-                    <div class="post-footer">
-                        <span class="post-date">{{ post.created_at }}</span>
-                        <button
-                            v-if="isOwner"
-                            class="post-delete-btn"
-                            @click="deletePost(post.id)"
-                            title="Удалить"
-                        ><el-icon><Close /></el-icon></button>
-                    </div>
+        <!-- 3-col grid -->
+        <div v-if="posts?.length" class="posts-grid">
+            <div
+                v-for="post in posts" :key="post.id"
+                class="post-tile"
+                :class="{ 'post-tile--text': !post.photo_url }"
+                @click="openPost(post)"
+            >
+                <img v-if="post.photo_url" :src="post.photo_url" class="post-tile__img"
+                     @click.stop="openLightbox(post.photo_url)" />
+                <template v-else>
+                    <p class="post-tile__text">{{ post.body }}</p>
+                    <span class="post-tile__meta">{{ post.created_at }}</span>
+                </template>
+
+                <!-- Hover overlay: date + delete (owner only) -->
+                <div class="post-tile__overlay">
+                    <span class="post-tile__date">{{ post.created_at }}</span>
+                    <button v-if="isOwner" class="post-tile__del"
+                            @click.stop="confirmDelete(post.id)" title="Удалить">
+                        <el-icon class="post-tile__del-icon"><Delete /></el-icon>
+                    </button>
                 </div>
             </div>
         </div>
 
-        <p v-else-if="!isOwner" class="posts-empty">Записей пока нет.</p>
+        <!-- Empty state -->
+        <p v-else class="posts-empty">
+            {{ isOwner ? 'Нет публикаций — поделись чем-нибудь' : 'Публикаций пока нет' }}
+        </p>
 
         <!-- Lightbox -->
         <Teleport to="body">
@@ -104,161 +136,198 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
             </div>
         </Teleport>
 
+        <!-- Post view modal -->
+        <SiteModal :show="!!selectedPost" variant="pink" :compact="true" @close="selectedPost = null">
+            <div v-if="selectedPost" class="view-post">
+                <div class="view-post__scroll">
+                    <img v-if="selectedPost.photo_url"
+                         :src="selectedPost.photo_url"
+                         class="view-post__photo"
+                         @click="openLightbox(selectedPost.photo_url)" />
+                    <p class="view-post__body">{{ selectedPost.body }}</p>
+                </div>
+                <div class="view-post__footer">
+                    <span class="view-post__date">{{ selectedPost.created_at }}</span>
+                    <button v-if="isOwner" class="view-post__del"
+                            @click="confirmDelete(selectedPost.id)"
+                            title="Удалить запись">
+                        <el-icon><Delete /></el-icon>
+                        <span>Удалить запись</span>
+                    </button>
+                </div>
+            </div>
+        </SiteModal>
+
+        <!-- Delete confirmation modal -->
+        <SiteModal :show="confirmDeleteId !== null" variant="pink" :compact="true" @close="confirmDeleteId = null">
+            <div class="confirm-delete">
+                <p class="confirm-delete__text">Удалить запись? Это действие нельзя отменить.</p>
+                <div class="confirm-delete__actions">
+                    <button class="confirm-delete__cancel" @click="confirmDeleteId = null">Отмена</button>
+                    <button class="confirm-delete__confirm" @click="deletePost">Удалить</button>
+                </div>
+            </div>
+        </SiteModal>
+
         <!-- Create post modal -->
         <SiteModal :show="createModal" variant="pink" :compact="false" @close="createModal = false">
             <div class="create-form">
                 <h3 class="create-title">Новая запись</h3>
 
-                <div class="create-layout">
-                    <!-- Left: form -->
-                    <div class="create-left">
-                        <textarea
-                            v-model="form.body"
-                            class="post-textarea"
-                            placeholder="Напиши что-нибудь..."
-                            rows="5"
-                            maxlength="2000"
-                        />
-                        <div class="char-count">{{ form.body.length }}/2000</div>
-
-                        <div v-if="photoPreview" class="photo-preview-wrap">
-                            <img :src="photoPreview" alt="Preview" class="photo-preview" />
-                            <button class="remove-photo-btn" type="button" @click="removePhoto"><el-icon><Close /></el-icon></button>
-                        </div>
-
-                        <label class="photo-label">
-                            <input type="file" accept="image/jpeg,image/png,image/webp" class="hidden-input" @change="onPhotoChange" />
-                            <span class="photo-btn">{{ photoPreview ? 'Сменить фото' : '+ Добавить фото' }}</span>
-                        </label>
-
-                        <button
-                            class="save-btn"
-                            :disabled="form.processing || !form.body.trim()"
-                            @click="submitPost"
-                        >Опубликовать</button>
-                    </div>
-
-                    <!-- Right: live preview -->
-                    <div class="create-right">
-                        <div class="preview-label">Предпросмотр</div>
-                        <div class="preview-card">
-                            <div v-if="photoPreview" class="preview-photo-wrap">
-                                <img :src="photoPreview" alt="" class="preview-photo" />
-                            </div>
-                            <div class="preview-body">
-                                <p class="preview-text">{{ form.body || 'Текст записи...' }}</p>
-                                <span class="preview-date">сегодня</span>
-                            </div>
-                        </div>
-                    </div>
+                <div v-if="photoPreview" class="photo-preview-wrap">
+                    <img :src="photoPreview" alt="Preview" class="photo-preview" />
+                    <button class="remove-photo-btn" type="button" @click="removePhoto"><el-icon><Close /></el-icon></button>
                 </div>
+
+                <textarea
+                    v-model="form.body"
+                    class="post-textarea"
+                    placeholder="Напиши что-нибудь..."
+                    rows="5"
+                    maxlength="2000"
+                />
+                <div class="char-count">{{ form.body.length }}/2000</div>
+
+                <label class="photo-label">
+                    <input type="file" accept="image/jpeg,image/png,image/webp" class="hidden-input" @change="onPhotoChange" />
+                    <span class="photo-btn">{{ photoPreview ? 'Сменить фото' : '+ Добавить фото' }}</span>
+                </label>
+
+                <button
+                    class="save-btn"
+                    :disabled="form.processing || !form.body.trim()"
+                    @click="submitPost"
+                >Опубликовать</button>
             </div>
         </SiteModal>
     </div>
 </template>
 
 <style scoped>
-.posts-section { display: flex; flex-direction: column; gap: 1rem; }
+.posts-section { display: flex; flex-direction: column; gap: 0.5rem; }
 
-/* Inline add button */
-.add-post-btn {
-    width: 100%;
-    padding: 0.7rem;
-    border-radius: 3px;
-    border: 1px dashed rgba(200,70,126,0.35);
-    background: transparent;
-    color: rgba(200,70,126,0.7);
-    font-size: 0.9rem;
-    font-family: inherit;
+/* Toolbar */
+.posts-toolbar { display: flex; justify-content: flex-start; margin-bottom: 0.5rem; }
+.post-add-btn {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.38rem 0.85rem;
+    background: rgba(200,70,126,0.1);
+    border: 1px solid rgba(200,70,126,0.3);
+    border-radius: 6px;
     cursor: pointer;
-    transition: all 0.2s;
+    color: rgba(200,70,126,0.85);
+    font-size: 0.82rem;
+    font-family: inherit;
+    transition: background 0.18s, border-color 0.18s, color 0.18s, box-shadow 0.18s;
 }
-.add-post-btn:hover {
-    background: rgba(200,70,126,0.06);
-    border-color: rgba(200,70,126,0.6);
-    color: rgba(200,70,126,1);
+.post-add-btn__icon { font-size: 0.85rem; }
+.post-add-btn:hover {
+    background: rgba(200,70,126,0.2);
+    border-color: rgba(200,70,126,0.55);
+    color: rgba(220,100,145,1);
+    box-shadow: 0 0 12px rgba(200,70,126,0.18);
 }
 
-.posts-list { display: flex; flex-direction: column; gap: 1rem; }
+/* Grid */
+.posts-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    padding-right: 4px;
+}
 
-.post-card {
-    background: rgba(255,255,255,0.045);
-    border: 1px solid rgba(255,255,255,0.09);
-    border-radius: 3px;
-    overflow: hidden;
+/* Tile base */
+.post-tile {
     position: relative;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.2s ease;
-}
-.post-card::before {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 1px; z-index: 1;
-    background: linear-gradient(90deg, transparent 0%, rgba(200,70,126,0.4) 40%, rgba(120,70,200,0.3) 70%, transparent 100%);
-}
-.post-card:hover {
-    transform: translateY(-2px);
-    border-color: rgba(200,70,126,0.2);
-    box-shadow: 0 12px 36px rgba(0,0,0,0.4), 0 0 0 1px rgba(200,70,126,0.08), 0 0 40px rgba(200,70,126,0.06);
-}
-
-/* Square photo — Instagram style */
-.post-photo-wrap {
-    width: 100%;
     aspect-ratio: 1 / 1;
     overflow: hidden;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.03);
+    cursor: pointer;
+}
+
+/* Photo tile */
+.post-tile__img {
+    width: 100%; height: 100%;
+    object-fit: cover; display: block;
+    transition: transform 0.3s ease;
     cursor: zoom-in;
 }
-.post-photo {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    transition: transform 0.3s ease;
-}
-.post-photo-wrap:hover .post-photo { transform: scale(1.03); }
+.post-tile:hover .post-tile__img { transform: scale(1.04); }
 
-.post-body { padding: 1rem 1.25rem; }
-
-.post-text {
-    font-size: 0.95rem;
-    color: rgba(255,255,255,0.8);
-    margin: 0 0 0.75rem;
-    white-space: pre-wrap;
-    word-break: break-word;
-    line-height: 1.55;
-}
-
-.post-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.post-date {
-    font-size: 0.72rem;
-    color: rgba(255,255,255,0.4);
-    background: rgba(255,255,255,0.05);
+/* Text tile */
+.post-tile--text {
     border: 1px solid rgba(255,255,255,0.07);
-    padding: 0.15rem 0.55rem;
-    border-radius: 3px;
-    letter-spacing: 0.02em;
+    box-sizing: border-box;
+    padding: 0.45rem;
+    display: flex; flex-direction: column; justify-content: space-between;
 }
-
-.post-delete-btn {
-    background: none; border: none; cursor: pointer;
-    color: rgba(255,255,255,0.2); font-size: 0.85rem;
-    padding: 0.2rem 0.4rem; border-radius: 3px;
-    transition: color 0.2s, background 0.2s;
+.post-tile--text::after {
+    content: '';
+    position: absolute; top: 0; left: 0; bottom: 0; width: 2px;
+    background: rgba(200,70,126,0.45);
 }
-.post-delete-btn:hover { color: rgba(200,70,126,0.8); background: rgba(200,70,126,0.08); }
-
-.posts-empty {
-    font-size: 0.88rem;
-    color: rgba(255,255,255,0.3);
-    text-align: center;
-    padding: 1.5rem 0;
+.post-tile__text {
+    font-size: 0.65rem; line-height: 1.4;
+    color: rgba(255,255,255,0.7);
     margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+}
+.post-tile__meta {
+    font-size: 0.58rem;
+    color: rgba(255,255,255,0.28);
+    margin-top: 0.3rem;
+    flex-shrink: 0;
+}
+
+/* Hover overlay */
+.post-tile__overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(
+        to top,
+        rgba(0,0,0,0.88) 0%,
+        rgba(0,0,0,0.35) 45%,
+        transparent 100%
+    );
+    display: flex; align-items: flex-end; justify-content: space-between;
+    padding: 0.38rem 0.35rem 0.35rem;
+    opacity: 0; transition: opacity 0.22s ease;
+}
+.post-tile:hover .post-tile__overlay { opacity: 1; }
+.post-tile__date {
+    font-size: 0.58rem;
+    color: rgba(255,255,255,0.92);
+    line-height: 1;
+    letter-spacing: 0.02em;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+}
+.post-tile__del {
+    display: flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px;
+    background: rgba(160,30,55,0.82);
+    border: 1px solid rgba(220,60,90,0.55);
+    border-radius: 4px;
+    cursor: pointer;
+    color: rgba(255,200,210,0.95);
+    padding: 0;
+    transition: background 0.15s, box-shadow 0.15s, transform 0.12s;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+}
+.post-tile__del-icon { font-size: 0.7rem; }
+.post-tile__del:hover {
+    background: rgba(210,40,75,0.95);
+    box-shadow: 0 0 10px rgba(210,40,75,0.5), 0 2px 6px rgba(0,0,0,0.4);
+    transform: scale(1.1);
+}
+
+/* Empty state */
+.posts-empty {
+    padding: 2rem 0; text-align: center;
+    font-size: 0.82rem; color: rgba(255,255,255,0.2); margin: 0;
 }
 
 /* Lightbox */
@@ -279,18 +348,85 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
     box-shadow: 0 16px 64px rgba(0,0,0,0.7);
 }
 
-/* Create form */
-.create-form { padding: 0.5rem 0.25rem; }
-.create-title { font-size: 1.1rem; font-weight: 600; color: rgba(255,255,255,0.9); margin: 0 0 1rem; }
-
-.create-layout {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.25rem;
-    align-items: start;
+/* Post view modal */
+.view-post {
+    display: flex; flex-direction: column;
+    /* fills modal body so sticky footer works */
+    margin: -0.25rem 0;
+}
+.view-post__scroll {
+    display: flex; flex-direction: column; gap: 0.85rem;
+    overflow-y: auto;
+    padding: 0.25rem 0 0.75rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.08) transparent;
+}
+.view-post__scroll::-webkit-scrollbar { width: 3px; }
+.view-post__scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+.view-post__photo {
+    width: 100%; border-radius: 4px; display: block;
+    object-fit: cover; max-height: 280px;
+    cursor: zoom-in;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    flex-shrink: 0;
+}
+.view-post__body {
+    font-size: 0.9rem; line-height: 1.65;
+    color: rgba(255,255,255,0.82);
+    margin: 0; white-space: pre-wrap; word-break: break-word;
+}
+.view-post__footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    margin-top: auto;
+}
+.view-post__date {
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.view-post__del {
+    display: flex; align-items: center; gap: 0.28rem;
+    padding: 0.22rem 0.5rem;
+    background: rgba(140,25,50,0.22);
+    border: 1px solid rgba(200,50,80,0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    color: rgba(220,100,120,0.85);
+    font-size: 0.7rem;
+    font-family: inherit;
+    transition: background 0.18s, border-color 0.18s, color 0.18s, box-shadow 0.18s;
+}
+.view-post__del:hover {
+    background: rgba(180,35,65,0.4);
+    border-color: rgba(220,70,100,0.55);
+    color: rgba(255,145,160,1);
+    box-shadow: 0 0 10px rgba(200,40,75,0.22);
 }
 
-.create-left { display: flex; flex-direction: column; }
+/* Create form */
+.create-form { padding: 0.5rem 0.25rem; display: flex; flex-direction: column; }
+.create-title { font-size: 1.1rem; font-weight: 600; color: rgba(255,255,255,0.9); margin: 0 0 1rem; }
+
+.photo-preview-wrap {
+    position: relative;
+    margin-bottom: 0.75rem;
+}
+.photo-preview {
+    max-width: 100%; max-height: 160px;
+    width: auto; height: auto;
+    object-fit: contain; border-radius: 3px;
+    display: block; margin: 0 auto;
+}
+.remove-photo-btn {
+    position: absolute; top: 0.4rem; right: 0.4rem;
+    background: rgba(0,0,0,0.6); border: none;
+    color: #fff; font-size: 0.8rem;
+    width: 24px; height: 24px; border-radius: 50%;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
 
 .post-textarea {
     width: 100%; box-sizing: border-box;
@@ -314,23 +450,6 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
     margin: 0.25rem 0 1rem;
 }
 
-.photo-preview-wrap {
-    position: relative;
-    margin-bottom: 0.75rem;
-}
-.photo-preview {
-    width: 100%; max-height: 200px;
-    object-fit: cover; border-radius: 3px;
-    display: block;
-}
-.remove-photo-btn {
-    position: absolute; top: 0.4rem; right: 0.4rem;
-    background: rgba(0,0,0,0.6); border: none;
-    color: #fff; font-size: 0.8rem;
-    width: 24px; height: 24px; border-radius: 50%;
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-}
-
 .hidden-input { display: none; }
 .photo-label { display: block; margin-bottom: 1rem; cursor: pointer; }
 .photo-btn {
@@ -344,6 +463,48 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 }
 .photo-label:hover .photo-btn { color: rgba(200,70,126,1); border-color: rgba(200,70,126,0.6); }
 
+/* Delete confirmation */
+.confirm-delete {
+    display: flex; flex-direction: column; gap: 1.25rem;
+    padding: 0.25rem 0;
+}
+.confirm-delete__text {
+    font-size: 0.9rem;
+    color: rgba(255,255,255,0.75);
+    margin: 0;
+    line-height: 1.5;
+}
+.confirm-delete__actions {
+    display: flex; gap: 0.6rem; justify-content: flex-end;
+}
+.confirm-delete__cancel {
+    padding: 0.45rem 1rem;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 4px;
+    color: rgba(255,255,255,0.5);
+    font-size: 0.85rem; font-family: inherit; cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+.confirm-delete__cancel:hover {
+    border-color: rgba(255,255,255,0.25);
+    color: rgba(255,255,255,0.8);
+}
+.confirm-delete__confirm {
+    padding: 0.45rem 1rem;
+    background: rgba(180,30,60,0.25);
+    border: 1px solid rgba(210,50,80,0.4);
+    border-radius: 4px;
+    color: rgba(255,140,155,0.95);
+    font-size: 0.85rem; font-family: inherit; cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.confirm-delete__confirm:hover {
+    background: rgba(210,40,75,0.4);
+    border-color: rgba(230,70,100,0.65);
+    box-shadow: 0 0 10px rgba(210,40,75,0.25);
+}
+
 .save-btn {
     width: 100%; padding: 0.8rem; border-radius: 3px;
     border: 1px solid rgba(200,70,126,0.35);
@@ -352,55 +513,4 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 }
 .save-btn:hover:not(:disabled) { background: linear-gradient(135deg, rgba(200,70,126,0.38), rgba(200,70,126,0.18)); }
 .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* Live preview panel */
-.create-right { display: flex; flex-direction: column; gap: 0.5rem; }
-
-.preview-label {
-    font-size: 0.68rem;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: rgba(200,70,126,0.5);
-}
-
-.preview-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 3px;
-    overflow: hidden;
-}
-
-.preview-photo-wrap {
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    overflow: hidden;
-}
-.preview-photo {
-    width: 100%; height: 100%;
-    object-fit: cover;
-    display: block;
-}
-
-.preview-body { padding: 0.75rem 1rem; }
-
-.preview-text {
-    font-size: 0.88rem;
-    color: rgba(255,255,255,0.6);
-    margin: 0 0 0.5rem;
-    white-space: pre-wrap;
-    word-break: break-word;
-    line-height: 1.5;
-    min-height: 2.5em;
-    font-style: italic;
-}
-
-.preview-date {
-    font-size: 0.72rem;
-    color: rgba(255,255,255,0.25);
-}
-
-@media (max-width: 640px) {
-    .create-layout { grid-template-columns: 1fr; }
-    .create-right { display: none; }
-}
 </style>

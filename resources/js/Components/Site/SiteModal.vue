@@ -185,9 +185,9 @@ onUnmounted(() => {
 
 @media (min-width: 769px) {
     .site-modal-sheet--compact {
-        width: clamp(420px, 25vw, 520px);
+        width: clamp(440px, 36vw, 620px);
         height: auto;
-        max-height: 90vh;
+        max-height: 68vh;
     }
 }
 
@@ -295,38 +295,37 @@ onUnmounted(() => {
 /* ── Close button ──────────────────────────────────── */
 .site-modal-close {
     position: absolute;
-    top: 1.1rem;
-    right: 1.1rem;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.04);
-    color: rgba(255, 255, 255, 0.4);
+    top: 0.85rem;
+    right: 0.85rem;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.28);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    transition: color 0.18s ease, background 0.18s ease, transform 0.22s ease;
     z-index: 10;
     flex-shrink: 0;
 }
 
 .site-modal-close:hover {
-    color: rgba(255, 255, 255, 0.9);
-    transform: scale(1.08);
+    color: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.06);
+    transform: rotate(90deg);
 }
 
 .site-modal-close-pink:hover {
-    background: rgba(200, 70, 126, 0.18);
-    border-color: rgba(200, 70, 126, 0.4);
-    box-shadow: 0 0 12px rgba(200, 70, 126, 0.25);
+    color: rgba(220, 100, 145, 0.9);
+    background: rgba(200, 70, 126, 0.1);
 }
 
 .site-modal-close-cyan:hover {
-    background: rgba(42, 255, 220, 0.12);
-    border-color: rgba(42, 255, 220, 0.35);
-    box-shadow: 0 0 12px rgba(42, 255, 220, 0.2);
+    color: rgba(42, 255, 220, 0.8);
+    background: rgba(42, 255, 220, 0.07);
 }
 
 /* ── Body ──────────────────────────────────────────── */
@@ -334,7 +333,8 @@ onUnmounted(() => {
     flex: 1;
     overflow-y: auto;
     padding: 2rem;
-    padding-top: 1.5rem;
+    padding-top: 3rem;
+    padding-right: 3rem;
     position: relative;
     z-index: 1;
     scrollbar-width: thin;
@@ -344,7 +344,7 @@ onUnmounted(() => {
 @media (max-width: 768px) {
     .site-modal-body {
         padding: 1.25rem;
-        padding-top: 2.75rem;
+        padding-top: 3rem;
     }
 }
 

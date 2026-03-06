@@ -41,8 +41,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/profile/checklist',           [UserProfileController::class, 'updateChecklist'])->name('profile.update.checklist');
     Route::post('/profile/avatar',               [UserProfileController::class, 'updateAvatar'])->name('profile.update.avatar');
     Route::delete('/profile/avatar',             [UserProfileController::class, 'deleteAvatar'])->name('profile.delete.avatar');
-    Route::post('/profile/pinned-card',          [UserProfileController::class, 'updatePinnedCard'])->name('profile.pinned-card.update');
-    Route::delete('/profile/pinned-card/photo',  [UserProfileController::class, 'deletePinnedPhoto'])->name('profile.pinned-card.delete-photo');
     Route::post('/profile/posts',                [UserProfileController::class, 'storePost'])->name('profile.posts.store');
     Route::delete('/profile/posts/{post}',       [UserProfileController::class, 'destroyPost'])->name('profile.posts.destroy');
 });

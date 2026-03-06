@@ -38,7 +38,9 @@ const showIdolBtn = computed(() => user.value && !isIdol.value && idolStatus.val
                         />
                         <span v-else class="user-avatar__initials">{{ initials }}</span>
                     </div>
-                    <span class="user-name">{{ user?.name }}</span>
+                    <span class="user-name-clip">
+                        <span class="user-name">{{ user?.name }}</span>
+                    </span>
                 </Link>
             </div>
         </header>
@@ -141,17 +143,32 @@ const showIdolBtn = computed(() => user.value && !isIdol.value && idolStatus.val
 }
 
 /* ── User name ───────────────────────────────────────────── */
+.user-name-clip {
+    max-width: 160px;
+    overflow: hidden;
+    display: inline-block;
+    vertical-align: middle;
+}
+
 .user-name {
     font-size: 0.875rem;
     color: rgba(255, 255, 255, 0.65);
     font-family: 'Figtree', sans-serif;
-    max-width: 160px;
-    overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
+    display: inline-block;
     transition: color 0.18s;
 }
 .user-chip:hover .user-name { color: rgba(255, 255, 255, 0.9); }
+
+.user-chip:hover .user-name {
+    animation: user-name-scroll 2.5s ease-in-out infinite alternate;
+    animation-delay: 0.5s;
+}
+
+@keyframes user-name-scroll {
+    0%,  20% { transform: translateX(0); }
+    80%, 100% { transform: translateX(min(0px, calc(160px - 100%))); }
+}
 
 /* ── Main ────────────────────────────────────────────────── */
 .app-main {
@@ -189,7 +206,7 @@ const showIdolBtn = computed(() => user.value && !isIdol.value && idolStatus.val
 
 /* ── Mobile ──────────────────────────────────────────────── */
 @media (max-width: 639px) {
-    .user-name { display: none; }
+    .user-name-clip { display: none; }
     .user-chip { padding: 0.25rem; }
 }
 </style>

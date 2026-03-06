@@ -5,15 +5,15 @@ import { Edit } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 
 const props = defineProps({
-    traits: { type: Array, default: () => [] },
-    allTraits: { type: Array, default: () => [] },
-    isOwner: { type: Boolean, default: false },
-    gender: { type: String, default: 'male' },
+    traits:    { default: null },
+    allTraits: { default: null },
+    isOwner:   { type: Boolean, default: false },
+    gender:    { type: String, default: 'male' },
 });
 
 const editModal = ref(false);
 const traitSearch = ref('');
-const selected = ref(new Set(props.traits.map(t => t.id)));
+const selected = ref(new Set(Array.isArray(props.traits) ? props.traits.map(t => t.id) : []));
 const form = useForm({ trait_ids: [] });
 
 function applyGender(name, gender) {
@@ -24,6 +24,7 @@ function applyGender(name, gender) {
 }
 
 const filteredTraits = computed(() => {
+    if (!Array.isArray(props.allTraits)) return [];
     if (!traitSearch.value.trim()) return props.allTraits;
     const q = traitSearch.value.toLowerCase();
     return props.allTraits.filter(t => t.name_ru.toLowerCase().includes(q));
@@ -44,7 +45,7 @@ function submit() {
 }
 
 function openEdit() {
-    selected.value = new Set(props.traits.map(t => t.id));
+    selected.value = new Set(Array.isArray(props.traits) ? props.traits.map(t => t.id) : []);
     traitSearch.value = '';
     editModal.value = true;
 }
@@ -59,7 +60,7 @@ function openEdit() {
             </button>
         </div>
 
-        <div v-if="traits.length" class="tags-row">
+        <div v-if="traits?.length" class="tags-row">
             <span v-for="t in traits" :key="t.id" class="tag">
                 {{ applyGender(t.name_ru, gender) }}
             </span>

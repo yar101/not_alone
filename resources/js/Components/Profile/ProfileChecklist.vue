@@ -3,18 +3,21 @@ import { ref, computed } from 'vue';
 import { Check, Minus } from '@element-plus/icons-vue';
 
 const props = defineProps({
-    user: { type: Object, required: true },
+    user:      { type: Object, required: true },
+    traits:    { default: null },
+    interests: { default: null },
+    languages: { default: null },
 });
 
 const open = ref(false);
 
 const items = computed(() => [
-    { key: 'about',     label: 'Заполни «Обо мне»',       done: !!props.user.about },
-    { key: 'traits',    label: 'Добавь черты характера',   done: props.user.traits.length > 0 },
-    { key: 'interests', label: 'Добавь интересы',          done: props.user.interests.length > 0 },
-    { key: 'voice',     label: 'Запиши аудио',         done: !!props.user.voice_url },
-    { key: 'languages', label: 'Укажи языки',              done: props.user.languages.length > 0 },
-    { key: 'timezone',  label: 'Укажи часовой пояс',       done: !!props.user.timezone },
+    { key: 'about',     label: 'Заполни «Обо мне»',     done: !!props.user.about },
+    { key: 'traits',    label: 'Добавь черты характера', done: (props.traits?.length ?? 0) > 0 },
+    { key: 'interests', label: 'Добавь интересы',        done: (props.interests?.length ?? 0) > 0 },
+    { key: 'voice',     label: 'Запиши аудио',           done: !!props.user.voice_url },
+    { key: 'languages', label: 'Укажи языки',            done: (props.languages?.length ?? 0) > 0 },
+    { key: 'timezone',  label: 'Укажи часовой пояс',     done: !!props.user.timezone },
 ]);
 
 const doneCount = computed(() => items.value.filter(i => i.done).length);
