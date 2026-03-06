@@ -99,9 +99,15 @@ class UserProfileController extends Controller
     public function updateHeader(Request $request): RedirectResponse
     {
         $data = $request->validate([
+            'name'       => ['required', 'string', 'min:2', 'max:100', 'regex:/^\p{L}+(\s\p{L}+)?$/u'],
             'gender'     => ['nullable', 'in:male,female'],
             'birth_date' => ['nullable', 'date', 'before:' . now()->subYears(18)->toDateString()],
             'timezone'   => ['nullable', 'string', 'max:60', 'timezone:all'],
+        ], [
+            'name.required' => 'Имя обязательно.',
+            'name.min'      => 'Имя слишком короткое.',
+            'name.max'      => 'Имя слишком длинное.',
+            'name.regex'    => 'Имя должно содержать одно или два слова (только буквы).',
         ]);
         $request->user()->update($data);
         return back();
