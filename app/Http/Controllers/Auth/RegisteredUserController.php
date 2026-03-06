@@ -36,6 +36,8 @@ class RegisteredUserController extends Controller
             'birth_date' => ['required', 'date', 'before:' . now()->subYears(18)->toDateString()],
             'email'      => 'required|string|lowercase|email|max:255|unique:' . User::class,
             'password'   => ['required', 'confirmed', Rules\Password::defaults()],
+        ], [
+            'name.regex' => 'Имя должно содержать одно или два слова (только буквы).',
         ]);
 
         $user = User::create([

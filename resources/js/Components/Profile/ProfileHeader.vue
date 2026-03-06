@@ -26,6 +26,25 @@ const editModal = ref(false);
 const avatarInput = ref(null);
 const lightboxOpen = ref(false);
 
+// ── Marquee для имени ──────────────────────────────────────
+const nameWrapRef = ref(null);
+const nameRef = ref(null);
+const hasNameOverflow = ref(false);
+const nameScrollOffset = ref('0px');
+
+function measureNameScroll() {
+    if (!nameWrapRef.value || !nameRef.value) return;
+    const overflow = nameRef.value.scrollWidth - nameWrapRef.value.clientWidth;
+    hasNameOverflow.value = overflow > 4;
+    nameScrollOffset.value = hasNameOverflow.value ? `-${overflow}px` : '0px';
+}
+
+onMounted(() => {
+    measureNameScroll();
+    window.addEventListener('resize', measureNameScroll);
+});
+onUnmounted(() => window.removeEventListener('resize', measureNameScroll));
+
 // ── Кроп ──────────────────────────────────────────────────────
 const cropModal = ref(false);
 const cropSrc = ref('');
@@ -44,10 +63,22 @@ onMounted(() => document.addEventListener('keydown', onEsc));
 onUnmounted(() => document.removeEventListener('keydown', onEsc));
 
 const form = useForm({
+    name: props.user.name ?? '',
     gender: props.user.gender ?? '',
     birth_date: props.user.birth_date ?? '',
     timezone: props.user.timezone ?? '',
 });
+
+const NAME_RE = /^\p{L}+(\s\p{L}+)?$/u;
+const nameError = ref('');
+
+function validateName(value) {
+    if (!value.trim()) return 'Имя обязательно.';
+    if (value.trim().length < 2) return 'Имя слишком короткое.';
+    if (value.trim().length > 100) return 'Имя слишком длинное.';
+    if (!NAME_RE.test(value.trim())) return 'Одно или два слова, только буквы.';
+    return '';
+}
 
 const TIMEZONES = [
     'Europe/Moscow', 'Europe/Kiev', 'Europe/Minsk', 'Europe/London',
@@ -85,6 +116,11 @@ const dayOptions = computed(() => {
 });
 
 function submitEdit() {
+    nameError.value = validateName(form.name);
+    if (nameError.value) return;
+
+    form.name = form.name.trim();
+
     if (bdDay.value && bdMonth.value && bdYear.value) {
         form.birth_date = `${bdYear.value}-${String(bdMonth.value).padStart(2,'0')}-${String(bdDay.value).padStart(2,'0')}`;
     } else {
@@ -198,7 +234,14 @@ function deleteAvatar() {
 
         <!-- Имя + мета -->
         <div class="header-name-wrap">
-            <h1 class="header-name">{{ user.name }}</h1>
+            <div
+                ref="nameWrapRef"
+                class="header-name-scroller"
+                :class="{ 'name-overflows': hasNameOverflow }"
+                :style="hasNameOverflow ? { '--name-offset': nameScrollOffset } : {}"
+            >
+                <h1 ref="nameRef" class="header-name">{{ user.name }}</h1>
+            </div>
             <div v-if="user.gender || user.age" class="header-meta">
                 <span v-if="user.gender" class="meta-badge" :class="'meta-badge--' + user.gender">
                     <svg v-if="user.gender === 'female'" class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -289,6 +332,20 @@ function deleteAvatar() {
         <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
             <div class="edit-form">
                 <h3 class="edit-title">Редактировать профиль</h3>
+
+                <div class="edit-field">
+                    <label class="edit-label">Имя</label>
+                    <input
+                        v-model="form.name"
+                        class="edit-input"
+                        type="text"
+                        placeholder="Имя или Имя Фамилия"
+                        @input="nameError = ''"
+                    />
+                    <span v-if="nameError || form.errors.name" class="edit-field-error">
+                        {{ nameError || form.errors.name }}
+                    </span>
+                </div>
 
                 <div class="edit-field">
                     <label class="edit-label">Пол</label>
@@ -431,17 +488,35 @@ function deleteAvatar() {
     margin-bottom: 1.25rem;
 }
 
+.header-name-scroller {
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+}
+
+.header-name-scroller.name-overflows {
+    justify-content: flex-start;
+}
+
+.header-name-scroller.name-overflows:hover .header-name {
+    animation: header-name-scroll 3s ease-in-out infinite alternate;
+    animation-delay: 0.3s;
+}
+
+@keyframes header-name-scroll {
+    0%,  20% { transform: translateX(0); }
+    80%, 100% { transform: translateX(var(--name-offset, 0px)); }
+}
+
 .header-name {
     font-size: 1.7rem;
     font-weight: 700;
     margin: 0;
-    text-align: center;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
     color: #fff;
     letter-spacing: -0.01em;
+    flex-shrink: 0;
 }
 
 .header-meta {
@@ -558,6 +633,29 @@ function deleteAvatar() {
 .edit-title { font-size: 1.1rem; font-weight: 600; color: #fff; margin: 0 0 1.25rem; font-family: 'Figtree', sans-serif; }
 .edit-field { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
 .edit-label { font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(254,40,162,0.6); }
+.edit-input {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 3px;
+    padding: 0.6rem 0.75rem;
+    color: rgba(255,255,255,0.85);
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.15s;
+}
+.edit-input:focus {
+    border-color: rgba(254,40,162,0.4);
+}
+
+.edit-field-error {
+    font-size: 0.75rem;
+    color: rgba(254,40,162,0.85);
+    margin-top: -0.1rem;
+}
+
 .edit-select {
     background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
     border-radius: 3px;
