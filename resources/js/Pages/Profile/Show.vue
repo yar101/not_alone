@@ -293,10 +293,24 @@ onMounted(async () => {
                         <!-- If owner and not idol -->
                         <template v-else-if="isOwner">
                             <div class="anim-block idol-cta-block">
-                                <el-icon class="idol-cta-icon"><MagicStick /></el-icon>
+                                <!-- Декоративная корона — выходит за рамки блока -->
+                                <svg class="idol-cta-deco" viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <polygon points="10,70 10,35 25,15 35,35 50,5 65,35 75,15 90,35 90,70" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+                                    <line x1="10" y1="70" x2="90" y2="70" stroke="currentColor" stroke-width="2.5"/>
+                                    <polygon points="25,15 28,9 25,3 22,9" fill="currentColor" opacity="0.8"/>
+                                    <polygon points="50,5 53,-1 50,-7 47,-1" fill="currentColor" opacity="0.8"/>
+                                    <polygon points="75,15 78,9 75,3 72,9" fill="currentColor" opacity="0.8"/>
+                                </svg>
+                                <span class="idol-cta-label">АЙДОЛ</span>
                                 <p class="idol-cta-title">Стань Айдолом</p>
                                 <p class="idol-cta-text">Айдолы могут предоставлять уникальные услуги другим участникам платформы. Пройди тест и подай заявку!</p>
-                                <Link href="/idol/apply" class="idol-cta-btn">Стать Айдолом</Link>
+                                <Link href="/idol/apply" class="idol-cta-btn">
+                                    Стать Айдолом
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="2" y1="7" x2="12" y2="7"/>
+                                        <polyline points="8,3 12,7 8,11"/>
+                                    </svg>
+                                </Link>
                             </div>
                         </template>
                         <template v-else>
@@ -308,9 +322,24 @@ onMounted(async () => {
                     </div>
 
                     <div v-else key="content" class="tab-panel">
-                        <div class="anim-block coming-soon-block">
-                            <p class="coming-soon-title">Контент</p>
-                            <p class="coming-soon-text">Платные паки контента — скоро</p>
+                        <div class="anim-block idol-cta-block">
+                            <!-- Декоративная стопка карточек -->
+                            <svg class="idol-cta-deco" viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="8" y="28" width="58" height="42" stroke="currentColor" stroke-width="2.5"/>
+                                <rect x="15" y="18" width="58" height="42" stroke="currentColor" stroke-width="2.5"/>
+                                <rect x="22" y="8" width="58" height="42" stroke="currentColor" stroke-width="2.5"/>
+                                <polygon points="36,22 36,38 52,30" fill="currentColor" opacity="0.8"/>
+                            </svg>
+                            <span class="idol-cta-label">КОНТЕНТ</span>
+                            <p class="idol-cta-title">Платные паки контента</p>
+                            <p class="idol-cta-text">Загружай эксклюзивный контент и продавай паки подписчикам. Функция появится совсем скоро!</p>
+                            <span class="idol-cta-btn idol-cta-btn--soon">
+                                Скоро
+                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="7" cy="7" r="5"/>
+                                    <polyline points="7,4 7,7 9,9"/>
+                                </svg>
+                            </span>
                         </div>
                     </div>
 
@@ -657,31 +686,67 @@ onMounted(async () => {
 
 /* ── Idol CTA block ──────────────────────────────────────── */
 .idol-cta-block {
+    position: relative;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 2rem;
-    text-align: center;
-    background: rgba(200, 70, 126, 0.04);
-    border: 1px solid rgba(200, 70, 126, 0.15);
-    border-radius: 16px;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 2rem 2rem 1.75rem;
+    background: linear-gradient(135deg, rgba(200,70,126,0.07) 0%, rgba(100,30,160,0.04) 100%);
+    border: 1px solid rgba(200,70,126,0.2);
+    border-radius: 3px;
 }
-.idol-cta-icon { font-size: 2.5rem; display: flex; justify-content: center; }
-.idol-cta-title { font-size: 1.25rem; color: rgba(255,255,255,0.9); margin: 0; font-weight: 600; }
-.idol-cta-text { font-size: 0.85rem; color: rgba(255,255,255,0.45); margin: 0; max-width: 320px; line-height: 1.6; }
+.idol-cta-deco {
+    position: absolute;
+    top: -2.5rem;
+    right: -2rem;
+    width: 220px;
+    height: 220px;
+    color: #FE28A2;
+    opacity: 0.07;
+    pointer-events: none;
+    flex-shrink: 0;
+}
+.idol-cta-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.28em;
+    color: rgba(254,40,162,0.6);
+    text-transform: uppercase;
+}
+.idol-cta-title { font-size: 1.35rem; color: rgba(255,255,255,0.92); margin: 0; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
+.idol-cta-text { font-size: 0.84rem; color: rgba(255,255,255,0.4); margin: 0.2rem 0 0.5rem; max-width: 340px; line-height: 1.65; }
 .idol-cta-btn {
-    margin-top: 0.5rem;
-    padding: 0.6rem 1.5rem;
-    background: linear-gradient(135deg, #C8467E, #a03466);
-    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.25rem;
+    background: linear-gradient(135deg, #C8467E 0%, #7c2d7e 100%);
+    border: 1px solid rgba(254,40,162,0.45);
+    border-radius: 3px;
     color: #fff;
-    font-size: 0.9rem;
+    font-size: 0.78rem;
     font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
     text-decoration: none;
-    transition: opacity 0.15s;
+    transition: box-shadow 0.2s, transform 0.15s;
 }
-.idol-cta-btn:hover { opacity: 0.85; }
+.idol-cta-btn:hover {
+    box-shadow: 0 0 22px rgba(200,70,126,0.4), 0 4px 12px rgba(0,0,0,0.3);
+    transform: translateY(-1px);
+}
+.idol-cta-btn--soon {
+    background: rgba(200,70,126,0.12);
+    border-color: rgba(200,70,126,0.2);
+    color: rgba(255,255,255,0.35);
+    cursor: default;
+}
+.idol-cta-btn--soon:hover {
+    box-shadow: none;
+    transform: none;
+}
 
 /* ── Subscribe button fused below header ─────────────────── */
 .profile-sidebar :deep(.profile-header.header-flat-bottom) {

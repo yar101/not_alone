@@ -187,21 +187,38 @@ const showIdolBtn = computed(() => user.value && !isIdol.value && idolStatus.val
 
 /* ── Become Idol button ───────────────────────────────────── */
 .become-idol-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
     padding: 0.3rem 0.85rem;
-    border-radius: 20px;
-    border: 1px solid rgba(200, 70, 126, 0.45);
-    color: #C8467E;
-    font-size: 0.8rem;
-    font-weight: 500;
+    border-radius: 3px;
+    border: 1px solid rgba(254, 40, 162, 0.45);
+    position: relative;
+    background-image: linear-gradient(135deg, #fe28a2 0%, #c8467e 50%, #7c2d7e 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
     text-decoration: none;
-    transition: all 0.18s;
+    transition: box-shadow 0.2s, transform 0.15s, border-color 0.2s;
     white-space: nowrap;
-    background: rgba(200, 70, 126, 0.06);
+}
+.become-idol-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 3px;
+    background: linear-gradient(135deg, rgba(200,70,126,0.18) 0%, rgba(124,45,126,0.12) 100%);
+    z-index: -1;
 }
 .become-idol-btn:hover {
-    background: rgba(200, 70, 126, 0.15);
-    border-color: rgba(200, 70, 126, 0.7);
-    box-shadow: 0 0 12px rgba(200, 70, 126, 0.25);
+    border-color: rgba(254, 40, 162, 0.75);
+    box-shadow: 0 0 16px rgba(200, 70, 126, 0.4), 0 2px 8px rgba(0,0,0,0.25);
+    transform: translateY(-1px);
 }
 
 /* ── Mobile ──────────────────────────────────────────────── */
