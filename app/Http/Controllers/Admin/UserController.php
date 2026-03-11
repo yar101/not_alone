@@ -28,12 +28,13 @@ class UserController extends Controller
             ->paginate(30)
             ->withQueryString()
             ->through(fn(User $u) => [
-                'id'                      => $u->id,
-                'name'                    => $u->name,
-                'email'                   => $u->email,
-                'avatar_url'              => $u->avatar_url,
-                'is_idol'                 => $u->is_idol,
-                'idol_quiz_passed_at'     => $u->idol_quiz_passed_at,
+                'id'                       => $u->id,
+                'name'                     => $u->name,
+                'email'                    => $u->email,
+                'avatar_url'               => $u->avatar_url,
+                'is_idol'                  => $u->is_idol,
+                'idol_rating'              => $u->idol_rating,
+                'idol_quiz_passed_at'      => $u->idol_quiz_passed_at,
                 'idol_quiz_cooldown_until' => $u->idol_quiz_cooldown_until,
             ]);
 
@@ -122,6 +123,34 @@ class UserController extends Controller
                 'last_page'    => $paginator->lastPage(),
                 'total'        => $paginator->total(),
             ],
+        ]);
+    }
+
+    public function idols(Request $request): Response
+    {
+        $query = User::query()->where('is_idol', true);
+
+        if ($q = $request->q) {
+            $query->where(function ($qb) use ($q) {
+                $qb->where('name', 'ilike', "%{$q}%")
+                   ->orWhere('email', 'ilike', "%{$q}%");
+            });
+        }
+
+        $idols = $query->orderBy('idol_rating')
+            ->paginate(30)
+            ->withQueryString()
+            ->through(fn(User $u) => [
+                'id'          => $u->id,
+                'name'        => $u->name,
+                'email'       => $u->email,
+                'avatar_url'  => $u->avatar_url,
+                'idol_rating' => $u->idol_rating,
+            ]);
+
+        return Inertia::render('Admin/Idols/Index', [
+            'idols'  => $idols,
+            'filter' => ['q' => $request->q],
         ]);
     }
 

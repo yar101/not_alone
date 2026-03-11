@@ -60,6 +60,17 @@ function statusLabel(user) {
     if (user.idol_quiz_passed_at) return { text: 'Тест пройден', cls: 'badge--passed' };
     return { text: 'Кулдаун', cls: 'badge--cooldown' };
 }
+
+const ratingInputs = ref({});
+
+function adjustRating(userId, delta) {
+    const note = ratingInputs.value[userId] || null;
+    router.patch(route('admin.users.rating.update', userId), { delta, note }, { preserveScroll: true });
+}
+
+function resetQuiz(userId) {
+    router.patch(route('admin.users.reset-quiz', userId), {}, { preserveScroll: false });
+}
 </script>
 
 <template>
@@ -83,6 +94,7 @@ function statusLabel(user) {
                     <tr>
                         <th>Пользователь</th>
                         <th>Статус</th>
+                        <th>Рейтинг</th>
                         <th>Осталось</th>
                         <th>Действия</th>
                     </tr>
@@ -101,6 +113,23 @@ function statusLabel(user) {
                         </td>
                         <td>
                             <span :class="['badge', statusLabel(user).cls]">{{ statusLabel(user).text }}</span>
+                        </td>
+                        <td>
+                            <template v-if="user.is_idol">
+                                <div class="rating-cell">
+                                    <span class="rating-val">{{ user.idol_rating ?? 50 }}</span>
+                                    <div class="rating-actions">
+                                        <button @click="adjustRating(user.id, 5)"  class="btn-add" title="+5">+5</button>
+                                        <button @click="adjustRating(user.id, -5)" class="btn-sub" title="-5">-5</button>
+                                    </div>
+                                    <input
+                                        v-model="ratingInputs[user.id]"
+                                        class="rating-note"
+                                        placeholder="Причина..."
+                                    />
+                                </div>
+                            </template>
+                            <span v-else class="rating-na">—</span>
                         </td>
                         <td class="timer-cell">
                             {{ formatRemaining(user.idol_quiz_cooldown_until) }}
@@ -127,7 +156,7 @@ function statusLabel(user) {
                         </td>
                     </tr>
                     <tr v-if="!users.data.length">
-                        <td colspan="4" class="empty-row">Нет пользователей с активным кулдауном</td>
+                        <td colspan="5" class="empty-row">Нет пользователей с активным кулдауном</td>
                     </tr>
                 </tbody>
             </table>
@@ -235,6 +264,23 @@ function statusLabel(user) {
 .btn-clear:hover { background: rgba(255,107,107,0.18); }
 
 .empty-row { text-align: center; color: rgba(255,255,255,0.3); padding: 3rem; }
+
+.rating-cell { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.rating-val  { font-size: 0.95rem; font-weight: 700; color: rgba(254,40,162,0.85); min-width: 28px; }
+.rating-actions { display: flex; gap: 0.25rem; }
+.rating-note {
+    padding: 0.2rem 0.5rem;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.7);
+    font-family: inherit;
+    font-size: 0.75rem;
+    outline: none;
+    width: 110px;
+    border-radius: 2px;
+}
+.rating-note:focus { border-color: rgba(254,40,162,0.4); }
+.rating-na { color: rgba(255,255,255,0.2); font-size: 0.85rem; }
 
 .pagination { display: flex; gap: 0.25rem; margin-top: 1.5rem; flex-wrap: wrap; }
 .page-link {

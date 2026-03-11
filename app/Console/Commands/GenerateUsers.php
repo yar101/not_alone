@@ -39,6 +39,7 @@ class GenerateUsers extends Command
                 'gender'              => ['male', 'female', null][rand(0, 2)],
                 'birth_date'          => $faker->dateTimeBetween('-50 years', '-18 years')->format('Y-m-d'),
                 'is_idol'             => $isIdol,
+                'idol_rating'         => $isIdol ? 20 : null,
                 'idol_quiz_passed_at' => $isIdol ? $now : null,
                 'created_at'          => $now,
                 'updated_at'          => $now,

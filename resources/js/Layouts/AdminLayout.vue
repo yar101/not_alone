@@ -15,6 +15,11 @@ function logout() {
                 <Link :href="route('admin.quiz.questions.index')" class="admin-nav__link">Вопросы теста</Link>
                 <Link :href="route('admin.messages.index')" class="admin-nav__link">Рассылки</Link>
                 <Link :href="route('admin.users.index')" class="admin-nav__link">Пользователи</Link>
+                <Link :href="route('admin.idols.index')" class="admin-nav__link">Айдолы</Link>
+                <Link :href="route('admin.services.categories.index')" class="admin-nav__link">Категории</Link>
+                <Link :href="route('admin.services.time-units.index')" class="admin-nav__link">Единицы</Link>
+                <Link :href="route('admin.services.price-limits.index')" class="admin-nav__link">Лимиты</Link>
+                <Link :href="route('admin.settings.index')" class="admin-nav__link">Настройки</Link>
             </nav>
             <button class="admin-logout" @click="logout">Выйти</button>
         </header>

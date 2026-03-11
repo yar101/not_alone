@@ -5,8 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\InterestCategory;
 use App\Models\PersonalityTrait;
 use App\Models\Post;
+use App\Models\Service;
+use App\Models\ServiceCategory;
+use App\Models\ServiceTimeUnit;
+use App\Models\ServiceWouldBuy;
 use App\Models\User;
 use App\Models\UserLanguage;
+use App\Services\IdolRatingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -35,7 +40,9 @@ class UserProfileController extends Controller
                 'timezone'         => $user->timezone,
                 'checklist_snoozed' => $checklistSnoozed,
             ],
-            'isOwner' => auth()->id() === $user->id,
+            'isOwner'   => auth()->id() === $user->id,
+            'isIdol'    => (bool) $user->is_idol,
+            'idolRating'=> $user->idol_rating,
 
             // Deferred group "about" — traits, interests, languages + their catalogs
             'traits'        => Inertia::defer(fn () => $user->load('traits')->traits->map(fn ($t) => ['id' => $t->id, 'name_ru' => $t->name_ru]), 'about'),
@@ -47,6 +54,47 @@ class UserProfileController extends Controller
             'languages'     => Inertia::defer(fn () => $user->load('languages')->languages->pluck('language_code'), 'about'),
             'allTraits'     => Inertia::defer(fn () => PersonalityTrait::orderBy('sort_order')->get(['id', 'name_ru']), 'about'),
             'allCategories' => Inertia::defer(fn () => InterestCategory::with(['interests' => fn ($q) => $q->orderBy('sort_order')])->orderBy('sort_order')->get(), 'about'),
+
+            // Deferred group "services"
+            'services'     => Inertia::defer(function () use ($user) {
+                $authId   = auth()->id();
+                $isOwner  = $authId === $user->id;
+                $query    = $user->services()->with(['category:id,name', 'timeUnit:id,name']);
+
+                if (!$isOwner) {
+                    $query->where('is_active', true);
+                }
+
+                $services = $query->orderBy('created_at')->get();
+
+                $wouldBuyMap = $authId
+                    ? ServiceWouldBuy::where('user_id', $authId)
+                        ->whereIn('service_id', $services->pluck('id'))
+                        ->pluck('created_at', 'service_id')
+                    : collect();
+
+                return $services->groupBy('category_id')->map(fn ($group) => [
+                    'category' => ['id' => $group->first()->category->id, 'name' => $group->first()->category->name],
+                    'items'    => $group->map(fn (Service $s) => [
+                        'id'              => $s->id,
+                        'name'            => $s->name,
+                        'price'           => $s->price,
+                        'is_active'       => $s->is_active,
+                        'category_id'     => $s->category_id,
+                        'time_unit'       => ['id' => $s->timeUnit->id, 'name' => $s->timeUnit->name],
+                        'would_buy_at'    => $wouldBuyMap->get($s->id)?->toIso8601String(),
+                        'would_buy_count' => $s->wouldBuys()->count(),
+                    ])->values(),
+                ])->values();
+            }, 'services'),
+            'serviceCategories' => Inertia::defer(
+                fn () => ServiceCategory::where('is_active', true)->orderBy('sort_order')->get(['id', 'name']),
+                'services'
+            ),
+            'serviceTimeUnits' => Inertia::defer(
+                fn () => ServiceTimeUnit::where('is_active', true)->orderBy('sort_order')->get(['id', 'name']),
+                'services'
+            ),
 
             // Deferred group "posts"
             'posts' => Inertia::defer(fn () => $user->load(['posts' => fn ($q) => $q->latest()])->posts->map(fn ($p) => [
@@ -206,6 +254,11 @@ class UserProfileController extends Controller
             'body'       => $request->input('body'),
             'photo_path' => $photoPath,
         ]);
+
+        if ($user->is_idol) {
+            IdolRatingService::adjust($user, 'post_published');
+        }
+
         return back();
     }
 

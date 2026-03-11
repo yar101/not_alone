@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, nextTick, computed, onBeforeUnmount } from 'vue';
 import { useForm } from '@inertiajs/vue3';
+import AppSelect from '@/Components/AppSelect.vue';
 import axios from 'axios';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
@@ -17,6 +18,12 @@ const form = useForm({
     target_user_id: '',
     target_filters: null,
 });
+
+const targetOptions = [
+    { value: 'all',      label: 'Все пользователи' },
+    { value: 'user',     label: 'Конкретный пользователь' },
+    { value: 'filtered', label: 'По фильтру' },
+];
 
 function submit() {
     form.post(route('admin.messages.store'), {
@@ -222,11 +229,11 @@ function targetLabel(b) {
                 </div>
                 <div class="field">
                     <label class="field-label">Получатели</label>
-                    <select v-model="form.target" class="field-input" @change="clearSelection">
-                        <option value="all">Все пользователи</option>
-                        <option value="user">Конкретный пользователь</option>
-                        <option value="filtered">По фильтру</option>
-                    </select>
+                    <AppSelect
+                        v-model="form.target"
+                        :options="targetOptions"
+                        @change="clearSelection"
+                    />
                 </div>
 
                 <!-- Конкретный пользователь -->

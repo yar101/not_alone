@@ -30,6 +30,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'is_idol',
+        'idol_rating',
         'idol_quiz_cooldown_until',
         'idol_quiz_passed_at',
     ];
@@ -44,13 +45,14 @@ class User extends Authenticatable implements MustVerifyEmail
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'birth_date' => 'date',
-            'profile_checklist_snoozed_until' => 'datetime',
-            'is_idol' => 'boolean',
-            'idol_quiz_cooldown_until' => 'datetime',
-            'idol_quiz_passed_at' => 'datetime',
+            'email_verified_at'              => 'datetime',
+            'password'                       => 'hashed',
+            'birth_date'                     => 'date',
+            'profile_checklist_snoozed_until'=> 'datetime',
+            'is_idol'                        => 'boolean',
+            'idol_quiz_cooldown_until'       => 'datetime',
+            'idol_quiz_passed_at'            => 'datetime',
+            'idol_rating'                    => 'integer',
         ];
     }
 
@@ -95,6 +97,16 @@ class User extends Authenticatable implements MustVerifyEmail
     public function idolApplication()
     {
         return $this->hasOne(IdolApplication::class);
+    }
+
+    public function services(): HasMany
+    {
+        return $this->hasMany(Service::class);
+    }
+
+    public function ratingLogs(): HasMany
+    {
+        return $this->hasMany(IdolRatingLog::class);
     }
 
     public function sendEmailVerificationNotification(): void

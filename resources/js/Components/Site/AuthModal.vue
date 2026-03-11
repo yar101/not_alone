@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { useForm, usePage, router } from '@inertiajs/vue3';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import AppSelect from '@/Components/AppSelect.vue';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -68,6 +69,8 @@ const dayOptions = computed(() => {
     const days  = new Date(year, month, 0).getDate();
     return Array.from({ length: days }, (_, i) => i + 1);
 });
+
+const monthOptions = computed(() => monthNames.map((n, i) => ({ value: i + 1, label: n })));
 
 function submitRegister() {
     if (bdDay.value && bdMonth.value && bdYear.value) {
@@ -242,30 +245,27 @@ function submitRegister() {
                     <div class="auth-field">
                         <label class="auth-field-label">Дата рождения</label>
                         <div class="auth-dob-group">
-                            <select
+                            <AppSelect
                                 v-model="bdDay"
-                                class="auth-select"
-                                :class="{ 'auth-input--error': registerForm.errors.birth_date }"
-                            >
-                                <option value="" disabled>День</option>
-                                <option v-for="d in dayOptions" :key="d" :value="d">{{ d }}</option>
-                            </select>
-                            <select
+                                :options="dayOptions"
+                                placeholder="День"
+                                :error="!!registerForm.errors.birth_date"
+                                style="flex:1;min-width:0"
+                            />
+                            <AppSelect
                                 v-model="bdMonth"
-                                class="auth-select"
-                                :class="{ 'auth-input--error': registerForm.errors.birth_date }"
-                            >
-                                <option value="" disabled>Месяц</option>
-                                <option v-for="(name, idx) in monthNames" :key="idx + 1" :value="idx + 1">{{ name }}</option>
-                            </select>
-                            <select
+                                :options="monthOptions"
+                                placeholder="Месяц"
+                                :error="!!registerForm.errors.birth_date"
+                                style="flex:1;min-width:0"
+                            />
+                            <AppSelect
                                 v-model="bdYear"
-                                class="auth-select"
-                                :class="{ 'auth-input--error': registerForm.errors.birth_date }"
-                            >
-                                <option value="" disabled>Год</option>
-                                <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
-                            </select>
+                                :options="yearOptions"
+                                placeholder="Год"
+                                :error="!!registerForm.errors.birth_date"
+                                style="flex:1;min-width:0"
+                            />
                         </div>
                         <Transition name="err-fade">
                             <p v-show="registerForm.errors.birth_date" class="auth-error">

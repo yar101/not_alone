@@ -4,6 +4,7 @@ import { useForm, router } from '@inertiajs/vue3';
 import { Edit, Setting, Camera } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import ProfileChecklist from '@/Components/Profile/ProfileChecklist.vue';
+import AppSelect from '@/Components/AppSelect.vue';
 import { Cropper, CircleStencil } from 'vue-advanced-cropper';
 import 'vue-advanced-cropper/dist/style.css';
 
@@ -14,15 +15,14 @@ const agePR = new Intl.PluralRules('ru');
 const ageForms = { one: 'год', few: 'года', many: 'лет', other: 'лет' };
 function ageLabel(n) { return `${n} ${ageForms[agePR.select(n)]}`; }
 
-// ── Временный рейтинг (убрать после внедрения рейтинга) ──
-const devRating = ref(73); // 0–100
-
 const props = defineProps({
-    user:      { type: Object, required: true },
-    isOwner:   { type: Boolean, default: false },
-    traits:    { default: null },
-    interests: { default: null },
-    languages: { default: null },
+    user:        { type: Object, required: true },
+    isOwner:     { type: Boolean, default: false },
+    isIdol:      { type: Boolean, default: false },
+    idolRating:  { default: null },
+    traits:      { default: null },
+    interests:   { default: null },
+    languages:   { default: null },
 });
 
 const editModal = ref(false);
@@ -117,6 +117,12 @@ const dayOptions = computed(() => {
     const days = new Date(bdYear.value || 2000, parseInt(bdMonth.value), 0).getDate();
     return Array.from({ length: days }, (_, i) => i + 1);
 });
+
+const monthOptions = computed(() => monthNames.map((n, i) => ({ value: i + 1, label: n })));
+const timezoneOptions = computed(() => [
+    { value: '', label: 'Не указан' },
+    ...TIMEZONES.map(tz => ({ value: tz, label: tz })),
+]);
 
 function submitEdit() {
     nameError.value = validateName(form.name);
@@ -259,16 +265,13 @@ function deleteAvatar() {
             </div>
         </div>
 
-        <!-- Рейтинг -->
-        <div class="header-rating">
+        <!-- Рейтинг (только для айдолов) -->
+        <div v-if="isIdol && idolRating !== null" class="header-rating">
             <div class="rating-block">
                 <span class="rating-label">Рейтинг</span>
                 <div class="rating-inner">
                     <img src="/stars/10.png" class="star-img" alt="rating" />
-                    <span class="rating-num">{{ devRating }}</span>
-                </div>
-                <div class="rating-bar-track">
-                    <div class="rating-bar-fill"></div>
+                    <span class="rating-num">{{ idolRating }}</span>
                 </div>
             </div>
         </div>
@@ -361,18 +364,15 @@ function deleteAvatar() {
                 <div class="edit-field">
                     <label class="edit-label">Дата рождения</label>
                     <div class="dob-row">
-                        <select v-model="bdDay"   class="edit-select"><option value="" disabled>День</option><option v-for="d in dayOptions"  :key="d"   :value="d">{{ d }}</option></select>
-                        <select v-model="bdMonth" class="edit-select"><option value="" disabled>Месяц</option><option v-for="(n,i) in monthNames" :key="i+1" :value="i+1">{{ n }}</option></select>
-                        <select v-model="bdYear"  class="edit-select"><option value="" disabled>Год</option><option v-for="y in yearOptions"  :key="y"   :value="y">{{ y }}</option></select>
+                        <AppSelect v-model="bdDay"   :options="dayOptions"    placeholder="День"  style="flex:1;min-width:0" />
+                        <AppSelect v-model="bdMonth" :options="monthOptions"  placeholder="Месяц" style="flex:1;min-width:0" />
+                        <AppSelect v-model="bdYear"  :options="yearOptions"   placeholder="Год"   style="flex:1;min-width:0" />
                     </div>
                 </div>
 
                 <div class="edit-field">
                     <label class="edit-label">Часовой пояс</label>
-                    <select v-model="form.timezone" class="edit-select edit-select--full">
-                        <option value="">Не указан</option>
-                        <option v-for="tz in TIMEZONES" :key="tz" :value="tz">{{ tz }}</option>
-                    </select>
+                    <AppSelect v-model="form.timezone" :options="timezoneOptions" placeholder="Не указан" />
                 </div>
 
                 <div v-if="user.avatar_url" class="edit-field">
@@ -619,17 +619,6 @@ function deleteAvatar() {
     font-variant-numeric: tabular-nums;
 }
 
-.rating-bar-track {
-    height: 1px;
-    background: rgba(255,255,255,0.1);
-    margin-top: 0.1rem;
-}
-
-.rating-bar-fill {
-    height: 100%;
-    width: 73%;
-    background: linear-gradient(90deg, rgba(254,40,162,0.9), rgba(254,40,162,0.4));
-}
 
 /* Edit form */
 .edit-form { padding: 0.5rem 0.25rem; }

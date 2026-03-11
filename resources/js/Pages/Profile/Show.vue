@@ -12,18 +12,24 @@ import ProfileTraits from '@/Components/Profile/ProfileTraits.vue';
 import ProfileInterests from '@/Components/Profile/ProfileInterests.vue';
 import ProfileLanguages from '@/Components/Profile/ProfileLanguages.vue';
 import ProfilePosts from '@/Components/Profile/ProfilePosts.vue';
+import ProfileServices from '@/Components/Profile/ProfileServices.vue';
 import ProfileVoice from '@/Components/Profile/ProfileVoice.vue';
 
 const props = defineProps({
-    profileUser:   { type: Object, required: true },
-    isOwner:       { type: Boolean, default: false },
+    profileUser:        { type: Object, required: true },
+    isOwner:            { type: Boolean, default: false },
+    isIdol:             { type: Boolean, default: false },
+    idolRating:         { default: null },
     // Deferred props — no type constraint; Inertia passes null until resolved
-    traits:        { default: null },
-    interests:     { default: null },
-    languages:     { default: null },
-    allTraits:     { default: null },
-    allCategories: { default: null },
-    posts:         { default: null },
+    traits:             { default: null },
+    interests:          { default: null },
+    languages:          { default: null },
+    allTraits:          { default: null },
+    allCategories:      { default: null },
+    posts:              { default: null },
+    services:           { default: null },
+    serviceCategories:  { default: null },
+    serviceTimeUnits:   { default: null },
 });
 
 // ── Email verification banner ─────────────────────────────────
@@ -187,6 +193,8 @@ onMounted(async () => {
                         :class="{ 'header-flat-bottom': !isOwner }"
                         :user="profileUser"
                         :is-owner="isOwner"
+                        :is-idol="isIdol"
+                        :idol-rating="idolRating"
                         :traits="traits"
                         :interests="interests"
                         :languages="languages"
@@ -283,17 +291,21 @@ onMounted(async () => {
                     </div>
 
                     <div v-else-if="tab === 'services'" key="services" class="tab-panel">
-                        <!-- If profileUser is an idol -->
-                        <template v-if="profileUser.is_idol">
-                            <div class="anim-block coming-soon-block">
-                                <p class="coming-soon-title"><el-icon style="vertical-align: middle; margin-right: 4px"><StarFilled /></el-icon>Услуги Айдола</p>
-                                <p class="coming-soon-text">Услуги появятся здесь совсем скоро</p>
+                        <!-- Idol (or idol-owner): show services component -->
+                        <template v-if="isIdol">
+                            <div class="anim-block">
+                                <ProfileServices
+                                    :services="services"
+                                    :service-categories="serviceCategories"
+                                    :service-time-units="serviceTimeUnits"
+                                    :is-owner="isOwner"
+                                    :is-idol="isIdol"
+                                />
                             </div>
                         </template>
-                        <!-- If owner and not idol -->
+                        <!-- Owner but not idol yet -->
                         <template v-else-if="isOwner">
                             <div class="anim-block idol-cta-block">
-                                <!-- Декоративная корона — выходит за рамки блока -->
                                 <svg class="idol-cta-deco" viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <polygon points="10,70 10,35 25,15 35,35 50,5 65,35 75,15 90,35 90,70" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
                                     <line x1="10" y1="70" x2="90" y2="70" stroke="currentColor" stroke-width="2.5"/>
@@ -313,10 +325,11 @@ onMounted(async () => {
                                 </Link>
                             </div>
                         </template>
+                        <!-- Visitor viewing a non-idol profile -->
                         <template v-else>
                             <div class="anim-block coming-soon-block">
                                 <p class="coming-soon-title">Услуги</p>
-                                <p class="coming-soon-text">Раздел в разработке</p>
+                                <p class="coming-soon-text">У этого пользователя нет услуг</p>
                             </div>
                         </template>
                     </div>

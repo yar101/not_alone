@@ -9,7 +9,7 @@ class HandleInertiaRequests extends Middleware
 {
     protected $rootView = 'app';
 
-    private const SERVICE_TYPES = ['idol_approved', 'idol_rejected', 'admin_broadcast'];
+    private const SERVICE_TYPES = ['idol_approved', 'idol_rejected', 'admin_broadcast', 'low_rating_warning', 'would_buy', 'admin_rating'];
 
     public function version(Request $request): ?string
     {

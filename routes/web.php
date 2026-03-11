@@ -4,6 +4,8 @@ use App\Http\Controllers\Idol\ApplicationController as IdolApplicationController
 use App\Http\Controllers\Idol\QuizController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\ServiceWouldBuyController;
 use App\Http\Controllers\UserProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -58,6 +60,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/idol/apply', [IdolApplicationController::class, 'store'])->name('idol.apply.store');
     Route::post('/idol/quiz/start', [QuizController::class, 'start'])->name('idol.quiz.start');
     Route::post('/idol/quiz/answer', [QuizController::class, 'answer'])->name('idol.quiz.answer');
+});
+
+// Services (idol owner)
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::post('/profile/services',                [ServiceController::class, 'store'])->name('profile.services.store');
+    Route::patch('/profile/services/{service}',     [ServiceController::class, 'update'])->name('profile.services.update');
+    Route::delete('/profile/services/{service}',    [ServiceController::class, 'destroy'])->name('profile.services.destroy');
+});
+
+// Would-buy (any authenticated user)
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::post('/services/{service}/would-buy', [ServiceWouldBuyController::class, 'store'])->name('services.would-buy.store');
 });
 
 // Notification routes
