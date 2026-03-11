@@ -87,7 +87,7 @@ function openEdit() {
                         :class="{ active: selected.has(t.id) }"
                         @click="toggleTrait(t.id)"
                         :disabled="!selected.has(t.id) && selected.size >= 10"
-                    >{{ t.name_ru }}</button>
+                    >{{ applyGender(t.name_ru, gender) }}</button>
                 </div>
                 <p v-if="filteredTraits.length === 0" class="no-results">Ничего не найдено</p>
                 <button class="save-btn" :disabled="form.processing" @click="submit">
