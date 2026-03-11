@@ -76,7 +76,7 @@ function save() {
 .settings-form { max-width: 480px; display: flex; flex-direction: column; gap: 1.5rem; }
 
 .section { background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.08); border-radius: 3px; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
-.section-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(254,40,162,0.6); margin: 0; }
+.section-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(190,145,255,0.6); margin: 0; }
 
 .field { display: flex; flex-direction: column; gap: 0.3rem; }
 .label { font-size: 0.82rem; font-weight: 600; color: rgba(255,255,255,0.75); }
@@ -94,7 +94,7 @@ function save() {
     max-width: 160px;
     transition: border-color 0.15s;
 }
-.input:focus { border-color: rgba(254,40,162,0.45); }
+.input:focus { border-color: rgba(190,145,255,0.45); }
 .input--err  { border-color: rgba(239,68,68,0.5); }
 
 .err { font-size: 0.75rem; color: rgba(239,68,68,0.8); margin: 0; }
@@ -105,15 +105,15 @@ function save() {
 
 .btn-submit {
     padding: 0.5rem 1.25rem;
-    border: 1px solid rgba(254,40,162,0.45);
+    border: 1px solid rgba(190,145,255,0.45);
     border-radius: 3px;
-    background: rgba(254,40,162,0.1);
+    background: rgba(190,145,255,0.1);
     color: rgba(255,255,255,0.9);
     font-family: inherit;
     font-size: 0.85rem;
     cursor: pointer;
     transition: background 0.15s;
 }
-.btn-submit:hover:not(:disabled) { background: rgba(254,40,162,0.2); }
+.btn-submit:hover:not(:disabled) { background: rgba(190,145,255,0.2); }
 .btn-submit:disabled { opacity: 0.5; cursor: default; }
 </style>

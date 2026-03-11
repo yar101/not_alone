@@ -106,10 +106,10 @@
                                 <td align="center" style="padding-bottom:28px;">
                                     <table cellpadding="0" cellspacing="0" border="0">
                                         <tr>
-                                            <td style="border-radius:3px;border:1px solid rgba(254,40,162,0.55);background-color:rgba(254,40,162,0.1);">
+                                            <td style="border-radius:3px;border:1px solid rgba(190,145,255,0.55);background-color:rgba(190,145,255,0.1);">
                                                 <a href="{{ $applyUrl }}"
                                                    target="_blank"
-                                                   style="display:inline-block;padding:12px 32px;font-size:0.9rem;font-weight:500;color:#FE28A2;text-decoration:none;letter-spacing:0.02em;">
+                                                   style="display:inline-block;padding:12px 32px;font-size:0.9rem;font-weight:500;color:#BE91FF;text-decoration:none;letter-spacing:0.02em;">
                                                     Подать заявку снова
                                                 </a>
                                             </td>

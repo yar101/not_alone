@@ -400,7 +400,7 @@ onMounted(async () => {
 .driver-popover-prev-btn:hover,
 .driver-popover-next-btn:hover,
 .driver-popover-done-btn:hover {
-    border-color: #FE28A2 !important;
+    border-color: #BE91FF !important;
     color: #fff !important;
 }
 .driver-popover-progress-text {
@@ -513,12 +513,12 @@ onMounted(async () => {
     border-right: 1px solid rgba(255, 255, 255, 0.06);
     padding-right: 1rem;
     scrollbar-width: thin;
-    scrollbar-color: rgba(254,40,162,0.25) transparent;
+    scrollbar-color: rgba(190,145,255,0.25) transparent;
 }
 .profile-sidebar::-webkit-scrollbar { width: 3px; }
 .profile-sidebar::-webkit-scrollbar-track { background: transparent; }
 .profile-sidebar::-webkit-scrollbar-thumb {
-    background: rgba(254,40,162,0.28);
+    background: rgba(190,145,255,0.28);
     border-radius: 999px;
 }
 
@@ -576,14 +576,14 @@ onMounted(async () => {
     transform: translateX(-50%) scaleX(0);
     width: 60%;
     height: 2px;
-    background: #FE28A2;
+    background: #BE91FF;
     border-radius: 2px 2px 0 0;
     transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.18s ease;
     opacity: 0;
 }
 .tab-btn.active {
-    background: rgba(254, 40, 162, 0.08);
-    color: rgba(254, 40, 162, 0.95);
+    background: rgba(190, 145, 255, 0.08);
+    color: rgba(190, 145, 255, 0.95);
 }
 .tab-btn.active::before {
     transform: translateX(-50%) scaleX(1);
@@ -617,7 +617,7 @@ onMounted(async () => {
     padding-bottom: 2rem;
     scrollbar-gutter: stable;
     scrollbar-width: thin;
-    scrollbar-color: rgba(254,40,162,0.25) transparent;
+    scrollbar-color: rgba(190,145,255,0.25) transparent;
 }
 .tab-panel::-webkit-scrollbar { width: 3px; }
 .tab-panel::-webkit-scrollbar-track {
@@ -625,7 +625,7 @@ onMounted(async () => {
     margin-block: 0.5rem;
 }
 .tab-panel::-webkit-scrollbar-thumb {
-    background: rgba(254,40,162,0.28);
+    background: rgba(190,145,255,0.28);
     border-radius: 999px;
 }
 
@@ -706,8 +706,8 @@ onMounted(async () => {
     align-items: flex-start;
     gap: 0.6rem;
     padding: 2rem 2rem 1.75rem;
-    background: linear-gradient(135deg, rgba(200,70,126,0.07) 0%, rgba(100,30,160,0.04) 100%);
-    border: 1px solid rgba(200,70,126,0.2);
+    background: linear-gradient(135deg, rgba(155,110,232,0.07) 0%, rgba(100,30,160,0.04) 100%);
+    border: 1px solid rgba(155,110,232,0.2);
     border-radius: 3px;
 }
 .idol-cta-deco {
@@ -716,7 +716,7 @@ onMounted(async () => {
     right: -2rem;
     width: 220px;
     height: 220px;
-    color: #FE28A2;
+    color: #BE91FF;
     opacity: 0.07;
     pointer-events: none;
     flex-shrink: 0;
@@ -725,7 +725,7 @@ onMounted(async () => {
     font-size: 0.6rem;
     font-weight: 700;
     letter-spacing: 0.28em;
-    color: rgba(254,40,162,0.6);
+    color: rgba(190,145,255,0.6);
     text-transform: uppercase;
 }
 .idol-cta-title { font-size: 1.35rem; color: rgba(255,255,255,0.92); margin: 0; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
@@ -735,8 +735,8 @@ onMounted(async () => {
     align-items: center;
     gap: 0.5rem;
     padding: 0.6rem 1.25rem;
-    background: linear-gradient(135deg, #C8467E 0%, #7c2d7e 100%);
-    border: 1px solid rgba(254,40,162,0.45);
+    background: linear-gradient(135deg, #9B6EE8 0%, #6B3FD9 100%);
+    border: 1px solid rgba(190,145,255,0.45);
     border-radius: 3px;
     color: #fff;
     font-size: 0.78rem;
@@ -747,12 +747,12 @@ onMounted(async () => {
     transition: box-shadow 0.2s, transform 0.15s;
 }
 .idol-cta-btn:hover {
-    box-shadow: 0 0 22px rgba(200,70,126,0.4), 0 4px 12px rgba(0,0,0,0.3);
+    box-shadow: 0 0 22px rgba(155,110,232,0.4), 0 4px 12px rgba(0,0,0,0.3);
     transform: translateY(-1px);
 }
 .idol-cta-btn--soon {
-    background: rgba(200,70,126,0.12);
-    border-color: rgba(200,70,126,0.2);
+    background: rgba(155,110,232,0.12);
+    border-color: rgba(155,110,232,0.2);
     color: rgba(255,255,255,0.35);
     cursor: default;
 }
@@ -771,11 +771,11 @@ onMounted(async () => {
 .sidebar-subscribe-btn {
     width: 100%;
     padding: 0.5rem;
-    background: rgba(254, 40, 162, 0.05);
-    border: 1px solid rgba(254, 40, 162, 0.35);
+    background: rgba(190, 145, 255, 0.05);
+    border: 1px solid rgba(190, 145, 255, 0.35);
     border-top: none;
     border-radius: 0 0 3px 3px;
-    color: rgba(254, 40, 162, 0.75);
+    color: rgba(190, 145, 255, 0.75);
     font-family: inherit;
     font-size: 0.78rem;
     font-weight: 500;
@@ -785,8 +785,8 @@ onMounted(async () => {
     flex-shrink: 0;
 }
 .sidebar-subscribe-btn:hover {
-    background: rgba(254, 40, 162, 0.1);
-    color: rgba(254, 40, 162, 1);
+    background: rgba(190, 145, 255, 0.1);
+    color: rgba(190, 145, 255, 1);
 }
 
 /* ── Скелетоны (deferred fallback) ───────────────────────── */

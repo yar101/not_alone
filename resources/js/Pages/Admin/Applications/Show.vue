@@ -118,13 +118,13 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
 @media (max-width: 640px) { .show-grid { grid-template-columns: 1fr; } }
 
 .photo-section { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
-.face-photo { width: 100%; border-radius: 12px; cursor: zoom-in; border: 1px solid rgba(200,70,126,0.2); }
+.face-photo { width: 100%; border-radius: 12px; cursor: zoom-in; border: 1px solid rgba(155,110,232,0.2); }
 .photo-hint { font-size: 0.75rem; color: rgba(255,255,255,0.3); }
 
 .info-section { display: flex; flex-direction: column; gap: 1rem; }
 .info-header { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
-.user-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background: rgba(200,70,126,0.15); }
-.user-avatar--init { display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 600; color: #C8467E; border: 1px solid rgba(200,70,126,0.3); }
+.user-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background: rgba(155,110,232,0.15); }
+.user-avatar--init { display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 600; color: #9B6EE8; border: 1px solid rgba(155,110,232,0.3); }
 .user-name { font-size: 1rem; color: #fff; font-weight: 600; }
 .user-email { font-size: 0.82rem; color: rgba(255,255,255,0.4); }
 
@@ -155,7 +155,7 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
     background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
     border-radius: 8px; color: #fff; padding: 0.7rem; font-size: 0.9rem; resize: vertical; outline: none;
 }
-.reject-textarea:focus { border-color: rgba(200,70,126,0.5); }
+.reject-textarea:focus { border-color: rgba(155,110,232,0.5); }
 .btn-reject-confirm {
     padding: 0.55rem 1.1rem; border-radius: 7px; align-self: flex-start;
     background: rgba(255,80,80,0.15); border: 1px solid rgba(255,80,80,0.4);
@@ -176,7 +176,7 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
     display: flex; align-items: center; gap: 0.5rem;
     font-size: 0.82rem; color: rgba(255,255,255,0.55); cursor: pointer;
 }
-.reset-quiz-label input { accent-color: #C8467E; }
+.reset-quiz-label input { accent-color: #9B6EE8; }
 
 .lightbox {
     position: fixed; inset: 0; background: rgba(0,0,0,0.9);

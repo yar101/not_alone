@@ -211,21 +211,21 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 .post-add-btn {
     display: inline-flex; align-items: center; gap: 0.4rem;
     padding: 0.38rem 0.85rem;
-    background: rgba(200,70,126,0.1);
-    border: 1px solid rgba(200,70,126,0.3);
+    background: rgba(155,110,232,0.1);
+    border: 1px solid rgba(155,110,232,0.3);
     border-radius: 6px;
     cursor: pointer;
-    color: rgba(200,70,126,0.85);
+    color: rgba(155,110,232,0.85);
     font-size: 0.82rem;
     font-family: inherit;
     transition: background 0.18s, border-color 0.18s, color 0.18s, box-shadow 0.18s;
 }
 .post-add-btn__icon { font-size: 0.85rem; }
 .post-add-btn:hover {
-    background: rgba(200,70,126,0.2);
-    border-color: rgba(200,70,126,0.55);
+    background: rgba(155,110,232,0.2);
+    border-color: rgba(155,110,232,0.55);
     color: rgba(220,100,145,1);
-    box-shadow: 0 0 12px rgba(200,70,126,0.18);
+    box-shadow: 0 0 12px rgba(155,110,232,0.18);
 }
 
 /* Grid */
@@ -265,7 +265,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 .post-tile--text::after {
     content: '';
     position: absolute; top: 0; left: 0; bottom: 0; width: 2px;
-    background: rgba(200,70,126,0.45);
+    background: rgba(155,110,232,0.45);
 }
 .post-tile__text {
     font-size: 0.65rem; line-height: 1.4;
@@ -441,7 +441,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
     outline: none;
     transition: border-color 0.2s;
 }
-.post-textarea:focus { border-color: rgba(200,70,126,0.4); }
+.post-textarea:focus { border-color: rgba(155,110,232,0.4); }
 
 .char-count {
     font-size: 0.75rem;
@@ -454,14 +454,14 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 .photo-label { display: block; margin-bottom: 1rem; cursor: pointer; }
 .photo-btn {
     font-size: 0.85rem;
-    color: rgba(200,70,126,0.7);
-    border: 1px dashed rgba(200,70,126,0.3);
+    color: rgba(155,110,232,0.7);
+    border: 1px dashed rgba(155,110,232,0.3);
     border-radius: 3px;
     padding: 0.4rem 0.85rem;
     transition: all 0.2s;
     display: inline-block;
 }
-.photo-label:hover .photo-btn { color: rgba(200,70,126,1); border-color: rgba(200,70,126,0.6); }
+.photo-label:hover .photo-btn { color: rgba(155,110,232,1); border-color: rgba(155,110,232,0.6); }
 
 /* Delete confirmation */
 .confirm-delete {
@@ -507,10 +507,10 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 
 .save-btn {
     width: 100%; padding: 0.8rem; border-radius: 3px;
-    border: 1px solid rgba(200,70,126,0.35);
-    background: linear-gradient(135deg, rgba(200,70,126,0.25), rgba(200,70,126,0.1));
+    border: 1px solid rgba(155,110,232,0.35);
+    background: linear-gradient(135deg, rgba(155,110,232,0.25), rgba(155,110,232,0.1));
     color: #fff; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: all 0.2s;
 }
-.save-btn:hover:not(:disabled) { background: linear-gradient(135deg, rgba(200,70,126,0.38), rgba(200,70,126,0.18)); }
+.save-btn:hover:not(:disabled) { background: linear-gradient(135deg, rgba(155,110,232,0.38), rgba(155,110,232,0.18)); }
 .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>

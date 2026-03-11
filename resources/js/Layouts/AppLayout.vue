@@ -75,9 +75,9 @@ const showIdolBtn = computed(() => user.value && !isIdol.value && idolStatus.val
     background: rgba(10, 10, 20, 0.96);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(200, 70, 126, 0.18);
+    border-bottom: 1px solid rgba(155, 110, 232, 0.18);
     box-shadow:
-        0 1px 0 rgba(200, 70, 126, 0.06),
+        0 1px 0 rgba(155, 110, 232, 0.06),
         0 4px 24px rgba(0, 0, 0, 0.4);
     flex-shrink: 0;
 }
@@ -87,15 +87,15 @@ const showIdolBtn = computed(() => user.value && !isIdol.value && idolStatus.val
     font-family: 'Imbue', serif;
     font-size: 1.35rem;
     font-weight: 400;
-    color: #C8467E;
+    color: #9B6EE8;
     text-decoration: none;
     letter-spacing: 0.04em;
-    text-shadow: 0 0 24px rgba(200, 70, 126, 0.45);
+    text-shadow: 0 0 24px rgba(155, 110, 232, 0.45);
     transition: text-shadow 0.2s, color 0.2s;
 }
 .app-logo:hover {
     color: #e0558f;
-    text-shadow: 0 0 32px rgba(200, 70, 126, 0.7);
+    text-shadow: 0 0 32px rgba(155, 110, 232, 0.7);
 }
 
 /* ── User chip ───────────────────────────────────────────── */
@@ -110,8 +110,8 @@ const showIdolBtn = computed(() => user.value && !isIdol.value && idolStatus.val
     transition: background 0.18s, border-color 0.18s;
 }
 .user-chip:hover {
-    background: rgba(200, 70, 126, 0.08);
-    border-color: rgba(200, 70, 126, 0.22);
+    background: rgba(155, 110, 232, 0.08);
+    border-color: rgba(155, 110, 232, 0.22);
 }
 
 /* ── Avatar ──────────────────────────────────────────────── */
@@ -121,9 +121,9 @@ const showIdolBtn = computed(() => user.value && !isIdol.value && idolStatus.val
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
-    background: rgba(200, 70, 126, 0.15);
-    border: 1.5px solid rgba(200, 70, 126, 0.5);
-    box-shadow: 0 0 10px rgba(200, 70, 126, 0.25);
+    background: rgba(155, 110, 232, 0.15);
+    border: 1.5px solid rgba(155, 110, 232, 0.5);
+    box-shadow: 0 0 10px rgba(155, 110, 232, 0.25);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -138,7 +138,7 @@ const showIdolBtn = computed(() => user.value && !isIdol.value && idolStatus.val
 .user-avatar__initials {
     font-size: 0.9rem;
     font-weight: 600;
-    color: #C8467E;
+    color: #9B6EE8;
     line-height: 1;
 }
 
@@ -192,9 +192,9 @@ const showIdolBtn = computed(() => user.value && !isIdol.value && idolStatus.val
     gap: 0.35rem;
     padding: 0.3rem 0.85rem;
     border-radius: 3px;
-    border: 1px solid rgba(254, 40, 162, 0.45);
+    border: 1px solid rgba(190, 145, 255, 0.45);
     position: relative;
-    background-image: linear-gradient(135deg, #fe28a2 0%, #c8467e 50%, #7c2d7e 100%);
+    background-image: linear-gradient(135deg, #be91ff 0%, #9b6ee8 50%, #6B3FD9 100%);
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -212,12 +212,12 @@ const showIdolBtn = computed(() => user.value && !isIdol.value && idolStatus.val
     position: absolute;
     inset: 0;
     border-radius: 3px;
-    background: linear-gradient(135deg, rgba(200,70,126,0.18) 0%, rgba(124,45,126,0.12) 100%);
+    background: linear-gradient(135deg, rgba(155,110,232,0.18) 0%, rgba(124,45,126,0.12) 100%);
     z-index: -1;
 }
 .become-idol-btn:hover {
-    border-color: rgba(254, 40, 162, 0.75);
-    box-shadow: 0 0 16px rgba(200, 70, 126, 0.4), 0 2px 8px rgba(0,0,0,0.25);
+    border-color: rgba(190, 145, 255, 0.75);
+    box-shadow: 0 0 16px rgba(155, 110, 232, 0.4), 0 2px 8px rgba(0,0,0,0.25);
     transform: translateY(-1px);
 }
 

@@ -112,7 +112,7 @@ function submit() {
 .card-header { margin-bottom: 1.5rem; }
 .card-label {
     font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase;
-    color: rgba(200,70,126,0.6);
+    color: rgba(155,110,232,0.6);
 }
 .card-title { font-size: 1.05rem; font-weight: 600; color: rgba(255,255,255,0.9); margin: 0.35rem 0 0.25rem; }
 .card-desc { font-size: 0.85rem; color: rgba(255,255,255,0.35); margin: 0; }
@@ -131,27 +131,27 @@ function submit() {
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 .field-input:focus {
-    border-color: rgba(200,70,126,0.45);
-    box-shadow: 0 0 0 3px rgba(200,70,126,0.08);
+    border-color: rgba(155,110,232,0.45);
+    box-shadow: 0 0 0 3px rgba(155,110,232,0.08);
 }
 .field-input--error { border-color: rgba(220,60,60,0.5); }
 .field-error { font-size: 0.8rem; color: rgba(220,100,100,0.9); margin: 0; }
 .verify-notice { font-size: 0.85rem; color: rgba(255,255,255,0.5); }
 .verify-link {
-    color: rgba(200,70,126,0.8); background: none; border: none;
+    color: rgba(155,110,232,0.8); background: none; border: none;
     cursor: pointer; padding: 0; font-size: inherit; text-decoration: underline;
 }
-.verify-link:hover { color: rgba(200,70,126,1); }
+.verify-link:hover { color: rgba(155,110,232,1); }
 .verify-sent { color: rgba(100,200,100,0.8); margin-top: 0.25rem; }
 .card-actions { display: flex; align-items: center; gap: 1rem; padding-top: 0.25rem; }
 .save-btn {
     padding: 0.65rem 1.5rem;
     border-radius: 3px;
-    border: 1px solid rgba(200,70,126,0.35);
-    background: linear-gradient(135deg, rgba(200,70,126,0.25), rgba(200,70,126,0.1));
+    border: 1px solid rgba(155,110,232,0.35);
+    background: linear-gradient(135deg, rgba(155,110,232,0.25), rgba(155,110,232,0.1));
     color: #fff; font-size: 0.92rem; cursor: pointer; font-family: inherit; transition: all 0.2s;
 }
-.save-btn:hover:not(:disabled) { background: linear-gradient(135deg, rgba(200,70,126,0.38), rgba(200,70,126,0.18)); }
+.save-btn:hover:not(:disabled) { background: linear-gradient(135deg, rgba(155,110,232,0.38), rgba(155,110,232,0.18)); }
 .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .save-success { font-size: 0.85rem; color: rgba(100,200,100,0.8); margin: 0; }
 .fade-active { transition: opacity 0.3s ease; }

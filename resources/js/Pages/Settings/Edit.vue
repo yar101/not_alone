@@ -36,7 +36,7 @@ defineProps({
 <style scoped>
 .page-wrap {
     background:
-        radial-gradient(ellipse at 20% 30%, rgba(200, 70, 126, 0.07) 0%, transparent 60%),
+        radial-gradient(ellipse at 20% 30%, rgba(155, 110, 232, 0.07) 0%, transparent 60%),
         radial-gradient(ellipse at 80% 70%, rgba(100, 60, 180, 0.06) 0%, transparent 60%);
     padding: 2rem 1rem 4rem;
     flex: 1;
@@ -59,11 +59,11 @@ defineProps({
 
 .back-link {
     font-size: 0.85rem;
-    color: rgba(200, 70, 126, 0.7);
+    color: rgba(155, 110, 232, 0.7);
     text-decoration: none;
     transition: color 0.2s;
 }
-.back-link:hover { color: rgba(200, 70, 126, 1); }
+.back-link:hover { color: rgba(155, 110, 232, 1); }
 
 .page-title {
     font-size: 1.4rem;

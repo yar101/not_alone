@@ -149,7 +149,7 @@ function ratingBarColor(rating) {
     color: #fff; font-size: 0.875rem; outline: none; font-family: inherit;
 }
 .search-input::placeholder { color: rgba(255,255,255,0.25); }
-.search-input:focus { border-color: rgba(200,70,126,0.6); }
+.search-input:focus { border-color: rgba(155,110,232,0.6); }
 
 .table-wrap { overflow-x: auto; }
 .idols-table { width: 100%; border-collapse: collapse; }
@@ -170,12 +170,12 @@ function ratingBarColor(rating) {
 .user-cell { display: flex; align-items: center; gap: 0.75rem; }
 .user-avatar {
     width: 34px; height: 34px; border-radius: 50%; object-fit: cover;
-    background: rgba(200,70,126,0.15); flex-shrink: 0;
+    background: rgba(155,110,232,0.15); flex-shrink: 0;
 }
 .user-avatar--initials {
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.85rem; font-weight: 600; color: #C8467E;
-    border: 1px solid rgba(200,70,126,0.35);
+    font-size: 0.85rem; font-weight: 600; color: #9B6EE8;
+    border: 1px solid rgba(155,110,232,0.35);
 }
 .user-name  { font-size: 0.9rem; color: rgba(255,255,255,0.88); font-weight: 500; }
 .user-email { font-size: 0.78rem; color: rgba(255,255,255,0.35); }
@@ -203,7 +203,7 @@ function ratingBarColor(rating) {
     background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.7);
     font-family: inherit; font-size: 0.78rem; outline: none; width: 130px; border-radius: 2px;
 }
-.note-input:focus { border-color: rgba(200,70,126,0.4); }
+.note-input:focus { border-color: rgba(155,110,232,0.4); }
 
 .empty-row { text-align: center; color: rgba(255,255,255,0.3); padding: 3rem; }
 
@@ -212,6 +212,6 @@ function ratingBarColor(rating) {
     padding: 0.28rem 0.6rem; border: 1px solid rgba(255,255,255,0.1);
     color: rgba(255,255,255,0.5); font-size: 0.8rem; text-decoration: none; cursor: pointer;
 }
-.page-link--active  { border-color: rgba(200,70,126,0.6); color: #C8467E; background: rgba(200,70,126,0.1); }
+.page-link--active  { border-color: rgba(155,110,232,0.6); color: #9B6EE8; background: rgba(155,110,232,0.1); }
 .page-link--disabled { opacity: 0.3; pointer-events: none; }
 </style>

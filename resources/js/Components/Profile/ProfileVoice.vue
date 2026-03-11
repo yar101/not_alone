@@ -34,7 +34,7 @@ function initWaveSurfer() {
         container:     waveformEl.value,
         url:           props.voiceUrl,
         waveColor:     'rgba(255,255,255,0.22)',
-        progressColor: '#FE28A2',
+        progressColor: '#BE91FF',
         cursorColor:   'transparent',
         barWidth:      2,
         barGap:        2,
@@ -331,8 +331,8 @@ function deleteVoice() {
     transition: border-color 0.15s, color 0.15s;
 }
 .play-btn:hover:not(:disabled) {
-    border-color: #FE28A2;
-    color: #FE28A2;
+    border-color: #BE91FF;
+    color: #BE91FF;
 }
 .play-btn:disabled { opacity: 0.4; cursor: default; }
 
@@ -365,7 +365,7 @@ function deleteVoice() {
     transition: color 0.15s;
 }
 .del-btn svg { width: 16px; height: 16px; stroke-width: 2.5; }
-.del-btn:hover { color: #FE28A2; }
+.del-btn:hover { color: #BE91FF; }
 
 /* ── Запись ───────────────────────────────────────────────── */
 .recording {
@@ -373,7 +373,7 @@ function deleteVoice() {
     align-items: center;
     gap: 0.6rem;
     padding: 0.5rem 0.6rem;
-    border: 1px solid rgba(254,40,162,0.35);
+    border: 1px solid rgba(190,145,255,0.35);
     border-radius: 3px;
     box-sizing: border-box;
 }
@@ -383,7 +383,7 @@ function deleteVoice() {
 }
 .rec-dot {
     width: 7px; height: 7px; border-radius: 50%;
-    background: #FE28A2;
+    background: #BE91FF;
     flex-shrink: 0;
     animation: recBlink 1s ease-in-out infinite;
 }
@@ -422,9 +422,9 @@ function deleteVoice() {
     justify-content: center;
     gap: 0.55rem;
     padding: 0.65rem 0.75rem;
-    border: 1px solid rgba(254,40,162,0.3);
+    border: 1px solid rgba(190,145,255,0.3);
     border-radius: 3px;
-    background: rgba(254,40,162,0.05);
+    background: rgba(190,145,255,0.05);
     color: rgba(255,255,255,0.55);
     font-size: 0.88rem;
     font-family: inherit;
@@ -433,15 +433,15 @@ function deleteVoice() {
     transition: border-color 0.2s, color 0.2s, background 0.2s;
 }
 .rec-btn:hover {
-    border-color: rgba(254,40,162,0.65);
-    background: rgba(254,40,162,0.1);
+    border-color: rgba(190,145,255,0.65);
+    background: rgba(190,145,255,0.1);
     color: #fff;
 }
 .rec-btn-icon {
     width: 15px; height: 15px;
     flex-shrink: 0;
-    color: rgba(254,40,162,0.7);
+    color: rgba(190,145,255,0.7);
     transition: color 0.2s;
 }
-.rec-btn:hover .rec-btn-icon { color: #FE28A2; }
+.rec-btn:hover .rec-btn-icon { color: #BE91FF; }
 </style>

@@ -33,7 +33,7 @@
                                 <td align="center" style="padding-bottom:24px;">
                                     <table cellpadding="0" cellspacing="0" border="0">
                                         <tr>
-                                            <td style="width:52px;height:52px;background-color:rgba(254,40,162,0.07);border:1px solid rgba(254,40,162,0.28);border-radius:3px;text-align:center;vertical-align:middle;">
+                                            <td style="width:52px;height:52px;background-color:rgba(190,145,255,0.07);border:1px solid rgba(190,145,255,0.28);border-radius:3px;text-align:center;vertical-align:middle;">
                                                 <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjIiIGhlaWdodD0iMjIiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkUyOEEyIiBzdHJva2Utd2lkdGg9IjEuNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHg9IjIiIHk9IjQiIHdpZHRoPSIyMCIgaGVpZ2h0PSIxNiIgcng9IjIiLz48cGF0aCBkPSJNMiA3bDEwIDcgMTAtNyIvPjwvc3ZnPg==" width="22" height="22" alt="" style="display:block;margin:0 auto;">
                                             </td>
                                         </tr>
@@ -76,10 +76,10 @@
                                 <td align="center" style="padding-bottom:28px;">
                                     <table cellpadding="0" cellspacing="0" border="0">
                                         <tr>
-                                            <td style="border-radius:3px;border:1px solid rgba(254,40,162,0.55);background-color:rgba(254,40,162,0.1);">
+                                            <td style="border-radius:3px;border:1px solid rgba(190,145,255,0.55);background-color:rgba(190,145,255,0.1);">
                                                 <a href="{{ $url }}"
                                                    target="_blank"
-                                                   style="display:inline-block;padding:12px 32px;font-size:0.9rem;font-weight:500;color:#FE28A2;text-decoration:none;letter-spacing:0.02em;">
+                                                   style="display:inline-block;padding:12px 32px;font-size:0.9rem;font-weight:500;color:#BE91FF;text-decoration:none;letter-spacing:0.02em;">
                                                     Подтвердить email
                                                 </a>
                                             </td>
@@ -109,7 +109,7 @@
                             </tr>
                             <tr>
                                 <td align="center">
-                                    <p style="margin:0;font-size:0.72rem;color:rgba(254,40,162,0.5);word-break:break-all;line-height:1.5;">
+                                    <p style="margin:0;font-size:0.72rem;color:rgba(190,145,255,0.5);word-break:break-all;line-height:1.5;">
                                         {{ $url }}
                                     </p>
                                 </td>

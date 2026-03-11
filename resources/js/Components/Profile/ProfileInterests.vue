@@ -145,7 +145,7 @@ function openEdit() {
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #FE28A2;
+    color: #BE91FF;
 }
 
 .edit-btn {
@@ -165,15 +165,15 @@ function openEdit() {
 }
 .block-section:hover .edit-btn {
     opacity: 1;
-    color: rgba(254, 40, 162, 0.8);
-    border-color: rgba(254, 40, 162, 0.35);
-    background: rgba(254, 40, 162, 0.08);
+    color: rgba(190, 145, 255, 0.8);
+    border-color: rgba(190, 145, 255, 0.35);
+    background: rgba(190, 145, 255, 0.08);
 }
 .edit-btn:hover {
-    color: #fe28a2;
-    border-color: rgba(254, 40, 162, 0.7);
-    background: rgba(254, 40, 162, 0.16);
-    box-shadow: 0 0 8px rgba(254, 40, 162, 0.35);
+    color: #be91ff;
+    border-color: rgba(190, 145, 255, 0.7);
+    background: rgba(190, 145, 255, 0.16);
+    box-shadow: 0 0 8px rgba(190, 145, 255, 0.35);
 }
 
 .tags-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
@@ -198,7 +198,7 @@ function openEdit() {
     box-sizing: border-box; outline: none; transition: border-color 0.15s;
 }
 .search-input::placeholder { color: rgba(255,255,255,0.25); }
-.search-input:focus { border-color: rgba(254,40,162,0.5); }
+.search-input:focus { border-color: rgba(190,145,255,0.5); }
 .categories { display: flex; flex-direction: column; gap: 0.2rem; margin-bottom: 1rem; }
 .cat-block { border: 1px solid rgba(255,255,255,0.07); border-radius: 3px; }
 .cat-header {
@@ -208,7 +208,7 @@ function openEdit() {
     font-size: 0.9rem; cursor: pointer; font-family: inherit; text-align: left;
     border-radius: 3px;
 }
-.cat-count { color: rgba(254,40,162,0.75); font-size: 0.8rem; margin-left: 0.4rem; }
+.cat-count { color: rgba(190,145,255,0.75); font-size: 0.8rem; margin-left: 0.4rem; }
 .cat-arrow { color: rgba(255,255,255,0.35); font-size: 1.1rem; transition: transform 0.2s; margin-left: auto; }
 .cat-arrow.open { transform: rotate(90deg); }
 .cat-interests { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0.6rem 0.9rem; background: rgba(0,0,0,0.12); border-radius: 0 0 3px 3px; }
@@ -218,15 +218,15 @@ function openEdit() {
     border: 1px solid rgba(255,255,255,0.1); background: transparent;
     color: rgba(255,255,255,0.5); font-size: 0.88rem; cursor: pointer; font-family: inherit; transition: all 0.15s;
 }
-.interest-btn.active { border-color: rgba(254,40,162,0.55); background: rgba(254,40,162,0.1); color: #fff; }
+.interest-btn.active { border-color: rgba(190,145,255,0.55); background: rgba(190,145,255,0.1); color: #fff; }
 .interest-btn:disabled:not(.active) { opacity: 0.3; cursor: not-allowed; }
 .no-results { color: rgba(255,255,255,0.3); font-size: 0.9rem; text-align: center; padding: 1rem 0; margin: 0; }
 .save-btn {
     width: 100%; padding: 0.75rem;
-    border-radius: 3px; border: 1px solid rgba(254,40,162,0.4);
-    background: rgba(254,40,162,0.1);
+    border-radius: 3px; border: 1px solid rgba(190,145,255,0.4);
+    background: rgba(190,145,255,0.1);
     color: #fff; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: background 0.15s;
 }
-.save-btn:hover:not(:disabled) { background: rgba(254,40,162,0.2); }
+.save-btn:hover:not(:disabled) { background: rgba(190,145,255,0.2); }
 .save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 </style>

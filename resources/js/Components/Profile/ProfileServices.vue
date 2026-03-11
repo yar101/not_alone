@@ -275,18 +275,18 @@ const allItems = computed(() => {
     align-items: center;
     gap: 0.5rem;
     padding: 0.45rem 0.9rem;
-    border: 1px solid rgba(254,40,162,0.35);
+    border: 1px solid rgba(190,145,255,0.35);
     border-radius: 3px;
-    background: rgba(254,40,162,0.06);
-    color: rgba(254,40,162,0.85);
+    background: rgba(190,145,255,0.06);
+    color: rgba(190,145,255,0.85);
     font-family: inherit;
     font-size: 0.78rem;
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s;
 }
 .svc-add-btn:hover {
-    border-color: rgba(254,40,162,0.6);
-    background: rgba(254,40,162,0.12);
+    border-color: rgba(190,145,255,0.6);
+    background: rgba(190,145,255,0.12);
 }
 
 /* ── Empty ────────────────────────────────────────────────── */
@@ -309,7 +309,7 @@ const allItems = computed(() => {
     font-weight: 700;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: rgba(254,40,162,0.5);
+    color: rgba(190,145,255,0.5);
     margin: 0 0 0.4rem;
     padding: 0 0.1rem;
 }
@@ -392,10 +392,10 @@ const allItems = computed(() => {
     align-items: center;
     gap: 0.35rem;
     padding: 0.35rem 0.7rem;
-    border: 1px solid rgba(254,40,162,0.3);
+    border: 1px solid rgba(190,145,255,0.3);
     border-radius: 3px;
-    background: rgba(254,40,162,0.05);
-    color: rgba(254,40,162,0.75);
+    background: rgba(190,145,255,0.05);
+    color: rgba(190,145,255,0.75);
     font-family: inherit;
     font-size: 0.72rem;
     cursor: pointer;
@@ -403,9 +403,9 @@ const allItems = computed(() => {
     white-space: nowrap;
 }
 .svc-would-buy-btn:hover:not(:disabled) {
-    border-color: rgba(254,40,162,0.6);
-    background: rgba(254,40,162,0.12);
-    color: rgba(254,40,162,1);
+    border-color: rgba(190,145,255,0.6);
+    background: rgba(190,145,255,0.12);
+    color: rgba(190,145,255,1);
 }
 .svc-would-buy-btn--done {
     border-color: rgba(74,222,128,0.25);
@@ -421,7 +421,7 @@ const allItems = computed(() => {
     height: 18px;
     padding: 0 4px;
     border-radius: 99px;
-    background: rgba(254,40,162,0.15);
+    background: rgba(190,145,255,0.15);
     font-size: 0.65rem;
     font-weight: 700;
 }
@@ -440,7 +440,7 @@ const allItems = computed(() => {
 
 .svc-modal {
     background: #0a0a0f;
-    border: 1px solid rgba(254,40,162,0.25);
+    border: 1px solid rgba(190,145,255,0.25);
     border-radius: 3px;
     width: 100%;
     max-width: 420px;
@@ -504,7 +504,7 @@ const allItems = computed(() => {
     width: 100%;
     box-sizing: border-box;
 }
-.svc-input:focus { border-color: rgba(254,40,162,0.45); }
+.svc-input:focus { border-color: rgba(190,145,255,0.45); }
 .svc-input--err  { border-color: rgba(239,68,68,0.5); }
 
 .svc-err { font-size: 0.75rem; color: rgba(239,68,68,0.8); margin: 0; }
@@ -531,9 +531,9 @@ const allItems = computed(() => {
 
 .svc-btn-submit {
     padding: 0.5rem 1.2rem;
-    border: 1px solid rgba(254,40,162,0.45);
+    border: 1px solid rgba(190,145,255,0.45);
     border-radius: 3px;
-    background: linear-gradient(135deg, rgba(200,70,126,0.3) 0%, rgba(124,45,126,0.2) 100%);
+    background: linear-gradient(135deg, rgba(155,110,232,0.3) 0%, rgba(124,45,126,0.2) 100%);
     color: rgba(255,255,255,0.9);
     font-family: inherit;
     font-size: 0.82rem;
@@ -541,8 +541,8 @@ const allItems = computed(() => {
     transition: box-shadow 0.15s, border-color 0.15s;
 }
 .svc-btn-submit:hover:not(:disabled) {
-    border-color: rgba(254,40,162,0.7);
-    box-shadow: 0 0 12px rgba(200,70,126,0.25);
+    border-color: rgba(190,145,255,0.7);
+    box-shadow: 0 0 12px rgba(155,110,232,0.25);
 }
 .svc-btn-submit:disabled { opacity: 0.5; cursor: default; }
 

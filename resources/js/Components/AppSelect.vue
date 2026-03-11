@@ -132,7 +132,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onOutsideClick));
 .app-select:hover:not(.app-select--disabled) {
     border-color: rgba(255, 255, 255, 0.2);
 }
-.app-select--open  { border-color: rgba(254, 40, 162, 0.45); }
+.app-select--open  { border-color: rgba(190, 145, 255, 0.45); }
 .app-select--error { border-color: rgba(239, 68, 68, 0.5) !important; }
 .app-select--disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
 
@@ -152,7 +152,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onOutsideClick));
     transition: transform 0.15s, color 0.15s;
 }
 .app-select--open .app-select__caret {
-    color: rgba(254, 40, 162, 0.65);
+    color: rgba(190, 145, 255, 0.65);
 }
 .app-select__caret--up { transform: rotate(180deg); }
 </style>
@@ -164,13 +164,13 @@ onUnmounted(() => document.removeEventListener('mousedown', onOutsideClick));
     z-index: 9999;
     background: #0d0d1b;
     border: 1px solid rgba(255, 255, 255, 0.12);
-    border-top-color: rgba(254, 40, 162, 0.3);
+    border-top-color: rgba(190, 145, 255, 0.3);
     border-radius: 3px;
     overflow-y: auto;
     max-height: 224px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(254, 40, 162, 0.06);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(190, 145, 255, 0.06);
     scrollbar-width: thin;
-    scrollbar-color: rgba(254, 40, 162, 0.3) transparent;
+    scrollbar-color: rgba(190, 145, 255, 0.3) transparent;
 }
 
 .app-select-opt {
@@ -185,14 +185,14 @@ onUnmounted(() => document.removeEventListener('mousedown', onOutsideClick));
     text-overflow: ellipsis;
 }
 .app-select-opt:hover {
-    background: rgba(254, 40, 162, 0.1);
+    background: rgba(190, 145, 255, 0.1);
     color: rgba(255, 255, 255, 0.95);
 }
 .app-select-opt--sel {
-    background: rgba(254, 40, 162, 0.08);
-    color: rgba(254, 40, 162, 0.9);
+    background: rgba(190, 145, 255, 0.08);
+    color: rgba(190, 145, 255, 0.9);
 }
 .app-select-opt--sel:hover {
-    background: rgba(254, 40, 162, 0.16);
+    background: rgba(190, 145, 255, 0.16);
 }
 </style>

@@ -63,7 +63,7 @@ function submit() {
 .login-card {
     width: 380px;
     background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(200, 70, 126, 0.2);
+    border: 1px solid rgba(155, 110, 232, 0.2);
     border-radius: 16px;
     padding: 2.5rem 2rem;
     box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
@@ -72,10 +72,10 @@ function submit() {
 .login-title {
     font-family: 'Imbue', serif;
     font-size: 1.6rem;
-    color: #C8467E;
+    color: #9B6EE8;
     text-align: center;
     margin: 0 0 0.25rem;
-    text-shadow: 0 0 24px rgba(200, 70, 126, 0.4);
+    text-shadow: 0 0 24px rgba(155, 110, 232, 0.4);
 }
 
 .login-sub {
@@ -103,14 +103,14 @@ function submit() {
     outline: none;
     transition: border-color 0.15s;
 }
-.field__input:focus { border-color: rgba(200, 70, 126, 0.5); }
+.field__input:focus { border-color: rgba(155, 110, 232, 0.5); }
 .field__input--error { border-color: rgba(255, 80, 80, 0.6); }
 .field__error { font-size: 0.78rem; color: #ff6b6b; }
 
 .btn-submit {
     margin-top: 0.5rem;
     padding: 0.7rem;
-    background: linear-gradient(135deg, #C8467E, #a03466);
+    background: linear-gradient(135deg, #9B6EE8, #a03466);
     border: none;
     border-radius: 8px;
     color: #fff;

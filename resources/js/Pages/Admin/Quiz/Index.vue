@@ -237,13 +237,13 @@ const stages = Array.from({ length: 10 }, (_, i) => i + 1);
     color: #fff; cursor: pointer;
 }
 .stage-header:hover,
-.stage-header.is-open { background: rgba(200,70,126,0.08); }
+.stage-header.is-open { background: rgba(155,110,232,0.08); }
 
 .stage-badge {
     display: inline-flex; align-items: center; justify-content: center;
     width: 1.9rem; height: 1.9rem; flex-shrink: 0;
     font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em;
-    background: rgba(200,70,126,0.6);
+    background: rgba(155,110,232,0.6);
     color: #fff;
 }
 
@@ -354,8 +354,8 @@ const stages = Array.from({ length: 10 }, (_, i) => i + 1);
 }
 .btn-edit svg, .btn-delete svg { width: 0.85rem; height: 0.85rem; }
 
-.btn-edit { color: #C8467E; border-color: rgba(200,70,126,0.3); }
-.btn-edit:hover { background: rgba(200,70,126,0.14); border-color: rgba(200,70,126,0.5); }
+.btn-edit { color: #9B6EE8; border-color: rgba(155,110,232,0.3); }
+.btn-edit:hover { background: rgba(155,110,232,0.14); border-color: rgba(155,110,232,0.5); }
 
 .btn-delete { color: #ff6b6b; border-color: rgba(255,80,80,0.25); }
 .btn-delete:hover { background: rgba(255,80,80,0.12); border-color: rgba(255,80,80,0.45); }
@@ -384,20 +384,20 @@ const stages = Array.from({ length: 10 }, (_, i) => i + 1);
 .new-question-separator::before,
 .new-question-separator::after {
     content: ''; flex: 1; height: 1px;
-    background: repeating-linear-gradient(90deg, rgba(200,70,126,0.25) 0, rgba(200,70,126,0.25) 4px, transparent 4px, transparent 8px);
+    background: repeating-linear-gradient(90deg, rgba(155,110,232,0.25) 0, rgba(155,110,232,0.25) 4px, transparent 4px, transparent 8px);
 }
-.new-question-separator span { color: #C8467E; white-space: nowrap; }
+.new-question-separator span { color: #9B6EE8; white-space: nowrap; }
 
 .new-question-form {
     display: flex; flex-direction: column; gap: 0.6rem;
-    background: rgba(200,70,126,0.03);
-    border: 1px solid rgba(200,70,126,0.18);
+    background: rgba(155,110,232,0.03);
+    border: 1px solid rgba(155,110,232,0.18);
     padding: 0.85rem;
 }
 
 .new-form-header {
     display: flex; align-items: center; gap: 0.5rem;
-    font-size: 0.8rem; font-weight: 600; color: #C8467E;
+    font-size: 0.8rem; font-weight: 600; color: #9B6EE8;
     margin-bottom: 0.1rem;
 }
 .new-form-header svg { width: 0.85rem; height: 0.85rem; flex-shrink: 0; }
@@ -410,7 +410,7 @@ const stages = Array.from({ length: 10 }, (_, i) => i + 1);
     padding: 0.45rem 0.7rem; font-size: 0.87rem;
     outline: none; font-family: inherit;
 }
-.q-input:focus { border-color: rgba(200,70,126,0.55); }
+.q-input:focus { border-color: rgba(155,110,232,0.55); }
 .opt-input { flex: 1; }
 
 .option-row { display: flex; align-items: center; gap: 0.5rem; }
@@ -451,9 +451,9 @@ const stages = Array.from({ length: 10 }, (_, i) => i + 1);
 
 .btn-add-question {
     align-self: flex-start; padding: 0.4rem 0.95rem; font-size: 0.84rem; font-weight: 500;
-    background: rgba(200,70,126,0.1); border: 1px solid rgba(200,70,126,0.4); color: #C8467E; cursor: pointer;
+    background: rgba(155,110,232,0.1); border: 1px solid rgba(155,110,232,0.4); color: #9B6EE8; cursor: pointer;
     font-family: inherit;
 }
-.btn-add-question:hover { background: rgba(200,70,126,0.2); border-color: rgba(200,70,126,0.6); }
+.btn-add-question:hover { background: rgba(155,110,232,0.2); border-color: rgba(155,110,232,0.6); }
 .btn-add-question:disabled { opacity: 0.4; cursor: default; }
 </style>

@@ -96,14 +96,14 @@ const strokeDash = computed(() => ({
     cursor: pointer;
     position: relative;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.55), 0 0 0 1px rgba(200,70,126,0.2);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.55), 0 0 0 1px rgba(155,110,232,0.2);
     transition: box-shadow 0.2s;
 }
 .cl-trigger:hover {
-    box-shadow: 0 4px 24px rgba(0,0,0,0.6), 0 0 16px rgba(200,70,126,0.3), 0 0 0 1px rgba(200,70,126,0.35);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.6), 0 0 16px rgba(155,110,232,0.3), 0 0 0 1px rgba(155,110,232,0.35);
 }
 .cl-trigger.done {
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 18px rgba(200,70,126,0.4), 0 0 0 1px rgba(200,70,126,0.45);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5), 0 0 18px rgba(155,110,232,0.4), 0 0 0 1px rgba(155,110,232,0.45);
 }
 
 .cl-svg {
@@ -118,7 +118,7 @@ const strokeDash = computed(() => ({
 }
 .cl-fill {
     fill: none;
-    stroke: rgba(200,70,126,0.85);
+    stroke: rgba(155,110,232,0.85);
     stroke-width: 3;
     stroke-linecap: round;
     transition: stroke-dashoffset 0.5s ease;
@@ -142,9 +142,9 @@ const strokeDash = computed(() => ({
     padding: 1rem 1rem 0.85rem;
     background: rgba(14,10,24,0.94);
     backdrop-filter: blur(18px);
-    border: 1px solid rgba(200,70,126,0.2);
+    border: 1px solid rgba(155,110,232,0.2);
     border-radius: 3px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.65), 0 0 0 1px rgba(200,70,126,0.06);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.65), 0 0 0 1px rgba(155,110,232,0.06);
 }
 
 .cl-panel-head {
@@ -175,8 +175,8 @@ const strokeDash = computed(() => ({
 .cl-progress-fill {
     height: 100%;
     border-radius: 3px;
-    background: linear-gradient(90deg, rgba(200,70,126,0.9), rgba(140,60,200,0.75));
-    box-shadow: 0 0 8px rgba(200,70,126,0.4);
+    background: linear-gradient(90deg, rgba(155,110,232,0.9), rgba(140,60,200,0.75));
+    box-shadow: 0 0 8px rgba(155,110,232,0.4);
     transition: width 0.5s cubic-bezier(0.25,0.46,0.45,0.94);
 }
 
@@ -194,18 +194,18 @@ const strokeDash = computed(() => ({
     flex-shrink: 0;
 }
 .cl-item.done .cl-item-icon {
-    color: rgba(200,70,126,0.8);
-    filter: drop-shadow(0 0 4px rgba(200,70,126,0.5));
+    color: rgba(155,110,232,0.8);
+    filter: drop-shadow(0 0 4px rgba(155,110,232,0.5));
 }
 .cl-item.done {
     color: rgba(255,255,255,0.28);
     text-decoration: line-through;
-    text-decoration-color: rgba(200,70,126,0.3);
+    text-decoration-color: rgba(155,110,232,0.3);
 }
 
 .cl-complete {
     font-size: 0.82rem;
-    color: rgba(200,70,126,0.75);
+    color: rgba(155,110,232,0.75);
     margin: 0;
     display: flex; align-items: center; gap: 0.3rem;
 }

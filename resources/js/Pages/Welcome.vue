@@ -135,8 +135,8 @@ const showAuthModal = ref(false);
 
     font-family: "Brygada 1918", serif;
     font-weight: 400;
-    color: #C8467E;
-    text-shadow: 0 0 30px rgba(200, 70, 126, 0.25);
+    color: #9B6EE8;
+    text-shadow: 0 0 30px rgba(155, 110, 232, 0.25);
     line-height: 0.9;
     letter-spacing: 0.08em;
     font-size: 28px;
@@ -167,8 +167,8 @@ const showAuthModal = ref(false);
 /* Логотип */
 .logo-text {
     font-family: "Imbue", serif;
-    color: #C8467E;
-    text-shadow: 0 0 30px rgba(200, 70, 126, 0.25);
+    color: #9B6EE8;
+    text-shadow: 0 0 30px rgba(155, 110, 232, 0.25);
     line-height: 0.9;
     letter-spacing: -0.02em;
 }

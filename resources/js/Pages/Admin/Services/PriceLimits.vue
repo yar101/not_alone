@@ -134,8 +134,8 @@ function destroy(id) {
 .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
 .page-title  { font-size: 1.4rem; color: #fff; margin: 0; }
 .hint { font-size: 0.82rem; color: rgba(255,255,255,0.35); margin: 0 0 1.25rem; }
-.btn-primary { padding: 0.45rem 1rem; border: 1px solid rgba(254,40,162,0.45); border-radius: 3px; background: rgba(254,40,162,0.1); color: rgba(254,40,162,0.9); font-size: 0.82rem; cursor: pointer; font-family: inherit; transition: background 0.15s; }
-.btn-primary:hover { background: rgba(254,40,162,0.2); }
+.btn-primary { padding: 0.45rem 1rem; border: 1px solid rgba(190,145,255,0.45); border-radius: 3px; background: rgba(190,145,255,0.1); color: rgba(190,145,255,0.9); font-size: 0.82rem; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+.btn-primary:hover { background: rgba(190,145,255,0.2); }
 .table-wrap { overflow-x: auto; }
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th { text-align: left; padding: 0.6rem 1rem; font-size: 0.72rem; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.07em; border-bottom: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.025); }
@@ -156,11 +156,11 @@ function destroy(id) {
 .field { display: flex; flex-direction: column; gap: 0.3rem; }
 .field label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: rgba(255,255,255,0.35); }
 .input { padding: 0.45rem 0.7rem; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 3px; color: rgba(255,255,255,0.85); font-family: inherit; font-size: 0.88rem; outline: none; transition: border-color 0.15s; box-sizing: border-box; width: 100%; appearance: none; }
-.input:focus { border-color: rgba(254,40,162,0.45); }
+.input:focus { border-color: rgba(190,145,255,0.45); }
 .input--err { border-color: rgba(239,68,68,0.5); }
 .err { font-size: 0.75rem; color: rgba(239,68,68,0.8); margin: 0; }
 .modal__actions { display: flex; justify-content: flex-end; gap: 0.5rem; padding-top: 0.25rem; }
 .btn-cancel { padding: 0.45rem 0.9rem; border: 1px solid rgba(255,255,255,0.12); border-radius: 3px; background: transparent; color: rgba(255,255,255,0.4); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
-.btn-submit { padding: 0.45rem 1rem; border: 1px solid rgba(254,40,162,0.45); border-radius: 3px; background: rgba(254,40,162,0.1); color: rgba(255,255,255,0.9); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
+.btn-submit { padding: 0.45rem 1rem; border: 1px solid rgba(190,145,255,0.45); border-radius: 3px; background: rgba(190,145,255,0.1); color: rgba(255,255,255,0.9); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
 .btn-submit:disabled { opacity: 0.5; cursor: default; }
 </style>

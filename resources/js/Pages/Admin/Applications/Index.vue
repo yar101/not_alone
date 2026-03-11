@@ -164,9 +164,9 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
     font-family: inherit;
 }
 .filter-btn--active, .filter-btn:hover {
-    border-color: rgba(200,70,126,0.6);
-    color: #C8467E;
-    background: rgba(200,70,126,0.1);
+    border-color: rgba(155,110,232,0.6);
+    color: #9B6EE8;
+    background: rgba(155,110,232,0.1);
 }
 
 .table-wrap { overflow-x: auto; }
@@ -191,12 +191,12 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
 .user-cell { display: flex; align-items: center; gap: 0.75rem; }
 .user-avatar {
     width: 34px; height: 34px; border-radius: 50%; object-fit: cover;
-    background: rgba(200,70,126,0.15); flex-shrink: 0;
+    background: rgba(155,110,232,0.15); flex-shrink: 0;
 }
 .user-avatar--initials {
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.85rem; font-weight: 600; color: #C8467E;
-    border: 1px solid rgba(200,70,126,0.35);
+    font-size: 0.85rem; font-weight: 600; color: #9B6EE8;
+    border: 1px solid rgba(155,110,232,0.35);
 }
 .user-name { font-size: 0.9rem; color: rgba(255,255,255,0.88); font-weight: 500; }
 .user-email { font-size: 0.78rem; color: rgba(255,255,255,0.35); }
@@ -230,8 +230,8 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
 .btn-approve:hover { background: rgba(76,222,143,0.18); }
 .btn-reject { border-color: rgba(255,107,107,0.45); color: #ff6b6b; background: rgba(255,107,107,0.08); }
 .btn-reject:hover { background: rgba(255,107,107,0.18); }
-.btn-view { border-color: rgba(200,70,126,0.35); color: #C8467E; background: rgba(200,70,126,0.07); }
-.btn-view:hover { background: rgba(200,70,126,0.15); }
+.btn-view { border-color: rgba(155,110,232,0.35); color: #9B6EE8; background: rgba(155,110,232,0.07); }
+.btn-view:hover { background: rgba(155,110,232,0.15); }
 
 .empty-row { text-align: center; color: rgba(255,255,255,0.3); padding: 3rem; }
 
@@ -244,7 +244,7 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
     text-decoration: none;
     cursor: pointer;
 }
-.page-link--active { border-color: rgba(200,70,126,0.6); color: #C8467E; background: rgba(200,70,126,0.1); }
+.page-link--active { border-color: rgba(155,110,232,0.6); color: #9B6EE8; background: rgba(155,110,232,0.1); }
 .page-link--disabled { opacity: 0.3; pointer-events: none; }
 
 .modal-overlay {
@@ -253,7 +253,7 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
 }
 .modal {
     background: #0e0e1c;
-    border: 1px solid rgba(200,70,126,0.35);
+    border: 1px solid rgba(155,110,232,0.35);
     padding: 1.75rem;
     width: 420px;
     max-width: 90vw;
@@ -270,7 +270,7 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
     outline: none;
     font-family: inherit;
 }
-.modal-textarea:focus { border-color: rgba(200,70,126,0.6); }
+.modal-textarea:focus { border-color: rgba(155,110,232,0.6); }
 .modal-actions { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 1rem; }
 .btn-cancel {
     padding: 0.45rem 1rem;
@@ -302,7 +302,7 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
     display: flex; align-items: center; gap: 0.5rem; margin: 0.75rem 0 0;
     font-size: 0.82rem; color: rgba(255,255,255,0.55); cursor: pointer;
 }
-.reset-quiz-label input { accent-color: #C8467E; }
+.reset-quiz-label input { accent-color: #9B6EE8; }
 
 .lightbox {
     position: fixed; inset: 0; background: rgba(0,0,0,0.92);

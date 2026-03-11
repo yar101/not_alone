@@ -424,9 +424,9 @@ function deleteAvatar() {
     transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 .action-pill:hover {
-    color: #FE28A2;
-    border-color: rgba(254,40,162,0.5);
-    background: rgba(254,40,162,0.05);
+    color: #BE91FF;
+    border-color: rgba(190,145,255,0.5);
+    background: rgba(190,145,255,0.05);
 }
 
 /* Avatar */
@@ -446,15 +446,15 @@ function deleteAvatar() {
     border-radius: 50%;
     padding: 2px;
     flex-shrink: 0;
-    border: 1px solid rgba(254,40,162,0.6);
-    box-shadow: 0 0 0 1px rgba(254,40,162,0.15), 0 0 24px rgba(254,40,162,0.12);
+    border: 1px solid rgba(190,145,255,0.6);
+    box-shadow: 0 0 0 1px rgba(190,145,255,0.15), 0 0 24px rgba(190,145,255,0.12);
 }
 .avatar-clickable { cursor: pointer; }
 
 .profile-avatar {
     width: 100%; height: 100%;
     border-radius: 50%;
-    background: rgba(254,40,162,0.08);
+    background: rgba(190,145,255,0.08);
     display: flex; align-items: center; justify-content: center;
     font-size: 2.2rem; font-weight: 500; color: rgba(255,255,255,0.9);
     position: relative;
@@ -544,9 +544,9 @@ function deleteAvatar() {
 }
 
 .meta-badge--female {
-    border-color: rgba(254, 40, 162, 0.3);
-    background: rgba(254, 40, 162, 0.06);
-    color: rgba(254, 40, 162, 0.85);
+    border-color: rgba(190, 145, 255, 0.3);
+    background: rgba(190, 145, 255, 0.06);
+    color: rgba(190, 145, 255, 0.85);
 }
 
 .meta-badge--male {
@@ -577,10 +577,10 @@ function deleteAvatar() {
     flex-direction: column;
     gap: 0.3rem;
     padding: 0.6rem 1rem 0.55rem;
-    border: 1px solid rgba(254,40,162,0.35);
+    border: 1px solid rgba(190,145,255,0.35);
     border-radius: 3px;
-    background: rgba(254,40,162,0.04);
-    box-shadow: inset 0 0 16px rgba(254,40,162,0.05);
+    background: rgba(190,145,255,0.04);
+    box-shadow: inset 0 0 16px rgba(190,145,255,0.05);
     min-width: 120px;
 }
 
@@ -590,7 +590,7 @@ function deleteAvatar() {
     font-weight: 600;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: rgba(254,40,162,0.55);
+    color: rgba(190,145,255,0.55);
 }
 
 .rating-inner {
@@ -624,7 +624,7 @@ function deleteAvatar() {
 .edit-form { padding: 0.5rem 0.25rem; }
 .edit-title { font-size: 1.1rem; font-weight: 600; color: #fff; margin: 0 0 1.25rem; font-family: 'Figtree', sans-serif; }
 .edit-field { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
-.edit-label { font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(254,40,162,0.6); }
+.edit-label { font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(190,145,255,0.6); }
 .edit-input {
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.1);
@@ -639,12 +639,12 @@ function deleteAvatar() {
     transition: border-color 0.15s;
 }
 .edit-input:focus {
-    border-color: rgba(254,40,162,0.4);
+    border-color: rgba(190,145,255,0.4);
 }
 
 .edit-field-error {
     font-size: 0.75rem;
-    color: rgba(254,40,162,0.85);
+    color: rgba(190,145,255,0.85);
     margin-top: -0.1rem;
 }
 
@@ -663,22 +663,22 @@ function deleteAvatar() {
     border: 1px solid rgba(255,255,255,0.1); border-radius: 3px; background: transparent;
     color: rgba(255,255,255,0.4); font-size: 0.88rem; cursor: pointer; font-family: inherit; transition: all 0.15s;
 }
-.gender-btn.active { border-color: #FE28A2; color: #fff; }
+.gender-btn.active { border-color: #BE91FF; color: #fff; }
 .delete-avatar-btn {
     padding: 0.4rem 0.85rem; font-size: 0.85rem;
-    border: 1px solid rgba(254,40,162,0.35); border-radius: 3px; background: transparent;
-    color: rgba(254,40,162,0.8); cursor: pointer; font-family: inherit; transition: all 0.15s;
+    border: 1px solid rgba(190,145,255,0.35); border-radius: 3px; background: transparent;
+    color: rgba(190,145,255,0.8); cursor: pointer; font-family: inherit; transition: all 0.15s;
     align-self: flex-start;
 }
-.delete-avatar-btn:hover { border-color: #FE28A2; color: #FE28A2; }
+.delete-avatar-btn:hover { border-color: #BE91FF; color: #BE91FF; }
 .save-btn {
     width: 100%; margin-top: 0.5rem; padding: 0.8rem;
-    border: 1px solid rgba(254,40,162,0.45);
+    border: 1px solid rgba(190,145,255,0.45);
     border-radius: 3px;
-    background: rgba(254,40,162,0.08);
+    background: rgba(190,145,255,0.08);
     color: #fff; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: background 0.15s;
 }
-.save-btn:hover:not(:disabled) { background: rgba(254,40,162,0.16); }
+.save-btn:hover:not(:disabled) { background: rgba(190,145,255,0.16); }
 .save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* Crop modal */
@@ -723,17 +723,17 @@ function deleteAvatar() {
     transition: color 0.15s, border-color 0.15s;
 }
 .crop-rotate-btn:hover {
-    color: #FE28A2;
-    border-color: rgba(254,40,162,0.4);
+    color: #BE91FF;
+    border-color: rgba(190,145,255,0.4);
 }
 
 .crop-error {
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
-    border: 1px solid rgba(254,40,162,0.4);
+    border: 1px solid rgba(190,145,255,0.4);
     border-radius: 3px;
-    background: rgba(254,40,162,0.06);
-    color: rgba(254,40,162,0.9);
+    background: rgba(190,145,255,0.06);
+    color: rgba(190,145,255,0.9);
     font-size: 0.9rem;
 }
 
@@ -774,8 +774,8 @@ function deleteAvatar() {
     max-height: 80vh;
     object-fit: contain;
     border-radius: 50%;
-    border: 1px solid rgba(254,40,162,0.4);
-    box-shadow: 0 0 60px rgba(254,40,162,0.15);
+    border: 1px solid rgba(190,145,255,0.4);
+    box-shadow: 0 0 60px rgba(190,145,255,0.15);
     cursor: default;
 }
 

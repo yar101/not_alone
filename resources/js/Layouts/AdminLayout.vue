@@ -50,13 +50,13 @@ function logout() {
     gap: 2rem;
     padding: 0 2rem;
     background: #07070f;
-    border-bottom: 1px solid rgba(200, 70, 126, 0.45);
+    border-bottom: 1px solid rgba(155, 110, 232, 0.45);
 }
 
 .admin-logo {
     font-family: 'Imbue', serif;
     font-size: 1.05rem;
-    color: #C8467E;
+    color: #9B6EE8;
     text-decoration: none;
     white-space: nowrap;
     letter-spacing: 0.02em;
@@ -78,14 +78,14 @@ function logout() {
 }
 .admin-nav__link:first-child { border-left: 1px solid rgba(255,255,255,0.06); }
 .admin-nav__link:hover {
-    background: rgba(200, 70, 126, 0.1);
+    background: rgba(155, 110, 232, 0.1);
     color: rgba(255, 255, 255, 0.9);
 }
 
 .admin-logout {
     margin-left: auto;
     padding: 0.3rem 0.85rem;
-    border: 1px solid rgba(200, 70, 126, 0.35);
+    border: 1px solid rgba(155, 110, 232, 0.35);
     background: transparent;
     color: rgba(255, 255, 255, 0.45);
     font-size: 0.8rem;
@@ -93,9 +93,9 @@ function logout() {
     font-family: inherit;
 }
 .admin-logout:hover {
-    border-color: rgba(200, 70, 126, 0.65);
+    border-color: rgba(155, 110, 232, 0.65);
     color: rgba(255, 255, 255, 0.85);
-    background: rgba(200, 70, 126, 0.1);
+    background: rgba(155, 110, 232, 0.1);
 }
 
 .admin-main {
