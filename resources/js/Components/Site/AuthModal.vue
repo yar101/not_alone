@@ -1,11 +1,12 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useForm, usePage, router } from '@inertiajs/vue3';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppSelect from '@/Components/AppSelect.vue';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
+    initialTab: { type: String, default: 'login' },
 });
 
 const emit = defineEmits(['close']);
@@ -13,7 +14,11 @@ const emit = defineEmits(['close']);
 const page = usePage();
 const authUser = computed(() => page.props.auth?.user ?? null);
 
-const tab = ref('login');
+const tab = ref(props.initialTab);
+
+watch(() => props.show, (val) => {
+    if (val) tab.value = props.initialTab;
+});
 
 function switchTab(t) {
     tab.value = t;

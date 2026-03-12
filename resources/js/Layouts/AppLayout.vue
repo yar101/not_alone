@@ -1,7 +1,8 @@
 <script setup>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import NotificationBell from '@/Components/NotificationBell.vue';
+import AuthModal from '@/Components/Site/AuthModal.vue';
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
@@ -12,6 +13,14 @@ const profileHref = computed(() =>
 const isIdol = computed(() => page.props.is_idol);
 const idolStatus = computed(() => page.props.idol_status);
 const showIdolBtn = computed(() => user.value && !isIdol.value && idolStatus.value !== 'pending');
+
+const showAuthModal = ref(false);
+const authModalTab  = ref('login');
+
+function openAuth(tab) {
+    authModalTab.value = tab;
+    showAuthModal.value = true;
+}
 </script>
 
 <template>
@@ -28,26 +37,34 @@ const showIdolBtn = computed(() => user.value && !isIdol.value && idolStatus.val
 
                 <NotificationBell v-if="user" />
 
-                <Link :href="profileHref" class="user-chip">
-                    <div class="user-avatar">
-                        <img
-                            v-if="user?.avatar_url"
-                            :src="user.avatar_url"
-                            class="user-avatar__img"
-                            alt="Аватар"
-                        />
-                        <span v-else class="user-avatar__initials">{{ initials }}</span>
-                    </div>
-                    <span class="user-name-clip">
-                        <span class="user-name">{{ user?.name }}</span>
-                    </span>
-                </Link>
+                <template v-if="user">
+                    <Link :href="profileHref" class="user-chip">
+                        <div class="user-avatar">
+                            <img
+                                v-if="user.avatar_url"
+                                :src="user.avatar_url"
+                                class="user-avatar__img"
+                                alt="Аватар"
+                            />
+                            <span v-else class="user-avatar__initials">{{ initials }}</span>
+                        </div>
+                        <span class="user-name-clip">
+                            <span class="user-name">{{ user.name }}</span>
+                        </span>
+                    </Link>
+                </template>
+                <template v-else>
+                    <button @click="openAuth('login')" class="guest-btn guest-btn--outline">Войти</button>
+                    <button @click="openAuth('register')" class="guest-btn guest-btn--fill">Регистрация</button>
+                </template>
             </div>
         </header>
 
         <main class="app-main">
             <slot />
         </main>
+
+        <AuthModal :show="showAuthModal" :initial-tab="authModalTab" @close="showAuthModal = false" />
     </div>
 </template>
 
@@ -221,9 +238,46 @@ const showIdolBtn = computed(() => user.value && !isIdol.value && idolStatus.val
     transform: translateY(-1px);
 }
 
+/* ── Guest auth buttons ──────────────────────────────────── */
+.guest-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.9rem;
+    border-radius: 3px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    transition: background 0.18s, border-color 0.18s, color 0.18s, box-shadow 0.18s;
+    white-space: nowrap;
+}
+.guest-btn--outline {
+    border: 1px solid rgba(155, 110, 232, 0.4);
+    color: rgba(190, 145, 255, 0.85);
+    background: transparent;
+}
+.guest-btn--outline:hover {
+    border-color: rgba(190, 145, 255, 0.7);
+    color: #be91ff;
+    background: rgba(155, 110, 232, 0.08);
+}
+.guest-btn--fill {
+    border: 1px solid transparent;
+    background: linear-gradient(135deg, rgba(155,110,232,0.22) 0%, rgba(107,63,217,0.18) 100%);
+    color: #be91ff;
+    box-shadow: 0 0 12px rgba(155, 110, 232, 0.2);
+}
+.guest-btn--fill:hover {
+    background: linear-gradient(135deg, rgba(155,110,232,0.35) 0%, rgba(107,63,217,0.28) 100%);
+    box-shadow: 0 0 18px rgba(155, 110, 232, 0.4);
+    color: #d4aaff;
+}
+
 /* ── Mobile ──────────────────────────────────────────────── */
 @media (max-width: 639px) {
     .user-name-clip { display: none; }
     .user-chip { padding: 0.25rem; }
+    .guest-btn--fill { display: none; }
+    .guest-btn--outline { font-size: 0.75rem; padding: 0.28rem 0.7rem; }
 }
 </style>
