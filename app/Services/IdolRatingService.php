@@ -25,7 +25,7 @@ class IdolRatingService
             return;
         }
 
-        $oldRating = (int) ($user->idol_rating ?? 20);
+        $oldRating = (int) ($user->rating ?? 20);
         $newRating = max(0, min(100, $oldRating + $delta));
 
         IdolRatingLog::create([
@@ -36,7 +36,7 @@ class IdolRatingService
             'created_at' => now(),
         ]);
 
-        $user->update(['idol_rating' => $newRating]);
+        $user->update(['rating' => $newRating]);
 
         // Notify idol about manual admin rating change
         if ($event === 'admin_manual') {

@@ -19,6 +19,6 @@ class IdolRatingController extends Controller
 
         IdolRatingService::adjust($user, 'admin_manual', $data['delta'], $data['note'] ?? null);
 
-        return back()->with('success', 'Рейтинг изменён. Новое значение: ' . $user->fresh()->idol_rating);
+        return back()->with('success', 'Рейтинг изменён. Новое значение: ' . $user->fresh()->rating);
     }
 }

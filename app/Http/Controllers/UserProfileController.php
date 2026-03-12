@@ -42,7 +42,7 @@ class UserProfileController extends Controller
             ],
             'isOwner'   => auth()->id() === $user->id,
             'isIdol'    => (bool) $user->is_idol,
-            'idolRating'=> $user->idol_rating,
+            'rating'    => $user->rating,
 
             // Deferred group "about" — traits, interests, languages + their catalogs
             'traits'        => Inertia::defer(fn () => $user->load('traits')->traits->map(fn ($t) => ['id' => $t->id, 'name_ru' => $t->name_ru]), 'about'),
@@ -236,8 +236,8 @@ class UserProfileController extends Controller
     public function storePost(Request $request): RedirectResponse
     {
         $request->validate([
-            'body'  => ['required', 'string', 'max:2000'],
-            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'body'  => ['required', 'string', 'max:277'],
+            'photo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:1024'],
         ]);
         $user = $request->user();
         $photoPath = null;

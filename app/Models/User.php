@@ -30,7 +30,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'is_idol',
-        'idol_rating',
+        'rating',
         'idol_quiz_cooldown_until',
         'idol_quiz_passed_at',
     ];
@@ -52,7 +52,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'is_idol'                        => 'boolean',
             'idol_quiz_cooldown_until'       => 'datetime',
             'idol_quiz_passed_at'            => 'datetime',
-            'idol_rating'                    => 'integer',
+            'rating'                         => 'integer',
         ];
     }
 

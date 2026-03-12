@@ -19,7 +19,7 @@ const props = defineProps({
     user:        { type: Object, required: true },
     isOwner:     { type: Boolean, default: false },
     isIdol:      { type: Boolean, default: false },
-    idolRating:  { default: null },
+    rating:      { default: null },
     traits:      { default: null },
     interests:   { default: null },
     languages:   { default: null },
@@ -265,13 +265,13 @@ function deleteAvatar() {
             </div>
         </div>
 
-        <!-- Рейтинг (только для айдолов) -->
-        <div v-if="isIdol && idolRating !== null" class="header-rating">
+        <!-- Рейтинг -->
+        <div v-if="rating !== null" class="header-rating">
             <div class="rating-block">
                 <span class="rating-label">Рейтинг</span>
                 <div class="rating-inner">
                     <img src="/stars/10.png" class="star-img" alt="rating" />
-                    <span class="rating-num">{{ idolRating }}</span>
+                    <span class="rating-num">{{ rating }}</span>
                 </div>
             </div>
         </div>

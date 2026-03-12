@@ -33,7 +33,7 @@ class UserController extends Controller
                 'email'                    => $u->email,
                 'avatar_url'               => $u->avatar_url,
                 'is_idol'                  => $u->is_idol,
-                'idol_rating'              => $u->idol_rating,
+                'rating'                   => $u->rating,
                 'idol_quiz_passed_at'      => $u->idol_quiz_passed_at,
                 'idol_quiz_cooldown_until' => $u->idol_quiz_cooldown_until,
             ]);
@@ -137,15 +137,15 @@ class UserController extends Controller
             });
         }
 
-        $idols = $query->orderBy('idol_rating')
+        $idols = $query->orderBy('rating')
             ->paginate(30)
             ->withQueryString()
             ->through(fn(User $u) => [
-                'id'          => $u->id,
-                'name'        => $u->name,
-                'email'       => $u->email,
-                'avatar_url'  => $u->avatar_url,
-                'idol_rating' => $u->idol_rating,
+                'id'         => $u->id,
+                'name'       => $u->name,
+                'email'      => $u->email,
+                'avatar_url' => $u->avatar_url,
+                'rating'     => $u->rating,
             ]);
 
         return Inertia::render('Admin/Idols/Index', [

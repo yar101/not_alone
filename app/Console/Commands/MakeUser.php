@@ -50,7 +50,7 @@ class MakeUser extends Command
             'gender'              => $gender,
             'birth_date'          => $birth,
             'is_idol'             => $isIdol,
-            'idol_rating'         => $isIdol ? 20 : null,
+            'rating'              => $isIdol ? 20 : null,
             'idol_quiz_passed_at' => $isIdol ? $now : null,
         ]);
 

@@ -117,7 +117,7 @@ function resetQuiz(userId) {
                         <td>
                             <template v-if="user.is_idol">
                                 <div class="rating-cell">
-                                    <span class="rating-val">{{ user.idol_rating ?? 50 }}</span>
+                                    <span class="rating-val">{{ user.rating ?? 50 }}</span>
                                     <div class="rating-actions">
                                         <button @click="adjustRating(user.id, 5)"  class="btn-add" title="+5">+5</button>
                                         <button @click="adjustRating(user.id, -5)" class="btn-sub" title="-5">-5</button>

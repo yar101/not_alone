@@ -13,10 +13,19 @@ const createModal = ref(false);
 const photoPreview = ref(null);
 
 const form = useForm({ body: '', photo: null });
+const photoError = ref('');
 
 function onPhotoChange(e) {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
+    if (file.size > 1024 * 1024) {
+        photoError.value = 'Файл слишком большой. Максимум 1 МБ.';
+        form.photo = null;
+        photoPreview.value = null;
+        return;
+    }
+    photoError.value = '';
     form.photo = file;
     const reader = new FileReader();
     reader.onload = (ev) => (photoPreview.value = ev.target.result);
@@ -26,6 +35,7 @@ function onPhotoChange(e) {
 function removePhoto() {
     form.photo = null;
     photoPreview.value = null;
+    photoError.value = '';
 }
 
 function submitPost() {
@@ -184,18 +194,20 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
                     class="post-textarea"
                     placeholder="Напиши что-нибудь..."
                     rows="5"
-                    maxlength="2000"
+                    maxlength="277"
                 />
-                <div class="char-count">{{ form.body.length }}/2000</div>
+                <div class="char-count" :class="{ 'char-count--warn': form.body.length > 250 }">{{ form.body.length }}/277</div>
 
-                <label class="photo-label">
+                <label class="photo-label photo-label--required">
                     <input type="file" accept="image/jpeg,image/png,image/webp" class="hidden-input" @change="onPhotoChange" />
-                    <span class="photo-btn">{{ photoPreview ? 'Сменить фото' : '+ Добавить фото' }}</span>
+                    <span class="photo-btn">{{ photoPreview ? 'Сменить фото' : '+ Добавить фото (обязательно)' }}</span>
                 </label>
+                <div v-if="photoError" class="photo-error">{{ photoError }}</div>
+                <div v-if="form.errors.photo" class="photo-error">{{ form.errors.photo }}</div>
 
                 <button
                     class="save-btn"
-                    :disabled="form.processing || !form.body.trim()"
+                    :disabled="form.processing || !form.photo || !form.body.trim()"
                     @click="submitPost"
                 >Опубликовать</button>
             </div>
@@ -448,6 +460,13 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
     color: rgba(255,255,255,0.25);
     text-align: right;
     margin: 0.25rem 0 1rem;
+}
+.char-count--warn { color: rgba(190,145,255,0.85); }
+
+.photo-error {
+    font-size: 0.78rem;
+    color: rgba(190,145,255,0.85);
+    margin: -0.5rem 0 0.75rem;
 }
 
 .hidden-input { display: none; }

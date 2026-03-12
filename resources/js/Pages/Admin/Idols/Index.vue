@@ -86,15 +86,15 @@ function ratingBarColor(rating) {
                         </td>
                         <td>
                             <div class="rating-cell">
-                                <span class="rating-num" :style="{ color: ratingColor(idol.idol_rating) }">
-                                    {{ idol.idol_rating ?? '—' }}
+                                <span class="rating-num" :style="{ color: ratingColor(idol.rating) }">
+                                    {{ idol.rating ?? '—' }}
                                 </span>
                                 <div class="rating-bar-track">
                                     <div
                                         class="rating-bar-fill"
                                         :style="{
-                                            width: (idol.idol_rating ?? 0) + '%',
-                                            background: ratingBarColor(idol.idol_rating),
+                                            width: (idol.rating ?? 0) + '%',
+                                            background: ratingBarColor(idol.rating),
                                         }"
                                     />
                                 </div>

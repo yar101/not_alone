@@ -19,7 +19,7 @@ const props = defineProps({
     profileUser:        { type: Object, required: true },
     isOwner:            { type: Boolean, default: false },
     isIdol:             { type: Boolean, default: false },
-    idolRating:         { default: null },
+    rating:             { default: null },
     // Deferred props — no type constraint; Inertia passes null until resolved
     traits:             { default: null },
     interests:          { default: null },
@@ -194,7 +194,7 @@ onMounted(async () => {
                         :user="profileUser"
                         :is-owner="isOwner"
                         :is-idol="isIdol"
-                        :idol-rating="idolRating"
+                        :rating="rating"
                         :traits="traits"
                         :interests="interests"
                         :languages="languages"
