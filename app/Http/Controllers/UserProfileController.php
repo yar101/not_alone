@@ -8,7 +8,7 @@ use App\Models\Post;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\ServiceTimeUnit;
-use App\Models\ServiceWouldBuy;
+
 use App\Models\User;
 use App\Models\UserLanguage;
 use App\Services\IdolRatingService;
@@ -67,23 +67,15 @@ class UserProfileController extends Controller
 
                 $services = $query->orderBy('created_at')->get();
 
-                $wouldBuyMap = $authId
-                    ? ServiceWouldBuy::where('user_id', $authId)
-                        ->whereIn('service_id', $services->pluck('id'))
-                        ->pluck('created_at', 'service_id')
-                    : collect();
-
                 return $services->groupBy('category_id')->map(fn ($group) => [
                     'category' => ['id' => $group->first()->category->id, 'name' => $group->first()->category->name],
                     'items'    => $group->map(fn (Service $s) => [
-                        'id'              => $s->id,
-                        'name'            => $s->name,
-                        'price'           => $s->price,
-                        'is_active'       => $s->is_active,
-                        'category_id'     => $s->category_id,
-                        'time_unit'       => ['id' => $s->timeUnit->id, 'name' => $s->timeUnit->name],
-                        'would_buy_at'    => $wouldBuyMap->get($s->id)?->toIso8601String(),
-                        'would_buy_count' => $s->wouldBuys()->count(),
+                        'id'          => $s->id,
+                        'name'        => $s->name,
+                        'price'       => $s->price,
+                        'is_active'   => $s->is_active,
+                        'category_id' => $s->category_id,
+                        'time_unit'   => ['id' => $s->timeUnit->id, 'name' => $s->timeUnit->name],
                     ])->values(),
                 ])->values();
             }, 'services'),

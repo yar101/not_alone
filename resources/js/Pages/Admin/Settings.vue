@@ -9,8 +9,7 @@ const props = defineProps({
 });
 
 const form = useForm({
-    rating_low_threshold:    props.settings.rating_low_threshold,
-    would_buy_cooldown_days: props.settings.would_buy_cooldown_days,
+    rating_low_threshold: props.settings.rating_low_threshold,
 });
 
 function save() {
@@ -40,24 +39,6 @@ function save() {
                         :class="{ 'input--err': form.errors.rating_low_threshold }"
                     />
                     <p v-if="form.errors.rating_low_threshold" class="err">{{ form.errors.rating_low_threshold }}</p>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2 class="section-title">Голосование «Купил бы»</h2>
-
-                <div class="field">
-                    <label class="label">Кулдаун (дней)</label>
-                    <p class="hint">Через сколько дней пользователь может снова нажать «Купил бы» для той же услуги.</p>
-                    <input
-                        v-model.number="form.would_buy_cooldown_days"
-                        type="number"
-                        min="0"
-                        max="365"
-                        class="input"
-                        :class="{ 'input--err': form.errors.would_buy_cooldown_days }"
-                    />
-                    <p v-if="form.errors.would_buy_cooldown_days" class="err">{{ form.errors.would_buy_cooldown_days }}</p>
                 </div>
             </div>
 

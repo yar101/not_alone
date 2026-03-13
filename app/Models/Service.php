@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Service extends Model
 {
@@ -33,8 +32,4 @@ class Service extends Model
         return $this->belongsTo(ServiceTimeUnit::class, 'time_unit_id');
     }
 
-    public function wouldBuys(): HasMany
-    {
-        return $this->hasMany(ServiceWouldBuy::class);
-    }
 }

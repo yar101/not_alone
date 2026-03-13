@@ -13,8 +13,7 @@ class ServiceDataSeeder extends Seeder
     {
         // Platform settings
         PlatformSetting::upsert([
-            ['key' => 'rating_low_threshold',    'value' => '30', 'updated_at' => now(), 'created_at' => now()],
-            ['key' => 'would_buy_cooldown_days', 'value' => '7',  'updated_at' => now(), 'created_at' => now()],
+            ['key' => 'rating_low_threshold', 'value' => '30', 'updated_at' => now(), 'created_at' => now()],
         ], ['key'], ['value', 'updated_at']);
 
         // Default categories

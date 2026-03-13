@@ -11,8 +11,7 @@ use App\Notifications\LowRatingWarningNotification;
 class IdolRatingService
 {
     const EVENTS = [
-        'would_buy_clicked' => 1,
-        'report_accepted'   => -5,
+'report_accepted'   => -5,
         'post_published'    => 1,
         'admin_manual'      => null,
     ];

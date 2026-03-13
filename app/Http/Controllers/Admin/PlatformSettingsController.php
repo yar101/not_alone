@@ -15,8 +15,7 @@ class PlatformSettingsController extends Controller
     {
         return Inertia::render('Admin/Settings', [
             'settings' => [
-                'rating_low_threshold'    => PlatformSetting::get('rating_low_threshold', 30),
-                'would_buy_cooldown_days' => PlatformSetting::get('would_buy_cooldown_days', 7),
+                'rating_low_threshold' => PlatformSetting::get('rating_low_threshold', 30),
             ],
         ]);
     }
@@ -24,12 +23,10 @@ class PlatformSettingsController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'rating_low_threshold'    => ['required', 'integer', 'min:0', 'max:100'],
-            'would_buy_cooldown_days' => ['required', 'integer', 'min:0', 'max:365'],
+            'rating_low_threshold' => ['required', 'integer', 'min:0', 'max:100'],
         ]);
 
-        PlatformSetting::set('rating_low_threshold',    $data['rating_low_threshold']);
-        PlatformSetting::set('would_buy_cooldown_days', $data['would_buy_cooldown_days']);
+        PlatformSetting::set('rating_low_threshold', $data['rating_low_threshold']);
 
         return back()->with('success', 'Настройки сохранены.');
     }

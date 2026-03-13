@@ -9,7 +9,7 @@ const props = defineProps({
     serviceTimeUnits:   { default: null },
     isOwner:            { type: Boolean, default: false },
     isIdol:             { type: Boolean, default: false },
-    wouldBuyCooldownDays: { type: Number, default: 7 },
+
 });
 
 // ── Add / Edit form ────────────────────────────────────────────
@@ -68,17 +68,6 @@ function toggleActive(item) {
     router.patch(route('profile.services.update', item.id), {
         is_active: !item.is_active,
     }, { preserveScroll: true });
-}
-
-// ── Would-buy ──────────────────────────────────────────────────
-function wouldBuy(serviceId) {
-    router.post(route('services.would-buy.store', serviceId), {}, { preserveScroll: true });
-}
-
-function isCoolingDown(wouldBuyAt) {
-    if (!wouldBuyAt) return false;
-    const diff = (Date.now() - new Date(wouldBuyAt).getTime()) / 86400000;
-    return diff < props.wouldBuyCooldownDays;
 }
 
 // ── Computed ───────────────────────────────────────────────────
@@ -163,22 +152,6 @@ const allItems = computed(() => {
                                 </button>
                             </template>
 
-                            <!-- Encore would-buy -->
-                            <template v-else>
-                                <button
-                                    class="svc-would-buy-btn"
-                                    :class="{ 'svc-would-buy-btn--done': isCoolingDown(item.would_buy_at) }"
-                                    :disabled="isCoolingDown(item.would_buy_at)"
-                                    :title="isCoolingDown(item.would_buy_at) ? 'Вы уже голосовали' : 'Купил бы, если бы было дешевле'"
-                                    @click="wouldBuy(item.id)"
-                                >
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <polyline points="20 6 9 17 4 12"/>
-                                    </svg>
-                                    <span>{{ isCoolingDown(item.would_buy_at) ? 'Сигнал отправлен' : 'Купил бы дешевле' }}</span>
-                                    <span v-if="item.would_buy_count > 0" class="svc-would-buy-count">{{ item.would_buy_count }}</span>
-                                </button>
-                            </template>
                         </div>
                     </div>
                 </div>
@@ -385,46 +358,6 @@ const allItems = computed(() => {
 .svc-icon-btn--on  { color: rgba(74,222,128,0.7); border-color: rgba(74,222,128,0.25); }
 .svc-icon-btn--off { color: rgba(255,255,255,0.2); }
 .svc-icon-btn--danger:hover { border-color: rgba(239,68,68,0.5); color: rgba(239,68,68,0.8); }
-
-/* ── Would-buy button ─────────────────────────────────────── */
-.svc-would-buy-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.35rem 0.7rem;
-    border: 1px solid rgba(190,145,255,0.3);
-    border-radius: 3px;
-    background: rgba(190,145,255,0.05);
-    color: rgba(190,145,255,0.75);
-    font-family: inherit;
-    font-size: 0.72rem;
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s, color 0.15s;
-    white-space: nowrap;
-}
-.svc-would-buy-btn:hover:not(:disabled) {
-    border-color: rgba(190,145,255,0.6);
-    background: rgba(190,145,255,0.12);
-    color: rgba(190,145,255,1);
-}
-.svc-would-buy-btn--done {
-    border-color: rgba(74,222,128,0.25);
-    background: rgba(74,222,128,0.05);
-    color: rgba(74,222,128,0.6);
-    cursor: default;
-}
-.svc-would-buy-count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 4px;
-    border-radius: 99px;
-    background: rgba(190,145,255,0.15);
-    font-size: 0.65rem;
-    font-weight: 700;
-}
 
 /* ── Modal overlay ────────────────────────────────────────── */
 .svc-overlay {
