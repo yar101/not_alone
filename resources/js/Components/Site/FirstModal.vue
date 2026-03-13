@@ -226,8 +226,6 @@ function setCategory(cat) {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Imbue:opsz,wght@10..100,100;10..100,200;10..100,300&display=swap');
-
 .faq-layout {
     display: flex;
     flex-direction: row;

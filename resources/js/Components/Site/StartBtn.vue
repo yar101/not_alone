@@ -24,9 +24,6 @@ const handleClick = (event) => {
 </template>
 
 <style scoped>
-/* Подключаем шрифт Brygada 1918 (можно также вынести в глобальные стили) */
-@import url('https://fonts.googleapis.com/css2?family=Brygada+1918:ital,wght@0,400..700;1,400..700&display=swap');
-
 .start-button {
     /* Сброс стандартных стилей браузера */
     appearance: none;

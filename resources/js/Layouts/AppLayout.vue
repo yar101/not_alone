@@ -69,8 +69,6 @@ function openAuth(tab) {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Imbue:opsz,wght@10..100,300;10..100,400&display=swap');
-
 /* ── Layout wrap ─────────────────────────────────────────── */
 .app-wrap {
     min-height: 100vh;

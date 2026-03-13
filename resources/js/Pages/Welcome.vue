@@ -90,8 +90,6 @@ const showAuthModal = ref(false);
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Brygada+1918:ital,wght@0,400..700;1,400..700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Imbue:opsz,wght@10..100,100..900&display=swap');
 
 /* Кастомный градиент фона */
 .main-gradient {

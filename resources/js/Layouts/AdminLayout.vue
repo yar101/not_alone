@@ -30,8 +30,6 @@ function logout() {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Imbue:opsz,wght@10..100,300;10..100,400&display=swap');
-
 .admin-wrap {
     min-height: 100vh;
     background: #07070f;
