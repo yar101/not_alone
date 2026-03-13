@@ -3,3 +3,16 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Масштабирование на широких мониторах (2K и выше) */
+@media (min-width: 2500px) {
+  body {
+    zoom: 1.2;
+  }
+}
+
+@media (min-width: 3440px) {
+  body {
+    zoom: 1.4;
+  }
+}

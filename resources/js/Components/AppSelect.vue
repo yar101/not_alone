@@ -32,14 +32,18 @@ const selectedLabel = computed(() => {
 
 function open() {
     if (props.disabled) return;
+    const zoom       = parseFloat(getComputedStyle(document.body).zoom) || 1;
     const rect       = triggerRef.value.getBoundingClientRect();
     const spaceBelow = window.innerHeight - rect.bottom;
-    const style      = { left: rect.left + 'px', width: rect.width + 'px' };
+    const style      = {
+        left:  (rect.left  / zoom) + 'px',
+        width: (rect.width / zoom) + 'px',
+    };
 
     if (spaceBelow < 140 && rect.top > spaceBelow) {
-        style.bottom = (window.innerHeight - rect.top + 2) + 'px';
+        style.bottom = ((window.innerHeight - rect.top) / zoom + 2) + 'px';
     } else {
-        style.top = (rect.bottom + 2) + 'px';
+        style.top = (rect.bottom / zoom + 2) + 'px';
     }
     dropStyle.value = style;
     isOpen.value = true;
