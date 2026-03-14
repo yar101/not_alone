@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import { Close, Delete, Plus } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import CreateButton from '@/Components/CreateButton.vue';
 
 const props = defineProps({
     posts:   { default: null },
@@ -102,10 +103,10 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
     <div class="posts-section">
         <!-- Toolbar: create button for owner -->
         <div v-if="isOwner" class="posts-toolbar">
-            <button class="post-add-btn" @click="createModal = true">
-                <el-icon class="post-add-btn__icon"><Plus /></el-icon>
-                <span>Новая запись</span>
-            </button>
+            <CreateButton @click="createModal = true">
+                <template #icon><el-icon><Plus /></el-icon></template>
+                Новая запись
+            </CreateButton>
         </div>
 
         <!-- 3-col grid -->
@@ -220,25 +221,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 
 /* Toolbar */
 .posts-toolbar { display: flex; justify-content: flex-start; margin-bottom: 0.5rem; }
-.post-add-btn {
-    display: inline-flex; align-items: center; gap: 0.4rem;
-    padding: 0.38rem 0.85rem;
-    background: rgba(155,110,232,0.1);
-    border: 1px solid rgba(155,110,232,0.3);
-    border-radius: 6px;
-    cursor: pointer;
-    color: rgba(155,110,232,0.85);
-    font-size: 0.82rem;
-    font-family: inherit;
-    transition: background 0.18s, border-color 0.18s, color 0.18s, box-shadow 0.18s;
-}
-.post-add-btn__icon { font-size: 0.85rem; }
-.post-add-btn:hover {
-    background: rgba(155,110,232,0.2);
-    border-color: rgba(155,110,232,0.55);
-    color: rgba(220,100,145,1);
-    box-shadow: 0 0 12px rgba(155,110,232,0.18);
-}
+
 
 /* Grid */
 .posts-grid {

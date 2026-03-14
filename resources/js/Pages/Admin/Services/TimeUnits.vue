@@ -1,7 +1,9 @@
 <script setup>
 import { ref } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
+import { Plus } from '@element-plus/icons-vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import CreateButton from '@/Components/CreateButton.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -64,7 +66,10 @@ function destroy(id) {
     <div>
         <div class="page-header">
             <h1 class="page-title">Единицы времени</h1>
-            <button class="btn-primary" @click="openAdd">+ Добавить</button>
+            <CreateButton @click="openAdd">
+                <template #icon><el-icon><Plus /></el-icon></template>
+                Добавить
+            </CreateButton>
         </div>
 
         <div class="table-wrap">
@@ -131,8 +136,6 @@ function destroy(id) {
 <style scoped>
 .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
 .page-title  { font-size: 1.4rem; color: #fff; margin: 0; }
-.btn-primary { padding: 0.45rem 1rem; border: 1px solid rgba(190,145,255,0.45); border-radius: 3px; background: rgba(190,145,255,0.1); color: rgba(190,145,255,0.9); font-size: 0.82rem; cursor: pointer; font-family: inherit; transition: background 0.15s; }
-.btn-primary:hover { background: rgba(190,145,255,0.2); }
 .table-wrap { overflow-x: auto; }
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table th { text-align: left; padding: 0.6rem 1rem; font-size: 0.72rem; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.07em; border-bottom: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.025); }

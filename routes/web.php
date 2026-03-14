@@ -65,6 +65,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // Services (idol owner)
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/profile/services',                [ServiceController::class, 'store'])->name('profile.services.store');
+    // Specific route before wildcard
+    Route::patch('/profile/services/categories/{category}/description',
+        [UserProfileController::class, 'updateCategoryDescription']
+    )->name('profile.services.category.description');
     Route::patch('/profile/services/{service}',     [ServiceController::class, 'update'])->name('profile.services.update');
     Route::delete('/profile/services/{service}',    [ServiceController::class, 'destroy'])->name('profile.services.destroy');
 });

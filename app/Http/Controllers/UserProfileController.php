@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\IdolCategoryDescription;
 use App\Models\InterestCategory;
 use App\Models\PersonalityTrait;
 use App\Models\Post;
@@ -57,9 +58,9 @@ class UserProfileController extends Controller
 
             // Deferred group "services"
             'services'     => Inertia::defer(function () use ($user) {
-                $authId   = auth()->id();
-                $isOwner  = $authId === $user->id;
-                $query    = $user->services()->with(['category:id,name', 'timeUnit:id,name']);
+                $authId  = auth()->id();
+                $isOwner = $authId === $user->id;
+                $query   = $user->services()->with(['category:id,name,description,image_path', 'timeUnit:id,name']);
 
                 if (!$isOwner) {
                     $query->where('is_active', true);
@@ -67,17 +68,59 @@ class UserProfileController extends Controller
 
                 $services = $query->orderBy('created_at')->get();
 
-                return $services->groupBy('category_id')->map(fn ($group) => [
-                    'category' => ['id' => $group->first()->category->id, 'name' => $group->first()->category->name],
-                    'items'    => $group->map(fn (Service $s) => [
-                        'id'          => $s->id,
-                        'name'        => $s->name,
-                        'price'       => $s->price,
-                        'is_active'   => $s->is_active,
-                        'category_id' => $s->category_id,
-                        'time_unit'   => ['id' => $s->timeUnit->id, 'name' => $s->timeUnit->name],
-                    ])->values(),
-                ])->values();
+                if ($services->isEmpty()) {
+                    return [];
+                }
+
+                // Idol descriptions for this user
+                $categoryIds  = $services->pluck('category_id')->unique()->values();
+                $descriptions = IdolCategoryDescription::where('user_id', $user->id)
+                    ->whereIn('category_id', $categoryIds)
+                    ->pluck('description', 'category_id');
+
+                // Other idols per category (up to 4 random)
+                $otherServices = Service::where('is_active', true)
+                    ->where('user_id', '!=', $user->id)
+                    ->whereIn('category_id', $categoryIds)
+                    ->with(['user:id,name,avatar_path,rating'])
+                    ->get(['id', 'user_id', 'category_id']);
+
+                $otherIdolsByCategory = $otherServices
+                    ->groupBy('category_id')
+                    ->map(fn ($group) => $group
+                        ->unique('user_id')
+                        ->shuffle()
+                        ->take(4)
+                        ->map(fn ($s) => [
+                            'id'         => $s->user->id,
+                            'name'       => $s->user->name,
+                            'avatar_url' => $s->user->avatar_url,
+                            'rating'     => $s->user->rating,
+                        ])
+                        ->values()
+                    );
+
+                return $services->groupBy('category_id')->map(function ($group) use ($descriptions, $otherIdolsByCategory) {
+                    $cat = $group->first()->category;
+                    return [
+                        'category' => [
+                            'id'          => $cat->id,
+                            'name'        => $cat->name,
+                            'description' => $cat->description,
+                            'image_url'   => $cat->image_path ? Storage::url($cat->image_path) : null,
+                        ],
+                        'idol_description' => $descriptions[$cat->id] ?? null,
+                        'other_idols'      => $otherIdolsByCategory[$cat->id] ?? [],
+                        'items'            => $group->map(fn (Service $s) => [
+                            'id'          => $s->id,
+                            'name'        => $s->name,
+                            'price'       => $s->price,
+                            'is_active'   => $s->is_active,
+                            'category_id' => $s->category_id,
+                            'time_unit'   => ['id' => $s->timeUnit->id, 'name' => $s->timeUnit->name],
+                        ])->values(),
+                    ];
+                })->values();
             }, 'services'),
             'serviceCategories' => Inertia::defer(
                 fn () => ServiceCategory::where('is_active', true)->orderBy('sort_order')->get(['id', 'name']),
@@ -222,6 +265,18 @@ class UserProfileController extends Controller
             Storage::disk('public')->delete($user->avatar_path);
             $user->update(['avatar_path' => null]);
         }
+        return back();
+    }
+
+    public function updateCategoryDescription(Request $request, ServiceCategory $category): RedirectResponse
+    {
+        $data = $request->validate(['description' => ['nullable', 'string', 'max:1000']]);
+
+        IdolCategoryDescription::updateOrCreate(
+            ['user_id' => $request->user()->id, 'category_id' => $category->id],
+            ['description' => $data['description']],
+        );
+
         return back();
     }
 

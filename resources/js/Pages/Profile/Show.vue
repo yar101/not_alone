@@ -46,13 +46,20 @@ function resendVerification() {
 }
 
 // ── Tabs ─────────────────────────────────────────────────────
-const tab = ref('about');
-const tabDir = ref(1);  // +1 → slide-left, -1 → slide-right
 const TAB_ORDER = ['about', 'posts', 'services', 'content'];
+const storedTab = sessionStorage.getItem(`profile_tab_${props.profileUser.id}`);
+const hashTab   = window.location.hash.slice(1);
+const initialTab = TAB_ORDER.includes(storedTab) ? storedTab
+    : TAB_ORDER.includes(hashTab) ? hashTab
+    : 'about';
+const tab = ref(initialTab);
+const tabDir = ref(1);  // +1 → slide-left, -1 → slide-right
 
 function switchTab(name) {
     tabDir.value = TAB_ORDER.indexOf(name) > TAB_ORDER.indexOf(tab.value) ? 1 : -1;
     tab.value = name;
+    history.replaceState(null, '', '#' + name);
+    sessionStorage.setItem(`profile_tab_${props.profileUser.id}`, name);
 }
 
 // Stagger entrance on tab change

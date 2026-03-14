@@ -6,13 +6,13 @@
 
 /* Масштабирование на широких мониторах (2K и выше) */
 @media (min-width: 2500px) {
-  body {
-    zoom: 1.2;
+  html {
+    font-size: 110%;
   }
 }
 
 @media (min-width: 3440px) {
-  body {
-    zoom: 1.4;
+  html {
+    font-size: 130%;
   }
 }
