@@ -613,7 +613,7 @@ function deleteAvatar() {
 
 .rating-num {
     font-family: 'Dosis', sans-serif;
-    font-weight: 700;
+    font-weight: 900;
     font-size: 1.2rem;
     line-height: 1;
     color: rgba(255, 255, 255, 0.9);

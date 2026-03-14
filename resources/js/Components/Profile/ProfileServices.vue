@@ -4,6 +4,7 @@ import { useForm, router } from '@inertiajs/vue3';
 import { Plus } from '@element-plus/icons-vue';
 import AppSelect from '@/Components/AppSelect.vue';
 import CreateButton from '@/Components/CreateButton.vue';
+import SiteModal from '@/Components/Site/SiteModal.vue';
 
 const props = defineProps({
     services: { default: null },
@@ -109,6 +110,7 @@ function openAdd() {
     if (selectedCategory.value) {
         form.category_id = selectedCategory.value.category.id;
     }
+    loadDraft();
     showForm.value = true;
 }
 
@@ -126,6 +128,7 @@ function closeForm() {
     editingId.value = null;
     form.reset();
     form.clearErrors();
+    clearDraft();
 }
 
 function submitForm() {
@@ -144,13 +147,24 @@ function submitForm() {
     }
 }
 
-function deleteService(id) {
-    if (!confirm('Удалить услугу?')) return;
+const deleteConfirmId = ref(null);
+
+function askDeleteService(id) {
+    deleteConfirmId.value = id;
+}
+
+function confirmDeleteService() {
+    const id = deleteConfirmId.value;
+    deleteConfirmId.value = null;
     router.delete(route('profile.services.destroy', id), {
         preserveScroll: true,
         preserveState: true,
         onSuccess: resyncSelectedCategory,
     });
+}
+
+function cancelDeleteService() {
+    deleteConfirmId.value = null;
 }
 
 function toggleActive(item) {
@@ -166,6 +180,75 @@ function toggleActive(item) {
 // ── Computed ────────────────────────────────────────────────────
 const loaded = computed(() => Array.isArray(localServices.value));
 const isEmpty = computed(() => loaded.value && localServices.value.length === 0);
+
+const formCategory = computed(() =>
+    (props.serviceCategories ?? []).find(c => c.id === form.category_id) ?? null
+);
+const formSuggestions = computed(() =>
+    Array.isArray(formCategory.value?.name_suggestions)
+        ? formCategory.value.name_suggestions
+        : []
+);
+const namePlaceholder = computed(() =>
+    formSuggestions.value[0] ?? 'Название услуги'
+);
+
+// ── #1 Price preview ─────────────────────────────────────────
+const pricePreview = computed(() => {
+    if (!form.price || !form.time_unit_id) return null;
+    const unit = (props.serviceTimeUnits ?? []).find(u => u.id === form.time_unit_id);
+    if (!unit) return null;
+    return `${Number(form.price).toLocaleString('ru')} ₽ / ${unit.name}`;
+});
+
+// ── #4 Draft ─────────────────────────────────────────────────
+const DRAFT_KEY = computed(() => `svc_draft_${props.profileUser?.id}`);
+
+function loadDraft() {
+    try {
+        const raw = localStorage.getItem(DRAFT_KEY.value);
+        if (!raw) return;
+        const d = JSON.parse(raw);
+        if (d.name) form.name = d.name;
+        if (d.category_id) form.category_id = d.category_id;
+        if (d.price) form.price = d.price;
+        if (d.time_unit_id) form.time_unit_id = d.time_unit_id;
+    } catch {}
+}
+
+function saveDraft() {
+    if (!editingId.value) {
+        localStorage.setItem(DRAFT_KEY.value, JSON.stringify({
+            name: form.name,
+            category_id: form.category_id,
+            price: form.price,
+            time_unit_id: form.time_unit_id,
+        }));
+    }
+}
+
+function clearDraft() {
+    localStorage.removeItem(DRAFT_KEY.value);
+}
+
+watch([() => form.name, () => form.category_id, () => form.price, () => form.time_unit_id], saveDraft);
+
+// ── #6 Chip animation ────────────────────────────────────────
+const animatingChip = ref(null);
+
+function selectChip(s) {
+    form.name = s;
+    animatingChip.value = s;
+    setTimeout(() => { animatingChip.value = null; }, 300);
+}
+
+// ── #8 Form validation ───────────────────────────────────────
+const formValid = computed(() =>
+    form.name.trim().length > 0 &&
+    form.category_id !== null &&
+    Number(form.price) > 0 &&
+    form.time_unit_id !== null
+);
 </script>
 
 <template>
@@ -194,37 +277,45 @@ const isEmpty = computed(() => loaded.value && localServices.value.length === 0)
 
                 <!-- Empty state -->
                 <div v-if="isEmpty" class="svc-empty">
-                    <p class="svc-empty__title">Айдол пока не добавил услуги</p>
+                    <p class="svc-empty__title">
+                        {{ isOwner ? 'Добавьте первую услугу' : 'Айдол пока не добавил услуги' }}
+                    </p>
                 </div>
 
                 <!-- Category cards -->
-                <div v-else class="cat-list">
-                    <button v-for="group in localServices" :key="group.category.id" class="cat-card"
-                        @click="openCategory(group)">
-                        <div class="cat-card__img-wrap">
-                            <img v-if="group.category.image_url" :src="group.category.image_url"
-                                :alt="group.category.name" class="cat-card__img" />
-                            <div v-else class="cat-card__img-placeholder">
-                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="1.5" opacity="0.3">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                                    <circle cx="8.5" cy="8.5" r="1.5" />
-                                    <path d="M21 15l-5-5L5 21" />
+                <div v-else class="cat-grid">
+                    <button v-for="group in localServices" :key="group.category.id"
+                            class="cat-tile" @click="openCategory(group)">
+                        <div class="cat-tile__img-wrap">
+                            <img v-if="group.category.image_url"
+                                 :src="group.category.image_url"
+                                 :alt="group.category.name"
+                                 class="cat-tile__img" />
+                            <div v-else class="cat-tile__img-placeholder">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="1.5" opacity="0.25">
+                                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                                    <path d="M21 15l-5-5L5 21"/>
                                 </svg>
                             </div>
                         </div>
-                        <div class="cat-card__info">
-                            <p class="cat-card__name">{{ group.category.name }}</p>
-                            <p v-if="group.category.description" class="cat-card__desc cat-card__desc--global">{{
-                                group.category.description }}</p>
-                            <p class="cat-card__count">{{ group.items.length }} {{ group.items.length === 1 ? 'услуга' :
-                                group.items.length < 5 ? 'услуги' : 'услуг' }}</p>
-                        </div>
-                        <div class="cat-card__arrow">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M9 18l6-6-6-6" />
-                            </svg>
+                        <div class="cat-tile__body">
+                            <span class="cat-tile__name">{{ group.category.name }}</span>
+                            <p v-if="group.category.description" class="cat-tile__desc">
+                                {{ group.category.description }}
+                            </p>
+                            <div class="cat-tile__footer">
+                                <span class="cat-tile__count">
+                                    {{ group.items.length }}
+                                    {{ group.items.length === 1 ? 'услуга' : group.items.length < 5 ? 'услуги' : 'услуг' }}
+                                </span>
+                                <svg class="cat-tile__arrow" width="11" height="11" viewBox="0 0 24 24"
+                                     fill="none" stroke="currentColor" stroke-width="2.5"
+                                     stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M9 18l6-6-6-6"/>
+                                </svg>
+                            </div>
                         </div>
                     </button>
                 </div>
@@ -262,6 +353,8 @@ const isEmpty = computed(() => loaded.value && localServices.value.length === 0)
                                     selectedCategory.idol_description }}</p>
                                 <p v-else-if="isOwner" class="cd-hero__desc cd-hero__desc--placeholder">
                                     Напишите описание своих услуг в этой категории…</p>
+                                <p v-else class="cd-hero__desc cd-hero__desc--placeholder">
+                                    Айдол пока не добавил описание</p>
                             </div>
                             <div v-else key="edit">
                                 <textarea v-model="descDraft" class="cd-hero__textarea" rows="3" maxlength="1000"
@@ -321,7 +414,7 @@ const isEmpty = computed(() => loaded.value && localServices.value.length === 0)
                                         </svg>
                                     </button>
                                     <button class="svc-icon-btn svc-icon-btn--danger" title="Удалить"
-                                        @click="deleteService(item.id)">
+                                        @click="askDeleteService(item.id)">
                                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
                                             stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                             stroke-linejoin="round">
@@ -362,67 +455,86 @@ const isEmpty = computed(() => loaded.value && localServices.value.length === 0)
 
         </Transition>
 
-        <!-- Add/Edit modal -->
+        <!-- Delete confirm modal -->
         <Teleport to="body">
             <Transition name="fade-overlay">
-                <div v-if="showForm" class="svc-overlay" @click.self="closeForm">
-                    <div class="svc-modal">
-                        <div class="svc-modal__header">
-                            <span>{{ editingId ? 'Редактировать услугу' : 'Новая услуга' }}</span>
-                            <button class="svc-modal__close" @click="closeForm">
-                                <svg width="14" height="14" viewBox="0 0 14 14" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round">
-                                    <line x1="1" y1="1" x2="13" y2="13" />
-                                    <line x1="13" y1="1" x2="1" y2="13" />
-                                </svg>
-                            </button>
+                <div v-if="deleteConfirmId !== null" class="svc-overlay" @click.self="cancelDeleteService">
+                    <div class="svc-modal svc-modal--confirm">
+                        <div class="svc-modal__header">Удалить услугу?</div>
+                        <div class="svc-confirm__body">Это действие нельзя отменить.</div>
+                        <div class="svc-modal__actions">
+                            <button type="button" class="svc-btn-cancel" @click="cancelDeleteService">Отмена</button>
+                            <button type="button" class="svc-btn-danger" @click="confirmDeleteService">Удалить</button>
                         </div>
-
-                        <form @submit.prevent="submitForm" class="svc-modal__body">
-                            <div class="svc-field">
-                                <label class="svc-label">Категория</label>
-                                <AppSelect v-model="form.category_id"
-                                    :options="(serviceCategories ?? []).map(c => ({ value: c.id, label: c.name }))"
-                                    placeholder="Выберите категорию" :error="!!form.errors.category_id" />
-                                <p v-if="form.errors.category_id" class="svc-err">{{ form.errors.category_id }}</p>
-                            </div>
-
-                            <div class="svc-field">
-                                <label class="svc-label">Название</label>
-                                <input v-model="form.name" class="svc-input"
-                                    :class="{ 'svc-input--err': form.errors.name }" placeholder="Игра в CS2"
-                                    maxlength="120" />
-                                <p v-if="form.errors.name" class="svc-err">{{ form.errors.name }}</p>
-                            </div>
-
-                            <div class="svc-field-row">
-                                <div class="svc-field">
-                                    <label class="svc-label">Цена (₽)</label>
-                                    <input v-model.number="form.price" type="number" min="1" class="svc-input"
-                                        :class="{ 'svc-input--err': form.errors.price }" placeholder="500" />
-                                    <p v-if="form.errors.price" class="svc-err">{{ form.errors.price }}</p>
-                                </div>
-                                <div class="svc-field">
-                                    <label class="svc-label">Единица</label>
-                                    <AppSelect v-model="form.time_unit_id"
-                                        :options="(serviceTimeUnits ?? []).map(u => ({ value: u.id, label: u.name }))"
-                                        placeholder="За..." :error="!!form.errors.time_unit_id" />
-                                    <p v-if="form.errors.time_unit_id" class="svc-err">{{ form.errors.time_unit_id }}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div class="svc-modal__actions">
-                                <button type="button" class="svc-btn-cancel" @click="closeForm">Отмена</button>
-                                <button type="submit" class="svc-btn-submit" :disabled="form.processing">
-                                    {{ editingId ? 'Сохранить' : 'Добавить' }}
-                                </button>
-                            </div>
-                        </form>
                     </div>
                 </div>
             </Transition>
         </Teleport>
+
+        <!-- Add/Edit modal -->
+        <SiteModal :show="showForm" variant="pink" :compact="true" @close="closeForm">
+            <div class="sf-wrap">
+                <div class="sf-title">{{ editingId ? 'Редактировать услугу' : 'Новая услуга' }}</div>
+                <form @submit.prevent="submitForm" class="sf-form">
+
+                    <div class="sf-field">
+                        <label class="sf-label">Категория</label>
+                        <AppSelect v-model="form.category_id"
+                            :options="(serviceCategories ?? []).map(c => ({ value: c.id, label: c.name }))"
+                            placeholder="Выберите категорию" :error="!!form.errors.category_id" />
+                        <p v-if="form.errors.category_id" class="sf-err">{{ form.errors.category_id }}</p>
+                    </div>
+
+                    <div class="sf-field">
+                        <label class="sf-label">Название</label>
+                        <input v-model="form.name" class="sf-input"
+                            :class="{ 'sf-input--err': form.errors.name }"
+                            :placeholder="namePlaceholder" maxlength="30" />
+                        <div class="sf-name-footer">
+                            <div v-if="formSuggestions.length" class="svc-suggestions">
+                                <button v-for="s in formSuggestions" :key="s"
+                                    type="button" class="svc-chip"
+                                    :class="{ 'svc-chip--active': form.name === s, 'svc-chip--pop': animatingChip === s }"
+                                    @click="selectChip(s)">{{ s }}</button>
+                            </div>
+                            <span class="sf-char-count" :class="{ 'sf-char-count--warn': form.name.length >= 25 }">
+                                {{ form.name.length }}/30
+                            </span>
+                        </div>
+                        <p v-if="form.errors.name" class="sf-err">{{ form.errors.name }}</p>
+                    </div>
+
+                    <div class="sf-row">
+                        <div class="sf-field">
+                            <label class="sf-label">Цена</label>
+                            <input v-model.number="form.price" type="number" min="1"
+                                class="sf-input" :class="{ 'sf-input--err': form.errors.price }"
+                                placeholder="500" />
+                            <p v-if="form.errors.price" class="sf-err">{{ form.errors.price }}</p>
+                        </div>
+                        <div class="sf-field">
+                            <label class="sf-label">Единица</label>
+                            <AppSelect v-model="form.time_unit_id"
+                                :options="(serviceTimeUnits ?? []).map(u => ({ value: u.id, label: u.name }))"
+                                placeholder="За..." :error="!!form.errors.time_unit_id" />
+                            <p v-if="form.errors.time_unit_id" class="sf-err">{{ form.errors.time_unit_id }}</p>
+                        </div>
+                    </div>
+
+                    <Transition name="sf-preview-fade">
+                        <div v-if="pricePreview" class="sf-preview">{{ pricePreview }}</div>
+                    </Transition>
+
+                    <div class="sf-actions">
+                        <button type="button" class="svc-btn-cancel" @click="closeForm">Отмена</button>
+                        <button type="submit" class="sf-btn-submit" :disabled="!formValid || form.processing">
+                            {{ editingId ? 'Сохранить' : 'Добавить' }}
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </SiteModal>
     </div>
 </template>
 
@@ -494,50 +606,49 @@ const isEmpty = computed(() => loaded.value && localServices.value.length === 0)
     letter-spacing: -0.01em;
 }
 
-/* ── Category list ────────────────────────────────────────── */
-.cat-list {
-    display: flex;
-    flex-direction: column;
+/* ── Category grid ────────────────────────────────────────── */
+.cat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 0.5rem;
 }
 
-.cat-card {
+.cat-tile {
     display: flex;
-    align-items: stretch;
-    gap: 0;
+    flex-direction: column;
     background: #06060e;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    border-radius: 6px;
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
     text-align: left;
+    overflow: hidden;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.cat-tile:hover {
+    border-color: rgba(190, 145, 255, 0.38);
+    background: rgba(255, 255, 255, 0.018);
+    box-shadow: 0 0 14px rgba(190, 145, 255, 0.09);
+}
+
+.cat-tile__img-wrap {
     width: 100%;
-    overflow: hidden;
-}
-
-.cat-card:hover {
-    border-color: rgba(190, 145, 255, 0.35);
-    background: rgba(255, 255, 255, 0.02);
-}
-
-.cat-card__img-wrap {
-    width: 20%;
-    aspect-ratio: 2 / 3;
-    flex-shrink: 0;
-    overflow: hidden;
+    aspect-ratio: 3 / 2;
     background: rgba(255, 255, 255, 0.03);
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
 }
 
-.cat-card__img {
+.cat-tile__img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.cat-card__img-placeholder {
+.cat-tile__img-placeholder {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -545,53 +656,57 @@ const isEmpty = computed(() => loaded.value && localServices.value.length === 0)
     height: 100%;
 }
 
-.cat-card__info {
-    flex: 1;
-    padding: 1rem;
+.cat-tile__body {
+    padding: 0.75rem 0.85rem 0.7rem;
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
-    min-width: 0;
+    gap: 0.4rem;
+    flex: 1;
 }
 
-.cat-card__name {
-    font-size: 1rem;
+.cat-tile__name {
+    font-size: 0.92rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.9);
-    margin: 0;
-}
-
-.cat-card__desc {
-    font-size: 0.82rem;
-    color: rgba(255, 255, 255, 0.5);
-    margin: 0;
+    color: rgba(255, 255, 255, 0.88);
+    line-height: 1.35;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
 
-.cat-card__desc--global {
-    color: rgba(255, 255, 255, 0.35);
+.cat-tile__desc {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.38);
+    line-height: 1.45;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
-.cat-card__count {
-    font-size: 0.72rem;
-    color: rgba(190, 145, 255, 0.5);
-    margin: 0;
+.cat-tile__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     margin-top: auto;
 }
 
-.cat-card__arrow {
-    display: flex;
-    align-items: center;
-    padding: 0 0.85rem;
-    color: rgba(255, 255, 255, 0.2);
-    flex-shrink: 0;
+.cat-tile__count {
+    font-size: 0.72rem;
+    color: rgba(190, 145, 255, 0.5);
 }
 
-.cat-card:hover .cat-card__arrow {
-    color: rgba(190, 145, 255, 0.5);
+.cat-tile__arrow {
+    color: rgba(255, 255, 255, 0.18);
+    flex-shrink: 0;
+    transition: color 0.15s, transform 0.15s;
+}
+
+.cat-tile:hover .cat-tile__arrow {
+    color: rgba(190, 145, 255, 0.6);
+    transform: translateX(2px);
 }
 
 /* ── Category detail ──────────────────────────────────────── */
@@ -622,7 +737,6 @@ const isEmpty = computed(() => loaded.value && localServices.value.length === 0)
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 3px;
     overflow: hidden;
-    height: 300px;
 }
 
 
@@ -985,6 +1099,23 @@ const isEmpty = computed(() => loaded.value && localServices.value.length === 0)
     box-shadow: 0 0 12px rgba(155, 110, 232, 0.25);
 }
 
+.svc-btn-danger {
+    padding: 0.5rem 1.2rem;
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    border-radius: 3px;
+    background: rgba(239, 68, 68, 0.1);
+    color: rgba(239, 68, 68, 0.9);
+    font-family: inherit;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.svc-btn-danger:hover {
+    border-color: rgba(239, 68, 68, 0.7);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
+}
+
 /* ── Modal overlay ────────────────────────────────────────── */
 .svc-overlay {
     position: fixed;
@@ -1015,31 +1146,6 @@ const isEmpty = computed(() => loaded.value && localServices.value.length === 0)
     font-size: 0.88rem;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.85);
-}
-
-.svc-modal__close {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border: none;
-    background: transparent;
-    color: rgba(255, 255, 255, 0.35);
-    cursor: pointer;
-    border-radius: 3px;
-    transition: color 0.15s;
-}
-
-.svc-modal__close:hover {
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.svc-modal__body {
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.85rem;
 }
 
 /* ── Form fields ──────────────────────────────────────────── */
@@ -1090,6 +1196,9 @@ const isEmpty = computed(() => loaded.value && localServices.value.length === 0)
     color: rgba(239, 68, 68, 0.8);
     margin: 0;
 }
+
+.svc-modal--confirm { max-width: 340px; }
+.svc-confirm__body { padding: 0.75rem 1rem 0; font-size: 0.88rem; color: rgba(255,255,255,0.5); }
 
 .svc-modal__actions {
     display: flex;
@@ -1174,5 +1283,194 @@ const isEmpty = computed(() => loaded.value && localServices.value.length === 0)
 .desc-swap-enter-from,
 .desc-swap-leave-to {
     opacity: 0;
+}
+
+/* ── Name suggestions chips ──────────────────────────────── */
+.svc-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.svc-chip {
+    padding: 0.3rem 0.8rem;
+    border: 1px solid rgba(200, 70, 126, 0.3);
+    border-radius: 99px;
+    background: transparent;
+    color: rgba(200, 70, 126, 0.75);
+    font-family: inherit;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.svc-chip:hover {
+    border-color: rgba(200, 70, 126, 0.6);
+    color: rgba(200, 70, 126, 1);
+    background: rgba(200, 70, 126, 0.07);
+}
+
+.svc-chip--active {
+    border-color: rgba(200, 70, 126, 0.65);
+    background: rgba(200, 70, 126, 0.12);
+    color: #fff;
+}
+
+/* ── Service form (inside SiteModal) ─────────────────────── */
+.sf-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+}
+
+.sf-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.92);
+    letter-spacing: -0.015em;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sf-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.sf-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.sf-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.sf-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(200, 70, 126, 0.55);
+}
+
+.sf-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.58rem 0.75rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+    color: rgba(255, 255, 255, 0.88);
+    font-family: inherit;
+    font-size: 0.88rem;
+    line-height: 1.4;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    appearance: none;
+    -moz-appearance: textfield;
+}
+
+.sf-input::-webkit-outer-spin-button,
+.sf-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.sf-input:focus {
+    border-color: rgba(200, 70, 126, 0.45);
+    box-shadow: 0 0 0 3px rgba(200, 70, 126, 0.08);
+}
+
+.sf-input--err {
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+.sf-err {
+    font-size: 0.75rem;
+    color: rgba(220, 100, 140, 0.9);
+    margin: 0;
+}
+
+.sf-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    padding-top: 0.35rem;
+}
+
+.sf-btn-submit {
+    padding: 0.65rem 1.4rem;
+    border: 1px solid rgba(200, 70, 126, 0.45);
+    border-radius: 3px;
+    background: linear-gradient(135deg, rgba(200, 70, 126, 0.25), rgba(200, 70, 126, 0.1));
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: background 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.sf-btn-submit:hover:not(:disabled) {
+    background: linear-gradient(135deg, rgba(200, 70, 126, 0.4), rgba(200, 70, 126, 0.2));
+    box-shadow: 0 0 18px rgba(200, 70, 126, 0.22);
+}
+
+.sf-btn-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ── Price preview (#1) ───────────────────────────────────── */
+.sf-preview {
+    font-size: 0.82rem;
+    color: rgba(200, 70, 126, 0.7);
+    letter-spacing: 0.02em;
+    margin-top: -0.25rem;
+}
+
+.sf-preview-fade-enter-active,
+.sf-preview-fade-leave-active {
+    transition: opacity 0.2s ease;
+}
+
+.sf-preview-fade-enter-from,
+.sf-preview-fade-leave-to {
+    opacity: 0;
+}
+
+/* ── Char counter (#5) ────────────────────────────────────── */
+.sf-name-footer {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    min-height: 1rem;
+}
+
+.sf-char-count {
+    font-size: 0.68rem;
+    color: rgba(255, 255, 255, 0.2);
+    flex-shrink: 0;
+    align-self: center;
+    transition: color 0.2s;
+}
+
+.sf-char-count--warn {
+    color: rgba(200, 70, 126, 0.7);
+}
+
+/* ── Chip pop animation (#6) ──────────────────────────────── */
+@keyframes chip-pop {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(0.88); }
+    100% { transform: scale(1); }
+}
+
+.svc-chip--pop {
+    animation: chip-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 </style>

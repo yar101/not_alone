@@ -7,12 +7,12 @@
 /* Масштабирование на широких мониторах (2K и выше) */
 @media (min-width: 2500px) {
   html {
-    font-size: 110%;
+    font-size: 120%;
   }
 }
 
 @media (min-width: 3440px) {
   html {
-    font-size: 130%;
+    font-size: 145%;
   }
 }
