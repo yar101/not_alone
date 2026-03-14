@@ -123,7 +123,7 @@ class UserProfileController extends Controller
                 })->values();
             }, 'services'),
             'serviceCategories' => Inertia::defer(
-                fn () => ServiceCategory::where('is_active', true)->orderBy('sort_order')->get(['id', 'name']),
+                fn () => ServiceCategory::where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'name_suggestions']),
                 'services'
             ),
             'serviceTimeUnits' => Inertia::defer(

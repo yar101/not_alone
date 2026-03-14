@@ -13,7 +13,7 @@ class DatabaseSeeder extends Seeder
             TraitSeeder::class,
             InterestSeeder::class,
             QuizQuestionSeeder::class,
-            ServiceDataSeeder::class,
+            ServiceCategorySeeder::class,
         ]);
     }
 }

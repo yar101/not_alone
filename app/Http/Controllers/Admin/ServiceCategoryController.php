@@ -15,17 +15,19 @@ class ServiceCategoryController extends Controller
     public function index(): Response
     {
         return Inertia::render('Admin/Services/Categories', [
-            'categories' => ServiceCategory::orderBy('sort_order')->get(['id', 'name', 'description', 'image_path', 'sort_order', 'is_active']),
+            'categories' => ServiceCategory::orderBy('sort_order')->get(['id', 'name', 'description', 'name_suggestions', 'image_path', 'sort_order', 'is_active']),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'name'        => ['required', 'string', 'max:100'],
-            'description' => ['nullable', 'string', 'max:1000'],
-            'sort_order'  => ['integer', 'min:0'],
-            'is_active'   => ['boolean'],
+            'name'               => ['required', 'string', 'max:100'],
+            'description'        => ['nullable', 'string', 'max:1000'],
+            'name_suggestions'   => ['nullable', 'array'],
+            'name_suggestions.*' => ['string', 'max:120'],
+            'sort_order'         => ['integer', 'min:0'],
+            'is_active'          => ['boolean'],
         ]);
 
         ServiceCategory::create($data);
@@ -36,10 +38,12 @@ class ServiceCategoryController extends Controller
     public function update(Request $request, ServiceCategory $category): RedirectResponse
     {
         $data = $request->validate([
-            'name'        => ['sometimes', 'string', 'max:100'],
-            'description' => ['nullable', 'string', 'max:1000'],
-            'sort_order'  => ['sometimes', 'integer', 'min:0'],
-            'is_active'   => ['sometimes', 'boolean'],
+            'name'               => ['sometimes', 'string', 'max:100'],
+            'description'        => ['nullable', 'string', 'max:1000'],
+            'name_suggestions'   => ['nullable', 'array'],
+            'name_suggestions.*' => ['string', 'max:120'],
+            'sort_order'         => ['sometimes', 'integer', 'min:0'],
+            'is_active'          => ['sometimes', 'boolean'],
         ]);
 
         $category->update($data);

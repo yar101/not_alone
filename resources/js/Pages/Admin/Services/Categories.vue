@@ -14,40 +14,58 @@ const props = defineProps({
 const showForm   = ref(false);
 const editingId  = ref(null);
 const imagePreview = ref(null);
+const newSuggestion = ref('');
 
 const form = useForm({
-    name:        '',
-    description: '',
-    sort_order:  0,
-    is_active:   true,
-    image:       null,
+    name:             '',
+    description:      '',
+    name_suggestions: [],
+    sort_order:       0,
+    is_active:        true,
+    image:            null,
 });
 
 function openAdd() {
     editingId.value    = null;
     imagePreview.value = null;
+    newSuggestion.value = '';
     form.reset();
     form.is_active = true;
+    form.name_suggestions = [];
     showForm.value = true;
 }
 
 function openEdit(cat) {
     editingId.value    = cat.id;
     imagePreview.value = cat.image_path ? `/storage/${cat.image_path}` : null;
-    form.name        = cat.name;
-    form.description = cat.description ?? '';
-    form.sort_order  = cat.sort_order;
-    form.is_active   = cat.is_active;
-    form.image       = null;
-    showForm.value   = true;
+    newSuggestion.value = '';
+    form.name             = cat.name;
+    form.description      = cat.description ?? '';
+    form.name_suggestions = cat.name_suggestions ?? [];
+    form.sort_order       = cat.sort_order;
+    form.is_active        = cat.is_active;
+    form.image            = null;
+    showForm.value        = true;
 }
 
 function closeForm() {
-    showForm.value     = false;
-    editingId.value    = null;
-    imagePreview.value = null;
+    showForm.value      = false;
+    editingId.value     = null;
+    imagePreview.value  = null;
+    newSuggestion.value = '';
     form.reset();
     form.clearErrors();
+}
+
+function addSuggestion() {
+    const s = newSuggestion.value.trim();
+    if (!s || form.name_suggestions.includes(s)) return;
+    form.name_suggestions.push(s);
+    newSuggestion.value = '';
+}
+
+function removeSuggestion(index) {
+    form.name_suggestions.splice(index, 1);
 }
 
 function onImageChange(e) {
@@ -95,6 +113,7 @@ function destroy(id) {
                         <th>Порядок</th>
                         <th>Название</th>
                         <th>Описание</th>
+                        <th>Подсказки</th>
                         <th>Фото</th>
                         <th>Активна</th>
                         <th>Действия</th>
@@ -105,6 +124,12 @@ function destroy(id) {
                         <td>{{ cat.sort_order }}</td>
                         <td>{{ cat.name }}</td>
                         <td class="td-desc">{{ cat.description ? cat.description.slice(0, 60) + (cat.description.length > 60 ? '…' : '') : '—' }}</td>
+                        <td class="td-suggestions">
+                            <span v-if="cat.name_suggestions && cat.name_suggestions.length">
+                                {{ cat.name_suggestions.slice(0, 2).join(', ') }}{{ cat.name_suggestions.length > 2 ? ` +${cat.name_suggestions.length - 2}` : '' }}
+                            </span>
+                            <span v-else class="no-img">—</span>
+                        </td>
                         <td>
                             <img v-if="cat.image_path" :src="`/storage/${cat.image_path}`" class="thumb" alt="" />
                             <span v-else class="no-img">—</span>
@@ -118,7 +143,7 @@ function destroy(id) {
                         </td>
                     </tr>
                     <tr v-if="!categories.length">
-                        <td colspan="6" class="empty-row">Категорий нет</td>
+                        <td colspan="7" class="empty-row">Категорий нет</td>
                     </tr>
                 </tbody>
             </table>
@@ -142,6 +167,26 @@ function destroy(id) {
                             <label>Описание (глобальное)</label>
                             <textarea v-model="form.description" class="input input--textarea" rows="3" maxlength="1000" placeholder="Описание категории для профиля айдола" />
                             <p v-if="form.errors.description" class="err">{{ form.errors.description }}</p>
+                        </div>
+                        <div class="field">
+                            <label>Варианты названий</label>
+                            <div class="sug-input-row">
+                                <input
+                                    v-model="newSuggestion"
+                                    class="input"
+                                    placeholder="Введите вариант…"
+                                    maxlength="120"
+                                    @keydown.enter.prevent="addSuggestion"
+                                />
+                                <button type="button" class="sug-add-btn" @click="addSuggestion">+</button>
+                            </div>
+                            <div v-if="form.name_suggestions.length" class="sug-chips">
+                                <span v-for="(s, i) in form.name_suggestions" :key="i" class="sug-chip">
+                                    {{ s }}
+                                    <button type="button" class="sug-chip__remove" @click="removeSuggestion(i)">×</button>
+                                </span>
+                            </div>
+                            <p v-if="form.errors.name_suggestions" class="err">{{ form.errors.name_suggestions }}</p>
                         </div>
                         <div class="field">
                             <label>Изображение категории</label>
@@ -238,4 +283,46 @@ function destroy(id) {
 .btn-cancel { padding: 0.45rem 0.9rem; border: 1px solid rgba(255,255,255,0.12); border-radius: 3px; background: transparent; color: rgba(255,255,255,0.4); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
 .btn-submit { padding: 0.45rem 1rem; border: 1px solid rgba(190,145,255,0.45); border-radius: 3px; background: rgba(190,145,255,0.1); color: rgba(255,255,255,0.9); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
 .btn-submit:disabled { opacity: 0.5; cursor: default; }
+
+.td-suggestions { max-width: 180px; color: rgba(255,255,255,0.45); font-size: 0.8rem; }
+
+.sug-input-row { display: flex; gap: 0.4rem; }
+.sug-add-btn {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(190,145,255,0.35);
+    border-radius: 3px;
+    background: rgba(190,145,255,0.08);
+    color: rgba(190,145,255,0.8);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.sug-add-btn:hover { background: rgba(190,145,255,0.18); border-color: rgba(190,145,255,0.6); }
+
+.sug-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.4rem; }
+.sug-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.22rem 0.55rem;
+    border: 1px solid rgba(190,145,255,0.25);
+    border-radius: 99px;
+    background: rgba(190,145,255,0.07);
+    color: rgba(255,255,255,0.75);
+    font-size: 0.75rem;
+}
+.sug-chip__remove {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.3);
+    cursor: pointer;
+    font-size: 0.95rem;
+    line-height: 1;
+    padding: 0;
+    transition: color 0.15s;
+}
+.sug-chip__remove:hover { color: rgba(239,68,68,0.7); }
 </style>
