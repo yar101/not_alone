@@ -23,7 +23,10 @@ const props = defineProps({
     traits: { default: null },
     interests: { default: null },
     languages: { default: null },
+    canReport: { type: Boolean, default: false },
 });
+
+const emit = defineEmits(['report']);
 
 const editModal = ref(false);
 const avatarInput = ref(null);
@@ -219,15 +222,19 @@ function deleteAvatar() {
         <!-- Кнопки сверху справа -->
         <div v-if="isOwner" class="header-actions">
             <button class="action-pill" @click="editModal = true" title="Редактировать">
-                <el-icon>
-                    <Edit />
-                </el-icon>
+                <el-icon><Edit /></el-icon>
             </button>
             <a :href="route('settings.edit')" class="action-pill" title="Настройки">
-                <el-icon>
-                    <Setting />
-                </el-icon>
+                <el-icon><Setting /></el-icon>
             </a>
+        </div>
+        <div v-else-if="canReport" class="header-actions">
+            <button class="action-pill action-pill--report" @click="emit('report')" title="Пожаловаться">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                    <line x1="4" y1="22" x2="4" y2="15"/>
+                </svg>
+            </button>
         </div>
 
         <!-- Аватар по центру -->
@@ -417,6 +424,16 @@ function deleteAvatar() {
     color: #BE91FF;
     border-color: rgba(190, 145, 255, 0.5);
     background: rgba(190, 145, 255, 0.05);
+}
+
+.action-pill--report {
+    color: rgba(239, 68, 68, 0.4);
+    border-color: rgba(239, 68, 68, 0.2);
+}
+.action-pill--report:hover {
+    color: rgba(248, 113, 113, 0.9);
+    border-color: rgba(239, 68, 68, 0.5);
+    background: rgba(239, 68, 68, 0.07);
 }
 
 /* Avatar */

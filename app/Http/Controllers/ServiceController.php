@@ -29,6 +29,7 @@ class ServiceController extends Controller
             ...$data,
             'user_id'   => $idol->id,
             'is_active' => true,
+            'status'    => 'pending',
         ]);
 
         return back()->with('success', 'Услуга добавлена.');

@@ -2,6 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\IdolApplication;
+use App\Models\Service;
+use App\Models\UserReport;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -31,10 +34,20 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user,
             ],
+            'auth_admin' => auth('admin')->user(),
             'notifications_unread' => $user ? $this->countUnreadNotifications($user) : 0,
             'service_unread' => $user ? $this->countUnreadService($user) : 0,
             'is_idol' => $user?->is_idol ?? false,
             'idol_status' => $idolStatus,
+            'pending_applications_count' => fn() => auth('admin')->check()
+                ? IdolApplication::where('status', 'pending')->count()
+                : 0,
+            'pending_services_count' => fn() => auth('admin')->check()
+                ? Service::where('status', 'pending')->count()
+                : 0,
+            'pending_reports_count' => fn() => auth('admin')->check()
+                ? UserReport::where('status', 'pending')->count()
+                : 0,
         ];
     }
 

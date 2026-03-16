@@ -13,8 +13,9 @@ class ServiceTimeUnitController extends Controller
 {
     public function index(): Response
     {
-        return Inertia::render('Admin/Services/TimeUnits', [
-            'timeUnits' => ServiceTimeUnit::orderBy('sort_order')->get(['id', 'name', 'sort_order', 'is_active']),
+        return Inertia::render('Admin/Services/Index', [
+            'timeUnits'  => ServiceTimeUnit::orderBy('sort_order')->get(['id', 'name', 'sort_order', 'is_active']),
+            'active_tab' => 'time-units',
         ]);
     }
 

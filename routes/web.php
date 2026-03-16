@@ -4,6 +4,7 @@ use App\Http\Controllers\Idol\ApplicationController as IdolApplicationController
 use App\Http\Controllers\Idol\QuizController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ServiceController;
 
 use App\Http\Controllers\UserProfileController;
@@ -29,7 +30,7 @@ Route::get('/profile', function () {
 })->middleware('auth')->name('profile');
 
 // Profile editing endpoints (owner only)
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'not_banned'])->group(function () {
     Route::patch('/profile/about',      [UserProfileController::class, 'updateAbout'])->name('profile.update.about');
     Route::patch('/profile/traits',     [UserProfileController::class, 'updateTraits'])->name('profile.update.traits');
     Route::patch('/profile/interests',  [UserProfileController::class, 'updateInterests'])->name('profile.update.interests');
@@ -71,6 +72,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     )->name('profile.services.category.description');
     Route::patch('/profile/services/{service}',     [ServiceController::class, 'update'])->name('profile.services.update');
     Route::delete('/profile/services/{service}',    [ServiceController::class, 'destroy'])->name('profile.services.destroy');
+});
+
+// Reports
+Route::middleware(['auth', 'not_banned'])->group(function () {
+    Route::post('/reports', [ReportController::class, 'store'])->name('reports.store');
 });
 
 // Notification routes

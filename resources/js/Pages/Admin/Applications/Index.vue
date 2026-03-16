@@ -45,6 +45,7 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
     <div>
         <div class="page-header">
             <h1 class="page-title">Заявки на Айдола</h1>
+            <a :href="route('admin.export.applications')" class="export-link">Экспорт CSV</a>
             <div class="filters">
                 <button @click="filterBy('')" :class="['filter-btn', !filter_status && 'filter-btn--active']">Все</button>
                 <button @click="filterBy('pending')" :class="['filter-btn', filter_status === 'pending' && 'filter-btn--active']">На рассмотрении</button>
@@ -150,7 +151,9 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
 </template>
 
 <style scoped>
-.page-header { display: flex; align-items: center; gap: 2rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.page-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.export-link { font-size: 0.78rem; padding: 0.3rem 0.65rem; border: 1px solid rgba(155,110,232,0.3); color: rgba(190,145,255,0.75); text-decoration: none; white-space: nowrap; }
+.export-link:hover { background: rgba(155,110,232,0.08); }
 .page-title { font-size: 1.4rem; color: #fff; margin: 0; }
 
 .filters { display: flex; gap: 0.5rem; }
@@ -173,8 +176,8 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
 .apps-table { width: 100%; border-collapse: collapse; }
 .apps-table th {
     text-align: left;
-    padding: 0.65rem 1rem;
-    font-size: 0.72rem;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.82rem;
     color: rgba(255,255,255,0.35);
     text-transform: uppercase;
     letter-spacing: 0.07em;
@@ -182,9 +185,10 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
     background: rgba(255,255,255,0.025);
 }
 .apps-table td {
-    padding: 0.85rem 1rem;
+    padding: 1rem 1.25rem;
     border-bottom: 1px solid rgba(255,255,255,0.07);
     vertical-align: middle;
+    font-size: 0.93rem;
 }
 .apps-table tr:hover td { background: rgba(255,255,255,0.03); }
 

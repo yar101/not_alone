@@ -6,6 +6,7 @@ use App\Notifications\VerifyEmailNotification;
 use Carbon\Carbon;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -33,6 +34,11 @@ class User extends Authenticatable implements MustVerifyEmail
         'rating',
         'idol_quiz_cooldown_until',
         'idol_quiz_passed_at',
+        'is_banned',
+        'banned_at',
+        'banned_until',
+        'ban_reason',
+        'banned_by',
     ];
 
     protected $hidden = [
@@ -53,6 +59,9 @@ class User extends Authenticatable implements MustVerifyEmail
             'idol_quiz_cooldown_until'       => 'datetime',
             'idol_quiz_passed_at'            => 'datetime',
             'rating'                         => 'integer',
+            'is_banned'                      => 'boolean',
+            'banned_at'                      => 'datetime',
+            'banned_until'                   => 'datetime',
         ];
     }
 
@@ -107,6 +116,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function ratingLogs(): HasMany
     {
         return $this->hasMany(IdolRatingLog::class);
+    }
+
+    public function bannedBy(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class, 'banned_by');
     }
 
     public function sendEmailVerificationNotification(): void

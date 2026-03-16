@@ -7,13 +7,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Service extends Model
 {
-    protected $fillable = ['user_id', 'category_id', 'time_unit_id', 'name', 'price', 'is_active'];
+    protected $fillable = ['user_id', 'category_id', 'time_unit_id', 'name', 'price', 'is_active', 'status', 'rejection_reason', 'moderated_by', 'moderated_at'];
 
     protected function casts(): array
     {
         return [
-            'is_active' => 'boolean',
-            'price'     => 'integer',
+            'is_active'    => 'boolean',
+            'price'        => 'integer',
+            'moderated_at' => 'datetime',
         ];
     }
 
@@ -32,4 +33,8 @@ class Service extends Model
         return $this->belongsTo(ServiceTimeUnit::class, 'time_unit_id');
     }
 
+    public function moderatedBy(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class, 'moderated_by');
+    }
 }

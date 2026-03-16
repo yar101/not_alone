@@ -14,9 +14,10 @@ class ServicePriceLimitController extends Controller
 {
     public function index(): Response
     {
-        return Inertia::render('Admin/Services/PriceLimits', [
-            'limits'    => ServicePriceLimit::with('timeUnit:id,name')->get(),
-            'timeUnits' => ServiceTimeUnit::where('is_active', true)->orderBy('sort_order')->get(['id', 'name']),
+        return Inertia::render('Admin/Services/Index', [
+            'limits'     => ServicePriceLimit::with('timeUnit:id,name')->get(),
+            'timeUnits'  => ServiceTimeUnit::where('is_active', true)->orderBy('sort_order')->get(['id', 'name']),
+            'active_tab' => 'price-limits',
         ]);
     }
 

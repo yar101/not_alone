@@ -1,31 +1,166 @@
 <script setup>
-import { Link, router } from '@inertiajs/vue3';
+import { ref, computed, watch } from 'vue';
+import { Link, router, usePage } from '@inertiajs/vue3';
 
 function logout() {
     router.post(route('admin.logout'));
+}
+
+const page = usePage();
+const adminUser = computed(() => page.props.auth_admin);
+const pendingCount = computed(() => page.props.pending_applications_count ?? 0);
+const pendingServicesCount = computed(() => page.props.pending_services_count ?? 0);
+const pendingReportsCount = computed(() => page.props.pending_reports_count ?? 0);
+
+const servicesOpen = ref(false);
+
+const component = computed(() => page.component);
+
+function isOnServices() {
+    return component.value?.startsWith('Admin/Services/');
+}
+
+watch(component, (val) => {
+    if (val?.startsWith('Admin/Services/')) {
+        servicesOpen.value = true;
+    }
+}, { immediate: true });
+
+function isActive(routeName) {
+    return route().current(routeName);
 }
 </script>
 
 <template>
     <div class="admin-wrap">
-        <header class="admin-header">
-            <Link href="/admin" class="admin-logo">NoAlone Admin</Link>
-            <nav class="admin-nav">
-                <Link :href="route('admin.applications.index')" class="admin-nav__link">Заявки</Link>
-                <Link :href="route('admin.quiz.questions.index')" class="admin-nav__link">Вопросы теста</Link>
-                <Link :href="route('admin.messages.index')" class="admin-nav__link">Рассылки</Link>
-                <Link :href="route('admin.users.index')" class="admin-nav__link">Пользователи</Link>
-                <Link :href="route('admin.idols.index')" class="admin-nav__link">Айдолы</Link>
-                <Link :href="route('admin.services.categories.index')" class="admin-nav__link">Категории</Link>
-                <Link :href="route('admin.services.time-units.index')" class="admin-nav__link">Единицы</Link>
-                <Link :href="route('admin.services.price-limits.index')" class="admin-nav__link">Лимиты</Link>
-                <Link :href="route('admin.settings.index')" class="admin-nav__link">Настройки</Link>
+        <aside class="sidebar">
+            <div class="sidebar__logo">
+                <span class="logo-brand">NoAlone</span>
+                <span class="logo-sub">Admin</span>
+            </div>
+
+            <nav class="sidebar__nav">
+                <Link
+                    :href="route('admin.dashboard')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.dashboard') }"
+                >
+                    Дашборд
+                </Link>
+
+                <Link
+                    :href="route('admin.applications.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.applications.*') }"
+                >
+                    Заявки
+                    <span v-if="pendingCount > 0" class="nav-badge">{{ pendingCount }}</span>
+                </Link>
+
+                <div class="nav-group">
+                    <button
+                        class="nav-item nav-item--group"
+                        :class="{ 'nav-item--active': isOnServices() }"
+                        @click="servicesOpen = !servicesOpen"
+                    >
+                        <span>Услуги</span>
+                        <span class="nav-badge" v-if="pendingServicesCount > 0" style="margin-left: auto; margin-right: 0.25rem;">{{ pendingServicesCount }}</span>
+                        <span class="nav-arrow" :class="{ 'nav-arrow--open': servicesOpen }">▾</span>
+                    </button>
+                    <div v-if="servicesOpen" class="nav-sub">
+                        <Link
+                            :href="route('admin.services.categories.index')"
+                            class="nav-item nav-item--sub"
+                            :class="{ 'nav-item--active': isActive('admin.services.categories.index') }"
+                        >Категории</Link>
+                        <Link
+                            :href="route('admin.services.time-units.index')"
+                            class="nav-item nav-item--sub"
+                            :class="{ 'nav-item--active': isActive('admin.services.time-units.index') }"
+                        >Ед. времени</Link>
+                        <Link
+                            :href="route('admin.services.price-limits.index')"
+                            class="nav-item nav-item--sub"
+                            :class="{ 'nav-item--active': isActive('admin.services.price-limits.index') }"
+                        >Лимиты цен</Link>
+                        <Link
+                            :href="route('admin.services.moderation.index')"
+                            class="nav-item nav-item--sub"
+                            :class="{ 'nav-item--active': isActive('admin.services.moderation.index') }"
+                        >
+                            Модерация
+                            <span v-if="pendingServicesCount > 0" class="nav-badge">{{ pendingServicesCount }}</span>
+                        </Link>
+                    </div>
+                </div>
+
+                <Link
+                    :href="route('admin.quiz.questions.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.quiz.*') }"
+                >
+                    Квиз
+                </Link>
+
+                <Link
+                    :href="route('admin.messages.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.messages.index') }"
+                >
+                    Рассылки
+                </Link>
+
+                <Link
+                    :href="route('admin.users.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.users.*') }"
+                >
+                    Пользователи
+                </Link>
+
+                <Link
+                    :href="route('admin.reports.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.reports.*') }"
+                >
+                    Жалобы
+                    <span v-if="pendingReportsCount > 0" class="nav-badge">{{ pendingReportsCount }}</span>
+                </Link>
+
+                <Link
+                    :href="route('admin.logs.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.logs.index') }"
+                >
+                    Логи
+                </Link>
+
+                <Link
+                    :href="route('admin.settings.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.settings.index') }"
+                >
+                    Настройки
+                </Link>
             </nav>
-            <button class="admin-logout" @click="logout">Выйти</button>
-        </header>
-        <main class="admin-main">
-            <slot />
-        </main>
+
+            <div class="sidebar__footer">
+                <div class="admin-info" v-if="adminUser">
+                    <div class="admin-avatar">{{ adminUser.name?.[0]?.toUpperCase() ?? 'A' }}</div>
+                    <div class="admin-details">
+                        <div class="admin-name">{{ adminUser.name }}</div>
+                        <div class="admin-email">{{ adminUser.email }}</div>
+                    </div>
+                </div>
+                <button class="logout-btn" @click="logout">Выйти</button>
+            </div>
+        </aside>
+
+        <div class="content-wrap">
+            <main class="admin-main">
+                <slot />
+            </main>
+        </div>
     </div>
 </template>
 
@@ -34,73 +169,214 @@ function logout() {
     min-height: 100vh;
     background: #07070f;
     display: flex;
-    flex-direction: column;
     font-family: 'Figtree', sans-serif;
 }
 
-.admin-header {
+/* Sidebar */
+.sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: #09090f;
+    border-right: 1px solid rgba(155, 110, 232, 0.2);
+    display: flex;
+    flex-direction: column;
     position: sticky;
     top: 0;
-    z-index: 100;
-    height: 52px;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.sidebar__logo {
+    padding: 1.25rem 1rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.logo-brand {
+    font-family: 'Imbue', serif;
+    font-size: 1rem;
+    color: #9B6EE8;
+    letter-spacing: 0.02em;
+}
+
+.logo-sub {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.25);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+/* Nav */
+.sidebar__nav {
+    flex: 1;
+    padding: 0.5rem 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.nav-item {
     display: flex;
     align-items: center;
-    gap: 2rem;
-    padding: 0 2rem;
-    background: #07070f;
-    border-bottom: 1px solid rgba(155, 110, 232, 0.45);
-}
-
-.admin-logo {
-    font-family: 'Imbue', serif;
-    font-size: 1.05rem;
-    color: #9B6EE8;
+    justify-content: space-between;
+    padding: 0.55rem 1rem;
+    color: rgba(255, 255, 255, 0.45);
     text-decoration: none;
-    white-space: nowrap;
-    letter-spacing: 0.02em;
-    margin-right: 1rem;
+    font-size: 0.85rem;
+    transition: color 0.15s, background 0.15s;
+    cursor: pointer;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    gap: 0.5rem;
 }
 
-.admin-nav {
+.nav-item:hover {
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.nav-item--active {
+    color: #9B6EE8;
+    background: rgba(155, 110, 232, 0.1);
+}
+
+.nav-item--group {
+    justify-content: space-between;
+}
+
+.nav-arrow {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.25);
+    transition: transform 0.2s;
+    display: inline-block;
+}
+
+.nav-arrow--open {
+    transform: rotate(180deg);
+}
+
+.nav-sub {
     display: flex;
-    gap: 0;
+    flex-direction: column;
+}
+
+.nav-item--sub {
+    padding-left: 1.75rem;
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.nav-item--sub:hover {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.nav-item--sub.nav-item--active {
+    color: rgba(190, 145, 255, 0.85);
+    background: rgba(155, 110, 232, 0.08);
+}
+
+.nav-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 0.3rem;
+    background: rgba(155, 110, 232, 0.25);
+    border: 1px solid rgba(155, 110, 232, 0.4);
+    color: #be91ff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    border-radius: 99px;
+    margin-left: auto;
+}
+
+/* Footer */
+.sidebar__footer {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.admin-info {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.admin-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(155, 110, 232, 0.2);
+    border: 1px solid rgba(155, 110, 232, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #9B6EE8;
+    flex-shrink: 0;
+}
+
+.admin-details {
+    min-width: 0;
     flex: 1;
 }
 
-.admin-nav__link {
-    padding: 0.35rem 0.85rem;
-    color: rgba(255, 255, 255, 0.5);
-    text-decoration: none;
-    font-size: 0.85rem;
-    border-right: 1px solid rgba(255,255,255,0.06);
-}
-.admin-nav__link:first-child { border-left: 1px solid rgba(255,255,255,0.06); }
-.admin-nav__link:hover {
-    background: rgba(155, 110, 232, 0.1);
-    color: rgba(255, 255, 255, 0.9);
+.admin-name {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.admin-logout {
-    margin-left: auto;
-    padding: 0.3rem 0.85rem;
-    border: 1px solid rgba(155, 110, 232, 0.35);
+.admin-email {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.25);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.logout-btn {
+    padding: 0.35rem 0.7rem;
+    border: 1px solid rgba(155, 110, 232, 0.25);
     background: transparent;
-    color: rgba(255, 255, 255, 0.45);
-    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 0.78rem;
     cursor: pointer;
     font-family: inherit;
+    text-align: center;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
-.admin-logout:hover {
-    border-color: rgba(155, 110, 232, 0.65);
-    color: rgba(255, 255, 255, 0.85);
-    background: rgba(155, 110, 232, 0.1);
+
+.logout-btn:hover {
+    border-color: rgba(155, 110, 232, 0.5);
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(155, 110, 232, 0.07);
+}
+
+/* Content */
+.content-wrap {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .admin-main {
     flex: 1;
     padding: 2rem;
-    max-width: 1200px;
     width: 100%;
-    margin: 0 auto;
+    min-width: 0;
 }
 </style>

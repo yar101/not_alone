@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, nextTick, onMounted, computed } from 'vue';
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3';
+import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { StarFilled, MagicStick } from '@element-plus/icons-vue';
 
@@ -69,6 +70,40 @@ watch(tab, async () => {
         y: 14, opacity: 0, duration: 0.32, ease: 'power2.out',
     });
 });
+
+// ── Report modal ──────────────────────────────────────────
+const showReportModal = ref(false);
+const reportForm = ref({ reason: '', details: '' });
+const reportErrors = ref({});
+const reportSent = ref(false);
+
+const reportReasons = [
+    { value: 'spam',          label: 'Спам' },
+    { value: 'inappropriate', label: 'Неприемлемый контент' },
+    { value: 'fraud',         label: 'Мошенничество' },
+    { value: 'harassment',    label: 'Харассмент' },
+    { value: 'other',         label: 'Другое' },
+];
+
+function openReportModal() {
+    reportForm.value = { reason: '', details: '' };
+    reportErrors.value = {};
+    reportSent.value = false;
+    showReportModal.value = true;
+}
+
+function submitReport() {
+    reportErrors.value = {};
+    router.post(route('reports.store'), {
+        reported_id: props.profileUser.id,
+        reason:      reportForm.value.reason,
+        details:     reportForm.value.details,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => { reportSent.value = true; },
+        onError: (errors) => { reportErrors.value = errors; },
+    });
+}
 
 // ── driver.js Tour ─────────────────────────────────────────
 const TOUR_KEY = 'profile_tour_done';
@@ -205,6 +240,8 @@ onMounted(async () => {
                         :traits="traits"
                         :interests="interests"
                         :languages="languages"
+                        :can-report="!isOwner && !!page.props.auth?.user"
+                        @report="openReportModal"
                     />
                     <button v-if="!isOwner" class="sidebar-subscribe-btn">
                         Подписаться
@@ -371,6 +408,57 @@ onMounted(async () => {
 
         </div>
     </div>
+
+    <!-- Report modal -->
+    <SiteModal :show="showReportModal" variant="pink" :compact="true" @close="showReportModal = false">
+        <div v-if="reportSent" class="report-success">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="36" height="36">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <p>Жалоба отправлена. Мы рассмотрим её в ближайшее время.</p>
+            <button class="report-btn-close" @click="showReportModal = false">Закрыть</button>
+        </div>
+
+        <form v-else @submit.prevent="submitReport" class="report-form">
+            <h3 class="report-title">Пожаловаться на {{ profileUser.name }}</h3>
+
+            <div class="report-field">
+                <label class="report-label">Причина *</label>
+                <div class="report-reasons">
+                    <button
+                        v-for="r in reportReasons"
+                        :key="r.value"
+                        type="button"
+                        class="report-reason-btn"
+                        :class="{ 'report-reason-btn--active': reportForm.reason === r.value }"
+                        @click="reportForm.reason = r.value"
+                    >{{ r.label }}</button>
+                </div>
+                <p v-if="reportErrors.reason" class="report-err">{{ reportErrors.reason }}</p>
+            </div>
+
+            <div class="report-field">
+                <label class="report-label">Описание ситуации * <span class="report-optional">(мин. 10 символов)</span></label>
+                <textarea
+                    v-model="reportForm.details"
+                    class="report-textarea"
+                    rows="4"
+                    maxlength="1000"
+                    placeholder="Минимум 10 символов..."
+                    required
+                    minlength="10"
+                    :class="{ 'report-textarea--err': reportErrors.details }"
+                />
+                <p v-if="reportErrors.details" class="report-err">{{ reportErrors.details }}</p>
+            </div>
+
+            <div class="report-actions">
+                <button type="button" class="report-btn-cancel" @click="showReportModal = false">Отмена</button>
+                <button type="submit" class="report-btn-submit" :disabled="!reportForm.reason || reportForm.details.trim().length < 10">Отправить жалобу</button>
+            </div>
+        </form>
+    </SiteModal>
 </template>
 
 <!-- driver.js dark theme override (non-scoped) -->
@@ -795,6 +883,108 @@ onMounted(async () => {
     background: rgba(190, 145, 255, 0.1);
     color: rgba(190, 145, 255, 1);
 }
+
+/* ── Report modal content ────────────────────────────────── */
+.report-form, .report-success {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+}
+.report-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 0.25rem;
+    font-family: 'Figtree', sans-serif;
+}
+.report-field { display: flex; flex-direction: column; gap: 0.4rem; }
+.report-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(190, 145, 255, 0.6);
+}
+.report-optional { text-transform: none; letter-spacing: 0; opacity: 0.6; }
+.report-reasons { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.report-reason-btn {
+    padding: 0.32rem 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.45);
+    font-family: 'Figtree', sans-serif;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-radius: 2px;
+}
+.report-reason-btn:hover { border-color: rgba(239, 68, 68, 0.35); color: rgba(255, 255, 255, 0.8); }
+.report-reason-btn--active { border-color: rgba(239, 68, 68, 0.55); background: rgba(239, 68, 68, 0.09); color: #f87171; }
+.report-textarea {
+    padding: 0.55rem 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.85);
+    font-family: 'Figtree', sans-serif;
+    font-size: 0.9rem;
+    outline: none;
+    resize: vertical;
+    min-height: 80px;
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+    width: 100%;
+    border-radius: 2px;
+}
+.report-textarea:focus { border-color: rgba(190, 145, 255, 0.35); }
+.report-textarea--err { border-color: rgba(239, 68, 68, 0.5); }
+.report-textarea::placeholder { color: rgba(255, 255, 255, 0.18); }
+.report-err { font-size: 0.75rem; color: rgba(239, 68, 68, 0.75); margin: 0; }
+.report-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.25rem; }
+.report-btn-cancel {
+    padding: 0.5rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.35);
+    font-family: 'Figtree', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: color 0.15s, border-color 0.15s;
+}
+.report-btn-cancel:hover { color: rgba(255, 255, 255, 0.6); border-color: rgba(255, 255, 255, 0.2); }
+.report-btn-submit {
+    padding: 0.5rem 1.25rem;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    background: rgba(239, 68, 68, 0.08);
+    color: rgba(255, 255, 255, 0.88);
+    font-family: 'Figtree', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.15s, border-color 0.15s;
+}
+.report-btn-submit:hover:not(:disabled) { background: rgba(239, 68, 68, 0.18); border-color: rgba(239, 68, 68, 0.6); }
+.report-btn-submit:disabled { opacity: 0.3; cursor: default; }
+
+.report-success {
+    align-items: center;
+    text-align: center;
+    padding: 1.5rem 0;
+    color: rgba(74, 222, 128, 0.8);
+}
+.report-success p { font-size: 0.9rem; color: rgba(255, 255, 255, 0.55); margin: 0; line-height: 1.6; }
+.report-btn-close {
+    margin-top: 0.5rem;
+    padding: 0.5rem 1.5rem;
+    border: 1px solid rgba(74, 222, 128, 0.3);
+    background: rgba(74, 222, 128, 0.06);
+    color: rgba(74, 222, 128, 0.8);
+    font-family: 'Figtree', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.15s;
+}
+.report-btn-close:hover { background: rgba(74, 222, 128, 0.14); }
 
 /* ── Скелетоны (deferred fallback) ───────────────────────── */
 @keyframes shimmer {
