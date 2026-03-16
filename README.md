@@ -8,6 +8,19 @@
 - **Frontend:** Inertia.js v2, Vue 3 (Composition API), Vite
 - **Auth:** два гарда — `web` (пользователи) и `admin` (администраторы)
 
+## Требования
+
+- PHP 8.4+ с расширениями: `bcmath`, `pgsql`
+- PostgreSQL
+- Node.js + npm
+- Composer
+
+> Установка расширений на Fedora/RHEL:
+> ```bash
+> sudo dnf install php-bcmath php-pgsql
+> sudo systemctl restart php-fpm
+> ```
+
 ## Первоначальная настройка
 
 ```bash
@@ -18,6 +31,19 @@ npm install
 php artisan key:generate
 php artisan migrate
 php artisan db:seed --class=AdminSeeder
+```
+
+### Настройка Reverb (WebSocket)
+
+В `.env` значения `REVERB_APP_ID`, `REVERB_APP_KEY`, `REVERB_APP_SECRET` — произвольные строки, главное чтобы они были заполнены:
+
+```env
+REVERB_APP_ID=no-alone
+REVERB_APP_KEY=no-alone-key
+REVERB_APP_SECRET=no-alone-secret
+REVERB_HOST="localhost"
+REVERB_PORT=8080
+REVERB_SCHEME=http
 ```
 
 ## IDE Helper (автодополнение)
