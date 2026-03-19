@@ -31,6 +31,9 @@ npm install
 php artisan key:generate
 php artisan migrate
 php artisan db:seed --class=AdminSeeder
+
+# Создать симлинк для публичного хранилища (картинки категорий, аватары и т.д.)
+php artisan storage:link
 ```
 
 ### Настройка Reverb (WebSocket)
