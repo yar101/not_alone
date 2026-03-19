@@ -689,8 +689,20 @@ const formValid = computed(() =>
 /* ── Category grid ────────────────────────────────────────── */
 .cat-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+@media (max-width: 1000px) {
+    .cat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 560px) {
+    .cat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 360px) {
+    .cat-grid { grid-template-columns: 1fr; }
 }
 
 .cat-tile {
@@ -713,7 +725,7 @@ const formValid = computed(() =>
 
 .cat-tile__img-wrap {
     width: 100%;
-    aspect-ratio: 2.5 / 2;
+    aspect-ratio: 2.5 / 1.2;
     background: rgba(255, 255, 255, 0.03);
     display: flex;
     align-items: center;
@@ -737,15 +749,17 @@ const formValid = computed(() =>
 }
 
 .cat-tile__body {
-    padding: 0.75rem 0.85rem 0.7rem;
+    padding: 0.55rem 0.7rem;
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.25rem;
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .cat-tile__name {
-    font-size: 1.05rem;
+    font-size: 1.15rem;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.88);
     line-height: 1.35;
@@ -756,21 +770,17 @@ const formValid = computed(() =>
 }
 
 .cat-tile__desc {
-    font-size: 0.95rem;
+    font-size: 1rem;
     color: rgba(255, 255, 255, 0.38);
     line-height: 1.45;
     margin: 0;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
 }
 
 .cat-tile__footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-top: auto;
+    margin-top: 0.4rem;
 }
 
 .cat-tile__count {
