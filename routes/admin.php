@@ -63,6 +63,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/moderation', [ServiceModerationController::class, 'index'])->name('moderation.index');
             Route::patch('/{service}/approve', [ServiceModerationController::class, 'approve'])->name('moderation.approve');
             Route::patch('/{service}/reject', [ServiceModerationController::class, 'reject'])->name('moderation.reject');
+            Route::post('/bulk-approve', [ServiceModerationController::class, 'bulkApprove'])->name('moderation.bulk-approve');
+            Route::post('/bulk-reject', [ServiceModerationController::class, 'bulkReject'])->name('moderation.bulk-reject');
 
             Route::get('/categories', [ServiceCategoryController::class, 'index'])->name('categories.index');
             Route::post('/categories', [ServiceCategoryController::class, 'store'])->name('categories.store');

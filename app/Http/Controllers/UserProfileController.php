@@ -63,7 +63,7 @@ class UserProfileController extends Controller
                 $query   = $user->services()->with(['category:id,name,description,image_path', 'timeUnit:id,name']);
 
                 if (!$isOwner) {
-                    $query->where('is_active', true);
+                    $query->where('is_active', true)->where('status', 'approved');
                 }
 
                 $services = $query->orderBy('created_at')->get();
@@ -80,6 +80,7 @@ class UserProfileController extends Controller
 
                 // Other idols per category (up to 4 random)
                 $otherServices = Service::where('is_active', true)
+                    ->where('status', 'approved')
                     ->where('user_id', '!=', $user->id)
                     ->whereIn('category_id', $categoryIds)
                     ->with(['user:id,name,avatar_path,rating'])
@@ -112,12 +113,14 @@ class UserProfileController extends Controller
                         'idol_description' => $descriptions[$cat->id] ?? null,
                         'other_idols'      => $otherIdolsByCategory[$cat->id] ?? [],
                         'items'            => $group->map(fn (Service $s) => [
-                            'id'          => $s->id,
-                            'name'        => $s->name,
-                            'price'       => $s->price,
-                            'is_active'   => $s->is_active,
-                            'category_id' => $s->category_id,
-                            'time_unit'   => ['id' => $s->timeUnit->id, 'name' => $s->timeUnit->name],
+                            'id'               => $s->id,
+                            'name'             => $s->name,
+                            'price'            => $s->price,
+                            'is_active'        => $s->is_active,
+                            'status'           => $s->status,
+                            'rejection_reason' => $s->rejection_reason,
+                            'category_id'      => $s->category_id,
+                            'time_unit'        => ['id' => $s->timeUnit->id, 'name' => $s->timeUnit->name],
                         ])->values(),
                     ];
                 })->values();

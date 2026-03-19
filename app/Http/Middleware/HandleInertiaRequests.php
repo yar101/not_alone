@@ -48,6 +48,10 @@ class HandleInertiaRequests extends Middleware
             'pending_reports_count' => fn() => auth('admin')->check()
                 ? UserReport::where('status', 'pending')->count()
                 : 0,
+            'flash' => [
+                'success'         => $request->session()->get('success'),
+                'service_pending' => $request->session()->get('service_pending'),
+            ],
         ];
     }
 

@@ -32,7 +32,7 @@ class ServiceController extends Controller
             'status'    => 'pending',
         ]);
 
-        return back()->with('success', 'Услуга добавлена.');
+        return back()->with('service_pending', true);
     }
 
     public function update(Request $request, Service $service): RedirectResponse
