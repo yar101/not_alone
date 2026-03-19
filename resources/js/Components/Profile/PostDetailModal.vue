@@ -116,6 +116,12 @@ function closeCmtMenus() {
 onMounted(() => document.addEventListener('click', closeCmtMenus));
 onUnmounted(() => document.removeEventListener('click', closeCmtMenus));
 
+// ── Fullscreen photo ───────────────────────────────────────
+const fullscreen = ref(false);
+
+function openFullscreen() { fullscreen.value = true; }
+function closeFullscreen() { fullscreen.value = false; }
+
 // ── Delete comment ─────────────────────────────────────────
 async function deleteComment(commentId, parentId) {
     try {
@@ -139,7 +145,15 @@ async function deleteComment(commentId, parentId) {
             <!-- ── Left: photo + body + footer — no scroll ── -->
             <div class="detail__left">
 
-                <img v-if="post.photo_url" :src="post.photo_url" class="detail__photo" />
+                <div v-if="post.photo_url" class="detail__photo-wrap">
+                    <img :src="post.photo_url" class="detail__photo" @click="openFullscreen" />
+                    <button class="detail__photo-expand" @click="openFullscreen" title="На весь экран">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+                            <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+                        </svg>
+                    </button>
+                </div>
 
                 <div class="detail__body-wrap">
                     <p class="detail__body">{{ post.body }}</p>
@@ -292,6 +306,18 @@ async function deleteComment(commentId, parentId) {
     </SiteModal>
 
     <AuthModal :show="showAuthModal" initial-tab="register" @close="showAuthModal = false" />
+
+    <!-- Fullscreen photo overlay -->
+    <Teleport to="body">
+        <div v-if="fullscreen && post?.photo_url" class="photo-fullscreen" @click="closeFullscreen">
+            <img :src="post.photo_url" class="photo-fullscreen__img" @click.stop />
+            <button class="photo-fullscreen__close" @click="closeFullscreen">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+    </Teleport>
 </template>
 
 <style scoped>
@@ -321,12 +347,36 @@ async function deleteComment(commentId, parentId) {
     border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.detail__photo-wrap {
+    position: relative;
+    flex-shrink: 0;
+    max-height: 55%;
+    overflow: hidden;
+}
 .detail__photo {
     width: 100%;
-    flex-shrink: 0;
     display: block;
     object-fit: cover;
-    max-height: 55%;
+    max-height: 55vh;
+    cursor: zoom-in;
+}
+.detail__photo-expand {
+    position: absolute;
+    bottom: 0.5rem;
+    right: 0.5rem;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 5px;
+    color: rgba(255, 255, 255, 0.8);
+    padding: 0.3rem 0.4rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: background 0.15s, color 0.15s;
+}
+.detail__photo-expand:hover {
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
 }
 
 /* Body text — scrollable zone between photo and footer */
@@ -762,5 +812,51 @@ async function deleteComment(commentId, parentId) {
     .detail__right {
         min-height: 0;
     }
+}
+</style>
+
+<style>
+.photo-fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: rgba(0, 0, 0, 0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-out;
+    animation: fs-in 0.18s ease;
+}
+@keyframes fs-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+.photo-fullscreen__img {
+    max-width: 92vw;
+    max-height: 92vh;
+    object-fit: contain;
+    border-radius: 4px;
+    cursor: default;
+    box-shadow: 0 16px 64px rgba(0, 0, 0, 0.7);
+}
+.photo-fullscreen__close {
+    position: fixed;
+    top: 1.25rem;
+    right: 1.25rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.75);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.photo-fullscreen__close:hover {
+    background: rgba(255, 255, 255, 0.16);
+    color: #fff;
 }
 </style>

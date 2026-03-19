@@ -160,6 +160,12 @@ onMounted(async () => {
     overflow: hidden;
     cursor: pointer;
     transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.feed-card__footer {
+    margin-top: auto;
 }
 .feed-card:hover {
     border-color: rgba(190, 145, 255, 0.22);
@@ -240,7 +246,7 @@ onMounted(async () => {
     width: 100%;
     display: block;
     object-fit: cover;
-    max-height: 360px;
+    max-height: 320px;
 }
 
 /* Body */
@@ -263,7 +269,7 @@ onMounted(async () => {
 
 .feed-card__read-more {
     display: block;
-    font-size: 0.78rem;
+    font-size: 0.92rem;
     color: rgba(190, 145, 255, 0.6);
     background: transparent;
     border: none;

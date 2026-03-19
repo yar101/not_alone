@@ -246,9 +246,10 @@ function deletePost() {
 }
 
 .posts-feed {
-    display: flex;
-    flex-direction: column;
-    gap: 1.4rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.6rem;
+    align-items: stretch;
 }
 
 .posts-empty {
