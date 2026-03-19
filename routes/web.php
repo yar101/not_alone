@@ -24,6 +24,10 @@ Route::get('/', function () {
 // Public profile page
 Route::get('/users/{user}', [UserProfileController::class, 'show'])->name('profile.show');
 
+// Public post endpoints (no auth required)
+Route::get('/users/{user}/posts',    [UserProfileController::class, 'getPosts'])->name('profile.posts.feed');
+Route::get('/posts/{post}/comments', [UserProfileController::class, 'getComments'])->name('posts.comments.index');
+
 // /profile redirects to own profile
 Route::get('/profile', function () {
     return redirect()->route('profile.show', ['user' => auth()->id()]);
@@ -46,6 +50,9 @@ Route::middleware(['auth', 'verified', 'not_banned'])->group(function () {
     Route::delete('/profile/avatar',             [UserProfileController::class, 'deleteAvatar'])->name('profile.delete.avatar');
     Route::post('/profile/posts',                [UserProfileController::class, 'storePost'])->name('profile.posts.store');
     Route::delete('/profile/posts/{post}',       [UserProfileController::class, 'destroyPost'])->name('profile.posts.destroy');
+    Route::post('/posts/{post}/like',            [UserProfileController::class, 'toggleLike'])->name('posts.like');
+    Route::post('/posts/{post}/comments',        [UserProfileController::class, 'storeComment'])->name('posts.comments.store');
+    Route::delete('/comments/{comment}',         [UserProfileController::class, 'destroyComment'])->name('posts.comments.destroy');
 });
 
 // Account settings (email, password, delete)
