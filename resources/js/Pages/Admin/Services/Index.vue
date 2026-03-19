@@ -1,19 +1,23 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import { Plus } from '@element-plus/icons-vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppSelect from '@/Components/AppSelect.vue';
 import CreateButton from '@/Components/CreateButton.vue';
+import ImageDropzone from '@/Components/ImageDropzone.vue';
 
 defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
-    categories:          Array,
-    timeUnits:           Array,
-    limits:              Array,
-    moderation_services: Object,
-    active_tab:          String,
+    categories:             Array,
+    timeUnits:              Array,
+    limits:                 Array,
+    moderation_services:    Object,
+    moderation_filters:     Object,
+    moderation_counts:      Object,
+    moderation_categories:  Array,
+    active_tab:             String,
 });
 
 function switchTab(tab) {
@@ -24,15 +28,79 @@ function switchTab(tab) {
 }
 
 // ─── Moderation ──────────────────────────────────────────────────────────────
+
+// Filters
+const filterStatus     = ref(props.moderation_filters?.status ?? 'pending');
+const filterSearch     = ref(props.moderation_filters?.search ?? '');
+const filterCategoryId = ref(props.moderation_filters?.category_id ?? null);
+let searchDebounce = null;
+
+function applyFilters() {
+    router.get(route('admin.services.moderation.index'), {
+        status:      filterStatus.value,
+        search:      filterSearch.value || undefined,
+        category_id: filterCategoryId.value || undefined,
+    }, { preserveState: false });
+}
+
+function onSearchInput() {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(applyFilters, 300);
+}
+
+function switchStatusTab(status) {
+    filterStatus.value = status;
+    applyFilters();
+}
+
+// Checkboxes / multi-select
+const selectedIds = ref(new Set());
+
+const allPageIds = computed(() =>
+    (props.moderation_services?.data ?? []).map(s => s.id)
+);
+
+const allSelected = computed(() =>
+    allPageIds.value.length > 0 && allPageIds.value.every(id => selectedIds.value.has(id))
+);
+
+function toggleSelectAll() {
+    if (allSelected.value) {
+        allPageIds.value.forEach(id => selectedIds.value.delete(id));
+    } else {
+        allPageIds.value.forEach(id => selectedIds.value.add(id));
+    }
+    // trigger reactivity
+    selectedIds.value = new Set(selectedIds.value);
+}
+
+function toggleRow(id) {
+    const s = new Set(selectedIds.value);
+    if (s.has(id)) s.delete(id);
+    else s.add(id);
+    selectedIds.value = s;
+}
+
+// Single approve/reject
 const showRejectModal  = ref(false);
-const rejectTarget     = ref(null);
+const rejectTarget     = ref(null); // null = bulk
+const rejectBulkAll    = ref(false);
 const rejectReason     = ref('');
 const rejectError      = ref('');
 
 function openRejectModal(service) {
-    rejectTarget.value = service;
-    rejectReason.value = '';
-    rejectError.value  = '';
+    rejectTarget.value  = service;
+    rejectBulkAll.value = false;
+    rejectReason.value  = '';
+    rejectError.value   = '';
+    showRejectModal.value = true;
+}
+
+function openBulkRejectModal(filterAll = false) {
+    rejectTarget.value  = null;
+    rejectBulkAll.value = filterAll;
+    rejectReason.value  = '';
+    rejectError.value   = '';
     showRejectModal.value = true;
 }
 
@@ -45,18 +113,69 @@ function approveService(id) {
     router.patch(route('admin.services.moderation.approve', id), {}, { preserveScroll: false });
 }
 
+function bulkApprove() {
+    router.post(route('admin.services.moderation.bulk-approve'), {
+        ids: [...selectedIds.value],
+    }, {
+        preserveScroll: false,
+        onSuccess: () => { selectedIds.value = new Set(); },
+    });
+}
+
+function bulkApproveAll() {
+    router.post(route('admin.services.moderation.bulk-approve'), {
+        filter_all:  true,
+        status:      filterStatus.value,
+        search:      filterSearch.value || undefined,
+        category_id: filterCategoryId.value || undefined,
+    }, { preserveScroll: false });
+}
+
 function submitReject() {
     if (!rejectReason.value.trim()) {
         rejectError.value = 'Укажите причину отклонения';
         return;
     }
-    router.patch(route('admin.services.moderation.reject', rejectTarget.value.id), {
-        rejection_reason: rejectReason.value,
-    }, {
+
+    // Single service reject
+    if (rejectTarget.value) {
+        router.patch(route('admin.services.moderation.reject', rejectTarget.value.id), {
+            rejection_reason: rejectReason.value,
+        }, {
+            preserveScroll: false,
+            onSuccess: closeRejectModal,
+        });
+        return;
+    }
+
+    // Bulk reject
+    const payload = rejectBulkAll.value
+        ? {
+            filter_all:       true,
+            status:           filterStatus.value,
+            search:           filterSearch.value || undefined,
+            category_id:      filterCategoryId.value || undefined,
+            rejection_reason: rejectReason.value,
+          }
+        : {
+            ids:              [...selectedIds.value],
+            rejection_reason: rejectReason.value,
+          };
+
+    router.post(route('admin.services.moderation.bulk-reject'), payload, {
         preserveScroll: false,
-        onSuccess: closeRejectModal,
+        onSuccess: () => {
+            closeRejectModal();
+            selectedIds.value = new Set();
+        },
     });
 }
+
+const rejectModalTitle = computed(() => {
+    if (rejectTarget.value) return `Отклонить: ${rejectTarget.value.name}`;
+    if (rejectBulkAll.value) return `Отклонить все (${props.moderation_services?.total ?? 0})`;
+    return `Отклонить выбранные (${selectedIds.value.size})`;
+});
 
 // ─── Categories ──────────────────────────────────────────────────────────────
 const showCatForm     = ref(false);
@@ -71,6 +190,7 @@ const catForm = useForm({
     sort_order:       0,
     is_active:        true,
     image:            null,
+    remove_image:     false,
 });
 
 function openCatAdd() {
@@ -116,11 +236,16 @@ function removeSuggestion(index) {
     catForm.name_suggestions.splice(index, 1);
 }
 
-function onCatImageChange(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+function onCatImageChange(file, url) {
     catForm.image = file;
-    catImagePreview.value = URL.createObjectURL(file);
+    catForm.remove_image = false;
+    catImagePreview.value = url;
+}
+
+function removeCatImage() {
+    catForm.image = null;
+    catForm.remove_image = true;
+    catImagePreview.value = null;
 }
 
 function submitCat() {
@@ -269,7 +394,7 @@ function destroyLimit(id) {
                 @click="switchTab('moderation')"
             >
                 Модерация
-                <span v-if="moderation_services && moderation_services.total > 0" class="tab-count">{{ moderation_services.total }}</span>
+                <span v-if="moderation_counts?.pending > 0" class="tab-count">{{ moderation_counts?.pending }}</span>
             </button>
         </div>
 
@@ -364,10 +489,11 @@ function destroyLimit(id) {
                             </div>
                             <div class="field">
                                 <label>Изображение категории</label>
-                                <div v-if="catImagePreview" class="img-preview">
-                                    <img :src="catImagePreview" alt="preview" class="img-preview__img" />
-                                </div>
-                                <input type="file" accept="image/jpeg,image/png,image/webp" class="input-file" @change="onCatImageChange" />
+                                <ImageDropzone
+                                    :preview="catImagePreview"
+                                    @change="onCatImageChange"
+                                    @remove="removeCatImage"
+                                />
                             </div>
                             <div class="field">
                                 <label>Порядок сортировки</label>
@@ -531,26 +657,113 @@ function destroyLimit(id) {
 
         <!-- ═══ Moderation tab ═══ -->
         <template v-if="active_tab === 'moderation'">
+
+            <!-- Status tabs -->
+            <div class="mod-status-tabs">
+                <button
+                    v-for="tab in [
+                        { key: 'pending',  label: 'Ожидают',  count: moderation_counts?.pending },
+                        { key: 'approved', label: 'Одобрены', count: moderation_counts?.approved },
+                        { key: 'rejected', label: 'Отклонены', count: moderation_counts?.rejected },
+                    ]"
+                    :key="tab.key"
+                    class="mod-status-tab"
+                    :class="{ 'mod-status-tab--active': filterStatus === tab.key }"
+                    @click="switchStatusTab(tab.key)"
+                >
+                    {{ tab.label }}
+                    <span v-if="tab.count > 0" class="tab-count">{{ tab.count }}</span>
+                </button>
+            </div>
+
+            <!-- Search + category filter -->
+            <div class="mod-filters">
+                <input
+                    v-model="filterSearch"
+                    class="input mod-search"
+                    placeholder="Поиск по имени, email, услуге…"
+                    @input="onSearchInput"
+                />
+                <select
+                    v-model="filterCategoryId"
+                    class="input mod-cat-select"
+                    @change="applyFilters"
+                >
+                    <option :value="null">Все категории</option>
+                    <option v-for="cat in moderation_categories" :key="cat.id" :value="cat.id">
+                        {{ cat.name }}
+                    </option>
+                </select>
+            </div>
+
+            <!-- Bulk action bar (when items selected) / page header -->
             <div class="page-header">
-                <h1 class="page-title">Модерация услуг</h1>
-                <span v-if="moderation_services" class="hint" style="margin: 0;">{{ moderation_services.total }} на рассмотрении</span>
+                <template v-if="selectedIds.size > 0">
+                    <span class="mod-selected-label">✓ {{ selectedIds.size }} выбрано</span>
+                    <div class="actions">
+                        <button class="btn-approve" @click="bulkApprove">Одобрить выбранные</button>
+                        <button class="btn-danger" @click="openBulkRejectModal(false)">Отклонить выбранные</button>
+                    </div>
+                </template>
+                <template v-else>
+                    <h1 class="page-title">Модерация услуг</h1>
+                    <div v-if="filterStatus === 'pending'" class="actions">
+                        <button class="btn-approve" @click="bulkApproveAll">
+                            Одобрить все ({{ moderation_services?.total ?? 0 }})
+                        </button>
+                        <button class="btn-danger" @click="openBulkRejectModal(true)">
+                            Отклонить все ({{ moderation_services?.total ?? 0 }})
+                        </button>
+                    </div>
+                </template>
             </div>
 
             <div class="table-wrap">
                 <table class="data-table">
                     <thead>
                         <tr>
+                            <th style="width:36px;">
+                                <label class="mod-cb">
+                                    <input
+                                        type="checkbox"
+                                        class="mod-cb__input"
+                                        :checked="allSelected"
+                                        :indeterminate="selectedIds.size > 0 && !allSelected"
+                                        @change="toggleSelectAll"
+                                    />
+                                    <span class="mod-cb__box">
+                                        <svg v-if="allSelected" class="mod-cb__check" viewBox="0 0 10 8" fill="none">
+                                            <path d="M1 4l3 3 5-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                        <svg v-else-if="selectedIds.size > 0" class="mod-cb__minus" viewBox="0 0 10 2" fill="none">
+                                            <path d="M1 1h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                        </svg>
+                                    </span>
+                                </label>
+                            </th>
                             <th>Айдол</th>
                             <th>Услуга</th>
                             <th>Категория</th>
                             <th>Ед. времени</th>
                             <th>Цена</th>
+                            <th>Статус</th>
                             <th>Дата</th>
                             <th>Действия</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="s in moderation_services?.data" :key="s.id">
+                        <tr v-for="s in moderation_services?.data" :key="s.id"
+                            :class="{ 'tr--selected': selectedIds.has(s.id) }">
+                            <td>
+                                <label class="mod-cb">
+                                    <input type="checkbox" class="mod-cb__input" :checked="selectedIds.has(s.id)" @change="toggleRow(s.id)" />
+                                    <span class="mod-cb__box">
+                                        <svg v-if="selectedIds.has(s.id)" class="mod-cb__check" viewBox="0 0 10 8" fill="none">
+                                            <path d="M1 4l3 3 5-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </span>
+                                </label>
+                            </td>
                             <td>
                                 <div class="mod-user-cell">
                                     <img v-if="s.user?.avatar_url" :src="s.user.avatar_url" class="mod-avatar" alt="" />
@@ -565,16 +778,29 @@ function destroyLimit(id) {
                             <td class="no-val">{{ s.category ?? '—' }}</td>
                             <td class="no-val">{{ s.time_unit ?? '—' }}</td>
                             <td>{{ s.price?.toLocaleString('ru') }} ₽</td>
+                            <td>
+                                <div>
+                                    <span :class="['badge', `badge--${s.status}`]">
+                                        {{ s.status === 'pending' ? 'Ожидает' : s.status === 'approved' ? 'Одобрено' : 'Отклонено' }}
+                                    </span>
+                                    <div v-if="s.status === 'rejected' && s.rejection_reason"
+                                         class="mod-reject-reason"
+                                         :title="s.rejection_reason">
+                                        {{ s.rejection_reason.length > 40 ? s.rejection_reason.slice(0, 40) + '…' : s.rejection_reason }}
+                                    </div>
+                                </div>
+                            </td>
                             <td class="no-val">{{ s.created_at ? new Date(s.created_at).toLocaleDateString('ru') : '—' }}</td>
                             <td>
-                                <div class="actions">
+                                <div v-if="s.status === 'pending'" class="actions">
                                     <button class="btn-approve" @click="approveService(s.id)">Одобрить</button>
                                     <button class="btn-danger" @click="openRejectModal(s)">Отклонить</button>
                                 </div>
+                                <span v-else class="no-val">—</span>
                             </td>
                         </tr>
                         <tr v-if="!moderation_services?.data?.length">
-                            <td colspan="7" class="empty-row">Услуг на модерации нет</td>
+                            <td colspan="9" class="empty-row">Услуг нет</td>
                         </tr>
                     </tbody>
                 </table>
@@ -596,7 +822,7 @@ function destroyLimit(id) {
                 <div v-if="showRejectModal" class="overlay" @click.self="closeRejectModal">
                     <div class="modal">
                         <div class="modal__header">
-                            <span>Отклонить услугу: {{ rejectTarget?.name }}</span>
+                            <span>{{ rejectModalTitle }}</span>
                             <button class="modal__close" @click="closeRejectModal">✕</button>
                         </div>
                         <form @submit.prevent="submitReject" class="modal__body">
@@ -701,8 +927,6 @@ function destroyLimit(id) {
 .input--err { border-color: rgba(239,68,68,0.5); }
 .input--textarea { resize: vertical; min-height: 72px; }
 .input-file { font-size: 0.82rem; color: rgba(255,255,255,0.5); cursor: pointer; }
-.img-preview { margin-bottom: 0.4rem; }
-.img-preview__img { width: 100%; max-height: 140px; object-fit: cover; border-radius: 3px; border: 1px solid rgba(255,255,255,0.1); }
 .err { font-size: 0.75rem; color: rgba(239,68,68,0.8); margin: 0; }
 .modal__actions { display: flex; justify-content: flex-end; gap: 0.5rem; padding-top: 0.25rem; }
 .btn-cancel { padding: 0.45rem 0.9rem; border: 1px solid rgba(255,255,255,0.12); border-radius: 3px; background: transparent; color: rgba(255,255,255,0.4); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
@@ -718,12 +942,31 @@ function destroyLimit(id) {
 .sug-chip__remove:hover { color: rgba(239,68,68,0.7); }
 
 /* Moderation tab */
+.mod-status-tabs { display: flex; gap: 0; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.mod-status-tab { padding: 0.45rem 1rem; background: none; border: none; border-bottom: 2px solid transparent; color: rgba(255,255,255,0.4); font-size: 0.84rem; cursor: pointer; font-family: inherit; margin-bottom: -1px; transition: color 0.15s; display: flex; align-items: center; gap: 0.4rem; }
+.mod-status-tab:hover { color: rgba(255,255,255,0.7); }
+.mod-status-tab--active { color: #9B6EE8; border-bottom-color: #9B6EE8; }
+
+.mod-filters { display: flex; gap: 0.6rem; margin-bottom: 1rem; }
+.mod-search { flex: 1; }
+.mod-cat-select { width: 180px; appearance: none; }
+
+.mod-selected-label { font-size: 0.88rem; color: rgba(255,255,255,0.7); font-weight: 600; }
+
+.tr--selected td { background: rgba(155,110,232,0.06); }
+
+.badge--pending  { background: rgba(251,146,60,0.12); color: rgba(251,146,60,0.9); }
+.badge--approved { background: rgba(74,222,128,0.1);  color: rgba(74,222,128,0.8); }
+.badge--rejected { background: rgba(239,68,68,0.1);   color: rgba(239,68,68,0.7); }
+
+.mod-reject-reason { font-size: 0.72rem; color: rgba(239,68,68,0.55); margin-top: 0.2rem; cursor: help; }
+
 .mod-user-cell { display: flex; align-items: center; gap: 0.6rem; }
 .mod-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; background: rgba(155,110,232,0.15); flex-shrink: 0; }
 .mod-avatar--initials { display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 600; color: #9B6EE8; border: 1px solid rgba(155,110,232,0.3); }
 .mod-name  { font-size: 0.85rem; color: rgba(255,255,255,0.85); font-weight: 500; }
 .mod-email { font-size: 0.75rem; color: rgba(255,255,255,0.3); }
-.btn-approve { padding: 0.3rem 0.7rem; border: 1px solid rgba(76,222,143,0.4); background: rgba(76,222,143,0.07); color: #4cde8f; font-family: inherit; font-size: 0.78rem; cursor: pointer; }
+.btn-approve { padding: 0.3rem 0.7rem; border: 1px solid rgba(76,222,143,0.4); background: rgba(76,222,143,0.07); color: #4cde8f; font-family: inherit; font-size: 0.78rem; cursor: pointer; border-radius: 3px; }
 .btn-approve:hover { background: rgba(76,222,143,0.18); }
 
 /* Pagination */
@@ -731,4 +974,46 @@ function destroyLimit(id) {
 .page-link { padding: 0.28rem 0.6rem; border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); font-size: 0.8rem; text-decoration: none; cursor: pointer; }
 .page-link--active   { border-color: rgba(155,110,232,0.6); color: #9B6EE8; background: rgba(155,110,232,0.1); }
 .page-link--disabled { opacity: 0.3; pointer-events: none; }
+
+/* Styled checkbox */
+.mod-cb {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+.mod-cb__input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+.mod-cb__box {
+    width: 15px;
+    height: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: border-color 0.15s, background 0.15s;
+    color: #9B6EE8;
+}
+.mod-cb:hover .mod-cb__box {
+    border-color: rgba(155, 110, 232, 0.5);
+    background: rgba(155, 110, 232, 0.06);
+}
+.mod-cb__input:checked ~ .mod-cb__box,
+.mod-cb__input:indeterminate ~ .mod-cb__box {
+    border-color: rgba(155, 110, 232, 0.7);
+    background: rgba(155, 110, 232, 0.15);
+}
+.mod-cb__check,
+.mod-cb__minus {
+    width: 10px;
+    height: 10px;
+}
 </style>
