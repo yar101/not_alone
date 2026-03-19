@@ -467,8 +467,8 @@ function submitRegister() {
 }
 
 .auth-field-label {
-    font-size: 0.68rem;
-    letter-spacing: 0.16em;
+    font-size: 0.82rem;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: rgba(155, 110, 232, 0.5);
 }
@@ -480,7 +480,7 @@ function submitRegister() {
     border-radius: 3px;
     padding: 0.72rem 0.9rem;
     color: rgba(255, 255, 255, 0.88);
-    font-size: 0.95rem;
+    font-size: 1.05rem;
     outline: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
     font-family: inherit;
@@ -509,7 +509,7 @@ function submitRegister() {
     border-radius: 3px;
     padding: 0.72rem 0.5rem;
     color: rgba(255, 255, 255, 0.88);
-    font-size: 0.9rem;
+    font-size: 1.05rem;
     outline: none;
     cursor: pointer;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;

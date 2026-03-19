@@ -386,6 +386,7 @@ function deleteAvatar() {
     overflow: visible;
     background: #06060e;
     border: 1px solid rgba(255, 255, 255, 0.18);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
     border-radius: 3px;
     display: flex;
     flex-direction: column;

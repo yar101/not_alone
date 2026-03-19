@@ -187,7 +187,7 @@ onUnmounted(() => {
     .site-modal-sheet--compact {
         width: clamp(440px, 36vw, 620px);
         height: auto;
-        max-height: 68vh;
+        max-height: 88vh;
     }
 }
 
@@ -334,7 +334,6 @@ onUnmounted(() => {
     overflow-y: auto;
     padding: 2rem;
     padding-top: 3rem;
-    padding-right: 3rem;
     position: relative;
     z-index: 1;
     scrollbar-width: thin;

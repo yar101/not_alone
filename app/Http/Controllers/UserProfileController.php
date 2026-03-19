@@ -6,6 +6,8 @@ use App\Models\IdolCategoryDescription;
 use App\Models\InterestCategory;
 use App\Models\PersonalityTrait;
 use App\Models\Post;
+use App\Models\PostComment;
+use App\Models\PostLike;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\ServiceTimeUnit;
@@ -13,6 +15,7 @@ use App\Models\ServiceTimeUnit;
 use App\Models\User;
 use App\Models\UserLanguage;
 use App\Services\IdolRatingService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -134,13 +137,6 @@ class UserProfileController extends Controller
                 'services'
             ),
 
-            // Deferred group "posts"
-            'posts' => Inertia::defer(fn () => $user->load(['posts' => fn ($q) => $q->latest()])->posts->map(fn ($p) => [
-                'id'         => $p->id,
-                'body'       => $p->body,
-                'photo_url'  => $p->photo_url,
-                'created_at' => $p->created_at->translatedFormat('d M Y'),
-            ]), 'posts'),
         ]);
     }
 
@@ -286,8 +282,8 @@ class UserProfileController extends Controller
     public function storePost(Request $request): RedirectResponse
     {
         $request->validate([
-            'body'  => ['required', 'string', 'max:277'],
-            'photo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:1024'],
+            'body'  => ['required', 'string', 'max:377'],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:1024'],
         ]);
         $user = $request->user();
         $photoPath = null;
@@ -320,5 +316,128 @@ class UserProfileController extends Controller
         }
         $post->delete();
         return back();
+    }
+
+    public function getPosts(Request $request, User $user): JsonResponse
+    {
+        $paginated = $user->posts()
+            ->with('user:id,name,avatar_path')
+            ->withCount(['likes', 'comments'])
+            ->latest()
+            ->paginate(10);
+
+        $authId = auth()->id();
+        $likedIds = [];
+        if ($authId) {
+            $postIds = $paginated->pluck('id');
+            $likedIds = PostLike::where('user_id', $authId)
+                ->whereIn('post_id', $postIds)
+                ->pluck('post_id')
+                ->flip()
+                ->all();
+        }
+
+        $data = $paginated->getCollection()->map(fn (Post $p) => [
+            'id'             => $p->id,
+            'body'           => $p->body,
+            'photo_url'      => $p->photo_url,
+            'created_at'     => $p->created_at->translatedFormat('d M Y'),
+            'likes_count'    => $p->likes_count,
+            'liked_by_me'    => isset($likedIds[$p->id]),
+            'comments_count' => $p->comments_count,
+            'author'         => [
+                'id'         => $p->user->id,
+                'name'       => $p->user->name,
+                'avatar_url' => $p->user->avatar_url,
+            ],
+        ]);
+
+        return response()->json([
+            'data'          => $data,
+            'next_page_url' => $paginated->nextPageUrl(),
+            'current_page'  => $paginated->currentPage(),
+            'last_page'     => $paginated->lastPage(),
+        ]);
+    }
+
+    public function getComments(Request $request, Post $post): JsonResponse
+    {
+        $comments = $post->comments()
+            ->with(['user:id,name,avatar_path', 'replies.user:id,name,avatar_path'])
+            ->orderBy('created_at')
+            ->get();
+
+        $data = $comments->map(fn (PostComment $c) => [
+            'id'         => $c->id,
+            'body'       => $c->body,
+            'created_at' => $c->created_at->diffForHumans(),
+            'user'       => ['id' => $c->user->id, 'name' => $c->user->name, 'avatar_url' => $c->user->avatar_url],
+            'replies'    => $c->replies->map(fn (PostComment $r) => [
+                'id'         => $r->id,
+                'body'       => $r->body,
+                'created_at' => $r->created_at->diffForHumans(),
+                'user'       => ['id' => $r->user->id, 'name' => $r->user->name, 'avatar_url' => $r->user->avatar_url],
+                'replies'    => [],
+            ])->values(),
+        ]);
+
+        return response()->json($data);
+    }
+
+    public function toggleLike(Request $request, Post $post): JsonResponse
+    {
+        $userId = $request->user()->id;
+        $existing = PostLike::where('post_id', $post->id)->where('user_id', $userId)->first();
+
+        if ($existing) {
+            $existing->delete();
+            $liked = false;
+        } else {
+            PostLike::create(['post_id' => $post->id, 'user_id' => $userId]);
+            $liked = true;
+        }
+
+        return response()->json([
+            'liked'       => $liked,
+            'likes_count' => $post->likes()->count(),
+        ]);
+    }
+
+    public function storeComment(Request $request, Post $post): JsonResponse
+    {
+        $data = $request->validate([
+            'body'      => ['required', 'string', 'max:177'],
+            'parent_id' => ['nullable', 'integer', 'exists:post_comments,id'],
+        ]);
+
+        if (!empty($data['parent_id'])) {
+            $parent = PostComment::findOrFail($data['parent_id']);
+            abort_if($parent->post_id !== $post->id, 422, 'Parent comment does not belong to this post.');
+            abort_if($parent->parent_id !== null, 422, 'Cannot reply to a reply.');
+        }
+
+        $comment = PostComment::create([
+            'post_id'   => $post->id,
+            'user_id'   => $request->user()->id,
+            'parent_id' => $data['parent_id'] ?? null,
+            'body'      => $data['body'],
+        ]);
+
+        $comment->load('user:id,name,avatar_path');
+
+        return response()->json([
+            'id'         => $comment->id,
+            'body'       => $comment->body,
+            'created_at' => $comment->created_at->diffForHumans(),
+            'user'       => ['id' => $comment->user->id, 'name' => $comment->user->name, 'avatar_url' => $comment->user->avatar_url],
+            'replies'    => [],
+        ]);
+    }
+
+    public function destroyComment(Request $request, PostComment $comment): JsonResponse
+    {
+        abort_if($comment->user_id !== $request->user()->id, 403);
+        $comment->delete();
+        return response()->json(['deleted' => true]);
     }
 }

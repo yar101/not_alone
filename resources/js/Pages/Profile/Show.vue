@@ -27,7 +27,6 @@ const props = defineProps({
     languages:          { default: null },
     allTraits:          { default: null },
     allCategories:      { default: null },
-    posts:              { default: null },
     services:           { default: null },
     serviceCategories:  { default: null },
     serviceTimeUnits:   { default: null },
@@ -232,7 +231,6 @@ onMounted(async () => {
                 <div class="profile-sidebar">
                     <ProfileHeader
                         class="page-block"
-                        :class="{ 'header-flat-bottom': !isOwner }"
                         :user="profileUser"
                         :is-owner="isOwner"
                         :is-idol="isIdol"
@@ -326,11 +324,12 @@ onMounted(async () => {
                     </div>
 
                     <div v-else-if="tab === 'posts'" key="posts" class="tab-panel">
-                        <div v-if="Array.isArray(posts)" class="anim-block">
-                            <ProfilePosts :posts="posts" :is-owner="isOwner" />
-                        </div>
-                        <div v-else class="posts-skeleton">
-                            <div v-for="n in 6" :key="n" class="posts-skeleton__card" />
+                        <div class="anim-block">
+                            <ProfilePosts
+                                :profile-user-id="profileUser.id"
+                                :is-owner="isOwner"
+                                :auth-user="page.props.auth.user"
+                            />
                         </div>
                     </div>
 
@@ -856,32 +855,28 @@ onMounted(async () => {
     transform: none;
 }
 
-/* ── Subscribe button fused below header ─────────────────── */
-.profile-sidebar :deep(.profile-header.header-flat-bottom) {
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-    border-bottom: none;
-}
 
 .sidebar-subscribe-btn {
     width: 100%;
-    padding: 0.5rem;
-    background: rgba(190, 145, 255, 0.05);
-    border: 1px solid rgba(190, 145, 255, 0.35);
-    border-top: none;
-    border-radius: 0 0 3px 3px;
-    color: rgba(190, 145, 255, 0.75);
+    margin-top: 0.65rem;
+    padding: 0.6rem;
+    background: rgba(190, 145, 255, 0.08);
+    border: 1px solid rgba(190, 145, 255, 0.38);
+    border-radius: 6px;
+    color: rgba(210, 180, 255, 0.9);
     font-family: inherit;
-    font-size: 0.78rem;
-    font-weight: 500;
-    letter-spacing: 0.06em;
+    font-size: 0.88rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
     cursor: pointer;
-    transition: background 0.15s, color 0.15s;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
     flex-shrink: 0;
 }
 .sidebar-subscribe-btn:hover {
-    background: rgba(190, 145, 255, 0.1);
-    color: rgba(190, 145, 255, 1);
+    background: rgba(190, 145, 255, 0.18);
+    border-color: rgba(190, 145, 255, 0.65);
+    color: rgba(225, 205, 255, 1);
+    box-shadow: 0 0 14px rgba(190, 145, 255, 0.18);
 }
 
 /* ── Report modal content ────────────────────────────────── */
@@ -1006,18 +1001,6 @@ onMounted(async () => {
 .skeleton-row--mid   { height: 88px; }
 .skeleton-row--short { height: 56px; }
 
-.posts-skeleton {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.75rem;
-}
-.posts-skeleton__card {
-    aspect-ratio: 1;
-    border-radius: 3px;
-    background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
-    background-size: 800px 100%;
-    animation: shimmer 1.4s infinite linear;
-}
 
 /* ── Адаптив ──────────────────────────────────────────────── */
 @media (max-width: 768px) {
