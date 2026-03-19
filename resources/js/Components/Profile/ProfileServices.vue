@@ -1,10 +1,17 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { useForm, router, usePage } from '@inertiajs/vue3';
 import { Plus } from '@element-plus/icons-vue';
 import AppSelect from '@/Components/AppSelect.vue';
 import CreateButton from '@/Components/CreateButton.vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+
+const page = usePage();
+const showPendingModal = ref(false);
+
+watch(() => page.props.flash?.service_pending, (val) => {
+    if (val) showPendingModal.value = true;
+}, { immediate: true });
 
 const props = defineProps({
     services: { default: null },
@@ -242,6 +249,24 @@ function selectChip(s) {
     setTimeout(() => { animatingChip.value = null; }, 300);
 }
 
+// ── #9 Dropdown menu ─────────────────────────────────────────
+const openMenuId = ref(null);
+
+function toggleMenu(id) {
+    openMenuId.value = openMenuId.value === id ? null : id;
+}
+
+function closeMenu() {
+    openMenuId.value = null;
+}
+
+function onDocClick(e) {
+    if (!e.target.closest('.svc-menu')) closeMenu();
+}
+
+onMounted(() => document.addEventListener('click', onDocClick, true));
+onUnmounted(() => document.removeEventListener('click', onDocClick, true));
+
 // ── #8 Form validation ───────────────────────────────────────
 const formValid = computed(() =>
     form.name.trim().length > 0 &&
@@ -385,47 +410,91 @@ const formValid = computed(() =>
                     </div>
                     <TransitionGroup v-else name="svc-item" tag="div" class="svc-list">
                         <div v-for="item in selectedCategory.items" :key="item.id" class="svc-card"
-                            :class="{ 'svc-card--inactive': !item.is_active }">
-                            <div class="svc-card__main">
-                                <span class="svc-card__name">{{ item.name }}</span>
-                                <span class="svc-card__unit">{{ item.time_unit.name }}</span>
+                            :class="{
+                                'svc-card--inactive': !item.is_active,
+                                'svc-card--pending':  isOwner && item.status === 'pending',
+                                'svc-card--rejected': isOwner && item.status === 'rejected',
+                            }">
+
+                            <!-- Info column -->
+                            <div class="svc-card__info">
+                                <div class="svc-card__name-row">
+                                    <span class="svc-card__name">{{ item.name }}</span>
+                                    <span v-if="isOwner && !item.is_active" class="svc-pill svc-pill--hidden">
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                                            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                                            <line x1="1" y1="1" x2="23" y2="23"/>
+                                        </svg>
+                                        скрыто
+                                    </span>
+                                    <span v-if="isOwner && item.status === 'pending'" class="svc-pill svc-pill--pending">
+                                        <i class="svc-pill__dot"></i>модерация
+                                    </span>
+                                    <span v-else-if="isOwner && item.status === 'rejected'" class="svc-pill svc-pill--rejected">
+                                        отклонено
+                                    </span>
+                                </div>
+                                <span class="svc-card__unit-tag">{{ item.time_unit.name }}</span>
+                                <span v-if="isOwner && item.status === 'rejected' && item.rejection_reason"
+                                      class="svc-card__reason">{{ item.rejection_reason }}</span>
                             </div>
-                            <div class="svc-card__right">
-                                <span class="svc-card__price">{{ item.price.toLocaleString('ru') }} ₽</span>
+
+                            <!-- Price column -->
+                            <div class="svc-card__price-block">
+                                <span class="svc-card__amount">{{ item.price.toLocaleString('ru') }}</span><span class="svc-card__rub"> ₽</span>
+                            </div>
+
+                            <!-- Actions column -->
+                            <div class="svc-card__actions">
                                 <button v-if="!isOwner" class="svc-buy-btn">
-                                    Купить
+                                    <span>Купить</span>
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                                    </svg>
                                 </button>
-                                <template v-if="isOwner">
-                                    <button class="svc-icon-btn"
-                                        :class="{ 'svc-icon-btn--on': item.is_active, 'svc-icon-btn--off': !item.is_active }"
-                                        :title="item.is_active ? 'Отключить' : 'Включить'" @click="toggleActive(item)">
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                            <circle cx="12" cy="12" r="10" />
-                                            <line v-if="!item.is_active" x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-                                        </svg>
+                                <div v-if="isOwner" class="svc-menu">
+                                    <button
+                                        class="svc-menu__trigger"
+                                        :class="{ 'svc-menu__trigger--open': openMenuId === item.id }"
+                                        @click.stop="toggleMenu(item.id)"
+                                        title="Действия"
+                                    >
+                                        <span></span><span></span><span></span>
                                     </button>
-                                    <button class="svc-icon-btn" title="Редактировать" @click="openEdit(item)">
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                            stroke-linejoin="round">
-                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                        </svg>
-                                    </button>
-                                    <button class="svc-icon-btn svc-icon-btn--danger" title="Удалить"
-                                        @click="askDeleteService(item.id)">
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                            stroke-linejoin="round">
-                                            <polyline points="3 6 5 6 21 6" />
-                                            <path d="M19 6l-1 14H6L5 6" />
-                                            <path d="M10 11v6M14 11v6" />
-                                            <path d="M9 6V4h6v2" />
-                                        </svg>
-                                    </button>
-                                </template>
+                                    <Transition name="svc-menu-pop">
+                                        <div v-if="openMenuId === item.id" class="svc-menu__dropdown">
+                                            <template v-if="item.status === 'approved'">
+                                                <button class="svc-menu__item" @click="toggleActive(item); closeMenu()">
+                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                                        <circle cx="12" cy="12" r="10" />
+                                                        <line v-if="item.is_active" x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                                                    </svg>
+                                                    {{ item.is_active ? 'Отключить' : 'Включить' }}
+                                                </button>
+                                                <button class="svc-menu__item" @click="openEdit(item); closeMenu()">
+                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                                    </svg>
+                                                    Редактировать
+                                                </button>
+                                                <div class="svc-menu__divider"></div>
+                                            </template>
+                                            <button class="svc-menu__item svc-menu__item--danger" @click="askDeleteService(item.id); closeMenu()">
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <polyline points="3 6 5 6 21 6" />
+                                                    <path d="M19 6l-1 14H6L5 6" />
+                                                    <path d="M10 11v6M14 11v6" />
+                                                    <path d="M9 6V4h6v2" />
+                                                </svg>
+                                                Удалить
+                                            </button>
+                                        </div>
+                                    </Transition>
+                                </div>
                             </div>
+
                         </div>
                     </TransitionGroup>
                 </div>
@@ -454,6 +523,17 @@ const formValid = computed(() =>
             </div>
 
         </Transition>
+
+        <!-- Service pending modal -->
+        <SiteModal :show="showPendingModal" variant="pink" :compact="true" @close="showPendingModal = false">
+            <div class="sf-wrap">
+                <div class="sf-title">Услуга отправлена на модерацию</div>
+                <p class="svc-pending-text">Она появится в вашем профиле после проверки администратором.</p>
+                <div class="sf-actions">
+                    <button class="sf-btn-submit" @click="showPendingModal = false">Понятно</button>
+                </div>
+            </div>
+        </SiteModal>
 
         <!-- Delete confirm modal -->
         <Teleport to="body">
@@ -633,7 +713,7 @@ const formValid = computed(() =>
 
 .cat-tile__img-wrap {
     width: 100%;
-    aspect-ratio: 3 / 2;
+    aspect-ratio: 2.5 / 2;
     background: rgba(255, 255, 255, 0.03);
     display: flex;
     align-items: center;
@@ -665,7 +745,7 @@ const formValid = computed(() =>
 }
 
 .cat-tile__name {
-    font-size: 0.92rem;
+    font-size: 1.05rem;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.88);
     line-height: 1.35;
@@ -676,7 +756,7 @@ const formValid = computed(() =>
 }
 
 .cat-tile__desc {
-    font-size: 0.78rem;
+    font-size: 0.95rem;
     color: rgba(255, 255, 255, 0.38);
     line-height: 1.45;
     margin: 0;
@@ -938,130 +1018,354 @@ const formValid = computed(() =>
     display: flex;
     flex-direction: column;
     gap: 0;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .svc-card {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    padding: 0.7rem 0.85rem;
-    background: #06060e;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-top: none;
-    transition: background 0.15s, opacity 0.28s ease;
+    gap: 1rem;
+    padding: 0.85rem 1rem 0.85rem 1.1rem;
+    background: rgba(255, 255, 255, 0.018);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-left: 2px solid rgba(155, 110, 232, 0.3);
+    transition: background 0.18s ease, border-left-color 0.2s ease, opacity 0.28s ease;
+    position: relative;
 }
 
 .svc-card:first-child {
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 3px 3px 0 0;
+    border-radius: 4px 4px 0 0;
 }
 
 .svc-card:last-child {
-    border-radius: 0 0 3px 3px;
+    border-bottom: none;
+    border-radius: 0 0 4px 4px;
 }
 
 .svc-card:only-child {
-    border-radius: 3px;
+    border-radius: 4px;
 }
 
 .svc-card:hover {
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(255, 255, 255, 0.035);
 }
 
 .svc-card--inactive {
-    opacity: 0.45;
+    border-left-color: rgba(255, 255, 255, 0.1);
 }
 
-.svc-card__main {
+.svc-card--pending {
+    border-left-color: rgba(251, 146, 60, 0.65);
+    background: rgba(251, 146, 60, 0.025);
+}
+
+.svc-card--rejected {
+    border-left-color: rgba(239, 68, 68, 0.5);
+    background: rgba(239, 68, 68, 0.02);
+}
+
+/* Info column */
+.svc-card__info {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.1rem;
-    min-width: 0;
+    gap: 0.2rem;
+}
+
+.svc-card__name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .svc-card__name {
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.85);
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.88);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.005em;
+}
+
+.svc-card__unit-tag {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(190, 145, 255, 0.38);
+}
+
+.svc-card__reason {
+    font-size: 0.72rem;
+    color: rgba(239, 68, 68, 0.5);
+    line-height: 1.4;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.svc-card__unit {
-    font-size: 0.72rem;
-    color: rgba(255, 255, 255, 0.3);
-}
-
-.svc-card__right {
-    display: flex;
+/* Status pills */
+.svc-pill {
+    display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.28rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 3px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
     flex-shrink: 0;
 }
 
-.svc-card__price {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.7);
+.svc-pill--hidden {
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.svc-pill--pending {
+    background: rgba(251, 146, 60, 0.12);
+    color: rgba(251, 146, 60, 0.9);
+    border: 1px solid rgba(251, 146, 60, 0.2);
+}
+
+.svc-pill--rejected {
+    background: rgba(239, 68, 68, 0.1);
+    color: rgba(239, 68, 68, 0.85);
+    border: 1px solid rgba(239, 68, 68, 0.18);
+}
+
+.svc-pill__dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+    animation: svc-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes svc-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.45; transform: scale(0.65); }
+}
+
+/* Price column */
+.svc-card__price-block {
+    flex-shrink: 0;
+    text-align: right;
     white-space: nowrap;
+}
+
+.svc-card__amount {
+    font-size: 1rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.88);
+    letter-spacing: -0.02em;
+}
+
+.svc-card__rub {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.35);
+}
+
+/* Actions column */
+.svc-card__actions {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
 }
 
 /* ── Buy button ───────────────────────────────────────────── */
 .svc-buy-btn {
-    padding: 0.35rem 0.9rem;
-    border: 1px solid rgba(200, 70, 126, 0.45);
-    border-radius: 3px;
-    background: linear-gradient(135deg, rgba(200, 70, 126, 0.18) 0%, rgba(140, 30, 80, 0.12) 100%);
-    color: rgba(200, 70, 126, 0.9);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.38rem 0.85rem;
+    border: 1px solid rgba(200, 70, 126, 0.4);
+    border-radius: 20px;
+    background: rgba(200, 70, 126, 0.1);
+    color: rgba(220, 110, 155, 0.95);
     font-family: inherit;
     font-size: 0.78rem;
     font-weight: 600;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.02em;
     cursor: pointer;
     white-space: nowrap;
-    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, color 0.15s;
+    overflow: hidden;
+    position: relative;
+    transition: border-color 0.2s, color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.svc-buy-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.08) 50%,
+        transparent 70%);
+    transform: translateX(-100%);
+    transition: transform 0.5s ease;
+}
+
+.svc-buy-btn:hover::before {
+    transform: translateX(100%);
 }
 
 .svc-buy-btn:hover {
-    border-color: rgba(200, 70, 126, 0.75);
-    background: linear-gradient(135deg, rgba(200, 70, 126, 0.28) 0%, rgba(140, 30, 80, 0.2) 100%);
+    border-color: rgba(200, 70, 126, 0.72);
+    background: rgba(200, 70, 126, 0.18);
     color: #fff;
-    box-shadow: 0 0 14px rgba(200, 70, 126, 0.22);
+    box-shadow: 0 0 20px rgba(200, 70, 126, 0.2),
+                inset 0 0 12px rgba(200, 70, 126, 0.08);
 }
 
-/* ── Icon buttons ─────────────────────────────────────────── */
-.svc-icon-btn {
+.svc-buy-btn svg {
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.svc-buy-btn:hover svg {
+    transform: translateX(2px);
+}
+
+/* ── 3-dot menu ───────────────────────────────────────────── */
+.svc-menu {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.svc-menu__trigger {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 3px;
     width: 28px;
     height: 28px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    border: 1px solid transparent;
+    border-radius: 4px;
     background: transparent;
-    color: rgba(255, 255, 255, 0.4);
     cursor: pointer;
-    transition: border-color 0.15s, color 0.15s;
+    padding: 0;
+    transition: border-color 0.15s, background 0.15s;
 }
 
-.svc-icon-btn:hover {
-    border-color: rgba(255, 255, 255, 0.3);
-    color: rgba(255, 255, 255, 0.8);
+.svc-menu__trigger span {
+    display: block;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transition: background 0.15s;
 }
 
-.svc-icon-btn--on {
-    color: rgba(74, 222, 128, 0.7);
-    border-color: rgba(74, 222, 128, 0.25);
+.svc-menu__trigger:hover,
+.svc-menu__trigger--open {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
 }
 
-.svc-icon-btn--off {
-    color: rgba(255, 255, 255, 0.2);
+.svc-menu__trigger:hover span,
+.svc-menu__trigger--open span {
+    background: rgba(255, 255, 255, 0.75);
 }
 
-.svc-icon-btn--danger:hover {
-    border-color: rgba(239, 68, 68, 0.5);
+.svc-menu__dropdown {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    z-index: 50;
+    min-width: 160px;
+    background: #0f0f18;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 0.3rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+    transform-origin: top right;
+}
+
+.svc-menu__item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.48rem 0.65rem;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.65);
+    font-family: inherit;
+    font-size: 0.82rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+
+.svc-menu__item svg {
+    flex-shrink: 0;
+    color: rgba(255, 255, 255, 0.35);
+    transition: color 0.12s;
+}
+
+.svc-menu__item:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.svc-menu__item:hover svg {
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.svc-menu__item--danger {
+    color: rgba(239, 68, 68, 0.75);
+}
+
+.svc-menu__item--danger svg {
+    color: rgba(239, 68, 68, 0.5);
+}
+
+.svc-menu__item--danger:hover {
+    background: rgba(239, 68, 68, 0.08);
+    color: rgba(239, 68, 68, 1);
+}
+
+.svc-menu__item--danger:hover svg {
     color: rgba(239, 68, 68, 0.8);
+}
+
+.svc-menu__divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.07);
+    margin: 0.3rem 0;
+}
+
+/* Dropdown pop animation */
+.svc-menu-pop-enter-active {
+    transition: opacity 0.12s ease, transform 0.14s cubic-bezier(0.2, 0, 0.2, 1.4);
+}
+
+.svc-menu-pop-leave-active {
+    transition: opacity 0.1s ease, transform 0.1s ease;
+}
+
+.svc-menu-pop-enter-from {
+    opacity: 0;
+    transform: scale(0.92) translateY(-4px);
+}
+
+.svc-menu-pop-leave-to {
+    opacity: 0;
+    transform: scale(0.96) translateY(-2px);
 }
 
 /* ── Buttons ──────────────────────────────────────────────── */
@@ -1461,6 +1765,13 @@ const formValid = computed(() =>
 
 .sf-char-count--warn {
     color: rgba(200, 70, 126, 0.7);
+}
+
+.svc-pending-text {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.55);
+    margin: 0;
+    line-height: 1.6;
 }
 
 /* ── Chip pop animation (#6) ──────────────────────────────── */
