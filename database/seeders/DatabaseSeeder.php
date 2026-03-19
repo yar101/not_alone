@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             InterestSeeder::class,
             QuizQuestionSeeder::class,
             ServiceCategorySeeder::class,
+            ServiceTimeUnitSeeder::class,
         ]);
     }
 }

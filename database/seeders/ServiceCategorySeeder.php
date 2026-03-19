@@ -13,7 +13,7 @@ class ServiceCategorySeeder extends Seeder
 
         $categories = [
             [
-                'name'             => 'Свободный разговор',
+                'name'             => 'Непринуждённая беседа',
                 'description'      => 'Начните лёгкий разговор на любые темы и просто приятно пообщайтесь.',
                 'name_suggestions' => [
                     'Пообщаться в чате',
@@ -22,7 +22,7 @@ class ServiceCategorySeeder extends Seeder
                 ],
             ],
             [
-                'name'             => 'Разговор по интересам',
+                'name'             => 'Беседа по интересам',
                 'description'      => 'Поговорите о хобби, любимых занятиях и темах, которые действительно вам интересны.',
                 'name_suggestions' => [
                     'Поговорить об аниме',
@@ -31,7 +31,7 @@ class ServiceCategorySeeder extends Seeder
                 ],
             ],
             [
-                'name'             => 'Позитивный разговор',
+                'name'             => 'Позитивная беседа',
                 'description'      => 'Тёплое общение, которое поднимает настроение и делает день лучше.',
                 'name_suggestions' => [
                     'Разговор для хорошего настроения',
@@ -40,7 +40,7 @@ class ServiceCategorySeeder extends Seeder
                 ],
             ],
             [
-                'name'             => 'Поддержка и разговор',
+                'name'             => 'Поддержка',
                 'description'      => 'Поговорите с человеком, который внимательно выслушает и поддержит.',
                 'name_suggestions' => [
                     'Поговорить и получить поддержку',
@@ -49,7 +49,7 @@ class ServiceCategorySeeder extends Seeder
                 ],
             ],
             [
-                'name'             => 'Высказаться',
+                'name'             => 'Выговориться',
                 'description'      => 'Поделитесь тем, что накопилось внутри, и получите спокойный отклик.',
                 'name_suggestions' => [
                     'Выговориться в чате',
@@ -58,7 +58,7 @@ class ServiceCategorySeeder extends Seeder
                 ],
             ],
             [
-                'name'             => 'Спросить о будущем',
+                'name'             => 'Узнать судьбу',
                 'description'      => 'Задайте вопрос и узнайте, что может ждать вас впереди.',
                 'name_suggestions' => [
                     'Расклад Таро на ситуацию',
@@ -76,7 +76,7 @@ class ServiceCategorySeeder extends Seeder
                 ],
             ],
             [
-                'name'             => 'Учиться вместе',
+                'name'             => 'Совместная учёба',
                 'description'      => 'Позанимайтесь вместе, обсудите темы и получите помощь в обучении.',
                 'name_suggestions' => [
                     'Совместная учебная сессия',
@@ -94,7 +94,7 @@ class ServiceCategorySeeder extends Seeder
                 ],
             ],
             [
-                'name'             => 'Рисование',
+                'name'             => 'Рисуем вместе',
                 'description'      => 'Рисуйте вместе и делитесь идеями в процессе творчества.',
                 'name_suggestions' => [
                     'Порисовать вместе',
@@ -103,7 +103,7 @@ class ServiceCategorySeeder extends Seeder
                 ],
             ],
             [
-                'name'             => 'Смотреть вместе',
+                'name'             => 'Совместный просмотр',
                 'description'      => 'Включите фильм или видео и обсудите его во время просмотра.',
                 'name_suggestions' => [
                     'Посмотреть фильм вместе',
@@ -121,7 +121,7 @@ class ServiceCategorySeeder extends Seeder
                 ],
             ],
             [
-                'name'             => 'Провести время вместе',
+                'name'             => 'День со мной',
                 'description'      => 'Просто приятно проведите время: пообщайтесь, поиграйте или побудьте в компании.',
                 'name_suggestions' => [
                     'Поиграть вместе онлайн',
