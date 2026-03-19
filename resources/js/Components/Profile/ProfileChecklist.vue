@@ -274,7 +274,7 @@ watch(open, async (val) => {
 .cl-progress-fill {
     height: 100%;
     border-radius: 99px;
-    background: linear-gradient(90deg, #9B6EE8, #7c3aed);
+    background: linear-gradient(90deg, #7070d8, #7c3aed);
     box-shadow: 0 0 10px rgba(155,110,232,0.5);
     transition: width 0.7s cubic-bezier(0.25,0.46,0.45,0.94);
 }

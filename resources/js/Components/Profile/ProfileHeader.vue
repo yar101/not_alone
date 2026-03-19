@@ -422,9 +422,9 @@ function deleteAvatar() {
 }
 
 .action-pill:hover {
-    color: #BE91FF;
-    border-color: rgba(190, 145, 255, 0.5);
-    background: rgba(190, 145, 255, 0.05);
+    color: #a0a0ff;
+    border-color: rgba(160, 160, 255, 0.5);
+    background: rgba(160, 160, 255, 0.05);
 }
 
 .action-pill--report {
@@ -455,8 +455,8 @@ function deleteAvatar() {
     border-radius: 50%;
     padding: 2px;
     flex-shrink: 0;
-    border: 1px solid rgba(190, 145, 255, 0.6);
-    box-shadow: 0 0 0 1px rgba(190, 145, 255, 0.15), 0 0 24px rgba(190, 145, 255, 0.12);
+    border: 1px solid rgba(160, 160, 255, 0.6);
+    box-shadow: 0 0 0 1px rgba(160, 160, 255, 0.15), 0 0 24px rgba(160, 160, 255, 0.12);
 }
 
 .avatar-clickable {
@@ -467,7 +467,7 @@ function deleteAvatar() {
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    background: rgba(190, 145, 255, 0.08);
+    background: rgba(160, 160, 255, 0.08);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -585,9 +585,9 @@ function deleteAvatar() {
 }
 
 .meta-badge--female {
-    border-color: rgba(190, 145, 255, 0.3);
-    background: rgba(190, 145, 255, 0.06);
-    color: rgba(190, 145, 255, 0.85);
+    border-color: rgba(160, 160, 255, 0.3);
+    background: rgba(160, 160, 255, 0.06);
+    color: rgba(160, 160, 255, 0.85);
 }
 
 .meta-badge--male {
@@ -615,8 +615,8 @@ function deleteAvatar() {
     align-items: center;
     gap: 0.3rem;
     padding: 0.3rem 0.55rem 0.3rem 0.4rem;
-    background: rgba(190, 145, 255, 0.06);
-    border: 1px solid rgba(190, 145, 255, 0.28);
+    background: rgba(160, 160, 255, 0.06);
+    border: 1px solid rgba(160, 160, 255, 0.28);
     border-radius: 3px;
 }
 
@@ -664,7 +664,7 @@ function deleteAvatar() {
     font-size: 0.68rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: rgba(190, 145, 255, 0.6);
+    color: rgba(160, 160, 255, 0.6);
 }
 
 .edit-input {
@@ -682,12 +682,12 @@ function deleteAvatar() {
 }
 
 .edit-input:focus {
-    border-color: rgba(190, 145, 255, 0.4);
+    border-color: rgba(160, 160, 255, 0.4);
 }
 
 .edit-field-error {
     font-size: 0.75rem;
-    color: rgba(190, 145, 255, 0.85);
+    color: rgba(160, 160, 255, 0.85);
     margin-top: -0.1rem;
 }
 
@@ -734,17 +734,17 @@ function deleteAvatar() {
 }
 
 .gender-btn.active {
-    border-color: #BE91FF;
+    border-color: #a0a0ff;
     color: #fff;
 }
 
 .delete-avatar-btn {
     padding: 0.4rem 0.85rem;
     font-size: 0.85rem;
-    border: 1px solid rgba(190, 145, 255, 0.35);
+    border: 1px solid rgba(160, 160, 255, 0.35);
     border-radius: 3px;
     background: transparent;
-    color: rgba(190, 145, 255, 0.8);
+    color: rgba(160, 160, 255, 0.8);
     cursor: pointer;
     font-family: inherit;
     transition: all 0.15s;
@@ -752,17 +752,17 @@ function deleteAvatar() {
 }
 
 .delete-avatar-btn:hover {
-    border-color: #BE91FF;
-    color: #BE91FF;
+    border-color: #a0a0ff;
+    color: #a0a0ff;
 }
 
 .save-btn {
     width: 100%;
     margin-top: 0.5rem;
     padding: 0.8rem;
-    border: 1px solid rgba(190, 145, 255, 0.45);
+    border: 1px solid rgba(160, 160, 255, 0.45);
     border-radius: 3px;
-    background: rgba(190, 145, 255, 0.08);
+    background: rgba(160, 160, 255, 0.08);
     color: #fff;
     font-size: 0.95rem;
     cursor: pointer;
@@ -771,7 +771,7 @@ function deleteAvatar() {
 }
 
 .save-btn:hover:not(:disabled) {
-    background: rgba(190, 145, 255, 0.16);
+    background: rgba(160, 160, 255, 0.16);
 }
 
 .save-btn:disabled {
@@ -829,17 +829,17 @@ function deleteAvatar() {
 }
 
 .crop-rotate-btn:hover {
-    color: #BE91FF;
-    border-color: rgba(190, 145, 255, 0.4);
+    color: #a0a0ff;
+    border-color: rgba(160, 160, 255, 0.4);
 }
 
 .crop-error {
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
-    border: 1px solid rgba(190, 145, 255, 0.4);
+    border: 1px solid rgba(160, 160, 255, 0.4);
     border-radius: 3px;
-    background: rgba(190, 145, 255, 0.06);
-    color: rgba(190, 145, 255, 0.9);
+    background: rgba(160, 160, 255, 0.06);
+    color: rgba(160, 160, 255, 0.9);
     font-size: 0.9rem;
 }
 
@@ -884,8 +884,8 @@ function deleteAvatar() {
     max-height: 80vh;
     object-fit: contain;
     border-radius: 50%;
-    border: 1px solid rgba(190, 145, 255, 0.4);
-    box-shadow: 0 0 60px rgba(190, 145, 255, 0.15);
+    border: 1px solid rgba(160, 160, 255, 0.4);
+    box-shadow: 0 0 60px rgba(160, 160, 255, 0.15);
     cursor: default;
 }
 

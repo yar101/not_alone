@@ -377,9 +377,9 @@ function submitRegister() {
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: linear-gradient(135deg, rgba(155, 110, 232, 0.35), rgba(155, 110, 232, 0.1));
-    border: 1px solid rgba(155, 110, 232, 0.4);
-    box-shadow: 0 0 20px rgba(155, 110, 232, 0.18);
+    background: linear-gradient(135deg, rgba(110, 110, 210, 0.35), rgba(110, 110, 210, 0.1));
+    border: 1px solid rgba(110, 110, 210, 0.4);
+    box-shadow: 0 0 20px rgba(110, 110, 210, 0.18);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -393,7 +393,7 @@ function submitRegister() {
     font-size: 0.72rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: rgba(155, 110, 232, 0.55);
+    color: rgba(110, 110, 210, 0.55);
     margin: 0;
 }
 
@@ -449,7 +449,7 @@ function submitRegister() {
 }
 
 .auth-tab--active {
-    background: rgba(155, 110, 232, 0.15);
+    background: rgba(110, 110, 210, 0.15);
     color: #fff;
 }
 
@@ -470,7 +470,7 @@ function submitRegister() {
     font-size: 0.82rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: rgba(155, 110, 232, 0.5);
+    color: rgba(110, 110, 210, 0.5);
 }
 
 .auth-input {
@@ -487,12 +487,12 @@ function submitRegister() {
 }
 
 .auth-input:focus {
-    border-color: rgba(155, 110, 232, 0.45);
-    box-shadow: 0 0 0 3px rgba(155, 110, 232, 0.08);
+    border-color: rgba(110, 110, 210, 0.45);
+    box-shadow: 0 0 0 3px rgba(110, 110, 210, 0.08);
 }
 
 .auth-input--error {
-    border-color: rgba(155, 110, 232, 0.6);
+    border-color: rgba(110, 110, 210, 0.6);
 }
 
 /* ── Date of birth selects ────────────────────────────── */
@@ -523,8 +523,8 @@ function submitRegister() {
 }
 
 .auth-select:focus {
-    border-color: rgba(155, 110, 232, 0.45);
-    box-shadow: 0 0 0 3px rgba(155, 110, 232, 0.08);
+    border-color: rgba(110, 110, 210, 0.45);
+    box-shadow: 0 0 0 3px rgba(110, 110, 210, 0.08);
 }
 
 .auth-select option {
@@ -562,8 +562,8 @@ function submitRegister() {
 }
 
 .auth-gender-btn--active {
-    border-color: rgba(155, 110, 232, 0.5);
-    background: rgba(155, 110, 232, 0.12);
+    border-color: rgba(110, 110, 210, 0.5);
+    background: rgba(110, 110, 210, 0.12);
     color: #fff;
 }
 
@@ -612,9 +612,9 @@ function submitRegister() {
 }
 
 .auth-checkbox-native:checked ~ .auth-checkbox-box {
-    background: rgba(155, 110, 232, 0.65);
-    border-color: rgba(155, 110, 232, 0.8);
-    box-shadow: 0 0 8px rgba(155, 110, 232, 0.3);
+    background: rgba(110, 110, 210, 0.65);
+    border-color: rgba(110, 110, 210, 0.8);
+    box-shadow: 0 0 8px rgba(110, 110, 210, 0.3);
 }
 
 .auth-checkbox-native:checked ~ .auth-checkbox-box .auth-checkbox-check {
@@ -623,7 +623,7 @@ function submitRegister() {
 }
 
 .auth-remember-label:hover .auth-checkbox-box {
-    border-color: rgba(155, 110, 232, 0.45);
+    border-color: rgba(110, 110, 210, 0.45);
 }
 
 .auth-remember-text {
@@ -641,8 +641,8 @@ function submitRegister() {
     width: 100%;
     padding: 0.85rem;
     border-radius: 3px;
-    border: 1px solid rgba(155, 110, 232, 0.35);
-    background: linear-gradient(135deg, rgba(155, 110, 232, 0.25), rgba(155, 110, 232, 0.1));
+    border: 1px solid rgba(110, 110, 210, 0.35);
+    background: linear-gradient(135deg, rgba(110, 110, 210, 0.25), rgba(110, 110, 210, 0.1));
     color: #fff;
     font-size: 0.95rem;
     cursor: pointer;
@@ -652,8 +652,8 @@ function submitRegister() {
 }
 
 .auth-submit:hover:not(:disabled) {
-    background: linear-gradient(135deg, rgba(155, 110, 232, 0.38), rgba(155, 110, 232, 0.18));
-    box-shadow: 0 0 20px rgba(155, 110, 232, 0.2);
+    background: linear-gradient(135deg, rgba(110, 110, 210, 0.38), rgba(110, 110, 210, 0.18));
+    box-shadow: 0 0 20px rgba(110, 110, 210, 0.2);
 }
 
 .auth-submit:disabled {
@@ -672,7 +672,7 @@ function submitRegister() {
 .auth-switch-link {
     background: none;
     border: none;
-    color: rgba(155, 110, 232, 0.7);
+    color: rgba(110, 110, 210, 0.7);
     cursor: pointer;
     font-size: inherit;
     font-family: inherit;
@@ -681,7 +681,7 @@ function submitRegister() {
 }
 
 .auth-switch-link:hover {
-    color: rgba(155, 110, 232, 1);
+    color: rgba(110, 110, 210, 1);
 }
 
 /* ── Transitions ─────────────────────────────────────── */

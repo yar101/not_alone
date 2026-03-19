@@ -179,13 +179,13 @@ onUnmounted(() => document.removeEventListener('paste', onPaste));
 }
 
 .dz-zone:hover {
-    border-color: rgba(190, 145, 255, 0.4);
-    background: rgba(190, 145, 255, 0.04);
+    border-color: rgba(160, 160, 255, 0.4);
+    background: rgba(160, 160, 255, 0.04);
 }
 
 .dz-zone--over {
-    border-color: rgba(190, 145, 255, 0.7);
-    background: rgba(190, 145, 255, 0.08);
+    border-color: rgba(160, 160, 255, 0.7);
+    background: rgba(160, 160, 255, 0.08);
 }
 
 .dz-zone__icon {
@@ -195,7 +195,7 @@ onUnmounted(() => document.removeEventListener('paste', onPaste));
 
 .dz-zone:hover .dz-zone__icon,
 .dz-zone--over .dz-zone__icon {
-    color: rgba(190, 145, 255, 0.6);
+    color: rgba(160, 160, 255, 0.6);
 }
 
 .dz-zone__text {
@@ -206,7 +206,7 @@ onUnmounted(() => document.removeEventListener('paste', onPaste));
 }
 
 .dz-zone__link {
-    color: rgba(190, 145, 255, 0.75);
+    color: rgba(160, 160, 255, 0.75);
     text-decoration: underline;
     text-decoration-style: dotted;
     text-underline-offset: 2px;

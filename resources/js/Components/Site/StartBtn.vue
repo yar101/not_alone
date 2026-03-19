@@ -88,20 +88,20 @@ const handleClick = (event) => {
 /* Состояния при взаимодействии */
 .start-button:hover {
     /* Усиливаем яркость обводки и фона */
-    box-shadow: inset 0 0 0 2px rgba(155, 110, 232, 0.1);
+    box-shadow: inset 0 0 0 2px rgba(110, 110, 210, 0.1);
     //background: linear-gradient(135deg, #3a263d 0%, #1a1a1a 50%, #1e2d2d 100%);
     transform: translateY(-15px);
 }
 
 .start-button:hover .label {
     opacity: 1;
-    text-shadow: 0 0 25px rgba(155, 110, 232, 1);
-    color: rgba(155, 110, 232, 1);
+    text-shadow: 0 0 25px rgba(110, 110, 210, 1);
+    color: rgba(110, 110, 210, 1);
 }
 
 .start-button:active {
     transform: scale(0.97);
-    box-shadow: inset 0 0 0 2px rgba(155, 110, 232, 0.3);
+    box-shadow: inset 0 0 0 2px rgba(110, 110, 210, 0.3);
     transition: all 0.1s ease;
 }
 

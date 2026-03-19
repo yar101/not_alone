@@ -386,10 +386,10 @@ async function deleteComment(commentId, parentId) {
     overflow-y: auto;
     padding: 0.9rem 1rem 0.75rem;
     scrollbar-width: thin;
-    scrollbar-color: rgba(190, 145, 255, 0.18) transparent;
+    scrollbar-color: rgba(160, 160, 255, 0.18) transparent;
 }
 .detail__body-wrap::-webkit-scrollbar { width: 3px; }
-.detail__body-wrap::-webkit-scrollbar-thumb { background: rgba(190, 145, 255, 0.18); border-radius: 3px; }
+.detail__body-wrap::-webkit-scrollbar-thumb { background: rgba(160, 160, 255, 0.18); border-radius: 3px; }
 
 .detail__body {
     font-size: 1.05rem;
@@ -495,7 +495,7 @@ async function deleteComment(commentId, parentId) {
 
 .detail__cmts-count {
     font-size: 0.8rem;
-    color: rgba(190, 145, 255, 0.75);
+    color: rgba(160, 160, 255, 0.75);
 }
 
 /* Scrollable comments list */
@@ -508,10 +508,10 @@ async function deleteComment(commentId, parentId) {
     flex-direction: column;
     gap: 1.4rem;
     scrollbar-width: thin;
-    scrollbar-color: rgba(190, 145, 255, 0.18) transparent;
+    scrollbar-color: rgba(160, 160, 255, 0.18) transparent;
 }
 .detail__cmts-list::-webkit-scrollbar { width: 3px; }
-.detail__cmts-list::-webkit-scrollbar-thumb { background: rgba(190, 145, 255, 0.18); border-radius: 3px; }
+.detail__cmts-list::-webkit-scrollbar-thumb { background: rgba(160, 160, 255, 0.18); border-radius: 3px; }
 
 /* Loading dots */
 .detail__cmts-state {
@@ -527,7 +527,7 @@ async function deleteComment(commentId, parentId) {
 }
 .detail__cmts-dot {
     width: 5px; height: 5px;
-    background: rgba(190, 145, 255, 0.35);
+    background: rgba(160, 160, 255, 0.35);
     border-radius: 50%;
     animation: dot-pulse 1.2s infinite ease-in-out both;
 }
@@ -557,8 +557,8 @@ async function deleteComment(commentId, parentId) {
     display: block;
 }
 .detail__cmt-avatar--fb {
-    background: rgba(190, 145, 255, 0.14);
-    color: rgba(190, 145, 255, 0.75);
+    background: rgba(160, 160, 255, 0.14);
+    color: rgba(160, 160, 255, 0.75);
     font-size: 0.68rem;
     font-weight: 700;
     display: flex;
@@ -626,16 +626,16 @@ async function deleteComment(commentId, parentId) {
 .detail__cmt-btn--reply {
     font-size: 0.8rem;
     font-weight: 600;
-    color: rgba(190, 145, 255, 0.75);
-    border: 1px solid rgba(190, 145, 255, 0.3);
+    color: rgba(160, 160, 255, 0.75);
+    border: 1px solid rgba(160, 160, 255, 0.3);
     border-radius: 4px;
     padding: 0.18rem 0.55rem;
     transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 .detail__cmt-btn--reply:hover {
-    color: rgba(190, 145, 255, 1);
-    border-color: rgba(190, 145, 255, 0.6);
-    background: rgba(190, 145, 255, 0.08);
+    color: rgba(160, 160, 255, 1);
+    border-color: rgba(160, 160, 255, 0.6);
+    background: rgba(160, 160, 255, 0.08);
 }
 
 /* 3-dot menu for comments */
@@ -720,7 +720,7 @@ async function deleteComment(commentId, parentId) {
     align-items: center;
     justify-content: space-between;
     font-size: 0.68rem;
-    color: rgba(190, 145, 255, 0.6);
+    color: rgba(160, 160, 255, 0.6);
     margin-bottom: 0.35rem;
 }
 .detail__reply-cancel {
@@ -753,7 +753,7 @@ async function deleteComment(commentId, parentId) {
     transition: border-color 0.15s, background 0.15s;
 }
 .detail__textarea:focus {
-    border-color: rgba(190, 145, 255, 0.4);
+    border-color: rgba(160, 160, 255, 0.4);
     background: rgba(255, 255, 255, 0.06);
 }
 .detail__textarea::placeholder { color: rgba(255, 255, 255, 0.4); }
@@ -762,11 +762,11 @@ async function deleteComment(commentId, parentId) {
     right: 0.5rem;
     bottom: 0.5rem;
     padding: 0.28rem 0.6rem;
-    background: rgba(190, 145, 255, 0.18);
-    border: 1px solid rgba(190, 145, 255, 0.45);
-    border-bottom: 2px solid rgba(190, 145, 255, 0.6);
+    background: rgba(160, 160, 255, 0.18);
+    border: 1px solid rgba(160, 160, 255, 0.45);
+    border-bottom: 2px solid rgba(160, 160, 255, 0.6);
     border-radius: 5px;
-    color: rgba(190, 145, 255, 0.9);
+    color: rgba(160, 160, 255, 0.9);
     font-family: inherit;
     font-size: 0.72rem;
     font-weight: 600;
@@ -776,10 +776,10 @@ async function deleteComment(commentId, parentId) {
     white-space: nowrap;
 }
 .detail__send-btn:hover:not(:disabled) {
-    background: rgba(190, 145, 255, 0.3);
-    border-color: rgba(190, 145, 255, 0.75);
-    border-bottom-color: rgba(190, 145, 255, 0.9);
-    color: rgba(190, 145, 255, 1);
+    background: rgba(160, 160, 255, 0.3);
+    border-color: rgba(160, 160, 255, 0.75);
+    border-bottom-color: rgba(160, 160, 255, 0.9);
+    color: rgba(160, 160, 255, 1);
 }
 .detail__send-btn:disabled { opacity: 0.3; cursor: default; }
 .detail__char {
@@ -790,7 +790,7 @@ async function deleteComment(commentId, parentId) {
     color: rgba(255, 255, 255, 0.3);
     pointer-events: none;
 }
-.detail__char--warn { color: rgba(190, 145, 255, 0.8); }
+.detail__char--warn { color: rgba(160, 160, 255, 0.8); }
 .detail__err {
     font-size: 0.65rem;
     color: rgba(239, 68, 68, 0.7);

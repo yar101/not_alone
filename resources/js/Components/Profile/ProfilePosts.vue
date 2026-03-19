@@ -270,7 +270,7 @@ function deletePost() {
 .posts-loading__dot {
     width: 6px;
     height: 6px;
-    background: rgba(190, 145, 255, 0.4);
+    background: rgba(160, 160, 255, 0.4);
     border-radius: 50%;
     animation: bounce 1.1s infinite ease-in-out both;
 }
@@ -419,7 +419,7 @@ function deletePost() {
 }
 
 .post-textarea:focus {
-    border-color: rgba(155, 110, 232, 0.4);
+    border-color: rgba(110, 110, 210, 0.4);
 }
 
 .char-count {
@@ -430,12 +430,12 @@ function deletePost() {
 }
 
 .char-count--warn {
-    color: rgba(190, 145, 255, 0.85);
+    color: rgba(160, 160, 255, 0.85);
 }
 
 .photo-error {
     font-size: 0.78rem;
-    color: rgba(190, 145, 255, 0.85);
+    color: rgba(160, 160, 255, 0.85);
     margin: -0.5rem 0 0.75rem;
 }
 
@@ -451,8 +451,8 @@ function deletePost() {
 
 .photo-btn {
     font-size: 0.85rem;
-    color: rgba(155, 110, 232, 0.7);
-    border: 1px dashed rgba(155, 110, 232, 0.3);
+    color: rgba(110, 110, 210, 0.7);
+    border: 1px dashed rgba(110, 110, 210, 0.3);
     border-radius: 3px;
     padding: 0.4rem 0.85rem;
     transition: all 0.2s;
@@ -460,16 +460,16 @@ function deletePost() {
 }
 
 .photo-label:hover .photo-btn {
-    color: rgba(155, 110, 232, 1);
-    border-color: rgba(155, 110, 232, 0.6);
+    color: rgba(110, 110, 210, 1);
+    border-color: rgba(110, 110, 210, 0.6);
 }
 
 .save-btn {
     width: 100%;
     padding: 0.8rem;
     border-radius: 3px;
-    border: 1px solid rgba(155, 110, 232, 0.35);
-    background: linear-gradient(135deg, rgba(155, 110, 232, 0.25), rgba(155, 110, 232, 0.1));
+    border: 1px solid rgba(110, 110, 210, 0.35);
+    background: linear-gradient(135deg, rgba(110, 110, 210, 0.25), rgba(110, 110, 210, 0.1));
     color: #fff;
     font-size: 0.95rem;
     cursor: pointer;
@@ -478,7 +478,7 @@ function deletePost() {
 }
 
 .save-btn:hover:not(:disabled) {
-    background: linear-gradient(135deg, rgba(155, 110, 232, 0.38), rgba(155, 110, 232, 0.18));
+    background: linear-gradient(135deg, rgba(110, 110, 210, 0.38), rgba(110, 110, 210, 0.18));
 }
 
 .save-btn:disabled {

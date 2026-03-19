@@ -43,8 +43,8 @@ defineProps({
 .faq-nav-item:hover:not(.faq-nav-item--active) {
     background: linear-gradient(
         90deg,
-        rgba(155, 110, 232, 0.08) 0%,
-        rgba(155, 110, 232, 0.02) 60%,
+        rgba(110, 110, 210, 0.08) 0%,
+        rgba(110, 110, 210, 0.02) 60%,
         transparent 100%
     );
     color: rgba(255, 255, 255, 0.8);
@@ -53,12 +53,12 @@ defineProps({
 .faq-nav-item--active {
     background: linear-gradient(
         90deg,
-        rgba(155, 110, 232, 0.16) 0%,
-        rgba(155, 110, 232, 0.06) 55%,
+        rgba(110, 110, 210, 0.16) 0%,
+        rgba(110, 110, 210, 0.06) 55%,
         transparent 100%
     );
     color: #fff;
-    box-shadow: inset 3px 0 0 rgba(155, 110, 232, 0.9), inset 5px 0 12px rgba(155, 110, 232, 0.15);
+    box-shadow: inset 3px 0 0 rgba(110, 110, 210, 0.9), inset 5px 0 12px rgba(110, 110, 210, 0.15);
 }
 
 /* Icon circle */
@@ -79,16 +79,16 @@ defineProps({
 }
 
 .faq-nav-item:hover:not(.faq-nav-item--active) .faq-nav-item__icon-wrap {
-    background: rgba(155, 110, 232, 0.1);
-    color: rgba(155, 110, 232, 0.7);
+    background: rgba(110, 110, 210, 0.1);
+    color: rgba(110, 110, 210, 0.7);
 }
 
 .faq-nav-item--active .faq-nav-item__icon-wrap {
-    background: rgba(155, 110, 232, 0.2);
-    color: rgba(155, 110, 232, 1);
+    background: rgba(110, 110, 210, 0.2);
+    color: rgba(110, 110, 210, 1);
     box-shadow:
-        0 0 10px rgba(155, 110, 232, 0.35),
-        inset 0 0 8px rgba(155, 110, 232, 0.1);
+        0 0 10px rgba(110, 110, 210, 0.35),
+        inset 0 0 8px rgba(110, 110, 210, 0.1);
 }
 
 .faq-nav-item__title {
@@ -124,12 +124,12 @@ defineProps({
     }
     .faq-nav-item::before { display: none; }
     .faq-nav-item:hover:not(.faq-nav-item--active) {
-        background: rgba(155, 110, 232, 0.07);
-        border-color: rgba(155, 110, 232, 0.25);
+        background: rgba(110, 110, 210, 0.07);
+        border-color: rgba(110, 110, 210, 0.25);
     }
     .faq-nav-item--active {
-        background: rgba(155, 110, 232, 0.14);
-        border-color: rgba(155, 110, 232, 0.45);
+        background: rgba(110, 110, 210, 0.14);
+        border-color: rgba(110, 110, 210, 0.45);
     }
     .faq-nav-item__icon-wrap {
         width: 22px;

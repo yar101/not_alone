@@ -34,7 +34,7 @@ function initWaveSurfer() {
         container:     waveformEl.value,
         url:           props.voiceUrl,
         waveColor:     'rgba(255,255,255,0.22)',
-        progressColor: '#BE91FF',
+        progressColor: '#a0a0ff',
         cursorColor:   'transparent',
         barWidth:      2,
         barGap:        2,
@@ -331,8 +331,8 @@ function deleteVoice() {
     transition: border-color 0.15s, color 0.15s;
 }
 .play-btn:hover:not(:disabled) {
-    border-color: #BE91FF;
-    color: #BE91FF;
+    border-color: #a0a0ff;
+    color: #a0a0ff;
 }
 .play-btn:disabled { opacity: 0.4; cursor: default; }
 
@@ -365,7 +365,7 @@ function deleteVoice() {
     transition: color 0.15s;
 }
 .del-btn svg { width: 16px; height: 16px; stroke-width: 2.5; }
-.del-btn:hover { color: #BE91FF; }
+.del-btn:hover { color: #a0a0ff; }
 
 /* ── Запись ───────────────────────────────────────────────── */
 .recording {
@@ -383,7 +383,7 @@ function deleteVoice() {
 }
 .rec-dot {
     width: 7px; height: 7px; border-radius: 50%;
-    background: #BE91FF;
+    background: #a0a0ff;
     flex-shrink: 0;
     animation: recBlink 1s ease-in-out infinite;
 }
@@ -443,5 +443,5 @@ function deleteVoice() {
     color: rgba(190,145,255,0.7);
     transition: color 0.2s;
 }
-.rec-btn:hover .rec-btn-icon { color: #BE91FF; }
+.rec-btn:hover .rec-btn-icon { color: #a0a0ff; }
 </style>

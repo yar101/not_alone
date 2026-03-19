@@ -245,8 +245,8 @@ function setCategory(cat) {
     padding: 0 0 0.5rem;
     background: linear-gradient(
         180deg,
-        rgba(155, 110, 232, 0.06) 0%,
-        rgba(155, 110, 232, 0.02) 40%,
+        rgba(110, 110, 210, 0.06) 0%,
+        rgba(110, 110, 210, 0.02) 40%,
         transparent 100%
     );
     border-radius: 3px 0 0 3px;
@@ -265,7 +265,7 @@ function setCategory(cat) {
     font-weight: 600;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: rgba(155, 110, 232, 0.45);
+    color: rgba(110, 110, 210, 0.45);
     padding: 0.5rem 0.9rem;
     margin-bottom: 0.15rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.04);
@@ -315,7 +315,7 @@ function setCategory(cat) {
     font-family: 'Courier New', 'Courier', monospace;
     font-size: 0.65rem;
     letter-spacing: 0.14em;
-    color: rgba(155, 110, 232, 0.55);
+    color: rgba(110, 110, 210, 0.55);
     margin-bottom: 0.3rem;
 }
 
@@ -327,8 +327,8 @@ function setCategory(cat) {
     line-height: 1.2;
     color: rgba(255, 255, 255, 0.92);
     text-shadow:
-        0 0 25px rgba(155, 110, 232, 0.35),
-        0 0 60px rgba(155, 110, 232, 0.15);
+        0 0 25px rgba(110, 110, 210, 0.35),
+        0 0 60px rgba(110, 110, 210, 0.15);
 }
 
 .faq-accordions {
@@ -401,7 +401,7 @@ function setCategory(cat) {
 
     .faq-content__title {
         font-size: 1.25rem;
-        text-shadow: 0 0 18px rgba(155, 110, 232, 0.3);
+        text-shadow: 0 0 18px rgba(110, 110, 210, 0.3);
     }
 }
 </style>

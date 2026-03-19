@@ -90,9 +90,9 @@ function openAuth(tab) {
     background: rgba(10, 10, 20, 0.96);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(155, 110, 232, 0.18);
+    border-bottom: 1px solid rgba(110, 110, 210, 0.18);
     box-shadow:
-        0 1px 0 rgba(155, 110, 232, 0.06),
+        0 1px 0 rgba(110, 110, 210, 0.06),
         0 4px 24px rgba(0, 0, 0, 0.4);
     flex-shrink: 0;
 }
@@ -102,15 +102,15 @@ function openAuth(tab) {
     font-family: 'Imbue', serif;
     font-size: 1.35rem;
     font-weight: 400;
-    color: #9B6EE8;
+    color: #7070d8;
     text-decoration: none;
     letter-spacing: 0.04em;
-    text-shadow: 0 0 24px rgba(155, 110, 232, 0.45);
+    text-shadow: 0 0 24px rgba(110, 110, 210, 0.45);
     transition: text-shadow 0.2s, color 0.2s;
 }
 .app-logo:hover {
     color: #e0558f;
-    text-shadow: 0 0 32px rgba(155, 110, 232, 0.7);
+    text-shadow: 0 0 32px rgba(110, 110, 210, 0.7);
 }
 
 /* ── User chip ───────────────────────────────────────────── */
@@ -125,8 +125,8 @@ function openAuth(tab) {
     transition: background 0.18s, border-color 0.18s;
 }
 .user-chip:hover {
-    background: rgba(155, 110, 232, 0.08);
-    border-color: rgba(155, 110, 232, 0.22);
+    background: rgba(110, 110, 210, 0.08);
+    border-color: rgba(110, 110, 210, 0.22);
 }
 
 /* ── Avatar ──────────────────────────────────────────────── */
@@ -136,9 +136,9 @@ function openAuth(tab) {
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
-    background: rgba(155, 110, 232, 0.15);
-    border: 1.5px solid rgba(155, 110, 232, 0.5);
-    box-shadow: 0 0 10px rgba(155, 110, 232, 0.25);
+    background: rgba(110, 110, 210, 0.15);
+    border: 1.5px solid rgba(110, 110, 210, 0.5);
+    box-shadow: 0 0 10px rgba(110, 110, 210, 0.25);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -153,7 +153,7 @@ function openAuth(tab) {
 .user-avatar__initials {
     font-size: 0.9rem;
     font-weight: 600;
-    color: #9B6EE8;
+    color: #7070d8;
     line-height: 1;
 }
 
@@ -207,9 +207,9 @@ function openAuth(tab) {
     gap: 0.35rem;
     padding: 0.3rem 0.85rem;
     border-radius: 3px;
-    border: 1px solid rgba(190, 145, 255, 0.45);
+    border: 1px solid rgba(160, 160, 255, 0.45);
     position: relative;
-    background-image: linear-gradient(135deg, #be91ff 0%, #9b6ee8 50%, #6B3FD9 100%);
+    background-image: linear-gradient(135deg, #be91ff 0%, #7070d8 50%, #6B3FD9 100%);
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -231,8 +231,8 @@ function openAuth(tab) {
     z-index: -1;
 }
 .become-idol-btn:hover {
-    border-color: rgba(190, 145, 255, 0.75);
-    box-shadow: 0 0 16px rgba(155, 110, 232, 0.4), 0 2px 8px rgba(0,0,0,0.25);
+    border-color: rgba(160, 160, 255, 0.75);
+    box-shadow: 0 0 16px rgba(110, 110, 210, 0.4), 0 2px 8px rgba(0,0,0,0.25);
     transform: translateY(-1px);
 }
 
@@ -250,24 +250,24 @@ function openAuth(tab) {
     white-space: nowrap;
 }
 .guest-btn--outline {
-    border: 1px solid rgba(155, 110, 232, 0.4);
-    color: rgba(190, 145, 255, 0.85);
+    border: 1px solid rgba(110, 110, 210, 0.4);
+    color: rgba(160, 160, 255, 0.85);
     background: transparent;
 }
 .guest-btn--outline:hover {
-    border-color: rgba(190, 145, 255, 0.7);
+    border-color: rgba(160, 160, 255, 0.7);
     color: #be91ff;
-    background: rgba(155, 110, 232, 0.08);
+    background: rgba(110, 110, 210, 0.08);
 }
 .guest-btn--fill {
     border: 1px solid transparent;
     background: linear-gradient(135deg, rgba(155,110,232,0.22) 0%, rgba(107,63,217,0.18) 100%);
     color: #be91ff;
-    box-shadow: 0 0 12px rgba(155, 110, 232, 0.2);
+    box-shadow: 0 0 12px rgba(110, 110, 210, 0.2);
 }
 .guest-btn--fill:hover {
     background: linear-gradient(135deg, rgba(155,110,232,0.35) 0%, rgba(107,63,217,0.28) 100%);
-    box-shadow: 0 0 18px rgba(155, 110, 232, 0.4);
+    box-shadow: 0 0 18px rgba(110, 110, 210, 0.4);
     color: #d4aaff;
 }
 

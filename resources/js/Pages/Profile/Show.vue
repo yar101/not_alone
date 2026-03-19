@@ -494,7 +494,7 @@ onMounted(async () => {
 .driver-popover-prev-btn:hover,
 .driver-popover-next-btn:hover,
 .driver-popover-done-btn:hover {
-    border-color: #BE91FF !important;
+    border-color: #a0a0ff !important;
     color: #fff !important;
 }
 .driver-popover-progress-text {
@@ -670,14 +670,14 @@ onMounted(async () => {
     transform: translateX(-50%) scaleX(0);
     width: 60%;
     height: 2px;
-    background: #BE91FF;
+    background: #a0a0ff;
     border-radius: 2px 2px 0 0;
     transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.18s ease;
     opacity: 0;
 }
 .tab-btn.active {
-    background: rgba(190, 145, 255, 0.08);
-    color: rgba(190, 145, 255, 0.95);
+    background: rgba(160, 160, 255, 0.08);
+    color: rgba(160, 160, 255, 0.95);
 }
 .tab-btn.active::before {
     transform: translateX(-50%) scaleX(1);
@@ -810,7 +810,7 @@ onMounted(async () => {
     right: -2rem;
     width: 220px;
     height: 220px;
-    color: #BE91FF;
+    color: #a0a0ff;
     opacity: 0.07;
     pointer-events: none;
     flex-shrink: 0;
@@ -829,7 +829,7 @@ onMounted(async () => {
     align-items: center;
     gap: 0.5rem;
     padding: 0.6rem 1.25rem;
-    background: linear-gradient(135deg, #9B6EE8 0%, #6B3FD9 100%);
+    background: linear-gradient(135deg, #7070d8 0%, #6B3FD9 100%);
     border: 1px solid rgba(190,145,255,0.45);
     border-radius: 3px;
     color: #fff;
@@ -860,8 +860,8 @@ onMounted(async () => {
     width: 100%;
     margin-top: 0.65rem;
     padding: 0.6rem;
-    background: rgba(190, 145, 255, 0.08);
-    border: 1px solid rgba(190, 145, 255, 0.38);
+    background: rgba(160, 160, 255, 0.08);
+    border: 1px solid rgba(160, 160, 255, 0.38);
     border-radius: 6px;
     color: rgba(210, 180, 255, 0.9);
     font-family: inherit;
@@ -873,10 +873,10 @@ onMounted(async () => {
     flex-shrink: 0;
 }
 .sidebar-subscribe-btn:hover {
-    background: rgba(190, 145, 255, 0.18);
-    border-color: rgba(190, 145, 255, 0.65);
+    background: rgba(160, 160, 255, 0.18);
+    border-color: rgba(160, 160, 255, 0.65);
     color: rgba(225, 205, 255, 1);
-    box-shadow: 0 0 14px rgba(190, 145, 255, 0.18);
+    box-shadow: 0 0 14px rgba(160, 160, 255, 0.18);
 }
 
 /* ── Report modal content ────────────────────────────────── */
@@ -897,7 +897,7 @@ onMounted(async () => {
     font-size: 0.68rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: rgba(190, 145, 255, 0.6);
+    color: rgba(160, 160, 255, 0.6);
 }
 .report-optional { text-transform: none; letter-spacing: 0; opacity: 0.6; }
 .report-reasons { display: flex; flex-wrap: wrap; gap: 0.35rem; }
@@ -929,7 +929,7 @@ onMounted(async () => {
     width: 100%;
     border-radius: 2px;
 }
-.report-textarea:focus { border-color: rgba(190, 145, 255, 0.35); }
+.report-textarea:focus { border-color: rgba(160, 160, 255, 0.35); }
 .report-textarea--err { border-color: rgba(239, 68, 68, 0.5); }
 .report-textarea::placeholder { color: rgba(255, 255, 255, 0.18); }
 .report-err { font-size: 0.75rem; color: rgba(239, 68, 68, 0.75); margin: 0; }

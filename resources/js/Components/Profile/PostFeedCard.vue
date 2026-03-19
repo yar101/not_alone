@@ -168,7 +168,7 @@ onMounted(async () => {
     margin-top: auto;
 }
 .feed-card:hover {
-    border-color: rgba(190, 145, 255, 0.22);
+    border-color: rgba(160, 160, 255, 0.22);
     background: rgba(255, 255, 255, 0.04);
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
 }
@@ -219,8 +219,8 @@ onMounted(async () => {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: rgba(190, 145, 255, 0.14);
-    color: rgba(190, 145, 255, 0.75);
+    background: rgba(160, 160, 255, 0.14);
+    color: rgba(160, 160, 255, 0.75);
     font-size: 0.72rem;
     font-weight: 700;
     display: flex;
@@ -270,7 +270,7 @@ onMounted(async () => {
 .feed-card__read-more {
     display: block;
     font-size: 0.92rem;
-    color: rgba(190, 145, 255, 0.6);
+    color: rgba(160, 160, 255, 0.6);
     background: transparent;
     border: none;
     padding: 0.2rem 0.85rem 0.5rem;
@@ -280,7 +280,7 @@ onMounted(async () => {
     transition: color 0.15s;
 }
 .feed-card__read-more:hover {
-    color: rgba(190, 145, 255, 0.9);
+    color: rgba(160, 160, 255, 0.9);
 }
 
 /* Footer */

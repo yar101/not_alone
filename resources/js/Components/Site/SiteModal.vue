@@ -159,7 +159,7 @@ onUnmounted(() => {
     height: 80%;
     max-height: 90vh;
     background:
-        linear-gradient(135deg, rgba(155, 110, 232, 0.05) 0%, transparent 45%),
+        linear-gradient(135deg, rgba(110, 110, 210, 0.05) 0%, transparent 45%),
         linear-gradient(160deg, rgb(16, 11, 20) 0%, rgb(7, 6, 11) 100%);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 3px;
@@ -192,13 +192,13 @@ onUnmounted(() => {
 }
 
 .site-modal-pink {
-    border-top-color: rgba(155, 110, 232, 0.3);
+    border-top-color: rgba(110, 110, 210, 0.3);
     box-shadow:
-        0 0 0 1px rgba(155, 110, 232, 0.08),
-        0 -30px 80px rgba(155, 110, 232, 0.12),
+        0 0 0 1px rgba(110, 110, 210, 0.08),
+        0 -30px 80px rgba(110, 110, 210, 0.12),
         0 40px 100px rgba(0, 0, 0, 0.6),
-        inset 0 1px 0 rgba(155, 110, 232, 0.18),
-        inset 0 0 80px rgba(155, 110, 232, 0.04);
+        inset 0 1px 0 rgba(110, 110, 210, 0.18),
+        inset 0 0 80px rgba(110, 110, 210, 0.04);
 }
 
 .site-modal-cyan {
@@ -232,7 +232,7 @@ onUnmounted(() => {
     left: -60px;
     width: 320px;
     height: 320px;
-    background: radial-gradient(circle, rgba(155, 110, 232, 0.18) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(110, 110, 210, 0.18) 0%, transparent 70%);
     animation: orb-drift-a 9s ease-in-out infinite alternate;
 }
 
@@ -241,7 +241,7 @@ onUnmounted(() => {
     right: -80px;
     width: 380px;
     height: 380px;
-    background: radial-gradient(circle, rgba(130, 40, 160, 0.12) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(60, 60, 180, 0.12) 0%, transparent 70%);
     animation: orb-drift-b 13s ease-in-out infinite alternate;
 }
 
@@ -320,7 +320,7 @@ onUnmounted(() => {
 
 .site-modal-close-pink:hover {
     color: rgba(220, 100, 145, 0.9);
-    background: rgba(155, 110, 232, 0.1);
+    background: rgba(110, 110, 210, 0.1);
 }
 
 .site-modal-close-cyan:hover {

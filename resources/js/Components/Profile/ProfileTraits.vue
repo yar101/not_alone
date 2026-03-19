@@ -117,7 +117,7 @@ function openEdit() {
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #BE91FF;
+    color: #a0a0ff;
 }
 
 .edit-btn {
@@ -137,15 +137,15 @@ function openEdit() {
 }
 .block-section:hover .edit-btn {
     opacity: 1;
-    color: rgba(190, 145, 255, 0.8);
-    border-color: rgba(190, 145, 255, 0.35);
-    background: rgba(190, 145, 255, 0.08);
+    color: rgba(160, 160, 255, 0.8);
+    border-color: rgba(160, 160, 255, 0.35);
+    background: rgba(160, 160, 255, 0.08);
 }
 .edit-btn:hover {
     color: #be91ff;
-    border-color: rgba(190, 145, 255, 0.7);
-    background: rgba(190, 145, 255, 0.16);
-    box-shadow: 0 0 8px rgba(190, 145, 255, 0.35);
+    border-color: rgba(160, 160, 255, 0.7);
+    background: rgba(160, 160, 255, 0.16);
+    box-shadow: 0 0 8px rgba(160, 160, 255, 0.35);
 }
 
 .tags-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }

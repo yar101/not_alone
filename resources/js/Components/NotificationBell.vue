@@ -296,14 +296,14 @@ onUnmounted(() => {
 .bell-btn--active {
     background: rgba(155,110,232,0.1);
     border-color: rgba(155,110,232,0.3);
-    color: #9B6EE8;
+    color: #7070d8;
 }
 
 .badge {
     position: absolute;
     top: 4px; right: 4px;
     min-width: 15px; height: 15px;
-    background: #9B6EE8;
+    background: #7070d8;
     border-radius: 999px;
     font-size: 0.6rem; font-weight: 700; color: #fff;
     display: flex; align-items: center; justify-content: center;
@@ -350,11 +350,11 @@ onUnmounted(() => {
 .panel-tab:hover { color: rgba(255,255,255,0.7); }
 .panel-tab--active {
     background: rgba(155,110,232,0.18);
-    color: #9B6EE8;
+    color: #7070d8;
 }
 .panel-tab-dot {
     width: 5px; height: 5px; border-radius: 50%;
-    background: #9B6EE8;
+    background: #7070d8;
     flex-shrink: 0;
 }
 
@@ -382,13 +382,13 @@ onUnmounted(() => {
     position: absolute;
     left: 0; top: 20%; bottom: 20%;
     width: 2px;
-    background: #9B6EE8;
+    background: #7070d8;
     border-radius: 0 2px 2px 0;
 }
 
 .notif-unread-dot {
     width: 6px; height: 6px; border-radius: 50%;
-    background: #9B6EE8; flex-shrink: 0; margin-top: 7px;
+    background: #7070d8; flex-shrink: 0; margin-top: 7px;
 }
 
 /* ── Icon ── */
@@ -462,7 +462,7 @@ onUnmounted(() => {
     border-radius: 8px; color: rgba(155,110,232,0.7);
     font-size: 0.78rem; cursor: pointer; transition: all 0.15s;
 }
-.footer-btn:hover { background: rgba(155,110,232,0.08); border-color: rgba(155,110,232,0.35); color: #9B6EE8; }
+.footer-btn:hover { background: rgba(155,110,232,0.08); border-color: rgba(155,110,232,0.35); color: #7070d8; }
 
 /* ── Animations ── */
 .dropdown-enter-active, .dropdown-leave-active {

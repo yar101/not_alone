@@ -718,9 +718,9 @@ const formValid = computed(() =>
 }
 
 .cat-tile:hover {
-    border-color: rgba(190, 145, 255, 0.38);
+    border-color: rgba(160, 160, 255, 0.38);
     background: rgba(255, 255, 255, 0.018);
-    box-shadow: 0 0 14px rgba(190, 145, 255, 0.09);
+    box-shadow: 0 0 14px rgba(160, 160, 255, 0.09);
 }
 
 .cat-tile__img-wrap {
@@ -785,7 +785,7 @@ const formValid = computed(() =>
 
 .cat-tile__count {
     font-size: 0.72rem;
-    color: rgba(190, 145, 255, 0.5);
+    color: rgba(160, 160, 255, 0.5);
 }
 
 .cat-tile__arrow {
@@ -795,7 +795,7 @@ const formValid = computed(() =>
 }
 
 .cat-tile:hover .cat-tile__arrow {
-    color: rgba(190, 145, 255, 0.6);
+    color: rgba(160, 160, 255, 0.6);
     transform: translateX(2px);
 }
 
@@ -872,8 +872,8 @@ const formValid = computed(() =>
 }
 
 .cd-hero__edit-btn:hover {
-    border-color: rgba(190, 145, 255, 0.4);
-    color: rgba(190, 145, 255, 0.7);
+    border-color: rgba(160, 160, 255, 0.4);
+    color: rgba(160, 160, 255, 0.7);
 }
 
 .cd-hero__desc {
@@ -884,7 +884,7 @@ const formValid = computed(() =>
     white-space: pre-wrap;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(190, 145, 255, 0.25) transparent;
+    scrollbar-color: rgba(160, 160, 255, 0.25) transparent;
 }
 
 .cd-hero__desc::-webkit-scrollbar {
@@ -892,7 +892,7 @@ const formValid = computed(() =>
 }
 
 .cd-hero__desc::-webkit-scrollbar-thumb {
-    background: rgba(190, 145, 255, 0.28);
+    background: rgba(160, 160, 255, 0.28);
     border-radius: 999px;
 }
 
@@ -919,7 +919,7 @@ const formValid = computed(() =>
 }
 
 .cd-hero__textarea:focus {
-    border-color: rgba(190, 145, 255, 0.45);
+    border-color: rgba(160, 160, 255, 0.45);
 }
 
 .cd-hero__actions {
@@ -957,7 +957,7 @@ const formValid = computed(() =>
     font-weight: 700;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: rgba(190, 145, 255, 0.5);
+    color: rgba(160, 160, 255, 0.5);
     margin: 0;
     padding: 0 0.1rem;
 }
@@ -991,8 +991,8 @@ const formValid = computed(() =>
 }
 
 .cd-idol-chip:hover {
-    border-color: rgba(190, 145, 255, 0.35);
-    background: rgba(190, 145, 255, 0.06);
+    border-color: rgba(160, 160, 255, 0.35);
+    background: rgba(160, 160, 255, 0.06);
 }
 
 .cd-idol-chip__avatar {
@@ -1007,13 +1007,13 @@ const formValid = computed(() =>
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: rgba(190, 145, 255, 0.15);
+    background: rgba(160, 160, 255, 0.15);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.75rem;
     font-weight: 600;
-    color: rgba(190, 145, 255, 0.8);
+    color: rgba(160, 160, 255, 0.8);
     flex-shrink: 0;
 }
 
@@ -1039,7 +1039,7 @@ const formValid = computed(() =>
     padding: 0.85rem 1rem 0.85rem 1.1rem;
     background: rgba(255, 255, 255, 0.018);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    border-left: 2px solid rgba(155, 110, 232, 0.3);
+    border-left: 2px solid rgba(110, 110, 210, 0.3);
     transition: background 0.18s ease, border-left-color 0.2s ease, opacity 0.28s ease;
     position: relative;
 }
@@ -1107,7 +1107,7 @@ const formValid = computed(() =>
     font-weight: 600;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: rgba(190, 145, 255, 0.38);
+    color: rgba(160, 160, 255, 0.38);
 }
 
 .svc-card__reason {
@@ -1398,9 +1398,9 @@ const formValid = computed(() =>
 
 .svc-btn-submit {
     padding: 0.5rem 1.2rem;
-    border: 1px solid rgba(190, 145, 255, 0.45);
+    border: 1px solid rgba(160, 160, 255, 0.45);
     border-radius: 3px;
-    background: linear-gradient(135deg, rgba(155, 110, 232, 0.3) 0%, rgba(124, 45, 126, 0.2) 100%);
+    background: linear-gradient(135deg, rgba(110, 110, 210, 0.3) 0%, rgba(124, 45, 126, 0.2) 100%);
     color: rgba(255, 255, 255, 0.9);
     font-family: inherit;
     font-size: 0.82rem;
@@ -1409,8 +1409,8 @@ const formValid = computed(() =>
 }
 
 .svc-btn-submit:hover {
-    border-color: rgba(190, 145, 255, 0.7);
-    box-shadow: 0 0 12px rgba(155, 110, 232, 0.25);
+    border-color: rgba(160, 160, 255, 0.7);
+    box-shadow: 0 0 12px rgba(110, 110, 210, 0.25);
 }
 
 .svc-btn-danger {
@@ -1444,7 +1444,7 @@ const formValid = computed(() =>
 
 .svc-modal {
     background: #0a0a0f;
-    border: 1px solid rgba(190, 145, 255, 0.25);
+    border: 1px solid rgba(160, 160, 255, 0.25);
     border-radius: 3px;
     width: 100%;
     max-width: 420px;
@@ -1498,7 +1498,7 @@ const formValid = computed(() =>
 }
 
 .svc-input:focus {
-    border-color: rgba(190, 145, 255, 0.45);
+    border-color: rgba(160, 160, 255, 0.45);
 }
 
 .svc-input--err {

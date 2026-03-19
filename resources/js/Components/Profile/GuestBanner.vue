@@ -52,20 +52,20 @@ function open(tab = 'login') {
 }
 .guest-banner__btn--login {
     background: transparent;
-    border: 1px solid rgba(190, 145, 255, 0.35);
-    color: rgba(190, 145, 255, 0.8);
+    border: 1px solid rgba(160, 160, 255, 0.35);
+    color: rgba(160, 160, 255, 0.8);
 }
 .guest-banner__btn--login:hover {
-    border-color: rgba(190, 145, 255, 0.7);
-    color: rgba(190, 145, 255, 1);
+    border-color: rgba(160, 160, 255, 0.7);
+    color: rgba(160, 160, 255, 1);
 }
 .guest-banner__btn--register {
-    background: rgba(190, 145, 255, 0.12);
-    border: 1px solid rgba(190, 145, 255, 0.3);
+    background: rgba(160, 160, 255, 0.12);
+    border: 1px solid rgba(160, 160, 255, 0.3);
     color: rgba(255, 255, 255, 0.75);
 }
 .guest-banner__btn--register:hover {
-    background: rgba(190, 145, 255, 0.22);
+    background: rgba(160, 160, 255, 0.22);
     color: #fff;
 }
 </style>

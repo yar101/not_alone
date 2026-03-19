@@ -143,9 +143,9 @@ function onAfterLeave(el) {
 }
 
 .accordion-item--open .accordion-chevron-wrap {
-    background: rgba(155, 110, 232, 0.15);
-    border-color: rgba(155, 110, 232, 0.3);
-    box-shadow: 0 0 8px rgba(155, 110, 232, 0.2);
+    background: rgba(110, 110, 210, 0.15);
+    border-color: rgba(110, 110, 210, 0.3);
+    box-shadow: 0 0 8px rgba(110, 110, 210, 0.2);
 }
 
 .accordion-chevron {
@@ -156,7 +156,7 @@ function onAfterLeave(el) {
 
 .accordion-chevron--open {
     transform: rotate(180deg);
-    color: rgba(155, 110, 232, 0.9);
+    color: rgba(110, 110, 210, 0.9);
 }
 
 /* Answer body */
@@ -167,7 +167,7 @@ function onAfterLeave(el) {
 .accordion-answer {
     padding-bottom: 1rem;
     padding-left: 1rem;
-    border-left: 1px solid rgba(155, 110, 232, 0.22);
+    border-left: 1px solid rgba(110, 110, 210, 0.22);
     margin-left: 0.15rem;
     font-size: 0.85rem;
     color: rgba(255, 255, 255, 0.5);
@@ -188,7 +188,7 @@ function onAfterLeave(el) {
 }
 
 .accordion-answer :deep(a) {
-    color: rgba(155, 110, 232, 0.85);
+    color: rgba(110, 110, 210, 0.85);
     text-decoration: none;
     transition: color 0.15s ease;
 }
