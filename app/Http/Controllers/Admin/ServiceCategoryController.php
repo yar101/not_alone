@@ -49,9 +49,13 @@ class ServiceCategoryController extends Controller
 
         $category->update($data);
 
-        if ($request->hasFile('image')) {
+        if ($request->boolean('remove_image') && !$request->hasFile('image')) {
+            if ($category->image_path) {
+                Storage::disk('public')->delete($category->image_path);
+            }
+            $category->update(['image_path' => null]);
+        } elseif ($request->hasFile('image')) {
             $request->validate(['image' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:4096']]);
-            // Delete old image if exists
             if ($category->image_path) {
                 Storage::disk('public')->delete($category->image_path);
             }
