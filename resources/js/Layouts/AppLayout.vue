@@ -28,6 +28,16 @@ function openAuth(tab) {
         <header class="app-header">
             <Link href="/" class="app-logo">NoAlone</Link>
 
+            <nav v-if="user" class="header-nav">
+                <Link :href="route('users.search')" class="header-nav__item" :class="{ 'header-nav__item--active': $page.url.startsWith('/search') }">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    Поиск пользователей
+                </Link>
+            </nav>
+
             <div class="header-right">
                 <Link
                     v-if="showIdolBtn"
@@ -269,6 +279,38 @@ function openAuth(tab) {
     background: linear-gradient(135deg, rgba(155,110,232,0.35) 0%, rgba(107,63,217,0.28) 100%);
     box-shadow: 0 0 18px rgba(110, 110, 210, 0.4);
     color: #d4aaff;
+}
+
+/* ── Central nav ─────────────────────────────────────────── */
+.header-nav {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.header-nav__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: none;
+    transition: color 0.18s, background 0.18s;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+.header-nav__item:hover {
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(110, 110, 210, 0.08);
+}
+.header-nav__item--active {
+    color: #be91ff;
 }
 
 /* ── Mobile ──────────────────────────────────────────────── */

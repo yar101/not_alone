@@ -279,21 +279,10 @@ function deleteAvatar() {
                 :style="hasNameOverflow ? { '--name-offset': nameScrollOffset } : {}">
                 <h1 ref="nameRef" class="header-name">{{ user.name }}</h1>
             </div>
-            <div v-if="user.gender || user.age" class="header-meta">
+            <div v-if="isIdol || user.gender || user.age" class="header-meta">
+                <span v-if="isIdol" class="meta-badge meta-badge--idol">Айдол</span>
                 <span v-if="user.gender" class="meta-badge" :class="'meta-badge--' + user.gender">
-                    <svg v-if="user.gender === 'female'" class="meta-icon" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="9" r="6" />
-                        <line x1="12" y1="15" x2="12" y2="21" />
-                        <line x1="9" y1="19" x2="15" y2="19" />
-                    </svg>
-                    <svg v-else class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="10" cy="14" r="6" />
-                        <line x1="14.5" y1="9.5" x2="21" y2="3" />
-                        <polyline points="16 3 21 3 21 8" />
-                    </svg>
-                    {{ user.gender === 'female' ? 'Женский' : 'Мужской' }}
+                    {{ user.gender === 'female' ? '♀' : '♂' }}
                 </span>
                 <span v-if="user.age" class="meta-badge meta-badge--age">{{ ageLabel(user.age) }}</span>
             </div>
@@ -695,6 +684,13 @@ function deleteAvatar() {
     width: 0.85em;
     height: 0.85em;
     flex-shrink: 0;
+}
+
+.meta-badge--idol {
+    border-color: rgba(100, 200, 255, 0.35);
+    background: rgba(100, 200, 255, 0.07);
+    color: #7dd4fc;
+    font-weight: 600;
 }
 
 /* Рейтинг — верхний левый угол */

@@ -213,7 +213,7 @@ function submitRegister() {
                             class="auth-input"
                             :class="{ 'auth-input--error': registerForm.errors.name }"
                             autocomplete="name"
-                            placeholder="Иван Иванов"
+                            placeholder="ivan_petrov"
                         />
                         <Transition name="err-fade">
                             <p v-show="registerForm.errors.name" class="auth-error">

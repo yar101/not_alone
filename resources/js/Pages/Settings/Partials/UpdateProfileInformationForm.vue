@@ -14,14 +14,14 @@ const form = useForm({
     email: user.email,
 });
 
-const NAME_RE = /^\p{L}+(\s\p{L}+)?$/u;
+const NAME_RE = /^\S+$/u;
 const nameError = ref('');
 
 function validateName(value) {
     if (!value.trim()) return 'Имя обязательно.';
     if (value.trim().length < 2) return 'Имя слишком короткое.';
-    if (value.trim().length > 100) return 'Имя слишком длинное.';
-    if (!NAME_RE.test(value.trim())) return 'Одно или два слова, только буквы.';
+    if (value.trim().length > 255) return 'Имя слишком длинное.';
+    if (!NAME_RE.test(value.trim())) return 'Имя не должно содержать пробелы.';
     return '';
 }
 

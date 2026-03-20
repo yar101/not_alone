@@ -8,6 +8,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ServiceController;
 
 use App\Http\Controllers\UserProfileController;
+use App\Http\Controllers\UserSearchController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -53,6 +54,11 @@ Route::middleware(['auth', 'verified', 'not_banned'])->group(function () {
     Route::post('/posts/{post}/like',            [UserProfileController::class, 'toggleLike'])->name('posts.like');
     Route::post('/posts/{post}/comments',        [UserProfileController::class, 'storeComment'])->name('posts.comments.store');
     Route::delete('/comments/{comment}',         [UserProfileController::class, 'destroyComment'])->name('posts.comments.destroy');
+});
+
+// User search
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/search', [UserSearchController::class, 'index'])->name('users.search');
 });
 
 // Account settings (email, password, delete)

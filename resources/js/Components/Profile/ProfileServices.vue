@@ -706,6 +706,7 @@ const formValid = computed(() =>
     align-items: center;
     justify-content: space-between;
     margin-bottom: 0.75rem;
+    padding: 0 1.25rem;
 }
 
 .svc-list-header__title {
@@ -721,6 +722,7 @@ const formValid = computed(() =>
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1rem;
+    padding: 0 1.25rem;
 }
 
 @media (max-width: 1000px) {

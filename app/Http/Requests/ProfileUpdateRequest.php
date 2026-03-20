@@ -16,14 +16,18 @@ class ProfileUpdateRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.regex' => 'Имя должно содержать одно или два слова (только буквы).',
+            'name.regex'  => 'Имя не должно содержать пробелы.',
+            'name.unique' => 'Это имя уже занято.',
         ];
     }
 
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:100', 'regex:/^\p{L}+(\s\p{L}+)?$/u'],
+            'name' => [
+                'required', 'string', 'max:255', 'regex:/^\S+$/u',
+                Rule::unique(User::class, 'name')->ignore($this->user()->id),
+            ],
             'email' => [
                 'required',
                 'string',
