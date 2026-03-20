@@ -60,11 +60,23 @@ const cropWrapHeight = ref(380);
 function onEsc(e) {
     if (e.key === 'Escape') {
         lightboxOpen.value = false;
+        showOwnerMenu.value = false;
         if (cropModal.value) cancelCrop();
     }
 }
-onMounted(() => document.addEventListener('keydown', onEsc));
-onUnmounted(() => document.removeEventListener('keydown', onEsc));
+function onOutsideClick(e) {
+    if (!e.target.closest('.owner-menu')) showOwnerMenu.value = false;
+}
+onMounted(() => {
+    document.addEventListener('keydown', onEsc);
+    document.addEventListener('click', onOutsideClick);
+});
+onUnmounted(() => {
+    document.removeEventListener('keydown', onEsc);
+    document.removeEventListener('click', onOutsideClick);
+});
+
+const showOwnerMenu = ref(false);
 
 const form = useForm({
     name: props.user.name ?? '',
@@ -218,12 +230,25 @@ function deleteAvatar() {
 
         <!-- Кнопки сверху справа -->
         <div v-if="isOwner" class="header-actions">
-            <button class="action-pill" @click="editModal = true" title="Редактировать">
-                <el-icon><Edit /></el-icon>
-            </button>
-            <a :href="route('settings.edit')" class="action-pill" title="Настройки">
-                <el-icon><Setting /></el-icon>
-            </a>
+            <div class="owner-menu">
+                <button class="action-pill" @click.stop="showOwnerMenu = !showOwnerMenu">
+                    <span class="owner-menu__dot"></span>
+                    <span class="owner-menu__dot"></span>
+                    <span class="owner-menu__dot"></span>
+                </button>
+                <Transition name="owner-menu-pop">
+                    <div v-if="showOwnerMenu" class="owner-menu__dropdown">
+                        <button class="owner-menu__item" @click="editModal = true; showOwnerMenu = false">
+                            <el-icon><Edit /></el-icon>
+                            Редактировать профиль
+                        </button>
+                        <a :href="route('settings.edit')" class="owner-menu__item" @click="showOwnerMenu = false">
+                            <el-icon><Setting /></el-icon>
+                            Настройки
+                        </a>
+                    </div>
+                </Transition>
+            </div>
         </div>
         <div v-else-if="canReport" class="header-actions">
             <button class="action-pill action-pill--report" @click="emit('report')" title="Пожаловаться">
@@ -404,6 +429,7 @@ function deleteAvatar() {
     display: flex;
     gap: 0.4rem;
     align-items: center;
+    z-index: 10;
 }
 
 .action-pill {
@@ -412,7 +438,7 @@ function deleteAvatar() {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 3px;
     background: transparent;
-    color: rgba(255, 255, 255, 0.35);
+    color: rgba(255, 255, 255, 0.55);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -436,6 +462,80 @@ function deleteAvatar() {
     color: rgba(248, 113, 113, 0.9);
     border-color: rgba(239, 68, 68, 0.5);
     background: rgba(239, 68, 68, 0.07);
+}
+
+.owner-menu {
+    position: relative;
+}
+
+.owner-menu > .action-pill {
+    border: none;
+    background: transparent;
+}
+
+.owner-menu__dot {
+    display: block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(200, 70, 126, 0.75);
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+
+.owner-menu > .action-pill:hover .owner-menu__dot {
+    background: rgba(200, 70, 126, 1);
+}
+
+.action-pill .owner-menu__dot + .owner-menu__dot {
+    margin-left: 3px;
+}
+
+.owner-menu__dropdown {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    right: 0;
+    background: rgb(16, 11, 20);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    overflow: hidden;
+    min-width: 180px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+}
+
+.owner-menu__item {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    padding: 0.65rem 1rem;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.65);
+    font-family: inherit;
+    font-size: 0.88rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.owner-menu__item:hover {
+    background: rgba(160, 160, 255, 0.07);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.owner-menu-pop-enter-active {
+    transition: opacity 0.14s ease;
+}
+.owner-menu-pop-leave-active {
+    transition: opacity 0.1s ease;
+}
+.owner-menu-pop-enter-from,
+.owner-menu-pop-leave-to {
+    opacity: 0;
 }
 
 /* Avatar */
@@ -571,10 +671,10 @@ function deleteAvatar() {
 .meta-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.18rem 0.6rem;
+    gap: 0.35rem;
+    padding: 0.3rem 0.85rem;
     border-radius: 3px;
-    font-size: 0.78rem;
+    font-size: 0.92rem;
     letter-spacing: 0.04em;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.04);
@@ -611,15 +711,15 @@ function deleteAvatar() {
     display: flex;
     align-items: center;
     gap: 0.3rem;
-    padding: 0.3rem 0.55rem 0.3rem 0.4rem;
+    padding: 0.4rem 0.75rem 0.4rem 0.55rem;
     background: rgba(160, 160, 255, 0.06);
     border: 1px solid rgba(160, 160, 255, 0.28);
     border-radius: 3px;
 }
 
 .star-img {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     object-fit: contain;
     display: block;
     opacity: 0.85;
@@ -629,7 +729,7 @@ function deleteAvatar() {
 .rating-num {
     font-family: 'Dosis', sans-serif;
     font-weight: 900;
-    font-size: 1.2rem;
+    font-size: 1.45rem;
     line-height: 1;
     color: rgba(255, 255, 255, 0.9);
     letter-spacing: 0.01em;
