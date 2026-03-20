@@ -45,6 +45,7 @@ function backToList() {
     catTransitionDir.value = 'back';
     selectedCategory.value = null;
     sessionStorage.removeItem(SESSION_KEY.value);
+    router.reload({ only: ['services', 'serviceCategories', 'serviceTimeUnits'] });
 }
 
 // Mark that a resync is needed after the next deferred prop update
@@ -310,7 +311,8 @@ const formValid = computed(() =>
                 <!-- Category cards -->
                 <div v-else class="cat-grid">
                     <button v-for="group in localServices" :key="group.category.id"
-                            class="cat-tile" @click="openCategory(group)">
+                            class="cat-tile" @click="openCategory(group)"
+                            :style="{ '--cat-accent': group.category.accent_color || '#a0a0ff' }">
                         <div class="cat-tile__img-wrap">
                             <img v-if="group.category.image_url"
                                  :src="group.category.image_url"
@@ -347,7 +349,7 @@ const formValid = computed(() =>
             </div>
 
             <!-- ── CategoryDetail ── -->
-            <div v-else key="detail">
+            <div v-else key="detail" :style="{ '--cat-accent': selectedCategory.category.accent_color || '#a0a0ff' }">
                 <!-- Back link -->
                 <button class="cd-back" @click="backToList">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -362,14 +364,20 @@ const formValid = computed(() =>
                     <div class="cd-hero__body">
                         <div class="cd-hero__top">
                             <h2 class="cd-hero__title">{{ selectedCategory.category.name }}</h2>
-                            <button v-if="isOwner && !editingDesc" class="cd-hero__edit-btn" @click="startDescEdit"
-                                title="Редактировать описание">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                </svg>
-                            </button>
+                            <div class="cd-hero__top-actions">
+                                <button v-if="isOwner && !editingDesc" class="cd-hero__edit-btn" @click="startDescEdit">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                    </svg>
+                                    Изменить описание
+                                </button>
+                                <CreateButton v-if="isOwner && isIdol" @click="openAdd">
+                                    <template #icon><el-icon><Plus /></el-icon></template>
+                                    Добавить услугу
+                                </CreateButton>
+                            </div>
                         </div>
 
                         <Transition name="desc-swap" mode="out-in">
@@ -395,15 +403,7 @@ const formValid = computed(() =>
 
                 <!-- Services section -->
                 <div class="cd-section cd-section--services">
-                    <div class="cd-section__header">
-                        <span class="cd-section__label">Услуги</span>
-                        <CreateButton v-if="isOwner && isIdol" @click="openAdd">
-                            <template #icon><el-icon>
-                                    <Plus />
-                                </el-icon></template>
-                            Добавить
-                        </CreateButton>
-                    </div>
+                    <span class="cd-section__label">Варианты</span>
 
                     <div v-if="selectedCategory.items.length === 0" class="svc-empty">
                         <p class="svc-empty__title">Услуг в этой категории нет</p>
@@ -416,39 +416,43 @@ const formValid = computed(() =>
                                 'svc-card--rejected': isOwner && item.status === 'rejected',
                             }">
 
+                            <!-- Badges: top-right corner -->
+                            <div v-if="isOwner" class="svc-card__badges">
+                                <span v-if="!item.is_active" class="svc-pill svc-pill--hidden">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                                        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                                        <line x1="1" y1="1" x2="23" y2="23"/>
+                                    </svg>
+                                    скрыто
+                                </span>
+                                <span v-if="item.status === 'pending'" class="svc-pill svc-pill--pending">
+                                    <i class="svc-pill__dot"></i>модерация
+                                </span>
+                                <span v-else-if="item.status === 'rejected'" class="svc-pill svc-pill--rejected">
+                                    отклонено
+                                </span>
+                            </div>
+
                             <!-- Info column -->
                             <div class="svc-card__info">
                                 <div class="svc-card__name-row">
                                     <span class="svc-card__name">{{ item.name }}</span>
-                                    <span v-if="isOwner && !item.is_active" class="svc-pill svc-pill--hidden">
-                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
-                                            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-                                            <line x1="1" y1="1" x2="23" y2="23"/>
-                                        </svg>
-                                        скрыто
-                                    </span>
-                                    <span v-if="isOwner && item.status === 'pending'" class="svc-pill svc-pill--pending">
-                                        <i class="svc-pill__dot"></i>модерация
-                                    </span>
-                                    <span v-else-if="isOwner && item.status === 'rejected'" class="svc-pill svc-pill--rejected">
-                                        отклонено
-                                    </span>
                                 </div>
-                                <span class="svc-card__unit-tag">{{ item.time_unit.name }}</span>
                                 <span v-if="isOwner && item.status === 'rejected' && item.rejection_reason"
                                       class="svc-card__reason">{{ item.rejection_reason }}</span>
                             </div>
 
-                            <!-- Price column -->
+                            <!-- Footer: price + actions -->
+                            <div class="svc-card__footer">
                             <div class="svc-card__price-block">
-                                <span class="svc-card__amount">{{ item.price.toLocaleString('ru') }}</span><span class="svc-card__rub"> ₽</span>
+                                <span class="svc-card__amount">{{ item.price.toLocaleString('ru') }}</span><span class="svc-card__rub">₽</span><span class="svc-card__sep">/</span><span class="svc-card__unit">{{ item.time_unit.name }}</span>
                             </div>
 
                             <!-- Actions column -->
                             <div class="svc-card__actions">
                                 <button v-if="!isOwner" class="svc-buy-btn">
-                                    <span>Купить</span>
+                                    <span>Заказать</span>
                                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M5 12h14M12 5l7 7-7 7"/>
                                     </svg>
@@ -494,6 +498,7 @@ const formValid = computed(() =>
                                     </Transition>
                                 </div>
                             </div>
+                            </div><!-- /.svc-card__footer -->
 
                         </div>
                     </TransitionGroup>
@@ -536,20 +541,16 @@ const formValid = computed(() =>
         </SiteModal>
 
         <!-- Delete confirm modal -->
-        <Teleport to="body">
-            <Transition name="fade-overlay">
-                <div v-if="deleteConfirmId !== null" class="svc-overlay" @click.self="cancelDeleteService">
-                    <div class="svc-modal svc-modal--confirm">
-                        <div class="svc-modal__header">Удалить услугу?</div>
-                        <div class="svc-confirm__body">Это действие нельзя отменить.</div>
-                        <div class="svc-modal__actions">
-                            <button type="button" class="svc-btn-cancel" @click="cancelDeleteService">Отмена</button>
-                            <button type="button" class="svc-btn-danger" @click="confirmDeleteService">Удалить</button>
-                        </div>
-                    </div>
+        <SiteModal :show="deleteConfirmId !== null" variant="pink" :compact="true" @close="cancelDeleteService">
+            <div class="sf-wrap">
+                <div class="sf-title">Удалить услугу?</div>
+                <p class="svc-pending-text">Это действие нельзя отменить.</p>
+                <div class="sf-actions">
+                    <button type="button" class="svc-btn-cancel" @click="cancelDeleteService">Отмена</button>
+                    <button type="button" class="sf-btn-danger" @click="confirmDeleteService">Удалить</button>
                 </div>
-            </Transition>
-        </Teleport>
+            </div>
+        </SiteModal>
 
         <!-- Add/Edit modal -->
         <SiteModal :show="showForm" variant="pink" :compact="true" @close="closeForm">
@@ -718,9 +719,9 @@ const formValid = computed(() =>
 }
 
 .cat-tile:hover {
-    border-color: rgba(160, 160, 255, 0.38);
+    border-color: color-mix(in srgb, var(--cat-accent) 65%, transparent);
     background: rgba(255, 255, 255, 0.018);
-    box-shadow: 0 0 14px rgba(160, 160, 255, 0.09);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--cat-accent) 22%, transparent);
 }
 
 .cat-tile__img-wrap {
@@ -784,8 +785,8 @@ const formValid = computed(() =>
 }
 
 .cat-tile__count {
-    font-size: 0.72rem;
-    color: rgba(160, 160, 255, 0.5);
+    font-size: 0.82rem;
+    color: var(--cat-accent);
 }
 
 .cat-tile__arrow {
@@ -795,7 +796,7 @@ const formValid = computed(() =>
 }
 
 .cat-tile:hover .cat-tile__arrow {
-    color: rgba(160, 160, 255, 0.6);
+    color: color-mix(in srgb, var(--cat-accent) 60%, transparent);
     transform: translateX(2px);
 }
 
@@ -803,20 +804,23 @@ const formValid = computed(() =>
 .cd-back {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    background: none;
-    border: none;
-    color: rgba(255, 255, 255, 0.4);
+    gap: 0.45rem;
+    background: color-mix(in srgb, var(--cat-accent) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--cat-accent) 35%, transparent);
+    border-radius: 5px;
+    color: color-mix(in srgb, var(--cat-accent) 80%, white);
     font-family: inherit;
-    font-size: 0.82rem;
+    font-size: 0.88rem;
     cursor: pointer;
-    padding: 0;
-    transition: color 0.15s;
+    padding: 0.35rem 0.75rem;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
     margin-bottom: 0.75rem;
 }
 
 .cd-back:hover {
-    color: rgba(255, 255, 255, 0.75);
+    background: color-mix(in srgb, var(--cat-accent) 20%, transparent);
+    border-color: color-mix(in srgb, var(--cat-accent) 60%, transparent);
+    color: var(--cat-accent);
 }
 
 /* ── Hero card ────────────────────────────────────────────── */
@@ -859,21 +863,30 @@ const formValid = computed(() =>
 .cd-hero__edit-btn {
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-    background: transparent;
-    color: rgba(255, 255, 255, 0.3);
+    gap: 0.4rem;
+    height: 32px;
+    padding: 0 0.75rem;
+    border: 1px solid rgba(155, 110, 232, 0.35);
+    border-radius: 4px;
+    background: rgba(155, 110, 232, 0.08);
+    color: rgba(155, 110, 232, 0.75);
+    font-size: 0.8rem;
     cursor: pointer;
     flex-shrink: 0;
-    transition: border-color 0.15s, color 0.15s;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 
 .cd-hero__edit-btn:hover {
-    border-color: rgba(160, 160, 255, 0.4);
-    color: rgba(160, 160, 255, 0.7);
+    border-color: rgba(155, 110, 232, 0.65);
+    background: rgba(155, 110, 232, 0.15);
+    color: rgba(155, 110, 232, 1);
+}
+
+.cd-hero__top-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
 }
 
 .cd-hero__desc {
@@ -933,31 +946,23 @@ const formValid = computed(() =>
 .cd-section {
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
+    gap: 1rem;
 }
 
 .cd-section--services {
-    margin-top: 0.5rem;
+    margin-top: 1rem;
 }
 
 .cd-section--reviews {
-    margin-top: 1.5rem;
-}
-
-.cd-section__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-bottom: 0.4rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    margin-top: 1rem;
 }
 
 .cd-section__label {
-    font-size: 0.65rem;
+    font-size: 0.82rem;
     font-weight: 700;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: rgba(160, 160, 255, 0.5);
+    color: rgba(155, 110, 232, 0.8);
     margin: 0;
     padding: 0 0.1rem;
 }
@@ -1025,54 +1030,53 @@ const formValid = computed(() =>
 
 /* ── Service list & cards ─────────────────────────────────── */
 .svc-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.85rem;
 }
 
 .svc-card {
     display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.85rem 1rem 0.85rem 1.1rem;
-    background: rgba(255, 255, 255, 0.018);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    border-left: 2px solid rgba(110, 110, 210, 0.3);
-    transition: background 0.18s ease, border-left-color 0.2s ease, opacity 0.28s ease;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 1rem 1.1rem;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid color-mix(in srgb, var(--cat-accent, white) 28%, transparent);
+    border-radius: 6px;
+    transition: background 0.18s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     position: relative;
 }
 
-.svc-card:first-child {
-    border-radius: 4px 4px 0 0;
-}
-
-.svc-card:last-child {
-    border-bottom: none;
-    border-radius: 0 0 4px 4px;
-}
-
-.svc-card:only-child {
-    border-radius: 4px;
-}
-
 .svc-card:hover {
-    background: rgba(255, 255, 255, 0.035);
+    background: rgba(255, 255, 255, 0.045);
+    border-color: color-mix(in srgb, var(--cat-accent, white) 50%, transparent);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.svc-card:not(.svc-card--pending):not(.svc-card--rejected) .svc-card__amount {
+    color: var(--cat-accent);
+}
+
+.svc-card:not(.svc-card--pending):not(.svc-card--rejected) .svc-card__rub {
+    color: color-mix(in srgb, var(--cat-accent) 70%, transparent);
+}
+
+.svc-card:not(.svc-card--pending):not(.svc-card--rejected) .svc-card__unit {
+    color: color-mix(in srgb, var(--cat-accent) 55%, transparent);
 }
 
 .svc-card--inactive {
-    border-left-color: rgba(255, 255, 255, 0.1);
+    opacity: 0.6;
 }
 
 .svc-card--pending {
-    border-left-color: rgba(251, 146, 60, 0.65);
-    background: rgba(251, 146, 60, 0.025);
+    border-color: rgba(251, 146, 60, 0.3);
+    background: rgba(251, 146, 60, 0.03);
 }
 
 .svc-card--rejected {
-    border-left-color: rgba(239, 68, 68, 0.5);
-    background: rgba(239, 68, 68, 0.02);
+    border-color: rgba(239, 68, 68, 0.25);
+    background: rgba(239, 68, 68, 0.025);
 }
 
 /* Info column */
@@ -1081,7 +1085,7 @@ const formValid = computed(() =>
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
+    gap: 0.3rem;
 }
 
 .svc-card__name-row {
@@ -1092,31 +1096,51 @@ const formValid = computed(() =>
 }
 
 .svc-card__name {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.88);
-    white-space: nowrap;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: rgba(255, 255, 255, 0.92);
+    white-space: normal;
     overflow: hidden;
-    text-overflow: ellipsis;
-    letter-spacing: -0.005em;
+    letter-spacing: 0;
 }
 
-.svc-card__unit-tag {
-    display: inline-block;
-    font-size: 0.65rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: rgba(160, 160, 255, 0.38);
-}
 
 .svc-card__reason {
-    font-size: 0.72rem;
-    color: rgba(239, 68, 68, 0.5);
+    font-size: 0.8rem;
+    color: rgba(239, 68, 68, 0.85);
     line-height: 1.4;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* Badges wrapper — pinned to top-right of card */
+.svc-card__badges {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    flex-direction: row;
+    gap: 0;
+}
+
+.svc-card__badges .svc-pill {
+    border-top: none;
+    border-right: none;
+}
+
+.svc-card__badges .svc-pill:first-child:last-child {
+    border-radius: 0 6px 0 4px;
+}
+
+.svc-card__badges .svc-pill:first-child:not(:last-child) {
+    border-radius: 0 0 0 4px;
+    border-right: none;
+}
+
+.svc-card__badges .svc-pill:last-child:not(:first-child) {
+    border-radius: 0 6px 0 4px;
 }
 
 /* Status pills */
@@ -1124,11 +1148,10 @@ const formValid = computed(() =>
     display: inline-flex;
     align-items: center;
     gap: 0.28rem;
-    padding: 0.1rem 0.45rem;
-    border-radius: 3px;
-    font-size: 0.62rem;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.72rem;
     font-weight: 700;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     white-space: nowrap;
     flex-shrink: 0;
@@ -1166,24 +1189,47 @@ const formValid = computed(() =>
     50%       { opacity: 0.45; transform: scale(0.65); }
 }
 
+/* Footer: price + action on one row */
+.svc-card__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+}
+
 /* Price column */
 .svc-card__price-block {
     flex-shrink: 0;
-    text-align: right;
+    text-align: left;
     white-space: nowrap;
 }
 
 .svc-card__amount {
-    font-size: 1rem;
+    font-size: 1.2rem;
     font-weight: 700;
     color: rgba(255, 255, 255, 0.88);
-    letter-spacing: -0.02em;
+    letter-spacing: -0.015em;
 }
 
 .svc-card__rub {
-    font-size: 0.72rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.55);
+    margin-left: 0.05em;
+}
+
+.svc-card__sep {
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.2);
+    margin: 0 0.1em;
+}
+
+.svc-card__unit {
+    font-size: 0.8rem;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.35);
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 0;
 }
 
 /* Actions column */
@@ -1201,7 +1247,7 @@ const formValid = computed(() =>
     gap: 0.4rem;
     padding: 0.38rem 0.85rem;
     border: 1px solid rgba(200, 70, 126, 0.4);
-    border-radius: 20px;
+    border-radius: 6px;
     background: rgba(200, 70, 126, 0.1);
     color: rgba(220, 110, 155, 0.95);
     font-family: inherit;
@@ -1256,7 +1302,7 @@ const formValid = computed(() =>
 
 .svc-menu__trigger {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     justify-content: center;
     gap: 3px;
@@ -1431,37 +1477,6 @@ const formValid = computed(() =>
 }
 
 /* ── Modal overlay ────────────────────────────────────────── */
-.svc-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(3px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
-
-.svc-modal {
-    background: #0a0a0f;
-    border: 1px solid rgba(160, 160, 255, 0.25);
-    border-radius: 3px;
-    width: 100%;
-    max-width: 420px;
-    margin: 1rem;
-}
-
-.svc-modal__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.85rem 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-    font-size: 0.88rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.85);
-}
-
 /* ── Form fields ──────────────────────────────────────────── */
 .svc-field {
     display: flex;
@@ -1511,26 +1526,6 @@ const formValid = computed(() =>
     margin: 0;
 }
 
-.svc-modal--confirm { max-width: 340px; }
-.svc-confirm__body { padding: 0.75rem 1rem 0; font-size: 0.88rem; color: rgba(255,255,255,0.5); }
-
-.svc-modal__actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.6rem;
-    padding-top: 0.25rem;
-}
-
-/* ── Transition ───────────────────────────────────────────── */
-.fade-overlay-enter-active,
-.fade-overlay-leave-active {
-    transition: opacity 0.18s ease;
-}
-
-.fade-overlay-enter-from,
-.fade-overlay-leave-to {
-    opacity: 0;
-}
 
 /* ── Category drill-in (list → detail) ───────────────────── */
 .drill-in-enter-active,
@@ -1736,6 +1731,24 @@ const formValid = computed(() =>
 .sf-btn-submit:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.sf-btn-danger {
+    padding: 0.65rem 1.4rem;
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    border-radius: 3px;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.22), rgba(239, 68, 68, 0.08));
+    color: rgba(239, 68, 68, 0.95);
+    font-family: inherit;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.sf-btn-danger:hover {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.35), rgba(239, 68, 68, 0.15));
+    border-color: rgba(239, 68, 68, 0.7);
+    box-shadow: 0 0 18px rgba(239, 68, 68, 0.2);
 }
 
 /* ── Price preview (#1) ───────────────────────────────────── */

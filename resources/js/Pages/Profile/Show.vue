@@ -638,8 +638,8 @@ onMounted(async () => {
     border-radius: 3px 3px 0 0;
     background: transparent;
     color: rgba(255,255,255,0.45);
-    font-size: 0.75rem;
-    letter-spacing: 0.1em;
+    font-size: 0.88rem;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     cursor: pointer;
     font-family: inherit;
