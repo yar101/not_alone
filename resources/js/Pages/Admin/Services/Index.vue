@@ -187,6 +187,7 @@ const catForm = useForm({
     name:             '',
     description:      '',
     name_suggestions: [],
+    accent_color:     '#a0a0ff',
     sort_order:       0,
     is_active:        true,
     image:            null,
@@ -210,6 +211,7 @@ function openCatEdit(cat) {
     catForm.name             = cat.name;
     catForm.description      = cat.description ?? '';
     catForm.name_suggestions = cat.name_suggestions ?? [];
+    catForm.accent_color     = cat.accent_color ?? '#a0a0ff';
     catForm.sort_order       = cat.sort_order;
     catForm.is_active        = cat.is_active;
     catForm.image            = null;
@@ -467,6 +469,10 @@ function destroyLimit(id) {
                             <div class="field">
                                 <label>Описание (глобальное)</label>
                                 <textarea v-model="catForm.description" class="input input--textarea" rows="3" maxlength="1000" placeholder="Описание категории для профиля айдола" />
+                            </div>
+                            <div class="field">
+                                <label>Акцентный цвет</label>
+                                <input v-model="catForm.accent_color" type="color" class="input input--color" />
                             </div>
                             <div class="field">
                                 <label>Варианты названий</label>
@@ -926,6 +932,7 @@ function destroyLimit(id) {
 .input:focus { border-color: rgba(190,145,255,0.45); }
 .input--err { border-color: rgba(239,68,68,0.5); }
 .input--textarea { resize: vertical; min-height: 72px; }
+.input--color { width: 48px; height: 36px; padding: 2px 4px; cursor: pointer; }
 .input-file { font-size: 0.82rem; color: rgba(255,255,255,0.5); cursor: pointer; }
 .err { font-size: 0.75rem; color: rgba(239,68,68,0.8); margin: 0; }
 .modal__actions { display: flex; justify-content: flex-end; gap: 0.5rem; padding-top: 0.25rem; }

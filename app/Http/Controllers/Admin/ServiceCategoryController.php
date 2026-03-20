@@ -15,7 +15,7 @@ class ServiceCategoryController extends Controller
     public function index(): Response
     {
         return Inertia::render('Admin/Services/Index', [
-            'categories' => ServiceCategory::orderBy('sort_order')->get(['id', 'name', 'description', 'name_suggestions', 'image_path', 'sort_order', 'is_active']),
+            'categories' => ServiceCategory::orderBy('sort_order')->get(['id', 'name', 'description', 'name_suggestions', 'image_path', 'accent_color', 'sort_order', 'is_active']),
             'active_tab' => 'categories',
         ]);
     }
@@ -27,6 +27,7 @@ class ServiceCategoryController extends Controller
             'description'        => ['nullable', 'string', 'max:1000'],
             'name_suggestions'   => ['nullable', 'array'],
             'name_suggestions.*' => ['string', 'max:120'],
+            'accent_color'       => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'sort_order'         => ['integer', 'min:0'],
             'is_active'          => ['boolean'],
         ]);
@@ -43,6 +44,7 @@ class ServiceCategoryController extends Controller
             'description'        => ['nullable', 'string', 'max:1000'],
             'name_suggestions'   => ['nullable', 'array'],
             'name_suggestions.*' => ['string', 'max:120'],
+            'accent_color'       => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'sort_order'         => ['sometimes', 'integer', 'min:0'],
             'is_active'          => ['sometimes', 'boolean'],
         ]);
