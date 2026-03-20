@@ -126,6 +126,13 @@ async function submitAnswer(answerIdx) {
     }
 }
 
+// ── Browser back button fix ────────────────────────────────────
+function onPopState() {
+    router.visit(window.location.href, { replace: true });
+}
+onMounted(() => window.addEventListener('popstate', onPopState));
+onUnmounted(() => window.removeEventListener('popstate', onPopState));
+
 // ── Cooldown timer ────────────────────────────────────────────
 const cooldownRemaining = ref('');
 let cooldownInterval;
@@ -187,6 +194,12 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 
 <template>
     <div class="apply-wrap">
+        <button class="back-btn" @click="history.back()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Назад
+        </button>
         <div class="apply-card">
 
             <!-- ─── Step 1: Memo ─────────────────────────────── -->
@@ -397,10 +410,34 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 .apply-wrap {
     min-height: calc(100vh - 60px);
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 2rem 1rem;
     font-family: 'Figtree', sans-serif;
+    gap: 1rem;
+}
+
+/* ── Back button ──────────────────────────────────────── */
+.back-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.38);
+    font-size: 0.82rem;
+    font-family: inherit;
+    cursor: pointer;
+    padding: 0.25rem 0;
+    align-self: flex-start;
+    margin-left: calc((100% - 560px) / 2);
+    transition: color 0.15s;
+}
+.back-btn:hover { color: rgba(255, 255, 255, 0.75); }
+
+@media (max-width: 600px) {
+    .back-btn { margin-left: 0; }
 }
 
 .apply-card {
