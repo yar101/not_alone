@@ -174,8 +174,8 @@ onUnmounted(() => {
 
                 <!-- Уведомления -->
                 <template v-if="activeTab === 'notifications'">
-                    <div v-if="loadingNotifs" class="notif-skeleton-wrap">
-                        <div class="notif-skeleton" v-for="i in 3" :key="i"></div>
+                    <div v-if="loadingNotifs" class="notif-loader">
+                        <span class="notif-spinner"></span>
                     </div>
                     <template v-else>
                         <div v-if="notifications.length === 0" class="notif-empty">
@@ -216,8 +216,8 @@ onUnmounted(() => {
 
                 <!-- Сервис -->
                 <template v-else>
-                    <div v-if="loadingService" class="notif-skeleton-wrap">
-                        <div class="notif-skeleton" v-for="i in 3" :key="i"></div>
+                    <div v-if="loadingService" class="notif-loader">
+                        <span class="notif-spinner"></span>
                     </div>
                     <template v-else>
                         <div v-if="serviceItems.length === 0" class="notif-empty">
@@ -437,17 +437,23 @@ onUnmounted(() => {
 .empty-icon { opacity: 0.4; }
 .empty-text { font-size: 0.83rem; color: rgba(255,255,255,0.25); margin: 0; }
 
-/* ── Skeleton loader ── */
-.notif-skeleton-wrap { padding: 0.75rem 1.1rem; display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.5rem; }
-.notif-skeleton {
-    height: 52px; border-radius: 10px;
-    background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.03) 100%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s ease-in-out infinite;
+/* ── Spinner loader ── */
+.notif-loader {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100px;
 }
-@keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+.notif-spinner {
+    width: 22px;
+    height: 22px;
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    border-top-color: rgba(160, 160, 255, 0.6);
+    border-radius: 50%;
+    animation: notif-spin 0.7s linear infinite;
+}
+@keyframes notif-spin {
+    to { transform: rotate(360deg); }
 }
 
 /* ── Footer ── */
