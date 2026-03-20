@@ -116,7 +116,7 @@ onUnmounted(() => {
                         :class="variant === 'pink' ? 'site-modal-close-pink' : 'site-modal-close-cyan'"
                         aria-label="Закрыть"
                     >
-                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
@@ -295,10 +295,10 @@ onUnmounted(() => {
 /* ── Close button ──────────────────────────────────── */
 .site-modal-close {
     position: absolute;
-    top: 0.85rem;
-    right: 0.85rem;
-    width: 28px;
-    height: 28px;
+    top: 0.75rem;
+    right: 0.75rem;
+    width: 36px;
+    height: 36px;
     border-radius: 6px;
     border: none;
     background: transparent;

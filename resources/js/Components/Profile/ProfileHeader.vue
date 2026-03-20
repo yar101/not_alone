@@ -5,10 +5,9 @@ import { Edit, Setting, Camera } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import ProfileChecklist from '@/Components/Profile/ProfileChecklist.vue';
 import AppSelect from '@/Components/AppSelect.vue';
+import ImageDropzone from '@/Components/ImageDropzone.vue';
 import { Cropper, CircleStencil } from 'vue-advanced-cropper';
 import 'vue-advanced-cropper/dist/style.css';
-
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 // ── Pluralization ──────────────────────────────────────────────
 const agePR = new Intl.PluralRules('ru');
@@ -29,7 +28,6 @@ const props = defineProps({
 const emit = defineEmits(['report']);
 
 const editModal = ref(false);
-const avatarInput = ref(null);
 const lightboxOpen = ref(false);
 
 // ── Marquee для имени ──────────────────────────────────────
@@ -145,34 +143,33 @@ function submitEdit() {
     });
 }
 
+const avatarModal = ref(false);
+
 function onAvatarClick() {
-    if (props.isOwner) avatarInput.value?.click();
+    if (props.isOwner) avatarModal.value = true;
     else if (props.user.avatar_url) lightboxOpen.value = true;
 }
 
-function onAvatarChange(e) {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
+function closeAvatarModal() {
+    avatarModal.value = false;
+}
 
+function processAvatarFile(file) {
+    avatarModal.value = false;
     cropError.value = '';
-    if (file.size > MAX_FILE_SIZE) {
-        cropError.value = 'Файл слишком большой. Максимум 5 МБ.';
-        cropModal.value = true;
-        return;
-    }
-
     const url = URL.createObjectURL(file);
     cropSrc.value = url;
-
     const img = new Image();
     img.onload = () => {
         const ratio = img.naturalHeight / img.naturalWidth;
         cropWrapHeight.value = Math.min(380, Math.max(200, Math.round(420 * ratio)));
     };
     img.src = url;
-
     cropModal.value = true;
+}
+
+function onDropzoneChange(file) {
+    processAvatarFile(file);
 }
 
 function cancelCrop() {
@@ -284,9 +281,6 @@ function deleteAvatar() {
         </div>
 
 
-        <input v-if="isOwner" ref="avatarInput" type="file" accept="image/jpeg,image/png,image/webp"
-            class="hidden-input" @change="onAvatarChange" />
-
         <!-- Lightbox -->
         <Teleport to="body">
             <Transition name="lb">
@@ -295,6 +289,14 @@ function deleteAvatar() {
                 </div>
             </Transition>
         </Teleport>
+
+        <!-- Avatar upload modal -->
+        <SiteModal :show="avatarModal" variant="pink" :compact="true" @close="closeAvatarModal">
+            <div class="avatar-upload-form">
+                <h3 class="edit-title">Загрузить фото</h3>
+                <ImageDropzone :max-size-mb="5" @change="onDropzoneChange" />
+            </div>
+        </SiteModal>
 
         <!-- Crop modal -->
         <SiteModal :show="cropModal" variant="pink" :compact="true" @close="cancelCrop">
@@ -319,7 +321,6 @@ function deleteAvatar() {
                 </template>
 
                 <div class="crop-actions">
-                    <button class="crop-cancel-btn" type="button" @click="cancelCrop">Отмена</button>
                     <button class="save-btn" type="button" :disabled="!!cropError || cropUploading" @click="applyCrop">
                         {{ cropUploading ? 'Загрузка...' : 'Сохранить' }}
                     </button>
@@ -508,10 +509,6 @@ function deleteAvatar() {
 .avatar-overlay-icon {
     font-size: 1.4rem;
     color: #fff;
-}
-
-.hidden-input {
-    display: none;
 }
 
 /* Имя */
@@ -779,6 +776,29 @@ function deleteAvatar() {
     cursor: not-allowed;
 }
 
+/* Avatar upload modal */
+.avatar-upload-form {
+    padding: 0.5rem 0.25rem;
+}
+
+.avatar-upload-form :deep(.dz-zone) {
+    padding: 2.25rem 1.25rem;
+    min-height: 160px;
+}
+
+.avatar-upload-form :deep(.dz-zone__text) {
+    font-size: 0.95rem;
+}
+
+.avatar-upload-form :deep(.dz-zone__hint) {
+    font-size: 0.78rem;
+}
+
+.avatar-upload-form :deep(.dz-zone__icon) svg {
+    width: 28px;
+    height: 28px;
+}
+
 /* Crop modal */
 .crop-form {
     padding: 0.5rem 0.25rem;
@@ -844,26 +864,7 @@ function deleteAvatar() {
 }
 
 .crop-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.crop-cancel-btn {
-    flex: 0 0 auto;
-    padding: 0.8rem 1.25rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-    background: transparent;
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 0.95rem;
-    cursor: pointer;
-    font-family: inherit;
-    transition: color 0.15s, border-color 0.15s;
-}
-
-.crop-cancel-btn:hover {
-    color: rgba(255, 255, 255, 0.7);
-    border-color: rgba(255, 255, 255, 0.2);
+    margin-top: 0.25rem;
 }
 
 /* Lightbox */
