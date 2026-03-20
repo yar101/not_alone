@@ -22,7 +22,7 @@ defineOptions({ inheritAttrs: true });
     border-radius: 6px;
     color: rgba(160, 160, 255, 0.9);
     font-family: inherit;
-    font-size: 0.82rem;
+    font-size: 0.92rem;
     font-weight: 500;
     letter-spacing: 0.01em;
     cursor: pointer;

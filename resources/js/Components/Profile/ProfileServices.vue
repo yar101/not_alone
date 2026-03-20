@@ -155,6 +155,21 @@ function submitForm() {
     }
 }
 
+const showCancelConfirm = ref(false);
+
+function tryCloseForm() {
+    if (!editingId.value && (form.name || form.price || form.time_unit_id)) {
+        showCancelConfirm.value = true;
+    } else {
+        closeForm();
+    }
+}
+
+function confirmCancelForm() {
+    showCancelConfirm.value = false;
+    closeForm();
+}
+
 const deleteConfirmId = ref(null);
 
 function askDeleteService(id) {
@@ -553,8 +568,18 @@ const formValid = computed(() =>
         </SiteModal>
 
         <!-- Add/Edit modal -->
-        <SiteModal :show="showForm" variant="pink" :compact="true" @close="closeForm">
+        <SiteModal :show="showForm" variant="pink" :compact="true" @close="tryCloseForm">
             <div class="sf-wrap">
+                <Transition name="sf-screen" mode="out-in">
+                <div v-if="showCancelConfirm" key="confirm" class="sf-screen">
+                    <div class="sf-title">Выйти без сохранения?</div>
+                    <p class="svc-pending-text">Введённые данные будут потеряны.</p>
+                    <div class="sf-actions">
+                        <button type="button" class="svc-btn-cancel" @click="showCancelConfirm = false">Остаться</button>
+                        <button type="button" class="sf-btn-danger" @click="confirmCancelForm">Выйти</button>
+                    </div>
+                </div>
+                <div v-else key="form" class="sf-screen">
                 <div class="sf-title">{{ editingId ? 'Редактировать услугу' : 'Новая услуга' }}</div>
                 <form @submit.prevent="submitForm" class="sf-form">
 
@@ -562,25 +587,26 @@ const formValid = computed(() =>
                         <label class="sf-label">Категория</label>
                         <AppSelect v-model="form.category_id"
                             :options="(serviceCategories ?? []).map(c => ({ value: c.id, label: c.name }))"
-                            placeholder="Выберите категорию" :error="!!form.errors.category_id" />
+                            placeholder="Выберите категорию" :error="!!form.errors.category_id"
+                            :disabled="!editingId && !!selectedCategory" />
                         <p v-if="form.errors.category_id" class="sf-err">{{ form.errors.category_id }}</p>
                     </div>
 
                     <div class="sf-field">
                         <label class="sf-label">Название</label>
-                        <input v-model="form.name" class="sf-input"
-                            :class="{ 'sf-input--err': form.errors.name }"
-                            :placeholder="namePlaceholder" maxlength="30" />
-                        <div class="sf-name-footer">
-                            <div v-if="formSuggestions.length" class="svc-suggestions">
-                                <button v-for="s in formSuggestions" :key="s"
-                                    type="button" class="svc-chip"
-                                    :class="{ 'svc-chip--active': form.name === s, 'svc-chip--pop': animatingChip === s }"
-                                    @click="selectChip(s)">{{ s }}</button>
-                            </div>
+                        <div class="sf-input-wrap">
+                            <input v-model="form.name" class="sf-input"
+                                :class="{ 'sf-input--err': form.errors.name }"
+                                :placeholder="namePlaceholder" maxlength="30" />
                             <span class="sf-char-count" :class="{ 'sf-char-count--warn': form.name.length >= 25 }">
                                 {{ form.name.length }}/30
                             </span>
+                        </div>
+                        <div v-if="formSuggestions.length" class="svc-suggestions">
+                            <button v-for="s in formSuggestions" :key="s"
+                                type="button" class="svc-chip"
+                                :class="{ 'svc-chip--active': form.name === s, 'svc-chip--pop': animatingChip === s }"
+                                @click="selectChip(s)">{{ s }}</button>
                         </div>
                         <p v-if="form.errors.name" class="sf-err">{{ form.errors.name }}</p>
                     </div>
@@ -588,9 +614,14 @@ const formValid = computed(() =>
                     <div class="sf-row">
                         <div class="sf-field">
                             <label class="sf-label">Цена</label>
-                            <input v-model.number="form.price" type="number" min="1"
-                                class="sf-input" :class="{ 'sf-input--err': form.errors.price }"
-                                placeholder="500" />
+                            <div class="sf-input-wrap">
+                                <input v-model.number="form.price" type="number" min="1"
+                                    class="sf-input" :class="{ 'sf-input--err': form.errors.price }"
+                                    placeholder="500" />
+                                <Transition name="sf-preview-fade">
+                                    <span v-if="pricePreview" class="sf-preview">{{ pricePreview }}</span>
+                                </Transition>
+                            </div>
                             <p v-if="form.errors.price" class="sf-err">{{ form.errors.price }}</p>
                         </div>
                         <div class="sf-field">
@@ -602,18 +633,16 @@ const formValid = computed(() =>
                         </div>
                     </div>
 
-                    <Transition name="sf-preview-fade">
-                        <div v-if="pricePreview" class="sf-preview">{{ pricePreview }}</div>
-                    </Transition>
-
                     <div class="sf-actions">
-                        <button type="button" class="svc-btn-cancel" @click="closeForm">Отмена</button>
+                        <button type="button" class="svc-btn-cancel" @click="tryCloseForm">Отмена</button>
                         <button type="submit" class="sf-btn-submit" :disabled="!formValid || form.processing">
                             {{ editingId ? 'Сохранить' : 'Добавить' }}
                         </button>
                     </div>
 
                 </form>
+                </div>
+                </Transition>
             </div>
         </SiteModal>
     </div>
@@ -863,16 +892,18 @@ const formValid = computed(() =>
 .cd-hero__edit-btn {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    height: 32px;
-    padding: 0 0.75rem;
+    gap: 0.45rem;
+    padding: 0.45rem 1rem;
     border: 1px solid rgba(155, 110, 232, 0.35);
-    border-radius: 4px;
+    border-radius: 6px;
     background: rgba(155, 110, 232, 0.08);
     color: rgba(155, 110, 232, 0.75);
-    font-size: 0.8rem;
+    font-size: 0.92rem;
+    font-family: inherit;
+    font-weight: 500;
     cursor: pointer;
     flex-shrink: 0;
+    white-space: nowrap;
     transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 
@@ -1065,7 +1096,9 @@ const formValid = computed(() =>
     color: color-mix(in srgb, var(--cat-accent) 55%, transparent);
 }
 
-.svc-card--inactive {
+.svc-card--inactive .svc-card__badges,
+.svc-card--inactive .svc-card__info,
+.svc-card--inactive .svc-card__price-block {
     opacity: 0.6;
 }
 
@@ -1598,17 +1631,17 @@ const formValid = computed(() =>
 .svc-suggestions {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.35rem;
+    gap: 0.5rem;
 }
 
 .svc-chip {
-    padding: 0.3rem 0.8rem;
+    padding: 0.45rem 1rem;
     border: 1px solid rgba(200, 70, 126, 0.3);
     border-radius: 99px;
     background: transparent;
     color: rgba(200, 70, 126, 0.75);
     font-family: inherit;
-    font-size: 0.82rem;
+    font-size: 0.92rem;
     cursor: pointer;
     transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
@@ -1629,8 +1662,29 @@ const formValid = computed(() =>
 .sf-wrap {
     display: flex;
     flex-direction: column;
+}
+
+.sf-screen {
+    display: flex;
+    flex-direction: column;
     gap: 1.1rem;
 }
+
+.sf-screen-enter-active {
+    transition: opacity 0.2s ease, transform 0.22s ease;
+}
+.sf-screen-leave-active {
+    transition: opacity 0.15s ease, transform 0.18s ease;
+}
+.sf-screen-enter-from {
+    opacity: 0;
+    transform: translateY(8px);
+}
+.sf-screen-leave-to {
+    opacity: 0;
+    transform: translateY(-8px);
+}
+
 
 .sf-title {
     font-size: 1.15rem;
@@ -1644,26 +1698,31 @@ const formValid = computed(() =>
 .sf-form {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.4rem;
 }
 
 .sf-field {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: 0.5rem;
 }
 
 .sf-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 2fr 1fr;
     gap: 0.75rem;
 }
 
+.sf-field :deep(.app-select),
+.sf-field :deep(.app-select__trigger) {
+    font-size: 0.95rem;
+}
+
 .sf-label {
-    font-size: 0.68rem;
-    letter-spacing: 0.14em;
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: rgba(200, 70, 126, 0.55);
+    color: rgba(200, 70, 126, 0.85);
 }
 
 .sf-input {
@@ -1675,7 +1734,7 @@ const formValid = computed(() =>
     border-radius: 3px;
     color: rgba(255, 255, 255, 0.88);
     font-family: inherit;
-    font-size: 0.88rem;
+    font-size: 0.95rem;
     line-height: 1.4;
     outline: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -1706,7 +1765,7 @@ const formValid = computed(() =>
 
 .sf-actions {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     gap: 0.6rem;
     padding-top: 0.35rem;
 }
@@ -1752,11 +1811,24 @@ const formValid = computed(() =>
 }
 
 /* ── Price preview (#1) ───────────────────────────────────── */
+.sf-input-wrap {
+    position: relative;
+}
+
+.sf-input-wrap .sf-input {
+    padding-right: 4rem;
+}
+
 .sf-preview {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
     font-size: 0.82rem;
     color: rgba(200, 70, 126, 0.7);
     letter-spacing: 0.02em;
-    margin-top: -0.25rem;
+    pointer-events: none;
+    white-space: nowrap;
 }
 
 .sf-preview-fade-enter-active,
@@ -1770,19 +1842,14 @@ const formValid = computed(() =>
 }
 
 /* ── Char counter (#5) ────────────────────────────────────── */
-.sf-name-footer {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0.5rem;
-    min-height: 1rem;
-}
-
 .sf-char-count {
-    font-size: 0.68rem;
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.72rem;
     color: rgba(255, 255, 255, 0.2);
-    flex-shrink: 0;
-    align-self: center;
+    pointer-events: none;
     transition: color 0.2s;
 }
 
