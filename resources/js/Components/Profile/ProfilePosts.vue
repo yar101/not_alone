@@ -237,6 +237,7 @@ function deletePost() {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    padding: 0 1rem;
 }
 
 .posts-toolbar {
