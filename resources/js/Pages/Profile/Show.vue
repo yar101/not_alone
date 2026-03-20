@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, nextTick, onMounted, computed } from 'vue';
+import { ref, nextTick, onMounted, computed } from 'vue';
 import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -53,22 +53,12 @@ const initialTab = TAB_ORDER.includes(storedTab) ? storedTab
     : TAB_ORDER.includes(hashTab) ? hashTab
     : 'about';
 const tab = ref(initialTab);
-const tabDir = ref(1);  // +1 → slide-left, -1 → slide-right
 
 function switchTab(name) {
-    tabDir.value = TAB_ORDER.indexOf(name) > TAB_ORDER.indexOf(tab.value) ? 1 : -1;
     tab.value = name;
     history.replaceState(null, '', '#' + name);
     sessionStorage.setItem(`profile_tab_${props.profileUser.id}`, name);
 }
-
-// Stagger entrance on tab change
-watch(tab, async () => {
-    await nextTick();
-    gsap.from('.tab-panel > .anim-block', {
-        y: 14, opacity: 0, duration: 0.32, ease: 'power2.out',
-    });
-});
 
 // ── Report modal ──────────────────────────────────────────
 const showReportModal = ref(false);
@@ -280,7 +270,7 @@ onMounted(async () => {
                         </button>
                     </div>
                 <div class="tab-content-wrap page-block">
-                <Transition :name="tabDir > 0 ? 'slide-left' : 'slide-right'" mode="out-in">
+                <Transition name="tab-fade" mode="out-in">
 
                     <div v-if="tab === 'about'" key="about" class="tab-panel">
 
@@ -696,14 +686,20 @@ onMounted(async () => {
     overflow: hidden;
 }
 
-.slide-left-enter-from  { transform: translateX(36px); opacity: 0; }
-.slide-left-leave-to    { transform: translateX(-36px); opacity: 0; }
-.slide-right-enter-from { transform: translateX(-36px); opacity: 0; }
-.slide-right-leave-to   { transform: translateX(36px); opacity: 0; }
-.slide-left-enter-active,
-.slide-right-enter-active  { transition: transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.22s ease; }
-.slide-left-leave-active,
-.slide-right-leave-active  { transition: transform 0.2s ease-in, opacity 0.16s ease; }
+.tab-fade-enter-active {
+    transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.tab-fade-leave-active {
+    transition: opacity 0.16s ease, transform 0.16s ease-in;
+}
+.tab-fade-enter-from {
+    opacity: 0;
+    transform: translateY(10px);
+}
+.tab-fade-leave-to {
+    opacity: 0;
+    transform: translateY(-6px);
+}
 
 .tab-panel {
     height: 100%;
