@@ -242,7 +242,7 @@ onMounted(async () => {
                         @report="openReportModal"
                     />
                     <button v-if="!isOwner" class="sidebar-subscribe-btn">
-                        Подписаться
+                        Отслеживать
                     </button>
 
                 </div>
