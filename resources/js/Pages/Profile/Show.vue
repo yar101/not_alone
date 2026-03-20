@@ -8,6 +8,7 @@ import { StarFilled, MagicStick } from '@element-plus/icons-vue';
 defineOptions({ layout: AppLayout });
 import { gsap } from 'gsap';
 import ProfileHeader from '@/Components/Profile/ProfileHeader.vue';
+import ProfileChecklist from '@/Components/Profile/ProfileChecklist.vue';
 import ProfileAbout from '@/Components/Profile/ProfileAbout.vue';
 import ProfileTraits from '@/Components/Profile/ProfileTraits.vue';
 import ProfileInterests from '@/Components/Profile/ProfileInterests.vue';
@@ -165,12 +166,12 @@ onMounted(async () => {
                 },
             },
             {
-                element: '.cl-widget',
+                element: '.pcl',
                 popover: {
                     title: 'Чеклист',
                     description: 'Прогресс заполнения профиля.',
-                    side: 'top',
-                    align: 'end',
+                    side: 'bottom',
+                    align: 'start',
                 },
             },
         ],
@@ -225,11 +226,15 @@ onMounted(async () => {
                         :is-owner="isOwner"
                         :is-idol="isIdol"
                         :rating="rating"
+                        :can-report="!isOwner && !!page.props.auth?.user"
+                        @report="openReportModal"
+                    />
+                    <ProfileChecklist
+                        v-if="isOwner"
+                        :user="profileUser"
                         :traits="traits"
                         :interests="interests"
                         :languages="languages"
-                        :can-report="!isOwner && !!page.props.auth?.user"
-                        @report="openReportModal"
                     />
                     <button v-if="!isOwner" class="sidebar-subscribe-btn">
                         Отслеживать

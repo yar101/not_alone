@@ -3,7 +3,6 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import { Edit, Setting, Camera } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
-import ProfileChecklist from '@/Components/Profile/ProfileChecklist.vue';
 import AppSelect from '@/Components/AppSelect.vue';
 import ImageDropzone from '@/Components/ImageDropzone.vue';
 import { Cropper, CircleStencil } from 'vue-advanced-cropper';
@@ -19,9 +18,6 @@ const props = defineProps({
     isOwner: { type: Boolean, default: false },
     isIdol: { type: Boolean, default: false },
     rating: { default: null },
-    traits: { default: null },
-    interests: { default: null },
-    languages: { default: null },
     canReport: { type: Boolean, default: false },
 });
 
@@ -274,8 +270,6 @@ function deleteAvatar() {
                         </div>
                     </div>
                 </div>
-                <ProfileChecklist v-if="isOwner" :user="user" :traits="traits" :interests="interests"
-                    :languages="languages" />
             </div>
         </div>
 
