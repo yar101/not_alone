@@ -12,12 +12,15 @@ const props = defineProps({
 const emit = defineEmits(['open-detail', 'liked', 'delete']);
 
 const showAuthModal = ref(false);
+const likeAnimating = ref(false);
 
 async function toggleLike() {
     if (!props.authUser) {
         showAuthModal.value = true;
         return;
     }
+    likeAnimating.value = true;
+    setTimeout(() => { likeAnimating.value = false; }, 400);
     try {
         const { data } = await axios.post(route('posts.like', props.post.id));
         emit('liked', { postId: props.post.id, liked: data.liked, likesCount: data.likes_count });
@@ -115,7 +118,7 @@ onMounted(async () => {
                     :class="{ 'feed-card__action--liked': post.liked_by_me }"
                     @click.stop="toggleLike"
                 >
-                    <svg width="20" height="20" viewBox="0 0 24 24" :fill="post.liked_by_me ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="20" height="20" viewBox="0 0 24 24" :fill="post.liked_by_me ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :class="{ 'like-pop': likeAnimating }">
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                     </svg>
                     <span>{{ post.likes_count }}</span>
@@ -314,6 +317,16 @@ onMounted(async () => {
     color: rgba(255, 255, 255, 0.85);
 }
 .feed-card__action--liked { color: rgba(224, 24, 108, 1); }
+
+@keyframes like-pop {
+    0%   { transform: scale(1); }
+    30%  { transform: scale(1.45); }
+    60%  { transform: scale(0.88); }
+    100% { transform: scale(1); }
+}
+.like-pop {
+    animation: like-pop 0.38s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
 .feed-card__action--liked:hover {
     color: rgba(224, 24, 108, 1);
     background: rgba(224, 24, 108, 0.07);
