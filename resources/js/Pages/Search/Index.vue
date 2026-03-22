@@ -133,6 +133,57 @@ function filteredInterests(cat) {
     return cat.interests.filter(i => i.name_ru.toLowerCase().includes(q));
 }
 
+// ── Active chips ─────────────────────────────────────────────
+const activeChips = computed(() => {
+    const chips = [];
+    if (f.value.name)
+        chips.push({ label: `Имя: ${f.value.name}`, key: 'name' });
+    if (f.value.gender)
+        chips.push({ label: `Пол: ${f.value.gender === 'male' ? 'Мужской' : 'Женский'}`, key: 'gender' });
+    if (f.value.age_from || f.value.age_to)
+        chips.push({ label: `Возраст: ${f.value.age_from || '…'}–${f.value.age_to || '…'}`, key: 'age' });
+    if (f.value.is_idol !== '')
+        chips.push({ label: `Айдол: ${f.value.is_idol === '1' ? 'Да' : 'Нет'}`, key: 'is_idol' });
+    if (f.value.rating_from || f.value.rating_to)
+        chips.push({ label: `Рейтинг: ${f.value.rating_from || '…'}–${f.value.rating_to || '…'}`, key: 'rating' });
+    f.value.traits.forEach(id => {
+        const t = props.traits.find(x => x.id === id);
+        if (t) chips.push({ label: t.name_ru, key: 'traits', value: id });
+    });
+    f.value.interests.forEach(id => {
+        for (const cat of props.interestCategories) {
+            const i = cat.interests.find(x => x.id === id);
+            if (i) { chips.push({ label: i.name_ru, key: 'interests', value: id }); break; }
+        }
+    });
+    f.value.languages.forEach(code => {
+        const l = LANGUAGES.find(x => x.code === code);
+        if (l) chips.push({ label: l.label, key: 'languages', value: code });
+    });
+    if (f.value.timezone)
+        chips.push({ label: f.value.timezone, key: 'timezone' });
+    f.value.service_categories.forEach(id => {
+        const c = props.serviceCategories.find(x => x.id === id);
+        if (c) chips.push({ label: c.name, key: 'service_categories', value: id });
+    });
+    return chips;
+});
+
+function resetChip(chip) {
+    if (chip.key === 'name')    f.value.name = '';
+    else if (chip.key === 'gender')   f.value.gender = '';
+    else if (chip.key === 'age')      { f.value.age_from = ''; f.value.age_to = ''; }
+    else if (chip.key === 'is_idol')  f.value.is_idol = '';
+    else if (chip.key === 'rating')   { f.value.rating_from = ''; f.value.rating_to = ''; }
+    else if (chip.key === 'timezone') f.value.timezone = '';
+    else if (['traits','interests','languages','service_categories'].includes(chip.key))
+        f.value[chip.key] = f.value[chip.key].filter(v => v !== chip.value);
+}
+
+function interestCountForCat(cat) {
+    return cat.interests.filter(i => f.value.interests.includes(i.id)).length;
+}
+
 // ── Helpers ─────────────────────────────────────────────────
 function calcAge(birthDate) {
     if (!birthDate) return null;
@@ -239,6 +290,20 @@ function initial(name) {
                 <div class="sidebar-inner">
                     <h2 class="sidebar-title">Фильтры</h2>
 
+                    <!-- Active chips -->
+                    <Transition name="chips-fade">
+                        <div v-if="activeChips.length" class="active-chips">
+                            <span
+                                v-for="chip in activeChips"
+                                :key="chip.key + (chip.value ?? '')"
+                                class="active-chip"
+                            >
+                                {{ chip.label }}
+                                <button class="active-chip__remove" @click="resetChip(chip)">×</button>
+                            </span>
+                        </div>
+                    </Transition>
+
                     <!-- Имя -->
                     <div class="filter-group">
                         <label class="filter-label">Имя</label>
@@ -285,21 +350,24 @@ function initial(name) {
                         </div>
                     </div>
 
+                    <!-- Divider -->
+                    <div class="filter-divider"><span>Расширенные</span></div>
+
                     <!-- Черты характера -->
                     <div class="filter-group">
                         <div class="filter-section-header" @click="toggleSection('traits')">
                             <label class="filter-label">Характер</label>
-                            <input
-                                v-if="openSections.has('traits')"
-                                class="section-search"
-                                v-model="sectionSearch.traits"
-                                placeholder="Поиск..."
-                                @click.stop
-                            />
+                            <span v-if="!openSections.has('traits') && f.traits.length" class="section-badge">{{ f.traits.length }}</span>
                             <svg class="section-chevron" :class="{ open: openSections.has('traits') }" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M2.5 5L7 9.5L11.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                         </div>
+                        <input
+                            v-if="openSections.has('traits')"
+                            class="section-search"
+                            v-model="sectionSearch.traits"
+                            placeholder="Поиск..."
+                        />
                         <div v-if="openSections.has('traits')" class="checkbox-list">
                             <label v-for="trait in filteredTraits" :key="trait.id" class="checkbox-item">
                                 <input type="checkbox" :value="trait.id" v-model="f.traits" class="checkbox-input" />
@@ -314,17 +382,17 @@ function initial(name) {
                         <div v-for="cat in interestCategories" :key="cat.id" class="interest-cat">
                             <div class="filter-section-header" @click="toggleSection(`interest_cat_${cat.id}`)">
                                 <div class="interest-cat__name">{{ cat.name_ru }}</div>
-                                <input
-                                    v-if="openSections.has(`interest_cat_${cat.id}`)"
-                                    class="section-search"
-                                    v-model="sectionSearch[`interest_cat_${cat.id}`]"
-                                    placeholder="Поиск..."
-                                    @click.stop
-                                />
+                                <span v-if="!openSections.has(`interest_cat_${cat.id}`) && interestCountForCat(cat)" class="section-badge">{{ interestCountForCat(cat) }}</span>
                                 <svg class="section-chevron" :class="{ open: openSections.has(`interest_cat_${cat.id}`) }" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M2.5 5L7 9.5L11.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
                             </div>
+                            <input
+                                v-if="openSections.has(`interest_cat_${cat.id}`)"
+                                class="section-search"
+                                v-model="sectionSearch[`interest_cat_${cat.id}`]"
+                                placeholder="Поиск..."
+                            />
                             <div v-if="openSections.has(`interest_cat_${cat.id}`)" class="checkbox-list">
                                 <label v-for="interest in filteredInterests(cat)" :key="interest.id" class="checkbox-item">
                                     <input type="checkbox" :value="interest.id" v-model="f.interests" class="checkbox-input" />
@@ -338,17 +406,17 @@ function initial(name) {
                     <div class="filter-group">
                         <div class="filter-section-header" @click="toggleSection('languages')">
                             <label class="filter-label">Языки</label>
-                            <input
-                                v-if="openSections.has('languages')"
-                                class="section-search"
-                                v-model="sectionSearch.languages"
-                                placeholder="Поиск..."
-                                @click.stop
-                            />
+                            <span v-if="!openSections.has('languages') && f.languages.length" class="section-badge">{{ f.languages.length }}</span>
                             <svg class="section-chevron" :class="{ open: openSections.has('languages') }" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M2.5 5L7 9.5L11.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                         </div>
+                        <input
+                            v-if="openSections.has('languages')"
+                            class="section-search"
+                            v-model="sectionSearch.languages"
+                            placeholder="Поиск..."
+                        />
                         <div v-if="openSections.has('languages')" class="checkbox-list">
                             <label v-for="lang in filteredLanguages" :key="lang.code" class="checkbox-item">
                                 <input type="checkbox" :value="lang.code" v-model="f.languages" class="checkbox-input" />
@@ -370,17 +438,17 @@ function initial(name) {
                     <div class="filter-group">
                         <div class="filter-section-header" @click="toggleSection('service_categories')">
                             <label class="filter-label">Категории услуг</label>
-                            <input
-                                v-if="openSections.has('service_categories')"
-                                class="section-search"
-                                v-model="sectionSearch.service_categories"
-                                placeholder="Поиск..."
-                                @click.stop
-                            />
+                            <span v-if="!openSections.has('service_categories') && f.service_categories.length" class="section-badge">{{ f.service_categories.length }}</span>
                             <svg class="section-chevron" :class="{ open: openSections.has('service_categories') }" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M2.5 5L7 9.5L11.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                         </div>
+                        <input
+                            v-if="openSections.has('service_categories')"
+                            class="section-search"
+                            v-model="sectionSearch.service_categories"
+                            placeholder="Поиск..."
+                        />
                         <div v-if="openSections.has('service_categories')" class="checkbox-list">
                             <label v-for="cat in filteredServiceCategories" :key="cat.id" class="checkbox-item">
                                 <input type="checkbox" :value="cat.id" v-model="f.service_categories" class="checkbox-input" />
@@ -476,6 +544,74 @@ function initial(name) {
     text-transform: uppercase;
 }
 
+/* ── Active chips ────────────────────────────────────────── */
+.active-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: -0.6rem;
+}
+.active-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 20px;
+    background: rgba(180, 160, 255, 0.1);
+    border: 1px solid rgba(160, 160, 255, 0.25);
+    color: #be91ff;
+    font-size: 0.78rem;
+    line-height: 1;
+}
+.active-chip__remove {
+    background: none;
+    border: none;
+    color: rgba(190, 145, 255, 0.6);
+    cursor: pointer;
+    padding: 0;
+    font-size: 0.9rem;
+    line-height: 1;
+    transition: color 0.15s;
+    font-family: inherit;
+}
+.active-chip__remove:hover {
+    color: #e0558f;
+}
+.chips-fade-enter-active, .chips-fade-leave-active { transition: opacity 0.2s; }
+.chips-fade-enter-from, .chips-fade-leave-to { opacity: 0; }
+
+/* ── Section badge ───────────────────────────────────────── */
+.section-badge {
+    display: inline-block;
+    padding: 0.1rem 0.38rem;
+    border-radius: 20px;
+    background: rgba(180, 160, 255, 0.15);
+    color: #be91ff;
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1.4;
+    flex-shrink: 0;
+}
+
+/* ── Filter divider ──────────────────────────────────────── */
+.filter-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.filter-divider::before, .filter-divider::after {
+    content: '';
+    flex: 1;
+    border-top: 1px solid rgba(110, 110, 210, 0.15);
+}
+.filter-divider span {
+    font-size: 0.7rem;
+    color: rgba(160, 160, 255, 0.35);
+    white-space: nowrap;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
 /* ── Filter group ────────────────────────────────────────── */
 .filter-group {
     display: flex;
@@ -537,7 +673,7 @@ function initial(name) {
 
 .btn-toggle {
     padding: 0.35rem 0.8rem;
-    border-radius: 3px;
+    border-radius: 20px;
     border: 1px solid rgba(110, 110, 210, 0.25);
     background: transparent;
     color: rgba(255,255,255,0.5);
@@ -547,6 +683,7 @@ function initial(name) {
     font-family: inherit;
 }
 .btn-toggle:hover {
+    background: rgba(110, 110, 210, 0.06);
     border-color: rgba(110, 110, 210, 0.5);
     color: rgba(255,255,255,0.8);
 }
@@ -554,6 +691,7 @@ function initial(name) {
     border-color: rgba(160, 160, 255, 0.6);
     background: rgba(110, 110, 210, 0.15);
     color: #be91ff;
+    box-shadow: 0 0 10px rgba(160, 160, 255, 0.2);
 }
 
 /* ── Collapsible section headers ─────────────────────────── */
@@ -584,11 +722,14 @@ function initial(name) {
     border: 1px solid rgba(110, 110, 210, 0.2);
     border-radius: 3px;
     color: rgba(255,255,255,0.8);
-    padding: 0.2rem 0.45rem;
-    font-size: 0.8rem;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.82rem;
     font-family: inherit;
     outline: none;
-    width: 160px;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 0.4rem;
+    margin-bottom: 0.4rem;
 }
 .section-search:focus {
     border-color: rgba(110, 110, 210, 0.5);
@@ -606,8 +747,8 @@ function initial(name) {
 
 /* ── Checkboxes ──────────────────────────────────────────── */
 .checkbox-list {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 0.4rem;
     max-height: 220px;
     overflow-y: auto;
