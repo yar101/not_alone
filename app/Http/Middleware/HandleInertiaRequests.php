@@ -4,6 +4,8 @@ namespace App\Http\Middleware;
 
 use App\Models\IdolApplication;
 use App\Models\Service;
+use App\Models\InterestSuggestion;
+use App\Models\TraitSuggestion;
 use App\Models\UserReport;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -47,6 +49,12 @@ class HandleInertiaRequests extends Middleware
                 : 0,
             'pending_reports_count' => fn() => auth('admin')->check()
                 ? UserReport::where('status', 'pending')->count()
+                : 0,
+            'pending_trait_suggestions_count' => fn() => auth('admin')->check()
+                ? TraitSuggestion::where('status', 'pending')->count()
+                : 0,
+            'pending_interest_suggestions_count' => fn() => auth('admin')->check()
+                ? InterestSuggestion::where('status', 'pending')->count()
                 : 0,
             'flash' => [
                 'success'         => $request->session()->get('success'),

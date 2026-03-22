@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\IdolCategoryDescription;
+use App\Models\InterestSuggestion;
+use App\Models\TraitSuggestion;
 use App\Models\InterestCategory;
 use App\Models\PersonalityTrait;
 use App\Models\Post;
@@ -449,5 +451,31 @@ class UserProfileController extends Controller
         abort_if($comment->user_id !== $request->user()->id, 403);
         $comment->delete();
         return response()->json(['deleted' => true]);
+    }
+
+    public function storeInterestSuggestion(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['name' => ['required', 'string', 'max:100']]);
+        $userId = $request->user()->id;
+        $name = $data['name'];
+        $exists = InterestSuggestion::where('user_id', $userId)->where('name', $name)->exists();
+        if (!$exists) {
+            InterestSuggestion::create(['user_id' => $userId, 'name' => $name, 'status' => 'pending']);
+        }
+        return back();
+    }
+
+    public function storeTraitSuggestion(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['name' => ['required', 'string', 'max:100']]);
+        $userId = $request->user()->id;
+        $name = $data['name'];
+
+        $exists = TraitSuggestion::where('user_id', $userId)->where('name', $name)->exists();
+        if (!$exists) {
+            TraitSuggestion::create(['user_id' => $userId, 'name' => $name, 'status' => 'pending']);
+        }
+
+        return back();
     }
 }

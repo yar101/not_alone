@@ -11,8 +11,12 @@ const adminUser = computed(() => page.props.auth_admin);
 const pendingCount = computed(() => page.props.pending_applications_count ?? 0);
 const pendingServicesCount = computed(() => page.props.pending_services_count ?? 0);
 const pendingReportsCount = computed(() => page.props.pending_reports_count ?? 0);
+const pendingTraitSuggestionsCount = computed(() => page.props.pending_trait_suggestions_count ?? 0);
+const pendingInterestSuggestionsCount = computed(() => page.props.pending_interest_suggestions_count ?? 0);
 
-const servicesOpen = ref(false);
+const servicesOpen  = ref(false);
+const traitsOpen    = ref(false);
+const interestsOpen = ref(false);
 
 const component = computed(() => page.component);
 
@@ -20,9 +24,23 @@ function isOnServices() {
     return component.value?.startsWith('Admin/Services/');
 }
 
+function isOnTraits() {
+    return component.value?.startsWith('Admin/Traits/');
+}
+
+function isOnInterests() {
+    return component.value?.startsWith('Admin/Interests/');
+}
+
 watch(component, (val) => {
     if (val?.startsWith('Admin/Services/')) {
         servicesOpen.value = true;
+    }
+    if (val?.startsWith('Admin/Traits/')) {
+        traitsOpen.value = true;
+    }
+    if (val?.startsWith('Admin/Interests/')) {
+        interestsOpen.value = true;
     }
 }, { immediate: true });
 
@@ -117,6 +135,60 @@ function isActive(routeName) {
                 >
                     Пользователи
                 </Link>
+
+                <div class="nav-group">
+                    <button
+                        class="nav-item nav-item--group"
+                        :class="{ 'nav-item--active': isOnTraits() }"
+                        @click="traitsOpen = !traitsOpen"
+                    >
+                        <span>Черты характера</span>
+                        <span class="nav-badge" v-if="pendingTraitSuggestionsCount > 0" style="margin-left: auto; margin-right: 0.25rem;">{{ pendingTraitSuggestionsCount }}</span>
+                        <span class="nav-arrow" :class="{ 'nav-arrow--open': traitsOpen }">▾</span>
+                    </button>
+                    <div v-if="traitsOpen" class="nav-sub">
+                        <Link
+                            :href="route('admin.traits.index')"
+                            class="nav-item nav-item--sub"
+                            :class="{ 'nav-item--active': isActive('admin.traits.index') }"
+                        >Список</Link>
+                        <Link
+                            :href="route('admin.traits.suggestions.index')"
+                            class="nav-item nav-item--sub"
+                            :class="{ 'nav-item--active': isActive('admin.traits.suggestions.*') }"
+                        >
+                            Предложения
+                            <span v-if="pendingTraitSuggestionsCount > 0" class="nav-badge">{{ pendingTraitSuggestionsCount }}</span>
+                        </Link>
+                    </div>
+                </div>
+
+                <div class="nav-group">
+                    <button
+                        class="nav-item nav-item--group"
+                        :class="{ 'nav-item--active': isOnInterests() }"
+                        @click="interestsOpen = !interestsOpen"
+                    >
+                        <span>Интересы</span>
+                        <span class="nav-badge" v-if="pendingInterestSuggestionsCount > 0" style="margin-left: auto; margin-right: 0.25rem;">{{ pendingInterestSuggestionsCount }}</span>
+                        <span class="nav-arrow" :class="{ 'nav-arrow--open': interestsOpen }">▾</span>
+                    </button>
+                    <div v-if="interestsOpen" class="nav-sub">
+                        <Link
+                            :href="route('admin.interests.index')"
+                            class="nav-item nav-item--sub"
+                            :class="{ 'nav-item--active': isActive('admin.interests.index') }"
+                        >Список</Link>
+                        <Link
+                            :href="route('admin.interests.suggestions.index')"
+                            class="nav-item nav-item--sub"
+                            :class="{ 'nav-item--active': isActive('admin.interests.suggestions.*') }"
+                        >
+                            Предложения
+                            <span v-if="pendingInterestSuggestionsCount > 0" class="nav-badge">{{ pendingInterestSuggestionsCount }}</span>
+                        </Link>
+                    </div>
+                </div>
 
                 <Link
                     :href="route('admin.reports.index')"

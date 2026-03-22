@@ -10,6 +10,11 @@ use App\Http\Controllers\Admin\MessageController;
 use App\Http\Controllers\Admin\PlatformSettingsController;
 use App\Http\Controllers\Admin\QuizQuestionController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\InterestCategoryController;
+use App\Http\Controllers\Admin\InterestController;
+use App\Http\Controllers\Admin\InterestSuggestionController;
+use App\Http\Controllers\Admin\PersonalityTraitController;
+use App\Http\Controllers\Admin\TraitSuggestionController;
 use App\Http\Controllers\Admin\ServiceCategoryController;
 use App\Http\Controllers\Admin\ServiceModerationController;
 use App\Http\Controllers\Admin\ServicePriceLimitController;
@@ -96,6 +101,44 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/{report}', [ReportController::class, 'show'])->name('show');
             Route::patch('/{report}/review', [ReportController::class, 'review'])->name('review');
             Route::patch('/{report}/dismiss', [ReportController::class, 'dismiss'])->name('dismiss');
+        });
+
+        // Traits (CRUD + suggestions)
+        Route::prefix('traits')->name('traits.')->group(function () {
+            Route::get('/', [PersonalityTraitController::class, 'index'])->name('index');
+            Route::post('/', [PersonalityTraitController::class, 'store'])->name('store');
+Route::patch('/{trait}', [PersonalityTraitController::class, 'update'])->name('update');
+            Route::delete('/{trait}', [PersonalityTraitController::class, 'destroy'])->name('destroy');
+
+            Route::prefix('suggestions')->name('suggestions.')->group(function () {
+                Route::get('/', [TraitSuggestionController::class, 'index'])->name('index');
+                Route::patch('/{traitSuggestion}/approve', [TraitSuggestionController::class, 'approve'])->name('approve');
+                Route::patch('/{traitSuggestion}/reject', [TraitSuggestionController::class, 'reject'])->name('reject');
+                Route::patch('/{traitSuggestion}/implement', [TraitSuggestionController::class, 'implement'])->name('implement');
+                Route::patch('/{traitSuggestion}/reopen', [TraitSuggestionController::class, 'reopen'])->name('reopen');
+                Route::delete('/{traitSuggestion}', [TraitSuggestionController::class, 'destroy'])->name('destroy');
+            });
+        });
+
+        // Interests (CRUD + suggestions)
+        Route::prefix('interests')->name('interests.')->group(function () {
+            Route::get('/', [InterestController::class, 'index'])->name('index');
+            Route::post('/', [InterestController::class, 'store'])->name('store');
+            Route::patch('/{interest}', [InterestController::class, 'update'])->name('update');
+            Route::delete('/{interest}', [InterestController::class, 'destroy'])->name('destroy');
+
+            Route::post('/categories', [InterestCategoryController::class, 'store'])->name('categories.store');
+            Route::patch('/categories/{interestCategory}', [InterestCategoryController::class, 'update'])->name('categories.update');
+            Route::delete('/categories/{interestCategory}', [InterestCategoryController::class, 'destroy'])->name('categories.destroy');
+
+            Route::prefix('suggestions')->name('suggestions.')->group(function () {
+                Route::get('/', [InterestSuggestionController::class, 'index'])->name('index');
+                Route::patch('/{interestSuggestion}/approve', [InterestSuggestionController::class, 'approve'])->name('approve');
+                Route::patch('/{interestSuggestion}/reject', [InterestSuggestionController::class, 'reject'])->name('reject');
+                Route::patch('/{interestSuggestion}/implement', [InterestSuggestionController::class, 'implement'])->name('implement');
+                Route::patch('/{interestSuggestion}/reopen', [InterestSuggestionController::class, 'reopen'])->name('reopen');
+                Route::delete('/{interestSuggestion}', [InterestSuggestionController::class, 'destroy'])->name('destroy');
+            });
         });
 
         // Export

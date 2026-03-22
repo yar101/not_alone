@@ -17,6 +17,11 @@ const interestSearch = ref('');
 const selected = ref(new Set(Array.isArray(props.interests) ? props.interests.map(i => i.id) : []));
 const form = useForm({ interest_ids: [] });
 
+const view = ref('list');
+const suggestionText = ref('');
+const suggSuccess = ref(false);
+const suggForm = useForm({ name: '' });
+
 const filteredCategories = computed(() => {
     if (!Array.isArray(props.allCategories)) return [];
     const q = interestSearch.value.trim().toLowerCase();
@@ -61,7 +66,23 @@ function openEdit() {
     selected.value = new Set(Array.isArray(props.interests) ? props.interests.map(i => i.id) : []);
     interestSearch.value = '';
     openCat.value = null;
+    view.value = 'list';
+    suggestionText.value = '';
+    suggSuccess.value = false;
     editModal.value = true;
+}
+
+function submitSuggestion() {
+    suggForm.name = suggestionText.value.trim();
+    suggForm.post(route('profile.interest-suggestions.store'), {
+        preserveState: true,
+        preserveScroll: true,
+        onSuccess: () => {
+            suggestionText.value = '';
+            suggSuccess.value = true;
+            setTimeout(() => { suggSuccess.value = false; view.value = 'list'; }, 2000);
+        },
+    });
 }
 </script>
 
@@ -83,44 +104,72 @@ function openEdit() {
         <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
             <div class="edit-form">
                 <h3 class="edit-title">Интересы</h3>
-                <p class="edit-hint">Выбери по категориям (до 10)</p>
 
-                <input
-                    v-model="interestSearch"
-                    type="text"
-                    class="search-input"
-                    placeholder="Поиск по интересам..."
-                />
+                <Transition name="view-slide" mode="out-in">
+                <div v-if="view === 'list'" key="list">
+                    <p class="edit-hint">Выбери по категориям (до 10)</p>
 
-                <div class="categories">
-                    <template v-if="filteredCategories.length">
-                        <div v-for="cat in filteredCategories" :key="cat.id" class="cat-block">
-                            <button type="button" class="cat-header" @click="toggleCat(cat.id)">
-                                <span>{{ cat.name_ru }}</span>
-                                <span class="cat-count" v-if="cat.interests.some(i => selected.has(i.id))">
-                                    ({{ cat.interests.filter(i => selected.has(i.id)).length }})
-                                </span>
-                                <span class="cat-arrow" :class="{ open: expandedCats.has(cat.id) }">›</span>
-                            </button>
-                            <div v-if="expandedCats.has(cat.id)" class="cat-interests">
-                                <button
-                                    v-for="i in cat.interests"
-                                    :key="i.id"
-                                    type="button"
-                                    class="interest-btn"
-                                    :class="{ active: selected.has(i.id) }"
-                                    @click="toggleInterest(i.id)"
-                                    :disabled="!selected.has(i.id) && selected.size >= 10"
-                                >{{ i.name_ru }}</button>
+                    <input
+                        v-model="interestSearch"
+                        type="text"
+                        class="search-input"
+                        placeholder="Поиск по интересам..."
+                    />
+
+                    <div class="categories">
+                        <template v-if="filteredCategories.length">
+                            <div v-for="cat in filteredCategories" :key="cat.id" class="cat-block">
+                                <button type="button" class="cat-header" @click="toggleCat(cat.id)">
+                                    <span>{{ cat.name_ru }}</span>
+                                    <span class="cat-count" v-if="cat.interests.some(i => selected.has(i.id))">
+                                        ({{ cat.interests.filter(i => selected.has(i.id)).length }})
+                                    </span>
+                                    <span class="cat-arrow" :class="{ open: expandedCats.has(cat.id) }">›</span>
+                                </button>
+                                <div v-if="expandedCats.has(cat.id)" class="cat-interests">
+                                    <button
+                                        v-for="i in cat.interests"
+                                        :key="i.id"
+                                        type="button"
+                                        class="interest-btn"
+                                        :class="{ active: selected.has(i.id) }"
+                                        @click="toggleInterest(i.id)"
+                                        :disabled="!selected.has(i.id) && selected.size >= 10"
+                                    >{{ i.name_ru }}</button>
+                                </div>
                             </div>
-                        </div>
-                    </template>
-                    <p v-else class="no-results">Ничего не найдено</p>
+                        </template>
+                        <p v-else class="no-results">Ничего не найдено</p>
+                    </div>
+
+                    <div class="list-footer">
+                        <button class="suggest-btn" @click="view = 'suggest'">Предложить свой</button>
+                        <button class="save-btn save-btn--inline" :disabled="form.processing" @click="submit">
+                            Сохранить ({{ selected.size }}/10)
+                        </button>
+                    </div>
                 </div>
 
-                <button class="save-btn" :disabled="form.processing" @click="submit">
-                    Сохранить ({{ selected.size }}/10)
-                </button>
+                <div v-else key="suggest" class="suggest-form">
+                    <button class="back-btn" @click="view = 'list'">← Назад</button>
+                    <h4 class="suggest-title">Предложить интерес</h4>
+                    <p class="suggest-hint">Напиши название — мы рассмотрим его и добавим, если подойдёт</p>
+                    <textarea
+                        v-model="suggestionText"
+                        class="suggestion-textarea"
+                        maxlength="100"
+                        rows="3"
+                        placeholder="Например: Настольные игры..."
+                    />
+                    <div class="suggest-footer">
+                        <span class="char-count">{{ suggestionText.length }}/100</span>
+                        <button class="save-btn suggest-submit-btn" :disabled="!suggestionText.trim() || suggForm.processing" @click="submitSuggestion">
+                            Отправить
+                        </button>
+                    </div>
+                    <p v-if="suggSuccess" class="sugg-success">Предложение отправлено!</p>
+                </div>
+                </Transition>
             </div>
         </SiteModal>
     </div>
@@ -229,4 +278,63 @@ function openEdit() {
 }
 .save-btn:hover:not(:disabled) { background: rgba(190,145,255,0.2); }
 .save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.list-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.suggest-btn {
+    flex-shrink: 0;
+    padding: 0.5rem 0.85rem;
+    border-radius: 3px;
+    border: 1px solid rgba(190,145,255,0.3);
+    background: rgba(190,145,255,0.07);
+    color: rgba(190,145,255,0.85);
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+}
+.suggest-btn:hover { background: rgba(190,145,255,0.15); border-color: rgba(190,145,255,0.5); }
+.save-btn--inline { width: auto; padding: 0.55rem 1.25rem; }
+
+/* ── Форма предложения интереса ──────────────────────────── */
+.suggest-form { display: flex; flex-direction: column; gap: 0.6rem; }
+.back-btn {
+    align-self: flex-start;
+    background: none;
+    border: none;
+    padding: 0;
+    color: rgba(255,255,255,0.4);
+    font-size: 0.88rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: color 0.15s;
+}
+.back-btn:hover { color: rgba(255,255,255,0.7); }
+.suggest-title { font-size: 1rem; font-weight: 600; color: rgba(255,255,255,0.9); margin: 0; }
+.suggest-hint { font-size: 0.82rem; color: rgba(255,255,255,0.35); margin: 0; }
+.suggestion-textarea {
+    width: 100%;
+    padding: 0.6rem 0.9rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    color: rgba(255,255,255,0.88);
+    font-size: 0.9rem;
+    font-family: inherit;
+    box-sizing: border-box;
+    outline: none;
+    resize: vertical;
+    transition: border-color 0.15s;
+}
+.suggestion-textarea::placeholder { color: rgba(255,255,255,0.25); }
+.suggestion-textarea:focus { border-color: rgba(160,160,255,0.4); }
+.suggest-footer { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
+.char-count { font-size: 0.78rem; color: rgba(255,255,255,0.3); }
+.suggest-submit-btn { width: auto; padding: 0.55rem 1.25rem; }
+.sugg-success { color: #6ee7b7; font-size: 0.88rem; margin: 0; text-align: center; }
+
+.view-slide-enter-active { transition: opacity 0.22s ease, transform 0.22s ease; }
+.view-slide-leave-active  { transition: opacity 0.15s ease, transform 0.15s ease; }
+.view-slide-enter-from    { opacity: 0; transform: translateX(16px); }
+.view-slide-leave-to      { opacity: 0; transform: translateX(-16px); }
 </style>
