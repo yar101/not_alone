@@ -63,49 +63,29 @@ class UserProfileController extends Controller
             'services'     => Inertia::defer(function () use ($user) {
                 $authId  = auth()->id();
                 $isOwner = $authId === $user->id;
-                $query   = $user->services()->with(['category:id,name,description,image_path,accent_color,sort_order', 'timeUnit:id,name']);
 
+                // All active categories
+                $allCategories = ServiceCategory::where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->get(['id', 'name', 'description', 'image_path', 'accent_color', 'sort_order']);
+
+                // Services for this user
+                $query = $user->services()->with(['timeUnit:id,name']);
                 if (!$isOwner) {
                     $query->where('is_active', true)->where('status', 'approved');
                 }
-
                 $services = $query->orderBy('created_at')->get();
 
-                if ($services->isEmpty()) {
-                    return [];
-                }
-
-                // Idol descriptions for this user
-                $categoryIds  = $services->pluck('category_id')->unique()->values();
+                // Idol descriptions
+                $categoryIds  = $allCategories->pluck('id');
                 $descriptions = IdolCategoryDescription::where('user_id', $user->id)
                     ->whereIn('category_id', $categoryIds)
                     ->pluck('description', 'category_id');
 
-                // Other idols per category (up to 4 random)
-                $otherServices = Service::where('is_active', true)
-                    ->where('status', 'approved')
-                    ->where('user_id', '!=', $user->id)
-                    ->whereIn('category_id', $categoryIds)
-                    ->with(['user:id,name,avatar_path,rating'])
-                    ->get(['id', 'user_id', 'category_id']);
+                $servicesByCategory = $services->groupBy('category_id');
 
-                $otherIdolsByCategory = $otherServices
-                    ->groupBy('category_id')
-                    ->map(fn ($group) => $group
-                        ->unique('user_id')
-                        ->shuffle()
-                        ->take(4)
-                        ->map(fn ($s) => [
-                            'id'         => $s->user->id,
-                            'name'       => $s->user->name,
-                            'avatar_url' => $s->user->avatar_url,
-                            'rating'     => $s->user->rating,
-                        ])
-                        ->values()
-                    );
-
-                return $services->groupBy('category_id')->map(function ($group) use ($descriptions, $otherIdolsByCategory) {
-                    $cat = $group->first()->category;
+                return $allCategories->map(function ($cat) use ($servicesByCategory, $descriptions) {
+                    $group = $servicesByCategory->get($cat->id, collect());
                     return [
                         'category' => [
                             'id'           => $cat->id,
@@ -116,7 +96,6 @@ class UserProfileController extends Controller
                             'sort_order'   => $cat->sort_order,
                         ],
                         'idol_description' => $descriptions[$cat->id] ?? null,
-                        'other_idols'      => $otherIdolsByCategory[$cat->id] ?? [],
                         'items'            => $group->map(fn (Service $s) => [
                             'id'               => $s->id,
                             'name'             => $s->name,
@@ -128,7 +107,7 @@ class UserProfileController extends Controller
                             'time_unit'        => ['id' => $s->timeUnit->id, 'name' => $s->timeUnit->name],
                         ])->values(),
                     ];
-                })->sortBy('category.sort_order')->values();
+                })->values();
             }, 'services'),
             'serviceCategories' => Inertia::defer(
                 fn () => ServiceCategory::where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'name_suggestions', 'accent_color']),
@@ -139,6 +118,35 @@ class UserProfileController extends Controller
                 'services'
             ),
 
+        ]);
+    }
+
+    public function categoryIdols(User $user, ServiceCategory $category, Request $request): JsonResponse
+    {
+        $page    = max(1, (int) $request->get('page', 1));
+        $perPage = 4;
+
+        $idols = Service::where('is_active', true)
+            ->where('status', 'approved')
+            ->where('user_id', '!=', $user->id)
+            ->where('category_id', $category->id)
+            ->with(['user:id,name,avatar_path,rating'])
+            ->get(['id', 'user_id'])
+            ->unique('user_id');
+
+        $total = $idols->count();
+        $paged = $idols->slice(($page - 1) * $perPage, $perPage)->values();
+
+        return response()->json([
+            'idols'   => $paged->map(fn ($s) => [
+                'id'         => $s->user->id,
+                'name'       => $s->user->name,
+                'avatar_url' => $s->user->avatar_url,
+                'rating'     => $s->user->rating,
+            ])->values(),
+            'total'   => $total,
+            'page'    => $page,
+            'hasMore' => ($page * $perPage) < $total,
         ]);
     }
 

@@ -27,6 +27,7 @@ Route::get('/users/{user}', [UserProfileController::class, 'show'])->name('profi
 
 // Public post endpoints (no auth required)
 Route::get('/users/{user}/posts',    [UserProfileController::class, 'getPosts'])->name('profile.posts.feed');
+Route::get('/users/{user}/category/{category}/idols', [UserProfileController::class, 'categoryIdols'])->name('profile.category-idols');
 Route::get('/posts/{post}/comments', [UserProfileController::class, 'getComments'])->name('posts.comments.index');
 
 // /profile redirects to own profile

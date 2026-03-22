@@ -338,6 +338,7 @@ onMounted(async () => {
                                     :service-time-units="serviceTimeUnits"
                                     :is-owner="isOwner"
                                     :is-idol="isIdol"
+                                    :profile-user="profileUser"
                                 />
                             </div>
                         </template>
