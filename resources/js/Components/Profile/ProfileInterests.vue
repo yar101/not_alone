@@ -209,7 +209,7 @@ function submitSuggestion() {
     cursor: pointer;
     color: rgba(255,255,255,0.25);
     font-size: 0.95rem;
-    opacity: 0;
+    opacity: 0.75;
     transition: opacity 0.18s, color 0.18s, border-color 0.18s, background 0.18s, box-shadow 0.18s;
 }
 .block-section:hover .edit-btn {
