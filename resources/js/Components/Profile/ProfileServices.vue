@@ -68,6 +68,14 @@ watch(() => props.services, (services) => {
     }
 }, { immediate: true });
 
+function navigateToIdolInCategory(idol) {
+    const categoryId = selectedCategory.value?.category?.id;
+    if (categoryId) {
+        sessionStorage.setItem(`services_cat_${idol.id}`, categoryId);
+    }
+    window.location.href = route('profile.show', idol.id) + '#services';
+}
+
 // ── Inline description edit ─────────────────────────────────────
 const editingDesc = ref(false);
 const descDraft = ref('');
@@ -204,6 +212,14 @@ function toggleActive(item) {
 const loaded = computed(() => Array.isArray(localServices.value));
 const isEmpty = computed(() => loaded.value && localServices.value.length === 0);
 
+const sortedServices = computed(() => {
+    if (!Array.isArray(localServices.value)) return { withItems: [], empty: [] };
+    return {
+        withItems: localServices.value.filter(g => g.items.length > 0),
+        empty:     localServices.value.filter(g => g.items.length === 0),
+    };
+});
+
 const formCategory = computed(() =>
     (props.serviceCategories ?? []).find(c => c.id === form.category_id) ?? null
 );
@@ -290,6 +306,59 @@ const formValid = computed(() =>
     Number(form.price) > 0 &&
     form.time_unit_id !== null
 );
+
+// ── Carousel ─────────────────────────────────────────────────
+const carouselPage    = ref(1);
+const carouselIdols   = ref([]);
+const carouselTotal   = ref(0);
+const carouselHasMore = ref(false);
+const carouselLoading = ref(false);
+const carouselReady   = ref(false);
+const carouselDir     = ref('next'); // 'next' | 'prev'
+
+async function loadCarousel(page = 1) {
+    carouselLoading.value = true;
+    try {
+        const res = await fetch(
+            route('profile.category-idols', {
+                user:     props.profileUser?.id,
+                category: selectedCategory.value.category.id,
+            }) + `?page=${page}`
+        );
+        const data = await res.json();
+        carouselPage.value    = page;
+        carouselIdols.value   = data.idols;
+        carouselTotal.value   = data.total;
+        carouselHasMore.value = data.hasMore;
+        carouselReady.value   = true;
+    } finally {
+        carouselLoading.value = false;
+    }
+}
+
+function carouselPrev() {
+    if (carouselPage.value > 1) {
+        carouselDir.value = 'prev';
+        loadCarousel(carouselPage.value - 1);
+    }
+}
+function carouselNext() {
+    if (carouselHasMore.value) {
+        carouselDir.value = 'next';
+        loadCarousel(carouselPage.value + 1);
+    }
+}
+
+watch(selectedCategory, (cat) => {
+    if (cat) {
+        carouselReady.value   = false;
+        carouselPage.value    = 1;
+        carouselIdols.value   = [];
+        carouselTotal.value   = 0;
+        carouselHasMore.value = false;
+        loadCarousel(1);
+    }
+});
 </script>
 
 <template>
@@ -316,17 +385,11 @@ const formValid = computed(() =>
                     </CreateButton>
                 </div>
 
-                <!-- Empty state -->
-                <div v-if="isEmpty" class="svc-empty">
-                    <p class="svc-empty__title">
-                        {{ isOwner ? 'Добавьте первую услугу' : 'Айдол пока не добавил услуги' }}
-                    </p>
-                </div>
-
                 <!-- Category cards -->
-                <div v-else class="cat-grid">
-                    <button v-for="group in localServices" :key="group.category.id"
-                            class="cat-tile" @click="openCategory(group)"
+                <div class="cat-grid">
+                    <button v-for="group in sortedServices.withItems" :key="group.category.id"
+                            class="cat-tile"
+                            @click="openCategory(group)"
                             :style="{ '--cat-accent': group.category.accent_color || '#a0a0ff' }">
                         <div class="cat-tile__img-wrap">
                             <img v-if="group.category.image_url"
@@ -349,9 +412,44 @@ const formValid = computed(() =>
                             </p>
                             <div class="cat-tile__footer">
                                 <span class="cat-tile__count">
-                                    {{ group.items.length }}
-                                    {{ group.items.length === 1 ? 'услуга' : group.items.length < 5 ? 'услуги' : 'услуг' }}
+                                    {{ group.items.length + '\u00a0' + (group.items.length === 1 ? 'услуга' : group.items.length < 5 ? 'услуги' : 'услуг') }}
                                 </span>
+                                <svg class="cat-tile__arrow" width="11" height="11" viewBox="0 0 24 24"
+                                     fill="none" stroke="currentColor" stroke-width="2.5"
+                                     stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M9 18l6-6-6-6"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </button>
+
+                    <div v-if="sortedServices.empty.length > 0" class="cat-grid__divider"></div>
+
+                    <button v-for="group in sortedServices.empty" :key="group.category.id"
+                            class="cat-tile cat-tile--empty"
+                            @click="openCategory(group)"
+                            :style="{ '--cat-accent': group.category.accent_color || '#a0a0ff' }">
+                        <div class="cat-tile__img-wrap">
+                            <img v-if="group.category.image_url"
+                                 :src="group.category.image_url"
+                                 :alt="group.category.name"
+                                 class="cat-tile__img" />
+                            <div v-else class="cat-tile__img-placeholder">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="1.5" opacity="0.25">
+                                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                                    <path d="M21 15l-5-5L5 21"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="cat-tile__body">
+                            <span class="cat-tile__name">{{ group.category.name }}</span>
+                            <p v-if="group.category.description" class="cat-tile__desc">
+                                {{ group.category.description }}
+                            </p>
+                            <div class="cat-tile__footer">
+                                <span class="cat-tile__count cat-tile__count--empty">0 услуг</span>
                                 <svg class="cat-tile__arrow" width="11" height="11" viewBox="0 0 24 24"
                                      fill="none" stroke="currentColor" stroke-width="2.5"
                                      stroke-linecap="round" stroke-linejoin="round">
@@ -364,7 +462,7 @@ const formValid = computed(() =>
             </div>
 
             <!-- ── CategoryDetail ── -->
-            <div v-else key="detail" :style="{ '--cat-accent': selectedCategory.category.accent_color || '#a0a0ff' }">
+            <div v-else key="detail" class="cd-detail" :style="{ '--cat-accent': selectedCategory.category.accent_color || '#a0a0ff' }">
                 <!-- Back link -->
                 <button class="cd-back" @click="backToList">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -421,7 +519,7 @@ const formValid = computed(() =>
                     <span class="cd-section__label">Варианты</span>
 
                     <div v-if="selectedCategory.items.length === 0" class="svc-empty">
-                        <p class="svc-empty__title">Услуг в этой категории нет</p>
+                        <p class="svc-empty__title">У этого айдола пока нет услуг в данной категории.</p>
                     </div>
                     <TransitionGroup v-else name="svc-item" tag="div" class="svc-list">
                         <div v-for="item in selectedCategory.items" :key="item.id" class="svc-card"
@@ -519,26 +617,41 @@ const formValid = computed(() =>
                     </TransitionGroup>
                 </div>
 
-                <!-- Reviews placeholder -->
-                <div class="cd-section cd-section--reviews">
-                    <p class="cd-section__label">Отзывы</p>
-                    <div class="cd-placeholder">Скоро здесь появятся отзывы</div>
+                <!-- Carousel of other idols -->
+                <div v-if="!carouselReady || carouselTotal > 0" class="cd-section cd-carousel">
+                    <p class="cd-section__label">Другие айдолы в этой категории</p>
+                    <div class="cd-carousel__row">
+                        <button class="cd-carousel__nav cd-carousel__nav--prev" :disabled="carouselPage === 1 || carouselLoading" @click="carouselPrev">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                        </button>
+                        <div class="cd-carousel__track">
+                            <!-- Layer 1: skeletons — always in DOM, provide stable height -->
+                            <div class="cd-carousel__skeletons" :class="{ 'cd-carousel__skeletons--hidden': !carouselLoading && carouselReady }">
+                                <div v-for="n in 4" :key="n" class="cd-carousel__idol cd-carousel__idol--skel"></div>
+                            </div>
+                            <!-- Layer 2: real cards — absolute on top, only when loaded -->
+                            <Transition :name="carouselDir === 'next' ? 'carousel-next' : 'carousel-prev'" mode="out-in">
+                                <div v-if="!carouselLoading" class="cd-carousel__idols" :key="carouselPage">
+                                    <a v-for="idol in carouselIdols" :key="idol.id"
+                                        href="#" class="cd-carousel__idol" @click.prevent="navigateToIdolInCategory(idol)">
+                                        <img v-if="idol.avatar_url" :src="idol.avatar_url" :alt="idol.name" class="cd-carousel__avatar" />
+                                        <div v-else class="cd-carousel__avatar cd-carousel__avatar--placeholder">{{ idol.name.charAt(0) }}</div>
+                                        <span v-if="idol.rating" class="cd-carousel__rating">★ {{ idol.rating }}</span>
+                                        <span class="cd-carousel__name">{{ idol.name }}</span>
+                                    </a>
+                                </div>
+                            </Transition>
+                        </div>
+                        <button class="cd-carousel__nav cd-carousel__nav--next" :disabled="!carouselHasMore || carouselLoading" @click="carouselNext">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Other idols -->
-                <div v-if="selectedCategory.other_idols && selectedCategory.other_idols.length > 0" class="cd-section">
-                    <p class="cd-section__label">Другие айдолы в этой категории</p>
-                    <div class="cd-other-idols">
-                        <a v-for="idol in selectedCategory.other_idols" :key="idol.id"
-                            :href="route('profile.show', idol.id)" class="cd-idol-chip">
-                            <img v-if="idol.avatar_url" :src="idol.avatar_url" :alt="idol.name"
-                                class="cd-idol-chip__avatar" />
-                            <div v-else class="cd-idol-chip__avatar cd-idol-chip__avatar--placeholder">
-                                {{ idol.name.charAt(0) }}
-                            </div>
-                            <span class="cd-idol-chip__name">{{ idol.name }}</span>
-                        </a>
-                    </div>
+                <!-- Reviews placeholder -->
+                <div v-if="selectedCategory.items.length > 0" class="cd-section cd-section--reviews">
+                    <p class="cd-section__label">Отзывы</p>
+                    <div class="cd-placeholder">Скоро здесь появятся отзывы</div>
                 </div>
             </div>
 
@@ -737,6 +850,28 @@ const formValid = computed(() =>
     .cat-grid { grid-template-columns: 1fr; }
 }
 
+.cat-grid__divider {
+    grid-column: 1 / -1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(180, 160, 255, 0.4), transparent);
+    margin: 0.75rem 0;
+}
+
+.cat-tile--empty .cat-tile__img-wrap,
+.cat-tile--empty .cat-tile__name,
+.cat-tile--empty .cat-tile__desc,
+.cat-tile--empty .cat-tile__arrow {
+    opacity: 0.45;
+    transition: opacity 0.4s;
+}
+
+.cat-tile--empty:hover .cat-tile__img-wrap,
+.cat-tile--empty:hover .cat-tile__name,
+.cat-tile--empty:hover .cat-tile__desc,
+.cat-tile--empty:hover .cat-tile__arrow {
+    opacity: 1;
+}
+
 .cat-tile {
     display: flex;
     flex-direction: column;
@@ -832,6 +967,10 @@ const formValid = computed(() =>
 }
 
 /* ── Category detail ──────────────────────────────────────── */
+.cd-detail {
+    padding: 0 1rem;
+}
+
 .cd-back {
     display: inline-flex;
     align-items: center;
@@ -1007,6 +1146,197 @@ const formValid = computed(() =>
     padding: 2rem;
     border: 1px dashed rgba(255, 255, 255, 0.08);
     border-radius: 3px;
+}
+
+/* ── Empty tile variant ───────────────────────────────────── */
+.cat-tile__count--empty {
+    color: rgba(180, 160, 255, 1);
+}
+
+/* ── Carousel ─────────────────────────────────────────────── */
+.cd-carousel {
+    margin-top: 1rem;
+}
+
+.cd-carousel__row {
+    display: flex;
+    align-items: stretch;
+    gap: 0.5rem;
+}
+
+.cd-carousel__track {
+    flex: 1;
+    overflow: hidden;
+}
+
+.cd-carousel__nav {
+    flex-shrink: 0;
+    width: 30px;
+    border-radius: 3px;
+    border: 1px solid rgba(155, 110, 232, 0.18);
+    background: linear-gradient(135deg, rgba(155, 110, 232, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+    color: rgba(190, 145, 255, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.18s, background 0.18s, color 0.18s, box-shadow 0.18s;
+}
+
+
+.cd-carousel__nav svg {
+    transition: transform 0.18s;
+}
+
+.cd-carousel__nav:hover:not(:disabled) {
+    border-color: rgba(155, 110, 232, 0.45);
+    background: linear-gradient(135deg, rgba(155, 110, 232, 0.13) 0%, rgba(255, 255, 255, 0.03) 100%);
+    color: rgba(190, 145, 255, 0.9);
+    box-shadow: 0 0 10px rgba(155, 110, 232, 0.18);
+}
+
+.cd-carousel__nav--prev:hover:not(:disabled) svg { transform: translateX(-2px); }
+.cd-carousel__nav--next:hover:not(:disabled) svg { transform: translateX(2px); }
+
+.cd-carousel__nav:active:not(:disabled) {
+    background: linear-gradient(135deg, rgba(155, 110, 232, 0.2) 0%, rgba(255, 255, 255, 0.04) 100%);
+    transition-duration: 0.06s;
+}
+
+.cd-carousel__nav:disabled {
+    opacity: 0.2;
+    cursor: default;
+}
+
+.cd-carousel__skeletons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.cd-carousel__skeletons--hidden {
+    visibility: hidden;
+}
+
+.cd-carousel__idol--skel {
+    background: linear-gradient(
+        90deg,
+        rgba(255,255,255,0.05) 25%,
+        rgba(255,255,255,0.10) 50%,
+        rgba(255,255,255,0.05) 75%
+    );
+    background-size: 400px 100%;
+    animation: shimmer 1.4s infinite linear;
+    pointer-events: none;
+}
+
+.cd-carousel__idols {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.cd-carousel__idol {
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    text-decoration: none;
+    flex: 1;
+    min-width: 0;
+    aspect-ratio: 3 / 4;
+    transition: border-color 0.15s;
+}
+
+.cd-carousel__idol:hover {
+    border-color: color-mix(in srgb, var(--cat-accent) 50%, transparent);
+}
+
+.cd-carousel__avatar {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cd-carousel__avatar--placeholder {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(160, 160, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 600;
+    color: rgba(160, 160, 255, 0.7);
+}
+
+.cd-carousel__name {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1.5rem 0.4rem 0.4rem;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.92);
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    background: linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 100%);
+}
+
+.cd-carousel__rating {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.35rem;
+    font-size: 0.85rem;
+    color: rgba(180, 130, 255, 0.95);
+    background: rgba(0, 0, 0, 0.55);
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+    line-height: 1.4;
+}
+
+
+.cd-carousel__pager {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.25);
+    margin: 0.4rem 0 0;
+    text-align: center;
+}
+
+/* ── Carousel slide transitions ───────────────────────────── */
+.carousel-next-enter-active,
+.carousel-next-leave-active,
+.carousel-prev-enter-active,
+.carousel-prev-leave-active {
+    transition: transform 0.22s ease, opacity 0.22s ease;
+    position: absolute;
+    width: 100%;
+}
+
+.carousel-next-enter-from { transform: translateX(100%); opacity: 0; }
+.carousel-next-leave-to   { transform: translateX(-100%); opacity: 0; }
+.carousel-prev-enter-from { transform: translateX(-100%); opacity: 0; }
+.carousel-prev-leave-to   { transform: translateX(100%); opacity: 0; }
+
+.carousel-next-enter-to,
+.carousel-next-leave-from,
+.carousel-prev-enter-to,
+.carousel-prev-leave-from {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+/* position:relative on track so absolute children are contained */
+.cd-carousel__track {
+    position: relative;
 }
 
 /* ── Other idols ──────────────────────────────────────────── */
