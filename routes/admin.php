@@ -68,6 +68,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
             Route::get('/categories', [ServiceCategoryController::class, 'index'])->name('categories.index');
             Route::post('/categories', [ServiceCategoryController::class, 'store'])->name('categories.store');
+            Route::post('/categories/reorder', [ServiceCategoryController::class, 'reorder'])->name('categories.reorder');
             Route::patch('/categories/{category}', [ServiceCategoryController::class, 'update'])->name('categories.update');
             Route::delete('/categories/{category}', [ServiceCategoryController::class, 'destroy'])->name('categories.destroy');
 

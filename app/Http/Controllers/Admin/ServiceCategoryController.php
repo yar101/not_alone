@@ -28,13 +28,25 @@ class ServiceCategoryController extends Controller
             'name_suggestions'   => ['nullable', 'array'],
             'name_suggestions.*' => ['string', 'max:120'],
             'accent_color'       => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
-            'sort_order'         => ['integer', 'min:0'],
             'is_active'          => ['boolean'],
         ]);
+
+        $data['sort_order'] = (ServiceCategory::max('sort_order') ?? -1) + 1;
 
         ServiceCategory::create($data);
 
         return back()->with('success', 'Категория создана.');
+    }
+
+    public function reorder(Request $request): RedirectResponse
+    {
+        $ids = $request->validate(['ids' => 'required|array', 'ids.*' => 'integer'])['ids'];
+
+        foreach ($ids as $order => $id) {
+            ServiceCategory::where('id', $id)->update(['sort_order' => $order]);
+        }
+
+        return back();
     }
 
     public function update(Request $request, ServiceCategory $category): RedirectResponse

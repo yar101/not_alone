@@ -63,7 +63,7 @@ class UserProfileController extends Controller
             'services'     => Inertia::defer(function () use ($user) {
                 $authId  = auth()->id();
                 $isOwner = $authId === $user->id;
-                $query   = $user->services()->with(['category:id,name,description,image_path,accent_color', 'timeUnit:id,name']);
+                $query   = $user->services()->with(['category:id,name,description,image_path,accent_color,sort_order', 'timeUnit:id,name']);
 
                 if (!$isOwner) {
                     $query->where('is_active', true)->where('status', 'approved');
@@ -113,6 +113,7 @@ class UserProfileController extends Controller
                             'description'  => $cat->description,
                             'image_url'    => $cat->image_path ? Storage::url($cat->image_path) : null,
                             'accent_color' => $cat->accent_color,
+                            'sort_order'   => $cat->sort_order,
                         ],
                         'idol_description' => $descriptions[$cat->id] ?? null,
                         'other_idols'      => $otherIdolsByCategory[$cat->id] ?? [],
@@ -127,7 +128,7 @@ class UserProfileController extends Controller
                             'time_unit'        => ['id' => $s->timeUnit->id, 'name' => $s->timeUnit->name],
                         ])->values(),
                     ];
-                })->values();
+                })->sortBy('category.sort_order')->values();
             }, 'services'),
             'serviceCategories' => Inertia::defer(
                 fn () => ServiceCategory::where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'name_suggestions', 'accent_color']),

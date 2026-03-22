@@ -6,6 +6,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppSelect from '@/Components/AppSelect.vue';
 import CreateButton from '@/Components/CreateButton.vue';
 import ImageDropzone from '@/Components/ImageDropzone.vue';
+import draggable from 'vuedraggable';
 
 defineOptions({ layout: AdminLayout });
 
@@ -270,6 +271,37 @@ function destroyCat(id) {
     router.delete(route('admin.services.categories.destroy', id), { preserveScroll: true });
 }
 
+// Sort modal
+const showSortModal = ref(false);
+const sortList = ref([]);
+
+function openSortModal() {
+    sortList.value = props.categories.map(c => ({ ...c }));
+    showSortModal.value = true;
+}
+
+function closeSortModal() {
+    showSortModal.value = false;
+}
+
+function moveUp(index) {
+    if (index === 0) return;
+    const arr = sortList.value;
+    [arr[index - 1], arr[index]] = [arr[index], arr[index - 1]];
+}
+
+function moveDown(index) {
+    if (index === sortList.value.length - 1) return;
+    const arr = sortList.value;
+    [arr[index], arr[index + 1]] = [arr[index + 1], arr[index]];
+}
+
+function saveOrder() {
+    router.post(route('admin.services.categories.reorder'), {
+        ids: sortList.value.map(c => c.id),
+    }, { onSuccess: closeSortModal });
+}
+
 // ─── Time Units ───────────────────────────────────────────────────────────────
 const showUnitForm  = ref(false);
 const unitEditingId = ref(null);
@@ -404,10 +436,13 @@ function destroyLimit(id) {
         <template v-if="active_tab === 'categories'">
             <div class="page-header">
                 <h1 class="page-title">Категории услуг</h1>
-                <CreateButton @click="openCatAdd">
-                    <template #icon><el-icon><Plus /></el-icon></template>
-                    Добавить
-                </CreateButton>
+                <div class="header-actions">
+                    <button class="btn-order" @click="openSortModal" title="Порядок категорий">↕ Порядок</button>
+                    <CreateButton @click="openCatAdd">
+                        <template #icon><el-icon><Plus /></el-icon></template>
+                        Добавить
+                    </CreateButton>
+                </div>
             </div>
 
             <div class="table-wrap">
@@ -514,6 +549,39 @@ function destroyLimit(id) {
                                 <button type="submit" class="btn-submit" :disabled="catForm.processing">Сохранить</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            </Teleport>
+
+            <!-- Sort Modal -->
+            <Teleport to="body">
+                <div v-if="showSortModal" class="overlay" @click.self="closeSortModal">
+                    <div class="modal modal--sort">
+                        <div class="modal__header">
+                            <span>Порядок категорий</span>
+                            <button class="modal__close" @click="closeSortModal">✕</button>
+                        </div>
+                        <div class="modal__body">
+                            <draggable v-model="sortList" item-key="id" tag="div" class="sort-grid">
+                                <template #item="{ element: cat, index }">
+                                    <div class="sort-card">
+                                        <div class="sort-card__arrows">
+                                            <button class="arrow-btn" :disabled="index === 0" @click="moveUp(index)">↑</button>
+                                            <button class="arrow-btn" :disabled="index === sortList.length - 1" @click="moveDown(index)">↓</button>
+                                        </div>
+                                        <div class="sort-card__img-wrap">
+                                            <img v-if="cat.image_path" :src="`/storage/${cat.image_path}`" class="sort-card__img" alt="" />
+                                            <div v-else class="sort-card__no-img">{{ cat.name.slice(0, 2) }}</div>
+                                        </div>
+                                        <div class="sort-card__name">{{ cat.name }}</div>
+                                    </div>
+                                </template>
+                            </draggable>
+                            <div class="modal__actions">
+                                <button type="button" class="btn-cancel" @click="closeSortModal">Отмена</button>
+                                <button type="button" class="btn-submit" @click="saveOrder">Сохранить порядок</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </Teleport>
@@ -1023,4 +1091,65 @@ function destroyLimit(id) {
     width: 10px;
     height: 10px;
 }
+
+/* Header actions */
+.header-actions { display: flex; align-items: center; gap: 0.6rem; }
+.btn-order {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    font-family: inherit;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.btn-order:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.25); }
+
+/* Sort modal */
+.modal--sort { max-width: 680px; }
+.sort-grid { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.sort-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100px;
+    cursor: grab;
+    user-select: none;
+}
+.sort-card:active { cursor: grabbing; }
+.sort-card__arrows { display: flex; gap: 0.25rem; }
+.arrow-btn {
+    width: 26px;
+    height: 26px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 3px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.arrow-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.08); color: rgba(255, 255, 255, 0.9); }
+.arrow-btn:disabled { opacity: 0.25; cursor: default; }
+.sort-card__img-wrap { width: 90px; height: 90px; border-radius: 4px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); }
+.sort-card__img { width: 100%; height: 100%; object-fit: cover; }
+.sort-card__no-img {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 1.4rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+.sort-card__name { font-size: 0.72rem; color: rgba(255, 255, 255, 0.6); text-align: center; word-break: break-word; line-height: 1.2; }
 </style>
