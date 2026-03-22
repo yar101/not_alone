@@ -45,10 +45,11 @@ class GenerateUsers extends Command
 
         for ($i = 0; $i < $count; $i++) {
             $isIdol = rand(1, 100) <= 40;
-            $email  = uniqid('user_') . '@example.com';
+            $uid    = uniqid();
+            $email  = 'user_' . $uid . '@example.com';
 
             $usersChunk[] = [
-                'name'                => $this->generateName($faker),
+                'name'                => $this->generateName($faker) . '_' . $uid,
                 'email'               => $email,
                 'password'            => $password,
                 'email_verified_at'   => $now,
