@@ -727,9 +727,9 @@ function formatDate(iso) {
     max-width: 100vw;
     z-index: 1000;
     display: flex;
-    background: #0e0e1c;
-    border-left: 1px solid rgba(110, 110, 210, 0.18);
-    box-shadow: -8px 0 48px rgba(0, 0, 0, 0.55);
+    background: linear-gradient(160deg, #0f0f22 0%, #0a0a16 100%);
+    border-left: 1px solid rgba(110, 110, 210, 0.22);
+    box-shadow: -8px 0 64px rgba(0, 0, 0, 0.7), -1px 0 0 rgba(160, 100, 255, 0.06);
 }
 .slide-enter-active, .slide-leave-active { transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1); }
 .slide-enter-from, .slide-leave-to { transform: translateX(100%); }
@@ -742,6 +742,7 @@ function formatDate(iso) {
     flex-direction: column;
     border-right: 1px solid rgba(110, 110, 210, 0.14);
     background: #0b0b18;
+    background-image: radial-gradient(ellipse 260px 140px at 50% 0%, rgba(110, 110, 210, 0.1) 0%, transparent 100%);
 }
 
 .chat-sidebar__header {
@@ -838,12 +839,28 @@ function formatDate(iso) {
     border: none;
     cursor: pointer;
     text-align: left;
-    transition: background 0.15s;
+    transition: background 0.15s, transform 0.15s;
     border-radius: 0;
+    position: relative;
 }
-.chat-conv-item:hover { background: rgba(110, 110, 210, 0.07); }
-.chat-conv-item--active { background: rgba(110, 110, 210, 0.13); }
-.chat-conv-item--active:hover { background: rgba(110, 110, 210, 0.17); }
+.chat-conv-item:hover {
+    background: rgba(110, 110, 210, 0.06);
+    transform: translateX(2px);
+}
+.chat-conv-item--active {
+    background: rgba(120, 90, 255, 0.1);
+}
+.chat-conv-item--active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 20%;
+    bottom: 20%;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: linear-gradient(to bottom, #be91ff, #7060e0);
+}
+.chat-conv-item--active:hover { background: rgba(120, 90, 255, 0.14); transform: none; }
 
 .chat-conv-item--unread .chat-conv-name {
     font-weight: 700;
@@ -922,7 +939,8 @@ function formatDate(iso) {
     height: 20px;
     padding: 0 5px;
     border-radius: 999px;
-    background: #e0558f;
+    background: linear-gradient(135deg, #e0558f, #b03070);
+    box-shadow: 0 2px 8px rgba(224, 85, 143, 0.4);
     color: #fff;
     font-size: 0.72rem;
     font-weight: 700;
@@ -956,7 +974,8 @@ function formatDate(iso) {
     align-items: center;
     gap: 0.75rem;
     padding: 0.85rem 1.1rem;
-    border-bottom: 1px solid rgba(110, 110, 210, 0.12);
+    border-bottom: none;
+    box-shadow: 0 1px 0 rgba(110, 110, 210, 0.12), 0 4px 20px rgba(0, 0, 0, 0.25);
     flex-shrink: 0;
 }
 .chat-main__header-info {
@@ -1056,15 +1075,22 @@ function formatDate(iso) {
     align-items: center;
     gap: 0.75rem;
     margin: 0.75rem 0 0.5rem;
-    color: rgba(255, 255, 255, 0.28);
-    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.22);
+    font-size: 0.74rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
 }
-.chat-date-divider::before,
+.chat-date-divider::before {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(110, 110, 210, 0.22));
+}
 .chat-date-divider::after {
     content: '';
     flex: 1;
     height: 1px;
-    background: rgba(110, 110, 210, 0.15);
+    background: linear-gradient(to left, transparent, rgba(110, 110, 210, 0.22));
 }
 
 /* ── Message row ──────────────────────────────────────── */
@@ -1098,15 +1124,17 @@ function formatDate(iso) {
     max-width: 72%;
     padding: 0.55rem 0.9rem;
     border-radius: 14px;
-    background: rgba(110, 110, 210, 0.12);
-    border: 1px solid rgba(110, 110, 210, 0.18);
+    background: linear-gradient(135deg, rgba(80, 80, 160, 0.22) 0%, rgba(60, 60, 130, 0.16) 100%);
+    border: 1px solid rgba(130, 130, 210, 0.22);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(180, 180, 255, 0.07);
     display: flex;
     flex-direction: column;
     gap: 3px;
 }
 .chat-msg--mine .chat-msg__bubble {
-    background: rgba(160, 100, 255, 0.2);
-    border-color: rgba(160, 100, 255, 0.3);
+    background: linear-gradient(135deg, rgba(130, 80, 255, 0.26) 0%, rgba(100, 55, 215, 0.2) 100%);
+    border-color: rgba(160, 100, 255, 0.22);
+    box-shadow: 0 2px 12px rgba(100, 55, 215, 0.18), inset 0 1px 0 rgba(200, 160, 255, 0.08);
 }
 
 /* Smart corners — theirs (left side) */
@@ -1138,7 +1166,7 @@ function formatDate(iso) {
 }
 
 .chat-msg__text {
-    font-size: 0.975rem;
+    font-size: 0.95rem;
     color: rgba(255, 255, 255, 0.92);
     line-height: 1.45;
     white-space: pre-wrap;
@@ -1241,8 +1269,8 @@ function formatDate(iso) {
     right: 0;
     height: 1px;
     border-radius: 6px 6px 0 0;
-    background: linear-gradient(90deg, transparent, rgba(155, 110, 232, 0.3), rgba(190, 145, 255, 0.5), rgba(155, 110, 232, 0.3), transparent);
-    box-shadow: 0 0 6px rgba(155, 110, 232, 0.1);
+    background: linear-gradient(90deg, transparent, rgba(155, 110, 232, 0.4), rgba(190, 145, 255, 0.7), rgba(155, 110, 232, 0.4), transparent);
+    box-shadow: 0 0 12px rgba(155, 110, 232, 0.2);
     z-index: 1;
 }
 .chat-input {
@@ -1264,8 +1292,9 @@ function formatDate(iso) {
     display: block;
 }
 .chat-input:focus {
-    border-color: rgba(160, 160, 255, 0.35);
+    border-color: rgba(160, 100, 255, 0.4);
     background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 0 3px rgba(130, 80, 255, 0.08);
 }
 .chat-input::placeholder { color: rgba(255, 255, 255, 0.25); }
 
@@ -1290,21 +1319,23 @@ function formatDate(iso) {
     display: flex;
     align-items: center;
     gap: 0.35rem;
-    background: rgba(155, 110, 232, 0.15);
-    border: 1px solid rgba(155, 110, 232, 0.35);
+    background: linear-gradient(135deg, rgba(140, 90, 255, 0.3), rgba(100, 55, 210, 0.25));
+    border: 1px solid rgba(160, 100, 255, 0.4);
     border-radius: 4px;
-    color: rgba(190, 145, 255, 0.85);
+    color: rgba(210, 170, 255, 0.95);
     font-family: inherit;
     font-size: 0.78rem;
     font-weight: 500;
     letter-spacing: 0.03em;
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    box-shadow: 0 2px 10px rgba(100, 55, 210, 0.25);
+    transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
 }
 .chat-send:hover:not(:disabled) {
-    background: rgba(155, 110, 232, 0.28);
-    border-color: rgba(155, 110, 232, 0.55);
-    color: #be91ff;
+    background: linear-gradient(135deg, rgba(155, 100, 255, 0.42), rgba(110, 65, 220, 0.36));
+    border-color: rgba(180, 120, 255, 0.6);
+    color: #d4aaff;
+    box-shadow: 0 2px 16px rgba(120, 60, 230, 0.4);
 }
 .chat-send:disabled {
     opacity: 0.3;
