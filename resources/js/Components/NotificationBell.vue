@@ -279,8 +279,8 @@ onUnmounted(() => {
 
 .bell-btn {
     position: relative;
-    width: 38px; height: 38px;
-    border-radius: 10px;
+    width: 36px; height: 36px;
+    border-radius: 8px;
     background: transparent;
     border: 1px solid transparent;
     color: rgba(255,255,255,0.45);

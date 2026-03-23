@@ -9,7 +9,7 @@ const unreadMessages = computed(() => page.props.unread_messages_count ?? 0);
 
 <template>
     <button class="chat-btn" @click="emit('click')" title="Сообщения">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
         <span v-if="unreadMessages > 0" class="chat-btn__badge"></span>
@@ -24,16 +24,17 @@ const unreadMessages = computed(() => page.props.unread_messages_count ?? 0);
     justify-content: center;
     width: 36px;
     height: 36px;
-    border-radius: 50%;
+    border-radius: 8px;
     background: transparent;
-    border: none;
+    border: 1px solid transparent;
     cursor: pointer;
-    color: rgba(255, 255, 255, 0.55);
-    transition: color 0.18s, background 0.18s;
+    color: rgba(255, 255, 255, 0.45);
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
 }
 .chat-btn:hover {
-    color: rgba(160, 160, 255, 0.9);
-    background: rgba(110, 110, 210, 0.1);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
 }
 .chat-btn__badge {
     position: absolute;
