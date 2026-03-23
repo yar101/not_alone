@@ -607,7 +607,7 @@ onMounted(async () => {
 }
 
 .profile-sidebar {
-    width: 300px;
+    width: 380px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
