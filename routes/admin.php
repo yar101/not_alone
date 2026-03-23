@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Admin\AdminLogController;
 use App\Http\Controllers\Admin\ApplicationController;
+use App\Http\Controllers\Admin\BanReasonController;
+use App\Http\Controllers\Admin\ChatBlockController;
 use App\Http\Controllers\Admin\Auth\LoginController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ExportController;
@@ -139,6 +141,18 @@ Route::patch('/{trait}', [PersonalityTraitController::class, 'update'])->name('u
                 Route::patch('/{interestSuggestion}/reopen', [InterestSuggestionController::class, 'reopen'])->name('reopen');
                 Route::delete('/{interestSuggestion}', [InterestSuggestionController::class, 'destroy'])->name('destroy');
             });
+        });
+
+        // Chat blocks
+        Route::get('/chat-blocks', [ChatBlockController::class, 'index'])->name('chat-blocks.index');
+
+        // Ban reasons
+        Route::prefix('ban-reasons')->name('ban-reasons.')->group(function () {
+            Route::get('/',             [BanReasonController::class, 'index'])->name('index');
+            Route::post('/',            [BanReasonController::class, 'store'])->name('store');
+            Route::patch('/{banReason}', [BanReasonController::class, 'update'])->name('update');
+            Route::delete('/{banReason}', [BanReasonController::class, 'destroy'])->name('destroy');
+            Route::post('/reorder',     [BanReasonController::class, 'reorder'])->name('reorder');
         });
 
         // Export

@@ -123,6 +123,35 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsTo(Admin::class, 'banned_by');
     }
 
+    public function conversationParticipants(): HasMany
+    {
+        return $this->hasMany(ConversationParticipant::class);
+    }
+
+    public function chatBlocksGiven(): HasMany
+    {
+        return $this->hasMany(ChatBlock::class, 'blocker_id');
+    }
+
+    public function chatBlocksReceived(): HasMany
+    {
+        return $this->hasMany(ChatBlock::class, 'blocked_id');
+    }
+
+    public function unreadMessagesCount(): int
+    {
+        return $this->conversationParticipants()
+            ->get()
+            ->sum(function ($participant) {
+                $query = Message::where('conversation_id', $participant->conversation_id)
+                    ->where('sender_id', '!=', $this->id);
+                if ($participant->last_read_at) {
+                    $query->where('created_at', '>', $participant->last_read_at);
+                }
+                return $query->count();
+            });
+    }
+
     public function sendEmailVerificationNotification(): void
     {
         $this->notify(new VerifyEmailNotification);

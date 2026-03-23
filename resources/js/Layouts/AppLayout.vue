@@ -1,7 +1,9 @@
 <script setup>
-import { ref, computed } from 'vue';
-import { Link, usePage } from '@inertiajs/vue3';
+import { ref, computed, provide, onMounted, onUnmounted } from 'vue';
+import { Link, usePage, router } from '@inertiajs/vue3';
 import NotificationBell from '@/Components/NotificationBell.vue';
+import ChatButton from '@/Components/Chat/ChatButton.vue';
+import ChatPanel from '@/Components/Chat/ChatPanel.vue';
 import AuthModal from '@/Components/Site/AuthModal.vue';
 
 const page = usePage();
@@ -16,11 +18,52 @@ const showIdolBtn = computed(() => user.value && !isIdol.value && idolStatus.val
 
 const showAuthModal = ref(false);
 const authModalTab  = ref('login');
+const chatOpen = ref(false);
+const chatPanel = ref(null);
 
 function openAuth(tab) {
     authModalTab.value = tab;
     showAuthModal.value = true;
 }
+
+function openChatWith(userId) {
+    chatPanel.value?.startWith(userId);
+}
+
+provide('openChatWith', openChatWith);
+
+// ── Global online presence ────────────────────────────────
+const onlineUserIds = ref([]);
+provide('onlineUserIds', onlineUserIds);
+
+// ── Global listeners ──────────────────────────────────────
+let msgChannel = null;
+let onlineChannel = null;
+onMounted(() => {
+    if (user.value && window.Echo) {
+        msgChannel = window.Echo.private(`App.Models.User.${user.value.id}`)
+            .listen('.message.received', () => {
+                router.reload({ only: ['unread_messages_count'] });
+            });
+
+        onlineChannel = window.Echo.join('presence-online')
+            .here(members => {
+                onlineUserIds.value = members.map(m => m.id);
+            })
+            .joining(member => {
+                if (!onlineUserIds.value.includes(member.id)) {
+                    onlineUserIds.value.push(member.id);
+                }
+            })
+            .leaving(member => {
+                onlineUserIds.value = onlineUserIds.value.filter(id => id !== member.id);
+            });
+    }
+});
+onUnmounted(() => {
+    if (msgChannel) msgChannel.stopListening('.message.received');
+    if (window.Echo) window.Echo.leave('presence-online');
+});
 </script>
 
 <template>
@@ -45,6 +88,7 @@ function openAuth(tab) {
                     class="become-idol-btn"
                 >Стать Айдолом</Link>
 
+                <ChatButton v-if="user" @click="chatOpen = !chatOpen" />
                 <NotificationBell v-if="user" />
 
                 <template v-if="user">
@@ -75,6 +119,7 @@ function openAuth(tab) {
         </main>
 
         <AuthModal :show="showAuthModal" :initial-tab="authModalTab" @close="showAuthModal = false" />
+        <ChatPanel v-if="user" ref="chatPanel" v-model="chatOpen" />
     </div>
 </template>
 

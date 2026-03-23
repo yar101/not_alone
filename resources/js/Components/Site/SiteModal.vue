@@ -135,7 +135,7 @@ onUnmounted(() => {
 .site-modal-root {
     position: fixed;
     inset: 0;
-    z-index: 50;
+    z-index: 2000;
     pointer-events: none;
 }
 

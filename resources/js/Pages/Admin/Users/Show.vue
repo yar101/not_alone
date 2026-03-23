@@ -125,6 +125,16 @@ function unban() {
                     <form v-else @submit.prevent="submitBan" class="ban-form">
                         <div class="field">
                             <label>Причина *</label>
+                            <div v-if="$page.props.user_ban_reasons?.length" class="ban-reason-presets">
+                                <button
+                                    v-for="r in $page.props.user_ban_reasons"
+                                    :key="r"
+                                    type="button"
+                                    class="preset-tag"
+                                    :class="{ 'preset-tag--active': banReason === r }"
+                                    @click="banReason = r"
+                                >{{ r }}</button>
+                            </div>
                             <textarea
                                 v-model="banReason"
                                 class="input input--textarea"
@@ -283,6 +293,10 @@ function unban() {
 .btn-danger:hover { background: rgba(239,68,68,0.2); }
 .btn-cancel { padding: 0.38rem 0.85rem; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: rgba(255,255,255,0.4); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
 
+.ban-reason-presets { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.4rem; }
+.preset-tag { padding: 0.22rem 0.6rem; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.5); font-family: inherit; font-size: 0.78rem; cursor: pointer; transition: all 0.15s; }
+.preset-tag:hover { border-color: rgba(155,110,232,0.4); color: rgba(255,255,255,0.8); }
+.preset-tag--active { border-color: rgba(239,68,68,0.5); background: rgba(239,68,68,0.1); color: #f87171; }
 .presets { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .preset-btn { padding: 0.3rem 0.65rem; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.55); font-family: inherit; font-size: 0.8rem; cursor: pointer; transition: all 0.15s; }
 .preset-btn:hover { border-color: rgba(155,110,232,0.4); color: rgba(255,255,255,0.8); }

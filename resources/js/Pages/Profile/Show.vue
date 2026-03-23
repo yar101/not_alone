@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick, onMounted, computed } from 'vue';
+import { ref, nextTick, onMounted, computed, inject } from 'vue';
 import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -32,6 +32,12 @@ const props = defineProps({
     serviceCategories:  { default: null },
     serviceTimeUnits:   { default: null },
 });
+
+// ── Chat ──────────────────────────────────────────────────────
+const openChatWith = inject('openChatWith', null);
+function openChat() {
+    openChatWith?.(props.profileUser.id);
+}
 
 // ── Email verification banner ─────────────────────────────────
 const page = usePage();
@@ -236,9 +242,16 @@ onMounted(async () => {
                         :interests="interests"
                         :languages="languages"
                     />
-                    <button v-if="!isOwner" class="sidebar-subscribe-btn">
-                        Отслеживать
-                    </button>
+                    <div v-if="!isOwner" class="sidebar-actions">
+                        <button class="sidebar-subscribe-btn">
+                            Отслеживать
+                        </button>
+                        <button class="sidebar-message-btn" @click="openChat" title="Написать сообщение">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                        </button>
+                    </div>
 
                 </div>
 
@@ -858,9 +871,14 @@ onMounted(async () => {
 }
 
 
-.sidebar-subscribe-btn {
-    width: 100%;
+.sidebar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     margin-top: 0.65rem;
+}
+.sidebar-subscribe-btn {
+    flex: 1;
     padding: 0.6rem;
     background: rgba(160, 160, 255, 0.08);
     border: 1px solid rgba(160, 160, 255, 0.38);
@@ -875,6 +893,26 @@ onMounted(async () => {
     flex-shrink: 0;
 }
 .sidebar-subscribe-btn:hover {
+    background: rgba(160, 160, 255, 0.18);
+    border-color: rgba(160, 160, 255, 0.65);
+    color: rgba(225, 205, 255, 1);
+    box-shadow: 0 0 14px rgba(160, 160, 255, 0.18);
+}
+.sidebar-message-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    background: rgba(160, 160, 255, 0.08);
+    border: 1px solid rgba(160, 160, 255, 0.38);
+    color: rgba(210, 180, 255, 0.9);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.sidebar-message-btn:hover {
     background: rgba(160, 160, 255, 0.18);
     border-color: rgba(160, 160, 255, 0.65);
     color: rgba(225, 205, 255, 1);

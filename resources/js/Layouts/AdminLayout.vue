@@ -191,6 +191,22 @@ function isActive(routeName) {
                 </div>
 
                 <Link
+                    :href="route('admin.chat-blocks.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.chat-blocks.index') }"
+                >
+                    Блокировки в чате
+                </Link>
+
+                <Link
+                    :href="route('admin.ban-reasons.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.ban-reasons.index') }"
+                >
+                    Причины блокировок
+                </Link>
+
+                <Link
                     :href="route('admin.reports.index')"
                     class="nav-item"
                     :class="{ 'nav-item--active': isActive('admin.reports.*') }"

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Idol\ApplicationController as IdolApplicationController;
 use App\Http\Controllers\Idol\QuizController;
+use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
@@ -104,6 +105,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifications/service', [NotificationController::class, 'service'])->name('notifications.service');
     Route::patch('/notifications/service/read-all', [NotificationController::class, 'markAllServiceRead'])->name('notifications.service.read-all');
     Route::patch('/broadcasts/{id}/read', [NotificationController::class, 'markBroadcastRead'])->name('broadcasts.read');
+});
+
+// Chat / Conversations
+Route::middleware('auth')->group(function () {
+    Route::get('/conversations', [ConversationController::class, 'index'])->name('conversations.index');
+    Route::post('/conversations', [ConversationController::class, 'store'])->name('conversations.store');
+    Route::get('/conversations/{conversation}', [ConversationController::class, 'show'])->name('conversations.show');
+    Route::post('/conversations/{conversation}/messages', [ConversationController::class, 'message'])->name('conversations.message');
+    Route::post('/conversations/{conversation}/block', [ConversationController::class, 'block'])->name('conversations.block');
+    Route::delete('/conversations/{conversation}/block', [ConversationController::class, 'unblock'])->name('conversations.unblock');
 });
 
 require __DIR__.'/auth.php';

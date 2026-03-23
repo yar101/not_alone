@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\BanReason;
 use App\Models\IdolApplication;
 use App\Models\Service;
 use App\Models\InterestSuggestion;
@@ -56,6 +57,13 @@ class HandleInertiaRequests extends Middleware
             'pending_interest_suggestions_count' => fn() => auth('admin')->check()
                 ? InterestSuggestion::where('status', 'pending')->count()
                 : 0,
+            'unread_messages_count' => fn() => $user?->unreadMessagesCount() ?? 0,
+            'chat_block_reasons' => fn() => $user
+                ? BanReason::forChatBlock()->pluck('label')
+                : [],
+            'user_ban_reasons' => fn() => auth('admin')->check()
+                ? BanReason::forUserBan()->pluck('label')
+                : [],
             'flash' => [
                 'success'         => $request->session()->get('success'),
                 'service_pending' => $request->session()->get('service_pending'),

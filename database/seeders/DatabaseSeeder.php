@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             QuizQuestionSeeder::class,
             ServiceCategorySeeder::class,
             ServiceTimeUnitSeeder::class,
+            BanReasonSeeder::class,
         ]);
     }
 }
