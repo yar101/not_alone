@@ -205,6 +205,7 @@ function avatarUrl(user) {
 function initial(name) {
     return name?.charAt(0).toUpperCase() ?? '?';
 }
+
 </script>
 
 <template>
@@ -227,33 +228,35 @@ function initial(name) {
                 </div>
 
                 <!-- Cards -->
-                <div v-if="users.data.length > 0" class="user-grid">
-                    <Link
-                        v-for="user in users.data"
-                        :key="user.id"
-                        :href="route('profile.show', { user: user.id })"
-                        class="user-card"
-                    >
-                        <div class="card-avatar">
-                            <img v-if="avatarUrl(user)" :src="avatarUrl(user)" alt="Аватар" class="card-avatar__img" />
-                            <span v-else class="card-avatar__initials">{{ initial(user.name) }}</span>
-                        </div>
-                        <div class="card-body">
-                            <div class="card-name-row">
-                                <div class="card-name">{{ user.name }}</div>
-                                <span v-if="user.rating" class="card-rating">★ {{ user.rating }}</span>
+                <div class="results-body">
+                    <div v-if="users.data.length > 0" class="user-grid">
+                        <Link
+                            v-for="user in users.data"
+                            :key="user.id"
+                            :href="route('profile.show', { user: user.id })"
+                            class="user-card"
+                        >
+                            <div class="card-avatar">
+                                <img v-if="avatarUrl(user)" :src="avatarUrl(user)" alt="Аватар" class="card-avatar__img" />
+                                <span v-else class="card-avatar__initials">{{ initial(user.name) }}</span>
                             </div>
-                            <div class="card-badges">
-                                <span v-if="user.is_idol" class="card-badge card-badge--idol">Айдол</span>
-                                <span v-if="user.gender" class="card-badge" :class="user.gender === 'female' ? 'card-badge--female' : 'card-badge--male'">{{ user.gender === 'female' ? '♀' : '♂' }}</span>
-                                <span v-if="calcAge(user.birth_date)" class="card-badge card-badge--age">{{ calcAge(user.birth_date) }} лет</span>
+                            <span v-if="user.rating" class="card-rating">★ {{ user.rating }}</span>
+                            <div class="card-body">
+                                <div class="card-name-row">
+                                    <div class="card-name">{{ user.name }}</div>
+                                </div>
+                                <div class="card-badges">
+                                    <span v-if="user.is_idol" class="card-badge card-badge--idol">Айдол</span>
+                                    <span v-if="user.gender" class="card-badge" :class="user.gender === 'female' ? 'card-badge--female' : 'card-badge--male'">{{ user.gender === 'female' ? '♀' : '♂' }}</span>
+                                    <span v-if="calcAge(user.birth_date)" class="card-badge card-badge--age">{{ calcAge(user.birth_date) }} лет</span>
+                                </div>
                             </div>
-                        </div>
-                    </Link>
-                </div>
+                        </Link>
+                    </div>
 
-                <div v-else class="no-results">
-                    <p>Пользователи не найдены</p>
+                    <div v-else class="no-results">
+                        <p>Пользователи не найдены</p>
+                    </div>
                 </div>
 
                 <!-- Pagination -->
@@ -833,21 +836,30 @@ function initial(name) {
 }
 
 /* ── Results panel ───────────────────────────────────────── */
-.search-results { scrollbar-width: thin; scrollbar-color: rgba(224, 85, 143, 0.6) rgba(255,255,255,0.04); }
-.search-results::-webkit-scrollbar { width: 6px; }
-.search-results::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 3px; }
-.search-results::-webkit-scrollbar-thumb { background: rgba(224, 85, 143, 0.5); border-radius: 3px; }
-.search-results::-webkit-scrollbar-thumb:hover { background: rgba(224, 85, 143, 0.8); }
+.results-body { scrollbar-width: thin; scrollbar-color: rgba(224, 85, 143, 0.6) rgba(255,255,255,0.04); }
+.results-body::-webkit-scrollbar { width: 6px; }
+.results-body::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 3px; }
+.results-body::-webkit-scrollbar-thumb { background: rgba(224, 85, 143, 0.5); border-radius: 3px; }
+.results-body::-webkit-scrollbar-thumb:hover { background: rgba(224, 85, 143, 0.8); }
 
 .search-results {
     flex: 1;
     min-width: 0;
     height: 100%;
-    overflow-y: auto;
+    overflow: hidden;
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
+}
+
+.results-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 /* ── Sort bar ────────────────────────────────────────────── */
@@ -935,6 +947,7 @@ function initial(name) {
 
 
 .user-card {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -944,6 +957,8 @@ function initial(name) {
     padding: 1rem;
     text-decoration: none;
     transition: border-color 0.18s, background 0.18s, transform 0.15s;
+    min-width: 0;
+    overflow: hidden;
 }
 .user-card:hover {
     border-color: rgba(110, 110, 210, 0.35);
@@ -987,9 +1002,9 @@ function initial(name) {
 .card-name-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
+    justify-content: center;
     min-width: 0;
+    width: 100%;
 }
 
 .card-name {
@@ -1003,11 +1018,13 @@ function initial(name) {
 }
 
 .card-rating {
-    font-size: 1rem;
+    position: absolute;
+    top: 0.6rem;
+    right: 0.75rem;
+    font-size: 0.85rem;
     color: #be91ff;
     font-weight: 600;
     white-space: nowrap;
-    flex-shrink: 0;
 }
 
 .card-badges {
@@ -1085,6 +1102,7 @@ function initial(name) {
     justify-content: center;
     flex-wrap: wrap;
     padding-top: 0.5rem;
+    flex-shrink: 0;
 }
 .pagination::before,
 .pagination::after {
@@ -1147,8 +1165,12 @@ function initial(name) {
     }
     .search-results {
         height: auto;
-        overflow-y: visible;
+        overflow: visible;
         order: 1;
+    }
+    .results-body {
+        overflow-y: visible;
+        justify-content: flex-start;
     }
     .user-grid {
         grid-template-columns: repeat(2, 1fr);
