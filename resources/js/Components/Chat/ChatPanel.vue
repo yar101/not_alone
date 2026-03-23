@@ -26,6 +26,7 @@ const isTyping        = ref(false);
 const typingTimer     = ref(null);
 const loadingConvs    = ref(false);
 const loadingMsgs     = ref(false);
+const coverMessages   = ref(false);
 const sending         = ref(false);
 const messagesEnd     = ref(null);
 const messagesContainer = ref(null);
@@ -130,11 +131,14 @@ async function openConversation(conv) {
         if (local) local.unread_count = 0;
         router.reload({ only: ['unread_messages_count'] });
     } finally {
+        coverMessages.value = true;
         loadingMsgs.value = false;
     }
 
     subscribeEcho(conv.id);
-    scrollToBottom();
+    await nextTick();
+    messagesEnd.value?.scrollIntoView({ behavior: 'instant' });
+    setTimeout(() => { coverMessages.value = false; }, 80);
 }
 
 // ── Start conversation with user (called from outside) ───
@@ -231,9 +235,9 @@ function updateLastMessage(convId, msg) {
 }
 
 // ── Scroll helpers ────────────────────────────────────────
-function scrollToBottom() {
+function scrollToBottom(instant = false) {
     setTimeout(() => {
-        messagesEnd.value?.scrollIntoView({ behavior: 'smooth' });
+        messagesEnd.value?.scrollIntoView({ behavior: instant ? 'instant' : 'smooth' });
     }, 50);
 }
 
@@ -576,6 +580,11 @@ function formatDate(iso) {
                                 <div ref="messagesEnd" />
                             </template>
                         </div>
+
+                        <!-- Оверлей: скрывает скролл при открытии диалога -->
+                        <Transition name="cover-fade">
+                            <div v-if="coverMessages" class="chat-messages-cover" />
+                        </Transition>
 
                         <!-- Оверлей: заблокированный -->
                         <div v-if="activeBlock?.active && !activeBlock?.i_am_blocker" class="chat-blocked-overlay">
@@ -1010,7 +1019,7 @@ function formatDate(iso) {
     display: flex;
     flex-direction: column;
     scrollbar-width: thin;
-    scrollbar-color: rgba(147, 197, 114, 0.75) transparent;
+    scrollbar-color: rgba(100, 220, 180, 0.35) transparent;
 }
 .chat-messages::-webkit-scrollbar {
     width: 4px;
@@ -1019,11 +1028,11 @@ function formatDate(iso) {
     background: transparent;
 }
 .chat-messages::-webkit-scrollbar-thumb {
-    background: rgba(147, 197, 114, 0.75);
+    background: rgba(100, 220, 180, 0.35);
     border-radius: 99px;
 }
 .chat-messages::-webkit-scrollbar-thumb:hover {
-    background: rgba(147, 197, 114, 1);
+    background: rgba(100, 220, 180, 0.6);
 }
 
 .chat-messages-inner {
@@ -1425,6 +1434,16 @@ function formatDate(iso) {
     flex: 1;
     min-height: 0;
 }
+
+.chat-messages-cover {
+    position: absolute;
+    inset: 0;
+    background: #0e0e1c;
+    z-index: 10;
+    pointer-events: none;
+}
+.cover-fade-leave-active { transition: opacity 0.15s ease; }
+.cover-fade-leave-to { opacity: 0; }
 
 /* ── Blocked overlay ──────────────────────────────────── */
 .chat-blocked-overlay {
