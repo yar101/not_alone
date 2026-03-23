@@ -297,7 +297,11 @@ function onDocClick(e) {
 }
 
 onMounted(() => document.addEventListener('click', onDocClick, true));
-onUnmounted(() => document.removeEventListener('click', onDocClick, true));
+onUnmounted(() => {
+    document.removeEventListener('click', onDocClick, true);
+    selectedCategory.value = null;
+    sessionStorage.removeItem(SESSION_KEY.value);
+});
 
 // ── #8 Form validation ───────────────────────────────────────
 const formValid = computed(() =>
