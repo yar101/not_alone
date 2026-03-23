@@ -247,7 +247,7 @@ function initial(name) {
                                 </div>
                                 <div class="card-badges">
                                     <span v-if="user.is_idol" class="card-badge card-badge--idol">Айдол</span>
-                                    <span v-if="user.gender" class="card-badge" :class="user.gender === 'female' ? 'card-badge--female' : 'card-badge--male'">{{ user.gender === 'female' ? '♀' : '♂' }}</span>
+                                    <span v-if="user.gender" class="card-badge" :class="user.gender === 'female' ? 'card-badge--female' : 'card-badge--male'">{{ user.gender === 'female' ? '\u2640\uFE0F' : '\u2642\uFE0F' }}</span>
                                     <span v-if="calcAge(user.birth_date)" class="card-badge card-badge--age">{{ calcAge(user.birth_date) }} лет</span>
                                 </div>
                             </div>

@@ -4,6 +4,10 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+    font-family: 'Figtree', ui-sans-serif, system-ui, sans-serif;
+}
+
 /* Масштабирование на широких мониторах (2K и выше) */
 @media (min-width: 2500px) {
   html {
