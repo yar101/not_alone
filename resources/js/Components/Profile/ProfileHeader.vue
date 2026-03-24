@@ -1,12 +1,10 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
-import { Edit, Setting, Camera } from '@element-plus/icons-vue';
+import { Edit, Setting } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppSelect from '@/Components/AppSelect.vue';
-import ImageDropzone from '@/Components/ImageDropzone.vue';
-import { Cropper, CircleStencil } from 'vue-advanced-cropper';
-import 'vue-advanced-cropper/dist/style.css';
+import AvatarUploader from '@/Components/AvatarUploader.vue';
 
 // ── Pluralization ──────────────────────────────────────────────
 const agePR = new Intl.PluralRules('ru');
@@ -45,19 +43,10 @@ onMounted(() => {
 });
 onUnmounted(() => window.removeEventListener('resize', measureNameScroll));
 
-// ── Кроп ──────────────────────────────────────────────────────
-const cropModal = ref(false);
-const cropSrc = ref('');
-const cropperRef = ref(null);
-const cropError = ref('');
-const cropUploading = ref(false);
-const cropWrapHeight = ref(380);
-
 function onEsc(e) {
     if (e.key === 'Escape') {
         lightboxOpen.value = false;
         showOwnerMenu.value = false;
-        if (cropModal.value) cancelCrop();
     }
 }
 function onOutsideClick(e) {
@@ -151,60 +140,8 @@ function submitEdit() {
     });
 }
 
-const avatarModal = ref(false);
-
 function onAvatarClick() {
-    if (props.isOwner) avatarModal.value = true;
-    else if (props.user.avatar_url) lightboxOpen.value = true;
-}
-
-function closeAvatarModal() {
-    avatarModal.value = false;
-}
-
-function processAvatarFile(file) {
-    avatarModal.value = false;
-    cropError.value = '';
-    const url = URL.createObjectURL(file);
-    cropSrc.value = url;
-    const img = new Image();
-    img.onload = () => {
-        const ratio = img.naturalHeight / img.naturalWidth;
-        cropWrapHeight.value = Math.min(380, Math.max(200, Math.round(420 * ratio)));
-    };
-    img.src = url;
-    cropModal.value = true;
-}
-
-function onDropzoneChange(file) {
-    processAvatarFile(file);
-}
-
-function cancelCrop() {
-    cropModal.value = false;
-    cropSrc.value = '';
-    cropError.value = '';
-    cropWrapHeight.value = 380;
-}
-
-function applyCrop() {
-    if (cropError.value || !cropperRef.value) return;
-    const { canvas } = cropperRef.value.getResult();
-    if (!canvas) return;
-
-    cropUploading.value = true;
-    canvas.toBlob(blob => {
-        const fd = new FormData();
-        fd.append('avatar', blob, 'avatar.jpg');
-        router.post(route('profile.update.avatar'), fd, {
-            preserveScroll: true,
-            forceFormData: true,
-            onFinish: () => {
-                cropUploading.value = false;
-                cancelCrop();
-            },
-        });
-    }, 'image/jpeg', 0.92);
+    if (!props.isOwner && props.user.avatar_url) lightboxOpen.value = true;
 }
 
 function deleteAvatar() {
@@ -257,19 +194,8 @@ function deleteAvatar() {
 
         <!-- Аватар по центру -->
         <div class="header-avatar-area">
-            <div class="avatar-wrapper">
-                <div class="avatar-ring" :class="{ 'avatar-clickable': isOwner || user.avatar_url }"
-                    @click="onAvatarClick">
-                    <div class="profile-avatar">
-                        <img v-if="user.avatar_url" :src="user.avatar_url" class="avatar-img" alt="Avatar" />
-                        <span v-else class="avatar-letter">{{ user.name.charAt(0).toUpperCase() }}</span>
-                        <div v-if="isOwner" class="avatar-overlay">
-                            <el-icon class="avatar-overlay-icon">
-                                <Camera />
-                            </el-icon>
-                        </div>
-                    </div>
-                </div>
+            <div class="avatar-wrapper" :class="{ 'avatar-clickable': !isOwner && user.avatar_url }" @click="onAvatarClick">
+                <AvatarUploader :user="user" :size="190" :editable="isOwner" />
             </div>
         </div>
 
@@ -295,44 +221,6 @@ function deleteAvatar() {
                 </div>
             </Transition>
         </Teleport>
-
-        <!-- Avatar upload modal -->
-        <SiteModal :show="avatarModal" variant="pink" :compact="true" @close="closeAvatarModal">
-            <div class="avatar-upload-form">
-                <h3 class="edit-title">Загрузить фото</h3>
-                <ImageDropzone :max-size-mb="5" @change="onDropzoneChange" />
-            </div>
-        </SiteModal>
-
-        <!-- Crop modal -->
-        <SiteModal :show="cropModal" variant="pink" :compact="true" @close="cancelCrop">
-            <div class="crop-form">
-                <h3 class="edit-title">Обрезка фото</h3>
-
-                <div v-if="cropError" class="crop-error">{{ cropError }}</div>
-
-                <template v-else>
-                    <div class="crop-wrap" :style="{ height: cropWrapHeight + 'px' }">
-                        <Cropper ref="cropperRef" :src="cropSrc" :stencil-component="CircleStencil"
-                            :stencil-props="{ movable: true, resizable: true }"
-                            :default-size="{ width: 300, height: 300 }" background-class="cropper-bg" class="cropper" />
-                    </div>
-
-                    <div class="crop-rotate-row">
-                        <button class="crop-rotate-btn" type="button" @click="cropperRef.rotate(-90)"
-                            title="Повернуть влево">↺</button>
-                        <button class="crop-rotate-btn" type="button" @click="cropperRef.rotate(90)"
-                            title="Повернуть вправо">↻</button>
-                    </div>
-                </template>
-
-                <div class="crop-actions">
-                    <button class="save-btn" type="button" :disabled="!!cropError || cropUploading" @click="applyCrop">
-                        {{ cropUploading ? 'Загрузка...' : 'Сохранить' }}
-                    </button>
-                </div>
-            </div>
-        </SiteModal>
 
         <!-- Edit modal -->
         <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
@@ -531,65 +419,8 @@ function deleteAvatar() {
     display: inline-flex;
 }
 
-.avatar-ring {
-    width: 190px;
-    height: 190px;
-    border-radius: 50%;
-    padding: 2px;
-    flex-shrink: 0;
-    border: 1px solid rgba(160, 160, 255, 0.6);
-    box-shadow: 0 0 0 1px rgba(160, 160, 255, 0.15), 0 0 24px rgba(160, 160, 255, 0.12);
-}
-
 .avatar-clickable {
     cursor: pointer;
-}
-
-.profile-avatar {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background: rgba(160, 160, 255, 0.08);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2.2rem;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.9);
-    position: relative;
-    overflow: hidden;
-}
-
-.avatar-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-}
-
-.avatar-letter {
-    line-height: 1;
-}
-
-.avatar-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.55);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-.profile-avatar:hover .avatar-overlay {
-    opacity: 1;
-}
-
-.avatar-overlay-icon {
-    font-size: 1.4rem;
-    color: #fff;
 }
 
 /* Имя */

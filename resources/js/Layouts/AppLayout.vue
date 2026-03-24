@@ -5,6 +5,7 @@ import NotificationBell from '@/Components/NotificationBell.vue';
 import ChatButton from '@/Components/Chat/ChatButton.vue';
 import ChatPanel from '@/Components/Chat/ChatPanel.vue';
 import AuthModal from '@/Components/Site/AuthModal.vue';
+import UserSidebar from '@/Components/UserSidebar.vue';
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
@@ -20,6 +21,7 @@ const showAuthModal = ref(false);
 const authModalTab  = ref('login');
 const chatOpen = ref(false);
 const chatPanel = ref(null);
+const sidebarOpen = ref(false);
 
 function openAuth(tab) {
     authModalTab.value = tab;
@@ -92,7 +94,7 @@ onUnmounted(() => {
                 <NotificationBell v-if="user" />
 
                 <template v-if="user">
-                    <Link :href="profileHref" class="user-chip">
+                    <button @click="sidebarOpen = true" class="user-chip">
                         <div class="user-avatar">
                             <img
                                 v-if="user.avatar_url"
@@ -105,7 +107,7 @@ onUnmounted(() => {
                         <span class="user-name-clip">
                             <span class="user-name">{{ user.name }}</span>
                         </span>
-                    </Link>
+                    </button>
                 </template>
                 <template v-else>
                     <button @click="openAuth('login')" class="guest-btn guest-btn--outline">Войти</button>
@@ -120,6 +122,7 @@ onUnmounted(() => {
 
         <AuthModal :show="showAuthModal" :initial-tab="authModalTab" @close="showAuthModal = false" />
         <ChatPanel v-if="user" ref="chatPanel" v-model="chatOpen" />
+        <UserSidebar v-if="user" v-model="sidebarOpen" :user="user" :is-idol="isIdol" :rating="user?.rating" />
     </div>
 </template>
 
@@ -174,8 +177,8 @@ onUnmounted(() => {
     align-items: center;
     gap: 0.65rem;
     text-decoration: none;
-    border-radius: 999px;
-    padding: 0.22rem 0.75rem 0.22rem 0.22rem;
+    border-radius: 8px;
+    padding: 0.22rem 1.1rem 0.22rem 0.5rem;
     border: 1px solid transparent;
     transition: background 0.18s, border-color 0.18s;
 }
@@ -230,15 +233,6 @@ onUnmounted(() => {
 }
 .user-chip:hover .user-name { color: rgba(255, 255, 255, 0.9); }
 
-.user-chip:hover .user-name {
-    animation: user-name-scroll 2.5s ease-in-out infinite alternate;
-    animation-delay: 0.5s;
-}
-
-@keyframes user-name-scroll {
-    0%,  20% { transform: translateX(0); }
-    80%, 100% { transform: translateX(min(0px, calc(160px - 100%))); }
-}
 
 /* ── Main ────────────────────────────────────────────────── */
 .app-main {
