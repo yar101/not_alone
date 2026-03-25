@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, nextTick, computed, onBeforeUnmount } from 'vue';
 import { useForm } from '@inertiajs/vue3';
+import AppSelect from '@/Components/AppSelect.vue';
 import axios from 'axios';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
@@ -17,6 +18,12 @@ const form = useForm({
     target_user_id: '',
     target_filters: null,
 });
+
+const targetOptions = [
+    { value: 'all',      label: 'Все пользователи' },
+    { value: 'user',     label: 'Конкретный пользователь' },
+    { value: 'filtered', label: 'По фильтру' },
+];
 
 function submit() {
     form.post(route('admin.messages.store'), {
@@ -222,11 +229,11 @@ function targetLabel(b) {
                 </div>
                 <div class="field">
                     <label class="field-label">Получатели</label>
-                    <select v-model="form.target" class="field-input" @change="clearSelection">
-                        <option value="all">Все пользователи</option>
-                        <option value="user">Конкретный пользователь</option>
-                        <option value="filtered">По фильтру</option>
-                    </select>
+                    <AppSelect
+                        v-model="form.target"
+                        :options="targetOptions"
+                        @change="clearSelection"
+                    />
                 </div>
 
                 <!-- Конкретный пользователь -->
@@ -465,7 +472,7 @@ function targetLabel(b) {
 
 .compose-card {
     background: rgba(255,255,255,0.025);
-    border: 1px solid rgba(200,70,126,0.3);
+    border: 1px solid rgba(155,110,232,0.3);
     padding: 1.5rem;
     margin-bottom: 2rem;
     max-width: 600px;
@@ -482,29 +489,29 @@ function targetLabel(b) {
     outline: none; width: 100%; box-sizing: border-box;
     font-family: inherit;
 }
-.field-input:focus, .field-textarea:focus { border-color: rgba(200,70,126,0.6); }
+.field-input:focus, .field-textarea:focus { border-color: rgba(155,110,232,0.6); }
 .field-textarea { resize: vertical; }
 .field-error { font-size: 0.78rem; color: #ff6b6b; margin: 0; }
 
 .btn-send {
     align-self: flex-start;
     padding: 0.5rem 1.2rem;
-    background: rgba(200,70,126,0.15); border: 1px solid rgba(200,70,126,0.45);
-    color: #C8467E; font-size: 0.88rem; cursor: pointer; font-family: inherit;
+    background: rgba(155,110,232,0.15); border: 1px solid rgba(155,110,232,0.45);
+    color: #9B6EE8; font-size: 0.88rem; cursor: pointer; font-family: inherit;
 }
-.btn-send:hover { background: rgba(200,70,126,0.28); }
+.btn-send:hover { background: rgba(155,110,232,0.28); }
 .btn-send:disabled { opacity: 0.5; }
 
 /* User chip */
 .user-chip {
     display: flex; align-items: center; gap: 0.75rem;
-    background: rgba(200,70,126,0.08);
-    border: 1px solid rgba(200,70,126,0.3);
+    background: rgba(155,110,232,0.08);
+    border: 1px solid rgba(155,110,232,0.3);
     padding: 0.55rem 0.75rem;
 }
 .user-chip-avatar {
     width: 34px; height: 34px; border-radius: 50%;
-    background: rgba(200,70,126,0.3);
+    background: rgba(155,110,232,0.3);
     display: flex; align-items: center; justify-content: center;
     font-size: 0.85rem; font-weight: 600; color: #fff; flex-shrink: 0;
 }
@@ -515,8 +522,8 @@ function targetLabel(b) {
 /* Filtered chip */
 .filtered-chip {
     display: flex; align-items: flex-start; gap: 0.75rem;
-    background: rgba(200,70,126,0.08);
-    border: 1px solid rgba(200,70,126,0.3);
+    background: rgba(155,110,232,0.08);
+    border: 1px solid rgba(155,110,232,0.3);
     padding: 0.65rem 0.75rem;
 }
 .filtered-chip-main { display: flex; flex-direction: column; gap: 0.35rem; flex: 1; min-width: 0; }
@@ -525,8 +532,8 @@ function targetLabel(b) {
 .filter-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; }
 .filter-tag {
     font-size: 0.72rem; padding: 0.12rem 0.45rem;
-    background: rgba(200,70,126,0.15); color: #C8467E;
-    border: 1px solid rgba(200,70,126,0.35);
+    background: rgba(155,110,232,0.15); color: #9B6EE8;
+    border: 1px solid rgba(155,110,232,0.35);
 }
 
 .btn-change {
@@ -540,10 +547,10 @@ function targetLabel(b) {
 .btn-pick {
     align-self: flex-start;
     padding: 0.45rem 0.95rem;
-    background: rgba(200,70,126,0.1); border: 1px solid rgba(200,70,126,0.35);
-    color: #C8467E; font-size: 0.85rem; cursor: pointer; font-family: inherit;
+    background: rgba(155,110,232,0.1); border: 1px solid rgba(155,110,232,0.35);
+    color: #9B6EE8; font-size: 0.85rem; cursor: pointer; font-family: inherit;
 }
-.btn-pick:hover { background: rgba(200,70,126,0.22); }
+.btn-pick:hover { background: rgba(155,110,232,0.22); }
 
 /* Sent section */
 .sent-section { max-width: 900px; }
@@ -562,7 +569,7 @@ function targetLabel(b) {
 }
 .bcast-row { border-bottom: 1px solid rgba(255,255,255,0.06); }
 .bcast-row:last-child { border-bottom: none; }
-.bcast-row:hover { background: rgba(200,70,126,0.06); }
+.bcast-row:hover { background: rgba(155,110,232,0.06); }
 .broadcasts-table td { padding: 0.6rem 0.9rem; color: rgba(255,255,255,0.75); vertical-align: middle; }
 .col-num { width: 48px; }
 .col-date { width: 90px; white-space: nowrap; }
@@ -577,7 +584,7 @@ function targetLabel(b) {
 
 .sent-target { font-size: 0.72rem; padding: 0.12rem 0.5rem; white-space: nowrap; display: inline-block; font-weight: 600; letter-spacing: 0.03em; }
 .target--all { background: rgba(76,222,143,0.1); color: #4cde8f; border: 1px solid rgba(76,222,143,0.22); }
-.target--user { background: rgba(200,70,126,0.1); color: #C8467E; border: 1px solid rgba(200,70,126,0.22); }
+.target--user { background: rgba(155,110,232,0.1); color: #9B6EE8; border: 1px solid rgba(155,110,232,0.22); }
 .target--filtered { background: rgba(139,92,246,0.1); color: #a78bfa; border: 1px solid rgba(139,92,246,0.22); }
 
 .btn-detail {
@@ -587,7 +594,7 @@ function targetLabel(b) {
     font-size: 0.9rem; line-height: 1;
     display: inline-flex; align-items: center; justify-content: center;
 }
-.btn-detail:hover { background: rgba(200,70,126,0.15); border-color: rgba(200,70,126,0.45); color: #C8467E; }
+.btn-detail:hover { background: rgba(155,110,232,0.15); border-color: rgba(155,110,232,0.45); color: #9B6EE8; }
 
 /* Detail modal */
 .modal--detail { max-width: 520px; }
@@ -612,7 +619,7 @@ function targetLabel(b) {
 }
 .modal {
     background: #0d0d1b;
-    border: 1px solid rgba(200,70,126,0.35);
+    border: 1px solid rgba(155,110,232,0.35);
     width: 100%; max-width: 640px;
     max-height: 85vh;
     display: flex; flex-direction: column;
@@ -646,7 +653,7 @@ function targetLabel(b) {
     padding: 0.5rem 0.75rem; font-size: 0.85rem; outline: none;
     font-family: inherit;
 }
-.filter-search:focus { border-color: rgba(200,70,126,0.6); }
+.filter-search:focus { border-color: rgba(155,110,232,0.6); }
 .filter-search::placeholder { color: rgba(255,255,255,0.25); }
 .filter-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
 .filter-group { display: flex; align-items: center; gap: 0.5rem; }
@@ -659,7 +666,7 @@ function targetLabel(b) {
     margin-left: -1px;
 }
 .btn-toggle:hover { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.75); }
-.btn-toggle.active { background: rgba(200,70,126,0.2); border-color: rgba(200,70,126,0.45); color: #C8467E; }
+.btn-toggle.active { background: rgba(155,110,232,0.2); border-color: rgba(155,110,232,0.45); color: #9B6EE8; }
 .filter-range { display: flex; align-items: center; gap: 0.4rem; }
 .filter-num {
     width: 60px; background: rgba(255,255,255,0.05);
@@ -712,16 +719,16 @@ function targetLabel(b) {
 .picker-row--clickable:hover { background: rgba(255,255,255,0.04); }
 .picker-avatar {
     width: 34px; height: 34px; border-radius: 50%;
-    background: rgba(200,70,126,0.2);
+    background: rgba(155,110,232,0.2);
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.82rem; font-weight: 600; color: #C8467E; flex-shrink: 0;
+    font-size: 0.82rem; font-weight: 600; color: #9B6EE8; flex-shrink: 0;
 }
 .picker-info { display: flex; flex-direction: column; gap: 0.1rem; flex: 1; min-width: 0; }
 .picker-name { font-size: 0.87rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .picker-email { font-size: 0.75rem; color: rgba(255,255,255,0.35); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .picker-badges { display: flex; gap: 0.3rem; flex-wrap: wrap; }
 .badge { font-size: 0.68rem; padding: 0.1rem 0.4rem; font-weight: 600; letter-spacing: 0.03em; }
-.badge--idol { background: rgba(200,70,126,0.15); color: #C8467E; border: 1px solid rgba(200,70,126,0.3); }
+.badge--idol { background: rgba(155,110,232,0.15); color: #9B6EE8; border: 1px solid rgba(155,110,232,0.3); }
 .badge--male { background: rgba(59,130,246,0.1); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
 .badge--female { background: rgba(236,72,153,0.1); color: #f472b6; border: 1px solid rgba(236,72,153,0.2); }
 .badge--age { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.1); }

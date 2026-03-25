@@ -1,32 +1,27 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
-import { Edit, Setting, Camera } from '@element-plus/icons-vue';
+import { Edit, Setting } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
-import ProfileChecklist from '@/Components/Profile/ProfileChecklist.vue';
-import { Cropper, CircleStencil } from 'vue-advanced-cropper';
-import 'vue-advanced-cropper/dist/style.css';
-
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+import AppSelect from '@/Components/AppSelect.vue';
+import AvatarUploader from '@/Components/AvatarUploader.vue';
 
 // ── Pluralization ──────────────────────────────────────────────
 const agePR = new Intl.PluralRules('ru');
 const ageForms = { one: 'год', few: 'года', many: 'лет', other: 'лет' };
 function ageLabel(n) { return `${n} ${ageForms[agePR.select(n)]}`; }
 
-// ── Временный рейтинг (убрать после внедрения рейтинга) ──
-const devRating = ref(73); // 0–100
-
 const props = defineProps({
-    user:      { type: Object, required: true },
-    isOwner:   { type: Boolean, default: false },
-    traits:    { default: null },
-    interests: { default: null },
-    languages: { default: null },
+    user: { type: Object, required: true },
+    isOwner: { type: Boolean, default: false },
+    isIdol: { type: Boolean, default: false },
+    rating: { default: null },
+    canReport: { type: Boolean, default: false },
 });
 
+const emit = defineEmits(['report']);
+
 const editModal = ref(false);
-const avatarInput = ref(null);
 const lightboxOpen = ref(false);
 
 // ── Marquee для имени ──────────────────────────────────────
@@ -48,22 +43,25 @@ onMounted(() => {
 });
 onUnmounted(() => window.removeEventListener('resize', measureNameScroll));
 
-// ── Кроп ──────────────────────────────────────────────────────
-const cropModal = ref(false);
-const cropSrc = ref('');
-const cropperRef = ref(null);
-const cropError = ref('');
-const cropUploading = ref(false);
-const cropWrapHeight = ref(380);
-
 function onEsc(e) {
     if (e.key === 'Escape') {
         lightboxOpen.value = false;
-        if (cropModal.value) cancelCrop();
+        showOwnerMenu.value = false;
     }
 }
-onMounted(() => document.addEventListener('keydown', onEsc));
-onUnmounted(() => document.removeEventListener('keydown', onEsc));
+function onOutsideClick(e) {
+    if (!e.target.closest('.owner-menu')) showOwnerMenu.value = false;
+}
+onMounted(() => {
+    document.addEventListener('keydown', onEsc);
+    document.addEventListener('click', onOutsideClick);
+});
+onUnmounted(() => {
+    document.removeEventListener('keydown', onEsc);
+    document.removeEventListener('click', onOutsideClick);
+});
+
+const showOwnerMenu = ref(false);
 
 const form = useForm({
     name: props.user.name ?? '',
@@ -93,7 +91,7 @@ const TIMEZONES = [
 ];
 
 const currentYear = new Date().getFullYear();
-const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
 function parseBd(dateStr) {
     if (!dateStr) return { y: '', m: '', d: '' };
@@ -102,9 +100,9 @@ function parseBd(dateStr) {
 }
 
 const bd = computed(() => parseBd(props.user.birth_date));
-const bdDay   = ref(bd.value.d || '');
+const bdDay = ref(bd.value.d || '');
 const bdMonth = ref(bd.value.m || '');
-const bdYear  = ref(bd.value.y || '');
+const bdYear = ref(bd.value.y || '');
 
 const yearOptions = computed(() => {
     const years = [];
@@ -118,6 +116,12 @@ const dayOptions = computed(() => {
     return Array.from({ length: days }, (_, i) => i + 1);
 });
 
+const monthOptions = computed(() => monthNames.map((n, i) => ({ value: i + 1, label: n })));
+const timezoneOptions = computed(() => [
+    { value: '', label: 'Не указан' },
+    ...TIMEZONES.map(tz => ({ value: tz, label: tz })),
+]);
+
 function submitEdit() {
     nameError.value = validateName(form.name);
     if (nameError.value) return;
@@ -125,7 +129,7 @@ function submitEdit() {
     form.name = form.name.trim();
 
     if (bdDay.value && bdMonth.value && bdYear.value) {
-        form.birth_date = `${bdYear.value}-${String(bdMonth.value).padStart(2,'0')}-${String(bdDay.value).padStart(2,'0')}`;
+        form.birth_date = `${bdYear.value}-${String(bdMonth.value).padStart(2, '0')}-${String(bdDay.value).padStart(2, '0')}`;
     } else {
         form.birth_date = '';
     }
@@ -137,60 +141,7 @@ function submitEdit() {
 }
 
 function onAvatarClick() {
-    if (props.isOwner) avatarInput.value?.click();
-    else if (props.user.avatar_url) lightboxOpen.value = true;
-}
-
-function onAvatarChange(e) {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-
-    cropError.value = '';
-    if (file.size > MAX_FILE_SIZE) {
-        cropError.value = 'Файл слишком большой. Максимум 5 МБ.';
-        cropModal.value = true;
-        return;
-    }
-
-    const url = URL.createObjectURL(file);
-    cropSrc.value = url;
-
-    const img = new Image();
-    img.onload = () => {
-        const ratio = img.naturalHeight / img.naturalWidth;
-        cropWrapHeight.value = Math.min(380, Math.max(200, Math.round(420 * ratio)));
-    };
-    img.src = url;
-
-    cropModal.value = true;
-}
-
-function cancelCrop() {
-    cropModal.value = false;
-    cropSrc.value = '';
-    cropError.value = '';
-    cropWrapHeight.value = 380;
-}
-
-function applyCrop() {
-    if (cropError.value || !cropperRef.value) return;
-    const { canvas } = cropperRef.value.getResult();
-    if (!canvas) return;
-
-    cropUploading.value = true;
-    canvas.toBlob(blob => {
-        const fd = new FormData();
-        fd.append('avatar', blob, 'avatar.jpg');
-        router.post(route('profile.update.avatar'), fd, {
-            preserveScroll: true,
-            forceFormData: true,
-            onFinish: () => {
-                cropUploading.value = false;
-                cancelCrop();
-            },
-        });
-    }, 'image/jpeg', 0.92);
+    if (!props.isOwner && props.user.avatar_url) lightboxOpen.value = true;
 }
 
 function deleteAvatar() {
@@ -204,83 +155,63 @@ function deleteAvatar() {
 <template>
     <div id="tour-header" class="profile-header">
 
+        <!-- Рейтинг — верхний левый угол -->
+        <div v-if="rating !== null" class="header-rating">
+            <img src="/stars/10.png" class="star-img" alt="rating" />
+            <span class="rating-num">{{ rating }}</span>
+        </div>
+
         <!-- Кнопки сверху справа -->
         <div v-if="isOwner" class="header-actions">
-            <button class="action-pill" @click="editModal = true" title="Редактировать">
-                <el-icon><Edit /></el-icon>
+            <div class="owner-menu">
+                <button class="action-pill" @click.stop="showOwnerMenu = !showOwnerMenu">
+                    <span class="owner-menu__dot"></span>
+                    <span class="owner-menu__dot"></span>
+                    <span class="owner-menu__dot"></span>
+                </button>
+                <Transition name="owner-menu-pop">
+                    <div v-if="showOwnerMenu" class="owner-menu__dropdown">
+                        <button class="owner-menu__item" @click="editModal = true; showOwnerMenu = false">
+                            <el-icon><Edit /></el-icon>
+                            Редактировать профиль
+                        </button>
+                        <a :href="route('settings.edit')" class="owner-menu__item" @click="showOwnerMenu = false">
+                            <el-icon><Setting /></el-icon>
+                            Настройки
+                        </a>
+                    </div>
+                </Transition>
+            </div>
+        </div>
+        <div v-else-if="canReport" class="header-actions">
+            <button class="action-pill action-pill--report" @click="emit('report')" title="Пожаловаться">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                    <line x1="4" y1="22" x2="4" y2="15"/>
+                </svg>
             </button>
-            <a :href="route('settings.edit')" class="action-pill" title="Настройки">
-                <el-icon><Setting /></el-icon>
-            </a>
         </div>
 
         <!-- Аватар по центру -->
         <div class="header-avatar-area">
-            <div class="avatar-wrapper">
-                <div class="avatar-ring" :class="{ 'avatar-clickable': isOwner || user.avatar_url }" @click="onAvatarClick">
-                    <div class="profile-avatar">
-                        <img
-                            v-if="user.avatar_url"
-                            :src="user.avatar_url"
-                            class="avatar-img"
-                            alt="Avatar"
-                        />
-                        <span v-else class="avatar-letter">{{ user.name.charAt(0).toUpperCase() }}</span>
-                        <div v-if="isOwner" class="avatar-overlay">
-                            <el-icon class="avatar-overlay-icon"><Camera /></el-icon>
-                        </div>
-                    </div>
-                </div>
-                <ProfileChecklist v-if="isOwner" :user="user" :traits="traits" :interests="interests" :languages="languages" />
+            <div class="avatar-wrapper" :class="{ 'avatar-clickable': !isOwner && user.avatar_url }" @click="onAvatarClick">
+                <AvatarUploader :user="user" :size="190" :editable="isOwner" />
             </div>
         </div>
 
         <!-- Имя + мета -->
         <div class="header-name-wrap">
-            <div
-                ref="nameWrapRef"
-                class="header-name-scroller"
-                :class="{ 'name-overflows': hasNameOverflow }"
-                :style="hasNameOverflow ? { '--name-offset': nameScrollOffset } : {}"
-            >
+            <div ref="nameWrapRef" class="header-name-scroller" :class="{ 'name-overflows': hasNameOverflow }"
+                :style="hasNameOverflow ? { '--name-offset': nameScrollOffset } : {}">
                 <h1 ref="nameRef" class="header-name">{{ user.name }}</h1>
             </div>
-            <div v-if="user.gender || user.age" class="header-meta">
-                <span v-if="user.gender" class="meta-badge" :class="'meta-badge--' + user.gender">
-                    <svg v-if="user.gender === 'female'" class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="9" r="6"/><line x1="12" y1="15" x2="12" y2="21"/><line x1="9" y1="19" x2="15" y2="19"/>
-                    </svg>
-                    <svg v-else class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="10" cy="14" r="6"/><line x1="14.5" y1="9.5" x2="21" y2="3"/><polyline points="16 3 21 3 21 8"/>
-                    </svg>
-                    {{ user.gender === 'female' ? 'Женский' : 'Мужской' }}
-                </span>
+            <div v-if="isIdol || user.gender || user.age" class="header-meta">
+                <span v-if="isIdol" class="meta-badge meta-badge--idol">Айдол</span>
+                <span v-if="user.gender" class="meta-badge" :class="'meta-badge--' + user.gender">{{ user.gender === 'female' ? '\u2640\uFE0F' : '\u2642\uFE0F' }}</span>
                 <span v-if="user.age" class="meta-badge meta-badge--age">{{ ageLabel(user.age) }}</span>
             </div>
         </div>
 
-        <!-- Рейтинг -->
-        <div class="header-rating">
-            <div class="rating-block">
-                <span class="rating-label">Рейтинг</span>
-                <div class="rating-inner">
-                    <img src="/stars/10.png" class="star-img" alt="rating" />
-                    <span class="rating-num">{{ devRating }}</span>
-                </div>
-                <div class="rating-bar-track">
-                    <div class="rating-bar-fill"></div>
-                </div>
-            </div>
-        </div>
-
-        <input
-            v-if="isOwner"
-            ref="avatarInput"
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            class="hidden-input"
-            @change="onAvatarChange"
-        />
 
         <!-- Lightbox -->
         <Teleport to="body">
@@ -291,46 +222,6 @@ function deleteAvatar() {
             </Transition>
         </Teleport>
 
-        <!-- Crop modal -->
-        <SiteModal :show="cropModal" variant="pink" :compact="true" @close="cancelCrop">
-            <div class="crop-form">
-                <h3 class="edit-title">Обрезка фото</h3>
-
-                <div v-if="cropError" class="crop-error">{{ cropError }}</div>
-
-                <template v-else>
-                    <div class="crop-wrap" :style="{ height: cropWrapHeight + 'px' }">
-                        <Cropper
-                            ref="cropperRef"
-                            :src="cropSrc"
-                            :stencil-component="CircleStencil"
-                            :stencil-props="{ movable: true, resizable: true }"
-                            :default-size="{ width: 300, height: 300 }"
-                            background-class="cropper-bg"
-                            class="cropper"
-                        />
-                    </div>
-
-                    <div class="crop-rotate-row">
-                        <button class="crop-rotate-btn" type="button" @click="cropperRef.rotate(-90)" title="Повернуть влево">↺</button>
-                        <button class="crop-rotate-btn" type="button" @click="cropperRef.rotate(90)" title="Повернуть вправо">↻</button>
-                    </div>
-                </template>
-
-                <div class="crop-actions">
-                    <button class="crop-cancel-btn" type="button" @click="cancelCrop">Отмена</button>
-                    <button
-                        class="save-btn"
-                        type="button"
-                        :disabled="!!cropError || cropUploading"
-                        @click="applyCrop"
-                    >
-                        {{ cropUploading ? 'Загрузка...' : 'Сохранить' }}
-                    </button>
-                </div>
-            </div>
-        </SiteModal>
-
         <!-- Edit modal -->
         <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
             <div class="edit-form">
@@ -338,13 +229,8 @@ function deleteAvatar() {
 
                 <div class="edit-field">
                     <label class="edit-label">Имя</label>
-                    <input
-                        v-model="form.name"
-                        class="edit-input"
-                        type="text"
-                        placeholder="Имя или Имя Фамилия"
-                        @input="nameError = ''"
-                    />
+                    <input v-model="form.name" class="edit-input" type="text" placeholder="Имя или Имя Фамилия"
+                        @input="nameError = ''" />
                     <span v-if="nameError || form.errors.name" class="edit-field-error">
                         {{ nameError || form.errors.name }}
                     </span>
@@ -353,26 +239,28 @@ function deleteAvatar() {
                 <div class="edit-field">
                     <label class="edit-label">Пол</label>
                     <div class="gender-group">
-                        <button type="button" class="gender-btn" :class="{ active: form.gender === 'male' }"   @click="form.gender = 'male'">Мужской</button>
-                        <button type="button" class="gender-btn" :class="{ active: form.gender === 'female' }" @click="form.gender = 'female'">Женский</button>
+                        <button type="button" class="gender-btn" :class="{ active: form.gender === 'male' }"
+                            @click="form.gender = 'male'">Мужской</button>
+                        <button type="button" class="gender-btn" :class="{ active: form.gender === 'female' }"
+                            @click="form.gender = 'female'">Женский</button>
                     </div>
                 </div>
 
                 <div class="edit-field">
                     <label class="edit-label">Дата рождения</label>
                     <div class="dob-row">
-                        <select v-model="bdDay"   class="edit-select"><option value="" disabled>День</option><option v-for="d in dayOptions"  :key="d"   :value="d">{{ d }}</option></select>
-                        <select v-model="bdMonth" class="edit-select"><option value="" disabled>Месяц</option><option v-for="(n,i) in monthNames" :key="i+1" :value="i+1">{{ n }}</option></select>
-                        <select v-model="bdYear"  class="edit-select"><option value="" disabled>Год</option><option v-for="y in yearOptions"  :key="y"   :value="y">{{ y }}</option></select>
+                        <AppSelect v-model="bdDay" :options="dayOptions" placeholder="День"
+                            style="flex:1;min-width:0" />
+                        <AppSelect v-model="bdMonth" :options="monthOptions" placeholder="Месяц"
+                            style="flex:1;min-width:0" />
+                        <AppSelect v-model="bdYear" :options="yearOptions" placeholder="Год"
+                            style="flex:1;min-width:0" />
                     </div>
                 </div>
 
                 <div class="edit-field">
                     <label class="edit-label">Часовой пояс</label>
-                    <select v-model="form.timezone" class="edit-select edit-select--full">
-                        <option value="">Не указан</option>
-                        <option v-for="tz in TIMEZONES" :key="tz" :value="tz">{{ tz }}</option>
-                    </select>
+                    <AppSelect v-model="form.timezone" :options="timezoneOptions" placeholder="Не указан" />
                 </div>
 
                 <div v-if="user.avatar_url" class="edit-field">
@@ -392,7 +280,8 @@ function deleteAvatar() {
     position: relative;
     overflow: visible;
     background: #06060e;
-    border: 1px solid rgba(255,255,255,0.18);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
     border-radius: 3px;
     display: flex;
     flex-direction: column;
@@ -409,24 +298,113 @@ function deleteAvatar() {
     display: flex;
     gap: 0.4rem;
     align-items: center;
+    z-index: 10;
 }
 
 .action-pill {
-    width: 32px; height: 32px;
-    border: 1px solid rgba(255,255,255,0.1);
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 3px;
     background: transparent;
-    color: rgba(255,255,255,0.35);
-    display: flex; align-items: center; justify-content: center;
+    color: rgba(255, 255, 255, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
     text-decoration: none;
     font-size: 0.9rem;
     transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
+
 .action-pill:hover {
-    color: #FE28A2;
-    border-color: rgba(254,40,162,0.5);
-    background: rgba(254,40,162,0.05);
+    color: #a0a0ff;
+    border-color: rgba(160, 160, 255, 0.5);
+    background: rgba(160, 160, 255, 0.05);
+}
+
+.action-pill--report {
+    color: rgba(239, 68, 68, 0.4);
+    border-color: rgba(239, 68, 68, 0.2);
+}
+.action-pill--report:hover {
+    color: rgba(248, 113, 113, 0.9);
+    border-color: rgba(239, 68, 68, 0.5);
+    background: rgba(239, 68, 68, 0.07);
+}
+
+.owner-menu {
+    position: relative;
+}
+
+.owner-menu > .action-pill {
+    border: none;
+    background: transparent;
+}
+
+.owner-menu__dot {
+    display: block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(200, 70, 126, 0.75);
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+
+.owner-menu > .action-pill:hover .owner-menu__dot {
+    background: rgba(200, 70, 126, 1);
+}
+
+.action-pill .owner-menu__dot + .owner-menu__dot {
+    margin-left: 3px;
+}
+
+.owner-menu__dropdown {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    right: 0;
+    background: rgb(16, 11, 20);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    overflow: hidden;
+    min-width: 180px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+}
+
+.owner-menu__item {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    padding: 0.65rem 1rem;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.65);
+    font-family: inherit;
+    font-size: 0.88rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.owner-menu__item:hover {
+    background: rgba(160, 160, 255, 0.07);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.owner-menu-pop-enter-active {
+    transition: opacity 0.14s ease;
+}
+.owner-menu-pop-leave-active {
+    transition: opacity 0.1s ease;
+}
+.owner-menu-pop-enter-from,
+.owner-menu-pop-leave-to {
+    opacity: 0;
 }
 
 /* Avatar */
@@ -441,45 +419,9 @@ function deleteAvatar() {
     display: inline-flex;
 }
 
-.avatar-ring {
-    width: 190px; height: 190px;
-    border-radius: 50%;
-    padding: 2px;
-    flex-shrink: 0;
-    border: 1px solid rgba(254,40,162,0.6);
-    box-shadow: 0 0 0 1px rgba(254,40,162,0.15), 0 0 24px rgba(254,40,162,0.12);
+.avatar-clickable {
+    cursor: pointer;
 }
-.avatar-clickable { cursor: pointer; }
-
-.profile-avatar {
-    width: 100%; height: 100%;
-    border-radius: 50%;
-    background: rgba(254,40,162,0.08);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 2.2rem; font-weight: 500; color: rgba(255,255,255,0.9);
-    position: relative;
-    overflow: hidden;
-}
-
-.avatar-img {
-    width: 100%; height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-}
-
-.avatar-letter { line-height: 1; }
-
-.avatar-overlay {
-    position: absolute; inset: 0;
-    background: rgba(0,0,0,0.55);
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 50%;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-.profile-avatar:hover .avatar-overlay { opacity: 1; }
-.avatar-overlay-icon { font-size: 1.4rem; color: #fff; }
-.hidden-input { display: none; }
 
 /* Имя */
 .header-name-wrap {
@@ -508,8 +450,16 @@ function deleteAvatar() {
 }
 
 @keyframes header-name-scroll {
-    0%,  20% { transform: translateX(0); }
-    80%, 100% { transform: translateX(var(--name-offset, 0px)); }
+
+    0%,
+    20% {
+        transform: translateX(0);
+    }
+
+    80%,
+    100% {
+        transform: translateX(var(--name-offset, 0px));
+    }
 }
 
 .header-name {
@@ -533,10 +483,10 @@ function deleteAvatar() {
 .meta-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.18rem 0.6rem;
+    gap: 0.35rem;
+    padding: 0.3rem 0.85rem;
     border-radius: 3px;
-    font-size: 0.78rem;
+    font-size: 0.92rem;
     letter-spacing: 0.04em;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.04);
@@ -544,9 +494,9 @@ function deleteAvatar() {
 }
 
 .meta-badge--female {
-    border-color: rgba(254, 40, 162, 0.3);
-    background: rgba(254, 40, 162, 0.06);
-    color: rgba(254, 40, 162, 0.85);
+    border-color: rgba(160, 160, 255, 0.3);
+    background: rgba(160, 160, 255, 0.06);
+    color: rgba(160, 160, 255, 0.85);
 }
 
 .meta-badge--male {
@@ -565,83 +515,80 @@ function deleteAvatar() {
     flex-shrink: 0;
 }
 
-/* Рейтинг */
-.header-rating {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-}
-
-.rating-block {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    padding: 0.6rem 1rem 0.55rem;
-    border: 1px solid rgba(254,40,162,0.35);
-    border-radius: 3px;
-    background: rgba(254,40,162,0.04);
-    box-shadow: inset 0 0 16px rgba(254,40,162,0.05);
-    min-width: 120px;
-}
-
-.rating-label {
-    font-family: 'Figtree', sans-serif;
-    font-size: 0.58rem;
+.meta-badge--idol {
+    border-color: rgba(100, 200, 255, 0.35);
+    background: rgba(100, 200, 255, 0.07);
+    color: #7dd4fc;
     font-weight: 600;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: rgba(254,40,162,0.55);
 }
 
-.rating-inner {
+/* Рейтинг — верхний левый угол */
+.header-rating {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
     display: flex;
-    align-items: flex-end;
-    gap: 0.4rem;
-    line-height: 1;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.75rem 0.4rem 0.55rem;
+    background: rgba(160, 160, 255, 0.06);
+    border: 1px solid rgba(160, 160, 255, 0.28);
+    border-radius: 3px;
 }
 
 .star-img {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     object-fit: contain;
     display: block;
-    margin-bottom: 0.15rem;
     opacity: 0.85;
+    flex-shrink: 0;
 }
 
 .rating-num {
     font-family: 'Dosis', sans-serif;
-    font-weight: 300;
-    font-size: 2.2rem;
-    line-height: 0.85;
-    color: #fff;
-    letter-spacing: -0.02em;
+    font-weight: 900;
+    font-size: 1.45rem;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.9);
+    letter-spacing: 0.01em;
     font-variant-numeric: tabular-nums;
 }
 
-.rating-bar-track {
-    height: 1px;
-    background: rgba(255,255,255,0.1);
-    margin-top: 0.1rem;
-}
-
-.rating-bar-fill {
-    height: 100%;
-    width: 73%;
-    background: linear-gradient(90deg, rgba(254,40,162,0.9), rgba(254,40,162,0.4));
-}
 
 /* Edit form */
-.edit-form { padding: 0.5rem 0.25rem; }
-.edit-title { font-size: 1.1rem; font-weight: 600; color: #fff; margin: 0 0 1.25rem; font-family: 'Figtree', sans-serif; }
-.edit-field { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
-.edit-label { font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(254,40,162,0.6); }
+.edit-form {
+    padding: 0.5rem 0.25rem;
+}
+
+.edit-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 1.25rem;
+    font-family: 'Figtree', sans-serif;
+}
+
+.edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+}
+
+.edit-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(160, 160, 255, 0.6);
+}
+
 .edit-input {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 3px;
     padding: 0.6rem 0.75rem;
-    color: rgba(255,255,255,0.85);
+    color: rgba(255, 255, 255, 0.85);
     font-size: 0.9rem;
     font-family: inherit;
     outline: none;
@@ -649,51 +596,132 @@ function deleteAvatar() {
     box-sizing: border-box;
     transition: border-color 0.15s;
 }
+
 .edit-input:focus {
-    border-color: rgba(254,40,162,0.4);
+    border-color: rgba(160, 160, 255, 0.4);
 }
 
 .edit-field-error {
     font-size: 0.75rem;
-    color: rgba(254,40,162,0.85);
+    color: rgba(160, 160, 255, 0.85);
     margin-top: -0.1rem;
 }
 
 .edit-select {
-    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 3px;
     padding: 0.6rem 0.75rem;
-    color: rgba(255,255,255,0.85); font-size: 0.9rem; font-family: inherit; outline: none;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
 }
-.edit-select--full { width: 100%; }
-.dob-row { display: flex; gap: 0.5rem; }
-.dob-row .edit-select { flex: 1; }
-.gender-group { display: flex; gap: 0.5rem; }
+
+.edit-select--full {
+    width: 100%;
+}
+
+.dob-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.dob-row .edit-select {
+    flex: 1;
+}
+
+.gender-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
 .gender-btn {
-    flex: 1; padding: 0.45rem;
-    border: 1px solid rgba(255,255,255,0.1); border-radius: 3px; background: transparent;
-    color: rgba(255,255,255,0.4); font-size: 0.88rem; cursor: pointer; font-family: inherit; transition: all 0.15s;
+    flex: 1;
+    padding: 0.45rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.88rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
 }
-.gender-btn.active { border-color: #FE28A2; color: #fff; }
+
+.gender-btn.active {
+    border-color: #a0a0ff;
+    color: #fff;
+}
+
 .delete-avatar-btn {
-    padding: 0.4rem 0.85rem; font-size: 0.85rem;
-    border: 1px solid rgba(254,40,162,0.35); border-radius: 3px; background: transparent;
-    color: rgba(254,40,162,0.8); cursor: pointer; font-family: inherit; transition: all 0.15s;
+    padding: 0.4rem 0.85rem;
+    font-size: 0.85rem;
+    border: 1px solid rgba(160, 160, 255, 0.35);
+    border-radius: 3px;
+    background: transparent;
+    color: rgba(160, 160, 255, 0.8);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
     align-self: flex-start;
 }
-.delete-avatar-btn:hover { border-color: #FE28A2; color: #FE28A2; }
-.save-btn {
-    width: 100%; margin-top: 0.5rem; padding: 0.8rem;
-    border: 1px solid rgba(254,40,162,0.45);
-    border-radius: 3px;
-    background: rgba(254,40,162,0.08);
-    color: #fff; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: background 0.15s;
+
+.delete-avatar-btn:hover {
+    border-color: #a0a0ff;
+    color: #a0a0ff;
 }
-.save-btn:hover:not(:disabled) { background: rgba(254,40,162,0.16); }
-.save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.save-btn {
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 0.8rem;
+    border: 1px solid rgba(160, 160, 255, 0.45);
+    border-radius: 3px;
+    background: rgba(160, 160, 255, 0.08);
+    color: #fff;
+    font-size: 0.95rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+}
+
+.save-btn:hover:not(:disabled) {
+    background: rgba(160, 160, 255, 0.16);
+}
+
+.save-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* Avatar upload modal */
+.avatar-upload-form {
+    padding: 0.5rem 0.25rem;
+}
+
+.avatar-upload-form :deep(.dz-zone) {
+    padding: 2.25rem 1.25rem;
+    min-height: 160px;
+}
+
+.avatar-upload-form :deep(.dz-zone__text) {
+    font-size: 0.95rem;
+}
+
+.avatar-upload-form :deep(.dz-zone__hint) {
+    font-size: 0.78rem;
+}
+
+.avatar-upload-form :deep(.dz-zone__icon) svg {
+    width: 28px;
+    height: 28px;
+}
 
 /* Crop modal */
-.crop-form { padding: 0.5rem 0.25rem; }
+.crop-form {
+    padding: 0.5rem 0.25rem;
+}
 
 /* Затемнение фона за пределами круга */
 :deep(.vue-advanced-cropper__background),
@@ -701,7 +729,9 @@ function deleteAvatar() {
     background: #000;
 }
 
-.cropper-bg { background: #111; }
+.cropper-bg {
+    background: #111;
+}
 
 .crop-wrap {
     width: 100%;
@@ -723,56 +753,45 @@ function deleteAvatar() {
 }
 
 .crop-rotate-btn {
-    width: 38px; height: 38px;
-    border: 1px solid rgba(255,255,255,0.12);
+    width: 38px;
+    height: 38px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 3px;
     background: transparent;
-    color: rgba(255,255,255,0.55);
+    color: rgba(255, 255, 255, 0.55);
     font-size: 1.1rem;
     cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: color 0.15s, border-color 0.15s;
 }
+
 .crop-rotate-btn:hover {
-    color: #FE28A2;
-    border-color: rgba(254,40,162,0.4);
+    color: #a0a0ff;
+    border-color: rgba(160, 160, 255, 0.4);
 }
 
 .crop-error {
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
-    border: 1px solid rgba(254,40,162,0.4);
+    border: 1px solid rgba(160, 160, 255, 0.4);
     border-radius: 3px;
-    background: rgba(254,40,162,0.06);
-    color: rgba(254,40,162,0.9);
+    background: rgba(160, 160, 255, 0.06);
+    color: rgba(160, 160, 255, 0.9);
     font-size: 0.9rem;
 }
 
 .crop-actions {
-    display: flex;
-    gap: 0.5rem;
+    margin-top: 0.25rem;
 }
-
-.crop-cancel-btn {
-    flex: 0 0 auto;
-    padding: 0.8rem 1.25rem;
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 3px;
-    background: transparent;
-    color: rgba(255,255,255,0.4);
-    font-size: 0.95rem;
-    cursor: pointer;
-    font-family: inherit;
-    transition: color 0.15s, border-color 0.15s;
-}
-.crop-cancel-btn:hover { color: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.2); }
 
 /* Lightbox */
 .lightbox {
     position: fixed;
     inset: 0;
     z-index: 9998;
-    background: rgba(0,0,0,0.88);
+    background: rgba(0, 0, 0, 0.88);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -785,11 +804,18 @@ function deleteAvatar() {
     max-height: 80vh;
     object-fit: contain;
     border-radius: 50%;
-    border: 1px solid rgba(254,40,162,0.4);
-    box-shadow: 0 0 60px rgba(254,40,162,0.15);
+    border: 1px solid rgba(160, 160, 255, 0.4);
+    box-shadow: 0 0 60px rgba(160, 160, 255, 0.15);
     cursor: default;
 }
 
-.lb-enter-active, .lb-leave-active { transition: opacity 0.2s ease; }
-.lb-enter-from, .lb-leave-to { opacity: 0; }
+.lb-enter-active,
+.lb-leave-active {
+    transition: opacity 0.2s ease;
+}
+
+.lb-enter-from,
+.lb-leave-to {
+    opacity: 0;
+}
 </style>

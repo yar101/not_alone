@@ -116,7 +116,7 @@ onUnmounted(() => {
                         :class="variant === 'pink' ? 'site-modal-close-pink' : 'site-modal-close-cyan'"
                         aria-label="Закрыть"
                     >
-                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
@@ -135,7 +135,7 @@ onUnmounted(() => {
 .site-modal-root {
     position: fixed;
     inset: 0;
-    z-index: 50;
+    z-index: 2000;
     pointer-events: none;
 }
 
@@ -159,7 +159,7 @@ onUnmounted(() => {
     height: 80%;
     max-height: 90vh;
     background:
-        linear-gradient(135deg, rgba(200, 70, 126, 0.05) 0%, transparent 45%),
+        linear-gradient(135deg, rgba(110, 110, 210, 0.05) 0%, transparent 45%),
         linear-gradient(160deg, rgb(16, 11, 20) 0%, rgb(7, 6, 11) 100%);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 3px;
@@ -187,18 +187,18 @@ onUnmounted(() => {
     .site-modal-sheet--compact {
         width: clamp(440px, 36vw, 620px);
         height: auto;
-        max-height: 68vh;
+        max-height: 88vh;
     }
 }
 
 .site-modal-pink {
-    border-top-color: rgba(200, 70, 126, 0.3);
+    border-top-color: rgba(110, 110, 210, 0.3);
     box-shadow:
-        0 0 0 1px rgba(200, 70, 126, 0.08),
-        0 -30px 80px rgba(200, 70, 126, 0.12),
+        0 0 0 1px rgba(110, 110, 210, 0.08),
+        0 -30px 80px rgba(110, 110, 210, 0.12),
         0 40px 100px rgba(0, 0, 0, 0.6),
-        inset 0 1px 0 rgba(200, 70, 126, 0.18),
-        inset 0 0 80px rgba(200, 70, 126, 0.04);
+        inset 0 1px 0 rgba(110, 110, 210, 0.18),
+        inset 0 0 80px rgba(110, 110, 210, 0.04);
 }
 
 .site-modal-cyan {
@@ -232,7 +232,7 @@ onUnmounted(() => {
     left: -60px;
     width: 320px;
     height: 320px;
-    background: radial-gradient(circle, rgba(200, 70, 126, 0.18) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(110, 110, 210, 0.18) 0%, transparent 70%);
     animation: orb-drift-a 9s ease-in-out infinite alternate;
 }
 
@@ -241,7 +241,7 @@ onUnmounted(() => {
     right: -80px;
     width: 380px;
     height: 380px;
-    background: radial-gradient(circle, rgba(130, 40, 160, 0.12) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(60, 60, 180, 0.12) 0%, transparent 70%);
     animation: orb-drift-b 13s ease-in-out infinite alternate;
 }
 
@@ -295,10 +295,10 @@ onUnmounted(() => {
 /* ── Close button ──────────────────────────────────── */
 .site-modal-close {
     position: absolute;
-    top: 0.85rem;
-    right: 0.85rem;
-    width: 28px;
-    height: 28px;
+    top: 0.75rem;
+    right: 0.75rem;
+    width: 36px;
+    height: 36px;
     border-radius: 6px;
     border: none;
     background: transparent;
@@ -320,7 +320,7 @@ onUnmounted(() => {
 
 .site-modal-close-pink:hover {
     color: rgba(220, 100, 145, 0.9);
-    background: rgba(200, 70, 126, 0.1);
+    background: rgba(110, 110, 210, 0.1);
 }
 
 .site-modal-close-cyan:hover {
@@ -334,7 +334,6 @@ onUnmounted(() => {
     overflow-y: auto;
     padding: 2rem;
     padding-top: 3rem;
-    padding-right: 3rem;
     position: relative;
     z-index: 1;
     scrollbar-width: thin;

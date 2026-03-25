@@ -90,8 +90,6 @@ const showAuthModal = ref(false);
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Brygada+1918:ital,wght@0,400..700;1,400..700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Imbue:opsz,wght@10..100,100..900&display=swap');
 
 /* Кастомный градиент фона */
 .main-gradient {
@@ -101,7 +99,7 @@ const showAuthModal = ref(false);
 /* Фоновые круги */
 .circle1, .circle2, .circle3 {
     border-radius: 50%;
-    background: rgba(74, 70, 200, 0.04);
+    background: rgba(60, 60, 190, 0.04);
     box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.02);
     position: absolute;
     right: -15%;
@@ -135,8 +133,8 @@ const showAuthModal = ref(false);
 
     font-family: "Brygada 1918", serif;
     font-weight: 400;
-    color: #C8467E;
-    text-shadow: 0 0 30px rgba(200, 70, 126, 0.25);
+    color: #7070d8;
+    text-shadow: 0 0 30px rgba(110, 110, 210, 0.25);
     line-height: 0.9;
     letter-spacing: 0.08em;
     font-size: 28px;
@@ -167,8 +165,8 @@ const showAuthModal = ref(false);
 /* Логотип */
 .logo-text {
     font-family: "Imbue", serif;
-    color: #C8467E;
-    text-shadow: 0 0 30px rgba(200, 70, 126, 0.25);
+    color: #7070d8;
+    text-shadow: 0 0 30px rgba(110, 110, 210, 0.25);
     line-height: 0.9;
     letter-spacing: -0.02em;
 }

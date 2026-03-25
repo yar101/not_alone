@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\IdolApplication;
 use App\Notifications\IdolApprovedNotification;
 use App\Notifications\IdolRejectedNotification;
+use App\Services\AdminLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -84,6 +85,8 @@ class ApplicationController extends Controller
         $application->user->notify(new IdolApprovedNotification());
         broadcast(new NewNotification('private', $application->user->id));
 
+        AdminLogService::log(auth('admin')->id(), 'approve_application', 'application', $application->id);
+
         return back()->with('success', 'Заявка одобрена.');
     }
 
@@ -114,6 +117,14 @@ class ApplicationController extends Controller
 
         $application->user->notify(new IdolRejectedNotification($validated['rejection_reason']));
         broadcast(new NewNotification('private', $application->user->id));
+
+        AdminLogService::log(
+            auth('admin')->id(),
+            'reject_application',
+            'application',
+            $application->id,
+            ['reason' => $validated['rejection_reason']]
+        );
 
         return back()->with('success', 'Заявка отклонена.');
     }

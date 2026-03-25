@@ -2,9 +2,14 @@
 
 use App\Http\Controllers\Idol\ApplicationController as IdolApplicationController;
 use App\Http\Controllers\Idol\QuizController;
+use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ServiceController;
+
 use App\Http\Controllers\UserProfileController;
+use App\Http\Controllers\UserSearchController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -21,13 +26,18 @@ Route::get('/', function () {
 // Public profile page
 Route::get('/users/{user}', [UserProfileController::class, 'show'])->name('profile.show');
 
+// Public post endpoints (no auth required)
+Route::get('/users/{user}/posts',    [UserProfileController::class, 'getPosts'])->name('profile.posts.feed');
+Route::get('/users/{user}/category/{category}/idols', [UserProfileController::class, 'categoryIdols'])->name('profile.category-idols');
+Route::get('/posts/{post}/comments', [UserProfileController::class, 'getComments'])->name('posts.comments.index');
+
 // /profile redirects to own profile
 Route::get('/profile', function () {
     return redirect()->route('profile.show', ['user' => auth()->id()]);
 })->middleware('auth')->name('profile');
 
 // Profile editing endpoints (owner only)
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'not_banned'])->group(function () {
     Route::patch('/profile/about',      [UserProfileController::class, 'updateAbout'])->name('profile.update.about');
     Route::patch('/profile/traits',     [UserProfileController::class, 'updateTraits'])->name('profile.update.traits');
     Route::patch('/profile/interests',  [UserProfileController::class, 'updateInterests'])->name('profile.update.interests');
@@ -43,6 +53,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/profile/avatar',             [UserProfileController::class, 'deleteAvatar'])->name('profile.delete.avatar');
     Route::post('/profile/posts',                [UserProfileController::class, 'storePost'])->name('profile.posts.store');
     Route::delete('/profile/posts/{post}',       [UserProfileController::class, 'destroyPost'])->name('profile.posts.destroy');
+    Route::post('/posts/{post}/like',            [UserProfileController::class, 'toggleLike'])->name('posts.like');
+    Route::post('/posts/{post}/comments',        [UserProfileController::class, 'storeComment'])->name('posts.comments.store');
+    Route::delete('/comments/{comment}',         [UserProfileController::class, 'destroyComment'])->name('posts.comments.destroy');
+    Route::post('/profile/trait-suggestions',    [UserProfileController::class, 'storeTraitSuggestion'])->name('profile.trait-suggestions.store');
+    Route::post('/profile/interest-suggestions', [UserProfileController::class, 'storeInterestSuggestion'])->name('profile.interest-suggestions.store');
+});
+
+// User search
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/search', [UserSearchController::class, 'index'])->name('users.search');
 });
 
 // Account settings (email, password, delete)
@@ -60,6 +80,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/idol/quiz/answer', [QuizController::class, 'answer'])->name('idol.quiz.answer');
 });
 
+// Services (idol owner)
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::post('/profile/services',                [ServiceController::class, 'store'])->name('profile.services.store');
+    // Specific route before wildcard
+    Route::patch('/profile/services/categories/{category}/description',
+        [UserProfileController::class, 'updateCategoryDescription']
+    )->name('profile.services.category.description');
+    Route::patch('/profile/services/{service}',     [ServiceController::class, 'update'])->name('profile.services.update');
+    Route::delete('/profile/services/{service}',    [ServiceController::class, 'destroy'])->name('profile.services.destroy');
+});
+
+// Reports
+Route::middleware(['auth', 'not_banned'])->group(function () {
+    Route::post('/reports', [ReportController::class, 'store'])->name('reports.store');
+});
+
 // Notification routes
 Route::middleware('auth')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
@@ -69,6 +105,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifications/service', [NotificationController::class, 'service'])->name('notifications.service');
     Route::patch('/notifications/service/read-all', [NotificationController::class, 'markAllServiceRead'])->name('notifications.service.read-all');
     Route::patch('/broadcasts/{id}/read', [NotificationController::class, 'markBroadcastRead'])->name('broadcasts.read');
+});
+
+// Chat / Conversations
+Route::middleware('auth')->group(function () {
+    Route::get('/conversations', [ConversationController::class, 'index'])->name('conversations.index');
+    Route::post('/conversations', [ConversationController::class, 'store'])->name('conversations.store');
+    Route::get('/conversations/{conversation}', [ConversationController::class, 'show'])->name('conversations.show');
+    Route::post('/conversations/{conversation}/messages', [ConversationController::class, 'message'])->name('conversations.message');
+    Route::post('/conversations/{conversation}/block', [ConversationController::class, 'block'])->name('conversations.block');
+    Route::delete('/conversations/{conversation}/block', [ConversationController::class, 'unblock'])->name('conversations.unblock');
 });
 
 require __DIR__.'/auth.php';

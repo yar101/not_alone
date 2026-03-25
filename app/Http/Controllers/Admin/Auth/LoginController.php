@@ -12,7 +12,7 @@ class LoginController extends Controller
     public function showLogin()
     {
         if (auth('admin')->check()) {
-            return redirect()->route('admin.applications.index');
+            return redirect()->route('admin.dashboard');
         }
 
         return Inertia::render('Admin/Login');
@@ -27,7 +27,7 @@ class LoginController extends Controller
 
         if (Auth::guard('admin')->attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
-            return redirect()->intended(route('admin.applications.index'));
+            return redirect()->intended(route('admin.dashboard'));
         }
 
         return back()->withErrors(['email' => 'Неверный email или пароль.']);

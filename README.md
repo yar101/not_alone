@@ -8,6 +8,19 @@
 - **Frontend:** Inertia.js v2, Vue 3 (Composition API), Vite
 - **Auth:** два гарда — `web` (пользователи) и `admin` (администраторы)
 
+## Требования
+
+- PHP 8.4+ с расширениями: `bcmath`, `pgsql`
+- PostgreSQL
+- Node.js + npm
+- Composer
+
+> Установка расширений на Fedora/RHEL:
+> ```bash
+> sudo dnf install php-bcmath php-pgsql
+> sudo systemctl restart php-fpm
+> ```
+
 ## Первоначальная настройка
 
 ```bash
@@ -18,6 +31,22 @@ npm install
 php artisan key:generate
 php artisan migrate
 php artisan db:seed --class=AdminSeeder
+
+# Создать симлинк для публичного хранилища (картинки категорий, аватары и т.д.)
+php artisan storage:link
+```
+
+### Настройка Reverb (WebSocket)
+
+В `.env` значения `REVERB_APP_ID`, `REVERB_APP_KEY`, `REVERB_APP_SECRET` — произвольные строки, главное чтобы они были заполнены:
+
+```env
+REVERB_APP_ID=no-alone
+REVERB_APP_KEY=no-alone-key
+REVERB_APP_SECRET=no-alone-secret
+REVERB_HOST="localhost"
+REVERB_PORT=8080
+REVERB_SCHEME=http
 ```
 
 ## IDE Helper (автодополнение)
@@ -79,7 +108,31 @@ php artisan db:seed --class=AdminSeeder
 
 Панель доступна по адресу `/admin`.
 
-### Генерация пользователей
+### Создание одного пользователя (интерактивно)
+
+```bash
+php artisan user:make
+```
+
+Команда спросит тип и создаст пользователя с рандомными данными:
+
+```
+ Кого создать?:
+  [0] Обычный пользователь
+  [1] Айдол
+  [2] Админ
+```
+
+**Что создаётся:**
+
+- Русскоязычные имя + фамилия (Faker `ru_RU`)
+- Пароль `123123`
+- Email сразу подтверждён (`email_verified_at` заполнен)
+- Случайный пол и дата рождения (18–40 лет)
+- Для айдола: `is_idol = true`, рейтинг 50, запись в `idol_applications` (статус `approved`)
+- Для админа: запись в таблице `admins`, вход через `/admin/login`
+
+### Массовая генерация пользователей
 
 ```bash
 php artisan users:generate {count}
@@ -99,6 +152,15 @@ php artisan users:generate 100
 - Случайная дата рождения, возраст 18–50 лет
 - ~40% пользователей становятся айдолами (`is_idol = true` + запись в `idol_applications` со статусом `approved`)
 
+### `php artisan services:seed {userId}`
+
+Создаёт тестовые услуги во всех активных категориях для указанного пользователя.
+Перед созданием показывает имя и email пользователя и запрашивает подтверждение.
+
+```bash
+php artisan services:seed 1
+```
+
 ## Структура
 
 ```
@@ -108,7 +170,9 @@ app/
     Idol/           — контроллеры idol flow
   Models/
   Console/Commands/
-    GenerateUsers.php
+    MakeUser.php           — интерактивное создание одного пользователя/айдола/админа
+    GenerateUsers.php      — массовая генерация тестовых пользователей
+    SeedUserServices.php   — наполнение профиля айдола тестовыми услугами
 resources/js/
   Pages/
     Admin/          — страницы админ-панели

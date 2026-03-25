@@ -1,0 +1,93 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\ServiceCategory;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class ServiceCategoryController extends Controller
+{
+    public function index(): Response
+    {
+        return Inertia::render('Admin/Services/Index', [
+            'categories' => ServiceCategory::orderBy('sort_order')->get(['id', 'name', 'description', 'name_suggestions', 'image_path', 'accent_color', 'sort_order', 'is_active']),
+            'active_tab' => 'categories',
+        ]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'name'               => ['required', 'string', 'max:100'],
+            'description'        => ['nullable', 'string', 'max:1000'],
+            'name_suggestions'   => ['nullable', 'array'],
+            'name_suggestions.*' => ['string', 'max:120'],
+            'accent_color'       => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'is_active'          => ['boolean'],
+        ]);
+
+        $data['sort_order'] = (ServiceCategory::max('sort_order') ?? -1) + 1;
+
+        ServiceCategory::create($data);
+
+        return back()->with('success', 'Категория создана.');
+    }
+
+    public function reorder(Request $request): RedirectResponse
+    {
+        $ids = $request->validate(['ids' => 'required|array', 'ids.*' => 'integer'])['ids'];
+
+        foreach ($ids as $order => $id) {
+            ServiceCategory::where('id', $id)->update(['sort_order' => $order]);
+        }
+
+        return back();
+    }
+
+    public function update(Request $request, ServiceCategory $category): RedirectResponse
+    {
+        $data = $request->validate([
+            'name'               => ['sometimes', 'string', 'max:100'],
+            'description'        => ['nullable', 'string', 'max:1000'],
+            'name_suggestions'   => ['nullable', 'array'],
+            'name_suggestions.*' => ['string', 'max:120'],
+            'accent_color'       => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'sort_order'         => ['sometimes', 'integer', 'min:0'],
+            'is_active'          => ['sometimes', 'boolean'],
+        ]);
+
+        $category->update($data);
+
+        if ($request->boolean('remove_image') && !$request->hasFile('image')) {
+            if ($category->image_path) {
+                Storage::disk('public')->delete($category->image_path);
+            }
+            $category->update(['image_path' => null]);
+        } elseif ($request->hasFile('image')) {
+            $request->validate(['image' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:4096']]);
+            if ($category->image_path) {
+                Storage::disk('public')->delete($category->image_path);
+            }
+            $ext  = $request->file('image')->getClientOriginalExtension() ?: 'jpg';
+            $path = $request->file('image')->storeAs('service-categories', "{$category->id}.{$ext}", 'public');
+            $category->update(['image_path' => $path]);
+        }
+
+        return back()->with('success', 'Категория обновлена.');
+    }
+
+    public function destroy(ServiceCategory $category): RedirectResponse
+    {
+        if ($category->image_path) {
+            Storage::disk('public')->delete($category->image_path);
+        }
+        $category->delete();
+
+        return back()->with('success', 'Категория удалена.');
+    }
+}

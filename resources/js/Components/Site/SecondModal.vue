@@ -23,8 +23,6 @@ const emit = defineEmits(['close']);
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Imbue:opsz,wght@10..100,200;10..100,300&display=swap');
-
 .modal-content {
     color: #fff;
 }

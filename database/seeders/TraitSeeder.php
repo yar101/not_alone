@@ -21,7 +21,7 @@ class TraitSeeder extends Seeder
         foreach ($traits as $index => $name) {
             PersonalityTrait::firstOrCreate(
                 ['name_ru' => $name],
-                ['sort_order' => $index + 1]
+                ['sort_order' => $index]
             );
         }
     }

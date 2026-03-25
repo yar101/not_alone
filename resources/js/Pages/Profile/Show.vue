@@ -1,30 +1,43 @@
 <script setup>
-import { ref, watch, nextTick, onMounted, computed } from 'vue';
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { ref, nextTick, onMounted, computed, inject } from 'vue';
+import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3';
+import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { StarFilled, MagicStick } from '@element-plus/icons-vue';
 
 defineOptions({ layout: AppLayout });
 import { gsap } from 'gsap';
 import ProfileHeader from '@/Components/Profile/ProfileHeader.vue';
+import ProfileChecklist from '@/Components/Profile/ProfileChecklist.vue';
 import ProfileAbout from '@/Components/Profile/ProfileAbout.vue';
 import ProfileTraits from '@/Components/Profile/ProfileTraits.vue';
 import ProfileInterests from '@/Components/Profile/ProfileInterests.vue';
 import ProfileLanguages from '@/Components/Profile/ProfileLanguages.vue';
 import ProfilePosts from '@/Components/Profile/ProfilePosts.vue';
+import ProfileServices from '@/Components/Profile/ProfileServices.vue';
 import ProfileVoice from '@/Components/Profile/ProfileVoice.vue';
 
 const props = defineProps({
-    profileUser:   { type: Object, required: true },
-    isOwner:       { type: Boolean, default: false },
+    profileUser:        { type: Object, required: true },
+    isOwner:            { type: Boolean, default: false },
+    isIdol:             { type: Boolean, default: false },
+    rating:             { default: null },
     // Deferred props — no type constraint; Inertia passes null until resolved
-    traits:        { default: null },
-    interests:     { default: null },
-    languages:     { default: null },
-    allTraits:     { default: null },
-    allCategories: { default: null },
-    posts:         { default: null },
+    traits:             { default: null },
+    interests:          { default: null },
+    languages:          { default: null },
+    allTraits:          { default: null },
+    allCategories:      { default: null },
+    services:           { default: null },
+    serviceCategories:  { default: null },
+    serviceTimeUnits:   { default: null },
 });
+
+// ── Chat ──────────────────────────────────────────────────────
+const openChatWith = inject('openChatWith', null);
+function openChat() {
+    openChatWith?.(props.profileUser.id);
+}
 
 // ── Email verification banner ─────────────────────────────────
 const page = usePage();
@@ -40,22 +53,53 @@ function resendVerification() {
 }
 
 // ── Tabs ─────────────────────────────────────────────────────
-const tab = ref('about');
-const tabDir = ref(1);  // +1 → slide-left, -1 → slide-right
 const TAB_ORDER = ['about', 'posts', 'services', 'content'];
+const storedTab = sessionStorage.getItem(`profile_tab_${props.profileUser.id}`);
+const hashTab   = window.location.hash.slice(1);
+const initialTab = TAB_ORDER.includes(storedTab) ? storedTab
+    : TAB_ORDER.includes(hashTab) ? hashTab
+    : 'about';
+const tab = ref(initialTab);
 
 function switchTab(name) {
-    tabDir.value = TAB_ORDER.indexOf(name) > TAB_ORDER.indexOf(tab.value) ? 1 : -1;
     tab.value = name;
+    history.replaceState(null, '', '#' + name);
+    sessionStorage.setItem(`profile_tab_${props.profileUser.id}`, name);
 }
 
-// Stagger entrance on tab change
-watch(tab, async () => {
-    await nextTick();
-    gsap.from('.tab-panel > .anim-block', {
-        y: 14, opacity: 0, duration: 0.32, ease: 'power2.out',
+// ── Report modal ──────────────────────────────────────────
+const showReportModal = ref(false);
+const reportForm = ref({ reason: '', details: '' });
+const reportErrors = ref({});
+const reportSent = ref(false);
+
+const reportReasons = [
+    { value: 'spam',          label: 'Спам' },
+    { value: 'inappropriate', label: 'Неприемлемый контент' },
+    { value: 'fraud',         label: 'Мошенничество' },
+    { value: 'harassment',    label: 'Харассмент' },
+    { value: 'other',         label: 'Другое' },
+];
+
+function openReportModal() {
+    reportForm.value = { reason: '', details: '' };
+    reportErrors.value = {};
+    reportSent.value = false;
+    showReportModal.value = true;
+}
+
+function submitReport() {
+    reportErrors.value = {};
+    router.post(route('reports.store'), {
+        reported_id: props.profileUser.id,
+        reason:      reportForm.value.reason,
+        details:     reportForm.value.details,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => { reportSent.value = true; },
+        onError: (errors) => { reportErrors.value = errors; },
     });
-});
+}
 
 // ── driver.js Tour ─────────────────────────────────────────
 const TOUR_KEY = 'profile_tour_done';
@@ -128,12 +172,12 @@ onMounted(async () => {
                 },
             },
             {
-                element: '.cl-widget',
+                element: '.pcl',
                 popover: {
                     title: 'Чеклист',
                     description: 'Прогресс заполнения профиля.',
-                    side: 'top',
-                    align: 'end',
+                    side: 'bottom',
+                    align: 'start',
                 },
             },
         ],
@@ -184,16 +228,30 @@ onMounted(async () => {
                 <div class="profile-sidebar">
                     <ProfileHeader
                         class="page-block"
-                        :class="{ 'header-flat-bottom': !isOwner }"
                         :user="profileUser"
                         :is-owner="isOwner"
+                        :is-idol="isIdol"
+                        :rating="rating"
+                        :can-report="!isOwner && !!page.props.auth?.user"
+                        @report="openReportModal"
+                    />
+                    <ProfileChecklist
+                        v-if="isOwner"
+                        :user="profileUser"
                         :traits="traits"
                         :interests="interests"
                         :languages="languages"
                     />
-                    <button v-if="!isOwner" class="sidebar-subscribe-btn">
-                        Подписаться
-                    </button>
+                    <div v-if="!isOwner" class="sidebar-actions">
+                        <button class="sidebar-subscribe-btn">
+                            Отслеживать
+                        </button>
+                        <button class="sidebar-message-btn" @click="openChat" title="Написать сообщение">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                        </button>
+                    </div>
 
                 </div>
 
@@ -230,7 +288,7 @@ onMounted(async () => {
                         </button>
                     </div>
                 <div class="tab-content-wrap page-block">
-                <Transition :name="tabDir > 0 ? 'slide-left' : 'slide-right'" mode="out-in">
+                <Transition name="tab-fade" mode="out-in">
 
                     <div v-if="tab === 'about'" key="about" class="tab-panel">
 
@@ -274,43 +332,79 @@ onMounted(async () => {
                     </div>
 
                     <div v-else-if="tab === 'posts'" key="posts" class="tab-panel">
-                        <div v-if="Array.isArray(posts)" class="anim-block">
-                            <ProfilePosts :posts="posts" :is-owner="isOwner" />
-                        </div>
-                        <div v-else class="posts-skeleton">
-                            <div v-for="n in 6" :key="n" class="posts-skeleton__card" />
+                        <div class="anim-block">
+                            <ProfilePosts
+                                :profile-user-id="profileUser.id"
+                                :is-owner="isOwner"
+                                :auth-user="page.props.auth.user"
+                            />
                         </div>
                     </div>
 
                     <div v-else-if="tab === 'services'" key="services" class="tab-panel">
-                        <!-- If profileUser is an idol -->
-                        <template v-if="profileUser.is_idol">
-                            <div class="anim-block coming-soon-block">
-                                <p class="coming-soon-title"><el-icon style="vertical-align: middle; margin-right: 4px"><StarFilled /></el-icon>Услуги Айдола</p>
-                                <p class="coming-soon-text">Услуги появятся здесь совсем скоро</p>
+                        <!-- Idol (or idol-owner): show services component -->
+                        <template v-if="isIdol">
+                            <div class="anim-block">
+                                <ProfileServices
+                                    :services="services"
+                                    :service-categories="serviceCategories"
+                                    :service-time-units="serviceTimeUnits"
+                                    :is-owner="isOwner"
+                                    :is-idol="isIdol"
+                                    :profile-user="profileUser"
+                                />
                             </div>
                         </template>
-                        <!-- If owner and not idol -->
+                        <!-- Owner but not idol yet -->
                         <template v-else-if="isOwner">
                             <div class="anim-block idol-cta-block">
-                                <el-icon class="idol-cta-icon"><MagicStick /></el-icon>
+                                <svg class="idol-cta-deco" viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <polygon points="10,70 10,35 25,15 35,35 50,5 65,35 75,15 90,35 90,70" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+                                    <line x1="10" y1="70" x2="90" y2="70" stroke="currentColor" stroke-width="2.5"/>
+                                    <polygon points="25,15 28,9 25,3 22,9" fill="currentColor" opacity="0.8"/>
+                                    <polygon points="50,5 53,-1 50,-7 47,-1" fill="currentColor" opacity="0.8"/>
+                                    <polygon points="75,15 78,9 75,3 72,9" fill="currentColor" opacity="0.8"/>
+                                </svg>
+                                <span class="idol-cta-label">АЙДОЛ</span>
                                 <p class="idol-cta-title">Стань Айдолом</p>
                                 <p class="idol-cta-text">Айдолы могут предоставлять уникальные услуги другим участникам платформы. Пройди тест и подай заявку!</p>
-                                <Link href="/idol/apply" class="idol-cta-btn">Стать Айдолом</Link>
+                                <Link href="/idol/apply" class="idol-cta-btn">
+                                    Стать Айдолом
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="2" y1="7" x2="12" y2="7"/>
+                                        <polyline points="8,3 12,7 8,11"/>
+                                    </svg>
+                                </Link>
                             </div>
                         </template>
+                        <!-- Visitor viewing a non-idol profile -->
                         <template v-else>
                             <div class="anim-block coming-soon-block">
                                 <p class="coming-soon-title">Услуги</p>
-                                <p class="coming-soon-text">Раздел в разработке</p>
+                                <p class="coming-soon-text">У этого пользователя нет услуг</p>
                             </div>
                         </template>
                     </div>
 
                     <div v-else key="content" class="tab-panel">
-                        <div class="anim-block coming-soon-block">
-                            <p class="coming-soon-title">Контент</p>
-                            <p class="coming-soon-text">Платные паки контента — скоро</p>
+                        <div class="anim-block idol-cta-block">
+                            <!-- Декоративная стопка карточек -->
+                            <svg class="idol-cta-deco" viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="8" y="28" width="58" height="42" stroke="currentColor" stroke-width="2.5"/>
+                                <rect x="15" y="18" width="58" height="42" stroke="currentColor" stroke-width="2.5"/>
+                                <rect x="22" y="8" width="58" height="42" stroke="currentColor" stroke-width="2.5"/>
+                                <polygon points="36,22 36,38 52,30" fill="currentColor" opacity="0.8"/>
+                            </svg>
+                            <span class="idol-cta-label">КОНТЕНТ</span>
+                            <p class="idol-cta-title">Платные паки контента</p>
+                            <p class="idol-cta-text">Загружай эксклюзивный контент и продавай паки подписчикам. Функция появится совсем скоро!</p>
+                            <span class="idol-cta-btn idol-cta-btn--soon">
+                                Скоро
+                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="7" cy="7" r="5"/>
+                                    <polyline points="7,4 7,7 9,9"/>
+                                </svg>
+                            </span>
                         </div>
                     </div>
 
@@ -322,6 +416,57 @@ onMounted(async () => {
 
         </div>
     </div>
+
+    <!-- Report modal -->
+    <SiteModal :show="showReportModal" variant="pink" :compact="true" @close="showReportModal = false">
+        <div v-if="reportSent" class="report-success">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="36" height="36">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <p>Жалоба отправлена. Мы рассмотрим её в ближайшее время.</p>
+            <button class="report-btn-close" @click="showReportModal = false">Закрыть</button>
+        </div>
+
+        <form v-else @submit.prevent="submitReport" class="report-form">
+            <h3 class="report-title">Пожаловаться на {{ profileUser.name }}</h3>
+
+            <div class="report-field">
+                <label class="report-label">Причина *</label>
+                <div class="report-reasons">
+                    <button
+                        v-for="r in reportReasons"
+                        :key="r.value"
+                        type="button"
+                        class="report-reason-btn"
+                        :class="{ 'report-reason-btn--active': reportForm.reason === r.value }"
+                        @click="reportForm.reason = r.value"
+                    >{{ r.label }}</button>
+                </div>
+                <p v-if="reportErrors.reason" class="report-err">{{ reportErrors.reason }}</p>
+            </div>
+
+            <div class="report-field">
+                <label class="report-label">Описание ситуации * <span class="report-optional">(мин. 10 символов)</span></label>
+                <textarea
+                    v-model="reportForm.details"
+                    class="report-textarea"
+                    rows="4"
+                    maxlength="1000"
+                    placeholder="Минимум 10 символов..."
+                    required
+                    minlength="10"
+                    :class="{ 'report-textarea--err': reportErrors.details }"
+                />
+                <p v-if="reportErrors.details" class="report-err">{{ reportErrors.details }}</p>
+            </div>
+
+            <div class="report-actions">
+                <button type="button" class="report-btn-cancel" @click="showReportModal = false">Отмена</button>
+                <button type="submit" class="report-btn-submit" :disabled="!reportForm.reason || reportForm.details.trim().length < 10">Отправить жалобу</button>
+            </div>
+        </form>
+    </SiteModal>
 </template>
 
 <!-- driver.js dark theme override (non-scoped) -->
@@ -358,7 +503,7 @@ onMounted(async () => {
 .driver-popover-prev-btn:hover,
 .driver-popover-next-btn:hover,
 .driver-popover-done-btn:hover {
-    border-color: #FE28A2 !important;
+    border-color: #a0a0ff !important;
     color: #fff !important;
 }
 .driver-popover-progress-text {
@@ -445,7 +590,7 @@ onMounted(async () => {
 }
 
 .profile-container {
-    max-width: 1100px;
+    max-width: 1440px;
     margin: 0 auto;
     padding-top: 1.5rem;
     height: 100%;
@@ -462,7 +607,7 @@ onMounted(async () => {
 }
 
 .profile-sidebar {
-    width: 300px;
+    width: 380px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -471,12 +616,12 @@ onMounted(async () => {
     border-right: 1px solid rgba(255, 255, 255, 0.06);
     padding-right: 1rem;
     scrollbar-width: thin;
-    scrollbar-color: rgba(254,40,162,0.25) transparent;
+    scrollbar-color: rgba(190,145,255,0.25) transparent;
 }
 .profile-sidebar::-webkit-scrollbar { width: 3px; }
 .profile-sidebar::-webkit-scrollbar-track { background: transparent; }
 .profile-sidebar::-webkit-scrollbar-thumb {
-    background: rgba(254,40,162,0.28);
+    background: rgba(190,145,255,0.28);
     border-radius: 999px;
 }
 
@@ -512,8 +657,8 @@ onMounted(async () => {
     border-radius: 3px 3px 0 0;
     background: transparent;
     color: rgba(255,255,255,0.45);
-    font-size: 0.75rem;
-    letter-spacing: 0.1em;
+    font-size: 0.88rem;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     cursor: pointer;
     font-family: inherit;
@@ -534,14 +679,14 @@ onMounted(async () => {
     transform: translateX(-50%) scaleX(0);
     width: 60%;
     height: 2px;
-    background: #FE28A2;
+    background: #a0a0ff;
     border-radius: 2px 2px 0 0;
     transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.18s ease;
     opacity: 0;
 }
 .tab-btn.active {
-    background: rgba(254, 40, 162, 0.08);
-    color: rgba(254, 40, 162, 0.95);
+    background: rgba(160, 160, 255, 0.08);
+    color: rgba(160, 160, 255, 0.95);
 }
 .tab-btn.active::before {
     transform: translateX(-50%) scaleX(1);
@@ -560,14 +705,20 @@ onMounted(async () => {
     overflow: hidden;
 }
 
-.slide-left-enter-from  { transform: translateX(36px); opacity: 0; }
-.slide-left-leave-to    { transform: translateX(-36px); opacity: 0; }
-.slide-right-enter-from { transform: translateX(-36px); opacity: 0; }
-.slide-right-leave-to   { transform: translateX(36px); opacity: 0; }
-.slide-left-enter-active,
-.slide-right-enter-active  { transition: transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.22s ease; }
-.slide-left-leave-active,
-.slide-right-leave-active  { transition: transform 0.2s ease-in, opacity 0.16s ease; }
+.tab-fade-enter-active {
+    transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.tab-fade-leave-active {
+    transition: opacity 0.16s ease, transform 0.16s ease-in;
+}
+.tab-fade-enter-from {
+    opacity: 0;
+    transform: translateY(10px);
+}
+.tab-fade-leave-to {
+    opacity: 0;
+    transform: translateY(-6px);
+}
 
 .tab-panel {
     height: 100%;
@@ -575,7 +726,7 @@ onMounted(async () => {
     padding-bottom: 2rem;
     scrollbar-gutter: stable;
     scrollbar-width: thin;
-    scrollbar-color: rgba(254,40,162,0.25) transparent;
+    scrollbar-color: rgba(190,145,255,0.25) transparent;
 }
 .tab-panel::-webkit-scrollbar { width: 3px; }
 .tab-panel::-webkit-scrollbar-track {
@@ -583,7 +734,7 @@ onMounted(async () => {
     margin-block: 0.5rem;
 }
 .tab-panel::-webkit-scrollbar-thumb {
-    background: rgba(254,40,162,0.28);
+    background: rgba(190,145,255,0.28);
     border-radius: 999px;
 }
 
@@ -657,59 +808,218 @@ onMounted(async () => {
 
 /* ── Idol CTA block ──────────────────────────────────────── */
 .idol-cta-block {
+    position: relative;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 2rem;
-    text-align: center;
-    background: rgba(200, 70, 126, 0.04);
-    border: 1px solid rgba(200, 70, 126, 0.15);
-    border-radius: 16px;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 2rem 2rem 1.75rem;
+    background: linear-gradient(135deg, rgba(155,110,232,0.07) 0%, rgba(100,30,160,0.04) 100%);
+    border: 1px solid rgba(155,110,232,0.2);
+    border-radius: 3px;
 }
-.idol-cta-icon { font-size: 2.5rem; display: flex; justify-content: center; }
-.idol-cta-title { font-size: 1.25rem; color: rgba(255,255,255,0.9); margin: 0; font-weight: 600; }
-.idol-cta-text { font-size: 0.85rem; color: rgba(255,255,255,0.45); margin: 0; max-width: 320px; line-height: 1.6; }
+.idol-cta-deco {
+    position: absolute;
+    top: -2.5rem;
+    right: -2rem;
+    width: 220px;
+    height: 220px;
+    color: #a0a0ff;
+    opacity: 0.07;
+    pointer-events: none;
+    flex-shrink: 0;
+}
+.idol-cta-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.28em;
+    color: rgba(190,145,255,0.6);
+    text-transform: uppercase;
+}
+.idol-cta-title { font-size: 1.35rem; color: rgba(255,255,255,0.92); margin: 0; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
+.idol-cta-text { font-size: 0.84rem; color: rgba(255,255,255,0.4); margin: 0.2rem 0 0.5rem; max-width: 340px; line-height: 1.65; }
 .idol-cta-btn {
-    margin-top: 0.5rem;
-    padding: 0.6rem 1.5rem;
-    background: linear-gradient(135deg, #C8467E, #a03466);
-    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.25rem;
+    background: linear-gradient(135deg, #7070d8 0%, #6B3FD9 100%);
+    border: 1px solid rgba(190,145,255,0.45);
+    border-radius: 3px;
     color: #fff;
-    font-size: 0.9rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: opacity 0.15s;
-}
-.idol-cta-btn:hover { opacity: 0.85; }
-
-/* ── Subscribe button fused below header ─────────────────── */
-.profile-sidebar :deep(.profile-header.header-flat-bottom) {
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-    border-bottom: none;
-}
-
-.sidebar-subscribe-btn {
-    width: 100%;
-    padding: 0.5rem;
-    background: rgba(254, 40, 162, 0.05);
-    border: 1px solid rgba(254, 40, 162, 0.35);
-    border-top: none;
-    border-radius: 0 0 3px 3px;
-    color: rgba(254, 40, 162, 0.75);
-    font-family: inherit;
     font-size: 0.78rem;
-    font-weight: 500;
-    letter-spacing: 0.06em;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: box-shadow 0.2s, transform 0.15s;
+}
+.idol-cta-btn:hover {
+    box-shadow: 0 0 22px rgba(155,110,232,0.4), 0 4px 12px rgba(0,0,0,0.3);
+    transform: translateY(-1px);
+}
+.idol-cta-btn--soon {
+    background: rgba(155,110,232,0.12);
+    border-color: rgba(155,110,232,0.2);
+    color: rgba(255,255,255,0.35);
+    cursor: default;
+}
+.idol-cta-btn--soon:hover {
+    box-shadow: none;
+    transform: none;
+}
+
+
+.sidebar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.65rem;
+}
+.sidebar-subscribe-btn {
+    flex: 1;
+    padding: 0.6rem;
+    background: rgba(160, 160, 255, 0.08);
+    border: 1px solid rgba(160, 160, 255, 0.38);
+    border-radius: 6px;
+    color: rgba(210, 180, 255, 0.9);
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
     cursor: pointer;
-    transition: background 0.15s, color 0.15s;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
     flex-shrink: 0;
 }
 .sidebar-subscribe-btn:hover {
-    background: rgba(254, 40, 162, 0.1);
-    color: rgba(254, 40, 162, 1);
+    background: rgba(160, 160, 255, 0.18);
+    border-color: rgba(160, 160, 255, 0.65);
+    color: rgba(225, 205, 255, 1);
+    box-shadow: 0 0 14px rgba(160, 160, 255, 0.18);
 }
+.sidebar-message-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    background: rgba(160, 160, 255, 0.08);
+    border: 1px solid rgba(160, 160, 255, 0.38);
+    color: rgba(210, 180, 255, 0.9);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.sidebar-message-btn:hover {
+    background: rgba(160, 160, 255, 0.18);
+    border-color: rgba(160, 160, 255, 0.65);
+    color: rgba(225, 205, 255, 1);
+    box-shadow: 0 0 14px rgba(160, 160, 255, 0.18);
+}
+
+/* ── Report modal content ────────────────────────────────── */
+.report-form, .report-success {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+}
+.report-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 0.25rem;
+    font-family: 'Figtree', sans-serif;
+}
+.report-field { display: flex; flex-direction: column; gap: 0.4rem; }
+.report-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(160, 160, 255, 0.6);
+}
+.report-optional { text-transform: none; letter-spacing: 0; opacity: 0.6; }
+.report-reasons { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.report-reason-btn {
+    padding: 0.32rem 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.45);
+    font-family: 'Figtree', sans-serif;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-radius: 2px;
+}
+.report-reason-btn:hover { border-color: rgba(239, 68, 68, 0.35); color: rgba(255, 255, 255, 0.8); }
+.report-reason-btn--active { border-color: rgba(239, 68, 68, 0.55); background: rgba(239, 68, 68, 0.09); color: #f87171; }
+.report-textarea {
+    padding: 0.55rem 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.85);
+    font-family: 'Figtree', sans-serif;
+    font-size: 0.9rem;
+    outline: none;
+    resize: vertical;
+    min-height: 80px;
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+    width: 100%;
+    border-radius: 2px;
+}
+.report-textarea:focus { border-color: rgba(160, 160, 255, 0.35); }
+.report-textarea--err { border-color: rgba(239, 68, 68, 0.5); }
+.report-textarea::placeholder { color: rgba(255, 255, 255, 0.18); }
+.report-err { font-size: 0.75rem; color: rgba(239, 68, 68, 0.75); margin: 0; }
+.report-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.25rem; }
+.report-btn-cancel {
+    padding: 0.5rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.35);
+    font-family: 'Figtree', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: color 0.15s, border-color 0.15s;
+}
+.report-btn-cancel:hover { color: rgba(255, 255, 255, 0.6); border-color: rgba(255, 255, 255, 0.2); }
+.report-btn-submit {
+    padding: 0.5rem 1.25rem;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    background: rgba(239, 68, 68, 0.08);
+    color: rgba(255, 255, 255, 0.88);
+    font-family: 'Figtree', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.15s, border-color 0.15s;
+}
+.report-btn-submit:hover:not(:disabled) { background: rgba(239, 68, 68, 0.18); border-color: rgba(239, 68, 68, 0.6); }
+.report-btn-submit:disabled { opacity: 0.3; cursor: default; }
+
+.report-success {
+    align-items: center;
+    text-align: center;
+    padding: 1.5rem 0;
+    color: rgba(74, 222, 128, 0.8);
+}
+.report-success p { font-size: 0.9rem; color: rgba(255, 255, 255, 0.55); margin: 0; line-height: 1.6; }
+.report-btn-close {
+    margin-top: 0.5rem;
+    padding: 0.5rem 1.5rem;
+    border: 1px solid rgba(74, 222, 128, 0.3);
+    background: rgba(74, 222, 128, 0.06);
+    color: rgba(74, 222, 128, 0.8);
+    font-family: 'Figtree', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background 0.15s;
+}
+.report-btn-close:hover { background: rgba(74, 222, 128, 0.14); }
 
 /* ── Скелетоны (deferred fallback) ───────────────────────── */
 @keyframes shimmer {
@@ -731,18 +1041,6 @@ onMounted(async () => {
 .skeleton-row--mid   { height: 88px; }
 .skeleton-row--short { height: 56px; }
 
-.posts-skeleton {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.75rem;
-}
-.posts-skeleton__card {
-    aspect-ratio: 1;
-    border-radius: 3px;
-    background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
-    background-size: 800px 100%;
-    animation: shimmer 1.4s infinite linear;
-}
 
 /* ── Адаптив ──────────────────────────────────────────────── */
 @media (max-width: 768px) {

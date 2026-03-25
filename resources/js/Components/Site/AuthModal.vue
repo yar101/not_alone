@@ -1,10 +1,12 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useForm, usePage, router } from '@inertiajs/vue3';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import AppSelect from '@/Components/AppSelect.vue';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
+    initialTab: { type: String, default: 'login' },
 });
 
 const emit = defineEmits(['close']);
@@ -12,7 +14,11 @@ const emit = defineEmits(['close']);
 const page = usePage();
 const authUser = computed(() => page.props.auth?.user ?? null);
 
-const tab = ref('login');
+const tab = ref(props.initialTab);
+
+watch(() => props.show, (val) => {
+    if (val) tab.value = props.initialTab;
+});
 
 function switchTab(t) {
     tab.value = t;
@@ -68,6 +74,8 @@ const dayOptions = computed(() => {
     const days  = new Date(year, month, 0).getDate();
     return Array.from({ length: days }, (_, i) => i + 1);
 });
+
+const monthOptions = computed(() => monthNames.map((n, i) => ({ value: i + 1, label: n })));
 
 function submitRegister() {
     if (bdDay.value && bdMonth.value && bdYear.value) {
@@ -205,7 +213,7 @@ function submitRegister() {
                             class="auth-input"
                             :class="{ 'auth-input--error': registerForm.errors.name }"
                             autocomplete="name"
-                            placeholder="Иван Иванов"
+                            placeholder="ivan_petrov"
                         />
                         <Transition name="err-fade">
                             <p v-show="registerForm.errors.name" class="auth-error">
@@ -242,30 +250,27 @@ function submitRegister() {
                     <div class="auth-field">
                         <label class="auth-field-label">Дата рождения</label>
                         <div class="auth-dob-group">
-                            <select
+                            <AppSelect
                                 v-model="bdDay"
-                                class="auth-select"
-                                :class="{ 'auth-input--error': registerForm.errors.birth_date }"
-                            >
-                                <option value="" disabled>День</option>
-                                <option v-for="d in dayOptions" :key="d" :value="d">{{ d }}</option>
-                            </select>
-                            <select
+                                :options="dayOptions"
+                                placeholder="День"
+                                :error="!!registerForm.errors.birth_date"
+                                style="flex:1;min-width:0"
+                            />
+                            <AppSelect
                                 v-model="bdMonth"
-                                class="auth-select"
-                                :class="{ 'auth-input--error': registerForm.errors.birth_date }"
-                            >
-                                <option value="" disabled>Месяц</option>
-                                <option v-for="(name, idx) in monthNames" :key="idx + 1" :value="idx + 1">{{ name }}</option>
-                            </select>
-                            <select
+                                :options="monthOptions"
+                                placeholder="Месяц"
+                                :error="!!registerForm.errors.birth_date"
+                                style="flex:1;min-width:0"
+                            />
+                            <AppSelect
                                 v-model="bdYear"
-                                class="auth-select"
-                                :class="{ 'auth-input--error': registerForm.errors.birth_date }"
-                            >
-                                <option value="" disabled>Год</option>
-                                <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
-                            </select>
+                                :options="yearOptions"
+                                placeholder="Год"
+                                :error="!!registerForm.errors.birth_date"
+                                style="flex:1;min-width:0"
+                            />
                         </div>
                         <Transition name="err-fade">
                             <p v-show="registerForm.errors.birth_date" class="auth-error">
@@ -372,9 +377,9 @@ function submitRegister() {
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: linear-gradient(135deg, rgba(200, 70, 126, 0.35), rgba(200, 70, 126, 0.1));
-    border: 1px solid rgba(200, 70, 126, 0.4);
-    box-shadow: 0 0 20px rgba(200, 70, 126, 0.18);
+    background: linear-gradient(135deg, rgba(110, 110, 210, 0.35), rgba(110, 110, 210, 0.1));
+    border: 1px solid rgba(110, 110, 210, 0.4);
+    box-shadow: 0 0 20px rgba(110, 110, 210, 0.18);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -388,7 +393,7 @@ function submitRegister() {
     font-size: 0.72rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: rgba(200, 70, 126, 0.55);
+    color: rgba(110, 110, 210, 0.55);
     margin: 0;
 }
 
@@ -444,7 +449,7 @@ function submitRegister() {
 }
 
 .auth-tab--active {
-    background: rgba(200, 70, 126, 0.15);
+    background: rgba(110, 110, 210, 0.15);
     color: #fff;
 }
 
@@ -462,10 +467,10 @@ function submitRegister() {
 }
 
 .auth-field-label {
-    font-size: 0.68rem;
-    letter-spacing: 0.16em;
+    font-size: 0.82rem;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: rgba(200, 70, 126, 0.5);
+    color: rgba(110, 110, 210, 0.5);
 }
 
 .auth-input {
@@ -475,19 +480,19 @@ function submitRegister() {
     border-radius: 3px;
     padding: 0.72rem 0.9rem;
     color: rgba(255, 255, 255, 0.88);
-    font-size: 0.95rem;
+    font-size: 1.05rem;
     outline: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
     font-family: inherit;
 }
 
 .auth-input:focus {
-    border-color: rgba(200, 70, 126, 0.45);
-    box-shadow: 0 0 0 3px rgba(200, 70, 126, 0.08);
+    border-color: rgba(110, 110, 210, 0.45);
+    box-shadow: 0 0 0 3px rgba(110, 110, 210, 0.08);
 }
 
 .auth-input--error {
-    border-color: rgba(200, 70, 126, 0.6);
+    border-color: rgba(110, 110, 210, 0.6);
 }
 
 /* ── Date of birth selects ────────────────────────────── */
@@ -504,7 +509,7 @@ function submitRegister() {
     border-radius: 3px;
     padding: 0.72rem 0.5rem;
     color: rgba(255, 255, 255, 0.88);
-    font-size: 0.9rem;
+    font-size: 1.05rem;
     outline: none;
     cursor: pointer;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -518,8 +523,8 @@ function submitRegister() {
 }
 
 .auth-select:focus {
-    border-color: rgba(200, 70, 126, 0.45);
-    box-shadow: 0 0 0 3px rgba(200, 70, 126, 0.08);
+    border-color: rgba(110, 110, 210, 0.45);
+    box-shadow: 0 0 0 3px rgba(110, 110, 210, 0.08);
 }
 
 .auth-select option {
@@ -557,8 +562,8 @@ function submitRegister() {
 }
 
 .auth-gender-btn--active {
-    border-color: rgba(200, 70, 126, 0.5);
-    background: rgba(200, 70, 126, 0.12);
+    border-color: rgba(110, 110, 210, 0.5);
+    background: rgba(110, 110, 210, 0.12);
     color: #fff;
 }
 
@@ -607,9 +612,9 @@ function submitRegister() {
 }
 
 .auth-checkbox-native:checked ~ .auth-checkbox-box {
-    background: rgba(200, 70, 126, 0.65);
-    border-color: rgba(200, 70, 126, 0.8);
-    box-shadow: 0 0 8px rgba(200, 70, 126, 0.3);
+    background: rgba(110, 110, 210, 0.65);
+    border-color: rgba(110, 110, 210, 0.8);
+    box-shadow: 0 0 8px rgba(110, 110, 210, 0.3);
 }
 
 .auth-checkbox-native:checked ~ .auth-checkbox-box .auth-checkbox-check {
@@ -618,7 +623,7 @@ function submitRegister() {
 }
 
 .auth-remember-label:hover .auth-checkbox-box {
-    border-color: rgba(200, 70, 126, 0.45);
+    border-color: rgba(110, 110, 210, 0.45);
 }
 
 .auth-remember-text {
@@ -636,8 +641,8 @@ function submitRegister() {
     width: 100%;
     padding: 0.85rem;
     border-radius: 3px;
-    border: 1px solid rgba(200, 70, 126, 0.35);
-    background: linear-gradient(135deg, rgba(200, 70, 126, 0.25), rgba(200, 70, 126, 0.1));
+    border: 1px solid rgba(110, 110, 210, 0.35);
+    background: linear-gradient(135deg, rgba(110, 110, 210, 0.25), rgba(110, 110, 210, 0.1));
     color: #fff;
     font-size: 0.95rem;
     cursor: pointer;
@@ -647,8 +652,8 @@ function submitRegister() {
 }
 
 .auth-submit:hover:not(:disabled) {
-    background: linear-gradient(135deg, rgba(200, 70, 126, 0.38), rgba(200, 70, 126, 0.18));
-    box-shadow: 0 0 20px rgba(200, 70, 126, 0.2);
+    background: linear-gradient(135deg, rgba(110, 110, 210, 0.38), rgba(110, 110, 210, 0.18));
+    box-shadow: 0 0 20px rgba(110, 110, 210, 0.2);
 }
 
 .auth-submit:disabled {
@@ -667,7 +672,7 @@ function submitRegister() {
 .auth-switch-link {
     background: none;
     border: none;
-    color: rgba(200, 70, 126, 0.7);
+    color: rgba(110, 110, 210, 0.7);
     cursor: pointer;
     font-size: inherit;
     font-family: inherit;
@@ -676,7 +681,7 @@ function submitRegister() {
 }
 
 .auth-switch-link:hover {
-    color: rgba(200, 70, 126, 1);
+    color: rgba(110, 110, 210, 1);
 }
 
 /* ── Transitions ─────────────────────────────────────── */

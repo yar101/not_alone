@@ -126,6 +126,13 @@ async function submitAnswer(answerIdx) {
     }
 }
 
+// ── Browser back button fix ────────────────────────────────────
+function onPopState() {
+    router.visit(window.location.href, { replace: true });
+}
+onMounted(() => window.addEventListener('popstate', onPopState));
+onUnmounted(() => window.removeEventListener('popstate', onPopState));
+
 // ── Cooldown timer ────────────────────────────────────────────
 const cooldownRemaining = ref('');
 let cooldownInterval;
@@ -187,6 +194,12 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 
 <template>
     <div class="apply-wrap">
+        <button class="back-btn" @click="history.back()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Назад
+        </button>
         <div class="apply-card">
 
             <!-- ─── Step 1: Memo ─────────────────────────────── -->
@@ -397,17 +410,41 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 .apply-wrap {
     min-height: calc(100vh - 60px);
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 2rem 1rem;
     font-family: 'Figtree', sans-serif;
+    gap: 1rem;
+}
+
+/* ── Back button ──────────────────────────────────────── */
+.back-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.38);
+    font-size: 0.82rem;
+    font-family: inherit;
+    cursor: pointer;
+    padding: 0.25rem 0;
+    align-self: flex-start;
+    margin-left: calc((100% - 560px) / 2);
+    transition: color 0.15s;
+}
+.back-btn:hover { color: rgba(255, 255, 255, 0.75); }
+
+@media (max-width: 600px) {
+    .back-btn { margin-left: 0; }
 }
 
 .apply-card {
     width: 100%;
     max-width: 560px;
     background: #0a0a0f;
-    border: 1px solid rgba(254, 40, 162, 0.18);
+    border: 1px solid rgba(160, 160, 255, 0.18);
     border-radius: 4px;
     box-shadow: 0 0 0 1px rgba(0,0,0,0.6), 0 16px 48px rgba(0,0,0,0.6);
 }
@@ -427,7 +464,7 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: #FE28A2;
+    color: #a0a0ff;
 }
 .step-icon { font-size: 2.75rem; display: flex; justify-content: center; }
 .step-title { font-size: 1.55rem; color: #fff; margin: 0; font-weight: 700; }
@@ -457,7 +494,7 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 /* ── Buttons ──────────────────────────────────────────── */
 .btn-primary {
     padding: 0.7rem 2rem;
-    background: #FE28A2;
+    background: #a0a0ff;
     border: none;
     border-radius: 3px;
     color: #fff;
@@ -475,15 +512,15 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 .btn-secondary {
     padding: 0.6rem 1.4rem;
     background: transparent;
-    border: 1px solid rgba(254, 40, 162, 0.4);
+    border: 1px solid rgba(160, 160, 255, 0.4);
     border-radius: 3px;
-    color: #FE28A2;
+    color: #a0a0ff;
     font-size: 0.85rem;
     font-family: inherit;
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s;
 }
-.btn-secondary:hover { background: rgba(254, 40, 162, 0.07); border-color: rgba(254, 40, 162, 0.65); }
+.btn-secondary:hover { background: rgba(160, 160, 255, 0.07); border-color: rgba(160, 160, 255, 0.65); }
 
 /* ── Quiz wrapper ─────────────────────────────────────── */
 .quiz-wrap {
@@ -568,8 +605,8 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     background: rgba(255,255,255,0.08);
     transition: background 0.25s ease;
 }
-.quiz-segment--done { background: rgba(254, 40, 162, 0.55); }
-.quiz-segment--active { background: #FE28A2; }
+.quiz-segment--done { background: rgba(160, 160, 255, 0.55); }
+.quiz-segment--active { background: #a0a0ff; }
 
 /* ── Warning ──────────────────────────────────────────── */
 .quiz-warning {
@@ -623,15 +660,15 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     line-height: 1.45;
 }
 .option-row:hover:not(:disabled) {
-    background: rgba(254, 40, 162, 0.07);
-    border-color: rgba(254, 40, 162, 0.28);
+    background: rgba(160, 160, 255, 0.07);
+    border-color: rgba(160, 160, 255, 0.28);
     color: rgba(255,255,255,0.92);
 }
 .option-row:disabled { cursor: default; }
 
 .option-row--selected {
-    background: rgba(254, 40, 162, 0.1) !important;
-    border-color: rgba(254, 40, 162, 0.5) !important;
+    background: rgba(160, 160, 255, 0.1) !important;
+    border-color: rgba(160, 160, 255, 0.5) !important;
     color: #fff !important;
 }
 .option-row--correct {
@@ -663,9 +700,9 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
 .option-row--selected .option-badge {
-    background: rgba(254, 40, 162, 0.2);
-    border-color: rgba(254, 40, 162, 0.5);
-    color: #FE28A2;
+    background: rgba(160, 160, 255, 0.2);
+    border-color: rgba(160, 160, 255, 0.5);
+    color: #a0a0ff;
 }
 .option-row--correct .option-badge {
     background: rgba(74, 222, 128, 0.15);
@@ -693,7 +730,7 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 .cooldown-timer {
     font-size: 2rem;
     font-weight: 700;
-    color: #FE28A2;
+    color: #a0a0ff;
     letter-spacing: 0.06em;
     font-variant-numeric: tabular-nums;
 }
@@ -702,7 +739,7 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 .dropzone {
     width: 100%;
     min-height: 150px;
-    border: 1px dashed rgba(254, 40, 162, 0.3);
+    border: 1px dashed rgba(160, 160, 255, 0.3);
     border-radius: 3px;
     display: flex;
     flex-direction: column;
@@ -714,8 +751,8 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     padding: 1rem;
     box-sizing: border-box;
 }
-.dropzone:hover { border-color: rgba(254, 40, 162, 0.55); background: rgba(254, 40, 162, 0.04); }
-.dropzone--has-file { border-style: solid; border-color: rgba(254, 40, 162, 0.4); }
+.dropzone:hover { border-color: rgba(160, 160, 255, 0.55); background: rgba(160, 160, 255, 0.04); }
+.dropzone--has-file { border-style: solid; border-color: rgba(160, 160, 255, 0.4); }
 .dropzone-icon { font-size: 1.75rem; }
 .dropzone-text { font-size: 0.82rem; color: rgba(255,255,255,0.35); }
 .photo-preview { max-width: 100%; max-height: 240px; border-radius: 2px; object-fit: cover; }

@@ -2,11 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\IdolCategoryDescription;
+use App\Models\InterestSuggestion;
+use App\Models\TraitSuggestion;
 use App\Models\InterestCategory;
 use App\Models\PersonalityTrait;
 use App\Models\Post;
+use App\Models\PostComment;
+use App\Models\PostLike;
+use App\Models\Service;
+use App\Models\ServiceCategory;
+use App\Models\ServiceTimeUnit;
+
 use App\Models\User;
 use App\Models\UserLanguage;
+use App\Services\IdolRatingService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -35,7 +46,9 @@ class UserProfileController extends Controller
                 'timezone'         => $user->timezone,
                 'checklist_snoozed' => $checklistSnoozed,
             ],
-            'isOwner' => auth()->id() === $user->id,
+            'isOwner'   => auth()->id() === $user->id,
+            'isIdol'    => (bool) $user->is_idol,
+            'rating'    => $user->rating,
 
             // Deferred group "about" — traits, interests, languages + their catalogs
             'traits'        => Inertia::defer(fn () => $user->load('traits')->traits->map(fn ($t) => ['id' => $t->id, 'name_ru' => $t->name_ru]), 'about'),
@@ -48,13 +61,94 @@ class UserProfileController extends Controller
             'allTraits'     => Inertia::defer(fn () => PersonalityTrait::orderBy('sort_order')->get(['id', 'name_ru']), 'about'),
             'allCategories' => Inertia::defer(fn () => InterestCategory::with(['interests' => fn ($q) => $q->orderBy('sort_order')])->orderBy('sort_order')->get(), 'about'),
 
-            // Deferred group "posts"
-            'posts' => Inertia::defer(fn () => $user->load(['posts' => fn ($q) => $q->latest()])->posts->map(fn ($p) => [
-                'id'         => $p->id,
-                'body'       => $p->body,
-                'photo_url'  => $p->photo_url,
-                'created_at' => $p->created_at->translatedFormat('d M Y'),
-            ]), 'posts'),
+            // Deferred group "services"
+            'services'     => Inertia::defer(function () use ($user) {
+                $authId  = auth()->id();
+                $isOwner = $authId === $user->id;
+
+                // All active categories
+                $allCategories = ServiceCategory::where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->get(['id', 'name', 'description', 'image_path', 'accent_color', 'sort_order']);
+
+                // Services for this user
+                $query = $user->services()->with(['timeUnit:id,name']);
+                if (!$isOwner) {
+                    $query->where('is_active', true)->where('status', 'approved');
+                }
+                $services = $query->orderBy('created_at')->get();
+
+                // Idol descriptions
+                $categoryIds  = $allCategories->pluck('id');
+                $descriptions = IdolCategoryDescription::where('user_id', $user->id)
+                    ->whereIn('category_id', $categoryIds)
+                    ->pluck('description', 'category_id');
+
+                $servicesByCategory = $services->groupBy('category_id');
+
+                return $allCategories->map(function ($cat) use ($servicesByCategory, $descriptions) {
+                    $group = $servicesByCategory->get($cat->id, collect());
+                    return [
+                        'category' => [
+                            'id'           => $cat->id,
+                            'name'         => $cat->name,
+                            'description'  => $cat->description,
+                            'image_url'    => $cat->image_path ? Storage::url($cat->image_path) : null,
+                            'accent_color' => $cat->accent_color,
+                            'sort_order'   => $cat->sort_order,
+                        ],
+                        'idol_description' => $descriptions[$cat->id] ?? null,
+                        'items'            => $group->map(fn (Service $s) => [
+                            'id'               => $s->id,
+                            'name'             => $s->name,
+                            'price'            => $s->price,
+                            'is_active'        => $s->is_active,
+                            'status'           => $s->status,
+                            'rejection_reason' => $s->rejection_reason,
+                            'category_id'      => $s->category_id,
+                            'time_unit'        => ['id' => $s->timeUnit->id, 'name' => $s->timeUnit->name],
+                        ])->values(),
+                    ];
+                })->values();
+            }, 'services'),
+            'serviceCategories' => Inertia::defer(
+                fn () => ServiceCategory::where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'name_suggestions', 'accent_color']),
+                'services'
+            ),
+            'serviceTimeUnits' => Inertia::defer(
+                fn () => ServiceTimeUnit::where('is_active', true)->orderBy('sort_order')->get(['id', 'name']),
+                'services'
+            ),
+
+        ]);
+    }
+
+    public function categoryIdols(User $user, ServiceCategory $category, Request $request): JsonResponse
+    {
+        $page    = max(1, (int) $request->get('page', 1));
+        $perPage = 4;
+
+        $idols = Service::where('is_active', true)
+            ->where('status', 'approved')
+            ->where('user_id', '!=', $user->id)
+            ->where('category_id', $category->id)
+            ->with(['user:id,name,avatar_path,rating'])
+            ->get(['id', 'user_id'])
+            ->unique('user_id');
+
+        $total = $idols->count();
+        $paged = $idols->slice(($page - 1) * $perPage, $perPage)->values();
+
+        return response()->json([
+            'idols'   => $paged->map(fn ($s) => [
+                'id'         => $s->user->id,
+                'name'       => $s->user->name,
+                'avatar_url' => $s->user->avatar_url,
+                'rating'     => $s->user->rating,
+            ])->values(),
+            'total'   => $total,
+            'page'    => $page,
+            'hasMore' => ($page * $perPage) < $total,
         ]);
     }
 
@@ -185,11 +279,23 @@ class UserProfileController extends Controller
         return back();
     }
 
+    public function updateCategoryDescription(Request $request, ServiceCategory $category): RedirectResponse
+    {
+        $data = $request->validate(['description' => ['nullable', 'string', 'max:1000']]);
+
+        IdolCategoryDescription::updateOrCreate(
+            ['user_id' => $request->user()->id, 'category_id' => $category->id],
+            ['description' => $data['description']],
+        );
+
+        return back();
+    }
+
     public function storePost(Request $request): RedirectResponse
     {
         $request->validate([
-            'body'  => ['required', 'string', 'max:2000'],
-            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'body'  => ['required', 'string', 'max:377'],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:1024'],
         ]);
         $user = $request->user();
         $photoPath = null;
@@ -206,6 +312,11 @@ class UserProfileController extends Controller
             'body'       => $request->input('body'),
             'photo_path' => $photoPath,
         ]);
+
+        if ($user->is_idol) {
+            IdolRatingService::adjust($user, 'post_published');
+        }
+
         return back();
     }
 
@@ -216,6 +327,155 @@ class UserProfileController extends Controller
             Storage::disk('public')->delete($post->photo_path);
         }
         $post->delete();
+        return back();
+    }
+
+    public function getPosts(Request $request, User $user): JsonResponse
+    {
+        $paginated = $user->posts()
+            ->with('user:id,name,avatar_path')
+            ->withCount(['likes', 'comments'])
+            ->latest()
+            ->paginate(10);
+
+        $authId = auth()->id();
+        $likedIds = [];
+        if ($authId) {
+            $postIds = $paginated->pluck('id');
+            $likedIds = PostLike::where('user_id', $authId)
+                ->whereIn('post_id', $postIds)
+                ->pluck('post_id')
+                ->flip()
+                ->all();
+        }
+
+        $data = $paginated->getCollection()->map(fn (Post $p) => [
+            'id'             => $p->id,
+            'body'           => $p->body,
+            'photo_url'      => $p->photo_url,
+            'created_at'     => $p->created_at->translatedFormat('d M Y'),
+            'likes_count'    => $p->likes_count,
+            'liked_by_me'    => isset($likedIds[$p->id]),
+            'comments_count' => $p->comments_count,
+            'author'         => [
+                'id'         => $p->user->id,
+                'name'       => $p->user->name,
+                'avatar_url' => $p->user->avatar_url,
+            ],
+        ]);
+
+        return response()->json([
+            'data'          => $data,
+            'next_page_url' => $paginated->nextPageUrl(),
+            'current_page'  => $paginated->currentPage(),
+            'last_page'     => $paginated->lastPage(),
+        ]);
+    }
+
+    public function getComments(Request $request, Post $post): JsonResponse
+    {
+        $comments = $post->comments()
+            ->with(['user:id,name,avatar_path', 'replies.user:id,name,avatar_path'])
+            ->orderBy('created_at')
+            ->get();
+
+        $data = $comments->map(fn (PostComment $c) => [
+            'id'         => $c->id,
+            'body'       => $c->body,
+            'created_at' => $c->created_at->diffForHumans(),
+            'user'       => ['id' => $c->user->id, 'name' => $c->user->name, 'avatar_url' => $c->user->avatar_url],
+            'replies'    => $c->replies->map(fn (PostComment $r) => [
+                'id'         => $r->id,
+                'body'       => $r->body,
+                'created_at' => $r->created_at->diffForHumans(),
+                'user'       => ['id' => $r->user->id, 'name' => $r->user->name, 'avatar_url' => $r->user->avatar_url],
+                'replies'    => [],
+            ])->values(),
+        ]);
+
+        return response()->json($data);
+    }
+
+    public function toggleLike(Request $request, Post $post): JsonResponse
+    {
+        $userId = $request->user()->id;
+        $existing = PostLike::where('post_id', $post->id)->where('user_id', $userId)->first();
+
+        if ($existing) {
+            $existing->delete();
+            $liked = false;
+        } else {
+            PostLike::create(['post_id' => $post->id, 'user_id' => $userId]);
+            $liked = true;
+        }
+
+        return response()->json([
+            'liked'       => $liked,
+            'likes_count' => $post->likes()->count(),
+        ]);
+    }
+
+    public function storeComment(Request $request, Post $post): JsonResponse
+    {
+        $data = $request->validate([
+            'body'      => ['required', 'string', 'max:177'],
+            'parent_id' => ['nullable', 'integer', 'exists:post_comments,id'],
+        ]);
+
+        if (!empty($data['parent_id'])) {
+            $parent = PostComment::findOrFail($data['parent_id']);
+            abort_if($parent->post_id !== $post->id, 422, 'Parent comment does not belong to this post.');
+            abort_if($parent->parent_id !== null, 422, 'Cannot reply to a reply.');
+        }
+
+        $comment = PostComment::create([
+            'post_id'   => $post->id,
+            'user_id'   => $request->user()->id,
+            'parent_id' => $data['parent_id'] ?? null,
+            'body'      => $data['body'],
+        ]);
+
+        $comment->load('user:id,name,avatar_path');
+
+        return response()->json([
+            'id'         => $comment->id,
+            'body'       => $comment->body,
+            'created_at' => $comment->created_at->diffForHumans(),
+            'user'       => ['id' => $comment->user->id, 'name' => $comment->user->name, 'avatar_url' => $comment->user->avatar_url],
+            'replies'    => [],
+        ]);
+    }
+
+    public function destroyComment(Request $request, PostComment $comment): JsonResponse
+    {
+        abort_if($comment->user_id !== $request->user()->id, 403);
+        $comment->delete();
+        return response()->json(['deleted' => true]);
+    }
+
+    public function storeInterestSuggestion(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['name' => ['required', 'string', 'max:100']]);
+        $userId = $request->user()->id;
+        $name = $data['name'];
+        $exists = InterestSuggestion::where('user_id', $userId)->where('name', $name)->exists();
+        if (!$exists) {
+            InterestSuggestion::create(['user_id' => $userId, 'name' => $name, 'status' => 'pending']);
+        }
+        return back();
+    }
+
+    public function storeTraitSuggestion(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['name' => ['required', 'string', 'max:100']]);
+        $userId = $request->user()->id;
+        $name = $data['name'];
+
+        $exists = TraitSuggestion::where('user_id', $userId)->where('name', $name)->exists();
+        if (!$exists) {
+            TraitSuggestion::create(['user_id' => $userId, 'name' => $name, 'status' => 'pending']);
+        }
+
         return back();
     }
 }

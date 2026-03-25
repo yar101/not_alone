@@ -45,6 +45,7 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
     <div>
         <div class="page-header">
             <h1 class="page-title">Заявки на Айдола</h1>
+            <a :href="route('admin.export.applications')" class="export-link">Экспорт CSV</a>
             <div class="filters">
                 <button @click="filterBy('')" :class="['filter-btn', !filter_status && 'filter-btn--active']">Все</button>
                 <button @click="filterBy('pending')" :class="['filter-btn', filter_status === 'pending' && 'filter-btn--active']">На рассмотрении</button>
@@ -150,7 +151,9 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
 </template>
 
 <style scoped>
-.page-header { display: flex; align-items: center; gap: 2rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.page-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.export-link { font-size: 0.78rem; padding: 0.3rem 0.65rem; border: 1px solid rgba(155,110,232,0.3); color: rgba(190,145,255,0.75); text-decoration: none; white-space: nowrap; }
+.export-link:hover { background: rgba(155,110,232,0.08); }
 .page-title { font-size: 1.4rem; color: #fff; margin: 0; }
 
 .filters { display: flex; gap: 0.5rem; }
@@ -164,17 +167,17 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
     font-family: inherit;
 }
 .filter-btn--active, .filter-btn:hover {
-    border-color: rgba(200,70,126,0.6);
-    color: #C8467E;
-    background: rgba(200,70,126,0.1);
+    border-color: rgba(155,110,232,0.6);
+    color: #9B6EE8;
+    background: rgba(155,110,232,0.1);
 }
 
 .table-wrap { overflow-x: auto; }
 .apps-table { width: 100%; border-collapse: collapse; }
 .apps-table th {
     text-align: left;
-    padding: 0.65rem 1rem;
-    font-size: 0.72rem;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.82rem;
     color: rgba(255,255,255,0.35);
     text-transform: uppercase;
     letter-spacing: 0.07em;
@@ -182,21 +185,22 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
     background: rgba(255,255,255,0.025);
 }
 .apps-table td {
-    padding: 0.85rem 1rem;
+    padding: 1rem 1.25rem;
     border-bottom: 1px solid rgba(255,255,255,0.07);
     vertical-align: middle;
+    font-size: 0.93rem;
 }
 .apps-table tr:hover td { background: rgba(255,255,255,0.03); }
 
 .user-cell { display: flex; align-items: center; gap: 0.75rem; }
 .user-avatar {
     width: 34px; height: 34px; border-radius: 50%; object-fit: cover;
-    background: rgba(200,70,126,0.15); flex-shrink: 0;
+    background: rgba(155,110,232,0.15); flex-shrink: 0;
 }
 .user-avatar--initials {
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.85rem; font-weight: 600; color: #C8467E;
-    border: 1px solid rgba(200,70,126,0.35);
+    font-size: 0.85rem; font-weight: 600; color: #9B6EE8;
+    border: 1px solid rgba(155,110,232,0.35);
 }
 .user-name { font-size: 0.9rem; color: rgba(255,255,255,0.88); font-weight: 500; }
 .user-email { font-size: 0.78rem; color: rgba(255,255,255,0.35); }
@@ -230,8 +234,8 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
 .btn-approve:hover { background: rgba(76,222,143,0.18); }
 .btn-reject { border-color: rgba(255,107,107,0.45); color: #ff6b6b; background: rgba(255,107,107,0.08); }
 .btn-reject:hover { background: rgba(255,107,107,0.18); }
-.btn-view { border-color: rgba(200,70,126,0.35); color: #C8467E; background: rgba(200,70,126,0.07); }
-.btn-view:hover { background: rgba(200,70,126,0.15); }
+.btn-view { border-color: rgba(155,110,232,0.35); color: #9B6EE8; background: rgba(155,110,232,0.07); }
+.btn-view:hover { background: rgba(155,110,232,0.15); }
 
 .empty-row { text-align: center; color: rgba(255,255,255,0.3); padding: 3rem; }
 
@@ -244,7 +248,7 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
     text-decoration: none;
     cursor: pointer;
 }
-.page-link--active { border-color: rgba(200,70,126,0.6); color: #C8467E; background: rgba(200,70,126,0.1); }
+.page-link--active { border-color: rgba(155,110,232,0.6); color: #9B6EE8; background: rgba(155,110,232,0.1); }
 .page-link--disabled { opacity: 0.3; pointer-events: none; }
 
 .modal-overlay {
@@ -253,7 +257,7 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
 }
 .modal {
     background: #0e0e1c;
-    border: 1px solid rgba(200,70,126,0.35);
+    border: 1px solid rgba(155,110,232,0.35);
     padding: 1.75rem;
     width: 420px;
     max-width: 90vw;
@@ -270,7 +274,7 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
     outline: none;
     font-family: inherit;
 }
-.modal-textarea:focus { border-color: rgba(200,70,126,0.6); }
+.modal-textarea:focus { border-color: rgba(155,110,232,0.6); }
 .modal-actions { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 1rem; }
 .btn-cancel {
     padding: 0.45rem 1rem;
@@ -302,7 +306,7 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
     display: flex; align-items: center; gap: 0.5rem; margin: 0.75rem 0 0;
     font-size: 0.82rem; color: rgba(255,255,255,0.55); cursor: pointer;
 }
-.reset-quiz-label input { accent-color: #C8467E; }
+.reset-quiz-label input { accent-color: #9B6EE8; }
 
 .lightbox {
     position: fixed; inset: 0; background: rgba(0,0,0,0.92);

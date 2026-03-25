@@ -10,17 +10,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
-use Inertia\Inertia;
-use Inertia\Response;
-
 class RegisteredUserController extends Controller
 {
     /**
      * Display the registration view.
      */
-    public function create(): Response
+    public function create(): RedirectResponse
     {
-        return Inertia::render('Auth/Register');
+        return redirect('/');
     }
 
     /**
@@ -31,13 +28,14 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'name'       => ['required', 'string', 'max:100', 'regex:/^\p{L}+(\s\p{L}+)?$/u'],
+            'name'       => ['required', 'string', 'max:255', 'regex:/^\S+$/u', 'unique:users,name'],
             'gender'     => ['required', 'in:male,female'],
             'birth_date' => ['required', 'date', 'before:' . now()->subYears(18)->toDateString()],
             'email'      => 'required|string|lowercase|email|max:255|unique:' . User::class,
             'password'   => ['required', 'confirmed', Rules\Password::defaults()],
         ], [
-            'name.regex' => 'Имя должно содержать одно или два слова (только буквы).',
+            'name.regex'  => 'Имя не должно содержать пробелы.',
+            'name.unique' => 'Это имя уже занято.',
         ]);
 
         $user = User::create([

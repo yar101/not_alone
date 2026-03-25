@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import { Edit } from '@element-plus/icons-vue';
+import { EditPen } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 
 const props = defineProps({
@@ -26,13 +26,13 @@ function submit() {
         <div class="section-header">
             <span class="section-title">О себе</span>
             <button v-if="isOwner" class="edit-btn" @click="editModal = true" title="Редактировать">
-                <el-icon><Edit /></el-icon>
+                <el-icon><EditPen /></el-icon>
             </button>
         </div>
 
         <p v-if="about" class="about-text">{{ about }}</p>
         <p v-else-if="isOwner" class="about-empty">
-            Расскажи о себе — нажми <el-icon class="inline-icon"><Edit /></el-icon> чтобы добавить
+            Расскажи о себе — нажми <el-icon class="inline-icon"><EditPen /></el-icon> чтобы добавить
         </p>
         <p v-else class="about-empty">Пользователь пока ничего не написал</p>
 
@@ -73,19 +73,36 @@ function submit() {
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #FE28A2;
+    color: #a0a0ff;
 }
 
 .edit-btn {
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 26px; height: 26px;
-    border: none; background: transparent; cursor: pointer;
-    color: rgba(255,255,255,0.2); font-size: 0.95rem; padding: 0;
-    opacity: 0;
-    transition: opacity 0.15s, color 0.15s;
+    padding: 0;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    color: rgba(255,255,255,0.25);
+    font-size: 0.95rem;
+    opacity: 0.75;
+    transition: opacity 0.18s, color 0.18s, border-color 0.18s, background 0.18s, box-shadow 0.18s;
 }
-.block-section:hover .edit-btn { opacity: 1; }
-.edit-btn:hover { color: rgba(254,40,162,0.9); }
+.block-section:hover .edit-btn {
+    opacity: 1;
+    color: rgba(160, 160, 255, 0.8);
+    border-color: rgba(160, 160, 255, 0.35);
+    background: rgba(160, 160, 255, 0.08);
+}
+.edit-btn:hover {
+    color: #be91ff;
+    border-color: rgba(160, 160, 255, 0.7);
+    background: rgba(160, 160, 255, 0.16);
+    box-shadow: 0 0 8px rgba(160, 160, 255, 0.35);
+}
 
 .about-text {
     color: rgba(255,255,255,0.82);
@@ -123,15 +140,15 @@ function submit() {
     box-sizing: border-box;
     transition: border-color 0.15s;
 }
-.edit-textarea:focus { border-color: rgba(254,40,162,0.5); }
+.edit-textarea:focus { border-color: rgba(190,145,255,0.5); }
 .char-count { text-align: right; font-size: 0.75rem; color: rgba(255,255,255,0.25); margin-top: 0.25rem; }
 .edit-error { color: rgba(220,100,140,0.9); font-size: 0.8rem; margin: 0.25rem 0 0; }
 .save-btn {
     width: 100%; margin-top: 0.75rem; padding: 0.75rem;
-    border-radius: 3px; border: 1px solid rgba(254,40,162,0.4);
-    background: rgba(254,40,162,0.1);
+    border-radius: 3px; border: 1px solid rgba(190,145,255,0.4);
+    background: rgba(190,145,255,0.1);
     color: #fff; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: background 0.15s;
 }
-.save-btn:hover:not(:disabled) { background: rgba(254,40,162,0.2); }
+.save-btn:hover:not(:disabled) { background: rgba(190,145,255,0.2); }
 .save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 </style>

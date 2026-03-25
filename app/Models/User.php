@@ -6,6 +6,7 @@ use App\Notifications\VerifyEmailNotification;
 use Carbon\Carbon;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -30,8 +31,14 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'is_idol',
+        'rating',
         'idol_quiz_cooldown_until',
         'idol_quiz_passed_at',
+        'is_banned',
+        'banned_at',
+        'banned_until',
+        'ban_reason',
+        'banned_by',
     ];
 
     protected $hidden = [
@@ -44,13 +51,17 @@ class User extends Authenticatable implements MustVerifyEmail
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'birth_date' => 'date',
-            'profile_checklist_snoozed_until' => 'datetime',
-            'is_idol' => 'boolean',
-            'idol_quiz_cooldown_until' => 'datetime',
-            'idol_quiz_passed_at' => 'datetime',
+            'email_verified_at'              => 'datetime',
+            'password'                       => 'hashed',
+            'birth_date'                     => 'date',
+            'profile_checklist_snoozed_until'=> 'datetime',
+            'is_idol'                        => 'boolean',
+            'idol_quiz_cooldown_until'       => 'datetime',
+            'idol_quiz_passed_at'            => 'datetime',
+            'rating'                         => 'integer',
+            'is_banned'                      => 'boolean',
+            'banned_at'                      => 'datetime',
+            'banned_until'                   => 'datetime',
         ];
     }
 
@@ -95,6 +106,50 @@ class User extends Authenticatable implements MustVerifyEmail
     public function idolApplication()
     {
         return $this->hasOne(IdolApplication::class);
+    }
+
+    public function services(): HasMany
+    {
+        return $this->hasMany(Service::class);
+    }
+
+    public function ratingLogs(): HasMany
+    {
+        return $this->hasMany(IdolRatingLog::class);
+    }
+
+    public function bannedBy(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class, 'banned_by');
+    }
+
+    public function conversationParticipants(): HasMany
+    {
+        return $this->hasMany(ConversationParticipant::class);
+    }
+
+    public function chatBlocksGiven(): HasMany
+    {
+        return $this->hasMany(ChatBlock::class, 'blocker_id');
+    }
+
+    public function chatBlocksReceived(): HasMany
+    {
+        return $this->hasMany(ChatBlock::class, 'blocked_id');
+    }
+
+    public function unreadMessagesCount(): int
+    {
+        return $this->conversationParticipants()
+            ->get()
+            ->sum(function ($participant) {
+                $query = Message::where('conversation_id', $participant->conversation_id)
+                    ->where('sender_id', '!=', $this->id);
+                if ($participant->last_read_at) {
+                    $query->where('created_at', '>', $participant->last_read_at);
+                }
+                return $query->count();
+            });
     }
 
     public function sendEmailVerificationNotification(): void

@@ -24,9 +24,6 @@ const handleClick = (event) => {
 </template>
 
 <style scoped>
-/* Подключаем шрифт Brygada 1918 (можно также вынести в глобальные стили) */
-@import url('https://fonts.googleapis.com/css2?family=Brygada+1918:ital,wght@0,400..700;1,400..700&display=swap');
-
 .start-button {
     /* Сброс стандартных стилей браузера */
     appearance: none;
@@ -91,20 +88,20 @@ const handleClick = (event) => {
 /* Состояния при взаимодействии */
 .start-button:hover {
     /* Усиливаем яркость обводки и фона */
-    box-shadow: inset 0 0 0 2px rgba(200, 70, 126, 0.1);
+    box-shadow: inset 0 0 0 2px rgba(110, 110, 210, 0.1);
     //background: linear-gradient(135deg, #3a263d 0%, #1a1a1a 50%, #1e2d2d 100%);
     transform: translateY(-15px);
 }
 
 .start-button:hover .label {
     opacity: 1;
-    text-shadow: 0 0 25px rgba(200, 70, 126, 1);
-    color: rgba(200, 70, 126, 1);
+    text-shadow: 0 0 25px rgba(110, 110, 210, 1);
+    color: rgba(110, 110, 210, 1);
 }
 
 .start-button:active {
     transform: scale(0.97);
-    box-shadow: inset 0 0 0 2px rgba(200, 70, 126, 0.3);
+    box-shadow: inset 0 0 0 2px rgba(110, 110, 210, 0.3);
     transition: all 0.1s ease;
 }
 
