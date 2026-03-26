@@ -1,9 +1,11 @@
 <script setup>
-import { ref, computed, provide, onMounted, onUnmounted } from 'vue';
+import { ref, computed, provide, watch, onMounted, onUnmounted } from 'vue';
 import { Link, usePage, router } from '@inertiajs/vue3';
 import NotificationBell from '@/Components/NotificationBell.vue';
 import ChatButton from '@/Components/Chat/ChatButton.vue';
 import ChatPanel from '@/Components/Chat/ChatPanel.vue';
+import CartIcon from '@/Components/Cart/CartIcon.vue';
+import CartDropdown from '@/Components/Cart/CartDropdown.vue';
 import AuthModal from '@/Components/Site/AuthModal.vue';
 import UserSidebar from '@/Components/UserSidebar.vue';
 
@@ -19,9 +21,31 @@ const showIdolBtn = computed(() => user.value && !isIdol.value && idolStatus.val
 
 const showAuthModal = ref(false);
 const authModalTab  = ref('login');
-const chatOpen = ref(false);
-const chatPanel = ref(null);
+const chatOpen   = ref(false);
+const chatPanel  = ref(null);
+const cartOpen   = ref(false);
 const sidebarOpen = ref(false);
+
+// ── Cart state (localStorage) ─────────────────────────────
+const CART_KEY = computed(() => user.value ? `cart_${user.value.id}` : null);
+const cart = ref({ idol_id: null, idol_name: '', idol_avatar: null, items: [] });
+
+function loadCart() {
+    if (!CART_KEY.value) return;
+    try {
+        const raw = localStorage.getItem(CART_KEY.value);
+        if (raw) cart.value = JSON.parse(raw);
+    } catch {}
+}
+
+function saveCart() {
+    if (!CART_KEY.value) return;
+    localStorage.setItem(CART_KEY.value, JSON.stringify(cart.value));
+}
+
+watch(cart, saveCart, { deep: true });
+
+onMounted(loadCart);
 
 function openAuth(tab) {
     authModalTab.value = tab;
@@ -32,7 +56,15 @@ function openChatWith(userId) {
     chatPanel.value?.startWith(userId);
 }
 
+function openOrder(orderId) {
+    cartOpen.value = false;
+    chatOpen.value = true;
+    chatPanel.value?.openOrder(orderId);
+}
+
 provide('openChatWith', openChatWith);
+provide('openOrder', openOrder);
+provide('cart', cart);
 
 // ── Global online presence ────────────────────────────────
 const onlineUserIds = ref([]);
@@ -90,6 +122,7 @@ onUnmounted(() => {
                     class="become-idol-btn"
                 >Стать Айдолом</Link>
 
+                <CartIcon v-if="user" :cart="cart" @click="cartOpen = !cartOpen" />
                 <ChatButton v-if="user" @click="chatOpen = !chatOpen" />
                 <NotificationBell v-if="user" />
 
@@ -121,6 +154,7 @@ onUnmounted(() => {
         </main>
 
         <AuthModal :show="showAuthModal" :initial-tab="authModalTab" @close="showAuthModal = false" />
+        <CartDropdown v-if="user" v-model="cartOpen" :cart="cart" @clear="cart = { idol_id: null, idol_name: '', idol_avatar: null, items: [] }" @remove-item="(idx) => cart.items.splice(idx, 1)" />
         <ChatPanel v-if="user" ref="chatPanel" v-model="chatOpen" />
         <UserSidebar v-if="user" v-model="sidebarOpen" :user="user" :is-idol="isIdol" :rating="user?.rating" />
     </div>

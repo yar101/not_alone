@@ -40,6 +40,38 @@ const searchQuery     = ref('');
 // Online status — from global presence channel in AppLayout
 const onlineUserIds = inject('onlineUserIds', ref([]));
 
+// ── Orders tab ────────────────────────────────────────────
+const activeTab      = ref('messages'); // 'messages' | 'orders'
+const orders         = ref([]);
+const loadingOrders  = ref(false);
+const activeOrderData = ref(null); // order data for the current open conversation
+
+// ── Cancel order modal ────────────────────────────────────
+const cancelModal       = ref(false);
+const cancelReason      = ref('');
+const cancelSubmitting  = ref(false);
+const CANCEL_TEMPLATES_CUSTOMER = [
+    'Изменились планы',
+    'Нашёл другого исполнителя',
+    'Сделал заказ по ошибке',
+    'Не устраивают условия',
+    'Не получил ответа от исполнителя',
+    'По личным причинам',
+];
+
+const CANCEL_TEMPLATES_IDOL = [
+    'Изменились планы',
+    'Не смогу выполнить этот заказ',
+    'Не хватает времени',
+    'Слишком большой объём работы',
+    'Это не моя специализация',
+    'По личным причинам',
+];
+
+const cancelTemplates = computed(() =>
+    activeOrderData.value?.is_customer ? CANCEL_TEMPLATES_CUSTOMER : CANCEL_TEMPLATES_IDOL
+);
+
 // ── Avatar fullscreen ─────────────────────────────────────
 const avatarFullscreen = ref(false);
 
@@ -124,6 +156,7 @@ async function openConversation(conv) {
         hasMore.value = res.data.has_more;
         otherLastReadAt.value = res.data.other_last_read_at ?? null;
         activeBlock.value = res.data.block ?? null;
+        activeOrderData.value = res.data.order ?? null;
         if (res.data.other_user) {
             activeConversation.value = { ...conv, other_user: res.data.other_user };
         }
@@ -376,12 +409,20 @@ function isMessageRead(msg) {
 
 // ── Watch panel open ─────────────────────────────────────
 watch(isOpen, (val) => {
-    if (val) fetchConversations();
+    if (val) {
+        fetchConversations();
+        if (activeTab.value === 'orders') fetchOrders();
+    }
     if (!val) {
         leaveEcho();
         activeConversation.value = null;
+        activeOrderData.value = null;
         searchQuery.value = '';
     }
+});
+
+watch(activeTab, (tab) => {
+    if (tab === 'orders') fetchOrders();
 });
 
 // ── Close on navigation ──────────────────────────────────
@@ -394,7 +435,78 @@ onUnmounted(() => {
     clearInterval(nowTimer);
 });
 
-defineExpose({ startWith });
+// ── Orders helpers ────────────────────────────────────────
+async function fetchOrders() {
+    loadingOrders.value = true;
+    try {
+        const res = await axios.get(route('orders.index'));
+        orders.value = res.data.orders;
+    } finally {
+        loadingOrders.value = false;
+    }
+}
+
+async function openOrderConversation(order) {
+    if (!order.conversation_id) return;
+    const other = order.is_customer ? order.idol : order.customer;
+    await openConversation({ id: order.conversation_id, other_user: other, unread_count: 0 });
+}
+
+const acceptBtnText = computed(() => {
+    const gender = activeOrderData.value?.idol?.gender;
+    if (gender === 'male')   return 'Готов принять заказ';
+    if (gender === 'female') return 'Готова принять заказ';
+    return 'Готов(а) принять заказ';
+});
+
+function cancelledByLabel(orderData) {
+    if (!orderData?.cancelled_by) return null;
+    if (orderData.cancelled_by === authUser.value?.id) return 'вами';
+    return orderData.cancelled_by_name ?? null;
+}
+
+async function acceptOrder() {
+    if (!activeOrderData.value || activeOrderData.value.status !== 'pending') return;
+    await axios.patch(route('orders.accept', activeOrderData.value.id));
+    activeOrderData.value = { ...activeOrderData.value, status: 'accepted' };
+    orders.value = orders.value.map(o => o.id === activeOrderData.value.id ? { ...o, status: 'accepted' } : o);
+    router.reload({ only: ['order_notifications_unread'] });
+}
+
+async function submitCancelOrder() {
+    if (!cancelReason.value.trim() || cancelSubmitting.value) return;
+    cancelSubmitting.value = true;
+    try {
+        await axios.patch(route('orders.cancel', activeOrderData.value.id), { cancel_reason: cancelReason.value });
+        const updated = {
+            ...activeOrderData.value,
+            status: 'cancelled',
+            cancel_reason: cancelReason.value,
+            cancelled_by: authUser.value.id,
+            cancelled_by_name: authUser.value.name,
+        };
+        activeOrderData.value = updated;
+        orders.value = orders.value.map(o => o.id === updated.id
+            ? { ...o, status: 'cancelled', cancel_reason: updated.cancel_reason, cancelled_by: updated.cancelled_by, cancelled_by_name: updated.cancelled_by_name }
+            : o
+        );
+        cancelModal.value = false;
+        cancelReason.value = '';
+        router.reload({ only: ['order_notifications_unread'] });
+    } finally {
+        cancelSubmitting.value = false;
+    }
+}
+
+async function openOrder(orderId) {
+    isOpen.value = true;
+    activeTab.value = 'orders';
+    await fetchOrders();
+    const order = orders.value.find(o => o.id === orderId);
+    if (order) await openOrderConversation(order);
+}
+
+defineExpose({ startWith, openOrder });
 
 // ── Helpers ──────────────────────────────────────────────
 function formatTime(iso) {
@@ -423,7 +535,7 @@ function formatDate(iso) {
                 <!-- ── Sidebar: список диалогов ───────────── -->
                 <div class="chat-sidebar">
                     <div class="chat-sidebar__header">
-                        <span class="chat-sidebar__title">Сообщения</span>
+                        <span class="chat-sidebar__title">Чат</span>
                         <button class="chat-icon-btn" @click="close">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -431,8 +543,14 @@ function formatDate(iso) {
                         </button>
                     </div>
 
-                    <!-- Поиск по диалогам -->
-                    <div class="chat-sidebar__search">
+                    <!-- Табы -->
+                    <div class="chat-tabs">
+                        <button class="chat-tab" :class="{ 'chat-tab--active': activeTab === 'messages' }" @click="activeTab = 'messages'">Сообщения</button>
+                        <button class="chat-tab" :class="{ 'chat-tab--active': activeTab === 'orders' }" @click="activeTab = 'orders'">Заказы</button>
+                    </div>
+
+                    <!-- Поиск по диалогам (только для сообщений) -->
+                    <div v-if="activeTab === 'messages'" class="chat-sidebar__search">
                         <input
                             v-model="searchQuery"
                             type="text"
@@ -442,39 +560,77 @@ function formatDate(iso) {
                     </div>
 
                     <div class="chat-sidebar__list">
-                        <div v-if="loadingConvs" class="chat-empty">Загрузка…</div>
-                        <template v-else-if="conversations.length === 0">
-                            <div class="chat-no-convs">
-                                <p>Нет диалогов</p>
-                                <a :href="route('users.search')">Найти пользователей →</a>
-                            </div>
-                        </template>
-                        <template v-else>
-                            <button
-                                v-for="conv in filteredConversations"
-                                :key="conv.id"
-                                class="chat-conv-item"
-                                :class="{
-                                    'chat-conv-item--active': activeConversation?.id === conv.id,
-                                    'chat-conv-item--unread': conv.unread_count > 0,
-                                }"
-                                @click="openConversation(conv)"
-                            >
-                                <div class="chat-conv-avatar">
-                                    <img v-if="conv.other_user?.avatar_url" :src="conv.other_user.avatar_url" alt="" />
-                                    <span v-else>{{ conv.other_user?.name?.charAt(0) ?? '?' }}</span>
+                        <!-- ── Сообщения ── -->
+                        <template v-if="activeTab === 'messages'">
+                            <div v-if="loadingConvs" class="chat-empty">Загрузка…</div>
+                            <template v-else-if="conversations.length === 0">
+                                <div class="chat-no-convs">
+                                    <p>Нет диалогов</p>
+                                    <a :href="route('users.search')">Найти пользователей →</a>
                                 </div>
-                                <div class="chat-conv-info">
-                                    <div class="chat-conv-name">
-                                        {{ conv.other_user?.name ?? '—' }}
+                            </template>
+                            <template v-else>
+                                <button
+                                    v-for="conv in filteredConversations"
+                                    :key="conv.id"
+                                    class="chat-conv-item"
+                                    :class="{
+                                        'chat-conv-item--active': activeConversation?.id === conv.id,
+                                        'chat-conv-item--unread': conv.unread_count > 0,
+                                    }"
+                                    @click="openConversation(conv)"
+                                >
+                                    <div class="chat-conv-avatar">
+                                        <img v-if="conv.other_user?.avatar_url" :src="conv.other_user.avatar_url" alt="" />
+                                        <span v-else>{{ conv.other_user?.name?.charAt(0) ?? '?' }}</span>
                                     </div>
-                                    <div class="chat-conv-preview">{{ conv.last_message?.body ?? '' }}</div>
-                                </div>
-                                <div class="chat-conv-meta">
-                                    <span class="chat-conv-time">{{ formatDate(conv.last_message?.created_at) }}</span>
-                                    <span v-if="conv.unread_count > 0" class="chat-conv-badge">{{ conv.unread_count }}</span>
-                                </div>
-                            </button>
+                                    <div class="chat-conv-info">
+                                        <div class="chat-conv-name">{{ conv.other_user?.name ?? '—' }}</div>
+                                        <div class="chat-conv-preview">{{ conv.last_message?.body ?? '' }}</div>
+                                    </div>
+                                    <div class="chat-conv-meta">
+                                        <span class="chat-conv-time">{{ formatDate(conv.last_message?.created_at) }}</span>
+                                        <span v-if="conv.unread_count > 0" class="chat-conv-badge">{{ conv.unread_count }}</span>
+                                    </div>
+                                </button>
+                            </template>
+                        </template>
+
+                        <!-- ── Заказы ── -->
+                        <template v-else-if="activeTab === 'orders'">
+                            <div v-if="loadingOrders" class="chat-empty">Загрузка…</div>
+                            <template v-else-if="orders.length === 0">
+                                <div class="chat-no-convs"><p>Нет заказов</p></div>
+                            </template>
+                            <template v-else>
+                                <button
+                                    v-for="order in orders"
+                                    :key="order.id"
+                                    class="chat-conv-item"
+                                    :class="{ 'chat-conv-item--active': activeOrderData?.id === order.id }"
+                                    @click="openOrderConversation(order)"
+                                >
+                                    <div class="chat-conv-avatar">
+                                        <img v-if="(order.is_customer ? order.idol : order.customer).avatar_url"
+                                            :src="(order.is_customer ? order.idol : order.customer).avatar_url" alt="" />
+                                        <span v-else>{{ (order.is_customer ? order.idol : order.customer).name?.charAt(0) ?? '?' }}</span>
+                                    </div>
+                                    <div class="chat-conv-info">
+                                        <div class="chat-conv-name">{{ (order.is_customer ? order.idol : order.customer).name }}</div>
+                                        <div class="chat-order-status-row">
+                                            <span class="chat-order-badge" :class="`chat-order-badge--${order.status}`">
+                                                {{ { pending: 'Ожидает', accepted: 'Принят', cancelled: 'Отменён' }[order.status] }}
+                                            </span>
+                                            <span v-if="order.status === 'cancelled' && cancelledByLabel(order)" class="chat-order-cancelled-by">
+                                                {{ cancelledByLabel(order) }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="chat-conv-meta">
+                                        <span class="chat-conv-time">{{ formatDate(order.created_at) }}</span>
+                                    </div>
+                                </button>
+                            </template>
                         </template>
                     </div>
                 </div>
@@ -544,7 +700,29 @@ function formatDate(iso) {
                                             <span>{{ item.label }}</span>
                                         </div>
 
-                                        <!-- Message -->
+                                        <!-- System message -->
+                                        <div v-else-if="item.type === 'message' && item.msg.type === 'system'" class="chat-system-msg">
+                                            <template v-if="item.msg.metadata?.event === 'order_created'">
+                                                <div class="chat-system-card">
+                                                    <p class="chat-system-card__title">Заказ оформлен</p>
+                                                    <div v-for="s in item.msg.metadata.services" :key="s.id" class="chat-system-service-row">
+                                                        <span class="chat-system-service__name">{{ s.name }}</span>
+                                                        <span class="chat-system-service__price">{{ s.price?.toLocaleString('ru-RU') }} ₽<template v-if="s.time_unit"> / {{ s.time_unit }}</template></span>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            <template v-else-if="item.msg.metadata?.event === 'order_cancelled'">
+                                                <div class="chat-system-card chat-system-card--cancel">
+                                                    <p class="chat-system-card__title">Заказ отменён</p>
+                                                    <p class="chat-system-card__who">
+                                                        {{ item.msg.metadata.cancelled_by === authUser?.id ? 'Вами' : (item.msg.metadata.cancelled_by_name ?? 'Другой стороной') }}
+                                                    </p>
+                                                    <p v-if="item.msg.metadata.cancel_reason" class="chat-system-card__reason">{{ item.msg.metadata.cancel_reason }}</p>
+                                                </div>
+                                            </template>
+                                        </div>
+
+                                        <!-- Regular message -->
                                         <div
                                             v-else-if="item.type === 'message'"
                                             class="chat-msg"
@@ -609,10 +787,40 @@ function formatDate(iso) {
                             <button @click="submitUnblock" class="chat-block-unblock-btn">Разблокировать</button>
                         </div>
 
-                        <!-- Поле ввода -->
+                        <!-- Поле ввода + панель заказа (всё вместе в абс. блоке снизу) -->
                         <div class="chat-input-wrap">
                             <div class="chat-input-fade"></div>
-                            <div class="chat-input-inner">
+
+                            <!-- Панель действий заказа -->
+                            <div v-if="activeOrderData && activeOrderData.status !== 'cancelled'" class="chat-order-actions">
+                                <button
+                                    v-if="!activeOrderData.is_customer && activeOrderData.status === 'pending'"
+                                    class="chat-order-btn chat-order-btn--accept"
+                                    @click="acceptOrder"
+                                >{{ acceptBtnText }}</button>
+                                <button
+                                    v-if="activeOrderData.is_customer && activeOrderData.status === 'accepted'"
+                                    class="chat-order-btn chat-order-btn--pay"
+                                    disabled
+                                >Оплатить заказ</button>
+                                <button class="chat-order-btn chat-order-btn--cancel" @click="cancelModal = true">Отменить заказ</button>
+                            </div>
+
+                            <!-- Плашка: заказ отменён -->
+                            <div v-if="activeOrderData?.status === 'cancelled'" class="chat-order-cancelled-bar">
+                                <span class="chat-order-cancelled-bar__label">Заказ отменён</span>
+                                <template v-if="cancelledByLabel(activeOrderData)">
+                                    <span class="chat-order-cancelled-bar__sep">·</span>
+                                    <span class="chat-order-cancelled-bar__who">{{ cancelledByLabel(activeOrderData) }}</span>
+                                </template>
+                                <template v-if="activeOrderData.cancel_reason">
+                                    <span class="chat-order-cancelled-bar__sep">·</span>
+                                    <span class="chat-order-cancelled-bar__reason">{{ activeOrderData.cancel_reason }}</span>
+                                </template>
+                            </div>
+
+                            <!-- Textarea (скрыт если заказ отменён) -->
+                            <div v-if="!activeOrderData || activeOrderData.status !== 'cancelled'" class="chat-input-inner">
                                 <textarea
                                     v-model="newMessage"
                                     class="chat-input"
@@ -678,6 +886,40 @@ function formatDate(iso) {
                 >Заблокировать</button>
             </div>
         </SiteModal>
+
+    <!-- ── Модалка отмены заказа ─────────────────────── -->
+    <SiteModal :show="cancelModal" variant="pink" compact @close="cancelModal = false">
+        <h2 class="bm-title">Отменить заказ</h2>
+
+        <div class="bm-section-label">Выберите причину</div>
+        <div class="bm-reasons">
+            <button
+                v-for="t in cancelTemplates"
+                :key="t"
+                class="bm-reason-tag"
+                :class="{ 'bm-reason-tag--selected': cancelReason === t }"
+                @click="cancelReason = t"
+            >{{ t }}</button>
+        </div>
+
+        <div class="bm-section-label" style="margin-top:0.75rem">Или напишите свою причину</div>
+        <textarea
+            v-model="cancelReason"
+            class="bm-textarea"
+            placeholder="Причина отмены…"
+            rows="3"
+            maxlength="1000"
+        ></textarea>
+
+        <div class="bm-footer">
+            <button class="bm-cancel" @click="cancelModal = false">Назад</button>
+            <button
+                class="bm-submit bm-submit--danger"
+                :disabled="!cancelReason.trim() || cancelSubmitting"
+                @click="submitCancelOrder"
+            >Подтвердить отмену</button>
+        </div>
+    </SiteModal>
 
     <!-- ── Полноэкранный просмотр аватарки ──────────────── -->
     <Teleport to="body">
@@ -1685,4 +1927,192 @@ function formatDate(iso) {
     opacity: 0.35;
     cursor: not-allowed;
 }
+.bm-submit--danger {
+    background: linear-gradient(135deg, rgba(220, 60, 60, 0.45), rgba(180, 30, 30, 0.4));
+    border: 1px solid rgba(220, 80, 80, 0.5);
+    color: #ffaaaa;
+}
+.bm-submit--danger:hover:not(:disabled) {
+    background: linear-gradient(135deg, rgba(220, 60, 60, 0.65), rgba(180, 30, 30, 0.6));
+    border-color: rgba(220, 80, 80, 0.75);
+}
+.bm-textarea {
+    width: 100%;
+    background: rgba(110,110,210,0.07);
+    border: 1px solid rgba(110,110,210,0.2);
+    border-radius: 8px;
+    color: rgba(255,255,255,0.85);
+    padding: 0.55rem 0.75rem;
+    font-size: 0.875rem;
+    font-family: inherit;
+    resize: vertical;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.15s;
+}
+.bm-textarea:focus { border-color: rgba(160,160,255,0.4); }
+
+/* ── Chat tabs ──────────────────────────────────────────── */
+.chat-tabs {
+    display: flex;
+    border-bottom: 1px solid rgba(110,110,210,0.12);
+    flex-shrink: 0;
+}
+.chat-tab {
+    flex: 1;
+    padding: 0.55rem 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: rgba(255,255,255,0.35);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    font-family: inherit;
+}
+.chat-tab:hover { color: rgba(255,255,255,0.65); }
+.chat-tab--active {
+    color: #be91ff;
+    border-bottom-color: #be91ff;
+}
+
+/* ── Order badge in sidebar ─────────────────────────────── */
+.chat-order-status-row { margin-top: 0.15rem; }
+.chat-order-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.12rem 0.45rem;
+    border-radius: 3px;
+}
+.chat-order-badge--pending  { background: rgba(180,130,0,0.18);  color: rgba(255,210,80,0.85);  border: 1px solid rgba(180,130,0,0.3); }
+.chat-order-badge--accepted { background: rgba(0,180,100,0.15);  color: rgba(100,255,180,0.85); border: 1px solid rgba(0,180,100,0.3); }
+.chat-order-badge--cancelled{ background: rgba(180,50,50,0.15);  color: rgba(255,140,140,0.8);  border: 1px solid rgba(180,50,50,0.25); }
+
+/* ── Order actions panel ────────────────────────────────── */
+.chat-order-actions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.5rem 1.1rem 0.4rem;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+.chat-order-btn {
+    flex: 1;
+    min-width: 120px;
+    padding: 0.45rem 0.85rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+    letter-spacing: 0.03em;
+}
+.chat-order-btn--accept {
+    background: rgba(100,200,130,0.15);
+    border: 1px solid rgba(100,200,130,0.4);
+    color: rgba(140,255,180,0.9);
+}
+.chat-order-btn--accept:hover { background: rgba(100,200,130,0.25); border-color: rgba(100,200,130,0.6); }
+.chat-order-btn--pay {
+    background: rgba(110,110,210,0.12);
+    border: 1px solid rgba(110,110,210,0.3);
+    color: rgba(190,145,255,0.7);
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+.chat-order-btn--cancel {
+    background: rgba(220,60,60,0.1);
+    border: 1px solid rgba(220,60,60,0.3);
+    color: rgba(255,140,140,0.85);
+}
+.chat-order-btn--cancel:hover { background: rgba(220,60,60,0.2); border-color: rgba(220,60,60,0.5); }
+
+/* ── Cancelled bar ──────────────────────────────────────── */
+.chat-order-cancelled-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1.1rem;
+    background: rgba(180,30,30,0.08);
+    border-radius: 6px;
+    margin: 0 1.1rem 0.5rem;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+.chat-order-cancelled-bar__label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: rgba(255,140,140,0.85);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.chat-order-cancelled-bar__sep {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.2);
+}
+.chat-order-cancelled-bar__who {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.55);
+    white-space: nowrap;
+}
+.chat-order-cancelled-bar__reason {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.35);
+    font-style: italic;
+}
+
+/* ── Cancelled by in sidebar ────────────────────────────── */
+.chat-order-cancelled-by {
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.35);
+    margin-left: 0.35rem;
+}
+
+/* ── System messages ────────────────────────────────────── */
+.chat-system-msg {
+    display: flex;
+    justify-content: center;
+    margin: 0.5rem 0;
+}
+.chat-system-card {
+    background: rgba(110,110,210,0.08);
+    border: 1px solid rgba(110,110,210,0.18);
+    border-radius: 8px;
+    padding: 0.75rem 1.25rem;
+    max-width: 380px;
+    width: 100%;
+}
+.chat-system-card--cancel {
+    background: rgba(180,50,50,0.08);
+    border-color: rgba(180,50,50,0.2);
+}
+.chat-system-card__title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(190,145,255,0.8);
+    margin: 0 0 0.6rem;
+}
+.chat-system-card--cancel .chat-system-card__title { color: rgba(255,140,140,0.8); }
+.chat-system-service-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.chat-system-service-row:last-child { border-bottom: none; }
+.chat-system-service__name { font-size: 0.85rem; color: rgba(255,255,255,0.75); }
+.chat-system-service__price { font-size: 0.82rem; color: rgba(190,145,255,0.7); white-space: nowrap; }
+.chat-system-card__who { font-size: 0.8rem; color: rgba(255,255,255,0.45); margin: 0.2rem 0 0; font-weight: 600; }
+.chat-system-card__reason { font-size: 0.85rem; color: rgba(255,255,255,0.5); margin: 0.25rem 0 0; font-style: italic; }
 </style>

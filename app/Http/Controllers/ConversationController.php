@@ -17,7 +17,8 @@ class ConversationController extends Controller
     {
         $user = $request->user();
 
-        $conversations = Conversation::whereHas('participants', fn($q) => $q->where('user_id', $user->id))
+        $conversations = Conversation::whereNull('order_id')
+            ->whereHas('participants', fn($q) => $q->where('user_id', $user->id))
             ->with([
                 'participants.user',
                 'lastMessage.sender',
@@ -84,6 +85,8 @@ class ConversationController extends Controller
         $mapped = $messages->map(fn($m) => [
             'id'              => $m->id,
             'body'            => $m->body,
+            'type'            => $m->type ?? 'user',
+            'metadata'        => $m->metadata,
             'sender_id'       => $m->sender_id,
             'sender_name'     => $m->sender->name,
             'sender_avatar'   => $m->sender->avatar_url,
@@ -105,6 +108,39 @@ class ConversationController extends Controller
 
         $other = $otherParticipant?->user;
 
+        $orderData = null;
+        if ($conversation->order_id) {
+            $conversation->load([
+                'order.customer',
+                'order.idol',
+                'order.cancelledBy',
+                'order.items.service.category',
+                'order.items.service.timeUnit',
+            ]);
+            $o = $conversation->order;
+            if ($o) {
+                $orderData = [
+                    'id'            => $o->id,
+                    'status'        => $o->status,
+                    'cancel_reason' => $o->cancel_reason,
+                    'cancelled_by'      => $o->cancelled_by,
+                    'cancelled_by_name' => $o->cancelledBy?->name,
+                    'is_customer'   => $o->customer_id === $user->id,
+                    'customer'      => ['id' => $o->customer->id, 'name' => $o->customer->name, 'avatar_url' => $o->customer->avatar_url],
+                    'idol'          => ['id' => $o->idol->id, 'name' => $o->idol->name, 'avatar_url' => $o->idol->avatar_url, 'gender' => $o->idol->gender],
+                    'items'         => $o->items->map(fn($item) => [
+                        'id'      => $item->id,
+                        'service' => $item->service ? [
+                            'id'        => $item->service->id,
+                            'name'      => $item->service->name,
+                            'price'     => $item->service->price,
+                            'time_unit' => $item->service->timeUnit?->name,
+                        ] : null,
+                    ])->values()->all(),
+                ];
+            }
+        }
+
         return response()->json([
             'messages'           => $mapped,
             'other_user'         => $other ? [
@@ -116,6 +152,7 @@ class ConversationController extends Controller
             'other_last_read_at' => $otherParticipant?->last_read_at?->toISOString(),
             'has_more'           => $hasMore,
             'block'              => $this->blockStatus($conversation, $user),
+            'order'              => $orderData,
         ]);
     }
 
@@ -137,6 +174,14 @@ class ConversationController extends Controller
             $conversation->participants()->where('user_id', $user->id)->exists(),
             403
         );
+
+        // Block messages in cancelled order conversations
+        if ($conversation->order_id) {
+            $conversation->loadMissing('order');
+            if ($conversation->order?->status === 'cancelled') {
+                abort(422, 'order_cancelled');
+            }
+        }
 
         $otherId = $conversation->participants()
             ->where('user_id', '!=', $user->id)
