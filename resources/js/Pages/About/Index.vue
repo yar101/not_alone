@@ -401,8 +401,8 @@ onMounted(() => {
 .ab-features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.65rem; }
 
 .ab-feature-card {
-    display: flex; align-items: flex-start; gap: 0.85rem;
-    padding: 1rem 1.1rem;
+    display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.55rem;
+    padding: 1rem 0.9rem;
     background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.05);
     border-radius: 11px;
     transition: background 0.2s, border-color 0.2s, transform 0.2s, opacity 0.25s;
@@ -415,8 +415,8 @@ onMounted(() => {
     border-color: color-mix(in srgb, var(--accent) 30%, transparent) !important;
     opacity: 1 !important;
 }
-.ab-feature-card__icon { font-size: 1.35rem; line-height: 1; color: var(--accent); flex-shrink: 0; margin-top: 0.1rem; filter: drop-shadow(0 0 6px var(--accent)); }
-.ab-feature-card__body { flex: 1; min-width: 0; }
+.ab-feature-card__icon { font-size: 1.35rem; line-height: 1; color: var(--accent); filter: drop-shadow(0 0 6px var(--accent)); }
+.ab-feature-card__body { width: 100%; }
 .ab-feature-card__title { font-size: 0.95rem; font-weight: 600; color: rgba(255,255,255,0.88); margin-bottom: 0.28rem; }
 .ab-feature-card__desc { display: none; }
 .ab-feature-card__arrow { position: absolute; top: 0.55rem; right: 0.6rem; color: var(--accent); opacity: 0.4; transition: opacity 0.2s; }

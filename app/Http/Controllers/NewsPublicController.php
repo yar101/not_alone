@@ -26,9 +26,11 @@ class NewsPublicController extends Controller
 
     public function feed(Request $request): JsonResponse
     {
+        $sortDir = $request->get('sort', 'desc') === 'asc' ? 'asc' : 'desc';
+
         $query = News::published()
             ->orderByDesc('is_pinned')
-            ->orderByDesc('published_at');
+            ->orderBy('published_at', $sortDir);
 
         if ($search = $request->get('search')) {
             $query->where(fn ($q) =>
