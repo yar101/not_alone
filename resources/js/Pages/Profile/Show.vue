@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick, onMounted, computed, inject } from 'vue';
+import { ref, nextTick, onMounted, computed, inject, provide, reactive } from 'vue';
 import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -60,6 +60,9 @@ const initialTab = TAB_ORDER.includes(storedTab) ? storedTab
     : TAB_ORDER.includes(hashTab) ? hashTab
     : 'about';
 const tab = ref(initialTab);
+
+const serviceNav = reactive({ inCategory: false, accent: '#a0a0ff', onBack: null });
+provide('serviceNav', serviceNav);
 
 function switchTab(name) {
     tab.value = name;
@@ -286,7 +289,16 @@ onMounted(async () => {
                         >
                             Контент
                         </button>
-                        <div id="profile-tab-extra"></div>
+                        <button v-if="serviceNav.inCategory"
+                                class="cd-back"
+                                :style="{ '--cat-accent': serviceNav.accent }"
+                                @click="serviceNav.onBack?.()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M15 18l-6-6 6-6" />
+                            </svg>
+                            К категориям
+                        </button>
                     </div>
                 <div class="tab-content-wrap page-block">
                 <Transition name="tab-fade" mode="out-in">
@@ -652,12 +664,9 @@ onMounted(async () => {
 }
 .profile-tabs::-webkit-scrollbar { display: none; }
 
-#profile-tab-extra {
+.cd-back {
     margin-left: auto;
-    display: flex;
-    align-items: center;
     flex-shrink: 0;
-    padding-right: 0.25rem;
 }
 
 .tab-btn {
