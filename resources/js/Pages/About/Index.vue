@@ -2,7 +2,7 @@
 import { ref, nextTick, onMounted } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import gsap from 'gsap';
-import PublicNav from '@/Components/Site/PublicNav.vue';
+import SiteHeader from '@/Components/Site/SiteHeader.vue';
 
 // ── Фичи ──────────────────────────────────────────────────────
 const features = [
@@ -90,7 +90,7 @@ function openFeature(f) {
 
 // ── Init ──────────────────────────────────────────────────────
 onMounted(() => {
-    gsap.from('.ab-topbar', { opacity: 0, duration: 0.4, ease: 'power1.out' });
+
     const heroTitle = leftColRef.value?.querySelector('.ab-hero-title');
     const heroDesc  = leftColRef.value?.querySelector('.ab-hero-desc');
     if (heroTitle) gsap.from(heroTitle, { opacity: 0, duration: 0.5,  delay: 0.1, ease: 'power1.out' });
@@ -116,10 +116,7 @@ onMounted(() => {
 
     <div class="ab-shell">
 
-        <!-- Навигация -->
-        <div class="ab-topbar">
-            <PublicNav activePage="about" />
-        </div>
+        <SiteHeader activePage="about" />
 
         <!-- Контент -->
         <div class="ab-content">
@@ -351,13 +348,6 @@ onMounted(() => {
 .ab-orb--cyan { width: 400px; height: 400px; background: radial-gradient(circle, rgba(34,211,238,0.08) 0%, transparent 70%); bottom: 5%; right: 5%; }
 
 /* ── Topbar ─────────────────────────────────────────────────── */
-.ab-topbar {
-    display: flex; align-items: center;
-    max-width: 1400px; width: 100%; margin: 0 auto;
-    padding: 1.2rem 4rem 0;
-    flex-shrink: 0; position: relative; z-index: 10;
-}
-
 
 /* ── Content ────────────────────────────────────────────────── */
 .ab-content { flex: 1; min-height: 0; position: relative; overflow: hidden; }

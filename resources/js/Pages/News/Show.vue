@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import gsap from 'gsap';
-import PublicNav from '@/Components/Site/PublicNav.vue';
+import SiteHeader from '@/Components/Site/SiteHeader.vue';
 
 const props = defineProps({
     item: Object,
@@ -13,7 +13,6 @@ function formatDate(iso) {
     return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-const topbarRef  = ref(null);
 const backRef    = ref(null);
 const heroRef    = ref(null);
 const metaRef    = ref(null);
@@ -23,8 +22,7 @@ let   heroObserver = null;
 
 onMounted(() => {
     const tl = gsap.timeline({ defaults: { ease: 'power2.out' } });
-    tl.from(topbarRef.value, { opacity: 0, duration: 0.2 })
-      .from(backRef.value,   { opacity: 0, duration: 0.18 }, '-=0.05')
+    tl.from(backRef.value,   { opacity: 0, duration: 0.18 })
       .from(heroRef.value,   { opacity: 0, duration: 0.28 }, '-=0.05')
       .from(metaRef.value,   { opacity: 0, y: 6, duration: 0.2 }, '-=0.05')
       .from(bodyRef.value,   { opacity: 0, duration: 0.22 }, '-=0.08');
@@ -55,10 +53,7 @@ onUnmounted(() => heroObserver?.disconnect());
 
     <div class="sh-shell">
 
-        <!-- Навигация -->
-        <div ref="topbarRef" class="sh-topbar">
-            <PublicNav activePage="news" />
-        </div>
+        <SiteHeader activePage="news" />
 
         <!-- Плавающая кнопка назад (появляется когда герой уходит из вьюпорта) -->
         <Transition name="float-back">
@@ -151,14 +146,6 @@ onUnmounted(() => heroObserver?.disconnect());
 .sh-orb { position: absolute; border-radius: 50%; filter: blur(100px); pointer-events: none; }
 .sh-orb--pink { width: 600px; height: 600px; background: radial-gradient(circle, rgba(236,72,153,0.14) 0%, transparent 70%); top: -15%; left: -8%; }
 .sh-orb--cyan { width: 450px; height: 450px; background: radial-gradient(circle, rgba(34,211,238,0.09) 0%, transparent 70%); bottom: 5%; right: 5%; }
-
-/* ── Topbar ─────────────────────────────────────────────────── */
-.sh-topbar {
-    display: flex; align-items: center;
-    max-width: 1400px; width: 100%; margin: 0 auto;
-    padding: 1.2rem 4rem 0;
-    flex-shrink: 0; position: relative; z-index: 10;
-}
 
 /* ── Content / scroll ────────────────────────────────────────── */
 .sh-content { flex: 1; min-height: 0; position: relative; }

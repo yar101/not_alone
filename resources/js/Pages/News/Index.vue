@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import gsap from 'gsap';
-import PublicNav from '@/Components/Site/PublicNav.vue';
+import SiteHeader from '@/Components/Site/SiteHeader.vue';
 
 const props = defineProps({
     categories: Array,
@@ -105,8 +105,8 @@ watch(sortDir, () => fetchFeed(true));
 
 // ── Intersection observer ─────────────────────────────────────
 onMounted(() => {
-    gsap.from('.ni-topbar',  { opacity: 0, duration: 0.4, ease: 'power1.out' });
-    gsap.from('.ni-toolbar', { opacity: 0, duration: 0.4, delay: 0.1, ease: 'power1.out' });
+
+    gsap.from('.ni-toolbar',  { opacity: 0, duration: 0.4, delay: 0.1, ease: 'power1.out' });
 
     fetchFeed();
 
@@ -137,10 +137,7 @@ onUnmounted(() => {
 
     <div class="ni-shell">
 
-        <!-- Навигация -->
-        <div class="ni-topbar">
-            <PublicNav activePage="news" />
-        </div>
+        <SiteHeader activePage="news" />
 
         <!-- Тулбар: поиск + фильтры -->
         <div class="ni-toolbar">
@@ -282,14 +279,6 @@ onUnmounted(() => {
 .ni-orb { position: absolute; border-radius: 50%; filter: blur(100px); pointer-events: none; }
 .ni-orb--pink { width: 500px; height: 500px; background: radial-gradient(circle, rgba(236,72,153,0.12) 0%, transparent 70%); top: -10%; left: -5%; }
 .ni-orb--cyan { width: 400px; height: 400px; background: radial-gradient(circle, rgba(34,211,238,0.08) 0%, transparent 70%); bottom: 5%; right: 5%; }
-
-/* ── Topbar ─────────────────────────────────────────────────── */
-.ni-topbar {
-    display: flex; align-items: center;
-    max-width: 1400px; width: 100%; margin: 0 auto;
-    padding: 1.2rem 4rem 0;
-    flex-shrink: 0; position: relative; z-index: 10;
-}
 
 /* ── Toolbar ─────────────────────────────────────────────────── */
 .ni-toolbar {
