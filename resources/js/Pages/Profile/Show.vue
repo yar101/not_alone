@@ -1,12 +1,11 @@
 <script setup>
-import { ref, nextTick, onMounted, computed, inject, provide, reactive } from 'vue';
+import { ref, onMounted, computed, inject, provide, reactive } from 'vue';
 import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { StarFilled, MagicStick } from '@element-plus/icons-vue';
 
 defineOptions({ layout: AppLayout });
-import { gsap } from 'gsap';
 import ProfileHeader from '@/Components/Profile/ProfileHeader.vue';
 import ProfileChecklist from '@/Components/Profile/ProfileChecklist.vue';
 import ProfileAbout from '@/Components/Profile/ProfileAbout.vue';
@@ -108,12 +107,6 @@ function submitReport() {
 const TOUR_KEY = 'profile_tour_done';
 
 onMounted(async () => {
-    // Initial entrance animation
-    await nextTick();
-    gsap.from('.page-block', {
-        y: 16, opacity: 0, duration: 0.4, stagger: 0.08, ease: 'power2.out',
-    });
-
     if (!props.isOwner) return;
     if (localStorage.getItem(TOUR_KEY)) return;
 
@@ -610,6 +603,14 @@ onMounted(async () => {
     display: flex;
     flex-direction: column;
 }
+
+/* ── Entrance animation ───────────────────────────────────── */
+@keyframes pb-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.page-block { animation: pb-in 0.4s cubic-bezier(0.33,1,0.68,1) both; }
+.page-block:nth-child(1) { animation-delay: 0s; }
+.page-block:nth-child(2) { animation-delay: 0.08s; }
+.page-block:nth-child(3) { animation-delay: 0.16s; }
+.page-block:nth-child(4) { animation-delay: 0.24s; }
 
 /* ── Two-column body ──────────────────────────────────────── */
 .profile-body {

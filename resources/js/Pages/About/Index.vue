@@ -1,7 +1,6 @@
 <script setup>
-import { ref, nextTick, onMounted } from 'vue';
+import { ref, nextTick } from 'vue';
 import { Head } from '@inertiajs/vue3';
-import gsap from 'gsap';
 import SiteHeader from '@/Components/Site/SiteHeader.vue';
 
 // ── Фичи ──────────────────────────────────────────────────────
@@ -81,22 +80,12 @@ const detailColRef    = ref(null);
 
 function openFeature(f) {
     if (selectedFeature.value?.title === f.title) return;
-    gsap.set(detailColRef.value, { opacity: 0 });
+    if (detailColRef.value) detailColRef.value.style.opacity = '0';
     selectedFeature.value = f;
     nextTick(() => {
-        gsap.to(detailColRef.value, { opacity: 1, duration: 0.25, ease: 'power2.out' });
+        if (detailColRef.value) detailColRef.value.style.opacity = '';
     });
 }
-
-// ── Init ──────────────────────────────────────────────────────
-onMounted(() => {
-
-    const heroTitle = leftColRef.value?.querySelector('.ab-hero-title');
-    const heroDesc  = leftColRef.value?.querySelector('.ab-hero-desc');
-    if (heroTitle) gsap.from(heroTitle, { opacity: 0, duration: 0.5,  delay: 0.1, ease: 'power1.out' });
-    if (heroDesc)  gsap.from(heroDesc,  { opacity: 0, duration: 0.45, delay: 0.2, ease: 'power1.out' });
-    if (detailColRef.value) gsap.from(detailColRef.value, { opacity: 0, duration: 0.5, delay: 0.15, ease: 'power1.out' });
-});
 </script>
 
 <template>
@@ -380,6 +369,12 @@ onMounted(() => {
 .ab-about-inner--split .ab-left-col {
     flex-basis: 50%;
 }
+
+/* Entrance animations */
+@keyframes ab-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.ab-hero-title  { animation: ab-fade-in 0.5s  ease-out 0.1s  both; }
+.ab-hero-desc   { animation: ab-fade-in 0.45s ease-out 0.2s  both; }
+.ab-detail-col  { animation: ab-fade-in 0.5s  ease-out 0.15s both; transition: opacity 0.25s ease-out; }
 
 /* Hero */
 .ab-hero { display: flex; flex-direction: column; gap: 1rem; }

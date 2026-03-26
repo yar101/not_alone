@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue';
 import { router } from '@inertiajs/vue3';
-import gsap from 'gsap';
 
 const props = defineProps({
     activePage: { type: String, default: 'home' },
@@ -22,7 +21,6 @@ const tabs = [
     },
 ];
 
-// Текущий визуальный активный таб (может опережать реальную страницу во время анимации)
 const visualActive = ref(props.activePage);
 const tabEls = ref([]);
 const indicatorEl = ref(null);
@@ -42,14 +40,16 @@ function moveIndicator(key, animate) {
 
     const parentRect = el.parentElement.getBoundingClientRect();
     const elRect     = el.getBoundingClientRect();
-    const x = elRect.left - parentRect.left;
+    const border     = parseFloat(getComputedStyle(el.parentElement).borderLeftWidth) || 0;
+    const x = elRect.left - parentRect.left - border;
     const w = elRect.width;
 
-    if (animate) {
-        gsap.to(ind, { x, width: w, duration: 0.28, ease: 'power2.inOut' });
-    } else {
-        gsap.set(ind, { x, width: w });
+    if (!animate) {
+        ind.classList.add('no-transition');
+        requestAnimationFrame(() => ind.classList.remove('no-transition'));
     }
+    ind.style.setProperty('--ind-x', `${x}px`);
+    ind.style.setProperty('--ind-w', `${w}px`);
 }
 
 onMounted(() => {
@@ -109,17 +109,22 @@ function onTabClick(tab) {
 .pub-indicator {
     position: absolute;
     top: 0.3rem; bottom: 0.3rem;
+    left: 0;
     border-radius: 7px;
     background: rgba(112,112,216,0.18);
     border: 1px solid rgba(112,112,216,0.25);
     pointer-events: none;
     z-index: 0;
-    /* начальная позиция задаётся через GSAP */
-    width: 0;
+    width: var(--ind-w, 0px);
+    transform: translateX(var(--ind-x, 0px));
+    transition: transform 0.28s cubic-bezier(0.45, 0, 0.55, 1),
+                width     0.28s cubic-bezier(0.45, 0, 0.55, 1);
 }
+.pub-indicator.no-transition { transition: none; }
 
 .pub-tab {
-    display: inline-flex; align-items: center; gap: 0.45rem;
+    flex: 1;
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
     padding: 0.45rem 1rem; border-radius: 7px;
     border: none; background: transparent;
     color: rgba(255,255,255,0.4);

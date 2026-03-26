@@ -1,6 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import gsap from 'gsap';
+import { ref } from 'vue';
 import StartBtn from "@/Components/Site/StartBtn.vue";
 import FirstModal from "@/Components/Site/FirstModal.vue";
 import AuthModal from "@/Components/Site/AuthModal.vue";
@@ -9,13 +8,6 @@ import SiteHeader from "@/Components/Site/SiteHeader.vue";
 const showFirstModal = ref(false);
 const showAuthModal  = ref(false);
 
-const startBtnRef = ref(null);
-const btnsRef     = ref(null);
-
-onMounted(() => {
-    gsap.from(startBtnRef.value, { opacity: 0, duration: 0.55, delay: 0.1, ease: 'power1.out' });
-    gsap.from(btnsRef.value,     { opacity: 0, duration: 0.5,  delay: 0.35, ease: 'power1.out' });
-});
 </script>
 
 <template>
@@ -45,12 +37,12 @@ onMounted(() => {
             <main class="flex-1 flex flex-col items-center justify-center py-10 md:pb-[12%] px-6">
 
                 <!-- Главная кнопка (START) -->
-                <div ref="startBtnRef" class="scale-110 sm:scale-105 backdrop-blur md:scale-125 mb-14 md:mb-16 transform transition-transform">
+                <div class="scale-110 sm:scale-105 backdrop-blur md:scale-125 mb-14 md:mb-16 transform transition-transform wlc-fade-start">
                     <StartBtn @click="showAuthModal = true" />
                 </div>
 
                 <!-- Кнопки -->
-                <div ref="btnsRef" class="w-full flex flex-col items-center gap-3">
+                <div class="w-full flex flex-col items-center gap-3 wlc-fade-btns">
                     <div class="w-full flex justify-center">
                         <div class="w-full max-w-[550px]">
                             <button
@@ -141,4 +133,8 @@ onMounted(() => {
 html {
     scroll-behavior: smooth;
 }
+
+@keyframes wlc-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.wlc-fade-start { animation: wlc-fade-in 0.55s ease-out 0.1s both; }
+.wlc-fade-btns  { animation: wlc-fade-in 0.5s  ease-out 0.35s both; }
 </style>

@@ -2,7 +2,6 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import axios from 'axios';
-import gsap from 'gsap';
 import SiteHeader from '@/Components/Site/SiteHeader.vue';
 
 const props = defineProps({
@@ -105,8 +104,6 @@ watch(sortDir, () => fetchFeed(true));
 
 // ── Intersection observer ─────────────────────────────────────
 onMounted(() => {
-
-    gsap.from('.ni-toolbar',  { opacity: 0, duration: 0.4, delay: 0.1, ease: 'power1.out' });
 
     fetchFeed();
 
@@ -281,9 +278,11 @@ onUnmounted(() => {
 .ni-orb--cyan { width: 400px; height: 400px; background: radial-gradient(circle, rgba(34,211,238,0.08) 0%, transparent 70%); bottom: 5%; right: 5%; }
 
 /* ── Toolbar ─────────────────────────────────────────────────── */
+@keyframes ni-fade-in { from { opacity: 0; } to { opacity: 1; } }
 .ni-toolbar {
     flex-shrink: 0; padding: 0.85rem 0 0;
     position: relative; z-index: 9;
+    animation: ni-fade-in 0.4s ease-out 0.1s both;
 }
 .ni-toolbar__inner {
     max-width: 900px; margin: 0 auto;

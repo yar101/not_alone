@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
-import gsap from 'gsap';
 import SiteHeader from '@/Components/Site/SiteHeader.vue';
 
 const props = defineProps({
@@ -13,20 +12,11 @@ function formatDate(iso) {
     return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-const backRef    = ref(null);
 const heroRef    = ref(null);
-const metaRef    = ref(null);
-const bodyRef    = ref(null);
 const heroVisible = ref(true);
 let   heroObserver = null;
 
 onMounted(() => {
-    const tl = gsap.timeline({ defaults: { ease: 'power2.out' } });
-    tl.from(backRef.value,   { opacity: 0, duration: 0.18 })
-      .from(heroRef.value,   { opacity: 0, duration: 0.28 }, '-=0.05')
-      .from(metaRef.value,   { opacity: 0, y: 6, duration: 0.2 }, '-=0.05')
-      .from(bodyRef.value,   { opacity: 0, duration: 0.22 }, '-=0.08');
-
     heroObserver = new IntersectionObserver(
         ([entry]) => { heroVisible.value = entry.isIntersecting; },
         { threshold: 0.05 }
@@ -72,7 +62,7 @@ onUnmounted(() => heroObserver?.disconnect());
                 <div class="sh-wrap">
 
                     <!-- Кнопка назад (статичная, в потоке) -->
-                    <Link ref="backRef" :href="route('news')" class="sh-back">
+                    <Link :href="route('news')" class="sh-back">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M19 12H5M12 5l-7 7 7 7"/>
                         </svg>
@@ -102,7 +92,7 @@ onUnmounted(() => heroObserver?.disconnect());
                     </div>
 
                     <!-- Мета-строка под героем -->
-                    <div ref="metaRef" class="sh-meta-bar">
+                    <div class="sh-meta-bar">
                         <span class="sh-meta__ornament">◈</span>
                         <time class="sh-meta__date">{{ formatDate(item.published_at) }}</time>
                         <span v-if="item.category" class="sh-meta__cat"
@@ -111,7 +101,7 @@ onUnmounted(() => heroObserver?.disconnect());
                     </div>
 
                     <!-- Тело статьи -->
-                    <div ref="bodyRef" class="sh-body">
+                    <div class="sh-body">
                         <div class="sh-divider">
                             <span class="sh-divider__line"/>
                             <span class="sh-divider__dot"/>
@@ -157,6 +147,15 @@ onUnmounted(() => heroObserver?.disconnect());
     margin: 0 auto;
     padding: 1.25rem 3rem 5rem;
 }
+
+/* ── Entrance animations ─────────────────────────────────────── */
+@keyframes ns-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ns-fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+.sh-back     { animation: ns-fade-in 0.18s ease-out both; }
+.sh-hero     { animation: ns-fade-in 0.28s ease-out 0.13s both; }
+.sh-meta-bar { animation: ns-fade-up  0.2s  ease-out 0.21s both; }
+.sh-body     { animation: ns-fade-in 0.22s ease-out 0.27s both; }
 
 /* ── Back ────────────────────────────────────────────────────── */
 .sh-back {
