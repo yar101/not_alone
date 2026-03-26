@@ -272,6 +272,8 @@ onUnmounted(() => heroObserver?.disconnect());
     background:
         radial-gradient(ellipse 60% 80% at 20% 50%, rgba(190,145,255,0.08) 0%, transparent 70%),
         radial-gradient(ellipse 50% 70% at 80% 50%, rgba(236,72,153,0.06) 0%, transparent 70%);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
 }
 
 .sh-hero__meta--center {
@@ -293,10 +295,7 @@ onUnmounted(() => heroObserver?.disconnect());
 }
 
 .sh-hero__title--gradient {
-    background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(190,145,255,0.9) 50%, rgba(236,72,153,0.85) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: rgba(255,255,255,0.95);
     text-shadow: none;
 }
 
