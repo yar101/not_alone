@@ -8,11 +8,18 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ServiceController;
 
+use App\Http\Controllers\AboutController;
+use App\Http\Controllers\NewsPublicController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\UserSearchController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
+Route::get('/about', AboutController::class)->name('about');
+Route::get('/news',           [NewsPublicController::class, 'index'])->name('news');
+Route::get('/news/feed',      [NewsPublicController::class, 'feed'])->name('news.feed');
+Route::get('/news/{news}',    [NewsPublicController::class, 'show'])->name('news.show');
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [

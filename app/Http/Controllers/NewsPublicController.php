@@ -1,0 +1,67 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\News;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class NewsPublicController extends Controller
+{
+    public function index(): Response
+    {
+        $categories = News::published()
+            ->whereNotNull('category')
+            ->distinct()
+            ->pluck('category')
+            ->sort()
+            ->values();
+
+        return Inertia::render('News/Index', [
+            'categories' => $categories,
+        ]);
+    }
+
+    public function feed(Request $request): JsonResponse
+    {
+        $query = News::published()
+            ->orderByDesc('is_pinned')
+            ->orderByDesc('published_at');
+
+        if ($search = $request->get('search')) {
+            $query->where(fn ($q) =>
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('excerpt', 'like', "%{$search}%")
+                  ->orWhere('body', 'like', "%{$search}%")
+            );
+        }
+
+        if ($category = $request->get('category')) {
+            $query->where('category', $category);
+        }
+
+        $paginated = $query->paginate(8, [
+            'id', 'title', 'excerpt', 'body', 'image',
+            'category', 'color', 'is_pinned', 'published_at',
+        ]);
+
+        return response()->json([
+            'data'         => $paginated->items(),
+            'current_page' => $paginated->currentPage(),
+            'last_page'    => $paginated->lastPage(),
+        ]);
+    }
+
+    public function show(News $news): Response
+    {
+        abort_if(!$news->published_at || $news->published_at->isFuture(), 404);
+
+        $news->increment('views_count');
+
+        return Inertia::render('News/Show', [
+            'item' => $news,
+        ]);
+    }
+}

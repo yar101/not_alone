@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\ServiceCategoryController;
 use App\Http\Controllers\Admin\ServiceModerationController;
 use App\Http\Controllers\Admin\ServicePriceLimitController;
 use App\Http\Controllers\Admin\ServiceTimeUnitController;
+use App\Http\Controllers\Admin\NewsController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -153,6 +154,14 @@ Route::patch('/{trait}', [PersonalityTraitController::class, 'update'])->name('u
             Route::patch('/{banReason}', [BanReasonController::class, 'update'])->name('update');
             Route::delete('/{banReason}', [BanReasonController::class, 'destroy'])->name('destroy');
             Route::post('/reorder',     [BanReasonController::class, 'reorder'])->name('reorder');
+        });
+
+        // News (О проекте)
+        Route::prefix('news')->name('news.')->group(function () {
+            Route::get('/',          [NewsController::class, 'index'])->name('index');
+            Route::post('/',         [NewsController::class, 'store'])->name('store');
+            Route::patch('/{news}',  [NewsController::class, 'update'])->name('update');
+            Route::delete('/{news}', [NewsController::class, 'destroy'])->name('destroy');
         });
 
         // Export
