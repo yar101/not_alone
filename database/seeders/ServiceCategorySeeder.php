@@ -26,7 +26,7 @@ class ServiceCategorySeeder extends Seeder
             [
                 'name'         => 'Беседа по интересам',
                 'accent_color' => '#a0a0ff',
-                'description'  => 'Поговорите о хобби, любимых занятиях и темах, которые действительно вам интересны.',
+                'description'  => 'Поговорите о хобби, любимых занятиях и темах.',
                 'name_suggestions' => [
                     'Поговорить об аниме',
                     'Обсудить любимые игры',
@@ -35,7 +35,7 @@ class ServiceCategorySeeder extends Seeder
             ],
             [
                 'name'         => 'Поддержка',
-                'accent_color' => '#99c1f1',
+                'accent_color' => '#fef85a',
                 'description'  => 'Поговорите с человеком, который внимательно выслушает и поддержит.',
                 'name_suggestions' => [
                     'Поговорить и получить поддержку',
@@ -65,7 +65,7 @@ class ServiceCategorySeeder extends Seeder
             ],
             [
                 'name'         => 'Рисуем вместе',
-                'accent_color' => '#d53c78',
+                'accent_color' => '#97d939',
                 'description'  => 'Рисуйте вместе и делитесь идеями в процессе творчества.',
                 'name_suggestions' => [
                     'Порисовать вместе',
@@ -105,7 +105,7 @@ class ServiceCategorySeeder extends Seeder
             ],
             [
                 'name'         => 'Обмен контактами',
-                'accent_color' => '#1c8710',
+                'accent_color' => '#18ca04',
                 'description'  => 'Познакомьтесь и добавьте друг друга в соцсетях или мессенджерах.',
                 'name_suggestions' => [
                     'Добавить друг друга в соцсетях',
@@ -115,7 +115,7 @@ class ServiceCategorySeeder extends Seeder
             ],
             [
                 'name'         => 'Языковая практика',
-                'accent_color' => '#6ff5cd',
+                'accent_color' => '#ffffff',
                 'description'  => 'Улучшайте иностранный язык через живое общение.',
                 'name_suggestions' => [
                     'Практика разговорного английского',
@@ -126,7 +126,7 @@ class ServiceCategorySeeder extends Seeder
             [
                 'name'         => 'День со мной',
                 'accent_color' => '#da1b90',
-                'description'  => 'Просто приятно проведите время: пообщайтесь, поиграйте или побудьте в компании.',
+                'description'  => 'Приятно проведите время вместе так, как пожелаете.',
                 'name_suggestions' => [
                     'Поиграть вместе онлайн',
                     'Провести вечер в разговоре',
