@@ -16,6 +16,7 @@ class ServiceCategorySeeder extends Seeder
             [
                 'name'         => 'Непринуждённая беседа',
                 'accent_color' => '#dc8add',
+                'image_path'   => 'cat_images/cat_star_nepr_beseda.png',
                 'description'  => 'Начните лёгкий разговор на любые темы и просто приятно пообщайтесь.',
                 'name_suggestions' => [
                     'Пообщаться в чате',
@@ -26,6 +27,7 @@ class ServiceCategorySeeder extends Seeder
             [
                 'name'         => 'Беседа по интересам',
                 'accent_color' => '#a0a0ff',
+                'image_path'   => 'cat_images/cat_star_beseda_po_inter.png',
                 'description'  => 'Поговорите о хобби, любимых занятиях и темах.',
                 'name_suggestions' => [
                     'Поговорить об аниме',
@@ -36,6 +38,7 @@ class ServiceCategorySeeder extends Seeder
             [
                 'name'         => 'Поддержка',
                 'accent_color' => '#fef85a',
+                'image_path'   => 'cat_images/cat_star_podderzka.png',
                 'description'  => 'Поговорите с человеком, который внимательно выслушает и поддержит.',
                 'name_suggestions' => [
                     'Поговорить и получить поддержку',
@@ -46,6 +49,7 @@ class ServiceCategorySeeder extends Seeder
             [
                 'name'         => 'Совместный просмотр',
                 'accent_color' => '#9726bc',
+                'image_path'   => 'cat_images/cat_star_sovm_prosmotr.png',
                 'description'  => 'Включите фильм или видео и обсудите его во время просмотра.',
                 'name_suggestions' => [
                     'Посмотреть фильм вместе',
@@ -56,6 +60,7 @@ class ServiceCategorySeeder extends Seeder
             [
                 'name'         => 'Выговориться',
                 'accent_color' => '#ed333b',
+                'image_path'   => 'cat_images/cat_star_vigovoritsa.png',
                 'description'  => 'Поделитесь тем, что накопилось внутри, и получите спокойный отклик.',
                 'name_suggestions' => [
                     'Выговориться в чате',
@@ -66,6 +71,7 @@ class ServiceCategorySeeder extends Seeder
             [
                 'name'         => 'Рисуем вместе',
                 'accent_color' => '#97d939',
+                'image_path'   => 'cat_images/cat_star_risuem_vmeste.png',
                 'description'  => 'Рисуйте вместе и делитесь идеями в процессе творчества.',
                 'name_suggestions' => [
                     'Порисовать вместе',
@@ -76,6 +82,7 @@ class ServiceCategorySeeder extends Seeder
             [
                 'name'         => 'Караоке',
                 'accent_color' => '#22e1bc',
+                'image_path'   => 'cat_images/cat_star_karaoke.png',
                 'description'  => 'Спойте любимые песни и почувствуйте атмосферу настоящего караоке.',
                 'name_suggestions' => [
                     'Спеть песни вместе',
@@ -86,6 +93,7 @@ class ServiceCategorySeeder extends Seeder
             [
                 'name'         => 'Совместная учёба',
                 'accent_color' => '#9268d0',
+                'image_path'   => 'cat_images/cat_star_sovm_ucheba.png',
                 'description'  => 'Позанимайтесь вместе, обсудите темы и получите помощь в обучении.',
                 'name_suggestions' => [
                     'Совместная учебная сессия',
@@ -96,6 +104,7 @@ class ServiceCategorySeeder extends Seeder
             [
                 'name'         => 'Узнать судьбу',
                 'accent_color' => '#740afa',
+                'image_path'   => 'cat_images/cat_star_uznat_sudbu.png',
                 'description'  => 'Задайте вопрос и узнайте, что может ждать вас впереди.',
                 'name_suggestions' => [
                     'Расклад Таро на ситуацию',
@@ -106,6 +115,7 @@ class ServiceCategorySeeder extends Seeder
             [
                 'name'         => 'Обмен контактами',
                 'accent_color' => '#18ca04',
+                'image_path'   => 'cat_images/cat_star_obmen_contactami.png',
                 'description'  => 'Познакомьтесь и добавьте друг друга в соцсетях или мессенджерах.',
                 'name_suggestions' => [
                     'Добавить друг друга в соцсетях',
@@ -116,6 +126,7 @@ class ServiceCategorySeeder extends Seeder
             [
                 'name'         => 'Языковая практика',
                 'accent_color' => '#ffffff',
+                'image_path'   => 'cat_images/cat_star_yazikovaya_practica.png',
                 'description'  => 'Улучшайте иностранный язык через живое общение.',
                 'name_suggestions' => [
                     'Практика разговорного английского',
@@ -126,6 +137,7 @@ class ServiceCategorySeeder extends Seeder
             [
                 'name'         => 'День со мной',
                 'accent_color' => '#da1b90',
+                'image_path'   => 'cat_images/cat_star_den_so_mnoy.png',
                 'description'  => 'Приятно проведите время вместе так, как пожелаете.',
                 'name_suggestions' => [
                     'Поиграть вместе онлайн',
@@ -139,6 +151,7 @@ class ServiceCategorySeeder extends Seeder
             ServiceCategory::create([
                 'name'             => $cat['name'],
                 'accent_color'     => $cat['accent_color'],
+                'image_path'       => $cat['image_path'] ?? null,
                 'description'      => $cat['description'],
                 'name_suggestions' => $cat['name_suggestions'],
                 'sort_order'       => $i,
