@@ -95,9 +95,6 @@ onUnmounted(() => heroObserver?.disconnect());
                     <div class="sh-meta-bar">
                         <span class="sh-meta__ornament">◈</span>
                         <time class="sh-meta__date">{{ formatDate(item.published_at) }}</time>
-                        <span v-if="item.category" class="sh-meta__cat"
-                            :style="item.color ? { color: item.color, borderColor: item.color + '55', background: item.color + '1a' } : {}"
-                        >{{ item.category }}</span>
                     </div>
 
                     <!-- Тело статьи -->
@@ -254,13 +251,6 @@ onUnmounted(() => heroObserver?.disconnect());
     font-family: "Figtree", sans-serif;
     font-size: 0.82rem; color: rgba(255,255,255,0.42);
     letter-spacing: 0.1em; text-transform: uppercase;
-}
-.sh-meta__cat {
-    font-family: "Figtree", sans-serif;
-    font-size: 0.75rem; letter-spacing: 0.07em; text-transform: uppercase;
-    padding: 0.15rem 0.6rem; border-radius: 3px;
-    background: rgba(190,145,255,0.12); border: 1px solid rgba(190,145,255,0.28);
-    color: rgba(190,145,255,0.82);
 }
 
 .sh-hero__meta {

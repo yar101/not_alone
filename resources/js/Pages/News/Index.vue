@@ -4,58 +4,21 @@ import { Head, Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import SiteHeader from '@/Components/Site/SiteHeader.vue';
 
-const props = defineProps({
-    categories: Array,
-});
-
 // ── State ─────────────────────────────────────────────────────
-const items          = ref([]);
-const page           = ref(1);
-const hasMore        = ref(true);
-const loading        = ref(false);
-const search         = ref('');
-const activeCategory = ref('');
-const sortDir        = ref('desc');
-const sentinel       = ref(null);
-let   observer       = null;
-let   searchTimer    = null;
+const items       = ref([]);
+const page        = ref(1);
+const hasMore     = ref(true);
+const loading     = ref(false);
+const search      = ref('');
+const sortDir     = ref('desc');
+const sentinel    = ref(null);
+let   observer    = null;
+let   searchTimer = null;
 
 // ── Format ────────────────────────────────────────────────────
 function formatDate(iso) {
     if (!iso) return '';
     return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-}
-
-function categoryColor(item) {
-    if (item?.color) return item.color;
-    const map = {
-        'Обновление':  '#67e8f9',
-        'Анонс':       '#be91ff',
-        'Событие':     '#f9a8d4',
-        'Пресс-релиз': '#86efac',
-        'Другое':      '#fcd34d',
-    };
-    return map[item?.category] || 'rgba(255,255,255,0.35)';
-}
-
-function hexToRgba(hex, alpha) {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r},${g},${b},${alpha})`;
-}
-
-function categoryColorDim(item) {
-    const color = categoryColor(item);
-    if (color.startsWith('#')) return hexToRgba(color, 0.35);
-    const dimMap = {
-        'Обновление':  'rgba(103,232,249,0.35)',
-        'Анонс':       'rgba(190,145,255,0.35)',
-        'Событие':     'rgba(249,168,212,0.35)',
-        'Пресс-релиз': 'rgba(134,239,172,0.35)',
-        'Другое':      'rgba(252,211,77,0.35)',
-    };
-    return dimMap[item?.category] || 'rgba(255,255,255,0.1)';
 }
 
 function previewText(item) {
@@ -77,10 +40,9 @@ async function fetchFeed(reset = false) {
     try {
         const { data } = await axios.get(route('news.feed'), {
             params: {
-                page:     page.value,
-                search:   search.value || undefined,
-                category: activeCategory.value || undefined,
-                sort:     sortDir.value,
+                page:   page.value,
+                search: search.value || undefined,
+                sort:   sortDir.value,
             },
         });
         items.value.push(...data.data);
@@ -99,7 +61,6 @@ function onSearchInput() {
     searchTimer = setTimeout(() => fetchFeed(true), 350);
 }
 
-watch(activeCategory, () => fetchFeed(true));
 watch(sortDir, () => fetchFeed(true));
 
 // ── Intersection observer ─────────────────────────────────────
@@ -158,24 +119,8 @@ onUnmounted(() => {
                     </svg>
                 </div>
 
-                <!-- Категории + сортировка -->
+                <!-- Сортировка -->
                 <div class="ni-cats-row">
-                <div v-if="categories.length" class="ni-cats">
-                    <button
-                        class="ni-cat"
-                        :class="{ 'ni-cat--active': activeCategory === '' }"
-                        @click="activeCategory = ''"
-                    >Все</button>
-                    <button
-                        v-for="cat in categories"
-                        :key="cat"
-                        class="ni-cat"
-                        :class="{ 'ni-cat--active': activeCategory === cat }"
-                        :style="activeCategory === cat ? { '--cat-color': categoryColor({ category: cat }) } : {}"
-                        @click="activeCategory = cat"
-                    >{{ cat }}</button>
-                </div>
-
                 <button class="ni-sort-btn" @click="sortDir = sortDir === 'desc' ? 'asc' : 'desc'">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
                         :style="sortDir === 'asc' ? 'transform: scaleY(-1)' : ''">
@@ -183,7 +128,6 @@ onUnmounted(() => {
                     </svg>
                     {{ sortDir === 'desc' ? 'Новые' : 'Старые' }}
                 </button>
-
                 </div><!-- /ni-cats-row -->
 
             </div>
@@ -204,7 +148,6 @@ onUnmounted(() => {
                                 'ni-card--with-img': item.image,
                                 'ni-card--pinned':   item.is_pinned,
                             }"
-                            :style="{ '--cat-color': categoryColor(item), '--cat-color-dim': categoryColorDim(item) }"
                         >
                             <div v-if="item.image" class="ni-card__img-wrap">
                                 <img :src="item.image" :alt="item.title" class="ni-card__img" />
@@ -230,11 +173,6 @@ onUnmounted(() => {
                                             <span>Закреплено</span>
                                         </div>
                                     </div>
-                                    <span
-                                        v-if="item.category"
-                                        class="ni-card__cat"
-                                        :style="{ color: categoryColor(item), borderColor: categoryColor(item) + '55' }"
-                                    >{{ item.category }}</span>
                                 </div>
                             </div>
                         </Link>
@@ -243,7 +181,7 @@ onUnmounted(() => {
                     <!-- Пустое состояние -->
                     <div v-else-if="!loading" class="ni-empty">
                         <div class="ni-empty__icon">◌</div>
-                        <p>{{ search || activeCategory ? 'Ничего не найдено' : 'Новостей пока нет' }}</p>
+                        <p>{{ search ? 'Ничего не найдено' : 'Новостей пока нет' }}</p>
                     </div>
 
                     <!-- Sentinel + спиннер -->
@@ -319,23 +257,10 @@ onUnmounted(() => {
 }
 .ni-search__clear:hover { color: rgba(255,255,255,0.6); }
 
-/* Категории */
+/* Сортировка */
 .ni-cats-row {
-    display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;
+    display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem;
 }
-.ni-cats {
-    display: flex; flex-wrap: wrap; gap: 0.4rem;
-}
-.ni-cat {
-    padding: 0.3rem 0.85rem; border-radius: 3px;
-    border: 1px solid rgba(255,255,255,0.1);
-    background: transparent; cursor: pointer;
-    font-family: "Figtree", sans-serif; font-size: 0.78rem;
-    color: rgba(255,255,255,0.4);
-    transition: color 0.2s, border-color 0.2s, background 0.2s;
-    white-space: nowrap;
-}
-.ni-cat:hover { color: rgba(255,255,255,0.65); border-color: rgba(255,255,255,0.35); }
 .ni-sort-btn {
     display: inline-flex; align-items: center; gap: 0.35rem;
     padding: 0.3rem 0.75rem; border-radius: 3px;
@@ -348,12 +273,6 @@ onUnmounted(() => {
 }
 .ni-sort-btn:hover { color: rgba(255,255,255,0.65); border-color: rgba(255,255,255,0.35); }
 .ni-sort-btn svg { flex-shrink: 0; transition: transform 0.2s; }
-
-.ni-cat--active {
-    background: rgba(190,145,255,0.12);
-    border-color: var(--cat-color, rgba(190,145,255,0.4));
-    color: var(--cat-color, rgba(190,145,255,0.9));
-}
 
 /* ── Content ────────────────────────────────────────────────── */
 .ni-content { flex: 1; min-height: 0; position: relative; }
@@ -439,18 +358,6 @@ onUnmounted(() => {
     font-family: "Figtree", sans-serif;
     font-size: 0.82rem; color: rgba(255,255,255,0.28); letter-spacing: 0.02em;
 }
-.ni-card__cat {
-    font-family: "Figtree", sans-serif;
-    font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
-    padding: 0.15rem 0.55rem;
-    border-radius: 3px 3px 0 0;
-    border: 1px solid;
-    border-bottom: none;
-    white-space: nowrap;
-    align-self: flex-end;
-    margin-bottom: -1px;
-}
-
 .ni-card__title {
     font-family: "Brygada 1918", serif;
     font-size: 1.18rem; font-weight: 400;

@@ -5,8 +5,6 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 defineOptions({ layout: AdminLayout });
 
-const CATEGORIES = ['Обновление', 'Анонс', 'Событие', 'Пресс-релиз', 'Другое'];
-
 const props = defineProps({
     news: Array,
 });
@@ -37,8 +35,6 @@ const editTitle     = ref('');
 const editBody      = ref('');
 const editExcerpt   = ref('');
 const editDate      = ref('');
-const editCategory  = ref('');
-const editColor     = ref('');
 const editIsPinned  = ref(false);
 const editImageFile = ref(null);
 
@@ -48,8 +44,6 @@ function startEdit(item) {
     editBody.value     = item.body;
     editExcerpt.value  = item.excerpt || '';
     editDate.value     = item.published_at ? item.published_at.slice(0, 16) : '';
-    editCategory.value = item.category || '';
-    editColor.value    = item.color || '';
     editIsPinned.value = !!item.is_pinned;
     editImageFile.value = null;
 }
@@ -70,8 +64,6 @@ function saveEdit(item) {
     fd.append('body',         editBody.value);
     fd.append('excerpt',      editExcerpt.value);
     fd.append('published_at', editDate.value || '');
-    fd.append('category',     editCategory.value || '');
-    fd.append('color',        editColor.value || '');
     fd.append('is_pinned',    editIsPinned.value ? '1' : '0');
     if (editImageFile.value) fd.append('image', editImageFile.value);
 
@@ -93,8 +85,6 @@ const newTitle     = ref('');
 const newBody      = ref('');
 const newExcerpt   = ref('');
 const newDate      = ref('');
-const newCategory  = ref('');
-const newColor     = ref('');
 const newIsPinned  = ref(false);
 const newImageFile = ref(null);
 
@@ -110,8 +100,6 @@ function store() {
     fd.append('body',         newBody.value.trim());
     fd.append('excerpt',      newExcerpt.value.trim());
     fd.append('published_at', newDate.value || '');
-    fd.append('category',     newCategory.value || '');
-    fd.append('color',        newColor.value || '');
     fd.append('is_pinned',    newIsPinned.value ? '1' : '0');
     if (newImageFile.value) fd.append('image', newImageFile.value);
 
@@ -123,8 +111,6 @@ function store() {
             newBody.value      = '';
             newExcerpt.value   = '';
             newDate.value      = '';
-            newCategory.value  = '';
-            newColor.value     = '';
             newIsPinned.value  = false;
             newImageFile.value = null;
         },
@@ -148,8 +134,6 @@ function store() {
                         <div class="news-meta">
                             <img v-if="item.image" :src="item.image" class="news-thumb" alt="" />
                             <span class="news-title">{{ item.title }}</span>
-                            <span v-if="item.color" class="color-dot" :style="{ background: item.color }" :title="item.color" />
-                            <span v-if="item.category" class="cat-badge">{{ item.category }}</span>
                             <span v-if="item.is_pinned" class="pin-badge">📌</span>
                             <span :class="['status-badge', statusClass(item)]">{{ statusLabel(item) }}</span>
                             <span class="news-date">{{ formatDate(item.published_at) }}</span>
@@ -170,21 +154,6 @@ function store() {
                             <textarea v-model="editBody" class="edit-textarea" placeholder="Полный текст новости" rows="5" />
 
                             <div class="fields-row">
-                                <div class="field-group">
-                                    <label class="field-label">Категория</label>
-                                    <select v-model="editCategory" class="edit-select">
-                                        <option value="">— Без категории —</option>
-                                        <option v-for="cat in CATEGORIES" :key="cat" :value="cat">{{ cat }}</option>
-                                    </select>
-                                </div>
-                                <div class="field-group field-group--color">
-                                    <label class="field-label">Цвет категории</label>
-                                    <div class="color-wrap">
-                                        <input type="color" v-model="editColor" class="color-input" />
-                                        <span class="color-val">{{ editColor || 'авто' }}</span>
-                                        <button v-if="editColor" class="color-clear" type="button" @click="editColor = ''">✕</button>
-                                    </div>
-                                </div>
                                 <div class="field-group field-group--pin">
                                     <label class="pin-label">
                                         <input type="checkbox" v-model="editIsPinned" class="pin-checkbox" />
@@ -231,21 +200,6 @@ function store() {
                 <textarea v-model="newBody" class="add-textarea" placeholder="Полный текст новости" rows="5" />
 
                 <div class="fields-row">
-                    <div class="field-group">
-                        <label class="field-label">Категория</label>
-                        <select v-model="newCategory" class="add-select">
-                            <option value="">— Без категории —</option>
-                            <option v-for="cat in CATEGORIES" :key="cat" :value="cat">{{ cat }}</option>
-                        </select>
-                    </div>
-                    <div class="field-group field-group--color">
-                        <label class="field-label">Цвет категории</label>
-                        <div class="color-wrap">
-                            <input type="color" v-model="newColor" class="color-input" />
-                            <span class="color-val">{{ newColor || 'авто' }}</span>
-                            <button v-if="newColor" class="color-clear" type="button" @click="newColor = ''">✕</button>
-                        </div>
-                    </div>
                     <div class="field-group field-group--pin">
                         <label class="pin-label">
                             <input type="checkbox" v-model="newIsPinned" class="pin-checkbox" />
@@ -307,11 +261,6 @@ function store() {
 .news-date  { font-size: 0.78rem; color: rgba(255,255,255,0.3); }
 .views-count { font-size: 0.75rem; color: rgba(255,255,255,0.25); }
 
-.cat-badge {
-    font-size: 0.68rem; padding: 0.12rem 0.45rem; border-radius: 3px;
-    background: rgba(190,145,255,0.1); color: rgba(190,145,255,0.75);
-    border: 1px solid rgba(190,145,255,0.2);
-}
 .pin-badge { font-size: 0.8rem; }
 
 .status-badge { font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 3px; font-weight: 500; white-space: nowrap; }
@@ -421,12 +370,4 @@ function store() {
 
 .empty-msg { font-size: 0.83rem; color: rgba(255,255,255,0.25); padding: 0.5rem 0; }
 
-/* Color picker */
-.color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
-.field-group--color { flex: 0; min-width: 130px; justify-content: flex-end; }
-.color-wrap { display: flex; align-items: center; gap: 0.45rem; height: 100%; padding-bottom: 0.1rem; }
-.color-input { width: 34px; height: 26px; border: 1px solid rgba(255,255,255,0.12); border-radius: 3px; background: none; cursor: pointer; padding: 2px; flex-shrink: 0; }
-.color-val { font-size: 0.75rem; color: rgba(255,255,255,0.35); font-family: monospace; }
-.color-clear { background: none; border: none; color: rgba(255,255,255,0.3); cursor: pointer; font-size: 0.75rem; padding: 0; line-height: 1; }
-.color-clear:hover { color: rgba(255,255,255,0.6); }
 </style>

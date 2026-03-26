@@ -9,7 +9,7 @@ class News extends Model
 {
     protected $fillable = [
         'title', 'body', 'image', 'published_at',
-        'category', 'color', 'excerpt', 'is_pinned', 'views_count',
+        'excerpt', 'is_pinned', 'views_count',
     ];
 
     protected $casts = [

@@ -12,16 +12,7 @@ class NewsPublicController extends Controller
 {
     public function index(): Response
     {
-        $categories = News::published()
-            ->whereNotNull('category')
-            ->distinct()
-            ->pluck('category')
-            ->sort()
-            ->values();
-
-        return Inertia::render('News/Index', [
-            'categories' => $categories,
-        ]);
+        return Inertia::render('News/Index');
     }
 
     public function feed(Request $request): JsonResponse
@@ -40,13 +31,9 @@ class NewsPublicController extends Controller
             );
         }
 
-        if ($category = $request->get('category')) {
-            $query->where('category', $category);
-        }
-
         $paginated = $query->paginate(8, [
             'id', 'title', 'excerpt', 'body', 'image',
-            'category', 'color', 'is_pinned', 'published_at',
+            'is_pinned', 'published_at',
         ]);
 
         return response()->json([

@@ -15,7 +15,7 @@ class NewsController extends Controller
     public function index(): Response
     {
         $news = News::orderByDesc('created_at')
-            ->get(['id', 'title', 'body', 'excerpt', 'image', 'category', 'color',
+            ->get(['id', 'title', 'body', 'excerpt', 'image',
                    'is_pinned', 'views_count', 'published_at', 'created_at']);
 
         return Inertia::render('Admin/News/Index', [
@@ -30,8 +30,6 @@ class NewsController extends Controller
             'body'         => 'required|string',
             'excerpt'      => 'nullable|string|max:500',
             'image'        => 'nullable|file|image|max:4096',
-            'category'     => 'nullable|string|max:64',
-            'color'        => 'nullable|string|max:7',
             'is_pinned'    => 'boolean',
             'published_at' => 'nullable|date',
         ]);
@@ -57,8 +55,6 @@ class NewsController extends Controller
             'body'         => 'required|string',
             'excerpt'      => 'nullable|string|max:500',
             'image'        => 'nullable|file|image|max:4096',
-            'category'     => 'nullable|string|max:64',
-            'color'        => 'nullable|string|max:7',
             'is_pinned'    => 'boolean',
             'published_at' => 'nullable|date',
         ]);
