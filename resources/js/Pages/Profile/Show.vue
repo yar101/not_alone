@@ -286,6 +286,7 @@ onMounted(async () => {
                         >
                             Контент
                         </button>
+                        <div id="profile-tab-extra"></div>
                     </div>
                 <div class="tab-content-wrap page-block">
                 <Transition name="tab-fade" mode="out-in">
@@ -650,6 +651,14 @@ onMounted(async () => {
     margin-bottom: 0.75rem;
 }
 .profile-tabs::-webkit-scrollbar { display: none; }
+
+#profile-tab-extra {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    padding-right: 0.25rem;
+}
 
 .tab-btn {
     padding: 0.55rem 0.85rem;

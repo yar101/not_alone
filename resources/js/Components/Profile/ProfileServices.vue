@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useForm, router, usePage } from '@inertiajs/vue3';
 import { Plus } from '@element-plus/icons-vue';
 import AppSelect from '@/Components/AppSelect.vue';
@@ -418,11 +418,6 @@ watch(selectedCategory, (cat) => {
                                 <span class="cat-tile__count">
                                     {{ group.items.length + '\u00a0' + (group.items.length === 1 ? 'услуга' : group.items.length < 5 ? 'услуги' : 'услуг') }}
                                 </span>
-                                <svg class="cat-tile__arrow" width="11" height="11" viewBox="0 0 24 24"
-                                     fill="none" stroke="currentColor" stroke-width="2.5"
-                                     stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M9 18l6-6-6-6"/>
-                                </svg>
                             </div>
                         </div>
                     </button>
@@ -454,11 +449,6 @@ watch(selectedCategory, (cat) => {
                             </p>
                             <div class="cat-tile__footer">
                                 <span class="cat-tile__count cat-tile__count--empty">0 услуг</span>
-                                <svg class="cat-tile__arrow" width="11" height="11" viewBox="0 0 24 24"
-                                     fill="none" stroke="currentColor" stroke-width="2.5"
-                                     stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M9 18l6-6-6-6"/>
-                                </svg>
                             </div>
                         </div>
                     </button>
@@ -467,14 +457,6 @@ watch(selectedCategory, (cat) => {
 
             <!-- ── CategoryDetail ── -->
             <div v-else key="detail" class="cd-detail" :style="{ '--cat-accent': selectedCategory.category.accent_color || '#a0a0ff' }">
-                <!-- Back link -->
-                <button class="cd-back" @click="backToList">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M15 18l-6-6 6-6" />
-                    </svg>
-                    К категориям
-                </button>
 
                 <!-- Category hero card -->
                 <div class="cd-hero">
@@ -763,6 +745,21 @@ watch(selectedCategory, (cat) => {
             </div>
         </SiteModal>
     </div>
+
+    <Teleport to="#profile-tab-extra">
+        <Transition name="tab-back-btn">
+            <button v-if="selectedCategory"
+                    class="cd-back"
+                    :style="{ '--cat-accent': selectedCategory.category.accent_color || '#a0a0ff' }"
+                    @click="backToList">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 18l-6-6 6-6" />
+                </svg>
+                К категориям
+            </button>
+        </Transition>
+    </Teleport>
 </template>
 
 <style scoped>
@@ -822,7 +819,7 @@ watch(selectedCategory, (cat) => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 0.75rem;
+    margin: 1.25rem 0;
     padding: 0 1.25rem;
 }
 
@@ -834,31 +831,19 @@ watch(selectedCategory, (cat) => {
     letter-spacing: -0.01em;
 }
 
-/* ── Category grid ────────────────────────────────────────── */
+/* ── Category list ────────────────────────────────────────── */
 .cat-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
     padding: 0 1.25rem;
 }
 
-@media (max-width: 1000px) {
-    .cat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-@media (max-width: 560px) {
-    .cat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-@media (max-width: 360px) {
-    .cat-grid { grid-template-columns: 1fr; }
-}
-
 .cat-grid__divider {
-    grid-column: 1 / -1;
+    width: 100%;
     height: 1px;
     background: linear-gradient(to right, transparent, rgba(180, 160, 255, 0.4), transparent);
-    margin: 0.75rem 0;
+    margin: 0.25rem 0;
 }
 
 .cat-tile--empty .cat-tile__img-wrap,
@@ -878,37 +863,48 @@ watch(selectedCategory, (cat) => {
 
 .cat-tile {
     display: flex;
-    flex-direction: column;
-    background: #06060e;
+    flex-direction: row;
+    align-items: stretch;
+    background:
+        linear-gradient(to right, transparent, color-mix(in srgb, var(--cat-accent) 80%, white), rgba(255, 255, 255, 0.2), transparent) 0 0 / 100% 1px no-repeat,
+        rgba(30, 28, 45, 0.55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
     text-align: left;
     overflow: hidden;
-    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.28);
 }
 
 .cat-tile:hover {
-    border-color: color-mix(in srgb, var(--cat-accent) 65%, transparent);
-    background: rgba(255, 255, 255, 0.018);
-    box-shadow: 0 0 18px color-mix(in srgb, var(--cat-accent) 22%, transparent);
+    background:
+        linear-gradient(to right, transparent, color-mix(in srgb, var(--cat-accent) 90%, white), rgba(255, 255, 255, 0.28), transparent) 0 0 / 100% 1px no-repeat,
+        rgba(38, 35, 55, 0.6);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow:
+        0 6px 32px rgba(0, 0, 0, 0.32),
+        0 0 22px color-mix(in srgb, var(--cat-accent) 20%, transparent);
 }
 
 .cat-tile__img-wrap {
-    width: 100%;
-    aspect-ratio: 2.5 / 1.2;
-    background: rgba(255, 255, 255, 0.03);
+    width: 28%;
+    flex-shrink: 0;
+    aspect-ratio: 2 / 1;
+    background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    flex-shrink: 0;
+    order: 1;
 }
 
 .cat-tile__img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
 }
 
 .cat-tile__img-placeholder {
@@ -920,13 +916,14 @@ watch(selectedCategory, (cat) => {
 }
 
 .cat-tile__body {
-    padding: 0.55rem 0.7rem;
+    padding: 0.6rem 0.9rem;
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
     flex: 1;
     min-width: 0;
     overflow: hidden;
+    order: 0;
 }
 
 .cat-tile__name {
@@ -942,16 +939,16 @@ watch(selectedCategory, (cat) => {
 
 .cat-tile__desc {
     font-size: 1rem;
-    color: rgba(255, 255, 255, 0.38);
+    color: rgba(255, 255, 255, 0.50);
     line-height: 1.45;
-    margin: 0;
+    margin: auto 0;
 }
 
 .cat-tile__footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-top: 0.4rem;
+    margin-top: 0.25rem;
 }
 
 .cat-tile__count {
@@ -975,6 +972,11 @@ watch(selectedCategory, (cat) => {
     padding: 0 1rem;
 }
 
+.tab-back-btn-enter-active { transition: opacity 0.18s ease, transform 0.18s ease; }
+.tab-back-btn-leave-active { transition: opacity 0.14s ease, transform 0.14s ease; }
+.tab-back-btn-enter-from  { opacity: 0; transform: translateX(6px); }
+.tab-back-btn-leave-to    { opacity: 0; transform: translateX(6px); }
+
 .cd-back {
     display: inline-flex;
     align-items: center;
@@ -988,7 +990,6 @@ watch(selectedCategory, (cat) => {
     cursor: pointer;
     padding: 0.35rem 0.75rem;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
-    margin-bottom: 0.75rem;
 }
 
 .cd-back:hover {
