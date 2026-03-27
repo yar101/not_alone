@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\MessageSent;
+use App\Events\NewNotification;
+use App\Events\OrderStatusChanged;
 use App\Models\Conversation;
 use App\Models\Order;
 use App\Models\Service;
@@ -80,6 +83,7 @@ class OrderController extends Controller
         // Notify idol
         $order->load('customer');
         $idol->notify(new OrderCreatedNotification($order));
+        broadcast(new NewNotification('private', $idol->id));
 
         return response()->json([
             'order_id'        => $order->id,
@@ -96,8 +100,27 @@ class OrderController extends Controller
 
         $order->update(['status' => 'accepted']);
 
+        if ($order->conversation_id) {
+            $msg = $order->conversation->messages()->create([
+                'sender_id' => $user->id,
+                'body'      => '',
+                'type'      => 'system',
+                'metadata'  => [
+                    'event'       => 'order_accepted',
+                    'idol_id'     => $user->id,
+                    'idol_name'   => $user->name,
+                    'idol_gender' => $user->gender,
+                ],
+            ]);
+            $order->conversation->touch();
+            $msg->load('sender');
+            broadcast(new MessageSent($msg));
+            broadcast(new OrderStatusChanged($order->conversation_id, $order->id, 'accepted'));
+        }
+
         $order->load('idol');
         $order->customer->notify(new OrderAcceptedNotification($order));
+        broadcast(new NewNotification('private', $order->customer_id));
 
         return response()->json(['status' => 'accepted']);
     }
@@ -122,7 +145,7 @@ class OrderController extends Controller
 
         // System message in conversation
         if ($order->conversation_id) {
-            $order->conversation->messages()->create([
+            $msg = $order->conversation->messages()->create([
                 'sender_id' => $user->id,
                 'body'      => '',
                 'type'      => 'system',
@@ -134,6 +157,16 @@ class OrderController extends Controller
                 ],
             ]);
             $order->conversation->touch();
+            $msg->load('sender');
+            broadcast(new MessageSent($msg));
+            broadcast(new OrderStatusChanged(
+                $order->conversation_id,
+                $order->id,
+                'cancelled',
+                $user->id,
+                $user->name,
+                $request->cancel_reason,
+            ));
         }
 
         // Notify the other party
@@ -141,6 +174,7 @@ class OrderController extends Controller
         $other   = User::find($otherId);
         $order->load('cancelledBy');
         $other?->notify(new OrderCancelledNotification($order));
+        broadcast(new NewNotification('private', $otherId));
 
         return response()->json(['status' => 'cancelled']);
     }

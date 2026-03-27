@@ -45,6 +45,14 @@ const activeTab      = ref('messages'); // 'messages' | 'orders'
 const orders         = ref([]);
 const loadingOrders  = ref(false);
 const activeOrderData = ref(null); // order data for the current open conversation
+const ordersSubTab   = ref('mine'); // 'mine' | 'incoming' — only used when authUser is idol
+
+const visibleOrders = computed(() => {
+    if (!authUser.value?.is_idol) return orders.value;
+    return ordersSubTab.value === 'mine'
+        ? orders.value.filter(o => o.is_customer)
+        : orders.value.filter(o => !o.is_customer);
+});
 
 // ── Cancel order modal ────────────────────────────────────
 const cancelModal       = ref(false);
@@ -233,6 +241,27 @@ function subscribeEcho(conversationId) {
         .listen('.message.read', (data) => {
             if (data.reader_id !== authUser.value.id) {
                 otherLastReadAt.value = data.read_at;
+            }
+        })
+        .listen('.order.status-changed', (data) => {
+            if (activeOrderData.value && activeOrderData.value.id === data.order_id) {
+                activeOrderData.value = {
+                    ...activeOrderData.value,
+                    status: data.status,
+                    cancelled_by:      data.cancelled_by      ?? activeOrderData.value.cancelled_by,
+                    cancelled_by_name: data.cancelled_by_name ?? activeOrderData.value.cancelled_by_name,
+                    cancel_reason:     data.cancel_reason     ?? activeOrderData.value.cancel_reason,
+                };
+            }
+            const idx = orders.value.findIndex(o => o.id === data.order_id);
+            if (idx !== -1) {
+                orders.value[idx] = {
+                    ...orders.value[idx],
+                    status:            data.status,
+                    cancelled_by:      data.cancelled_by      ?? orders.value[idx].cancelled_by,
+                    cancelled_by_name: data.cancelled_by_name ?? orders.value[idx].cancelled_by_name,
+                    cancel_reason:     data.cancel_reason     ?? orders.value[idx].cancel_reason,
+                };
             }
         })
         .listenForWhisper('typing', () => {
@@ -459,6 +488,10 @@ const acceptBtnText = computed(() => {
     return 'Готов(а) принять заказ';
 });
 
+function orderTotal(order) {
+    return order.items.reduce((s, i) => s + (i.service?.price ?? 0), 0);
+}
+
 function cancelledByLabel(orderData) {
     if (!orderData?.cancelled_by) return null;
     if (orderData.cancelled_by === authUser.value?.id) return 'вами';
@@ -599,12 +632,27 @@ function formatDate(iso) {
                         <!-- ── Заказы ── -->
                         <template v-else-if="activeTab === 'orders'">
                             <div v-if="loadingOrders" class="chat-empty">Загрузка…</div>
-                            <template v-else-if="orders.length === 0">
-                                <div class="chat-no-convs"><p>Нет заказов</p></div>
-                            </template>
                             <template v-else>
+                                <!-- Саб-табы только для айдолов -->
+                                <div v-if="authUser?.is_idol" class="chat-order-subtabs">
+                                    <button
+                                        class="chat-order-subtab"
+                                        :class="{ 'chat-order-subtab--active': ordersSubTab === 'mine' }"
+                                        @click="ordersSubTab = 'mine'"
+                                    >Мои</button>
+                                    <button
+                                        class="chat-order-subtab"
+                                        :class="{ 'chat-order-subtab--active': ordersSubTab === 'incoming' }"
+                                        @click="ordersSubTab = 'incoming'"
+                                    >Входящие</button>
+                                </div>
+
+                                <template v-if="visibleOrders.length === 0">
+                                    <div class="chat-no-convs"><p>Нет заказов</p></div>
+                                </template>
+                                <template v-else>
                                 <button
-                                    v-for="order in orders"
+                                    v-for="order in visibleOrders"
                                     :key="order.id"
                                     class="chat-conv-item"
                                     :class="{ 'chat-conv-item--active': activeOrderData?.id === order.id }"
@@ -617,6 +665,10 @@ function formatDate(iso) {
                                     </div>
                                     <div class="chat-conv-info">
                                         <div class="chat-conv-name">{{ (order.is_customer ? order.idol : order.customer).name }}</div>
+                                        <div class="chat-order-services-preview">
+                                            <span class="chat-order-services-names">{{ order.items.length }} {{ order.items.length === 1 ? 'услуга' : order.items.length < 5 ? 'услуги' : 'услуг' }}</span>
+                                            <span class="chat-order-services-total">{{ orderTotal(order).toLocaleString('ru-RU') }} ₽</span>
+                                        </div>
                                         <div class="chat-order-status-row">
                                             <span class="chat-order-badge" :class="`chat-order-badge--${order.status}`">
                                                 {{ { pending: 'Ожидает', accepted: 'Принят', cancelled: 'Отменён' }[order.status] }}
@@ -630,8 +682,9 @@ function formatDate(iso) {
                                         <span class="chat-conv-time">{{ formatDate(order.created_at) }}</span>
                                     </div>
                                 </button>
-                            </template>
-                        </template>
+                                </template><!-- /visibleOrders -->
+                            </template><!-- /v-else (not loading) -->
+                        </template><!-- /orders tab -->
                     </div>
                 </div>
 
@@ -709,6 +762,22 @@ function formatDate(iso) {
                                                         <span class="chat-system-service__name">{{ s.name }}</span>
                                                         <span class="chat-system-service__price">{{ s.price?.toLocaleString('ru-RU') }} ₽<template v-if="s.time_unit"> / {{ s.time_unit }}</template></span>
                                                     </div>
+                                                    <div class="chat-system-total-row">
+                                                        <span class="chat-system-total__label">Итого</span>
+                                                        <span class="chat-system-total__value">{{ item.msg.metadata.services.reduce((sum, s) => sum + (s.price ?? 0), 0).toLocaleString('ru-RU') }} ₽</span>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            <template v-else-if="item.msg.metadata?.event === 'order_accepted'">
+                                                <div class="chat-system-card chat-system-card--accept">
+                                                    <p class="chat-system-card__title">
+                                                        {{
+                                                            item.msg.metadata.idol_gender === 'male'   ? 'Готов принять заказ' :
+                                                            item.msg.metadata.idol_gender === 'female' ? 'Готова принять заказ' :
+                                                            'Готов(а) принять заказ'
+                                                        }}
+                                                    </p>
+                                                    <p class="chat-system-card__who">{{ item.msg.metadata.idol_name }}</p>
                                                 </div>
                                             </template>
                                             <template v-else-if="item.msg.metadata?.event === 'order_cancelled'">
@@ -965,7 +1034,7 @@ function formatDate(iso) {
     top: 0;
     right: 0;
     bottom: 0;
-    width: 900px;
+    width: 1100px;
     max-width: 100vw;
     z-index: 1000;
     display: flex;
@@ -978,7 +1047,7 @@ function formatDate(iso) {
 
 /* ── Sidebar ──────────────────────────────────────────── */
 .chat-sidebar {
-    width: 260px;
+    width: 340px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -1978,6 +2047,56 @@ function formatDate(iso) {
     border-bottom-color: #be91ff;
 }
 
+/* ── Order services preview in sidebar ─────────────────── */
+.chat-order-services-preview {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.4rem;
+    margin-top: 0.1rem;
+}
+.chat-order-services-names {
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.38);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+.chat-order-services-total {
+    font-size: 0.72rem;
+    color: rgba(190,145,255,0.6);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ── Order sub-tabs (Мои / Входящие) ───────────────────── */
+.chat-order-subtabs {
+    display: flex;
+    gap: 0;
+    margin: 0.5rem 0.75rem 0.25rem;
+    background: rgba(255,255,255,0.04);
+    border-radius: 6px;
+    padding: 2px;
+}
+.chat-order-subtab {
+    flex: 1;
+    padding: 0.28rem 0;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: rgba(255,255,255,0.4);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.chat-order-subtab:hover { color: rgba(255,255,255,0.7); }
+.chat-order-subtab--active {
+    background: rgba(190,145,255,0.15);
+    color: rgba(190,145,255,0.95);
+}
+
 /* ── Order badge in sidebar ─────────────────────────────── */
 .chat-order-status-row { margin-top: 0.15rem; }
 .chat-order-badge {
@@ -2093,6 +2212,10 @@ function formatDate(iso) {
     background: rgba(180,50,50,0.08);
     border-color: rgba(180,50,50,0.2);
 }
+.chat-system-card--accept {
+    background: rgba(40,160,80,0.08);
+    border-color: rgba(40,160,80,0.2);
+}
 .chat-system-card__title {
     font-size: 0.78rem;
     font-weight: 700;
@@ -2102,6 +2225,7 @@ function formatDate(iso) {
     margin: 0 0 0.6rem;
 }
 .chat-system-card--cancel .chat-system-card__title { color: rgba(255,140,140,0.8); }
+.chat-system-card--accept .chat-system-card__title { color: rgba(100,220,130,0.85); }
 .chat-system-service-row {
     display: flex;
     justify-content: space-between;
@@ -2113,6 +2237,17 @@ function formatDate(iso) {
 .chat-system-service-row:last-child { border-bottom: none; }
 .chat-system-service__name { font-size: 0.85rem; color: rgba(255,255,255,0.75); }
 .chat-system-service__price { font-size: 0.82rem; color: rgba(190,145,255,0.7); white-space: nowrap; }
+.chat-system-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    padding-top: 0.4rem;
+    border-top: 1px solid rgba(190,145,255,0.2);
+}
+.chat-system-total__label { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(190,145,255,0.6); }
+.chat-system-total__value { font-size: 0.9rem; font-weight: 700; color: rgba(190,145,255,0.9); white-space: nowrap; }
 .chat-system-card__who { font-size: 0.8rem; color: rgba(255,255,255,0.45); margin: 0.2rem 0 0; font-weight: 600; }
 .chat-system-card__reason { font-size: 0.85rem; color: rgba(255,255,255,0.5); margin: 0.25rem 0 0; font-style: italic; }
 </style>
