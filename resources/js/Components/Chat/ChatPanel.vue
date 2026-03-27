@@ -47,11 +47,37 @@ const loadingOrders  = ref(false);
 const activeOrderData = ref(null); // order data for the current open conversation
 const ordersSubTab   = ref('mine'); // 'mine' | 'incoming' — only used when authUser is idol
 
-const visibleOrders = computed(() => {
+const orderStatusFilter = ref('all'); // 'all' | 'pending' | 'accepted' | 'cancelled'
+const orderSearch       = ref('');
+const orderFiltersOpen  = ref(false);
+
+const subtabOrders = computed(() => {
     if (!authUser.value?.is_idol) return orders.value;
     return ordersSubTab.value === 'mine'
         ? orders.value.filter(o => o.is_customer)
         : orders.value.filter(o => !o.is_customer);
+});
+
+const orderStatusCounts = computed(() => ({
+    all:       subtabOrders.value.length,
+    pending:   subtabOrders.value.filter(o => o.status === 'pending').length,
+    accepted:  subtabOrders.value.filter(o => o.status === 'accepted').length,
+    cancelled: subtabOrders.value.filter(o => o.status === 'cancelled').length,
+}));
+
+const visibleOrders = computed(() => {
+    let list = subtabOrders.value;
+    if (orderStatusFilter.value !== 'all') {
+        list = list.filter(o => o.status === orderStatusFilter.value);
+    }
+    if (orderSearch.value.trim()) {
+        const q = orderSearch.value.trim().toLowerCase();
+        list = list.filter(o => {
+            const partner = o.is_customer ? o.idol : o.customer;
+            return partner.name.toLowerCase().includes(q);
+        });
+    }
+    return list;
 });
 
 // ── Cancel order modal ────────────────────────────────────
@@ -122,6 +148,7 @@ const blockedUntilLabel = computed(() => {
 });
 
 let echoChannel = null;
+let ordersEchoChannel = null;
 
 // ── Close panel ──────────────────────────────────────────
 function close() {
@@ -279,6 +306,29 @@ function leaveEcho() {
     echoChannel = null;
     clearTimeout(typingTimer.value);
     isTyping.value = false;
+}
+
+function subscribeOrdersEcho() {
+    if (!window.Echo || !authUser.value) return;
+    ordersEchoChannel = window.Echo.private(`orders.${authUser.value.id}`)
+        .listen('.order.changed', ({ change_type, order }) => {
+            const idx = orders.value.findIndex(o => o.id === order.id);
+            if (idx !== -1) {
+                orders.value[idx] = order;
+            } else {
+                orders.value.unshift(order);
+            }
+            if (activeOrderData.value?.id === order.id) {
+                activeOrderData.value = { ...activeOrderData.value, ...order };
+            }
+        });
+}
+
+function leaveOrdersEcho() {
+    if (ordersEchoChannel && window.Echo && authUser.value) {
+        window.Echo.leave(`orders.${authUser.value.id}`);
+    }
+    ordersEchoChannel = null;
 }
 
 async function markRead(conversationId) {
@@ -441,17 +491,28 @@ watch(isOpen, (val) => {
     if (val) {
         fetchConversations();
         if (activeTab.value === 'orders') fetchOrders();
+        subscribeOrdersEcho();
     }
     if (!val) {
         leaveEcho();
+        leaveOrdersEcho();
         activeConversation.value = null;
         activeOrderData.value = null;
         searchQuery.value = '';
+        orderSearch.value = '';
+        orderStatusFilter.value = 'all';
+        orderFiltersOpen.value = false;
     }
 });
 
 watch(activeTab, (tab) => {
     if (tab === 'orders') fetchOrders();
+});
+
+watch(ordersSubTab, () => {
+    orderStatusFilter.value = 'all';
+    orderSearch.value = '';
+    orderFiltersOpen.value = false;
 });
 
 // ── Close on navigation ──────────────────────────────────
@@ -461,6 +522,7 @@ watch(() => page.url, (newUrl, oldUrl) => {
 
 onUnmounted(() => {
     leaveEcho();
+    leaveOrdersEcho();
     clearInterval(nowTimer);
 });
 
@@ -534,6 +596,7 @@ async function submitCancelOrder() {
 async function openOrder(orderId) {
     isOpen.value = true;
     activeTab.value = 'orders';
+    ordersSubTab.value = 'mine';
     await fetchOrders();
     const order = orders.value.find(o => o.id === orderId);
     if (order) await openOrderConversation(order);
@@ -645,6 +708,48 @@ function formatDate(iso) {
                                         :class="{ 'chat-order-subtab--active': ordersSubTab === 'incoming' }"
                                         @click="ordersSubTab = 'incoming'"
                                     >Входящие</button>
+                                </div>
+
+                                <!-- ── Фильтры заказов ──────────────────── -->
+                                <div class="order-filters">
+                                    <input
+                                        v-model="orderSearch"
+                                        type="text"
+                                        class="chat-search-input order-filters__search-input"
+                                        placeholder="Поиск по имени…"
+                                    />
+                                    <button
+                                        class="order-filters__toggle"
+                                        :class="{ 'order-filters__toggle--open': orderFiltersOpen }"
+                                        @click="orderFiltersOpen = !orderFiltersOpen"
+                                    >
+                                        Фильтры
+                                        <svg class="order-filters__arrow" width="10" height="10" viewBox="0 0 10 10" fill="none">
+                                            <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </button>
+                                    <Transition name="of-expand">
+                                        <div v-if="orderFiltersOpen" class="order-filters__pills">
+                                            <button
+                                                v-for="pill in [
+                                                    { key: 'all',       label: 'Все' },
+                                                    { key: 'pending',   label: 'Ожидает' },
+                                                    { key: 'accepted',  label: 'Принят' },
+                                                    { key: 'cancelled', label: 'Отменён' },
+                                                ]"
+                                                :key="pill.key"
+                                                class="order-filter-pill"
+                                                :class="{
+                                                    'order-filter-pill--active': orderStatusFilter === pill.key,
+                                                    [`order-filter-pill--${pill.key}`]: pill.key !== 'all',
+                                                }"
+                                                @click="orderStatusFilter = pill.key"
+                                            >
+                                                {{ pill.label }}
+                                                <span class="order-filter-pill__count">{{ orderStatusCounts[pill.key] }}</span>
+                                            </button>
+                                        </div>
+                                    </Transition>
                                 </div>
 
                                 <template v-if="visibleOrders.length === 0">
@@ -2363,6 +2468,115 @@ function formatDate(iso) {
 .chat-order-subtab--active:hover {
     background: rgba(150,100,255,0.18);
 }
+
+/* ── Order filters ───────────────────────────────────────── */
+.order-filters {
+    padding: 0.75rem 0.75rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(110,110,210,0.1);
+}
+.order-filters__search-input {
+    padding-top: 0.28rem;
+    padding-bottom: 0.28rem;
+}
+.order-filters__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.32rem 0.65rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.4);
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.order-filters__toggle:hover {
+    color: rgba(255,255,255,0.65);
+    background: rgba(255,255,255,0.07);
+}
+.order-filters__toggle--open {
+    color: rgba(190,145,255,0.9);
+    border-color: rgba(190,145,255,0.35);
+    background: rgba(150,100,255,0.1);
+}
+.order-filters__arrow {
+    transition: transform 0.2s ease;
+}
+.order-filters__toggle--open .order-filters__arrow {
+    transform: rotate(180deg);
+}
+
+/* pills expand transition */
+.of-expand-enter-active, .of-expand-leave-active {
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.of-expand-enter-from, .of-expand-leave-to {
+    opacity: 0;
+    transform: translateY(-4px);
+}
+
+.order-filters__pills {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    padding-bottom: 0.1rem;
+}
+.order-filter-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.38rem 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.4);
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.order-filter-pill:hover {
+    color: rgba(255,255,255,0.65);
+    background: rgba(255,255,255,0.07);
+}
+.order-filter-pill--active {
+    color: rgba(255,255,255,0.88);
+    border-color: rgba(190,145,255,0.4);
+    background: rgba(150,100,255,0.14);
+}
+.order-filter-pill--pending.order-filter-pill--active {
+    color: rgba(255,210,80,0.9);
+    border-color: rgba(180,130,0,0.45);
+    background: rgba(180,130,0,0.14);
+}
+.order-filter-pill--accepted.order-filter-pill--active {
+    color: rgba(80,240,160,0.9);
+    border-color: rgba(0,180,100,0.4);
+    background: rgba(0,180,100,0.12);
+}
+.order-filter-pill--cancelled.order-filter-pill--active {
+    color: rgba(255,130,130,0.85);
+    border-color: rgba(180,50,50,0.4);
+    background: rgba(180,50,50,0.12);
+}
+.order-filter-pill__count {
+    font-size: 0.7rem;
+    font-weight: 700;
+    opacity: 0.6;
+    min-width: 16px;
+    text-align: center;
+}
+.order-filter-pill--active .order-filter-pill__count { opacity: 0.85; }
 
 /* ── Order badge in sidebar ─────────────────────────────── */
 .chat-order-status-row { margin-top: 0.15rem; }

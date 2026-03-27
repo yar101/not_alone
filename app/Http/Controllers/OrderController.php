@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Events\MessageSent;
 use App\Events\NewNotification;
+use App\Events\OrderChanged;
 use App\Events\OrderStatusChanged;
 use App\Models\Conversation;
 use App\Models\Order;
@@ -80,8 +81,12 @@ class OrderController extends Controller
 
         $conversation->touch();
 
+        // Broadcast to orders channels
+        $order->load(['customer', 'idol', 'cancelledBy', 'items.service.timeUnit']);
+        broadcast(new OrderChanged($idol->id, $this->formatOrder($order, $idol->id), 'created'));
+        broadcast(new OrderChanged($user->id, $this->formatOrder($order, $user->id), 'created'));
+
         // Notify idol
-        $order->load('customer');
         $idol->notify(new OrderCreatedNotification($order));
         broadcast(new NewNotification('private', $idol->id));
 
@@ -118,7 +123,11 @@ class OrderController extends Controller
             broadcast(new OrderStatusChanged($order->conversation_id, $order->id, 'accepted'));
         }
 
-        $order->load('idol');
+        // Broadcast to orders channels
+        $order->load(['customer', 'idol', 'cancelledBy', 'items.service.timeUnit']);
+        broadcast(new OrderChanged($order->idol_id,     $this->formatOrder($order, $order->idol_id),     'updated'));
+        broadcast(new OrderChanged($order->customer_id, $this->formatOrder($order, $order->customer_id), 'updated'));
+
         $order->customer->notify(new OrderAcceptedNotification($order));
         broadcast(new NewNotification('private', $order->customer_id));
 
@@ -169,10 +178,14 @@ class OrderController extends Controller
             ));
         }
 
+        // Broadcast to orders channels
+        $order->load(['customer', 'idol', 'cancelledBy', 'items.service.timeUnit']);
+        broadcast(new OrderChanged($order->idol_id,     $this->formatOrder($order, $order->idol_id),     'updated'));
+        broadcast(new OrderChanged($order->customer_id, $this->formatOrder($order, $order->customer_id), 'updated'));
+
         // Notify the other party
         $otherId = $order->customer_id === $user->id ? $order->idol_id : $order->customer_id;
         $other   = User::find($otherId);
-        $order->load('cancelledBy');
         $other?->notify(new OrderCancelledNotification($order));
         broadcast(new NewNotification('private', $otherId));
 
