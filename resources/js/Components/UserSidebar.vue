@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AvatarUploader from '@/Components/AvatarUploader.vue';
+import IdolBadge from '@/Components/IdolBadge.vue';
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -47,7 +48,7 @@ const ratingPct    = computed(() => ratingValue.value != null ? Math.min(ratingV
 
                     <div class="usb-name">{{ user.name }}</div>
                     <div class="usb-badges">
-                        <span v-if="isIdol" class="usb-badge usb-badge--idol">Айдол</span>
+                        <IdolBadge v-if="isIdol" />
                         <span v-if="user.gender" class="usb-badge" :class="'usb-badge--' + user.gender">{{ user.gender === 'female' ? '\u2640\uFE0F' : '\u2642\uFE0F' }}</span>
                         <span v-if="user.age" class="usb-badge usb-badge--age">{{ ageLabel(user.age) }}</span>
                         <span v-if="!isIdol && !user.gender && !user.age" class="usb-badge usb-badge--default">Пользователь</span>
@@ -221,12 +222,6 @@ const ratingPct    = computed(() => ratingValue.value != null ? Math.min(ratingV
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.04);
     color: rgba(255, 255, 255, 0.55);
-}
-.usb-badge--idol {
-    border-color: rgba(100, 200, 255, 0.35);
-    background: rgba(100, 200, 255, 0.07);
-    color: #7dd4fc;
-    font-weight: 600;
 }
 .usb-badge--female {
     border-color: rgba(160, 160, 255, 0.3);

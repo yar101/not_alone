@@ -21,22 +21,26 @@ class OrderController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'idol_id'     => 'required|exists:users,id',
-            'service_ids' => 'required|array|min:1',
-            'service_ids.*' => 'integer|exists:services,id',
+            'idol_id'              => 'required|exists:users,id',
+            'services'             => 'required|array|min:1',
+            'services.*.id'        => 'required|integer|exists:services,id',
+            'services.*.quantity'  => 'required|integer|min:1|max:99',
         ]);
 
         $user  = $request->user();
         $idol  = User::findOrFail($request->idol_id);
 
+        $serviceIds  = collect($request->services)->pluck('id');
+        $quantityMap = collect($request->services)->keyBy('id');
+
         // Verify all services belong to this idol and are active
-        $services = Service::whereIn('id', $request->service_ids)
+        $services = Service::whereIn('id', $serviceIds)
             ->where('user_id', $idol->id)
             ->where('is_active', true)
             ->with(['category', 'timeUnit'])
             ->get();
 
-        if ($services->count() !== count(array_unique($request->service_ids))) {
+        if ($services->count() !== $serviceIds->unique()->count()) {
             return response()->json(['error' => 'Некоторые услуги недоступны'], 422);
         }
 
@@ -47,9 +51,10 @@ class OrderController extends Controller
             'status'      => 'pending',
         ]);
 
-        // Create order items
+        // Create order items with quantity
         foreach ($services as $service) {
-            $order->items()->create(['service_id' => $service->id]);
+            $qty = (int) ($quantityMap[$service->id]['quantity'] ?? 1);
+            $order->items()->create(['service_id' => $service->id, 'quantity' => $qty]);
         }
 
         // Create dedicated conversation
@@ -75,6 +80,7 @@ class OrderController extends Controller
                     'name'      => $s->name,
                     'price'     => $s->price,
                     'time_unit' => $s->timeUnit?->name,
+                    'quantity'  => (int) ($quantityMap[$s->id]['quantity'] ?? 1),
                 ])->values()->all(),
             ],
         ]);

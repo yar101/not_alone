@@ -7,12 +7,17 @@ const props = defineProps({
     modelValue: { type: Boolean, default: false },
     cart: { type: Object, required: true },
 });
-const emit = defineEmits(['update:modelValue', 'clear', 'remove-item']);
+const emit = defineEmits(['update:modelValue', 'clear', 'remove-item', 'change-quantity']);
 
 const openOrder = inject('openOrder', null);
 
 const creating = ref(false);
 const error    = ref('');
+const confirmDeleteIdx = ref(null);
+
+function askDelete(idx) { confirmDeleteIdx.value = idx; }
+function cancelDelete() { confirmDeleteIdx.value = null; }
+function confirmDelete(idx) { confirmDeleteIdx.value = null; emit('remove-item', idx); }
 
 const isOpen = computed({
     get: () => props.modelValue,
@@ -20,7 +25,7 @@ const isOpen = computed({
 });
 
 const total = computed(() =>
-    props.cart.items.reduce((sum, item) => sum + (item.price || 0), 0)
+    props.cart.items.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0)
 );
 
 function close() { isOpen.value = false; }
@@ -32,7 +37,7 @@ async function createOrder() {
     try {
         const res = await axios.post(route('orders.store'), {
             idol_id: props.cart.idol_id,
-            service_ids: props.cart.items.map(i => i.service_id),
+            services: props.cart.items.map(i => ({ id: i.service_id, quantity: i.quantity || 1 })),
         });
         emit('clear');
         isOpen.value = false;
@@ -75,10 +80,25 @@ async function createOrder() {
                     </div>
                     <template v-else>
                         <div v-for="(item, idx) in cart.items" :key="item.service_id" class="rc-line">
-                            <span class="rc-line__name">{{ item.name }}</span>
-                            <span class="rc-line__dots" aria-hidden="true"></span>
-                            <span class="rc-line__price">{{ item.price?.toLocaleString('ru-RU') }}&thinsp;₽<template v-if="item.time_unit">&thinsp;/&thinsp;{{ item.time_unit }}</template></span>
-                            <button class="rc-line__del" @click="emit('remove-item', idx)" aria-label="Удалить">✕</button>
+                            <div class="rc-line__top">
+                                <span class="rc-line__name">{{ item.name }}</span>
+                                <template v-if="confirmDeleteIdx === idx">
+                                    <div class="rc-line__confirm">
+                                        <span class="rc-line__confirm-text">Удалить?</span>
+                                        <button class="rc-line__confirm-yes" @click="confirmDelete(idx)" aria-label="Да">✓</button>
+                                        <button class="rc-line__confirm-no" @click="cancelDelete" aria-label="Нет">✕</button>
+                                    </div>
+                                </template>
+                                <button v-else class="rc-line__del" @click="askDelete(idx)" aria-label="Удалить">✕</button>
+                            </div>
+                            <div class="rc-line__bottom">
+                                <span class="rc-line__price">{{ (item.price || 0).toLocaleString('ru-RU') }}&thinsp;₽<template v-if="item.time_unit">&thinsp;/&thinsp;{{ item.time_unit }}</template></span>
+                                <div class="rc-qty">
+                                    <button class="rc-qty__btn" @click="emit('change-quantity', idx, -1)" aria-label="Меньше">−</button>
+                                    <span class="rc-qty__val">{{ item.quantity || 1 }}</span>
+                                    <button class="rc-qty__btn" @click="emit('change-quantity', idx, 1)" aria-label="Больше">+</button>
+                                </div>
+                            </div>
                         </div>
                     </template>
                 </div>
@@ -232,57 +252,141 @@ async function createOrder() {
 
 .rc-line {
     display: flex;
-    align-items: baseline;
-    padding: 0.55rem 1.5rem;
+    flex-direction: column;
+    padding: 0.9rem 1.5rem;
     border-bottom: 1px solid rgba(120, 220, 255, 0.06);
     transition: background 0.12s;
 }
 .rc-line:hover { background: rgba(120, 220, 255, 0.03); }
 
+.rc-line__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.6rem;
+}
 .rc-line__name {
-    font-size: 0.95rem;
-    color: rgba(210, 240, 255, 0.78);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 45%;
-    flex-shrink: 0;
+    font-size: 1.05rem;
+    color: rgba(210, 240, 255, 0.82);
     letter-spacing: 0.02em;
-}
-.rc-line__dots {
+    line-height: 1.35;
     flex: 1;
-    border-bottom: 1px dotted rgba(120, 220, 255, 0.35);
-    margin: 0 0.5rem;
-    position: relative;
-    top: -4px;
-    min-width: 1rem;
-}
-.rc-line__price {
-    font-size: 0.98rem;
-    font-weight: 700;
-    color: rgba(100, 210, 255, 0.95);
-    white-space: nowrap;
-    flex-shrink: 0;
-    letter-spacing: 0.03em;
+    min-width: 0;
 }
 .rc-line__del {
     flex-shrink: 0;
-    margin-left: 0.65rem;
-    width: 20px;
-    height: 20px;
-    border: none;
+    border: 1px solid rgba(255, 100, 100, 0.2);
+    border-radius: 3px;
     background: transparent;
-    color: rgba(210, 240, 255, 0.18);
+    color: rgba(255, 100, 100, 0.55);
     cursor: pointer;
-    font-size: 0.7rem;
+    font-size: 0.85rem;
     font-family: inherit;
-    transition: color 0.12s;
-    padding: 0;
+    transition: color 0.12s, border-color 0.12s, background 0.12s;
+    padding: 0.2rem 0.45rem;
+    line-height: 1;
+}
+.rc-line__del:hover {
+    color: rgba(255, 100, 100, 0.95);
+    border-color: rgba(255, 100, 100, 0.5);
+    background: rgba(255, 100, 100, 0.07);
+}
+
+.rc-line__confirm {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+.rc-line__confirm-text {
+    font-size: 0.85rem;
+    color: rgba(255, 100, 100, 0.75);
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+.rc-line__confirm-yes,
+.rc-line__confirm-no {
+    border-radius: 3px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-family: inherit;
+    line-height: 1;
+    padding: 0.2rem 0.45rem;
+    transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+.rc-line__confirm-yes {
+    border: 1px solid rgba(255, 100, 100, 0.35);
+    color: rgba(255, 100, 100, 0.75);
+}
+.rc-line__confirm-yes:hover {
+    color: rgba(255, 100, 100, 1);
+    border-color: rgba(255, 100, 100, 0.7);
+    background: rgba(255, 100, 100, 0.1);
+}
+.rc-line__confirm-no {
+    border: 1px solid rgba(120, 220, 255, 0.2);
+    color: rgba(120, 220, 255, 0.5);
+}
+.rc-line__confirm-no:hover {
+    color: rgba(120, 220, 255, 0.9);
+    border-color: rgba(120, 220, 255, 0.45);
+    background: rgba(120, 220, 255, 0.06);
+}
+
+.rc-line__bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+}
+.rc-line__price {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: rgba(100, 210, 255, 0.95);
+    white-space: nowrap;
+    letter-spacing: 0.03em;
+}
+
+.rc-qty {
+    display: flex;
+    align-items: center;
+    border: 1px solid rgba(100, 210, 255, 0.18);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.rc-qty__btn {
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
+    background: transparent;
+    border: none;
+    color: rgba(100, 210, 255, 0.65);
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    font-family: inherit;
+    transition: background 0.12s, color 0.12s;
 }
-.rc-line__del:hover { color: rgba(255, 110, 110, 0.75); }
+.rc-qty__btn:hover {
+    background: rgba(100, 210, 255, 0.08);
+    color: rgba(100, 210, 255, 0.95);
+}
+.rc-qty__val {
+    min-width: 34px;
+    text-align: center;
+    color: rgba(210, 240, 255, 0.9);
+    font-weight: 600;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    border-left: 1px solid rgba(100, 210, 255, 0.12);
+    border-right: 1px solid rgba(100, 210, 255, 0.12);
+}
 
 /* ── Perforation ──────────────────────────────────────── */
 .rc-perf {

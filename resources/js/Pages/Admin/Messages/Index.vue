@@ -4,6 +4,7 @@ import { useForm } from '@inertiajs/vue3';
 import AppSelect from '@/Components/AppSelect.vue';
 import axios from 'axios';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import IdolBadge from '@/Components/IdolBadge.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -450,7 +451,7 @@ function targetLabel(b) {
                                 <span class="picker-email">{{ user.email }}</span>
                             </div>
                             <div class="picker-badges">
-                                <span v-if="user.is_idol" class="badge badge--idol">Айдол</span>
+                                <IdolBadge v-if="user.is_idol" />
                                 <span v-if="user.gender === 'male'" class="badge badge--male">М</span>
                                 <span v-if="user.gender === 'female'" class="badge badge--female">Ж</span>
                                 <span v-if="user.age" class="badge badge--age">{{ user.age }} лет</span>
@@ -728,7 +729,6 @@ function targetLabel(b) {
 .picker-email { font-size: 0.75rem; color: rgba(255,255,255,0.35); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .picker-badges { display: flex; gap: 0.3rem; flex-wrap: wrap; }
 .badge { font-size: 0.68rem; padding: 0.1rem 0.4rem; font-weight: 600; letter-spacing: 0.03em; }
-.badge--idol { background: rgba(155,110,232,0.15); color: #9B6EE8; border: 1px solid rgba(155,110,232,0.3); }
 .badge--male { background: rgba(59,130,246,0.1); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
 .badge--female { background: rgba(236,72,153,0.1); color: #f472b6; border: 1px solid rgba(236,72,153,0.2); }
 .badge--age { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.1); }

@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import IdolBadge from '@/Components/IdolBadge.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -81,7 +82,7 @@ function unban() {
                     <h1 class="user-name">{{ user.name }}</h1>
                     <div class="user-meta">{{ user.email }}</div>
                     <div class="user-meta">
-                        <span v-if="user.is_idol" class="badge badge--idol">Айдол</span>
+                        <IdolBadge v-if="user.is_idol" />
                         <span v-else class="badge badge--user">Пользователь</span>
                         <span v-if="user.is_banned" class="badge badge--banned">Заблокирован</span>
                     </div>
@@ -266,7 +267,6 @@ function unban() {
 .btn-profile-link:hover { color: #BE91FF; border-color: rgba(190,145,255,0.55); background: rgba(190,145,255,0.06); }
 
 .badge { padding: 0.15rem 0.5rem; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
-.badge--idol   { background: rgba(155,110,232,0.15); color: #9B6EE8; border: 1px solid rgba(155,110,232,0.3); }
 .badge--user   { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.12); }
 .badge--banned { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
 

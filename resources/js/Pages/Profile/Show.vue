@@ -32,10 +32,18 @@ const props = defineProps({
     serviceTimeUnits:   { default: null },
 });
 
+// ── Auth ──────────────────────────────────────────────────────
+const openAuth = inject('openAuth', null);
+
 // ── Chat ──────────────────────────────────────────────────────
 const openChatWith = inject('openChatWith', null);
 function openChat() {
+    if (!page.props.auth?.user) { openAuth?.('register'); return; }
     openChatWith?.(props.profileUser.id);
+}
+
+function handleSubscribe() {
+    if (!page.props.auth?.user) { openAuth?.('register'); return; }
 }
 
 // ── Email verification banner ─────────────────────────────────
@@ -55,8 +63,8 @@ function resendVerification() {
 const TAB_ORDER = ['about', 'posts', 'services', 'content'];
 const storedTab = sessionStorage.getItem(`profile_tab_${props.profileUser.id}`);
 const hashTab   = window.location.hash.slice(1);
-const initialTab = TAB_ORDER.includes(storedTab) ? storedTab
-    : TAB_ORDER.includes(hashTab) ? hashTab
+const initialTab = TAB_ORDER.includes(hashTab) ? hashTab
+    : TAB_ORDER.includes(storedTab) ? storedTab
     : 'about';
 const tab = ref(initialTab);
 
@@ -239,10 +247,10 @@ onMounted(async () => {
                         :languages="languages"
                     />
                     <div v-if="!isOwner" class="sidebar-actions">
-                        <button class="sidebar-subscribe-btn">
+                        <button class="sidebar-subscribe-btn" @click="handleSubscribe">
                             Отслеживать
                         </button>
-                        <button class="sidebar-message-btn" @click="openChat" title="Написать сообщение">
+                        <button v-if="page.props.auth?.user && page.props.is_idol" class="sidebar-message-btn" @click="openChat" title="Написать сообщение">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                             </svg>
@@ -899,10 +907,10 @@ onMounted(async () => {
 .sidebar-subscribe-btn {
     flex: 1;
     padding: 0.6rem;
-    background: rgba(160, 160, 255, 0.08);
-    border: 1px solid rgba(160, 160, 255, 0.38);
+    background: transparent;
+    border: 1px solid rgba(160, 160, 255, 0.35);
     border-radius: 6px;
-    color: rgba(210, 180, 255, 0.9);
+    color: var(--color-base-1);
     font-family: inherit;
     font-size: 0.88rem;
     font-weight: 600;
@@ -912,10 +920,10 @@ onMounted(async () => {
     flex-shrink: 0;
 }
 .sidebar-subscribe-btn:hover {
-    background: rgba(160, 160, 255, 0.18);
-    border-color: rgba(160, 160, 255, 0.65);
-    color: rgba(225, 205, 255, 1);
-    box-shadow: 0 0 14px rgba(160, 160, 255, 0.18);
+    background: rgba(160, 160, 255, 0.1);
+    border-color: rgba(160, 160, 255, 0.55);
+    color: #b8b8ff;
+    box-shadow: 0 0 14px rgba(160, 160, 255, 0.12);
 }
 .sidebar-message-btn {
     display: flex;
@@ -924,18 +932,18 @@ onMounted(async () => {
     width: 40px;
     height: 40px;
     border-radius: 6px;
-    background: rgba(160, 160, 255, 0.08);
-    border: 1px solid rgba(160, 160, 255, 0.38);
-    color: rgba(210, 180, 255, 0.9);
+    background: transparent;
+    border: 1px solid rgba(160, 160, 255, 0.35);
+    color: var(--color-base-1);
     cursor: pointer;
     flex-shrink: 0;
     transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
 .sidebar-message-btn:hover {
-    background: rgba(160, 160, 255, 0.18);
-    border-color: rgba(160, 160, 255, 0.65);
-    color: rgba(225, 205, 255, 1);
-    box-shadow: 0 0 14px rgba(160, 160, 255, 0.18);
+    background: rgba(160, 160, 255, 0.1);
+    border-color: rgba(160, 160, 255, 0.55);
+    color: #b8b8ff;
+    box-shadow: 0 0 14px rgba(160, 160, 255, 0.12);
 }
 
 /* ── Report modal content ────────────────────────────────── */

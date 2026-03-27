@@ -111,8 +111,8 @@ function onTabClick(tab) {
     top: 0.3rem; bottom: 0.3rem;
     left: 0;
     border-radius: 7px;
-    background: rgba(112,112,216,0.18);
-    border: 1px solid rgba(112,112,216,0.25);
+    background: rgba(160,160,255,0.15);
+    border: 1px solid rgba(160,160,255,0.22);
     pointer-events: none;
     z-index: 0;
     width: var(--ind-w, 0px);
@@ -142,6 +142,6 @@ function onTabClick(tab) {
     transition: opacity 0.22s, color 0.22s;
     display: flex; align-items: center;
 }
-.pub-tab--active .pub-tab__icon { opacity: 1; color: #be91ff; }
+.pub-tab--active .pub-tab__icon { opacity: 1; color: var(--color-base-1); }
 .pub-tab:hover .pub-tab__icon { opacity: 0.8; }
 </style>

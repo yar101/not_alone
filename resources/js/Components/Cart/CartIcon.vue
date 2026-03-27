@@ -7,7 +7,9 @@ const props = defineProps({
 
 const emit = defineEmits(['click']);
 
-const count = computed(() => props.cart.items.length);
+const count = computed(() =>
+    props.cart.items.reduce((sum, i) => sum + (i.quantity || 1), 0)
+);
 </script>
 
 <template>
@@ -41,8 +43,8 @@ const count = computed(() => props.cart.items.length);
     background: rgba(110,110,210,0.08);
 }
 .cart-icon-btn--active {
-    color: #be91ff;
-    border-color: rgba(190,145,255,0.22);
+    color: #a0a0ff;
+    border-color: rgba(160,160,255,0.22);
 }
 .cart-icon-badge {
     position: absolute;
@@ -51,7 +53,7 @@ const count = computed(() => props.cart.items.length);
     min-width: 16px;
     height: 16px;
     border-radius: 8px;
-    background: #be91ff;
+    background: #a0a0ff;
     color: #0a0a14;
     font-size: 0.62rem;
     font-weight: 800;

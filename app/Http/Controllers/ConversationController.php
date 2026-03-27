@@ -158,6 +158,8 @@ class ConversationController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        abort_unless($request->user()->is_idol, 403);
+
         $request->validate(['target_user_id' => 'required|exists:users,id']);
 
         $target = User::findOrFail($request->target_user_id);

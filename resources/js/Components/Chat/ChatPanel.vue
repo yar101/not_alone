@@ -4,6 +4,7 @@ import { usePage, router } from '@inertiajs/vue3';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import axios from 'axios';
 import { Check, Lock } from '@element-plus/icons-vue';
+import IdolBadge from '@/Components/IdolBadge.vue';
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -661,8 +662,8 @@ function formatDate(iso) {
                             <div v-if="loadingConvs" class="chat-empty">Загрузка…</div>
                             <template v-else-if="conversations.length === 0">
                                 <div class="chat-no-convs">
-                                    <p>Нет диалогов</p>
-                                    <a :href="route('users.search')">Найти пользователей →</a>
+                                    <p>{{ $page.props.is_idol ? 'Нет диалогов' : 'У вас пока нет сообщений' }}</p>
+                                    <a v-if="$page.props.is_idol" :href="route('users.search')">Найти пользователей →</a>
                                 </div>
                             </template>
                             <template v-else>
@@ -822,7 +823,7 @@ function formatDate(iso) {
                                         rel="noopener"
                                         class="chat-main__name"
                                     >{{ activeConversation.other_user?.name ?? '…' }}</a>
-                                    <span v-if="activeConversation.other_user?.is_idol" class="chat-idol-badge">Айдол</span>
+                                    <IdolBadge v-if="activeConversation.other_user?.is_idol" />
                                 </div>
                                 <span class="chat-online-badge" :class="{ 'chat-online-badge--visible': isOtherOnline }">
                                     <span class="chat-online-dot"></span>онлайн
@@ -1422,17 +1423,6 @@ function formatDate(iso) {
 }
 .chat-main__name:hover {
     color: #be91ff;
-}
-.chat-idol-badge {
-    font-size: 0.62rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    padding: 0.12rem 0.45rem;
-    background: rgba(56, 189, 248, 0.12);
-    color: #38bdf8;
-    border: 1px solid rgba(56, 189, 248, 0.3);
-    border-radius: 4px;
 }
 
 /* ── Online indicator ─────────────────────────────────── */
@@ -2282,7 +2272,7 @@ function formatDate(iso) {
 /* ── Chat tabs ──────────────────────────────────────────── */
 .chat-tabs {
     display: flex;
-    border-bottom: 1px solid rgba(110,110,210,0.12);
+    border-bottom: 1px solid rgba(160,160,255,0.12);
     flex-shrink: 0;
 }
 .chat-tab {
@@ -2301,8 +2291,8 @@ function formatDate(iso) {
 }
 .chat-tab:hover { color: rgba(255,255,255,0.65); }
 .chat-tab--active {
-    color: #be91ff;
-    border-bottom-color: #be91ff;
+    color: var(--color-base-1);
+    border-bottom-color: var(--color-base-1);
 }
 
 /* ── Order stub cards ───────────────────────────────────── */
@@ -2329,8 +2319,8 @@ function formatDate(iso) {
     box-shadow: 0 4px 16px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(140,110,255,0.2);
 }
 .order-stub--active {
-    background: rgba(120,85,255,0.1);
-    box-shadow: 0 2px 14px rgba(100,60,255,0.2), inset 0 0 0 1px rgba(160,120,255,0.28);
+    background: rgba(160,160,255,0.1);
+    box-shadow: 0 2px 14px rgba(160,160,255,0.18), inset 0 0 0 1px rgba(160,160,255,0.28);
 }
 .order-stub--active:hover { transform: none; }
 
@@ -2421,13 +2411,15 @@ function formatDate(iso) {
     font-size: 0.92rem;
     font-weight: 700;
     letter-spacing: 0.03em;
-    color: rgba(100,210,255,0.9);
+    color: rgba(255,210,80,0.9);
     font-variant-numeric: tabular-nums;
 }
+.order-stub--accepted .order-stub__total {
+    color: rgba(80,240,160,0.9);
+}
 .order-stub--cancelled .order-stub__total {
-    color: rgba(255,130,130,0.6);
-    text-decoration: line-through;
-    text-decoration-color: rgba(255,130,130,0.3);
+    color: rgba(255,130,130,0.75);
+    text-decoration: none;
 }
 
 
@@ -2459,14 +2451,14 @@ function formatDate(iso) {
     background: rgba(255,255,255,0.07);
 }
 .chat-order-subtab--active {
-    background: rgba(150,100,255,0.13);
-    border-color: rgba(190,145,255,0.3);
+    background: rgba(160,160,255,0.13);
+    border-color: rgba(160,160,255,0.3);
     border-top: none;
-    color: rgba(210,175,255,0.95);
-    box-shadow: 0 2px 8px rgba(120,60,255,0.2), inset 0 1px 0 rgba(220,190,255,0.35);
+    color: rgba(200,200,255,0.95);
+    box-shadow: 0 2px 8px rgba(160,160,255,0.18), inset 0 1px 0 rgba(200,200,255,0.3);
 }
 .chat-order-subtab--active:hover {
-    background: rgba(150,100,255,0.18);
+    background: rgba(160,160,255,0.18);
 }
 
 /* ── Order filters ───────────────────────────────────────── */
@@ -2504,9 +2496,9 @@ function formatDate(iso) {
     background: rgba(255,255,255,0.07);
 }
 .order-filters__toggle--open {
-    color: rgba(190,145,255,0.9);
-    border-color: rgba(190,145,255,0.35);
-    background: rgba(150,100,255,0.1);
+    color: var(--color-base-1);
+    border-color: rgba(160,160,255,0.35);
+    background: rgba(160,160,255,0.08);
 }
 .order-filters__arrow {
     transition: transform 0.2s ease;
@@ -2550,9 +2542,9 @@ function formatDate(iso) {
     background: rgba(255,255,255,0.07);
 }
 .order-filter-pill--active {
-    color: rgba(255,255,255,0.88);
-    border-color: rgba(190,145,255,0.4);
-    background: rgba(150,100,255,0.14);
+    color: rgba(200,200,255,0.95);
+    border-color: rgba(160,160,255,0.4);
+    background: rgba(160,160,255,0.12);
 }
 .order-filter-pill--pending.order-filter-pill--active {
     color: rgba(255,210,80,0.9);

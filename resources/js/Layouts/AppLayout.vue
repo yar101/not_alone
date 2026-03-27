@@ -62,6 +62,7 @@ function openOrder(orderId) {
     chatPanel.value?.openOrder(orderId);
 }
 
+provide('openAuth', openAuth);
 provide('openChatWith', openChatWith);
 provide('openOrder', openOrder);
 provide('cart', cart);
@@ -154,7 +155,7 @@ onUnmounted(() => {
         </main>
 
         <AuthModal :show="showAuthModal" :initial-tab="authModalTab" @close="showAuthModal = false" />
-        <CartDropdown v-if="user" v-model="cartOpen" :cart="cart" @clear="cart = { idol_id: null, idol_name: '', idol_avatar: null, items: [] }" @remove-item="(idx) => cart.items.splice(idx, 1)" />
+        <CartDropdown v-if="user" v-model="cartOpen" :cart="cart" @clear="cart = { idol_id: null, idol_name: '', idol_avatar: null, items: [] }" @remove-item="(idx) => cart.items.splice(idx, 1)" @change-quantity="(idx, delta) => { const q = (cart.items[idx].quantity || 1) + delta; cart.items[idx].quantity = Math.max(1, q); }" />
         <ChatPanel v-if="user" ref="chatPanel" v-model="chatOpen" />
         <UserSidebar v-if="user" v-model="sidebarOpen" :user="user" :is-idol="isIdol" :rating="user?.rating" />
     </div>

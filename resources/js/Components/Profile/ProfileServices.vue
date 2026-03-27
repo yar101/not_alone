@@ -27,6 +27,7 @@ const localServices = ref(null);
 
 // ── Cart ─────────────────────────────────────────────────────────
 const cart = inject('cart', null);
+const openAuth = inject('openAuth', null);
 const cartConflictModal = ref(false);
 const pendingCartItem   = ref(null);
 
@@ -35,6 +36,7 @@ function isInCart(serviceId) {
 }
 
 function addToCart(item) {
+    if (!page.props.auth?.user) { openAuth?.('register'); return; }
     if (!cart) return;
     const c = cart.value;
     const idolId = props.profileUser?.id;
@@ -59,6 +61,7 @@ function doAddToCart(item) {
         name:       item.name,
         price:      item.price,
         time_unit:  item.time_unit?.name ?? null,
+        quantity:   1,
     });
 }
 
@@ -797,10 +800,10 @@ watch(selectedCategory, (cat) => {
                                 <div class="sf-input-wrap">
                                     <input v-model="form.name" class="sf-input"
                                         :class="{ 'sf-input--err': form.errors.name }" :placeholder="namePlaceholder"
-                                        maxlength="30" />
+                                        maxlength="45" />
                                     <span class="sf-char-count"
-                                        :class="{ 'sf-char-count--warn': form.name.length >= 25 }">
-                                        {{ form.name.length }}/30
+                                        :class="{ 'sf-char-count--warn': form.name.length >= 38 }">
+                                        {{ form.name.length }}/45
                                     </span>
                                 </div>
                                 <div v-if="formSuggestions.length" class="svc-suggestions">
@@ -1706,10 +1709,10 @@ watch(selectedCategory, (cat) => {
     align-items: center;
     gap: 0.4rem;
     padding: 0.38rem 0.85rem;
-    border: 1px solid rgba(200, 70, 126, 0.4);
+    border: 1px solid color-mix(in srgb, var(--cat-accent, #a0a0ff) 40%, transparent);
     border-radius: 6px;
-    background: rgba(200, 70, 126, 0.1);
-    color: rgba(220, 110, 155, 0.95);
+    background: color-mix(in srgb, var(--cat-accent, #a0a0ff) 10%, transparent);
+    color: color-mix(in srgb, var(--cat-accent, #a0a0ff) 85%, white);
     font-family: inherit;
     font-size: 0.78rem;
     font-weight: 600;
@@ -1738,11 +1741,11 @@ watch(selectedCategory, (cat) => {
 }
 
 .svc-buy-btn:hover {
-    border-color: rgba(200, 70, 126, 0.72);
-    background: rgba(200, 70, 126, 0.18);
-    color: #fff;
-    box-shadow: 0 0 20px rgba(200, 70, 126, 0.2),
-        inset 0 0 12px rgba(200, 70, 126, 0.08);
+    border-color: color-mix(in srgb, var(--cat-accent, #a0a0ff) 65%, transparent);
+    background: color-mix(in srgb, var(--cat-accent, #a0a0ff) 18%, transparent);
+    color: var(--cat-accent, #a0a0ff);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--cat-accent, #a0a0ff) 20%, transparent),
+        inset 0 0 12px color-mix(in srgb, var(--cat-accent, #a0a0ff) 8%, transparent);
 }
 
 .svc-buy-btn svg {
@@ -2343,10 +2346,10 @@ watch(selectedCategory, (cat) => {
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
-    background: color-mix(in srgb, var(--cat-accent) 10%, transparent);
-    border: 1px solid color-mix(in srgb, var(--cat-accent) 35%, transparent);
+    background: rgba(160,160,255,0.08);
+    border: 1px solid rgba(160,160,255,0.28);
     border-radius: 5px;
-    color: color-mix(in srgb, var(--cat-accent) 80%, white);
+    color: rgba(180,180,255,0.85);
     font-family: inherit;
     font-size: 0.88rem;
     cursor: pointer;
@@ -2355,8 +2358,8 @@ watch(selectedCategory, (cat) => {
 }
 
 .cd-back:hover {
-    background: color-mix(in srgb, var(--cat-accent) 20%, transparent);
-    border-color: color-mix(in srgb, var(--cat-accent) 60%, transparent);
-    color: var(--cat-accent);
+    background: rgba(160,160,255,0.16);
+    border-color: rgba(160,160,255,0.5);
+    color: var(--color-base-1);
 }
 </style>
