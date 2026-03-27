@@ -14,6 +14,7 @@ use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\ServiceTimeUnit;
 
+use App\Models\ChatBlock;
 use App\Models\User;
 use App\Models\UserLanguage;
 use App\Services\IdolRatingService;
@@ -46,9 +47,15 @@ class UserProfileController extends Controller
                 'timezone'         => $user->timezone,
                 'checklist_snoozed' => $checklistSnoozed,
             ],
-            'isOwner'   => auth()->id() === $user->id,
-            'isIdol'    => (bool) $user->is_idol,
-            'rating'    => $user->rating,
+            'isOwner'          => auth()->id() === $user->id,
+            'isIdol'           => (bool) $user->is_idol,
+            'rating'           => $user->rating,
+            'isBlockedByIdol'  => auth()->check()
+                ? ChatBlock::active()
+                    ->where('blocker_id', $user->id)
+                    ->where('blocked_id', auth()->id())
+                    ->exists()
+                : false,
 
             // Deferred group "about" — traits, interests, languages + their catalogs
             'traits'        => Inertia::defer(fn () => $user->load('traits')->traits->map(fn ($t) => ['id' => $t->id, 'name_ru' => $t->name_ru]), 'about'),

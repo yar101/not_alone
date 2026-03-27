@@ -30,6 +30,7 @@ const props = defineProps({
     services:           { default: null },
     serviceCategories:  { default: null },
     serviceTimeUnits:   { default: null },
+    isBlockedByIdol:    { type: Boolean, default: false },
 });
 
 // ── Auth ──────────────────────────────────────────────────────
@@ -366,6 +367,7 @@ onMounted(async () => {
                                     :is-owner="isOwner"
                                     :is-idol="isIdol"
                                     :profile-user="profileUser"
+                                    :is-blocked-by-idol="isBlockedByIdol"
                                 />
                             </div>
                         </template>

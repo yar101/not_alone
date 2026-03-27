@@ -20,6 +20,7 @@ const props = defineProps({
     isOwner: { type: Boolean, default: false },
     isIdol: { type: Boolean, default: false },
     profileUser: { type: Object, default: null },
+    isBlockedByIdol: { type: Boolean, default: false },
 });
 
 // ── localServices — не сбрасывается в null при redirect-рефетче ─
@@ -30,6 +31,14 @@ const cart = inject('cart', null);
 const openAuth = inject('openAuth', null);
 const cartConflictModal = ref(false);
 const pendingCartItem   = ref(null);
+const blockError        = ref(false);
+let blockErrorTimer = null;
+
+function showBlockError() {
+    blockError.value = true;
+    clearTimeout(blockErrorTimer);
+    blockErrorTimer = setTimeout(() => { blockError.value = false; }, 3500);
+}
 
 function isInCart(serviceId) {
     return !!cart?.value?.items.find(i => i.service_id === serviceId);
@@ -37,6 +46,7 @@ function isInCart(serviceId) {
 
 function addToCart(item) {
     if (!page.props.auth?.user) { openAuth?.('register'); return; }
+    if (props.isBlockedByIdol) { showBlockError(); return; }
     if (!cart) return;
     const c = cart.value;
     const idolId = props.profileUser?.id;
@@ -427,6 +437,13 @@ watch(selectedCategory, (cat) => {
 
 <template>
     <div class="services-wrap">
+
+        <!-- Block error toast -->
+        <Transition name="block-err">
+            <div v-if="blockError" class="svc-block-error">
+                Вы заблокированы этим пользователем и не можете делать заказы
+            </div>
+        </Transition>
 
         <!-- Loading skeleton -->
         <template v-if="!loaded">
@@ -2339,6 +2356,22 @@ watch(selectedCategory, (cat) => {
     transition: color 0.18s, border-color 0.18s;
 }
 .sf-btn-cancel:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.2); }
+
+.svc-block-error {
+    position: sticky;
+    top: 1rem;
+    z-index: 10;
+    margin: 0 1rem 1rem;
+    padding: 0.65rem 1rem;
+    background: rgba(255, 80, 80, 0.12);
+    border: 1px solid rgba(255, 80, 80, 0.35);
+    border-radius: 6px;
+    color: rgba(255, 140, 140, 0.95);
+    font-size: 0.9rem;
+    text-align: center;
+}
+.block-err-enter-active, .block-err-leave-active { transition: opacity 0.25s, transform 0.25s; }
+.block-err-enter-from, .block-err-leave-to { opacity: 0; transform: translateY(-6px); }
 </style>
 
 <style>

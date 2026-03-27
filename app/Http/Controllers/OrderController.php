@@ -6,6 +6,7 @@ use App\Events\MessageSent;
 use App\Events\NewNotification;
 use App\Events\OrderChanged;
 use App\Events\OrderStatusChanged;
+use App\Models\ChatBlock;
 use App\Models\Conversation;
 use App\Models\Order;
 use App\Models\Service;
@@ -42,6 +43,10 @@ class OrderController extends Controller
 
         if ($services->count() !== $serviceIds->unique()->count()) {
             return response()->json(['error' => 'Некоторые услуги недоступны'], 422);
+        }
+
+        if (ChatBlock::active()->where('blocker_id', $idol->id)->where('blocked_id', $user->id)->exists()) {
+            return response()->json(['error' => 'Вы заблокированы этим пользователем'], 422);
         }
 
         // Create order

@@ -516,9 +516,10 @@ watch(ordersSubTab, () => {
     orderFiltersOpen.value = false;
 });
 
-// ── Close on navigation ──────────────────────────────────
+// ── Close on navigation (ignore reloads on same URL) ─────
 watch(() => page.url, (newUrl, oldUrl) => {
-    if (newUrl !== oldUrl) isOpen.value = false;
+    const stripQuery = (url) => url.split('?')[0].split('#')[0];
+    if (stripQuery(newUrl) !== stripQuery(oldUrl)) isOpen.value = false;
 });
 
 onUnmounted(() => {
@@ -597,9 +598,9 @@ async function submitCancelOrder() {
 async function openOrder(orderId) {
     isOpen.value = true;
     activeTab.value = 'orders';
-    ordersSubTab.value = 'mine';
     await fetchOrders();
     const order = orders.value.find(o => o.id === orderId);
+    ordersSubTab.value = order?.is_customer === false ? 'incoming' : 'mine';
     if (order) await openOrderConversation(order);
 }
 
@@ -950,29 +951,35 @@ function formatDate(iso) {
                         <!-- Оверлей: заблокированный -->
                         <div v-if="activeBlock?.active && !activeBlock?.i_am_blocker" class="chat-blocked-overlay">
                             <div class="chat-blocked-card">
-                                <svg class="chat-blocked-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                                </svg>
-                                <p class="chat-blocked-title">Вы заблокированы</p>
+                                <p class="chat-blocked-header">================================</p>
+                                <p class="chat-blocked-title">// ДОСТУП ЗАПРЕЩЁН //</p>
+                                <p class="chat-blocked-header">================================</p>
                                 <p class="chat-blocked-reason">{{ activeBlock.reason }}</p>
+                                <p class="chat-blocked-header">--------------------------------</p>
                                 <div class="chat-blocked-timer">
+                                    <span class="chat-blocked-timer__label" v-if="activeBlock.blocked_until">ОСТАЛОСЬ</span>
+                                    <span class="chat-blocked-timer__label" v-else>СРОК БЛОКИРОВКИ</span>
                                     <span class="chat-blocked-timer__value">{{ blockedUntilLabel }}</span>
-                                    <span class="chat-blocked-timer__label" v-if="activeBlock.blocked_until">осталось</span>
                                 </div>
+                                <p class="chat-blocked-header">================================</p>
                             </div>
                         </div>
                         </div><!-- end chat-messages-wrap -->
 
-                        <!-- Баннер блокировщика -->
-                        <div v-if="activeBlock?.active && activeBlock?.i_am_blocker" class="chat-block-banner">
-                            Вы заблокировали этого пользователя
-                            <button @click="submitUnblock" class="chat-block-unblock-btn">Разблокировать</button>
-                        </div>
-
                         <!-- Поле ввода + панель заказа (всё вместе в абс. блоке снизу) -->
                         <div class="chat-input-wrap">
                             <div class="chat-input-fade"></div>
+
+                            <!-- Баннер блокировщика -->
+                            <div v-if="activeBlock?.active && activeBlock?.i_am_blocker" class="chat-block-banner">
+                                <div class="chat-block-banner__info">
+                                    <span class="chat-block-banner__label">// ПОЛЬЗОВАТЕЛЬ ЗАБЛОКИРОВАН //</span>
+                                    <span class="chat-block-banner__timer">
+                                        {{ activeBlock.blocked_until ? blockedUntilLabel + ' осталось' : 'Навсегда' }}
+                                    </span>
+                                </div>
+                                <button @click="submitUnblock" class="chat-block-unblock-btn">РАЗБЛОКИРОВАТЬ</button>
+                            </div>
 
                             <!-- Панель действий заказа -->
                             <div v-if="activeOrderData && activeOrderData.status !== 'cancelled'" class="chat-order-actions">
@@ -1908,53 +1915,54 @@ function formatDate(iso) {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.65rem;
-    background: rgba(255, 50, 130, 0.06);
-    border: 1px solid rgba(255, 80, 160, 0.22);
-    border-radius: 16px;
-    padding: 2rem 2.5rem 1.75rem;
-    max-width: 300px;
-    box-shadow: 0 0 40px rgba(255, 80, 160, 0.1);
+    gap: 0.45rem;
+    background: rgba(180, 20, 20, 0.1);
+    border: 2px dashed rgba(220, 60, 60, 0.5);
+    border-radius: 3px;
+    padding: 1.5rem 2rem;
+    max-width: 320px;
+    font-family: 'Courier New', Courier, monospace;
+    text-align: center;
 }
-.chat-blocked-icon {
-    color: rgba(255, 80, 160, 0.55);
-    margin-bottom: 0.25rem;
-    flex-shrink: 0;
+.chat-blocked-header {
+    font-size: 0.75rem;
+    color: rgba(255, 80, 80, 0.35);
+    margin: 0;
+    letter-spacing: 0.02em;
+    user-select: none;
 }
 .chat-blocked-title {
-    font-size: 0.72rem;
+    font-size: 1rem;
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(255, 90, 90, 0.95);
     margin: 0;
     letter-spacing: 0.1em;
-    text-transform: uppercase;
 }
 .chat-blocked-reason {
-    font-size: 0.95rem;
-    color: rgba(255, 255, 255, 0.8);
-    margin: 0;
+    font-size: 0.9rem;
+    color: rgba(255, 200, 200, 0.75);
+    margin: 0.2rem 0;
+    letter-spacing: 0.03em;
 }
 .chat-blocked-timer {
-    margin-top: 0.5rem;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.2rem;
+    gap: 0.15rem;
+    margin: 0.2rem 0;
 }
 .chat-blocked-timer__value {
-    font-size: 1.25rem;
-    font-weight: 400;
-    font-family: 'Courier New', Courier, monospace;
-    color: #ff5aaa;
-    text-shadow: 0 0 18px rgba(255, 80, 160, 0.45);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: rgba(255, 90, 90, 0.95);
     font-variant-numeric: tabular-nums;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
     line-height: 1.2;
 }
 .chat-blocked-timer__label {
     font-size: 0.7rem;
-    color: rgba(255, 80, 160, 0.5);
-    letter-spacing: 0.12em;
+    color: rgba(255, 90, 90, 0.5);
+    letter-spacing: 0.15em;
     text-transform: uppercase;
 }
 
@@ -1964,30 +1972,47 @@ function formatDate(iso) {
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding: 0.5rem 1.1rem;
-    background: rgba(255, 140, 50, 0.1);
-    border-top: 1px solid rgba(255, 140, 50, 0.25);
-    border-bottom: 1px solid rgba(255, 140, 50, 0.15);
-    font-size: 0.85rem;
-    color: rgba(255, 190, 100, 0.85);
+    padding: 0.45rem 1.1rem;
+    background: rgba(200, 30, 30, 0.12);
+    border-top: 2px dashed rgba(220, 60, 60, 0.4);
+    border-bottom: 2px dashed rgba(220, 60, 60, 0.4);
+    font-family: 'Courier New', Courier, monospace;
     flex-shrink: 0;
+}
+.chat-block-banner__info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+.chat-block-banner__label {
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: rgba(255, 100, 100, 0.9);
+}
+.chat-block-banner__timer {
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+    color: rgba(255, 100, 100, 0.55);
 }
 .chat-block-unblock-btn {
     background: transparent;
-    border: 1px solid rgba(255, 140, 50, 0.4);
-    color: rgba(255, 190, 100, 0.85);
-    font-size: 0.82rem;
-    padding: 0.2rem 0.65rem;
-    border-radius: 6px;
+    border: 1px solid rgba(220, 60, 60, 0.45);
+    color: rgba(255, 100, 100, 0.85);
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 0.3rem 0.9rem;
+    border-radius: 3px;
     cursor: pointer;
-    font-family: inherit;
+    font-family: 'Courier New', Courier, monospace;
     transition: border-color 0.15s, color 0.15s, background 0.15s;
     white-space: nowrap;
 }
 .chat-block-unblock-btn:hover {
-    border-color: rgba(255, 140, 50, 0.75);
-    color: #ffc875;
-    background: rgba(255, 140, 50, 0.1);
+    border-color: rgba(220, 60, 60, 0.8);
+    color: rgba(255, 120, 120, 1);
+    background: rgba(200, 30, 30, 0.12);
 }
 
 /* ── Block modal ──────────────────────────────────────── */
