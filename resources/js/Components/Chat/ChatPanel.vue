@@ -40,6 +40,72 @@ const searchQuery     = ref('');
 // Online status — from global presence channel in AppLayout
 const onlineUserIds = inject('onlineUserIds', ref([]));
 
+// ── Orders tab ────────────────────────────────────────────
+const activeTab      = ref('messages'); // 'messages' | 'orders'
+const orders         = ref([]);
+const loadingOrders  = ref(false);
+const activeOrderData = ref(null); // order data for the current open conversation
+const ordersSubTab   = ref('mine'); // 'mine' | 'incoming' — only used when authUser is idol
+
+const orderStatusFilter = ref('all'); // 'all' | 'pending' | 'accepted' | 'cancelled'
+const orderSearch       = ref('');
+const orderFiltersOpen  = ref(false);
+
+const subtabOrders = computed(() => {
+    if (!authUser.value?.is_idol) return orders.value;
+    return ordersSubTab.value === 'mine'
+        ? orders.value.filter(o => o.is_customer)
+        : orders.value.filter(o => !o.is_customer);
+});
+
+const orderStatusCounts = computed(() => ({
+    all:       subtabOrders.value.length,
+    pending:   subtabOrders.value.filter(o => o.status === 'pending').length,
+    accepted:  subtabOrders.value.filter(o => o.status === 'accepted').length,
+    cancelled: subtabOrders.value.filter(o => o.status === 'cancelled').length,
+}));
+
+const visibleOrders = computed(() => {
+    let list = subtabOrders.value;
+    if (orderStatusFilter.value !== 'all') {
+        list = list.filter(o => o.status === orderStatusFilter.value);
+    }
+    if (orderSearch.value.trim()) {
+        const q = orderSearch.value.trim().toLowerCase();
+        list = list.filter(o => {
+            const partner = o.is_customer ? o.idol : o.customer;
+            return partner.name.toLowerCase().includes(q);
+        });
+    }
+    return list;
+});
+
+// ── Cancel order modal ────────────────────────────────────
+const cancelModal       = ref(false);
+const cancelReason      = ref('');
+const cancelSubmitting  = ref(false);
+const CANCEL_TEMPLATES_CUSTOMER = [
+    'Изменились планы',
+    'Нашёл другого исполнителя',
+    'Сделал заказ по ошибке',
+    'Не устраивают условия',
+    'Не получил ответа от исполнителя',
+    'По личным причинам',
+];
+
+const CANCEL_TEMPLATES_IDOL = [
+    'Изменились планы',
+    'Не смогу выполнить этот заказ',
+    'Не хватает времени',
+    'Слишком большой объём работы',
+    'Это не моя специализация',
+    'По личным причинам',
+];
+
+const cancelTemplates = computed(() =>
+    activeOrderData.value?.is_customer ? CANCEL_TEMPLATES_CUSTOMER : CANCEL_TEMPLATES_IDOL
+);
+
 // ── Avatar fullscreen ─────────────────────────────────────
 const avatarFullscreen = ref(false);
 
@@ -82,6 +148,7 @@ const blockedUntilLabel = computed(() => {
 });
 
 let echoChannel = null;
+let ordersEchoChannel = null;
 
 // ── Close panel ──────────────────────────────────────────
 function close() {
@@ -124,6 +191,7 @@ async function openConversation(conv) {
         hasMore.value = res.data.has_more;
         otherLastReadAt.value = res.data.other_last_read_at ?? null;
         activeBlock.value = res.data.block ?? null;
+        activeOrderData.value = res.data.order ?? null;
         if (res.data.other_user) {
             activeConversation.value = { ...conv, other_user: res.data.other_user };
         }
@@ -202,6 +270,27 @@ function subscribeEcho(conversationId) {
                 otherLastReadAt.value = data.read_at;
             }
         })
+        .listen('.order.status-changed', (data) => {
+            if (activeOrderData.value && activeOrderData.value.id === data.order_id) {
+                activeOrderData.value = {
+                    ...activeOrderData.value,
+                    status: data.status,
+                    cancelled_by:      data.cancelled_by      ?? activeOrderData.value.cancelled_by,
+                    cancelled_by_name: data.cancelled_by_name ?? activeOrderData.value.cancelled_by_name,
+                    cancel_reason:     data.cancel_reason     ?? activeOrderData.value.cancel_reason,
+                };
+            }
+            const idx = orders.value.findIndex(o => o.id === data.order_id);
+            if (idx !== -1) {
+                orders.value[idx] = {
+                    ...orders.value[idx],
+                    status:            data.status,
+                    cancelled_by:      data.cancelled_by      ?? orders.value[idx].cancelled_by,
+                    cancelled_by_name: data.cancelled_by_name ?? orders.value[idx].cancelled_by_name,
+                    cancel_reason:     data.cancel_reason     ?? orders.value[idx].cancel_reason,
+                };
+            }
+        })
         .listenForWhisper('typing', () => {
             isTyping.value = true;
             clearTimeout(typingTimer.value);
@@ -217,6 +306,29 @@ function leaveEcho() {
     echoChannel = null;
     clearTimeout(typingTimer.value);
     isTyping.value = false;
+}
+
+function subscribeOrdersEcho() {
+    if (!window.Echo || !authUser.value) return;
+    ordersEchoChannel = window.Echo.private(`orders.${authUser.value.id}`)
+        .listen('.order.changed', ({ change_type, order }) => {
+            const idx = orders.value.findIndex(o => o.id === order.id);
+            if (idx !== -1) {
+                orders.value[idx] = order;
+            } else {
+                orders.value.unshift(order);
+            }
+            if (activeOrderData.value?.id === order.id) {
+                activeOrderData.value = { ...activeOrderData.value, ...order };
+            }
+        });
+}
+
+function leaveOrdersEcho() {
+    if (ordersEchoChannel && window.Echo && authUser.value) {
+        window.Echo.leave(`orders.${authUser.value.id}`);
+    }
+    ordersEchoChannel = null;
 }
 
 async function markRead(conversationId) {
@@ -376,12 +488,31 @@ function isMessageRead(msg) {
 
 // ── Watch panel open ─────────────────────────────────────
 watch(isOpen, (val) => {
-    if (val) fetchConversations();
+    if (val) {
+        fetchConversations();
+        if (activeTab.value === 'orders') fetchOrders();
+        subscribeOrdersEcho();
+    }
     if (!val) {
         leaveEcho();
+        leaveOrdersEcho();
         activeConversation.value = null;
+        activeOrderData.value = null;
         searchQuery.value = '';
+        orderSearch.value = '';
+        orderStatusFilter.value = 'all';
+        orderFiltersOpen.value = false;
     }
+});
+
+watch(activeTab, (tab) => {
+    if (tab === 'orders') fetchOrders();
+});
+
+watch(ordersSubTab, () => {
+    orderStatusFilter.value = 'all';
+    orderSearch.value = '';
+    orderFiltersOpen.value = false;
 });
 
 // ── Close on navigation ──────────────────────────────────
@@ -391,10 +522,87 @@ watch(() => page.url, (newUrl, oldUrl) => {
 
 onUnmounted(() => {
     leaveEcho();
+    leaveOrdersEcho();
     clearInterval(nowTimer);
 });
 
-defineExpose({ startWith });
+// ── Orders helpers ────────────────────────────────────────
+async function fetchOrders() {
+    loadingOrders.value = true;
+    try {
+        const res = await axios.get(route('orders.index'));
+        orders.value = res.data.orders;
+    } finally {
+        loadingOrders.value = false;
+    }
+}
+
+async function openOrderConversation(order) {
+    if (!order.conversation_id) return;
+    const other = order.is_customer ? order.idol : order.customer;
+    await openConversation({ id: order.conversation_id, other_user: other, unread_count: 0 });
+}
+
+const acceptBtnText = computed(() => {
+    const gender = activeOrderData.value?.idol?.gender;
+    if (gender === 'male')   return 'Готов принять заказ';
+    if (gender === 'female') return 'Готова принять заказ';
+    return 'Готов(а) принять заказ';
+});
+
+function orderTotal(order) {
+    return order.items.reduce((s, i) => s + (i.service?.price ?? 0), 0);
+}
+
+function cancelledByLabel(orderData) {
+    if (!orderData?.cancelled_by) return null;
+    if (orderData.cancelled_by === authUser.value?.id) return 'вами';
+    return orderData.cancelled_by_name ?? null;
+}
+
+async function acceptOrder() {
+    if (!activeOrderData.value || activeOrderData.value.status !== 'pending') return;
+    await axios.patch(route('orders.accept', activeOrderData.value.id));
+    activeOrderData.value = { ...activeOrderData.value, status: 'accepted' };
+    orders.value = orders.value.map(o => o.id === activeOrderData.value.id ? { ...o, status: 'accepted' } : o);
+    router.reload({ only: ['order_notifications_unread'] });
+}
+
+async function submitCancelOrder() {
+    if (!cancelReason.value.trim() || cancelSubmitting.value) return;
+    cancelSubmitting.value = true;
+    try {
+        await axios.patch(route('orders.cancel', activeOrderData.value.id), { cancel_reason: cancelReason.value });
+        const updated = {
+            ...activeOrderData.value,
+            status: 'cancelled',
+            cancel_reason: cancelReason.value,
+            cancelled_by: authUser.value.id,
+            cancelled_by_name: authUser.value.name,
+        };
+        activeOrderData.value = updated;
+        orders.value = orders.value.map(o => o.id === updated.id
+            ? { ...o, status: 'cancelled', cancel_reason: updated.cancel_reason, cancelled_by: updated.cancelled_by, cancelled_by_name: updated.cancelled_by_name }
+            : o
+        );
+        cancelModal.value = false;
+        cancelReason.value = '';
+        router.reload({ only: ['order_notifications_unread'] });
+    } finally {
+        cancelSubmitting.value = false;
+    }
+}
+
+async function openOrder(orderId) {
+    isOpen.value = true;
+    activeTab.value = 'orders';
+    ordersSubTab.value = 'mine';
+    await fetchOrders();
+    const order = orders.value.find(o => o.id === orderId);
+    if (order) await openOrderConversation(order);
+}
+
+defineExpose({ startWith, openOrder });
 
 // ── Helpers ──────────────────────────────────────────────
 function formatTime(iso) {
@@ -423,7 +631,7 @@ function formatDate(iso) {
                 <!-- ── Sidebar: список диалогов ───────────── -->
                 <div class="chat-sidebar">
                     <div class="chat-sidebar__header">
-                        <span class="chat-sidebar__title">Сообщения</span>
+                        <span class="chat-sidebar__title">Чат</span>
                         <button class="chat-icon-btn" @click="close">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -431,8 +639,14 @@ function formatDate(iso) {
                         </button>
                     </div>
 
-                    <!-- Поиск по диалогам -->
-                    <div class="chat-sidebar__search">
+                    <!-- Табы -->
+                    <div class="chat-tabs">
+                        <button class="chat-tab" :class="{ 'chat-tab--active': activeTab === 'messages' }" @click="activeTab = 'messages'">Сообщения</button>
+                        <button class="chat-tab" :class="{ 'chat-tab--active': activeTab === 'orders' }" @click="activeTab = 'orders'">Заказы</button>
+                    </div>
+
+                    <!-- Поиск по диалогам (только для сообщений) -->
+                    <div v-if="activeTab === 'messages'" class="chat-sidebar__search">
                         <input
                             v-model="searchQuery"
                             type="text"
@@ -442,40 +656,140 @@ function formatDate(iso) {
                     </div>
 
                     <div class="chat-sidebar__list">
-                        <div v-if="loadingConvs" class="chat-empty">Загрузка…</div>
-                        <template v-else-if="conversations.length === 0">
-                            <div class="chat-no-convs">
-                                <p>Нет диалогов</p>
-                                <a :href="route('users.search')">Найти пользователей →</a>
-                            </div>
-                        </template>
-                        <template v-else>
-                            <button
-                                v-for="conv in filteredConversations"
-                                :key="conv.id"
-                                class="chat-conv-item"
-                                :class="{
-                                    'chat-conv-item--active': activeConversation?.id === conv.id,
-                                    'chat-conv-item--unread': conv.unread_count > 0,
-                                }"
-                                @click="openConversation(conv)"
-                            >
-                                <div class="chat-conv-avatar">
-                                    <img v-if="conv.other_user?.avatar_url" :src="conv.other_user.avatar_url" alt="" />
-                                    <span v-else>{{ conv.other_user?.name?.charAt(0) ?? '?' }}</span>
+                        <!-- ── Сообщения ── -->
+                        <template v-if="activeTab === 'messages'">
+                            <div v-if="loadingConvs" class="chat-empty">Загрузка…</div>
+                            <template v-else-if="conversations.length === 0">
+                                <div class="chat-no-convs">
+                                    <p>Нет диалогов</p>
+                                    <a :href="route('users.search')">Найти пользователей →</a>
                                 </div>
-                                <div class="chat-conv-info">
-                                    <div class="chat-conv-name">
-                                        {{ conv.other_user?.name ?? '—' }}
+                            </template>
+                            <template v-else>
+                                <button
+                                    v-for="conv in filteredConversations"
+                                    :key="conv.id"
+                                    class="chat-conv-item"
+                                    :class="{
+                                        'chat-conv-item--active': activeConversation?.id === conv.id,
+                                        'chat-conv-item--unread': conv.unread_count > 0,
+                                    }"
+                                    @click="openConversation(conv)"
+                                >
+                                    <div class="chat-conv-avatar">
+                                        <img v-if="conv.other_user?.avatar_url" :src="conv.other_user.avatar_url" alt="" />
+                                        <span v-else>{{ conv.other_user?.name?.charAt(0) ?? '?' }}</span>
                                     </div>
-                                    <div class="chat-conv-preview">{{ conv.last_message?.body ?? '' }}</div>
-                                </div>
-                                <div class="chat-conv-meta">
-                                    <span class="chat-conv-time">{{ formatDate(conv.last_message?.created_at) }}</span>
-                                    <span v-if="conv.unread_count > 0" class="chat-conv-badge">{{ conv.unread_count }}</span>
-                                </div>
-                            </button>
+                                    <div class="chat-conv-info">
+                                        <div class="chat-conv-name">{{ conv.other_user?.name ?? '—' }}</div>
+                                        <div class="chat-conv-preview">{{ conv.last_message?.body ?? '' }}</div>
+                                    </div>
+                                    <div class="chat-conv-meta">
+                                        <span class="chat-conv-time">{{ formatDate(conv.last_message?.created_at) }}</span>
+                                        <span v-if="conv.unread_count > 0" class="chat-conv-badge">{{ conv.unread_count }}</span>
+                                    </div>
+                                </button>
+                            </template>
                         </template>
+
+                        <!-- ── Заказы ── -->
+                        <template v-else-if="activeTab === 'orders'">
+                            <div v-if="loadingOrders" class="chat-empty">Загрузка…</div>
+                            <template v-else>
+                                <!-- Саб-табы только для айдолов -->
+                                <div v-if="authUser?.is_idol" class="chat-order-subtabs">
+                                    <button
+                                        class="chat-order-subtab"
+                                        :class="{ 'chat-order-subtab--active': ordersSubTab === 'mine' }"
+                                        @click="ordersSubTab = 'mine'"
+                                    >Мои</button>
+                                    <button
+                                        class="chat-order-subtab"
+                                        :class="{ 'chat-order-subtab--active': ordersSubTab === 'incoming' }"
+                                        @click="ordersSubTab = 'incoming'"
+                                    >Входящие</button>
+                                </div>
+
+                                <!-- ── Фильтры заказов ──────────────────── -->
+                                <div class="order-filters">
+                                    <input
+                                        v-model="orderSearch"
+                                        type="text"
+                                        class="chat-search-input order-filters__search-input"
+                                        placeholder="Поиск по имени…"
+                                    />
+                                    <button
+                                        class="order-filters__toggle"
+                                        :class="{ 'order-filters__toggle--open': orderFiltersOpen }"
+                                        @click="orderFiltersOpen = !orderFiltersOpen"
+                                    >
+                                        Фильтры
+                                        <svg class="order-filters__arrow" width="10" height="10" viewBox="0 0 10 10" fill="none">
+                                            <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </button>
+                                    <Transition name="of-expand">
+                                        <div v-if="orderFiltersOpen" class="order-filters__pills">
+                                            <button
+                                                v-for="pill in [
+                                                    { key: 'all',       label: 'Все' },
+                                                    { key: 'pending',   label: 'Ожидает' },
+                                                    { key: 'accepted',  label: 'Принят' },
+                                                    { key: 'cancelled', label: 'Отменён' },
+                                                ]"
+                                                :key="pill.key"
+                                                class="order-filter-pill"
+                                                :class="{
+                                                    'order-filter-pill--active': orderStatusFilter === pill.key,
+                                                    [`order-filter-pill--${pill.key}`]: pill.key !== 'all',
+                                                }"
+                                                @click="orderStatusFilter = pill.key"
+                                            >
+                                                {{ pill.label }}
+                                                <span class="order-filter-pill__count">{{ orderStatusCounts[pill.key] }}</span>
+                                            </button>
+                                        </div>
+                                    </Transition>
+                                </div>
+
+                                <template v-if="visibleOrders.length === 0">
+                                    <div class="chat-no-convs"><p>Нет заказов</p></div>
+                                </template>
+                                <template v-else>
+                                <button
+                                    v-for="order in visibleOrders"
+                                    :key="order.id"
+                                    class="order-stub"
+                                    :class="[`order-stub--${order.status}`, { 'order-stub--active': activeOrderData?.id === order.id }]"
+                                    @click="openOrderConversation(order)"
+                                >
+                                    <div class="order-stub__head">
+                                        <div class="chat-conv-avatar chat-conv-avatar--sm">
+                                            <img v-if="(order.is_customer ? order.idol : order.customer).avatar_url"
+                                                :src="(order.is_customer ? order.idol : order.customer).avatar_url" alt="" />
+                                            <span v-else>{{ (order.is_customer ? order.idol : order.customer).name?.charAt(0) ?? '?' }}</span>
+                                        </div>
+                                        <div class="order-stub__who">
+                                            <span class="order-stub__name">{{ (order.is_customer ? order.idol : order.customer).name }}</span>
+                                            <span class="order-stub__date">{{ formatDate(order.created_at) }}</span>
+                                        </div>
+                                        <span class="order-stub__badge" :class="`order-stub__badge--${order.status}`">
+                                            {{ { pending: 'Ожидает', accepted: 'Принят', cancelled: 'Отменён' }[order.status] }}
+                                        </span>
+                                    </div>
+                                    <div class="order-stub__perf">
+                                        <span class="order-stub__perf-dot" v-for="n in 14" :key="n"></span>
+                                    </div>
+                                    <div class="order-stub__foot">
+                                        <span class="order-stub__count">
+                                            {{ order.items.length }}&thinsp;{{ order.items.length === 1 ? 'услуга' : order.items.length < 5 ? 'услуги' : 'услуг' }}
+                                        </span>
+                                        <span class="order-stub__total">{{ orderTotal(order).toLocaleString('ru-RU') }}&thinsp;₽</span>
+                                    </div>
+                                </button>
+                                </template><!-- /visibleOrders -->
+                            </template><!-- /v-else (not loading) -->
+                        </template><!-- /orders tab -->
                     </div>
                 </div>
 
@@ -544,7 +858,53 @@ function formatDate(iso) {
                                             <span>{{ item.label }}</span>
                                         </div>
 
-                                        <!-- Message -->
+                                        <!-- System message -->
+                                        <div v-else-if="item.type === 'message' && item.msg.type === 'system'" class="chat-system-msg">
+                                            <template v-if="item.msg.metadata?.event === 'order_created'">
+                                                <div class="sc-card">
+                                                    <div class="sc-rule sc-rule--double"></div>
+                                                    <p class="sc-title">ЗАКАЗ ОФОРМЛЕН</p>
+                                                    <div class="sc-rule sc-rule--double"></div>
+                                                    <div class="sc-lines">
+                                                        <div v-for="s in item.msg.metadata.services" :key="s.id" class="sc-line">
+                                                            <span class="sc-line__name">{{ s.name }}</span>
+                                                            <span class="sc-line__dots"></span>
+                                                            <span class="sc-line__price">{{ s.price?.toLocaleString('ru-RU') }}&thinsp;₽<template v-if="s.time_unit">&thinsp;/&thinsp;{{ s.time_unit }}</template></span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="sc-perf"><span class="sc-perf__line"></span></div>
+                                                    <div class="sc-total">
+                                                        <span class="sc-total__label">ИТОГО</span>
+                                                        <span class="sc-total__value">{{ item.msg.metadata.services.reduce((sum, s) => sum + (s.price ?? 0), 0).toLocaleString('ru-RU') }}&thinsp;₽</span>
+                                                    </div>
+                                                    <div class="sc-rule sc-rule--double"></div>
+                                                </div>
+                                            </template>
+                                            <template v-else-if="item.msg.metadata?.event === 'order_accepted'">
+                                                <div class="sc-card sc-card--accept">
+                                                    <div class="sc-rule sc-rule--double sc-rule--green"></div>
+                                                    <p class="sc-title sc-title--accept">
+                                                        {{
+                                                            item.msg.metadata.idol_gender === 'male'   ? 'ГОТОВ ПРИНЯТЬ ЗАКАЗ' :
+                                                            item.msg.metadata.idol_gender === 'female' ? 'ГОТОВА ПРИНЯТЬ ЗАКАЗ' :
+                                                            'ГОТОВ(А) ПРИНЯТЬ ЗАКАЗ'
+                                                        }}
+                                                    </p>
+                                                    <div class="sc-rule sc-rule--double sc-rule--green"></div>
+                                                </div>
+                                            </template>
+                                            <template v-else-if="item.msg.metadata?.event === 'order_cancelled'">
+                                                <div class="sc-card sc-card--cancel">
+                                                    <div class="sc-rule sc-rule--double sc-rule--red"></div>
+                                                    <p class="sc-title sc-title--cancel">ЗАКАЗ ОТМЕНЁН</p>
+                                                    <p class="sc-who sc-who--cancel">{{ item.msg.metadata.cancelled_by === authUser?.id ? 'Вами' : (item.msg.metadata.cancelled_by_name ?? 'Другой стороной') }}</p>
+                                                    <p v-if="item.msg.metadata.cancel_reason" class="sc-reason">{{ item.msg.metadata.cancel_reason }}</p>
+                                                    <div class="sc-rule sc-rule--double sc-rule--red"></div>
+                                                </div>
+                                            </template>
+                                        </div>
+
+                                        <!-- Regular message -->
                                         <div
                                             v-else-if="item.type === 'message'"
                                             class="chat-msg"
@@ -609,10 +969,35 @@ function formatDate(iso) {
                             <button @click="submitUnblock" class="chat-block-unblock-btn">Разблокировать</button>
                         </div>
 
-                        <!-- Поле ввода -->
+                        <!-- Поле ввода + панель заказа (всё вместе в абс. блоке снизу) -->
                         <div class="chat-input-wrap">
                             <div class="chat-input-fade"></div>
-                            <div class="chat-input-inner">
+
+                            <!-- Панель действий заказа -->
+                            <div v-if="activeOrderData && activeOrderData.status !== 'cancelled'" class="chat-order-actions">
+                                <button
+                                    v-if="!activeOrderData.is_customer && activeOrderData.status === 'pending'"
+                                    class="chat-order-btn chat-order-btn--accept"
+                                    @click="acceptOrder"
+                                >{{ acceptBtnText.toUpperCase() }}</button>
+                                <button
+                                    v-if="activeOrderData.is_customer && activeOrderData.status === 'accepted'"
+                                    class="chat-order-btn chat-order-btn--pay"
+                                >ОПЛАТИТЬ ЗАКАЗ</button>
+                                <button class="chat-order-btn chat-order-btn--cancel" @click="cancelModal = true">ОТМЕНИТЬ ЗАКАЗ</button>
+                            </div>
+
+                            <!-- Плашка: заказ отменён -->
+                            <div v-if="activeOrderData?.status === 'cancelled'" class="chat-order-cancelled-bar">
+                                <span class="chat-order-cancelled-bar__label">// ЗАКАЗ ОТМЕНЁН //</span>
+                                <template v-if="cancelledByLabel(activeOrderData)">
+                                    <span class="chat-order-cancelled-bar__who">{{ cancelledByLabel(activeOrderData) }}</span>
+                                </template>
+                                <span v-if="activeOrderData.cancel_reason" class="chat-order-cancelled-bar__reason">{{ activeOrderData.cancel_reason }}</span>
+                            </div>
+
+                            <!-- Textarea (скрыт если заказ отменён) -->
+                            <div v-if="!activeOrderData || activeOrderData.status !== 'cancelled'" class="chat-input-inner">
                                 <textarea
                                     v-model="newMessage"
                                     class="chat-input"
@@ -679,6 +1064,46 @@ function formatDate(iso) {
             </div>
         </SiteModal>
 
+    <!-- ── Модалка отмены заказа ─────────────────────── -->
+    <SiteModal :show="cancelModal" variant="pink" compact @close="cancelModal = false">
+        <div class="cm-wrap">
+            <div class="cm-rule cm-rule--double cm-rule--red"></div>
+            <h2 class="cm-title">ОТМЕНА ЗАКАЗА</h2>
+            <div class="cm-rule cm-rule--double cm-rule--red"></div>
+
+            <div class="cm-section-label">// ВЫБЕРИТЕ ПРИЧИНУ</div>
+            <div class="cm-tags">
+                <button
+                    v-for="t in cancelTemplates"
+                    :key="t"
+                    class="cm-tag"
+                    :class="{ 'cm-tag--selected': cancelReason === t }"
+                    @click="cancelReason = t"
+                >{{ t }}</button>
+            </div>
+
+            <div class="cm-section-label">// ИЛИ НАПИШИТЕ СВОЮ</div>
+            <textarea
+                v-model="cancelReason"
+                class="cm-textarea"
+                placeholder="причина отмены…"
+                rows="3"
+                maxlength="1000"
+            ></textarea>
+
+            <div class="cm-perf"><span class="cm-perf__line"></span></div>
+
+            <div class="cm-footer">
+                <button class="cm-btn cm-btn--back" @click="cancelModal = false">НАЗАД</button>
+                <button
+                    class="cm-btn cm-btn--confirm"
+                    :disabled="!cancelReason.trim() || cancelSubmitting"
+                    @click="submitCancelOrder"
+                >{{ cancelSubmitting ? 'ОТМЕНЯЕМ…' : 'ПОДТВЕРДИТЬ' }}</button>
+            </div>
+        </div>
+    </SiteModal>
+
     <!-- ── Полноэкранный просмотр аватарки ──────────────── -->
     <Teleport to="body">
         <Transition name="avatar-fade">
@@ -723,7 +1148,7 @@ function formatDate(iso) {
     top: 0;
     right: 0;
     bottom: 0;
-    width: 900px;
+    width: 1100px;
     max-width: 100vw;
     z-index: 1000;
     display: flex;
@@ -736,7 +1161,7 @@ function formatDate(iso) {
 
 /* ── Sidebar ──────────────────────────────────────────── */
 .chat-sidebar {
-    width: 260px;
+    width: 340px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -1685,4 +2110,791 @@ function formatDate(iso) {
     opacity: 0.35;
     cursor: not-allowed;
 }
+.bm-submit--danger {
+    background: linear-gradient(135deg, rgba(220, 60, 60, 0.45), rgba(180, 30, 30, 0.4));
+    border: 1px solid rgba(220, 80, 80, 0.5);
+    color: #ffaaaa;
+}
+.bm-submit--danger:hover:not(:disabled) {
+    background: linear-gradient(135deg, rgba(220, 60, 60, 0.65), rgba(180, 30, 30, 0.6));
+    border-color: rgba(220, 80, 80, 0.75);
+}
+.bm-textarea {
+    width: 100%;
+    background: rgba(110,110,210,0.07);
+    border: 1px solid rgba(110,110,210,0.2);
+    border-radius: 8px;
+    color: rgba(255,255,255,0.85);
+    padding: 0.55rem 0.75rem;
+    font-size: 0.875rem;
+    font-family: inherit;
+    resize: vertical;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.15s;
+}
+.bm-textarea:focus { border-color: rgba(160,160,255,0.4); }
+
+/* ── Cancel order modal ─────────────────────────────────── */
+.cm-wrap {
+    font-family: 'Courier New', Courier, monospace;
+    color: rgba(210, 240, 255, 0.78);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+.cm-rule {
+    width: 100%;
+    height: 0;
+    border: none;
+    border-top: 2px double rgba(100,210,255,0.3);
+    margin: 0.5rem 0;
+}
+.cm-rule--red { border-color: rgba(220,80,80,0.45); }
+
+.cm-title {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    color: rgba(255,120,120,0.9);
+    text-align: center;
+    margin: 0.3rem 0;
+}
+.cm-section-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    color: rgba(210,240,255,0.3);
+    margin: 0.9rem 0 0.45rem;
+}
+.cm-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.25rem;
+}
+.cm-tag {
+    padding: 0.32rem 0.7rem;
+    border-radius: 3px;
+    border: 1px dashed rgba(210,240,255,0.2);
+    background: transparent;
+    color: rgba(210,240,255,0.5);
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.cm-tag:hover {
+    border-color: rgba(210,240,255,0.45);
+    color: rgba(210,240,255,0.85);
+    background: rgba(100,210,255,0.05);
+}
+.cm-tag--selected {
+    border-color: rgba(100,210,255,0.55);
+    color: rgba(100,210,255,0.95);
+    background: rgba(100,210,255,0.08);
+    border-style: solid;
+}
+.cm-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(100,210,255,0.04);
+    border: 1px dashed rgba(100,210,255,0.22);
+    border-radius: 3px;
+    color: rgba(210,240,255,0.82);
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.82rem;
+    padding: 0.65rem 0.85rem;
+    resize: none;
+    outline: none;
+    transition: border-color 0.15s;
+    margin-top: 0.1rem;
+}
+.cm-textarea::placeholder { color: rgba(210,240,255,0.2); }
+.cm-textarea:focus { border-color: rgba(100,210,255,0.45); border-style: solid; }
+
+.cm-perf {
+    display: flex;
+    align-items: center;
+    margin: 1rem -0.1rem 0.85rem;
+    position: relative;
+}
+.cm-perf::before,
+.cm-perf::after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #12122a;
+    border: 1px solid rgba(220,80,80,0.15);
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+}
+.cm-perf::before { left: -5px; }
+.cm-perf::after  { right: -5px; }
+.cm-perf__line {
+    flex: 1;
+    display: block;
+    border-top: 1px dashed rgba(220,80,80,0.3);
+    margin: 0 7px;
+}
+
+.cm-footer {
+    display: flex;
+    gap: 0.55rem;
+}
+.cm-btn {
+    flex: 1;
+    padding: 0.65rem 1rem;
+    border-radius: 3px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    line-height: 1;
+    transition: background 0.15s, border-color 0.15s;
+}
+.cm-btn--back {
+    background: transparent;
+    border: 1px dashed rgba(210,240,255,0.18);
+    color: rgba(210,240,255,0.4);
+}
+.cm-btn--back:hover {
+    border-color: rgba(210,240,255,0.4);
+    color: rgba(210,240,255,0.75);
+}
+.cm-btn--confirm {
+    background: rgba(220,60,60,0.08);
+    border: 1px solid rgba(220,60,60,0.4);
+    color: rgba(255,120,120,0.9);
+}
+.cm-btn--confirm:hover:not(:disabled) {
+    background: rgba(220,60,60,0.18);
+    border-color: rgba(220,60,60,0.65);
+}
+.cm-btn--confirm:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* ── Chat tabs ──────────────────────────────────────────── */
+.chat-tabs {
+    display: flex;
+    border-bottom: 1px solid rgba(110,110,210,0.12);
+    flex-shrink: 0;
+}
+.chat-tab {
+    flex: 1;
+    padding: 0.55rem 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: rgba(255,255,255,0.35);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    font-family: inherit;
+}
+.chat-tab:hover { color: rgba(255,255,255,0.65); }
+.chat-tab--active {
+    color: #be91ff;
+    border-bottom-color: #be91ff;
+}
+
+/* ── Order stub cards ───────────────────────────────────── */
+.order-stub {
+    display: flex;
+    flex-direction: column;
+    width: calc(100% - 1.25rem);
+    margin: 0.75rem auto;
+    padding: 0;
+    border: none;
+    border-radius: 7px;
+    background: rgba(255,255,255,0.035);
+    cursor: pointer;
+    text-align: left;
+    position: relative;
+    overflow: visible;
+    transition: background 0.15s, box-shadow 0.15s, transform 0.12s;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(110,110,210,0.13);
+}
+
+.order-stub:hover {
+    background: rgba(255,255,255,0.055);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(140,110,255,0.2);
+}
+.order-stub--active {
+    background: rgba(120,85,255,0.1);
+    box-shadow: 0 2px 14px rgba(100,60,255,0.2), inset 0 0 0 1px rgba(160,120,255,0.28);
+}
+.order-stub--active:hover { transform: none; }
+
+/* head */
+.order-stub__head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0.75rem 0.55rem;
+}
+.order-stub__who {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+.order-stub__name {
+    font-size: 0.87rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.88);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.order-stub__date {
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.28);
+}
+.order-stub__badge {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    padding: 0.14rem 0.42rem;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+.order-stub__badge--pending  { background: rgba(180,130,0,0.2);  color: rgba(255,210,80,0.9);  border: 1px solid rgba(180,130,0,0.3); }
+.order-stub__badge--accepted { background: rgba(0,180,100,0.16); color: rgba(80,240,160,0.9);  border: 1px solid rgba(0,180,100,0.3); }
+.order-stub__badge--cancelled{ background: rgba(180,50,50,0.18); color: rgba(255,130,130,0.85);border: 1px solid rgba(180,50,50,0.28); }
+
+/* perforated tear line */
+.order-stub__perf {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 0;
+    position: relative;
+    height: 10px;
+    margin: 0 -1px;
+}
+.order-stub__perf::before,
+.order-stub__perf::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #0b0b18;
+    z-index: 2;
+}
+.order-stub__perf::before { left: -4px; }
+.order-stub__perf::after  { right: -4px; }
+.order-stub__perf-dot {
+    flex: 1;
+    height: 1px;
+    background: rgba(255,255,255,0.07);
+    margin: 0 1px;
+    border-radius: 1px;
+}
+
+/* foot */
+.order-stub__foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0.45rem 0.75rem 0.55rem;
+}
+.order-stub__count {
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 0.02em;
+}
+.order-stub__total {
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: rgba(100,210,255,0.9);
+    font-variant-numeric: tabular-nums;
+}
+.order-stub--cancelled .order-stub__total {
+    color: rgba(255,130,130,0.6);
+    text-decoration: line-through;
+    text-decoration-color: rgba(255,130,130,0.3);
+}
+
+
+/* ── Order sub-tabs (Мои / Входящие) ───────────────────── */
+.chat-order-subtabs {
+    display: flex;
+    gap: 0.4rem;
+    margin: 0.6rem 0.75rem 0.35rem;
+    padding: 0;
+}
+.chat-order-subtab {
+    flex: 1;
+    padding: 0.42rem 0;
+    font-size: 0.76rem;
+    font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-top: none;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.38);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.18);
+    position: relative;
+}
+.chat-order-subtab:hover {
+    color: rgba(255,255,255,0.65);
+    border-color: rgba(255,255,255,0.13);
+    background: rgba(255,255,255,0.07);
+}
+.chat-order-subtab--active {
+    background: rgba(150,100,255,0.13);
+    border-color: rgba(190,145,255,0.3);
+    border-top: none;
+    color: rgba(210,175,255,0.95);
+    box-shadow: 0 2px 8px rgba(120,60,255,0.2), inset 0 1px 0 rgba(220,190,255,0.35);
+}
+.chat-order-subtab--active:hover {
+    background: rgba(150,100,255,0.18);
+}
+
+/* ── Order filters ───────────────────────────────────────── */
+.order-filters {
+    padding: 0.75rem 0.75rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(110,110,210,0.1);
+}
+.order-filters__search-input {
+    padding-top: 0.28rem;
+    padding-bottom: 0.28rem;
+}
+.order-filters__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.32rem 0.65rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.4);
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.order-filters__toggle:hover {
+    color: rgba(255,255,255,0.65);
+    background: rgba(255,255,255,0.07);
+}
+.order-filters__toggle--open {
+    color: rgba(190,145,255,0.9);
+    border-color: rgba(190,145,255,0.35);
+    background: rgba(150,100,255,0.1);
+}
+.order-filters__arrow {
+    transition: transform 0.2s ease;
+}
+.order-filters__toggle--open .order-filters__arrow {
+    transform: rotate(180deg);
+}
+
+/* pills expand transition */
+.of-expand-enter-active, .of-expand-leave-active {
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.of-expand-enter-from, .of-expand-leave-to {
+    opacity: 0;
+    transform: translateY(-4px);
+}
+
+.order-filters__pills {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    padding-bottom: 0.1rem;
+}
+.order-filter-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.38rem 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.4);
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.order-filter-pill:hover {
+    color: rgba(255,255,255,0.65);
+    background: rgba(255,255,255,0.07);
+}
+.order-filter-pill--active {
+    color: rgba(255,255,255,0.88);
+    border-color: rgba(190,145,255,0.4);
+    background: rgba(150,100,255,0.14);
+}
+.order-filter-pill--pending.order-filter-pill--active {
+    color: rgba(255,210,80,0.9);
+    border-color: rgba(180,130,0,0.45);
+    background: rgba(180,130,0,0.14);
+}
+.order-filter-pill--accepted.order-filter-pill--active {
+    color: rgba(80,240,160,0.9);
+    border-color: rgba(0,180,100,0.4);
+    background: rgba(0,180,100,0.12);
+}
+.order-filter-pill--cancelled.order-filter-pill--active {
+    color: rgba(255,130,130,0.85);
+    border-color: rgba(180,50,50,0.4);
+    background: rgba(180,50,50,0.12);
+}
+.order-filter-pill__count {
+    font-size: 0.7rem;
+    font-weight: 700;
+    opacity: 0.6;
+    min-width: 16px;
+    text-align: center;
+}
+.order-filter-pill--active .order-filter-pill__count { opacity: 0.85; }
+
+/* ── Order badge in sidebar ─────────────────────────────── */
+.chat-order-status-row { margin-top: 0.15rem; }
+.chat-order-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.12rem 0.45rem;
+    border-radius: 3px;
+}
+.chat-order-badge--pending  { background: rgba(180,130,0,0.18);  color: rgba(255,210,80,0.85);  border: 1px solid rgba(180,130,0,0.3); }
+.chat-order-badge--accepted { background: rgba(0,180,100,0.15);  color: rgba(100,255,180,0.85); border: 1px solid rgba(0,180,100,0.3); }
+.chat-order-badge--cancelled{ background: rgba(180,50,50,0.15);  color: rgba(255,140,140,0.8);  border: 1px solid rgba(180,50,50,0.25); }
+
+/* ── Order actions panel ────────────────────────────────── */
+.chat-order-actions {
+    display: flex;
+    gap: 0.6rem;
+    padding: 0.65rem 1.1rem 0.55rem;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    border-top: 1px dashed rgba(100,210,255,0.1);
+}
+.chat-order-btn {
+    flex: 1;
+    min-width: 130px;
+    padding: 1rem 1rem;
+    border-radius: 3px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1;
+    padding-left: 1rem;
+    position: relative;
+    overflow: hidden;
+}
+.chat-order-btn::before {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border-radius: 2px;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.chat-order-btn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    border-radius: 3px 3px 0 0;
+}
+.chat-order-btn:hover { transform: translateY(-1px); }
+.chat-order-btn:active { transform: translateY(0); }
+
+.chat-order-btn--accept {
+    background: rgba(60,200,110,0.07);
+    border: 1px solid rgba(60,200,110,0.4);
+    color: rgba(90,240,145,0.92);
+    box-shadow: 0 0 12px rgba(60,200,110,0.06);
+}
+.chat-order-btn--accept::after {
+    background: linear-gradient(90deg, transparent 0%, rgba(140,255,180,0.65) 50%, transparent 100%);
+}
+.chat-order-btn--accept::before { border: 1px dashed rgba(60,200,110,0.2); }
+.chat-order-btn--accept:hover {
+    background: rgba(60,200,110,0.14);
+    border-color: rgba(60,200,110,0.65);
+    box-shadow: 0 0 18px rgba(60,200,110,0.14);
+}
+.chat-order-btn--accept:hover::before { opacity: 1; }
+
+.chat-order-btn--pay {
+    background: rgba(100,210,255,0.07);
+    border: 1px solid rgba(100,210,255,0.38);
+    color: rgba(100,210,255,0.9);
+    box-shadow: 0 0 12px rgba(100,210,255,0.06);
+}
+.chat-order-btn--pay::after {
+    background: linear-gradient(90deg, transparent 0%, rgba(180,235,255,0.65) 50%, transparent 100%);
+}
+.chat-order-btn--pay::before { border: 1px dashed rgba(100,210,255,0.2); }
+.chat-order-btn--pay:hover {
+    background: rgba(100,210,255,0.14);
+    border-color: rgba(100,210,255,0.65);
+    box-shadow: 0 0 18px rgba(100,210,255,0.14);
+}
+.chat-order-btn--pay:hover::before { opacity: 1; }
+
+.chat-order-btn--cancel {
+    background: rgba(220,60,60,0.07);
+    border: 1px solid rgba(220,60,60,0.35);
+    color: rgba(255,120,120,0.88);
+    box-shadow: 0 0 12px rgba(220,60,60,0.05);
+}
+.chat-order-btn--cancel::after {
+    background: linear-gradient(90deg, transparent 0%, rgba(255,150,150,0.6) 50%, transparent 100%);
+}
+.chat-order-btn--cancel::before { border: 1px dashed rgba(220,60,60,0.2); }
+.chat-order-btn--cancel:hover {
+    background: rgba(220,60,60,0.15);
+    border-color: rgba(220,60,60,0.6);
+    box-shadow: 0 0 18px rgba(220,60,60,0.13);
+}
+.chat-order-btn--cancel:hover::before { opacity: 1; }
+
+/* ── Cancelled bar ──────────────────────────────────────── */
+.chat-order-cancelled-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.55rem 1.1rem;
+    background: rgba(180,30,30,0.07);
+    border-top: 1px dashed rgba(255,100,100,0.25);
+    border-bottom: 1px dashed rgba(255,100,100,0.25);
+    margin: 0 0 0.4rem;
+    flex-shrink: 0;
+    font-family: 'Courier New', Courier, monospace;
+}
+.chat-order-cancelled-bar__label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: rgba(255,120,120,0.8);
+    letter-spacing: 0.12em;
+}
+.chat-order-cancelled-bar__who {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 0.04em;
+}
+.chat-order-cancelled-bar__reason {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.3);
+    font-style: italic;
+}
+
+/* ── Cancelled by in sidebar ────────────────────────────── */
+.chat-order-cancelled-by {
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.35);
+    margin-left: 0.35rem;
+}
+
+/* ── System messages — receipt cards ────────────────────── */
+.chat-system-msg {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0.6rem 0;
+}
+.chat-system-msg::before,
+.chat-system-msg::after {
+    content: '';
+    flex: 1;
+    height: 0;
+    border-top: 1px dashed rgba(100,210,255,0.28);
+}
+.chat-system-msg:has(.sc-card--accept)::before,
+.chat-system-msg:has(.sc-card--accept)::after {
+    border-color: rgba(60,200,110,0.32);
+}
+.chat-system-msg:has(.sc-card--cancel)::before,
+.chat-system-msg:has(.sc-card--cancel)::after {
+    border-color: rgba(200,50,50,0.32);
+}
+
+/* base card */
+.sc-card {
+    font-family: 'Courier New', Courier, monospace;
+    background: rgba(100,210,255,0.04);
+    border: 1px dashed rgba(100,210,255,0.2);
+    border-radius: 4px;
+    padding: 0.65rem 1.1rem;
+    width: 420px;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+.sc-card--accept {
+    background: rgba(60,200,110,0.04);
+    border-color: rgba(60,200,110,0.25);
+    text-align: center;
+}
+.sc-card--cancel {
+    background: rgba(200,50,50,0.05);
+    border-color: rgba(200,50,50,0.25);
+}
+
+/* double rule */
+.sc-rule {
+    width: 100%;
+    height: 0;
+    border: none;
+    border-top: 2px double rgba(100,210,255,0.28);
+    margin: 0.35rem 0;
+}
+.sc-rule--green { border-color: rgba(60,200,110,0.35); }
+.sc-rule--red   { border-color: rgba(200,50,50,0.35); }
+
+/* title */
+.sc-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: rgba(100,210,255,0.85);
+    margin: 0.2rem 0;
+    text-align: center;
+}
+.sc-title--accept { color: rgba(80,230,130,0.9); }
+.sc-title--cancel { color: rgba(255,110,110,0.85); }
+
+/* who (idol name / canceller) */
+.sc-who {
+    font-size: 0.78rem;
+    color: rgba(210,240,255,0.45);
+    letter-spacing: 0.06em;
+    text-align: center;
+    margin: 0.1rem 0;
+}
+.sc-who--cancel { color: rgba(255,200,200,0.45); }
+
+/* cancel reason */
+.sc-reason {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.3);
+    font-style: italic;
+    margin: 0.15rem 0 0;
+    letter-spacing: 0.02em;
+}
+
+/* line items with dot leaders */
+.sc-line {
+    display: flex;
+    align-items: baseline;
+    padding: 0.22rem 0;
+    border-bottom: 1px solid rgba(100,210,255,0.06);
+}
+.sc-lines .sc-line:last-child { border-bottom: none; }
+.sc-line__name {
+    font-size: 0.8rem;
+    color: rgba(210,240,255,0.72);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 45%;
+    flex-shrink: 0;
+}
+.sc-line__dots {
+    flex: 1;
+    border-bottom: 1px dotted rgba(100,210,255,0.28);
+    margin: 0 0.4rem;
+    position: relative;
+    top: -3px;
+    min-width: 0.5rem;
+}
+.sc-line__price {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: rgba(100,210,255,0.88);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* perforation */
+.sc-perf {
+    display: flex;
+    align-items: center;
+    margin: 0.4rem -1.1rem;
+    position: relative;
+}
+.sc-perf::before,
+.sc-perf::after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #0b0b18;
+    border: 1px solid rgba(100,210,255,0.12);
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+}
+.sc-perf::before { left: -5px; }
+.sc-perf::after  { right: -5px; }
+.sc-perf__line {
+    flex: 1;
+    display: block;
+    border-top: 1px dashed rgba(100,210,255,0.3);
+    margin: 0 8px;
+}
+
+/* total */
+.sc-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0.15rem 0;
+}
+.sc-total__label {
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    color: rgba(210,240,255,0.38);
+}
+.sc-total__value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: rgba(100,210,255,0.97);
+    font-variant-numeric: tabular-nums;
+}
+.chat-system-card__who { font-size: 0.8rem; color: rgba(255,255,255,0.45); margin: 0.2rem 0 0; font-weight: 600; }
+.chat-system-card__reason { font-size: 0.85rem; color: rgba(255,255,255,0.5); margin: 0.25rem 0 0; font-style: italic; }
 </style>

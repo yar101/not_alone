@@ -3,6 +3,7 @@
 use App\Http\Controllers\Idol\ApplicationController as IdolApplicationController;
 use App\Http\Controllers\Idol\QuizController;
 use App\Http\Controllers\ConversationController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
@@ -111,6 +112,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/notifications/service', [NotificationController::class, 'service'])->name('notifications.service');
     Route::patch('/notifications/service/read-all', [NotificationController::class, 'markAllServiceRead'])->name('notifications.service.read-all');
+    Route::get('/notifications/orders', [NotificationController::class, 'orders'])->name('notifications.orders');
+    Route::patch('/notifications/orders/read-all', [NotificationController::class, 'markAllOrdersRead'])->name('notifications.orders.read-all');
     Route::patch('/broadcasts/{id}/read', [NotificationController::class, 'markBroadcastRead'])->name('broadcasts.read');
 });
 
@@ -122,6 +125,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/conversations/{conversation}/messages', [ConversationController::class, 'message'])->name('conversations.message');
     Route::post('/conversations/{conversation}/block', [ConversationController::class, 'block'])->name('conversations.block');
     Route::delete('/conversations/{conversation}/block', [ConversationController::class, 'unblock'])->name('conversations.unblock');
+});
+
+// Orders
+Route::middleware('auth')->group(function () {
+    Route::get('/orders',                      [OrderController::class, 'index'])->name('orders.index');
+    Route::post('/orders',                     [OrderController::class, 'store'])->name('orders.store');
+    Route::patch('/orders/{order}/accept',     [OrderController::class, 'accept'])->name('orders.accept');
+    Route::patch('/orders/{order}/cancel',     [OrderController::class, 'cancel'])->name('orders.cancel');
 });
 
 require __DIR__.'/auth.php';

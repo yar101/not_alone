@@ -25,6 +25,57 @@ const props = defineProps({
 // ── localServices — не сбрасывается в null при redirect-рефетче ─
 const localServices = ref(null);
 
+// ── Cart ─────────────────────────────────────────────────────────
+const cart = inject('cart', null);
+const cartConflictModal = ref(false);
+const pendingCartItem   = ref(null);
+
+function isInCart(serviceId) {
+    return !!cart?.value?.items.find(i => i.service_id === serviceId);
+}
+
+function addToCart(item) {
+    if (!cart) return;
+    const c = cart.value;
+    const idolId = props.profileUser?.id;
+    if (c.idol_id && c.idol_id !== idolId) {
+        // Different idol — show conflict modal
+        pendingCartItem.value = item;
+        cartConflictModal.value = true;
+        return;
+    }
+    doAddToCart(item);
+}
+
+function doAddToCart(item) {
+    if (!cart) return;
+    const c = cart.value;
+    if (isInCart(item.id)) return;
+    c.idol_id     = props.profileUser?.id;
+    c.idol_name   = props.profileUser?.name ?? '';
+    c.idol_avatar = props.profileUser?.avatar_url ?? null;
+    c.items.push({
+        service_id: item.id,
+        name:       item.name,
+        price:      item.price,
+        time_unit:  item.time_unit?.name ?? null,
+    });
+}
+
+function confirmCartReplace() {
+    if (!cart) return;
+    cart.value.items = [];
+    cart.value.idol_id = null;
+    doAddToCart(pendingCartItem.value);
+    pendingCartItem.value = null;
+    cartConflictModal.value = false;
+}
+
+function cancelCartReplace() {
+    pendingCartItem.value = null;
+    cartConflictModal.value = false;
+}
+
 // ── Two-level navigation ────────────────────────────────────────
 const serviceNav = inject('serviceNav', null);
 const selectedCategory = ref(null);
@@ -558,13 +609,20 @@ watch(selectedCategory, (cat) => {
 
                                 <!-- Actions column -->
                                 <div class="svc-card__actions">
-                                    <button v-if="!isOwner" class="svc-buy-btn">
-                                        <span>Заказать</span>
-                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                                            stroke-linejoin="round">
-                                            <path d="M5 12h14M12 5l7 7-7 7" />
-                                        </svg>
+                                    <button
+                                        v-if="!isOwner && cart"
+                                        class="svc-buy-btn"
+                                        :class="{ 'svc-buy-btn--in-cart': isInCart(item.id) }"
+                                        @click="addToCart(item)"
+                                    >
+                                        <template v-if="isInCart(item.id)">
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                            <span>В корзине</span>
+                                        </template>
+                                        <template v-else>
+                                            <span>В корзину</span>
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                        </template>
                                     </button>
                                     <div v-if="isOwner" class="svc-menu">
                                         <button class="svc-menu__trigger"
@@ -672,6 +730,18 @@ watch(selectedCategory, (cat) => {
             </div>
 
         </Transition>
+
+        <!-- Cart conflict modal -->
+        <SiteModal :show="cartConflictModal" variant="pink" :compact="true" @close="cancelCartReplace">
+            <div class="sf-wrap">
+                <div class="sf-title">Очистить корзину?</div>
+                <p class="svc-pending-text">В корзине уже есть услуги другого айдола. Очистить корзину и добавить эту услугу?</p>
+                <div class="sf-actions">
+                    <button class="sf-btn-cancel" @click="cancelCartReplace">Отмена</button>
+                    <button class="sf-btn-submit" @click="confirmCartReplace">Очистить и добавить</button>
+                </div>
+            </div>
+        </SiteModal>
 
         <!-- Service pending modal -->
         <SiteModal :show="showPendingModal" variant="pink" :compact="true" @close="showPendingModal = false">
@@ -1683,6 +1753,17 @@ watch(selectedCategory, (cat) => {
 .svc-buy-btn:hover svg {
     transform: translateX(2px);
 }
+.svc-buy-btn--in-cart {
+    background: rgba(100,200,130,0.08);
+    border-color: rgba(100,200,130,0.3);
+    color: rgba(140,255,180,0.85);
+}
+.svc-buy-btn--in-cart:hover {
+    background: rgba(100,200,130,0.12);
+    box-shadow: none;
+}
+.svc-buy-btn--in-cart svg { stroke: rgba(140,255,180,0.85); }
+.svc-buy-btn--in-cart:hover svg { transform: none; }
 
 /* ── 3-dot menu ───────────────────────────────────────────── */
 .svc-menu {
@@ -2242,6 +2323,19 @@ watch(selectedCategory, (cat) => {
 .svc-chip--pop {
     animation: chip-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
+.sf-btn-cancel {
+    padding: 0.65rem 1.4rem;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 3px;
+    background: transparent;
+    color: rgba(255,255,255,0.5);
+    font-family: inherit;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: color 0.18s, border-color 0.18s;
+}
+.sf-btn-cancel:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.2); }
 </style>
 
 <style>

@@ -16,6 +16,7 @@ class HandleInertiaRequests extends Middleware
     protected $rootView = 'app';
 
     private const SERVICE_TYPES = ['idol_approved', 'idol_rejected', 'admin_broadcast', 'low_rating_warning', 'admin_rating'];
+    private const ORDER_TYPES   = ['order_created', 'order_accepted', 'order_cancelled'];
 
     public function version(Request $request): ?string
     {
@@ -40,6 +41,7 @@ class HandleInertiaRequests extends Middleware
             'auth_admin' => auth('admin')->user(),
             'notifications_unread' => $user ? $this->countUnreadNotifications($user) : 0,
             'service_unread' => $user ? $this->countUnreadService($user) : 0,
+            'order_notifications_unread' => $user ? $this->countUnreadOrders($user) : 0,
             'is_idol' => $user?->is_idol ?? false,
             'idol_status' => $idolStatus,
             'pending_applications_count' => fn() => auth('admin')->check()
@@ -73,9 +75,10 @@ class HandleInertiaRequests extends Middleware
 
     private function countUnreadNotifications($user): int
     {
-        $placeholders = implode(',', array_fill(0, count(self::SERVICE_TYPES), '?'));
+        $excluded = array_merge(self::SERVICE_TYPES, self::ORDER_TYPES);
+        $placeholders = implode(',', array_fill(0, count($excluded), '?'));
         return $user->unreadNotifications()
-            ->whereRaw("(data::jsonb->>'type') NOT IN ($placeholders)", self::SERVICE_TYPES)
+            ->whereRaw("(data::jsonb->>'type') NOT IN ($placeholders)", $excluded)
             ->count();
     }
 
@@ -84,6 +87,14 @@ class HandleInertiaRequests extends Middleware
         $placeholders = implode(',', array_fill(0, count(self::SERVICE_TYPES), '?'));
         return $user->unreadNotifications()
             ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::SERVICE_TYPES)
+            ->count();
+    }
+
+    private function countUnreadOrders($user): int
+    {
+        $placeholders = implode(',', array_fill(0, count(self::ORDER_TYPES), '?'));
+        return $user->unreadNotifications()
+            ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::ORDER_TYPES)
             ->count();
     }
 }
