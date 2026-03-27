@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, inject } from 'vue';
-import { usePage, router } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 
 const props = defineProps({
@@ -9,7 +9,6 @@ const props = defineProps({
 });
 const emit = defineEmits(['update:modelValue', 'clear', 'remove-item']);
 
-const page = usePage();
 const openOrder = inject('openOrder', null);
 
 const creating = ref(false);
@@ -35,13 +34,9 @@ async function createOrder() {
             idol_id: props.cart.idol_id,
             service_ids: props.cart.items.map(i => i.service_id),
         });
-        // Clear cart
         emit('clear');
         isOpen.value = false;
-        // Navigate to the order conversation
-        if (openOrder) {
-            openOrder(res.data.order_id);
-        }
+        if (openOrder) openOrder(res.data.order_id);
         router.reload({ only: ['order_notifications_unread'] });
     } catch (e) {
         error.value = e.response?.data?.error ?? 'Ошибка при создании заказа';
@@ -53,223 +48,327 @@ async function createOrder() {
 
 <template>
     <Teleport to="body">
-        <Transition name="cd-fade">
-            <div v-if="isOpen" class="cd-backdrop" @click="close" />
+        <Transition name="rc-fade">
+            <div v-if="isOpen" class="rc-backdrop" @click="close" />
         </Transition>
-        <Transition name="cd-drop">
-            <div v-if="isOpen" class="cd-panel">
-                <div class="cd-header">
-                    <span class="cd-title">Корзина</span>
-                    <span v-if="cart.idol_name" class="cd-idol-name">{{ cart.idol_name }}</span>
-                    <button class="cd-close" @click="close">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                        </svg>
-                    </button>
+        <Transition name="rc-slide">
+            <div v-if="isOpen" class="rc-panel">
+
+                <!-- ═══ Шапка ═══ -->
+                <div class="rc-header">
+                    <div class="rc-header-top">
+                        <span class="rc-store-name">КОРЗИНА</span>
+                        <button class="rc-close" @click="close" aria-label="Закрыть">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <span v-if="cart.idol_name" class="rc-store-sub">Айдол: {{ cart.idol_name }}</span>
+                    <div class="rc-rule rc-rule--double"></div>
                 </div>
 
-                <div class="cd-body">
-                    <template v-if="cart.items.length === 0">
-                        <p class="cd-empty">Корзина пуста</p>
-                    </template>
+                <!-- ═══ Позиции ═══ -->
+                <div class="rc-body">
+                    <div v-if="!cart.items.length" class="rc-empty">
+                        — &nbsp;корзина пуста&nbsp; —
+                    </div>
                     <template v-else>
-                        <div v-for="(item, idx) in cart.items" :key="item.service_id" class="cd-item">
-                            <div class="cd-item__info">
-                                <span class="cd-item__name">{{ item.name }}</span>
-                                <span class="cd-item__price">{{ item.price?.toLocaleString('ru-RU') }} ₽<template v-if="item.time_unit"> / {{ item.time_unit }}</template></span>
-                            </div>
-                            <button class="cd-item__remove" @click="emit('remove-item', idx)">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                                </svg>
-                            </button>
-                        </div>
-
-                        <div class="cd-total">
-                            <span>Итого</span>
-                            <span class="cd-total__sum">{{ total.toLocaleString('ru-RU') }} ₽</span>
+                        <div v-for="(item, idx) in cart.items" :key="item.service_id" class="rc-line">
+                            <span class="rc-line__name">{{ item.name }}</span>
+                            <span class="rc-line__dots" aria-hidden="true"></span>
+                            <span class="rc-line__price">{{ item.price?.toLocaleString('ru-RU') }}&thinsp;₽<template v-if="item.time_unit">&thinsp;/&thinsp;{{ item.time_unit }}</template></span>
+                            <button class="rc-line__del" @click="emit('remove-item', idx)" aria-label="Удалить">✕</button>
                         </div>
                     </template>
                 </div>
 
-                <div class="cd-footer">
-                    <p v-if="error" class="cd-error">{{ error }}</p>
+                <!-- ═══ Перфорация ═══ -->
+                <div class="rc-perf"><span class="rc-perf__line"></span></div>
+
+                <!-- ═══ Итого ═══ -->
+                <div class="rc-total">
+                    <span class="rc-total__label">ИТОГО</span>
+                    <span class="rc-total__sum">{{ total.toLocaleString('ru-RU') }}&thinsp;₽</span>
+                </div>
+
+                <!-- ═══ Перфорация ═══ -->
+                <div class="rc-perf"><span class="rc-perf__line"></span></div>
+
+                <!-- ═══ Футер ═══ -->
+                <div class="rc-footer">
+                    <p v-if="error" class="rc-error">{{ error }}</p>
                     <button
-                        class="cd-order-btn"
+                        class="rc-submit"
                         :disabled="!cart.items.length || creating"
                         @click="createOrder"
-                    >{{ creating ? 'Создаём…' : 'Создать заказ' }}</button>
+                    >{{ creating ? 'ОФОРМЛЯЕМ…' : 'СОЗДАТЬ ЗАКАЗ' }}</button>
                 </div>
+
             </div>
         </Transition>
     </Teleport>
 </template>
 
 <style scoped>
-.cd-backdrop {
+/* ── Transitions ──────────────────────────────────────── */
+.rc-fade-enter-active, .rc-fade-leave-active { transition: opacity 0.22s; }
+.rc-fade-enter-from, .rc-fade-leave-to       { opacity: 0; }
+
+.rc-slide-enter-active, .rc-slide-leave-active { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+.rc-slide-enter-from, .rc-slide-leave-to       { transform: translateX(100%); }
+
+/* ── Backdrop ─────────────────────────────────────────── */
+.rc-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 1050;
-    background: transparent;
+    z-index: 1049;
+    background: rgba(0, 0, 0, 0.55);
 }
 
-.cd-panel {
+/* ── Panel ────────────────────────────────────────────── */
+.rc-panel {
     position: fixed;
-    top: 64px;
-    right: 1rem;
-    width: 320px;
-    max-height: 480px;
-    z-index: 1051;
-    background: linear-gradient(160deg, #12122a 0%, #0a0a18 100%);
-    border: 1px solid rgba(110,110,210,0.22);
-    border-radius: 8px;
-    box-shadow: 0 8px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(190,145,255,0.04);
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 480px;
+    max-width: 100vw;
+    z-index: 1050;
+    background: #09090f;
+    border-left: 1px solid rgba(120, 220, 255, 0.1);
+    box-shadow: -12px 0 60px rgba(0, 0, 0, 0.75);
     display: flex;
     flex-direction: column;
+    font-family: 'Courier New', Courier, monospace;
+    color: rgba(210, 240, 255, 0.78);
     overflow: hidden;
 }
 
-.cd-fade-enter-active, .cd-fade-leave-active { transition: opacity 0.18s; }
-.cd-fade-enter-from, .cd-fade-leave-to { opacity: 0; }
-.cd-drop-enter-active, .cd-drop-leave-active { transition: opacity 0.18s, transform 0.18s; }
-.cd-drop-enter-from, .cd-drop-leave-to { opacity: 0; transform: translateY(-8px) scale(0.97); }
+/* subtle grain overlay */
+.rc-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    opacity: 0.4;
+    z-index: 0;
+}
+.rc-panel > * { position: relative; z-index: 1; }
 
-.cd-header {
+/* ── Header ───────────────────────────────────────────── */
+.rc-header {
+    padding: 1.25rem 1.5rem 0.85rem;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+.rc-header-top {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.85rem 1rem 0.7rem;
-    border-bottom: 1px solid rgba(110,110,210,0.12);
-    flex-shrink: 0;
+    justify-content: space-between;
 }
-.cd-title {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: rgba(255,255,255,0.88);
-    letter-spacing: 0.02em;
-}
-.cd-idol-name {
-    font-size: 0.75rem;
-    color: rgba(190,145,255,0.7);
-    margin-left: auto;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100px;
-}
-.cd-close {
-    flex-shrink: 0;
-    width: 24px;
-    height: 24px;
-    border: none;
+.rc-close {
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgba(120, 220, 255, 0.18);
     background: transparent;
-    color: rgba(255,255,255,0.3);
+    color: rgba(210, 240, 255, 0.4);
+    border-radius: 4px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    transition: color 0.15s, background 0.15s;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    font-family: inherit;
+    flex-shrink: 0;
 }
-.cd-close:hover { color: rgba(255,255,255,0.8); background: rgba(110,110,210,0.1); }
+.rc-close:hover {
+    color: rgba(210, 240, 255, 0.9);
+    border-color: rgba(120, 220, 255, 0.45);
+    background: rgba(120, 220, 255, 0.06);
+}
 
-.cd-body {
+.rc-rule {
+    width: 100%;
+    border: none;
+    height: 0;
+    margin-top: 0.3rem;
+}
+.rc-rule--double {
+    border-top: 2px double rgba(120, 220, 255, 0.35);
+}
+
+.rc-store-name {
+    font-size: 1.45rem;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    color: rgba(210, 240, 255, 0.95);
+}
+.rc-store-sub {
+    font-size: 0.9rem;
+    letter-spacing: 0.08em;
+    color: rgba(100, 200, 255, 0.7);
+}
+
+/* ── Body ─────────────────────────────────────────────── */
+.rc-body {
     flex: 1;
     overflow-y: auto;
-    padding: 0.5rem 0;
-}
-.cd-empty {
-    text-align: center;
-    color: rgba(255,255,255,0.25);
-    font-size: 0.85rem;
-    padding: 1.5rem 0;
-    margin: 0;
+    padding: 0.6rem 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(120,220,255,0.1) transparent;
 }
 
-.cd-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.45rem 1rem;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+.rc-empty {
+    text-align: center;
+    font-size: 0.9rem;
+    color: rgba(210, 240, 255, 0.22);
+    padding: 3rem 0;
+    letter-spacing: 0.1em;
 }
-.cd-item__info {
-    flex: 1;
+
+.rc-line {
     display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-    min-width: 0;
+    align-items: baseline;
+    padding: 0.55rem 1.5rem;
+    border-bottom: 1px solid rgba(120, 220, 255, 0.06);
+    transition: background 0.12s;
 }
-.cd-item__name {
-    font-size: 0.85rem;
-    color: rgba(255,255,255,0.82);
+.rc-line:hover { background: rgba(120, 220, 255, 0.03); }
+
+.rc-line__name {
+    font-size: 0.95rem;
+    color: rgba(210, 240, 255, 0.78);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-}
-.cd-item__price {
-    font-size: 0.75rem;
-    color: rgba(190,145,255,0.65);
-}
-.cd-item__remove {
+    max-width: 45%;
     flex-shrink: 0;
-    width: 22px;
-    height: 22px;
+    letter-spacing: 0.02em;
+}
+.rc-line__dots {
+    flex: 1;
+    border-bottom: 1px dotted rgba(120, 220, 255, 0.35);
+    margin: 0 0.5rem;
+    position: relative;
+    top: -4px;
+    min-width: 1rem;
+}
+.rc-line__price {
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: rgba(100, 210, 255, 0.95);
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: 0.03em;
+}
+.rc-line__del {
+    flex-shrink: 0;
+    margin-left: 0.65rem;
+    width: 20px;
+    height: 20px;
     border: none;
     background: transparent;
-    color: rgba(255,255,255,0.2);
+    color: rgba(210, 240, 255, 0.18);
     cursor: pointer;
+    font-size: 0.7rem;
+    font-family: inherit;
+    transition: color 0.12s;
+    padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 4px;
-    transition: color 0.15s, background 0.15s;
 }
-.cd-item__remove:hover { color: rgba(255,140,140,0.8); background: rgba(200,50,50,0.1); }
+.rc-line__del:hover { color: rgba(255, 110, 110, 0.75); }
 
-.cd-total {
+/* ── Perforation ──────────────────────────────────────── */
+.rc-perf {
+    display: flex;
+    align-items: center;
+    margin: 0.7rem 0;
+    position: relative;
+}
+.rc-perf::before,
+.rc-perf::after {
+    content: '';
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: #09090f;
+    border: 1px solid rgba(120, 220, 255, 0.15);
+    flex-shrink: 0;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    box-shadow: inset 0 0 4px rgba(0,0,0,0.6);
+}
+.rc-perf::before { left: -6px; }
+.rc-perf::after  { right: -6px; }
+.rc-perf__line {
+    flex: 1;
+    display: block;
+    border-top: 1px dashed rgba(120, 220, 255, 0.35);
+    margin: 0 9px;
+}
+
+/* ── Total ────────────────────────────────────────────── */
+.rc-total {
     display: flex;
     justify-content: space-between;
-    padding: 0.6rem 1rem 0.3rem;
-    font-size: 0.85rem;
-    color: rgba(255,255,255,0.5);
-    border-top: 1px solid rgba(110,110,210,0.1);
-    margin-top: 0.25rem;
+    align-items: baseline;
+    padding: 0.35rem 1.5rem;
 }
-.cd-total__sum {
+.rc-total__label {
+    font-size: 0.9rem;
+    letter-spacing: 0.2em;
+    color: rgba(210, 240, 255, 0.45);
+}
+.rc-total__sum {
+    font-size: 1.5rem;
     font-weight: 700;
-    color: rgba(190,145,255,0.85);
+    letter-spacing: 0.04em;
+    color: rgba(100, 210, 255, 1);
+    font-variant-numeric: tabular-nums;
 }
 
-.cd-footer {
-    padding: 0.75rem 1rem;
-    border-top: 1px solid rgba(110,110,210,0.12);
+/* ── Footer ───────────────────────────────────────────── */
+.rc-footer {
+    padding: 0.8rem 1.5rem 1.4rem;
     flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
 }
-.cd-error {
-    font-size: 0.8rem;
-    color: rgba(255,140,140,0.85);
-    margin: 0 0 0.5rem;
+.rc-error {
+    font-size: 0.82rem;
+    color: rgba(255, 110, 110, 0.85);
+    margin: 0;
+    letter-spacing: 0.04em;
 }
-.cd-order-btn {
+.rc-submit {
     width: 100%;
-    padding: 0.55rem;
-    border-radius: 6px;
-    border: 1px solid rgba(190,145,255,0.35);
-    background: rgba(190,145,255,0.1);
-    color: #be91ff;
-    font-size: 0.875rem;
+    padding: 0.8rem;
+    border: 1px solid rgba(100, 210, 255, 0.35);
+    border-radius: 3px;
+    background: rgba(100, 210, 255, 0.07);
+    color: rgba(100, 210, 255, 0.95);
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9rem;
     font-weight: 700;
-    font-family: inherit;
+    letter-spacing: 0.2em;
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
-.cd-order-btn:hover:not(:disabled) {
-    background: rgba(190,145,255,0.18);
-    border-color: rgba(190,145,255,0.55);
+.rc-submit:hover:not(:disabled) {
+    background: rgba(100, 210, 255, 0.13);
+    border-color: rgba(100, 210, 255, 0.6);
+    color: rgba(100, 210, 255, 1);
 }
-.cd-order-btn:disabled {
-    opacity: 0.35;
+.rc-submit:disabled {
+    opacity: 0.25;
     cursor: not-allowed;
 }
 </style>

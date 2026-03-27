@@ -654,32 +654,32 @@ function formatDate(iso) {
                                 <button
                                     v-for="order in visibleOrders"
                                     :key="order.id"
-                                    class="chat-conv-item"
-                                    :class="{ 'chat-conv-item--active': activeOrderData?.id === order.id }"
+                                    class="order-stub"
+                                    :class="[`order-stub--${order.status}`, { 'order-stub--active': activeOrderData?.id === order.id }]"
                                     @click="openOrderConversation(order)"
                                 >
-                                    <div class="chat-conv-avatar">
-                                        <img v-if="(order.is_customer ? order.idol : order.customer).avatar_url"
-                                            :src="(order.is_customer ? order.idol : order.customer).avatar_url" alt="" />
-                                        <span v-else>{{ (order.is_customer ? order.idol : order.customer).name?.charAt(0) ?? '?' }}</span>
-                                    </div>
-                                    <div class="chat-conv-info">
-                                        <div class="chat-conv-name">{{ (order.is_customer ? order.idol : order.customer).name }}</div>
-                                        <div class="chat-order-services-preview">
-                                            <span class="chat-order-services-names">{{ order.items.length }} {{ order.items.length === 1 ? 'услуга' : order.items.length < 5 ? 'услуги' : 'услуг' }}</span>
-                                            <span class="chat-order-services-total">{{ orderTotal(order).toLocaleString('ru-RU') }} ₽</span>
+                                    <div class="order-stub__head">
+                                        <div class="chat-conv-avatar chat-conv-avatar--sm">
+                                            <img v-if="(order.is_customer ? order.idol : order.customer).avatar_url"
+                                                :src="(order.is_customer ? order.idol : order.customer).avatar_url" alt="" />
+                                            <span v-else>{{ (order.is_customer ? order.idol : order.customer).name?.charAt(0) ?? '?' }}</span>
                                         </div>
-                                        <div class="chat-order-status-row">
-                                            <span class="chat-order-badge" :class="`chat-order-badge--${order.status}`">
-                                                {{ { pending: 'Ожидает', accepted: 'Принят', cancelled: 'Отменён' }[order.status] }}
-                                            </span>
-                                            <span v-if="order.status === 'cancelled' && cancelledByLabel(order)" class="chat-order-cancelled-by">
-                                                {{ cancelledByLabel(order) }}
-                                            </span>
+                                        <div class="order-stub__who">
+                                            <span class="order-stub__name">{{ (order.is_customer ? order.idol : order.customer).name }}</span>
+                                            <span class="order-stub__date">{{ formatDate(order.created_at) }}</span>
                                         </div>
+                                        <span class="order-stub__badge" :class="`order-stub__badge--${order.status}`">
+                                            {{ { pending: 'Ожидает', accepted: 'Принят', cancelled: 'Отменён' }[order.status] }}
+                                        </span>
                                     </div>
-                                    <div class="chat-conv-meta">
-                                        <span class="chat-conv-time">{{ formatDate(order.created_at) }}</span>
+                                    <div class="order-stub__perf">
+                                        <span class="order-stub__perf-dot" v-for="n in 14" :key="n"></span>
+                                    </div>
+                                    <div class="order-stub__foot">
+                                        <span class="order-stub__count">
+                                            {{ order.items.length }}&thinsp;{{ order.items.length === 1 ? 'услуга' : order.items.length < 5 ? 'услуги' : 'услуг' }}
+                                        </span>
+                                        <span class="order-stub__total">{{ orderTotal(order).toLocaleString('ru-RU') }}&thinsp;₽</span>
                                     </div>
                                 </button>
                                 </template><!-- /visibleOrders -->
@@ -756,37 +756,45 @@ function formatDate(iso) {
                                         <!-- System message -->
                                         <div v-else-if="item.type === 'message' && item.msg.type === 'system'" class="chat-system-msg">
                                             <template v-if="item.msg.metadata?.event === 'order_created'">
-                                                <div class="chat-system-card">
-                                                    <p class="chat-system-card__title">Заказ оформлен</p>
-                                                    <div v-for="s in item.msg.metadata.services" :key="s.id" class="chat-system-service-row">
-                                                        <span class="chat-system-service__name">{{ s.name }}</span>
-                                                        <span class="chat-system-service__price">{{ s.price?.toLocaleString('ru-RU') }} ₽<template v-if="s.time_unit"> / {{ s.time_unit }}</template></span>
+                                                <div class="sc-card">
+                                                    <div class="sc-rule sc-rule--double"></div>
+                                                    <p class="sc-title">ЗАКАЗ ОФОРМЛЕН</p>
+                                                    <div class="sc-rule sc-rule--double"></div>
+                                                    <div class="sc-lines">
+                                                        <div v-for="s in item.msg.metadata.services" :key="s.id" class="sc-line">
+                                                            <span class="sc-line__name">{{ s.name }}</span>
+                                                            <span class="sc-line__dots"></span>
+                                                            <span class="sc-line__price">{{ s.price?.toLocaleString('ru-RU') }}&thinsp;₽<template v-if="s.time_unit">&thinsp;/&thinsp;{{ s.time_unit }}</template></span>
+                                                        </div>
                                                     </div>
-                                                    <div class="chat-system-total-row">
-                                                        <span class="chat-system-total__label">Итого</span>
-                                                        <span class="chat-system-total__value">{{ item.msg.metadata.services.reduce((sum, s) => sum + (s.price ?? 0), 0).toLocaleString('ru-RU') }} ₽</span>
+                                                    <div class="sc-perf"><span class="sc-perf__line"></span></div>
+                                                    <div class="sc-total">
+                                                        <span class="sc-total__label">ИТОГО</span>
+                                                        <span class="sc-total__value">{{ item.msg.metadata.services.reduce((sum, s) => sum + (s.price ?? 0), 0).toLocaleString('ru-RU') }}&thinsp;₽</span>
                                                     </div>
+                                                    <div class="sc-rule sc-rule--double"></div>
                                                 </div>
                                             </template>
                                             <template v-else-if="item.msg.metadata?.event === 'order_accepted'">
-                                                <div class="chat-system-card chat-system-card--accept">
-                                                    <p class="chat-system-card__title">
+                                                <div class="sc-card sc-card--accept">
+                                                    <div class="sc-rule sc-rule--double sc-rule--green"></div>
+                                                    <p class="sc-title sc-title--accept">
                                                         {{
-                                                            item.msg.metadata.idol_gender === 'male'   ? 'Готов принять заказ' :
-                                                            item.msg.metadata.idol_gender === 'female' ? 'Готова принять заказ' :
-                                                            'Готов(а) принять заказ'
+                                                            item.msg.metadata.idol_gender === 'male'   ? 'ГОТОВ ПРИНЯТЬ ЗАКАЗ' :
+                                                            item.msg.metadata.idol_gender === 'female' ? 'ГОТОВА ПРИНЯТЬ ЗАКАЗ' :
+                                                            'ГОТОВ(А) ПРИНЯТЬ ЗАКАЗ'
                                                         }}
                                                     </p>
-                                                    <p class="chat-system-card__who">{{ item.msg.metadata.idol_name }}</p>
+                                                    <div class="sc-rule sc-rule--double sc-rule--green"></div>
                                                 </div>
                                             </template>
                                             <template v-else-if="item.msg.metadata?.event === 'order_cancelled'">
-                                                <div class="chat-system-card chat-system-card--cancel">
-                                                    <p class="chat-system-card__title">Заказ отменён</p>
-                                                    <p class="chat-system-card__who">
-                                                        {{ item.msg.metadata.cancelled_by === authUser?.id ? 'Вами' : (item.msg.metadata.cancelled_by_name ?? 'Другой стороной') }}
-                                                    </p>
-                                                    <p v-if="item.msg.metadata.cancel_reason" class="chat-system-card__reason">{{ item.msg.metadata.cancel_reason }}</p>
+                                                <div class="sc-card sc-card--cancel">
+                                                    <div class="sc-rule sc-rule--double sc-rule--red"></div>
+                                                    <p class="sc-title sc-title--cancel">ЗАКАЗ ОТМЕНЁН</p>
+                                                    <p class="sc-who sc-who--cancel">{{ item.msg.metadata.cancelled_by === authUser?.id ? 'Вами' : (item.msg.metadata.cancelled_by_name ?? 'Другой стороной') }}</p>
+                                                    <p v-if="item.msg.metadata.cancel_reason" class="sc-reason">{{ item.msg.metadata.cancel_reason }}</p>
+                                                    <div class="sc-rule sc-rule--double sc-rule--red"></div>
                                                 </div>
                                             </template>
                                         </div>
@@ -866,26 +874,21 @@ function formatDate(iso) {
                                     v-if="!activeOrderData.is_customer && activeOrderData.status === 'pending'"
                                     class="chat-order-btn chat-order-btn--accept"
                                     @click="acceptOrder"
-                                >{{ acceptBtnText }}</button>
+                                >{{ acceptBtnText.toUpperCase() }}</button>
                                 <button
                                     v-if="activeOrderData.is_customer && activeOrderData.status === 'accepted'"
                                     class="chat-order-btn chat-order-btn--pay"
-                                    disabled
-                                >Оплатить заказ</button>
-                                <button class="chat-order-btn chat-order-btn--cancel" @click="cancelModal = true">Отменить заказ</button>
+                                >ОПЛАТИТЬ ЗАКАЗ</button>
+                                <button class="chat-order-btn chat-order-btn--cancel" @click="cancelModal = true">ОТМЕНИТЬ ЗАКАЗ</button>
                             </div>
 
                             <!-- Плашка: заказ отменён -->
                             <div v-if="activeOrderData?.status === 'cancelled'" class="chat-order-cancelled-bar">
-                                <span class="chat-order-cancelled-bar__label">Заказ отменён</span>
+                                <span class="chat-order-cancelled-bar__label">// ЗАКАЗ ОТМЕНЁН //</span>
                                 <template v-if="cancelledByLabel(activeOrderData)">
-                                    <span class="chat-order-cancelled-bar__sep">·</span>
                                     <span class="chat-order-cancelled-bar__who">{{ cancelledByLabel(activeOrderData) }}</span>
                                 </template>
-                                <template v-if="activeOrderData.cancel_reason">
-                                    <span class="chat-order-cancelled-bar__sep">·</span>
-                                    <span class="chat-order-cancelled-bar__reason">{{ activeOrderData.cancel_reason }}</span>
-                                </template>
+                                <span v-if="activeOrderData.cancel_reason" class="chat-order-cancelled-bar__reason">{{ activeOrderData.cancel_reason }}</span>
                             </div>
 
                             <!-- Textarea (скрыт если заказ отменён) -->
@@ -958,35 +961,41 @@ function formatDate(iso) {
 
     <!-- ── Модалка отмены заказа ─────────────────────── -->
     <SiteModal :show="cancelModal" variant="pink" compact @close="cancelModal = false">
-        <h2 class="bm-title">Отменить заказ</h2>
+        <div class="cm-wrap">
+            <div class="cm-rule cm-rule--double cm-rule--red"></div>
+            <h2 class="cm-title">ОТМЕНА ЗАКАЗА</h2>
+            <div class="cm-rule cm-rule--double cm-rule--red"></div>
 
-        <div class="bm-section-label">Выберите причину</div>
-        <div class="bm-reasons">
-            <button
-                v-for="t in cancelTemplates"
-                :key="t"
-                class="bm-reason-tag"
-                :class="{ 'bm-reason-tag--selected': cancelReason === t }"
-                @click="cancelReason = t"
-            >{{ t }}</button>
-        </div>
+            <div class="cm-section-label">// ВЫБЕРИТЕ ПРИЧИНУ</div>
+            <div class="cm-tags">
+                <button
+                    v-for="t in cancelTemplates"
+                    :key="t"
+                    class="cm-tag"
+                    :class="{ 'cm-tag--selected': cancelReason === t }"
+                    @click="cancelReason = t"
+                >{{ t }}</button>
+            </div>
 
-        <div class="bm-section-label" style="margin-top:0.75rem">Или напишите свою причину</div>
-        <textarea
-            v-model="cancelReason"
-            class="bm-textarea"
-            placeholder="Причина отмены…"
-            rows="3"
-            maxlength="1000"
-        ></textarea>
+            <div class="cm-section-label">// ИЛИ НАПИШИТЕ СВОЮ</div>
+            <textarea
+                v-model="cancelReason"
+                class="cm-textarea"
+                placeholder="причина отмены…"
+                rows="3"
+                maxlength="1000"
+            ></textarea>
 
-        <div class="bm-footer">
-            <button class="bm-cancel" @click="cancelModal = false">Назад</button>
-            <button
-                class="bm-submit bm-submit--danger"
-                :disabled="!cancelReason.trim() || cancelSubmitting"
-                @click="submitCancelOrder"
-            >Подтвердить отмену</button>
+            <div class="cm-perf"><span class="cm-perf__line"></span></div>
+
+            <div class="cm-footer">
+                <button class="cm-btn cm-btn--back" @click="cancelModal = false">НАЗАД</button>
+                <button
+                    class="cm-btn cm-btn--confirm"
+                    :disabled="!cancelReason.trim() || cancelSubmitting"
+                    @click="submitCancelOrder"
+                >{{ cancelSubmitting ? 'ОТМЕНЯЕМ…' : 'ПОДТВЕРДИТЬ' }}</button>
+            </div>
         </div>
     </SiteModal>
 
@@ -2021,6 +2030,150 @@ function formatDate(iso) {
 }
 .bm-textarea:focus { border-color: rgba(160,160,255,0.4); }
 
+/* ── Cancel order modal ─────────────────────────────────── */
+.cm-wrap {
+    font-family: 'Courier New', Courier, monospace;
+    color: rgba(210, 240, 255, 0.78);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+.cm-rule {
+    width: 100%;
+    height: 0;
+    border: none;
+    border-top: 2px double rgba(100,210,255,0.3);
+    margin: 0.5rem 0;
+}
+.cm-rule--red { border-color: rgba(220,80,80,0.45); }
+
+.cm-title {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    color: rgba(255,120,120,0.9);
+    text-align: center;
+    margin: 0.3rem 0;
+}
+.cm-section-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    color: rgba(210,240,255,0.3);
+    margin: 0.9rem 0 0.45rem;
+}
+.cm-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.25rem;
+}
+.cm-tag {
+    padding: 0.32rem 0.7rem;
+    border-radius: 3px;
+    border: 1px dashed rgba(210,240,255,0.2);
+    background: transparent;
+    color: rgba(210,240,255,0.5);
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.cm-tag:hover {
+    border-color: rgba(210,240,255,0.45);
+    color: rgba(210,240,255,0.85);
+    background: rgba(100,210,255,0.05);
+}
+.cm-tag--selected {
+    border-color: rgba(100,210,255,0.55);
+    color: rgba(100,210,255,0.95);
+    background: rgba(100,210,255,0.08);
+    border-style: solid;
+}
+.cm-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(100,210,255,0.04);
+    border: 1px dashed rgba(100,210,255,0.22);
+    border-radius: 3px;
+    color: rgba(210,240,255,0.82);
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.82rem;
+    padding: 0.65rem 0.85rem;
+    resize: none;
+    outline: none;
+    transition: border-color 0.15s;
+    margin-top: 0.1rem;
+}
+.cm-textarea::placeholder { color: rgba(210,240,255,0.2); }
+.cm-textarea:focus { border-color: rgba(100,210,255,0.45); border-style: solid; }
+
+.cm-perf {
+    display: flex;
+    align-items: center;
+    margin: 1rem -0.1rem 0.85rem;
+    position: relative;
+}
+.cm-perf::before,
+.cm-perf::after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #12122a;
+    border: 1px solid rgba(220,80,80,0.15);
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+}
+.cm-perf::before { left: -5px; }
+.cm-perf::after  { right: -5px; }
+.cm-perf__line {
+    flex: 1;
+    display: block;
+    border-top: 1px dashed rgba(220,80,80,0.3);
+    margin: 0 7px;
+}
+
+.cm-footer {
+    display: flex;
+    gap: 0.55rem;
+}
+.cm-btn {
+    flex: 1;
+    padding: 0.65rem 1rem;
+    border-radius: 3px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    line-height: 1;
+    transition: background 0.15s, border-color 0.15s;
+}
+.cm-btn--back {
+    background: transparent;
+    border: 1px dashed rgba(210,240,255,0.18);
+    color: rgba(210,240,255,0.4);
+}
+.cm-btn--back:hover {
+    border-color: rgba(210,240,255,0.4);
+    color: rgba(210,240,255,0.75);
+}
+.cm-btn--confirm {
+    background: rgba(220,60,60,0.08);
+    border: 1px solid rgba(220,60,60,0.4);
+    color: rgba(255,120,120,0.9);
+}
+.cm-btn--confirm:hover:not(:disabled) {
+    background: rgba(220,60,60,0.18);
+    border-color: rgba(220,60,60,0.65);
+}
+.cm-btn--confirm:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
 /* ── Chat tabs ──────────────────────────────────────────── */
 .chat-tabs {
     display: flex;
@@ -2047,54 +2200,168 @@ function formatDate(iso) {
     border-bottom-color: #be91ff;
 }
 
-/* ── Order services preview in sidebar ─────────────────── */
-.chat-order-services-preview {
+/* ── Order stub cards ───────────────────────────────────── */
+.order-stub {
     display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 0.4rem;
-    margin-top: 0.1rem;
+    flex-direction: column;
+    width: calc(100% - 1.25rem);
+    margin: 0.75rem auto;
+    padding: 0;
+    border: none;
+    border-radius: 7px;
+    background: rgba(255,255,255,0.035);
+    cursor: pointer;
+    text-align: left;
+    position: relative;
+    overflow: visible;
+    transition: background 0.15s, box-shadow 0.15s, transform 0.12s;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(110,110,210,0.13);
 }
-.chat-order-services-names {
-    font-size: 0.72rem;
-    color: rgba(255,255,255,0.38);
+
+.order-stub:hover {
+    background: rgba(255,255,255,0.055);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(140,110,255,0.2);
+}
+.order-stub--active {
+    background: rgba(120,85,255,0.1);
+    box-shadow: 0 2px 14px rgba(100,60,255,0.2), inset 0 0 0 1px rgba(160,120,255,0.28);
+}
+.order-stub--active:hover { transform: none; }
+
+/* head */
+.order-stub__head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0.75rem 0.55rem;
+}
+.order-stub__who {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+.order-stub__name {
+    font-size: 0.87rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.88);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    min-width: 0;
 }
-.chat-order-services-total {
-    font-size: 0.72rem;
-    color: rgba(190,145,255,0.6);
-    white-space: nowrap;
+.order-stub__date {
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.28);
+}
+.order-stub__badge {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    padding: 0.14rem 0.42rem;
+    border-radius: 3px;
     flex-shrink: 0;
 }
+.order-stub__badge--pending  { background: rgba(180,130,0,0.2);  color: rgba(255,210,80,0.9);  border: 1px solid rgba(180,130,0,0.3); }
+.order-stub__badge--accepted { background: rgba(0,180,100,0.16); color: rgba(80,240,160,0.9);  border: 1px solid rgba(0,180,100,0.3); }
+.order-stub__badge--cancelled{ background: rgba(180,50,50,0.18); color: rgba(255,130,130,0.85);border: 1px solid rgba(180,50,50,0.28); }
+
+/* perforated tear line */
+.order-stub__perf {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 0;
+    position: relative;
+    height: 10px;
+    margin: 0 -1px;
+}
+.order-stub__perf::before,
+.order-stub__perf::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #0b0b18;
+    z-index: 2;
+}
+.order-stub__perf::before { left: -4px; }
+.order-stub__perf::after  { right: -4px; }
+.order-stub__perf-dot {
+    flex: 1;
+    height: 1px;
+    background: rgba(255,255,255,0.07);
+    margin: 0 1px;
+    border-radius: 1px;
+}
+
+/* foot */
+.order-stub__foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0.45rem 0.75rem 0.55rem;
+}
+.order-stub__count {
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 0.02em;
+}
+.order-stub__total {
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: rgba(100,210,255,0.9);
+    font-variant-numeric: tabular-nums;
+}
+.order-stub--cancelled .order-stub__total {
+    color: rgba(255,130,130,0.6);
+    text-decoration: line-through;
+    text-decoration-color: rgba(255,130,130,0.3);
+}
+
 
 /* ── Order sub-tabs (Мои / Входящие) ───────────────────── */
 .chat-order-subtabs {
     display: flex;
-    gap: 0;
-    margin: 0.5rem 0.75rem 0.25rem;
-    background: rgba(255,255,255,0.04);
-    border-radius: 6px;
-    padding: 2px;
+    gap: 0.4rem;
+    margin: 0.6rem 0.75rem 0.35rem;
+    padding: 0;
 }
 .chat-order-subtab {
     flex: 1;
-    padding: 0.28rem 0;
-    font-size: 0.75rem;
-    font-weight: 500;
-    border: none;
-    border-radius: 4px;
-    background: transparent;
-    color: rgba(255,255,255,0.4);
+    padding: 0.42rem 0;
+    font-size: 0.76rem;
+    font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-top: none;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.38);
     cursor: pointer;
-    transition: background 0.15s, color 0.15s;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.18);
+    position: relative;
 }
-.chat-order-subtab:hover { color: rgba(255,255,255,0.7); }
+.chat-order-subtab:hover {
+    color: rgba(255,255,255,0.65);
+    border-color: rgba(255,255,255,0.13);
+    background: rgba(255,255,255,0.07);
+}
 .chat-order-subtab--active {
-    background: rgba(190,145,255,0.15);
-    color: rgba(190,145,255,0.95);
+    background: rgba(150,100,255,0.13);
+    border-color: rgba(190,145,255,0.3);
+    border-top: none;
+    color: rgba(210,175,255,0.95);
+    box-shadow: 0 2px 8px rgba(120,60,255,0.2), inset 0 1px 0 rgba(220,190,255,0.35);
+}
+.chat-order-subtab--active:hover {
+    background: rgba(150,100,255,0.18);
 }
 
 /* ── Order badge in sidebar ─────────────────────────────── */
@@ -2114,76 +2381,129 @@ function formatDate(iso) {
 /* ── Order actions panel ────────────────────────────────── */
 .chat-order-actions {
     display: flex;
-    gap: 0.5rem;
-    padding: 0.5rem 1.1rem 0.4rem;
+    gap: 0.6rem;
+    padding: 0.65rem 1.1rem 0.55rem;
     flex-shrink: 0;
     flex-wrap: wrap;
+    border-top: 1px dashed rgba(100,210,255,0.1);
 }
 .chat-order-btn {
     flex: 1;
-    min-width: 120px;
-    padding: 0.45rem 0.85rem;
-    border-radius: 6px;
-    font-size: 0.8rem;
+    min-width: 130px;
+    padding: 1rem 1rem;
+    border-radius: 3px;
+    font-size: 0.88rem;
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s, opacity 0.15s;
-    letter-spacing: 0.03em;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1;
+    padding-left: 1rem;
+    position: relative;
+    overflow: hidden;
 }
+.chat-order-btn::before {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border-radius: 2px;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.chat-order-btn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    border-radius: 3px 3px 0 0;
+}
+.chat-order-btn:hover { transform: translateY(-1px); }
+.chat-order-btn:active { transform: translateY(0); }
+
 .chat-order-btn--accept {
-    background: rgba(100,200,130,0.15);
-    border: 1px solid rgba(100,200,130,0.4);
-    color: rgba(140,255,180,0.9);
+    background: rgba(60,200,110,0.07);
+    border: 1px solid rgba(60,200,110,0.4);
+    color: rgba(90,240,145,0.92);
+    box-shadow: 0 0 12px rgba(60,200,110,0.06);
 }
-.chat-order-btn--accept:hover { background: rgba(100,200,130,0.25); border-color: rgba(100,200,130,0.6); }
+.chat-order-btn--accept::after {
+    background: linear-gradient(90deg, transparent 0%, rgba(140,255,180,0.65) 50%, transparent 100%);
+}
+.chat-order-btn--accept::before { border: 1px dashed rgba(60,200,110,0.2); }
+.chat-order-btn--accept:hover {
+    background: rgba(60,200,110,0.14);
+    border-color: rgba(60,200,110,0.65);
+    box-shadow: 0 0 18px rgba(60,200,110,0.14);
+}
+.chat-order-btn--accept:hover::before { opacity: 1; }
+
 .chat-order-btn--pay {
-    background: rgba(110,110,210,0.12);
-    border: 1px solid rgba(110,110,210,0.3);
-    color: rgba(190,145,255,0.7);
-    opacity: 0.6;
-    cursor: not-allowed;
+    background: rgba(100,210,255,0.07);
+    border: 1px solid rgba(100,210,255,0.38);
+    color: rgba(100,210,255,0.9);
+    box-shadow: 0 0 12px rgba(100,210,255,0.06);
 }
+.chat-order-btn--pay::after {
+    background: linear-gradient(90deg, transparent 0%, rgba(180,235,255,0.65) 50%, transparent 100%);
+}
+.chat-order-btn--pay::before { border: 1px dashed rgba(100,210,255,0.2); }
+.chat-order-btn--pay:hover {
+    background: rgba(100,210,255,0.14);
+    border-color: rgba(100,210,255,0.65);
+    box-shadow: 0 0 18px rgba(100,210,255,0.14);
+}
+.chat-order-btn--pay:hover::before { opacity: 1; }
+
 .chat-order-btn--cancel {
-    background: rgba(220,60,60,0.1);
-    border: 1px solid rgba(220,60,60,0.3);
-    color: rgba(255,140,140,0.85);
+    background: rgba(220,60,60,0.07);
+    border: 1px solid rgba(220,60,60,0.35);
+    color: rgba(255,120,120,0.88);
+    box-shadow: 0 0 12px rgba(220,60,60,0.05);
 }
-.chat-order-btn--cancel:hover { background: rgba(220,60,60,0.2); border-color: rgba(220,60,60,0.5); }
+.chat-order-btn--cancel::after {
+    background: linear-gradient(90deg, transparent 0%, rgba(255,150,150,0.6) 50%, transparent 100%);
+}
+.chat-order-btn--cancel::before { border: 1px dashed rgba(220,60,60,0.2); }
+.chat-order-btn--cancel:hover {
+    background: rgba(220,60,60,0.15);
+    border-color: rgba(220,60,60,0.6);
+    box-shadow: 0 0 18px rgba(220,60,60,0.13);
+}
+.chat-order-btn--cancel:hover::before { opacity: 1; }
 
 /* ── Cancelled bar ──────────────────────────────────────── */
 .chat-order-cancelled-bar {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.6rem 1.1rem;
-    background: rgba(180,30,30,0.08);
-    border-radius: 6px;
-    margin: 0 1.1rem 0.5rem;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.55rem 1.1rem;
+    background: rgba(180,30,30,0.07);
+    border-top: 1px dashed rgba(255,100,100,0.25);
+    border-bottom: 1px dashed rgba(255,100,100,0.25);
+    margin: 0 0 0.4rem;
     flex-shrink: 0;
-    flex-wrap: wrap;
+    font-family: 'Courier New', Courier, monospace;
 }
 .chat-order-cancelled-bar__label {
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: rgba(255,140,140,0.85);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    white-space: nowrap;
-}
-.chat-order-cancelled-bar__sep {
     font-size: 0.75rem;
-    color: rgba(255,255,255,0.2);
+    font-weight: 700;
+    color: rgba(255,120,120,0.8);
+    letter-spacing: 0.12em;
 }
 .chat-order-cancelled-bar__who {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: rgba(255,255,255,0.55);
-    white-space: nowrap;
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 0.04em;
 }
 .chat-order-cancelled-bar__reason {
-    font-size: 0.8rem;
-    color: rgba(255,255,255,0.35);
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.3);
     font-style: italic;
 }
 
@@ -2194,60 +2514,173 @@ function formatDate(iso) {
     margin-left: 0.35rem;
 }
 
-/* ── System messages ────────────────────────────────────── */
+/* ── System messages — receipt cards ────────────────────── */
 .chat-system-msg {
     display: flex;
-    justify-content: center;
-    margin: 0.5rem 0;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0.6rem 0;
 }
-.chat-system-card {
-    background: rgba(110,110,210,0.08);
-    border: 1px solid rgba(110,110,210,0.18);
-    border-radius: 8px;
-    padding: 0.75rem 1.25rem;
-    max-width: 380px;
+.chat-system-msg::before,
+.chat-system-msg::after {
+    content: '';
+    flex: 1;
+    height: 0;
+    border-top: 1px dashed rgba(100,210,255,0.28);
+}
+.chat-system-msg:has(.sc-card--accept)::before,
+.chat-system-msg:has(.sc-card--accept)::after {
+    border-color: rgba(60,200,110,0.32);
+}
+.chat-system-msg:has(.sc-card--cancel)::before,
+.chat-system-msg:has(.sc-card--cancel)::after {
+    border-color: rgba(200,50,50,0.32);
+}
+
+/* base card */
+.sc-card {
+    font-family: 'Courier New', Courier, monospace;
+    background: rgba(100,210,255,0.04);
+    border: 1px dashed rgba(100,210,255,0.2);
+    border-radius: 4px;
+    padding: 0.65rem 1.1rem;
+    width: 420px;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+.sc-card--accept {
+    background: rgba(60,200,110,0.04);
+    border-color: rgba(60,200,110,0.25);
+    text-align: center;
+}
+.sc-card--cancel {
+    background: rgba(200,50,50,0.05);
+    border-color: rgba(200,50,50,0.25);
+}
+
+/* double rule */
+.sc-rule {
     width: 100%;
+    height: 0;
+    border: none;
+    border-top: 2px double rgba(100,210,255,0.28);
+    margin: 0.35rem 0;
 }
-.chat-system-card--cancel {
-    background: rgba(180,50,50,0.08);
-    border-color: rgba(180,50,50,0.2);
-}
-.chat-system-card--accept {
-    background: rgba(40,160,80,0.08);
-    border-color: rgba(40,160,80,0.2);
-}
-.chat-system-card__title {
-    font-size: 0.78rem;
+.sc-rule--green { border-color: rgba(60,200,110,0.35); }
+.sc-rule--red   { border-color: rgba(200,50,50,0.35); }
+
+/* title */
+.sc-title {
+    font-size: 0.8rem;
     font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgba(190,145,255,0.8);
-    margin: 0 0 0.6rem;
+    letter-spacing: 0.18em;
+    color: rgba(100,210,255,0.85);
+    margin: 0.2rem 0;
+    text-align: center;
 }
-.chat-system-card--cancel .chat-system-card__title { color: rgba(255,140,140,0.8); }
-.chat-system-card--accept .chat-system-card__title { color: rgba(100,220,130,0.85); }
-.chat-system-service-row {
+.sc-title--accept { color: rgba(80,230,130,0.9); }
+.sc-title--cancel { color: rgba(255,110,110,0.85); }
+
+/* who (idol name / canceller) */
+.sc-who {
+    font-size: 0.78rem;
+    color: rgba(210,240,255,0.45);
+    letter-spacing: 0.06em;
+    text-align: center;
+    margin: 0.1rem 0;
+}
+.sc-who--cancel { color: rgba(255,200,200,0.45); }
+
+/* cancel reason */
+.sc-reason {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.3);
+    font-style: italic;
+    margin: 0.15rem 0 0;
+    letter-spacing: 0.02em;
+}
+
+/* line items with dot leaders */
+.sc-line {
+    display: flex;
+    align-items: baseline;
+    padding: 0.22rem 0;
+    border-bottom: 1px solid rgba(100,210,255,0.06);
+}
+.sc-lines .sc-line:last-child { border-bottom: none; }
+.sc-line__name {
+    font-size: 0.8rem;
+    color: rgba(210,240,255,0.72);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 45%;
+    flex-shrink: 0;
+}
+.sc-line__dots {
+    flex: 1;
+    border-bottom: 1px dotted rgba(100,210,255,0.28);
+    margin: 0 0.4rem;
+    position: relative;
+    top: -3px;
+    min-width: 0.5rem;
+}
+.sc-line__price {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: rgba(100,210,255,0.88);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* perforation */
+.sc-perf {
+    display: flex;
+    align-items: center;
+    margin: 0.4rem -1.1rem;
+    position: relative;
+}
+.sc-perf::before,
+.sc-perf::after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #0b0b18;
+    border: 1px solid rgba(100,210,255,0.12);
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+}
+.sc-perf::before { left: -5px; }
+.sc-perf::after  { right: -5px; }
+.sc-perf__line {
+    flex: 1;
+    display: block;
+    border-top: 1px dashed rgba(100,210,255,0.3);
+    margin: 0 8px;
+}
+
+/* total */
+.sc-total {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.25rem 0;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    align-items: baseline;
+    padding: 0.15rem 0;
 }
-.chat-system-service-row:last-child { border-bottom: none; }
-.chat-system-service__name { font-size: 0.85rem; color: rgba(255,255,255,0.75); }
-.chat-system-service__price { font-size: 0.82rem; color: rgba(190,145,255,0.7); white-space: nowrap; }
-.chat-system-total-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    margin-top: 0.5rem;
-    padding-top: 0.4rem;
-    border-top: 1px solid rgba(190,145,255,0.2);
+.sc-total__label {
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    color: rgba(210,240,255,0.38);
 }
-.chat-system-total__label { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(190,145,255,0.6); }
-.chat-system-total__value { font-size: 0.9rem; font-weight: 700; color: rgba(190,145,255,0.9); white-space: nowrap; }
+.sc-total__value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: rgba(100,210,255,0.97);
+    font-variant-numeric: tabular-nums;
+}
 .chat-system-card__who { font-size: 0.8rem; color: rgba(255,255,255,0.45); margin: 0.2rem 0 0; font-weight: 600; }
 .chat-system-card__reason { font-size: 0.85rem; color: rgba(255,255,255,0.5); margin: 0.25rem 0 0; font-style: italic; }
 </style>
