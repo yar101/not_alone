@@ -1771,22 +1771,22 @@ function formatDate(iso) {
     justify-content: center;
     width: 36px;
     height: 36px;
-    border: 1px solid rgba(255, 100, 180, 0.25);
-    background: rgba(255, 100, 180, 0.08);
+    border: 1px solid rgba(220, 60, 60, 0.25);
+    background: rgba(220, 60, 60, 0.08);
     border-radius: 8px;
-    color: rgba(255, 100, 180, 0.65);
+    color: rgba(220, 60, 60, 0.65);
     cursor: pointer;
     transition: color 0.15s, background 0.15s, border-color 0.15s;
 }
 .chat-lock-btn--active {
-    color: rgba(255, 80, 160, 0.95);
-    background: rgba(255, 80, 160, 0.18);
-    border-color: rgba(255, 80, 160, 0.5);
+    color: rgba(255, 80, 80, 0.95);
+    background: rgba(200, 30, 30, 0.18);
+    border-color: rgba(220, 60, 60, 0.5);
 }
 .chat-lock-btn:hover {
-    color: rgba(255, 80, 160, 0.95);
-    background: rgba(255, 80, 160, 0.18);
-    border-color: rgba(255, 80, 160, 0.45);
+    color: rgba(255, 80, 80, 0.95);
+    background: rgba(200, 30, 30, 0.18);
+    border-color: rgba(220, 60, 60, 0.45);
 }
 
 /* ── Clickable avatar ─────────────────────────────────── */
