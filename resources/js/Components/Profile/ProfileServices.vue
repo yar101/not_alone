@@ -50,7 +50,7 @@ function addToCart(item) {
     if (!cart) return;
     const c = cart.value;
     const idolId = props.profileUser?.id;
-    if (c.idol_id && c.idol_id !== idolId) {
+    if (c.idol_id && c.idol_id !== idolId && c.items.length > 0) {
         // Different idol — show conflict modal
         pendingCartItem.value = item;
         cartConflictModal.value = true;

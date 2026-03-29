@@ -143,6 +143,16 @@ class UserProfileController extends Controller
             ->get(['id', 'user_id'])
             ->unique('user_id');
 
+        // Стабильная рандомизация: seed из сессии, одинаковый на всех страницах пагинации
+        $seedKey = 'idol_shuffle_' . $user->id . '_' . $category->id;
+        $seed = $request->session()->get($seedKey);
+        if (!$seed || $page === 1) {
+            $seed = mt_rand();
+            $request->session()->put($seedKey, $seed);
+        }
+        mt_srand($seed);
+        $idols = $idols->shuffle();
+
         $total = $idols->count();
         $paged = $idols->slice(($page - 1) * $perPage, $perPage)->values();
 
