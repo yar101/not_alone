@@ -52,6 +52,7 @@ const orderStatusFilter = ref('all'); // 'all' | 'pending' | 'accepted' | 'cance
 const orderSearch       = ref('');
 const orderFiltersOpen  = ref(false);
 
+
 const subtabOrders = computed(() => {
     if (!authUser.value?.is_idol) return orders.value;
     return ordersSubTab.value === 'mine'
@@ -864,22 +865,21 @@ function formatDate(iso) {
                                         <div v-else-if="item.type === 'message' && item.msg.type === 'system'" class="chat-system-msg">
                                             <template v-if="item.msg.metadata?.event === 'order_created'">
                                                 <div class="sc-card">
-                                                    <div class="sc-rule sc-rule--double"></div>
                                                     <p class="sc-title">ЗАКАЗ ОФОРМЛЕН</p>
                                                     <div class="sc-rule sc-rule--double"></div>
                                                     <div class="sc-lines">
                                                         <div v-for="s in item.msg.metadata.services" :key="s.id" class="sc-line">
                                                             <span class="sc-line__name">{{ s.name }}</span>
                                                             <span class="sc-line__dots"></span>
-                                                            <span class="sc-line__price">{{ s.price?.toLocaleString('ru-RU') }}&thinsp;₽<template v-if="s.time_unit">&thinsp;/&thinsp;{{ s.time_unit }}</template></span>
+                                                            <span class="sc-line__qty" v-if="(s.quantity ?? 1) > 1">×{{ s.quantity }}</span>
+                                                            <span class="sc-line__price">{{ (s.price * (s.quantity ?? 1))?.toLocaleString('ru-RU') }}&thinsp;₽<template v-if="s.time_unit">&thinsp;/&thinsp;{{ s.time_unit }}</template></span>
                                                         </div>
                                                     </div>
                                                     <div class="sc-perf"><span class="sc-perf__line"></span></div>
                                                     <div class="sc-total">
                                                         <span class="sc-total__label">ИТОГО</span>
-                                                        <span class="sc-total__value">{{ item.msg.metadata.services.reduce((sum, s) => sum + (s.price ?? 0), 0).toLocaleString('ru-RU') }}&thinsp;₽</span>
+                                                        <span class="sc-total__value">{{ item.msg.metadata.services.reduce((sum, s) => sum + (s.price ?? 0) * (s.quantity ?? 1), 0).toLocaleString('ru-RU') }}&thinsp;₽</span>
                                                     </div>
-                                                    <div class="sc-rule sc-rule--double"></div>
                                                 </div>
                                             </template>
                                             <template v-else-if="item.msg.metadata?.event === 'order_accepted'">
@@ -892,6 +892,7 @@ function formatDate(iso) {
                                                             'ГОТОВ(А) ПРИНЯТЬ ЗАКАЗ'
                                                         }}
                                                     </p>
+                                                    <p class="sc-date">{{ formatDate(item.msg.created_at) }}</p>
                                                     <div class="sc-rule sc-rule--double sc-rule--green"></div>
                                                 </div>
                                             </template>
@@ -901,6 +902,7 @@ function formatDate(iso) {
                                                     <p class="sc-title sc-title--cancel">ЗАКАЗ ОТМЕНЁН</p>
                                                     <p class="sc-who sc-who--cancel">{{ item.msg.metadata.cancelled_by === authUser?.id ? 'Вами' : (item.msg.metadata.cancelled_by_name ?? 'Другой стороной') }}</p>
                                                     <p v-if="item.msg.metadata.cancel_reason" class="sc-reason">{{ item.msg.metadata.cancel_reason }}</p>
+                                                    <p class="sc-date sc-date--cancel">{{ formatDate(item.msg.created_at) }}</p>
                                                     <div class="sc-rule sc-rule--double sc-rule--red"></div>
                                                 </div>
                                             </template>
@@ -2775,7 +2777,7 @@ function formatDate(iso) {
     border: 1px dashed rgba(100,210,255,0.2);
     border-radius: 4px;
     padding: 0.65rem 1.1rem;
-    width: 420px;
+    width: min(620px, 90vw);
     max-width: 100%;
     display: flex;
     flex-direction: column;
@@ -2796,11 +2798,11 @@ function formatDate(iso) {
     width: 100%;
     height: 0;
     border: none;
-    border-top: 2px double rgba(100,210,255,0.28);
+    border-top: 1px solid rgba(100,210,255,0.12);
     margin: 0.35rem 0;
 }
-.sc-rule--green { border-color: rgba(60,200,110,0.35); }
-.sc-rule--red   { border-color: rgba(200,50,50,0.35); }
+.sc-rule--green { border-color: rgba(60,200,110,0.15); }
+.sc-rule--red   { border-color: rgba(200,50,50,0.15); }
 
 /* title */
 .sc-title {
@@ -2832,22 +2834,31 @@ function formatDate(iso) {
     margin: 0.15rem 0 0;
     letter-spacing: 0.02em;
 }
+.sc-date {
+    font-size: 0.7rem;
+    color: rgba(80, 230, 130, 0.35);
+    letter-spacing: 0.1em;
+    text-align: center;
+    margin: 0.1rem 0 0;
+}
+.sc-date--cancel {
+    color: rgba(255, 110, 110, 0.35);
+}
 
 /* line items with dot leaders */
 .sc-line {
     display: flex;
     align-items: baseline;
-    padding: 0.22rem 0;
+    padding: 0.5rem 0;
     border-bottom: 1px solid rgba(100,210,255,0.06);
 }
 .sc-lines .sc-line:last-child { border-bottom: none; }
 .sc-line__name {
     font-size: 0.8rem;
     color: rgba(210,240,255,0.72);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 45%;
+    white-space: normal;
+    overflow: visible;
+    max-width: 55%;
     flex-shrink: 0;
 }
 .sc-line__dots {
@@ -2912,6 +2923,16 @@ function formatDate(iso) {
     color: rgba(100,210,255,0.97);
     font-variant-numeric: tabular-nums;
 }
+
+/* quantity badge */
+.sc-line__qty {
+    font-size: 0.72rem;
+    color: rgba(100, 210, 255, 0.5);
+    margin-right: 0.4rem;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
 .chat-system-card__who { font-size: 0.8rem; color: rgba(255,255,255,0.45); margin: 0.2rem 0 0; font-weight: 600; }
 .chat-system-card__reason { font-size: 0.85rem; color: rgba(255,255,255,0.5); margin: 0.25rem 0 0; font-style: italic; }
 </style>
