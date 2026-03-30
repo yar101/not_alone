@@ -82,6 +82,17 @@ function toggleRow(id) {
     selectedIds.value = s;
 }
 
+// Reject reason templates
+const REJECT_TEMPLATES = [
+    'Название не соответствует категории услуг',
+    'Слишком низкая или нереалистичная цена',
+    'Описание услуги отсутствует или слишком короткое',
+    'Услуга нарушает правила платформы',
+    'Дублирует уже существующую услугу',
+    'Недопустимый контент',
+    'Требуется уточнение деталей услуги',
+];
+
 // Single approve/reject
 const showRejectModal  = ref(false);
 const rejectTarget     = ref(null); // null = bulk
@@ -901,6 +912,19 @@ function destroyLimit(id) {
                         </div>
                         <form @submit.prevent="submitReject" class="modal__body">
                             <div class="field">
+                                <label>Шаблоны</label>
+                                <div class="reject-templates">
+                                    <button
+                                        v-for="t in REJECT_TEMPLATES"
+                                        :key="t"
+                                        type="button"
+                                        class="reject-tpl"
+                                        :class="{ 'reject-tpl--active': rejectReason === t }"
+                                        @click="rejectReason = t; rejectError = ''"
+                                    >{{ t }}</button>
+                                </div>
+                            </div>
+                            <div class="field">
                                 <label>Причина *</label>
                                 <textarea
                                     v-model="rejectReason"
@@ -1003,6 +1027,10 @@ function destroyLimit(id) {
 .input--color { width: 48px; height: 36px; padding: 2px 4px; cursor: pointer; }
 .input-file { font-size: 0.82rem; color: rgba(255,255,255,0.5); cursor: pointer; }
 .err { font-size: 0.75rem; color: rgba(239,68,68,0.8); margin: 0; }
+.reject-templates { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.reject-tpl { padding: 0.3rem 0.65rem; background: transparent; border: 1px dashed rgba(255,255,255,0.18); border-radius: 3px; color: rgba(255,255,255,0.45); font-size: 0.8rem; font-family: inherit; cursor: pointer; transition: border-color 0.15s, color 0.15s, background 0.15s; }
+.reject-tpl:hover { border-color: rgba(255,255,255,0.4); color: rgba(255,255,255,0.8); }
+.reject-tpl--active { border-style: solid; border-color: rgba(255,100,100,0.55); color: rgba(255,130,130,0.9); background: rgba(255,80,80,0.08); }
 .modal__actions { display: flex; justify-content: flex-end; gap: 0.5rem; padding-top: 0.25rem; }
 .btn-cancel { padding: 0.45rem 0.9rem; border: 1px solid rgba(255,255,255,0.12); border-radius: 3px; background: transparent; color: rgba(255,255,255,0.4); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
 .btn-submit { padding: 0.45rem 1rem; border: 1px solid rgba(190,145,255,0.45); border-radius: 3px; background: rgba(190,145,255,0.1); color: rgba(255,255,255,0.9); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
