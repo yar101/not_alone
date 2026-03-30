@@ -100,7 +100,7 @@ const ratingPct    = computed(() => ratingValue.value != null ? Math.min(ratingV
                         <span class="usb-feature-card__label">Кошелёк</span>
                     </div>
 
-                    <div class="usb-feature-card usb-feature-card--emerald">
+                    <Link :href="route('orders.index')" class="usb-feature-card usb-feature-card--emerald" @click="close">
                         <div class="usb-feature-card__glow" />
                         <div class="usb-feature-card__icon-wrap usb-feature-card__icon-wrap--emerald">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -111,7 +111,7 @@ const ratingPct    = computed(() => ratingValue.value != null ? Math.min(ratingV
                             </svg>
                         </div>
                         <span class="usb-feature-card__label">Заказы</span>
-                    </div>
+                    </Link>
                 </div>
 
             </div>
@@ -346,6 +346,7 @@ const ratingPct    = computed(() => ratingValue.value != null ? Math.min(ratingV
     flex-direction: row;
     align-items: center;
     gap: 0.65rem;
+    text-decoration: none;
 }
 
 /* Top stripe */

@@ -789,6 +789,11 @@ function formatDate(iso) {
                                         </span>
                                         <span class="order-stub__total">{{ orderTotal(order).toLocaleString('ru-RU') }}&thinsp;₽</span>
                                     </div>
+                                    <a :href="route('orders.index') + '?order=' + order.id"
+                                       class="order-stub__detail-link"
+                                       @click.stop>
+                                        Подробнее →
+                                    </a>
                                 </button>
                                 </template><!-- /visibleOrders -->
                             </template><!-- /v-else (not loading) -->
@@ -2447,6 +2452,20 @@ function formatDate(iso) {
 .order-stub--cancelled .order-stub__total {
     color: rgba(255,130,130,0.75);
     text-decoration: none;
+}
+.order-stub__detail-link {
+    display: block;
+    text-align: center;
+    font-size: 0.7rem;
+    color: rgba(100, 210, 255, 0.4);
+    padding: 0.3rem 0 0.1rem;
+    border-top: 1px solid rgba(100, 210, 255, 0.08);
+    text-decoration: none;
+    letter-spacing: 0.06em;
+    transition: color 0.15s;
+}
+.order-stub__detail-link:hover {
+    color: rgba(100, 210, 255, 0.8);
 }
 
 

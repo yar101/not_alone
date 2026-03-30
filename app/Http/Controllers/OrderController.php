@@ -16,6 +16,8 @@ use App\Notifications\OrderCancelledNotification;
 use App\Notifications\OrderCreatedNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 class OrderController extends Controller
 {
@@ -203,7 +205,7 @@ class OrderController extends Controller
         return response()->json(['status' => 'cancelled']);
     }
 
-    public function index(Request $request): JsonResponse
+    public function index(Request $request): JsonResponse|InertiaResponse
     {
         $user = $request->user();
 
@@ -220,7 +222,11 @@ class OrderController extends Controller
             ->get()
             ->map(fn(Order $order) => $this->formatOrder($order, $user->id));
 
-        return response()->json(['orders' => $orders]);
+        if ($request->wantsJson()) {
+            return response()->json(['orders' => $orders]);
+        }
+
+        return Inertia::render('Orders/Index', ['orders' => $orders]);
     }
 
     private function formatOrder(Order $order, int $userId): array
@@ -248,8 +254,9 @@ class OrderController extends Controller
                 'gender'     => $order->idol->gender,
             ],
             'items' => $order->items->map(fn($item) => [
-                'id'        => $item->id,
-                'service'   => $item->service ? [
+                'id'       => $item->id,
+                'quantity' => $item->quantity ?? 1,
+                'service'  => $item->service ? [
                     'id'        => $item->service->id,
                     'name'      => $item->service->name,
                     'price'     => $item->service->price,

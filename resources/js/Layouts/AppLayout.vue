@@ -56,6 +56,10 @@ function openChatWith(userId) {
     chatPanel.value?.startWith(userId);
 }
 
+function handleOpenOrderEvent(e) {
+    openOrder(e.detail);
+}
+
 function openOrder(orderId) {
     cartOpen.value = false;
     chatOpen.value = true;
@@ -95,7 +99,12 @@ onMounted(() => {
             });
     }
 });
+onMounted(() => {
+    window.addEventListener('noalone:open-order', handleOpenOrderEvent);
+});
+
 onUnmounted(() => {
+    window.removeEventListener('noalone:open-order', handleOpenOrderEvent);
     if (msgChannel) msgChannel.stopListening('.message.received');
     if (window.Echo) window.Echo.leave('presence-online');
 });
