@@ -194,6 +194,23 @@ function setCategory(cat) {
                         <component :is="cat.icon" class="faq-cat-icon" />
                     </template>
                 </FaqItem>
+
+                <div class="faq-sidebar__actions">
+                    <button class="faq-action-btn faq-action-btn--support">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        Техподдержка
+                    </button>
+                    <button class="faq-action-btn faq-action-btn--dispute">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        Оспорить заказ
+                    </button>
+                </div>
             </nav>
 
             <!-- ── Divider ── -->
@@ -219,6 +236,24 @@ function setCategory(cat) {
                         </div>
                     </div>
                 </Transition>
+            </div>
+
+            <!-- ── Mobile footer actions ── -->
+            <div class="faq-footer-actions">
+                <button class="faq-action-btn faq-action-btn--support">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    Техподдержка
+                </button>
+                <button class="faq-action-btn faq-action-btn--dispute">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    Оспорить заказ
+                </button>
             </div>
 
         </div>
@@ -355,6 +390,45 @@ function setCategory(cat) {
     transform: translateX(10px);
 }
 
+/* ── Action buttons ──────────────────────────── */
+.faq-sidebar__actions {
+    margin-top: auto;
+    padding: 0.75rem 0.5rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.faq-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border-radius: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.45);
+    font-family: inherit;
+    font-size: 0.88rem;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.faq-action-btn svg { flex-shrink: 0; opacity: 0.7; }
+
+.faq-action-btn--support:hover {
+    background: rgba(110, 110, 210, 0.1);
+    border-color: rgba(110, 110, 210, 0.3);
+    color: rgba(160, 140, 255, 0.9);
+}
+.faq-action-btn--dispute:hover {
+    background: rgba(255, 110, 110, 0.07);
+    border-color: rgba(255, 110, 110, 0.25);
+    color: rgba(255, 130, 130, 0.85);
+}
+
 /* ── Large screens ───────────────────────────── */
 @media (min-width: 1440px) {
     .faq-cat-icon { width: 19px; height: 19px; }
@@ -394,6 +468,7 @@ function setCategory(cat) {
     .faq-sidebar::-webkit-scrollbar { display: none; }
     .faq-sidebar__label { display: none; }
     .faq-divider { display: none; }
+    .faq-sidebar__actions { display: none; }
 
     .faq-content { flex: 1; }
 
@@ -403,5 +478,16 @@ function setCategory(cat) {
         font-size: 1.25rem;
         text-shadow: 0 0 18px rgba(110, 110, 210, 0.3);
     }
+
+    .faq-footer-actions {
+        display: flex;
+        gap: 0.5rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        flex-shrink: 0;
+    }
 }
+
+/* hide mobile footer on desktop */
+.faq-footer-actions { display: none; }
 </style>
