@@ -98,12 +98,12 @@ class OrderController extends Controller
 
         // Broadcast to orders channels
         $order->load(['customer', 'idol', 'cancelledBy', 'items.service.timeUnit']);
-        broadcast(new OrderChanged($idol->id, $this->formatOrder($order, $idol->id), 'created'));
-        broadcast(new OrderChanged($user->id, $this->formatOrder($order, $user->id), 'created'));
+        $this->safeBroadcast(new OrderChanged($idol->id, $this->formatOrder($order, $idol->id), 'created'));
+        $this->safeBroadcast(new OrderChanged($user->id, $this->formatOrder($order, $user->id), 'created'));
 
         // Notify idol
         $idol->notify(new OrderCreatedNotification($order));
-        broadcast(new NewNotification('private', $idol->id));
+        $this->safeBroadcast(new NewNotification('private', $idol->id));
 
         return response()->json([
             'order_id'        => $order->id,
@@ -135,17 +135,17 @@ class OrderController extends Controller
             ]);
             $order->conversation->touch();
             $msg->load('sender');
-            broadcast(new MessageSent($msg));
-            broadcast(new OrderStatusChanged($order->conversation_id, $order->id, 'accepted'));
+            $this->safeBroadcast(new MessageSent($msg));
+            $this->safeBroadcast(new OrderStatusChanged($order->conversation_id, $order->id, 'accepted'));
         }
 
         // Broadcast to orders channels
         $order->load(['customer', 'idol', 'cancelledBy', 'items.service.timeUnit']);
-        broadcast(new OrderChanged($order->idol_id,     $this->formatOrder($order, $order->idol_id),     'updated'));
-        broadcast(new OrderChanged($order->customer_id, $this->formatOrder($order, $order->customer_id), 'updated'));
+        $this->safeBroadcast(new OrderChanged($order->idol_id,     $this->formatOrder($order, $order->idol_id),     'updated'));
+        $this->safeBroadcast(new OrderChanged($order->customer_id, $this->formatOrder($order, $order->customer_id), 'updated'));
 
         $order->customer->notify(new OrderAcceptedNotification($order));
-        broadcast(new NewNotification('private', $order->customer_id));
+        $this->safeBroadcast(new NewNotification('private', $order->customer_id));
 
         return response()->json(['status' => 'accepted']);
     }
@@ -184,8 +184,8 @@ class OrderController extends Controller
             ]);
             $order->conversation->touch();
             $msg->load('sender');
-            broadcast(new MessageSent($msg));
-            broadcast(new OrderStatusChanged(
+            $this->safeBroadcast(new MessageSent($msg));
+            $this->safeBroadcast(new OrderStatusChanged(
                 $order->conversation_id,
                 $order->id,
                 'cancelled',
@@ -197,14 +197,14 @@ class OrderController extends Controller
 
         // Broadcast to orders channels
         $order->load(['customer', 'idol', 'cancelledBy', 'items.service.timeUnit']);
-        broadcast(new OrderChanged($order->idol_id,     $this->formatOrder($order, $order->idol_id),     'updated'));
-        broadcast(new OrderChanged($order->customer_id, $this->formatOrder($order, $order->customer_id), 'updated'));
+        $this->safeBroadcast(new OrderChanged($order->idol_id,     $this->formatOrder($order, $order->idol_id),     'updated'));
+        $this->safeBroadcast(new OrderChanged($order->customer_id, $this->formatOrder($order, $order->customer_id), 'updated'));
 
         // Notify the other party
         $otherId = $order->customer_id === $user->id ? $order->idol_id : $order->customer_id;
         $other   = User::find($otherId);
         $other?->notify(new OrderCancelledNotification($order));
-        broadcast(new NewNotification('private', $otherId));
+        $this->safeBroadcast(new NewNotification('private', $otherId));
 
         return response()->json(['status' => 'cancelled']);
     }
@@ -227,8 +227,8 @@ class OrderController extends Controller
             $order->logStatusChange($old, OrderStatus::Completed->value, 'user', $user->id);
 
             $order->load(['customer', 'idol', 'cancelledBy', 'items.service.timeUnit']);
-            broadcast(new OrderChanged($order->idol_id,     $this->formatOrder($order, $order->idol_id),     'updated'));
-            broadcast(new OrderChanged($order->customer_id, $this->formatOrder($order, $order->customer_id), 'updated'));
+            $this->safeBroadcast(new OrderChanged($order->idol_id,     $this->formatOrder($order, $order->idol_id),     'updated'));
+            $this->safeBroadcast(new OrderChanged($order->customer_id, $this->formatOrder($order, $order->customer_id), 'updated'));
         }
 
         return response()->json([
@@ -260,6 +260,15 @@ class OrderController extends Controller
         }
 
         return Inertia::render('Orders/Index', ['orders' => $orders]);
+    }
+
+    private function safeBroadcast(mixed $event): void
+    {
+        try {
+            broadcast($event);
+        } catch (\Throwable $e) {
+            \Log::warning('Broadcast failed: ' . $e->getMessage());
+        }
     }
 
     private function formatOrder(Order $order, int $userId): array

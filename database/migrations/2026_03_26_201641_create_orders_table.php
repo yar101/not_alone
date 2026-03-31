@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('customer_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('idol_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('conversation_id')->nullable()->constrained('conversations')->nullOnDelete();
-            $table->enum('status', ['pending', 'accepted', 'cancelled'])->default('pending');
+            $table->string('status')->default('pending');
             $table->text('cancel_reason')->nullable();
             $table->foreignId('cancelled_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();

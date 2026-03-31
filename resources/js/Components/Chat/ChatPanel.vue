@@ -777,7 +777,7 @@ function formatDate(iso) {
                                             <span class="order-stub__date">{{ formatDate(order.created_at) }}</span>
                                         </div>
                                         <span class="order-stub__badge" :class="`order-stub__badge--${order.status}`">
-                                            {{ { pending: 'Ожидает', accepted: 'Принят', cancelled: 'Отменён' }[order.status] }}
+                                            {{ { pending: 'Ожидает', accepted: 'Принят', paid: 'Оплачен', completed: 'Выполнен', cancelled: 'Отменён', refunded: 'Возврат' }[order.status] }}
                                         </span>
                                     </div>
                                     <div class="order-stub__perf">
@@ -789,11 +789,6 @@ function formatDate(iso) {
                                         </span>
                                         <span class="order-stub__total">{{ orderTotal(order).toLocaleString('ru-RU') }}&thinsp;₽</span>
                                     </div>
-                                    <a :href="route('orders.index') + '?order=' + order.id"
-                                       class="order-stub__detail-link"
-                                       @click.stop>
-                                        Подробнее →
-                                    </a>
                                 </button>
                                 </template><!-- /visibleOrders -->
                             </template><!-- /v-else (not loading) -->
@@ -987,6 +982,11 @@ function formatDate(iso) {
                                 </div>
                                 <button @click="submitUnblock" class="chat-block-unblock-btn">РАЗБЛОКИРОВАТЬ</button>
                             </div>
+
+                            <!-- Ссылка на страницу заказа -->
+                            <a v-if="activeOrderData" :href="route('orders.index') + '?order=' + activeOrderData.id" class="chat-order-detail-link">
+                                Подробнее о заказе →
+                            </a>
 
                             <!-- Панель действий заказа -->
                             <div v-if="activeOrderData && activeOrderData.status !== 'cancelled'" class="chat-order-actions">
@@ -2391,9 +2391,12 @@ function formatDate(iso) {
     border-radius: 3px;
     flex-shrink: 0;
 }
-.order-stub__badge--pending  { background: rgba(180,130,0,0.2);  color: rgba(255,210,80,0.9);  border: 1px solid rgba(180,130,0,0.3); }
-.order-stub__badge--accepted { background: rgba(0,180,100,0.16); color: rgba(80,240,160,0.9);  border: 1px solid rgba(0,180,100,0.3); }
-.order-stub__badge--cancelled{ background: rgba(180,50,50,0.18); color: rgba(255,130,130,0.85);border: 1px solid rgba(180,50,50,0.28); }
+.order-stub__badge--pending,
+.order-stub__badge--accepted,
+.order-stub__badge--paid      { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.75);  border: 1px solid rgba(255,255,255,0.12); }
+.order-stub__badge--completed { background: rgba(80,240,160,0.1);   color: rgba(80,240,160,0.9);    border: 1px solid rgba(80,240,160,0.25); }
+.order-stub__badge--cancelled,
+.order-stub__badge--refunded  { background: rgba(255,110,110,0.1);  color: rgba(255,110,110,0.85);  border: 1px solid rgba(255,110,110,0.25); }
 
 /* perforated tear line */
 .order-stub__perf {
@@ -2443,31 +2446,9 @@ function formatDate(iso) {
     font-size: 0.92rem;
     font-weight: 700;
     letter-spacing: 0.03em;
-    color: rgba(255,210,80,0.9);
+    color: rgba(255,255,255,0.9);
     font-variant-numeric: tabular-nums;
 }
-.order-stub--accepted .order-stub__total {
-    color: rgba(80,240,160,0.9);
-}
-.order-stub--cancelled .order-stub__total {
-    color: rgba(255,130,130,0.75);
-    text-decoration: none;
-}
-.order-stub__detail-link {
-    display: block;
-    text-align: center;
-    font-size: 0.7rem;
-    color: rgba(100, 210, 255, 0.4);
-    padding: 0.3rem 0 0.1rem;
-    border-top: 1px solid rgba(100, 210, 255, 0.08);
-    text-decoration: none;
-    letter-spacing: 0.06em;
-    transition: color 0.15s;
-}
-.order-stub__detail-link:hover {
-    color: rgba(100, 210, 255, 0.8);
-}
-
 
 /* ── Order sub-tabs (Мои / Входящие) ───────────────────── */
 .chat-order-subtabs {
@@ -2629,6 +2610,22 @@ function formatDate(iso) {
 .chat-order-badge--pending  { background: rgba(180,130,0,0.18);  color: rgba(255,210,80,0.85);  border: 1px solid rgba(180,130,0,0.3); }
 .chat-order-badge--accepted { background: rgba(0,180,100,0.15);  color: rgba(100,255,180,0.85); border: 1px solid rgba(0,180,100,0.3); }
 .chat-order-badge--cancelled{ background: rgba(180,50,50,0.15);  color: rgba(255,140,140,0.8);  border: 1px solid rgba(180,50,50,0.25); }
+
+/* ── Order detail link ──────────────────────────────────── */
+.chat-order-detail-link {
+    display: block;
+    text-align: center;
+    font-size: 0.78rem;
+    color: rgba(160,160,255,0.45);
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    letter-spacing: 0.05em;
+    transition: color 0.15s;
+    border-bottom: 1px solid rgba(160,160,255,0.08);
+}
+.chat-order-detail-link:hover {
+    color: rgba(160,160,255,0.85);
+}
 
 /* ── Order actions panel ────────────────────────────────── */
 .chat-order-actions {

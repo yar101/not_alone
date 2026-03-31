@@ -217,7 +217,7 @@ onUnmounted(() => {
                             :class="[`orders-status-btn--${s}`, { 'orders-status-btn--active': statusFilter === s }]"
                             @click="statusFilter = s"
                         >
-                            {{ { all: 'Все', pending: 'Ожидает', accepted: 'Принят', cancelled: 'Отменён' }[s] }}
+                            {{ { all: 'Все', pending: 'Ожидает', accepted: 'Принят', paid: 'Оплачен', completed: 'Выполнен', cancelled: 'Отменён', refunded: 'Возврат' }[s] }}
                             <span class="orders-status-btn__count">{{ statusCounts[s] }}</span>
                         </button>
                     </div>
@@ -254,7 +254,7 @@ onUnmounted(() => {
                             <span class="ocard__date">{{ formatDate(order.created_at) }}</span>
                         </div>
                         <span class="ocard__badge" :class="`ocard__badge--${order.status}`">
-                            {{ { pending: 'Ожидает', accepted: 'Принят', cancelled: 'Отменён' }[order.status] }}
+                            {{ { pending: 'Ожидает', accepted: 'Принят', paid: 'Оплачен', completed: 'Выполнен', cancelled: 'Отменён', refunded: 'Возврат' }[order.status] }}
                         </span>
                     </div>
 
@@ -327,7 +327,7 @@ onUnmounted(() => {
                             <span class="opanel__date">{{ formatDate(selectedOrder.created_at) }}</span>
                         </div>
                         <span class="opanel__status-badge" :class="`opanel__status-badge--${selectedOrder.status}`">
-                            {{ { pending: 'Ожидает', accepted: 'Принят', cancelled: 'Отменён' }[selectedOrder.status] }}
+                            {{ { pending: 'Ожидает', accepted: 'Принят', paid: 'Оплачен', completed: 'Выполнен', cancelled: 'Отменён', refunded: 'Возврат' }[selectedOrder.status] }}
                         </span>
                     </div>
 
@@ -642,9 +642,12 @@ onUnmounted(() => {
     white-space: nowrap;
     flex-shrink: 0;
 }
-.ocard__badge--pending  { background: rgba(255,200,80,0.1);  color: rgba(255,200,80,0.9); }
-.ocard__badge--accepted { background: rgba(80,240,160,0.1);  color: rgba(80,240,160,0.9); }
-.ocard__badge--cancelled { background: rgba(255,110,110,0.08); color: rgba(255,110,110,0.75); }
+.ocard__badge--pending,
+.ocard__badge--accepted,
+.ocard__badge--paid      { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.75); }
+.ocard__badge--completed { background: rgba(80,240,160,0.08);  color: rgba(80,240,160,0.9);  }
+.ocard__badge--cancelled,
+.ocard__badge--refunded  { background: rgba(255,110,110,0.08); color: rgba(255,110,110,0.85); }
 
 /* Perf + Items — скрыты */
 .ocard__perf  { display: none; }
@@ -668,10 +671,8 @@ onUnmounted(() => {
     font-size: 1.15rem;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
-    color: rgba(255,210,80,0.9);
+    color: rgba(255,255,255,0.9);
 }
-.ocard--accepted .ocard__total { color: rgba(80,240,160,0.9); }
-.ocard--cancelled .ocard__total { color: rgba(255,130,130,0.65); }
 
 /* Actions */
 .ocard__actions {
@@ -811,9 +812,12 @@ onUnmounted(() => {
     white-space: nowrap;
     flex-shrink: 0;
 }
-.opanel__status-badge--pending  { background: rgba(255,200,80,0.1); color: rgba(255,200,80,0.9); }
-.opanel__status-badge--accepted { background: rgba(80,240,160,0.1); color: rgba(80,240,160,0.9); }
-.opanel__status-badge--cancelled { background: rgba(255,110,110,0.08); color: rgba(255,110,110,0.75); }
+.opanel__status-badge--pending,
+.opanel__status-badge--accepted,
+.opanel__status-badge--paid      { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.75); }
+.opanel__status-badge--completed { background: rgba(80,240,160,0.08);  color: rgba(80,240,160,0.9);  }
+.opanel__status-badge--cancelled,
+.opanel__status-badge--refunded  { background: rgba(255,110,110,0.08); color: rgba(255,110,110,0.85); }
 
 /* Partner */
 .opanel__partner {
