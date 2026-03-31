@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\ServiceModerationController;
 use App\Http\Controllers\Admin\ServicePriceLimitController;
 use App\Http\Controllers\Admin\ServiceTimeUnitController;
 use App\Http\Controllers\Admin\NewsController;
+use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -162,6 +163,13 @@ Route::patch('/{trait}', [PersonalityTraitController::class, 'update'])->name('u
             Route::post('/',         [NewsController::class, 'store'])->name('store');
             Route::patch('/{news}',  [NewsController::class, 'update'])->name('update');
             Route::delete('/{news}', [NewsController::class, 'destroy'])->name('destroy');
+        });
+
+        // Orders
+        Route::prefix('orders')->name('orders.')->group(function () {
+            Route::get('/', [OrderController::class, 'index'])->name('index');
+            Route::patch('/{order}/status', [OrderController::class, 'updateStatus'])->name('status');
+            Route::get('/{order}/history', [OrderController::class, 'history'])->name('history');
         });
 
         // Export

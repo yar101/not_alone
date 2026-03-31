@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\OrderStatus;
 use App\Events\MessageRead;
 use App\Events\MessageSent;
 use App\Events\NewMessageReceived;
@@ -180,7 +181,7 @@ class ConversationController extends Controller
         // Block messages in cancelled order conversations
         if ($conversation->order_id) {
             $conversation->loadMissing('order');
-            if ($conversation->order?->status === 'cancelled') {
+            if ($conversation->order?->status === OrderStatus::Cancelled) {
                 abort(422, 'order_cancelled');
             }
         }

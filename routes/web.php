@@ -132,7 +132,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/orders',                      [OrderController::class, 'index'])->name('orders.index');
     Route::post('/orders',                     [OrderController::class, 'store'])->name('orders.store');
     Route::patch('/orders/{order}/accept',     [OrderController::class, 'accept'])->name('orders.accept');
-    Route::patch('/orders/{order}/cancel',     [OrderController::class, 'cancel'])->name('orders.cancel');
+    Route::patch('/orders/{order}/cancel',              [OrderController::class, 'cancel'])->name('orders.cancel');
+    Route::patch('/orders/{order}/confirm-completion', [OrderController::class, 'confirmCompletion'])->name('orders.confirm-completion');
 });
 
 require __DIR__.'/auth.php';

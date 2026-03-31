@@ -136,6 +136,14 @@ function isActive(routeName) {
                     Пользователи
                 </Link>
 
+                <Link
+                    :href="route('admin.orders.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.orders.*') }"
+                >
+                    Заказы
+                </Link>
+
                 <div class="nav-group">
                     <button
                         class="nav-item nav-item--group"

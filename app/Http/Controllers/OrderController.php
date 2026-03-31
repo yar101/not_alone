@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\OrderStatus;
 use App\Events\MessageSent;
 use App\Events\NewNotification;
 use App\Events\OrderChanged;
@@ -57,6 +58,7 @@ class OrderController extends Controller
             'idol_id'     => $idol->id,
             'status'      => 'pending',
         ]);
+        $order->logStatusChange(null, OrderStatus::Pending->value, 'user', $user->id);
 
         // Create order items with quantity
         foreach ($services as $service) {
@@ -114,8 +116,9 @@ class OrderController extends Controller
         $user = $request->user();
 
         abort_unless($order->idol_id === $user->id, 403);
-        abort_unless($order->status === 'pending', 422);
+        abort_unless($order->status === OrderStatus::Pending, 422);
 
+        $order->logStatusChange(OrderStatus::Pending->value, OrderStatus::Accepted->value, 'user', $user->id);
         $order->update(['status' => 'accepted']);
 
         if ($order->conversation_id) {
@@ -155,10 +158,11 @@ class OrderController extends Controller
             $order->customer_id === $user->id || $order->idol_id === $user->id,
             403
         );
-        abort_unless(in_array($order->status, ['pending', 'accepted']), 422);
+        abort_unless(in_array($order->status, [OrderStatus::Pending, OrderStatus::Accepted]), 422);
 
         $request->validate(['cancel_reason' => 'required|string|max:1000']);
 
+        $order->logStatusChange($order->status->value, OrderStatus::Cancelled->value, 'user', $user->id, $request->cancel_reason);
         $order->update([
             'status'        => 'cancelled',
             'cancel_reason' => $request->cancel_reason,
@@ -205,6 +209,35 @@ class OrderController extends Controller
         return response()->json(['status' => 'cancelled']);
     }
 
+    public function confirmCompletion(Request $request, Order $order): JsonResponse
+    {
+        $user = $request->user();
+
+        abort_unless($order->customer_id === $user->id || $order->idol_id === $user->id, 403);
+        abort_unless($order->status === OrderStatus::Paid, 422);
+
+        $isIdol = $order->idol_id === $user->id;
+        $field  = $isIdol ? 'completion_confirmed_by_idol' : 'completion_confirmed_by_customer';
+        $order->update([$field => true]);
+        $order->refresh();
+
+        if ($order->completion_confirmed_by_idol && $order->completion_confirmed_by_customer) {
+            $old = $order->status->value;
+            $order->update(['status' => OrderStatus::Completed]);
+            $order->logStatusChange($old, OrderStatus::Completed->value, 'user', $user->id);
+
+            $order->load(['customer', 'idol', 'cancelledBy', 'items.service.timeUnit']);
+            broadcast(new OrderChanged($order->idol_id,     $this->formatOrder($order, $order->idol_id),     'updated'));
+            broadcast(new OrderChanged($order->customer_id, $this->formatOrder($order, $order->customer_id), 'updated'));
+        }
+
+        return response()->json([
+            'confirmed'                       => true,
+            'completion_confirmed_by_idol'     => $order->completion_confirmed_by_idol,
+            'completion_confirmed_by_customer' => $order->completion_confirmed_by_customer,
+        ]);
+    }
+
     public function index(Request $request): JsonResponse|InertiaResponse
     {
         $user = $request->user();
@@ -235,7 +268,7 @@ class OrderController extends Controller
 
         return [
             'id'              => $order->id,
-            'status'          => $order->status,
+            'status'          => $order->status->value,
             'cancel_reason'   => $order->cancel_reason,
             'cancelled_by'      => $order->cancelled_by,
             'cancelled_by_name' => $order->cancelledBy?->name,

@@ -165,19 +165,28 @@ function deletePost() {
             </CreateButton>
         </div>
 
-        <!-- Feed -->
-        <div v-if="posts.length" class="posts-feed">
-            <PostFeedCard v-for="post in posts" :key="post.id" :post="post" :is-owner="isOwner" :auth-user="authUser"
-                @open-detail="openDetail" @liked="onLiked" @delete="confirmDelete" />
+        <!-- Initial loader -->
+        <div v-if="loading && !posts.length" class="posts-initial-loader">
+            <span class="posts-loading__dot" />
+            <span class="posts-loading__dot" />
+            <span class="posts-loading__dot" />
         </div>
 
-        <!-- Empty state (only when not loading and nothing loaded yet) -->
-        <p v-else-if="!loading" class="posts-empty">
-            {{ isOwner ? 'Нет публикаций — поделись чем-нибудь' : 'Публикаций пока нет' }}
-        </p>
+        <template v-else>
+            <!-- Feed -->
+            <div v-if="posts.length" class="posts-feed">
+                <PostFeedCard v-for="post in posts" :key="post.id" :post="post" :is-owner="isOwner" :auth-user="authUser"
+                    @open-detail="openDetail" @liked="onLiked" @delete="confirmDelete" />
+            </div>
 
-        <!-- Loading indicator -->
-        <div v-if="loading" class="posts-loading">
+            <!-- Empty state -->
+            <p v-else class="posts-empty">
+                {{ isOwner ? 'Нет публикаций — поделись чем-нибудь' : 'Публикаций пока нет' }}
+            </p>
+        </template>
+
+        <!-- Pagination loader -->
+        <div v-if="loading && posts.length" class="posts-loading">
             <span class="posts-loading__dot" />
             <span class="posts-loading__dot" />
             <span class="posts-loading__dot" />
@@ -259,6 +268,14 @@ function deletePost() {
     font-size: 0.82rem;
     color: rgba(255, 255, 255, 0.2);
     margin: 0;
+}
+
+.posts-initial-loader {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 4rem 0;
 }
 
 .posts-loading {
