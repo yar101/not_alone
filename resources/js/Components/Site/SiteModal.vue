@@ -356,21 +356,21 @@ onUnmounted(() => {
 
 /* ── Transitions ───────────────────────────────────── */
 .backdrop-enter-active,
-.backdrop-leave-active { transition: opacity 0.3s ease; }
+.backdrop-leave-active { transition: opacity 0.18s ease; }
 .backdrop-enter-from,
 .backdrop-leave-to { opacity: 0; }
 .backdrop-enter-to,
 .backdrop-leave-from { opacity: 1; }
 
 .sheet-enter-active {
-    transition: transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.35s ease;
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0.2, 1), opacity 0.18s ease;
 }
 .sheet-leave-active {
-    transition: transform 0.3s cubic-bezier(0.55, 0, 1, 0.45), opacity 0.25s ease;
+    transition: transform 0.15s cubic-bezier(0.4, 0, 1, 1), opacity 0.15s ease;
 }
 .sheet-enter-from,
 .sheet-leave-to {
-    transform: translateX(-50%) translateY(calc(-50% + 60px));
+    transform: translateX(-50%) translateY(calc(-50% + 24px));
     opacity: 0;
 }
 .sheet-enter-to,

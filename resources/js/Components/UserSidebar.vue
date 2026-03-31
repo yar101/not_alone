@@ -1,8 +1,9 @@
 <script setup>
-import { computed, onMounted, onUnmounted } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AvatarUploader from '@/Components/AvatarUploader.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
+import FirstModal from '@/Components/Site/FirstModal.vue';
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -13,6 +14,9 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 function close() { emit('update:modelValue', false); }
+
+const showHelp = ref(false);
+function openHelp() { showHelp.value = true; }
 
 function onKey(e) { if (e.key === 'Escape') close(); }
 onMounted(() => document.addEventListener('keydown', onKey));
@@ -84,6 +88,14 @@ const ratingPct    = computed(() => ratingValue.value != null ? Math.min(ratingV
                         </svg>
                         Настройки
                     </Link>
+                    <button class="usb-item" @click="openHelp">
+                        <svg class="usb-item__icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                            <circle cx="12" cy="17" r="0.5" fill="currentColor"/>
+                        </svg>
+                        Помощь
+                    </button>
                 </nav>
 
                 <!-- Feature cards -->
@@ -117,6 +129,8 @@ const ratingPct    = computed(() => ratingValue.value != null ? Math.min(ratingV
             </div>
         </Transition>
     </Teleport>
+
+    <FirstModal :show="showHelp" @close="showHelp = false" />
 </template>
 
 <style scoped>

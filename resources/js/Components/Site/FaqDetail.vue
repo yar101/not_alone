@@ -2,47 +2,11 @@
 import { ref } from 'vue';
 
 defineProps({
-    question: {
-        type: String,
-        required: true,
-    },
-    answer: {
-        type: String,
-        required: true,
-    },
+    question: { type: String, required: true },
+    answer:   { type: String, required: true },
 });
 
 const isOpen = ref(false);
-
-function onEnter(el) {
-    el.style.height = '0';
-    el.style.overflow = 'hidden';
-    requestAnimationFrame(() => {
-        el.style.transition = 'height 260ms cubic-bezier(0.4, 0, 0.2, 1)';
-        el.style.height = el.scrollHeight + 'px';
-    });
-}
-
-function onAfterEnter(el) {
-    el.style.height = '';
-    el.style.overflow = '';
-    el.style.transition = '';
-}
-
-function onLeave(el) {
-    el.style.height = el.scrollHeight + 'px';
-    el.style.overflow = 'hidden';
-    requestAnimationFrame(() => {
-        el.style.transition = 'height 200ms cubic-bezier(0.4, 0, 0.2, 1)';
-        el.style.height = '0';
-    });
-}
-
-function onAfterLeave(el) {
-    el.style.height = '';
-    el.style.overflow = '';
-    el.style.transition = '';
-}
 </script>
 
 <template>
@@ -67,16 +31,11 @@ function onAfterLeave(el) {
             </span>
         </button>
 
-        <Transition
-            @enter="onEnter"
-            @after-enter="onAfterEnter"
-            @leave="onLeave"
-            @after-leave="onAfterLeave"
-        >
-            <div v-if="isOpen" class="accordion-body">
+        <div class="accordion-body">
+            <div class="accordion-body__clip">
                 <div class="accordion-answer" v-html="answer" />
             </div>
-        </Transition>
+        </div>
     </div>
 </template>
 
@@ -161,6 +120,16 @@ function onAfterLeave(el) {
 
 /* Answer body */
 .accordion-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.16s ease;
+}
+
+.accordion-item--open .accordion-body {
+    grid-template-rows: 1fr;
+}
+
+.accordion-body__clip {
     overflow: hidden;
 }
 
