@@ -211,14 +211,14 @@ onUnmounted(() => {
                     <!-- Status filters -->
                     <div class="orders-status-filters">
                         <button
-                            v-for="s in ['all','pending','accepted','cancelled']"
+                            v-for="s in ['all','pending','accepted','paid','completed','cancelled','refunded','disputed']"
                             :key="s"
                             class="orders-status-btn"
                             :class="[`orders-status-btn--${s}`, { 'orders-status-btn--active': statusFilter === s }]"
                             @click="statusFilter = s"
                         >
-                            {{ { all: 'Все', pending: 'Ожидает', accepted: 'Принят', paid: 'Оплачен', completed: 'Выполнен', cancelled: 'Отменён', refunded: 'Возврат' }[s] }}
-                            <span class="orders-status-btn__count">{{ statusCounts[s] }}</span>
+                            {{ { all: 'Все', pending: 'Создан', accepted: 'Принят', paid: 'Оплачен', completed: 'Выполнен', cancelled: 'Отменён', refunded: 'Аннулирован', disputed: 'Оспаривается' }[s] }}
+                            <span class="orders-status-btn__count">{{ statusCounts[s] ?? baseOrders.filter(o => o.status === s).length }}</span>
                         </button>
                     </div>
                 </div>
@@ -254,7 +254,7 @@ onUnmounted(() => {
                             <span class="ocard__date">{{ formatDate(order.created_at) }}</span>
                         </div>
                         <span class="ocard__badge" :class="`ocard__badge--${order.status}`">
-                            {{ { pending: 'Ожидает', accepted: 'Принят', paid: 'Оплачен', completed: 'Выполнен', cancelled: 'Отменён', refunded: 'Возврат' }[order.status] }}
+                            {{ { pending: 'Создан', accepted: 'Принят', paid: 'Оплачен', completed: 'Выполнен', cancelled: 'Отменён', refunded: 'Аннулирован', disputed: 'Оспаривается' }[order.status] }}
                         </span>
                     </div>
 
@@ -279,7 +279,7 @@ onUnmounted(() => {
                     </div>
 
                     <!-- Quick action -->
-                    <div class="ocard__actions" v-if="order.status !== 'cancelled'" @click.stop>
+                    <div class="ocard__actions" v-if="['pending','accepted'].includes(order.status)" @click.stop>
                         <button
                             v-if="!order.is_customer && order.status === 'pending'"
                             class="ocard__btn ocard__btn--accept"
@@ -647,7 +647,8 @@ onUnmounted(() => {
 .ocard__badge--paid      { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.75); }
 .ocard__badge--completed { background: rgba(80,240,160,0.08);  color: rgba(80,240,160,0.9);  }
 .ocard__badge--cancelled,
-.ocard__badge--refunded  { background: rgba(255,110,110,0.08); color: rgba(255,110,110,0.85); }
+.ocard__badge--refunded,
+.ocard__badge--disputed  { background: rgba(255,110,110,0.08); color: rgba(255,110,110,0.85); }
 
 /* Perf + Items — скрыты */
 .ocard__perf  { display: none; }

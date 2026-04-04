@@ -89,8 +89,8 @@ class ConversationController extends Controller
             'type'            => $m->type ?? 'user',
             'metadata'        => $m->metadata,
             'sender_id'       => $m->sender_id,
-            'sender_name'     => $m->sender->name,
-            'sender_avatar'   => $m->sender->avatar_url,
+            'sender_name'     => $m->sender?->name,
+            'sender_avatar'   => $m->sender?->avatar_url,
             'created_at'      => $m->created_at->toISOString(),
             'conversation_id' => $m->conversation_id,
         ]);
@@ -122,11 +122,15 @@ class ConversationController extends Controller
             if ($o) {
                 $orderData = [
                     'id'            => $o->id,
-                    'status'        => $o->status,
+                    'status'        => $o->status->value,
                     'cancel_reason' => $o->cancel_reason,
                     'cancelled_by'      => $o->cancelled_by,
                     'cancelled_by_name' => $o->cancelledBy?->name,
                     'is_customer'   => $o->customer_id === $user->id,
+                    'paid_at'       => $o->paid_at?->toISOString(),
+                    'completed_at'  => $o->completed_at?->toISOString(),
+                    'completion_confirmed_by_idol'     => $o->completion_confirmed_by_idol,
+                    'completion_confirmed_by_customer' => $o->completion_confirmed_by_customer,
                     'customer'      => ['id' => $o->customer->id, 'name' => $o->customer->name, 'avatar_url' => $o->customer->avatar_url],
                     'idol'          => ['id' => $o->idol->id, 'name' => $o->idol->name, 'avatar_url' => $o->idol->avatar_url, 'gender' => $o->idol->gender],
                     'items'         => $o->items->map(fn($item) => [

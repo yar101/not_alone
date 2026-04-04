@@ -106,6 +106,7 @@ function submitStatus() {
                     { value: 'completed',  label: 'Выполнены',   count: counts.completed },
                     { value: 'cancelled',  label: 'Отменены',    count: counts.cancelled },
                     { value: 'refunded',   label: 'Возвращены',  count: counts.refunded },
+                    { value: 'disputed',   label: 'Оспариваются', count: counts.disputed ?? 0 },
                 ]"
                 :key="tab.value"
                 class="status-tab"

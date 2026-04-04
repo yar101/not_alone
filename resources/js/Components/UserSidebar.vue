@@ -3,7 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AvatarUploader from '@/Components/AvatarUploader.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
-import FirstModal from '@/Components/Site/FirstModal.vue';
+import HelpModal from '@/Components/Site/HelpModal.vue';
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -130,7 +130,7 @@ const ratingPct    = computed(() => ratingValue.value != null ? Math.min(ratingV
         </Transition>
     </Teleport>
 
-    <FirstModal :show="showHelp" @close="showHelp = false" />
+    <HelpModal :show="showHelp" @close="showHelp = false" />
 </template>
 
 <style scoped>

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\ServiceCategory;
 use App\Services\AdminLogService;
+use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ use Inertia\Response;
 
 class OrderController extends Controller
 {
+    public function __construct(private OrderService $orderService) {}
     public function index(Request $request): Response
     {
         $query = Order::with([
@@ -52,13 +54,14 @@ class OrderController extends Controller
         }
 
         $counts = [
-            'total'     => Order::count(),
-            'pending'   => Order::where('status', OrderStatus::Pending)->count(),
-            'accepted'  => Order::where('status', OrderStatus::Accepted)->count(),
-            'paid'      => Order::where('status', OrderStatus::Paid)->count(),
-            'completed' => Order::where('status', OrderStatus::Completed)->count(),
-            'cancelled' => Order::where('status', OrderStatus::Cancelled)->count(),
-            'refunded'  => Order::where('status', OrderStatus::Refunded)->count(),
+            'total'    => Order::count(),
+            'pending'  => Order::where('status', OrderStatus::Pending)->count(),
+            'accepted' => Order::where('status', OrderStatus::Accepted)->count(),
+            'paid'     => Order::where('status', OrderStatus::Paid)->count(),
+            'completed'=> Order::where('status', OrderStatus::Completed)->count(),
+            'cancelled'=> Order::where('status', OrderStatus::Cancelled)->count(),
+            'refunded' => Order::where('status', OrderStatus::Refunded)->count(),
+            'disputed' => Order::where('status', OrderStatus::Disputed)->count(),
         ];
 
         return Inertia::render('Admin/Orders/Index', [
@@ -89,17 +92,18 @@ class OrderController extends Controller
             'admin_note' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $old = $order->status->value;
-        $order->update(['status' => $request->status]);
+        $from     = $order->status->value;
+        $to       = OrderStatus::from($request->status);
+        $adminId  = auth('admin')->id();
 
-        $order->logStatusChange($old, $request->status, 'admin', auth('admin')->id(), $request->admin_note);
+        $this->orderService->adminTransition($order, $to, $adminId, $request->admin_note);
 
         AdminLogService::log(
-            auth('admin')->id(),
+            $adminId,
             'change_order_status',
             'order',
             $order->id,
-            ['from' => $old, 'to' => $request->status, 'note' => $request->admin_note]
+            ['from' => $from, 'to' => $request->status, 'note' => $request->admin_note]
         );
 
         return back();
