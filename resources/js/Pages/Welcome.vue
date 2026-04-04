@@ -1,11 +1,11 @@
 <script setup>
 import { ref } from 'vue';
 import StartBtn from "@/Components/Site/StartBtn.vue";
-import FirstModal from "@/Components/Site/FirstModal.vue";
+import HelpModal from "@/Components/Site/HelpModal.vue";
 import AuthModal from "@/Components/Site/AuthModal.vue";
 import SiteHeader from "@/Components/Site/SiteHeader.vue";
 
-const showFirstModal = ref(false);
+const showHelpModal = ref(false);
 const showAuthModal  = ref(false);
 
 </script>
@@ -47,7 +47,7 @@ const showAuthModal  = ref(false);
                         <div class="w-full max-w-[550px]">
                             <button
                                 class="flex items-center justify-center gap-4 py-3.5 md:py-4 px-4 md:px-6 link-button w-full transition-all duration-500 ease-out group link-left"
-                                @click="showFirstModal = true"
+                                @click="showHelpModal = true"
                             >
                                 <span class="text-gray-200 group-hover:text-white transition-colors">
                                     Справка
@@ -57,7 +57,7 @@ const showAuthModal  = ref(false);
                     </div>
                 </div>
 
-                <FirstModal :show="showFirstModal" @close="showFirstModal = false" />
+                <HelpModal :show="showHelpModal" :show-dispute="false" @close="showHelpModal = false" />
                 <AuthModal :show="showAuthModal" @close="showAuthModal = false" />
             </main>
 

@@ -18,6 +18,10 @@ defineProps({
         type: Boolean,
         default: false,
     },
+    showDispute: {
+        type: Boolean,
+        default: true,
+    },
 });
 
 const emit = defineEmits(['close']);
@@ -301,7 +305,7 @@ async function submitDispute() {
                         </svg>
                         Техподдержка
                     </button>
-                    <button class="faq-action-btn faq-action-btn--dispute" :class="{ 'faq-action-btn--dispute-active': disputeView }" @click="openDisputeForm">
+                    <button v-if="showDispute" class="faq-action-btn faq-action-btn--dispute" :class="{ 'faq-action-btn--dispute-active': disputeView }" @click="openDisputeForm">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10"/>
                             <line x1="12" y1="8" x2="12" y2="12"/>
@@ -441,7 +445,7 @@ async function submitDispute() {
                     </svg>
                     Техподдержка
                 </button>
-                <button class="faq-action-btn faq-action-btn--dispute" @click="openDisputeForm">
+                <button v-if="showDispute" class="faq-action-btn faq-action-btn--dispute" @click="openDisputeForm">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10"/>
                         <line x1="12" y1="8" x2="12" y2="12"/>
@@ -644,7 +648,7 @@ async function submitDispute() {
 .faq-answer-body :deep(p:last-child) { margin-bottom: 0; }
 .faq-answer-body :deep(strong) { color: rgba(255,255,255,0.75); font-weight: 500; }
 .faq-answer-body :deep(a) { color: rgba(110,110,210,0.85); text-decoration: none; transition: color 0.15s; }
-.faq-answer-body :deep(a:hover) { color: rgb(200,70,126); text-decoration: underline; }
+.faq-answer-body :deep(a:hover) { color: rgba(160,150,255,0.9); text-decoration: underline; }
 
 .faq-cat-icon {
     width: 16px;
@@ -902,9 +906,9 @@ async function submitDispute() {
 .dispute-submit {
     margin-top: 0.5rem;
     padding: 0.55rem 1rem;
-    background: rgba(42,255,220,0.07);
-    border: 1px solid rgba(42,255,220,0.3);
-    color: rgba(42,255,220,0.88);
+    background: rgba(110,110,210,0.1);
+    border: 1px solid rgba(110,110,210,0.35);
+    color: rgba(160,150,255,0.9);
     font-size: 0.8rem;
     font-weight: 600;
     letter-spacing: 0.06em;
@@ -915,8 +919,8 @@ async function submitDispute() {
 }
 
 .dispute-submit:hover:not(:disabled) {
-    background: rgba(42,255,220,0.13);
-    border-color: rgba(42,255,220,0.55);
+    background: rgba(110,110,210,0.17);
+    border-color: rgba(110,110,210,0.6);
 }
 
 .dispute-submit:disabled {

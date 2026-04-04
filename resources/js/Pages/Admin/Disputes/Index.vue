@@ -187,12 +187,16 @@ function systemLabel(msg) {
                     >
                         <td class="cell-id">{{ d.order_id }}</td>
                         <td class="cell-user">
-                            <img v-if="d.order.customer.avatar" :src="d.order.customer.avatar" class="user-avatar" />
-                            <span>{{ d.order.customer.name }}</span>
+                            <div class="cell-user-inner">
+                                <img v-if="d.order.customer.avatar" :src="d.order.customer.avatar" class="user-avatar" />
+                                <span>{{ d.order.customer.name }}</span>
+                            </div>
                         </td>
                         <td class="cell-user">
-                            <img v-if="d.order.idol.avatar" :src="d.order.idol.avatar" class="user-avatar" />
-                            <span>{{ d.order.idol.name }}</span>
+                            <div class="cell-user-inner">
+                                <img v-if="d.order.idol.avatar" :src="d.order.idol.avatar" class="user-avatar" />
+                                <span>{{ d.order.idol.name }}</span>
+                            </div>
                         </td>
                         <td class="cell-reason">{{ d.reason }}</td>
                         <td>
@@ -460,9 +464,10 @@ function systemLabel(msg) {
     padding: 0.65rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.04);
     vertical-align: middle; color: rgba(255,255,255,0.75);
 }
-.cell-id     { color: rgba(255,255,255,0.3); font-size: 0.78rem; white-space: nowrap; }
-.cell-user   { display: flex; align-items: center; gap: 0.5rem; }
-.user-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
+.cell-id     { color: rgba(255,255,255,0.3); font-size: 0.78rem; white-space: nowrap; width: 40px; }
+.cell-user        { min-width: 140px; }
+.cell-user-inner  { display: flex; align-items: center; gap: 0.5rem; }
+.user-avatar      { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .cell-reason { max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: rgba(255,255,255,0.6); }
 .cell-amount { font-weight: 600; white-space: nowrap; color: rgba(255,255,255,0.85); }
 .cell-date   { white-space: nowrap; color: rgba(255,255,255,0.3); font-size: 0.78rem; }
