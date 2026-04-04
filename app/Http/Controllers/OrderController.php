@@ -25,12 +25,8 @@ class OrderController extends Controller
         'Оскорбления',
         'Мошенничество',
         'Заказ не выполнен',
-        'Предоставлен некачественный результат',
-        'Нарушение условий сервиса',
         'Угрозы',
         'Спам и навязывание',
-        'Нарушение авторских прав',
-        'Другое',
     ];
 
     public function __construct(private OrderService $service) {}
@@ -174,13 +170,15 @@ class OrderController extends Controller
             ->where('status', OrderStatus::Completed)
             ->where('completed_at', '>=', now()->subHour())
             ->whereDoesntHave('disputes')
-            ->with('idol')
+            ->with(['idol', 'items.service'])
             ->latest('completed_at')
             ->get()
             ->map(fn(Order $o) => [
-                'id'         => $o->id,
-                'idol_name'  => $o->idol->name,
-                'created_at' => $o->created_at->toISOString(),
+                'id'           => $o->id,
+                'idol_name'    => $o->idol->name,
+                'total'        => $o->items->sum(fn($i) => ($i->service?->price ?? 0) * ($i->quantity ?? 1)),
+                'created_at'   => $o->created_at->toISOString(),
+                'completed_at' => $o->completed_at->toISOString(),
             ]);
 
         return response()->json($orders);
@@ -191,17 +189,17 @@ class OrderController extends Controller
         $user = $request->user();
 
         abort_unless($order->customer_id === $user->id, 403);
-        abort_unless($order->status === OrderStatus::Completed, 422);
-        abort_unless($order->completed_at && $order->completed_at->gte(now()->subHour()), 422);
-        abort_unless(!$order->disputes()->exists(), 422);
+        abort_unless($order->status === OrderStatus::Completed, 422, 'Оспорить можно только выполненный заказ.');
+        abort_unless($order->completed_at && $order->completed_at->gte(now()->subHour()), 422, 'Время для оспаривания истекло. Спор можно открыть в течение 1 часа после завершения заказа.');
+        abort_unless(!$order->disputes()->exists(), 422, 'По этому заказу уже открыт спор.');
 
         $request->validate([
             'reason'  => ['required', Rule::in(self::DISPUTE_REASONS)],
-            'details' => ['required', 'string', 'min:35'],
+            'details' => ['required', 'string', 'min:100'],
         ]);
 
         $details = trim($request->details);
-        abort_unless(mb_strlen($details) >= 35, 422);
+        abort_unless(mb_strlen($details) >= 100, 422);
 
         $this->service->dispute($order, $user, $request->reason, $details);
 

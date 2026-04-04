@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, shallowRef } from 'vue';
+import { computed, ref, shallowRef, onUnmounted } from 'vue';
 import axios from 'axios';
 import {
     QuestionFilled,
@@ -168,13 +168,23 @@ const faqCategories = [
 ];
 
 const activeCategory = shallowRef(faqCategories[0]);
+const activeQuestion = ref(null);
 const activeIndex = computed(() =>
     faqCategories.findIndex((c) => c === activeCategory.value) + 1,
 );
 
 function setCategory(cat) {
-    disputeView.value = false;
+    disputeView.value    = false;
     activeCategory.value = cat;
+    activeQuestion.value = null;
+}
+
+function openQuestion(item) {
+    activeQuestion.value = item;
+}
+
+function backToList() {
+    activeQuestion.value = null;
 }
 
 // ── Dispute form ──────────────────────────────────────────
@@ -183,52 +193,82 @@ const DISPUTE_REASONS = [
     'Оскорбления',
     'Мошенничество',
     'Заказ не выполнен',
-    'Предоставлен некачественный результат',
-    'Нарушение условий сервиса',
     'Угрозы',
     'Спам и навязывание',
-    'Нарушение авторских прав',
-    'Другое',
 ];
 
 const disputeView        = ref(false);
 const disputableOrders   = ref([]);
-const disputeOrderId     = ref('');
+const disputeOrderId     = ref(null);
 const disputeReason      = ref('');
 const disputeDetails     = ref('');
 const disputeSubmitting  = ref(false);
 const disputeSuccess     = ref(false);
-const disputeError       = ref('');
+const disputeErrors      = ref({});
 const disputeLoading     = ref(false);
 
+// Реактивный тик для таймеров в карточках заказов
+const nowTick = ref(Date.now());
+let tickInterval = null;
+
 async function openDisputeForm() {
-    disputeLoading.value = true;
-    disputeView.value    = true;
-    disputeSuccess.value = false;
-    disputeError.value   = '';
+    activeCategory.value  = null;
+    disputeLoading.value  = true;
+    disputeView.value     = true;
+    disputeSuccess.value  = false;
+    disputeErrors.value   = {};
+    disputeReason.value   = '';
+    disputeDetails.value  = '';
     try {
         const res = await axios.get(route('orders.disputable'));
         disputableOrders.value = res.data;
-        disputeOrderId.value   = res.data[0]?.id ?? '';
+        disputeOrderId.value   = res.data[0]?.id ?? null;
+        if (res.data.length > 0) {
+            tickInterval = setInterval(() => { nowTick.value = Date.now(); }, 1000);
+        }
     } catch {
-        disputeError.value = 'Не удалось загрузить заказы';
+        disputeErrors.value = { _general: 'Не удалось загрузить заказы' };
     } finally {
         disputeLoading.value = false;
     }
 }
 
+function orderTimeLeft(completedAt) {
+    const deadline = new Date(completedAt).getTime() + 3600 * 1000;
+    const diff = deadline - nowTick.value;
+    if (diff <= 0) return 'истекает…';
+    const m = Math.floor(diff / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    return `осталось ${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function fmtDate(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+onUnmounted(() => { clearInterval(tickInterval); });
+
 async function submitDispute() {
-    if (!disputeOrderId.value || !disputeReason.value || disputeDetails.value.trim().length < 35) return;
+    if (!disputeOrderId.value || !disputeReason.value || disputeDetails.value.trim().length < 100) return;
     disputeSubmitting.value = true;
-    disputeError.value = '';
+    disputeErrors.value     = {};
     try {
         await axios.post(route('orders.dispute', disputeOrderId.value), {
             reason:  disputeReason.value,
             details: disputeDetails.value,
         });
+        clearInterval(tickInterval);
         disputeSuccess.value = true;
     } catch (e) {
-        disputeError.value = e.response?.data?.message ?? 'Ошибка при отправке';
+        const errs = e.response?.data?.errors ?? {};
+        if (Object.keys(errs).length) {
+            disputeErrors.value = Object.fromEntries(
+                Object.entries(errs).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v])
+            );
+        } else {
+            disputeErrors.value = { _general: e.response?.data?.message ?? 'Ошибка при отправке' };
+        }
     } finally {
         disputeSubmitting.value = false;
     }
@@ -261,7 +301,7 @@ async function submitDispute() {
                         </svg>
                         Техподдержка
                     </button>
-                    <button class="faq-action-btn faq-action-btn--dispute" @click="openDisputeForm">
+                    <button class="faq-action-btn faq-action-btn--dispute" :class="{ 'faq-action-btn--dispute-active': disputeView }" @click="openDisputeForm">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10"/>
                             <line x1="12" y1="8" x2="12" y2="12"/>
@@ -297,57 +337,98 @@ async function submitDispute() {
                         </div>
 
                         <div v-else class="dispute-form">
-                            <p v-if="disputeError" class="dispute-error">{{ disputeError }}</p>
+                            <p v-if="disputeErrors._general" class="dispute-field-error">{{ disputeErrors._general }}</p>
 
                             <label class="dispute-label">Заказ</label>
-                            <select v-model="disputeOrderId" class="dispute-select">
-                                <option v-for="o in disputableOrders" :key="o.id" :value="o.id">
-                                    #{{ o.id }} — {{ o.idol_name }}
-                                </option>
-                            </select>
+                            <div class="dispute-orders-list">
+                                <div
+                                    v-for="o in disputableOrders"
+                                    :key="o.id"
+                                    class="dispute-order-card"
+                                    :class="{ 'dispute-order-card--active': disputeOrderId === o.id }"
+                                    @click="disputeOrderId = o.id"
+                                >
+                                    <div class="dispute-order-card__top">
+                                        <span class="dispute-order-card__num">#{{ o.id }}</span>
+                                        <span class="dispute-order-card__idol">{{ o.idol_name }}</span>
+                                        <span class="dispute-order-card__total">{{ o.total }} ₽</span>
+                                        <span class="dispute-order-card__timer">{{ orderTimeLeft(o.completed_at) }}</span>
+                                    </div>
+                                    <div class="dispute-order-card__dates">
+                                        <span>Создан: {{ fmtDate(o.created_at) }}</span>
+                                        <span>Выполнен: {{ fmtDate(o.completed_at) }}</span>
+                                    </div>
+                                </div>
+                            </div>
 
-                            <label class="dispute-label">Причина</label>
-                            <select v-model="disputeReason" class="dispute-select">
+                            <label class="dispute-label" style="margin-top:0.5rem;">Причина</label>
+                            <select
+                                v-model="disputeReason"
+                                class="dispute-select"
+                                @change="delete disputeErrors.reason"
+                            >
                                 <option value="">— выберите причину —</option>
                                 <option v-for="r in DISPUTE_REASONS" :key="r" :value="r">{{ r }}</option>
                             </select>
+                            <p v-if="disputeErrors.reason" class="dispute-field-error">{{ disputeErrors.reason }}</p>
 
-                            <label class="dispute-label">Детали (мин. 35 символов)</label>
+                            <label class="dispute-label">Детали (мин. 100 символов)</label>
                             <textarea
                                 v-model="disputeDetails"
                                 class="dispute-textarea"
                                 placeholder="Опишите ситуацию подробнее…"
                                 rows="4"
                                 maxlength="2000"
+                                @input="delete disputeErrors.details"
                             ></textarea>
-                            <span class="dispute-charcount" :class="{ 'dispute-charcount--warn': disputeDetails.trim().length > 0 && disputeDetails.trim().length < 35 }">
-                                {{ disputeDetails.trim().length }} / мин. 35
+                            <span class="dispute-charcount" :class="{ 'dispute-charcount--warn': disputeDetails.trim().length > 0 && disputeDetails.trim().length < 100 }">
+                                {{ disputeDetails.trim().length }} / мин. 100
                             </span>
+                            <p v-if="disputeErrors.details" class="dispute-field-error">{{ disputeErrors.details }}</p>
 
                             <button
                                 class="dispute-submit"
-                                :disabled="!disputeOrderId || !disputeReason || disputeDetails.trim().length < 35 || disputeSubmitting"
+                                :disabled="!disputeOrderId || !disputeReason || disputeDetails.trim().length < 100 || disputeSubmitting"
                                 @click="submitDispute"
                             >{{ disputeSubmitting ? 'Отправка…' : 'Отправить спор' }}</button>
                         </div>
                     </div>
 
-                    <!-- FAQ view -->
-                    <div v-else :key="activeCategory.id" class="faq-content-inner">
+                    <!-- FAQ view — список подразделов -->
+                    <div v-else-if="!activeQuestion" :key="`cat-${activeCategory.id}`" class="faq-content-inner">
                         <div class="faq-content__header">
                             <span class="faq-content__counter">
                                 {{ String(activeIndex).padStart(2, '0') }} / {{ String(faqCategories.length).padStart(2, '0') }}
                             </span>
                             <h3 class="faq-content__title">{{ activeCategory.title }}</h3>
                         </div>
-                        <div class="faq-accordions">
-                            <FaqDetail
+                        <div class="faq-subsections">
+                            <button
                                 v-for="item in activeCategory.questions"
                                 :key="item.id"
-                                :question="item.q"
-                                :answer="item.a"
-                            />
+                                class="faq-subsection-item"
+                                @click="openQuestion(item)"
+                            >
+                                <span class="faq-subsection-item__title">{{ item.q }}</span>
+                                <svg class="faq-subsection-item__arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M9 18l6-6-6-6"/>
+                                </svg>
+                            </button>
                         </div>
+                    </div>
+
+                    <!-- FAQ view — содержимое подраздела -->
+                    <div v-else :key="`q-${activeQuestion.id}`" class="faq-content-inner">
+                        <div class="faq-content__header faq-content__header--with-back">
+                            <button class="faq-back-btn" @click="backToList">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M15 18l-6-6 6-6"/>
+                                </svg>
+                                Назад
+                            </button>
+                            <h3 class="faq-content__title">{{ activeQuestion.q }}</h3>
+                        </div>
+                        <div class="faq-answer-body" v-html="activeQuestion.a" />
                     </div>
                 </Transition>
             </div>
@@ -485,6 +566,86 @@ async function submitDispute() {
     flex-direction: column;
 }
 
+/* Subsections list */
+.faq-subsections {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.faq-subsection-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.8rem 0.75rem;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s, color 0.15s;
+    border-radius: 4px;
+}
+.faq-subsection-item:last-child { border-bottom: none; }
+.faq-subsection-item:hover {
+    background: rgba(110,110,210,0.06);
+}
+.faq-subsection-item:hover .faq-subsection-item__arrow {
+    color: rgba(110,110,210,0.8);
+    transform: translateX(2px);
+}
+
+.faq-subsection-item__title {
+    font-size: 0.875rem;
+    color: rgba(255,255,255,0.65);
+    line-height: 1.4;
+    transition: color 0.15s;
+}
+.faq-subsection-item:hover .faq-subsection-item__title {
+    color: rgba(255,255,255,0.9);
+}
+
+.faq-subsection-item__arrow {
+    color: rgba(255,255,255,0.2);
+    flex-shrink: 0;
+    transition: color 0.15s, transform 0.15s;
+}
+
+/* Back button + answer */
+.faq-content__header--with-back {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.faq-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: rgba(255,255,255,0.3);
+    font-size: 0.75rem;
+    font-family: inherit;
+    padding: 0;
+    transition: color 0.15s;
+}
+.faq-back-btn:hover { color: rgba(110,110,210,0.85); }
+
+.faq-answer-body {
+    font-size: 1rem;
+    color: rgba(255,255,255,0.6);
+    line-height: 1.75;
+}
+.faq-answer-body :deep(p) { margin-bottom: 0.65rem; }
+.faq-answer-body :deep(p:last-child) { margin-bottom: 0; }
+.faq-answer-body :deep(strong) { color: rgba(255,255,255,0.75); font-weight: 500; }
+.faq-answer-body :deep(a) { color: rgba(110,110,210,0.85); text-decoration: none; transition: color 0.15s; }
+.faq-answer-body :deep(a:hover) { color: rgb(200,70,126); text-decoration: underline; }
+
 .faq-cat-icon {
     width: 16px;
     height: 16px;
@@ -506,8 +667,8 @@ async function submitDispute() {
 
 /* ── Action buttons ──────────────────────────── */
 .faq-sidebar__actions {
-    margin-top: auto;
     padding: 0.75rem 0.5rem 0.5rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
@@ -541,6 +702,11 @@ async function submitDispute() {
     background: rgba(255, 110, 110, 0.07);
     border-color: rgba(255, 110, 110, 0.25);
     color: rgba(255, 130, 130, 0.85);
+}
+.faq-action-btn--dispute-active {
+    background: rgba(255, 110, 110, 0.09);
+    border-color: rgba(255, 110, 110, 0.35);
+    color: rgba(255, 130, 130, 0.9);
 }
 
 /* ── Large screens ───────────────────────────── */
@@ -664,6 +830,57 @@ async function submitDispute() {
 .dispute-select option {
     background: #1a1a2e;
     color: rgba(255,255,255,0.85);
+}
+
+/* Order cards list */
+.dispute-orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 8px;
+    padding-bottom: 4px;
+}
+.dispute-orders-list::-webkit-scrollbar { width: 4px; }
+.dispute-orders-list::-webkit-scrollbar-track { background: transparent; }
+.dispute-orders-list::-webkit-scrollbar-thumb { background: rgba(110,110,210,0.3); border-radius: 2px; }
+
+.dispute-order-card {
+    padding: 0.55rem 0.75rem;
+    border: 1px solid rgba(110,110,210,0.2);
+    border-radius: 4px;
+    cursor: pointer;
+    background: rgba(255,255,255,0.03);
+    transition: border-color 0.15s, background 0.15s;
+    flex-shrink: 0;
+}
+.dispute-order-card:hover { background: rgba(110,110,210,0.05); border-color: rgba(110,110,210,0.4); }
+.dispute-order-card--active { border-color: rgba(110,110,210,0.65); background: rgba(110,110,210,0.09); }
+
+.dispute-order-card__top {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.2rem;
+}
+.dispute-order-card__num   { font-weight: 700; color: rgba(255,255,255,0.45); font-size: 0.78rem; flex-shrink: 0; }
+.dispute-order-card__idol  { flex: 1; font-size: 0.84rem; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dispute-order-card__total { font-size: 0.78rem; font-weight: 600; color: rgba(255,255,255,0.6); white-space: nowrap; flex-shrink: 0; }
+.dispute-order-card__timer { font-size: 0.7rem; color: rgba(251,191,36,0.85); white-space: nowrap; flex-shrink: 0; }
+
+.dispute-order-card__dates {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.3);
+}
+
+/* Field errors */
+.dispute-field-error {
+    font-size: 0.72rem;
+    color: rgba(255, 100, 100, 0.85);
+    margin: -0.1rem 0 0.1rem;
 }
 
 .dispute-textarea {
