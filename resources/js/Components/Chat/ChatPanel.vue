@@ -82,6 +82,41 @@ const visibleOrders = computed(() => {
     return list;
 });
 
+// ── Pay / complete / timer ────────────────────────────────
+const orderTimerLabel = computed(() => {
+    if (activeOrderData.value?.status !== 'paid') return '';
+    const paidAt = activeOrderData.value?.paid_at;
+    if (!paidAt) return '— : — : —';
+    const deadline = new Date(paidAt).getTime() + 72 * 3600 * 1000;
+    const diff = Math.max(0, deadline - nowTick.value);
+    if (diff === 0) return 'Завершается…';
+    const totalSec = Math.floor(diff / 1000);
+    const days  = Math.floor(totalSec / 86400);
+    const hours = Math.floor((totalSec % 86400) / 3600);
+    const mins  = Math.floor((totalSec % 3600) / 60);
+    const secs  = totalSec % 60;
+    if (days > 0) return `${days} д. ${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+    return `${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+});
+
+const myConfirmation = computed(() => {
+    if (!activeOrderData.value) return false;
+    return activeOrderData.value.is_customer
+        ? activeOrderData.value.completion_confirmed_by_customer
+        : activeOrderData.value.completion_confirmed_by_idol;
+});
+
+async function payOrder() {
+    if (!activeOrderData.value || activeOrderData.value.status !== 'accepted') return;
+    await axios.patch(route('orders.pay', activeOrderData.value.id));
+    // activeOrderData will be updated via broadcast
+}
+
+async function confirmCompletion() {
+    if (!activeOrderData.value || activeOrderData.value.status !== 'paid') return;
+    await axios.patch(route('orders.confirm-completion', activeOrderData.value.id));
+}
+
 // ── Cancel order modal ────────────────────────────────────
 const cancelModal       = ref(false);
 const cancelReason      = ref('');
@@ -276,10 +311,14 @@ function subscribeEcho(conversationId) {
             if (activeOrderData.value && activeOrderData.value.id === data.order_id) {
                 activeOrderData.value = {
                     ...activeOrderData.value,
-                    status: data.status,
-                    cancelled_by:      data.cancelled_by      ?? activeOrderData.value.cancelled_by,
-                    cancelled_by_name: data.cancelled_by_name ?? activeOrderData.value.cancelled_by_name,
-                    cancel_reason:     data.cancel_reason     ?? activeOrderData.value.cancel_reason,
+                    status:                           data.status,
+                    cancelled_by:                     data.cancelled_by                     ?? activeOrderData.value.cancelled_by,
+                    cancelled_by_name:                data.cancelled_by_name                ?? activeOrderData.value.cancelled_by_name,
+                    cancel_reason:                    data.cancel_reason                    ?? activeOrderData.value.cancel_reason,
+                    paid_at:                          data.paid_at                          ?? activeOrderData.value.paid_at,
+                    completed_at:                     data.completed_at                     ?? activeOrderData.value.completed_at,
+                    completion_confirmed_by_idol:     data.completion_confirmed_by_idol     ?? activeOrderData.value.completion_confirmed_by_idol,
+                    completion_confirmed_by_customer: data.completion_confirmed_by_customer ?? activeOrderData.value.completion_confirmed_by_customer,
                 };
             }
             const idx = orders.value.findIndex(o => o.id === data.order_id);
@@ -777,7 +816,7 @@ function formatDate(iso) {
                                             <span class="order-stub__date">{{ formatDate(order.created_at) }}</span>
                                         </div>
                                         <span class="order-stub__badge" :class="`order-stub__badge--${order.status}`">
-                                            {{ { pending: 'Ожидает', accepted: 'Принят', paid: 'Оплачен', completed: 'Выполнен', cancelled: 'Отменён', refunded: 'Возврат' }[order.status] }}
+                                            {{ { pending: 'Создан', accepted: 'Принят', paid: 'Оплачен', completed: 'Выполнен', cancelled: 'Отменён', refunded: 'Аннулирован', disputed: 'Оспаривается' }[order.status] }}
                                         </span>
                                     </div>
                                     <div class="order-stub__perf">
@@ -845,6 +884,19 @@ function formatDate(iso) {
                                 </svg>
                             </button>
                         </div>
+
+                        <!-- Таймер авто-завершения — встроенный блок под шапкой -->
+                        <Transition name="timer-pop">
+                            <div v-if="activeOrderData?.status === 'paid'" class="chat-order-timer-bar">
+                                <div class="chat-order-timer-bar__inner">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">
+                                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                                    </svg>
+                                    <span class="chat-order-timer-bar__label">Авто-завершение через</span>
+                                    <span class="chat-order-timer-bar__value">{{ orderTimerLabel }}</span>
+                                </div>
+                            </div>
+                        </Transition>
 
                         <!-- Сообщения -->
                         <div class="chat-messages-wrap">
@@ -989,7 +1041,7 @@ function formatDate(iso) {
                             </a>
 
                             <!-- Панель действий заказа -->
-                            <div v-if="activeOrderData && activeOrderData.status !== 'cancelled'" class="chat-order-actions">
+                            <div v-if="activeOrderData && ['pending','accepted','paid'].includes(activeOrderData.status)" class="chat-order-actions">
                                 <button
                                     v-if="!activeOrderData.is_customer && activeOrderData.status === 'pending'"
                                     class="chat-order-btn chat-order-btn--accept"
@@ -998,8 +1050,19 @@ function formatDate(iso) {
                                 <button
                                     v-if="activeOrderData.is_customer && activeOrderData.status === 'accepted'"
                                     class="chat-order-btn chat-order-btn--pay"
+                                    @click="payOrder"
                                 >ОПЛАТИТЬ ЗАКАЗ</button>
-                                <button class="chat-order-btn chat-order-btn--cancel" @click="cancelModal = true">ОТМЕНИТЬ ЗАКАЗ</button>
+                                <button
+                                    v-if="activeOrderData.status === 'paid'"
+                                    class="chat-order-btn chat-order-btn--complete"
+                                    :disabled="myConfirmation"
+                                    @click="confirmCompletion"
+                                >{{ myConfirmation ? 'ВЫ ПОДТВЕРДИЛИ' : 'ЗАКАЗ ВЫПОЛНЕН' }}</button>
+                                <button
+                                    v-if="['pending','accepted'].includes(activeOrderData.status)"
+                                    class="chat-order-btn chat-order-btn--cancel"
+                                    @click="cancelModal = true"
+                                >ОТМЕНИТЬ ЗАКАЗ</button>
                             </div>
 
                             <!-- Плашка: заказ отменён -->
@@ -2396,7 +2459,8 @@ function formatDate(iso) {
 .order-stub__badge--paid      { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.75);  border: 1px solid rgba(255,255,255,0.12); }
 .order-stub__badge--completed { background: rgba(80,240,160,0.1);   color: rgba(80,240,160,0.9);    border: 1px solid rgba(80,240,160,0.25); }
 .order-stub__badge--cancelled,
-.order-stub__badge--refunded  { background: rgba(255,110,110,0.1);  color: rgba(255,110,110,0.85);  border: 1px solid rgba(255,110,110,0.25); }
+.order-stub__badge--refunded,
+.order-stub__badge--disputed  { background: rgba(255,110,110,0.1);  color: rgba(255,110,110,0.85);  border: 1px solid rgba(255,110,110,0.25); }
 
 /* perforated tear line */
 .order-stub__perf {
@@ -2725,6 +2789,56 @@ function formatDate(iso) {
     box-shadow: 0 0 18px rgba(220,60,60,0.13);
 }
 .chat-order-btn--cancel:hover::before { opacity: 1; }
+
+.chat-order-btn--complete {
+    background: rgba(60,200,120,0.07);
+    border: 1px solid rgba(60,200,120,0.35);
+    color: rgba(80,240,160,0.88);
+    box-shadow: 0 0 12px rgba(60,200,120,0.05);
+}
+.chat-order-btn--complete::after {
+    background: linear-gradient(90deg, transparent 0%, rgba(80,240,160,0.6) 50%, transparent 100%);
+}
+.chat-order-btn--complete::before { border: 1px dashed rgba(60,200,120,0.2); }
+.chat-order-btn--complete:hover:not(:disabled) {
+    background: rgba(60,200,120,0.14);
+    border-color: rgba(60,200,120,0.65);
+    box-shadow: 0 0 18px rgba(60,200,120,0.14);
+}
+.chat-order-btn--complete:hover:not(:disabled)::before { opacity: 1; }
+.chat-order-btn--complete:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.chat-order-timer-bar {
+    flex-shrink: 0;
+    padding: 0.55rem 1.25rem;
+    background: linear-gradient(160deg, rgb(16,11,20) 0%, rgb(7,6,11) 100%);
+    border-bottom: 1px solid rgba(110,110,210,0.18);
+}
+.chat-order-timer-bar__inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    color: rgba(255,255,255,0.55);
+}
+.chat-order-timer-bar__label {
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+}
+.chat-order-timer-bar__value {
+    font-size: 1.05rem;
+    font-weight: 700;
+    font-family: 'Courier New', Courier, monospace;
+    color: rgba(255,255,255,0.82);
+    letter-spacing: 0.08em;
+    min-width: 7ch;
+    text-align: left;
+}
+.timer-pop-enter-active, .timer-pop-leave-active { transition: opacity 0.2s, max-height 0.2s; }
+.timer-pop-enter-from, .timer-pop-leave-to { opacity: 0; }
 
 /* ── Cancelled bar ──────────────────────────────────────── */
 .chat-order-cancelled-bar {

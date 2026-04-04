@@ -132,6 +132,20 @@ onUnmounted(() => {
                     class="become-idol-btn"
                 >Стать Айдолом</Link>
 
+                <!-- Иконка поиска — только на мобиле вместо nav -->
+                <Link
+                    v-if="user"
+                    :href="route('users.search')"
+                    class="mobile-search-btn"
+                    :class="{ 'mobile-search-btn--active': $page.url.startsWith('/search') }"
+                    aria-label="Поиск"
+                >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                </Link>
+
                 <CartIcon v-if="user" :cart="cart" @click="cartOpen = !cartOpen" />
                 <ChatButton v-if="user" @click="chatOpen = !chatOpen" />
                 <NotificationBell v-if="user" />
@@ -396,8 +410,36 @@ onUnmounted(() => {
     color: #be91ff;
 }
 
-/* ── Mobile ──────────────────────────────────────────────── */
+/* ── Mobile search button (hidden on desktop) ────────────── */
+.mobile-search-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: none;
+    transition: color 0.18s, background 0.18s;
+    flex-shrink: 0;
+}
+.mobile-search-btn:hover,
+.mobile-search-btn--active {
+    color: #be91ff;
+    background: rgba(110, 110, 210, 0.08);
+}
+
+/* ── Tablet (640–899px) ──────────────────────────────────── */
+@media (max-width: 899px) {
+    .header-nav { display: none; }
+    .mobile-search-btn { display: inline-flex; }
+    .app-header { padding: 0 1.25rem; }
+}
+
+/* ── Mobile (< 640px) ────────────────────────────────────── */
 @media (max-width: 639px) {
+    .app-header { padding: 0 0.75rem; }
+    .header-right { gap: 0.25rem; }
     .user-name-clip { display: none; }
     .user-chip { padding: 0.25rem; }
     .guest-btn--fill { display: none; }

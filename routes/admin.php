@@ -22,6 +22,8 @@ use App\Http\Controllers\Admin\ServiceModerationController;
 use App\Http\Controllers\Admin\ServicePriceLimitController;
 use App\Http\Controllers\Admin\ServiceTimeUnitController;
 use App\Http\Controllers\Admin\NewsController;
+use App\Http\Controllers\Admin\ConversationController;
+use App\Http\Controllers\Admin\DisputeController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
@@ -171,6 +173,13 @@ Route::patch('/{trait}', [PersonalityTraitController::class, 'update'])->name('u
             Route::patch('/{order}/status', [OrderController::class, 'updateStatus'])->name('status');
             Route::get('/{order}/history', [OrderController::class, 'history'])->name('history');
         });
+
+        // Disputes
+        Route::get('/disputes', [DisputeController::class, 'index'])->name('disputes.index');
+        Route::patch('/disputes/{dispute}/resolve', [DisputeController::class, 'resolve'])->name('disputes.resolve');
+
+        // Conversations (read-only for admin)
+        Route::get('/conversations/{conversation}/messages', [ConversationController::class, 'messages'])->name('conversations.messages');
 
         // Export
         Route::prefix('export')->name('export.')->group(function () {

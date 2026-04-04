@@ -131,9 +131,13 @@ Route::middleware('auth')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/orders',                      [OrderController::class, 'index'])->name('orders.index');
     Route::post('/orders',                     [OrderController::class, 'store'])->name('orders.store');
+    // Static routes before {order} wildcard
+    Route::get('/orders/disputable',           [OrderController::class, 'disputable'])->name('orders.disputable');
     Route::patch('/orders/{order}/accept',     [OrderController::class, 'accept'])->name('orders.accept');
+    Route::patch('/orders/{order}/pay',        [OrderController::class, 'pay'])->name('orders.pay');
     Route::patch('/orders/{order}/cancel',              [OrderController::class, 'cancel'])->name('orders.cancel');
     Route::patch('/orders/{order}/confirm-completion', [OrderController::class, 'confirmCompletion'])->name('orders.confirm-completion');
+    Route::post('/orders/{order}/dispute',     [OrderController::class, 'dispute'])->name('orders.dispute');
 });
 
 require __DIR__.'/auth.php';

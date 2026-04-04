@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, shallowRef } from 'vue';
+import axios from 'axios';
 import {
     QuestionFilled,
     User,
@@ -172,7 +173,65 @@ const activeIndex = computed(() =>
 );
 
 function setCategory(cat) {
+    disputeView.value = false;
     activeCategory.value = cat;
+}
+
+// ── Dispute form ──────────────────────────────────────────
+const DISPUTE_REASONS = [
+    'Непристойное поведение',
+    'Оскорбления',
+    'Мошенничество',
+    'Заказ не выполнен',
+    'Предоставлен некачественный результат',
+    'Нарушение условий сервиса',
+    'Угрозы',
+    'Спам и навязывание',
+    'Нарушение авторских прав',
+    'Другое',
+];
+
+const disputeView        = ref(false);
+const disputableOrders   = ref([]);
+const disputeOrderId     = ref('');
+const disputeReason      = ref('');
+const disputeDetails     = ref('');
+const disputeSubmitting  = ref(false);
+const disputeSuccess     = ref(false);
+const disputeError       = ref('');
+const disputeLoading     = ref(false);
+
+async function openDisputeForm() {
+    disputeLoading.value = true;
+    disputeView.value    = true;
+    disputeSuccess.value = false;
+    disputeError.value   = '';
+    try {
+        const res = await axios.get(route('orders.disputable'));
+        disputableOrders.value = res.data;
+        disputeOrderId.value   = res.data[0]?.id ?? '';
+    } catch {
+        disputeError.value = 'Не удалось загрузить заказы';
+    } finally {
+        disputeLoading.value = false;
+    }
+}
+
+async function submitDispute() {
+    if (!disputeOrderId.value || !disputeReason.value || disputeDetails.value.trim().length < 35) return;
+    disputeSubmitting.value = true;
+    disputeError.value = '';
+    try {
+        await axios.post(route('orders.dispute', disputeOrderId.value), {
+            reason:  disputeReason.value,
+            details: disputeDetails.value,
+        });
+        disputeSuccess.value = true;
+    } catch (e) {
+        disputeError.value = e.response?.data?.message ?? 'Ошибка при отправке';
+    } finally {
+        disputeSubmitting.value = false;
+    }
 }
 </script>
 
@@ -202,7 +261,7 @@ function setCategory(cat) {
                         </svg>
                         Техподдержка
                     </button>
-                    <button class="faq-action-btn faq-action-btn--dispute">
+                    <button class="faq-action-btn faq-action-btn--dispute" @click="openDisputeForm">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10"/>
                             <line x1="12" y1="8" x2="12" y2="12"/>
@@ -219,7 +278,62 @@ function setCategory(cat) {
             <!-- ── Content ── -->
             <div class="faq-content">
                 <Transition name="panel-fade" mode="out-in">
-                    <div :key="activeCategory.id" class="faq-content-inner">
+                    <!-- Dispute form view -->
+                    <div v-if="disputeView" key="dispute" class="faq-content-inner">
+                        <div class="faq-content__header">
+                            <span class="faq-content__counter">— / —</span>
+                            <h3 class="faq-content__title">Оспорить заказ</h3>
+                        </div>
+
+                        <div v-if="disputeLoading" class="dispute-loading">Загрузка…</div>
+
+                        <div v-else-if="disputeSuccess" class="dispute-success">
+                            <p>Спор отправлен. Мы рассмотрим в течение 24 часов.</p>
+                        </div>
+
+                        <div v-else-if="disputableOrders.length === 0" class="dispute-empty">
+                            <p>Нет заказов, доступных для оспаривания.<br>
+                            Спор можно открыть в течение 1 часа после завершения заказа.</p>
+                        </div>
+
+                        <div v-else class="dispute-form">
+                            <p v-if="disputeError" class="dispute-error">{{ disputeError }}</p>
+
+                            <label class="dispute-label">Заказ</label>
+                            <select v-model="disputeOrderId" class="dispute-select">
+                                <option v-for="o in disputableOrders" :key="o.id" :value="o.id">
+                                    #{{ o.id }} — {{ o.idol_name }}
+                                </option>
+                            </select>
+
+                            <label class="dispute-label">Причина</label>
+                            <select v-model="disputeReason" class="dispute-select">
+                                <option value="">— выберите причину —</option>
+                                <option v-for="r in DISPUTE_REASONS" :key="r" :value="r">{{ r }}</option>
+                            </select>
+
+                            <label class="dispute-label">Детали (мин. 35 символов)</label>
+                            <textarea
+                                v-model="disputeDetails"
+                                class="dispute-textarea"
+                                placeholder="Опишите ситуацию подробнее…"
+                                rows="4"
+                                maxlength="2000"
+                            ></textarea>
+                            <span class="dispute-charcount" :class="{ 'dispute-charcount--warn': disputeDetails.trim().length > 0 && disputeDetails.trim().length < 35 }">
+                                {{ disputeDetails.trim().length }} / мин. 35
+                            </span>
+
+                            <button
+                                class="dispute-submit"
+                                :disabled="!disputeOrderId || !disputeReason || disputeDetails.trim().length < 35 || disputeSubmitting"
+                                @click="submitDispute"
+                            >{{ disputeSubmitting ? 'Отправка…' : 'Отправить спор' }}</button>
+                        </div>
+                    </div>
+
+                    <!-- FAQ view -->
+                    <div v-else :key="activeCategory.id" class="faq-content-inner">
                         <div class="faq-content__header">
                             <span class="faq-content__counter">
                                 {{ String(activeIndex).padStart(2, '0') }} / {{ String(faqCategories.length).padStart(2, '0') }}
@@ -246,7 +360,7 @@ function setCategory(cat) {
                     </svg>
                     Техподдержка
                 </button>
-                <button class="faq-action-btn faq-action-btn--dispute">
+                <button class="faq-action-btn faq-action-btn--dispute" @click="openDisputeForm">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10"/>
                         <line x1="12" y1="8" x2="12" y2="12"/>
@@ -490,4 +604,106 @@ function setCategory(cat) {
 
 /* hide mobile footer on desktop */
 .faq-footer-actions { display: none; }
+
+/* ── Dispute form ─────────────────────────── */
+.dispute-loading,
+.dispute-empty {
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.45);
+    padding: 1rem 0;
+    line-height: 1.6;
+}
+
+.dispute-success {
+    font-size: 0.85rem;
+    color: rgba(80,240,160,0.88);
+    padding: 1rem 0;
+    line-height: 1.6;
+}
+
+.dispute-error {
+    font-size: 0.8rem;
+    color: rgba(255,110,110,0.85);
+    margin-bottom: 0.75rem;
+}
+
+.dispute-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.dispute-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: rgba(255,255,255,0.4);
+    margin-top: 0.25rem;
+}
+
+.dispute-select,
+.dispute-textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(110,110,210,0.25);
+    border-radius: 3px;
+    color: rgba(255,255,255,0.85);
+    font-size: 0.82rem;
+    padding: 0.5rem 0.65rem;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.15s;
+}
+
+.dispute-select:focus,
+.dispute-textarea:focus {
+    border-color: rgba(110,110,210,0.55);
+}
+
+.dispute-select option {
+    background: #1a1a2e;
+    color: rgba(255,255,255,0.85);
+}
+
+.dispute-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.dispute-charcount {
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.3);
+    text-align: right;
+    margin-top: -0.25rem;
+}
+
+.dispute-charcount--warn {
+    color: rgba(255,180,60,0.75);
+}
+
+.dispute-submit {
+    margin-top: 0.5rem;
+    padding: 0.55rem 1rem;
+    background: rgba(42,255,220,0.07);
+    border: 1px solid rgba(42,255,220,0.3);
+    color: rgba(42,255,220,0.88);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    font-family: inherit;
+}
+
+.dispute-submit:hover:not(:disabled) {
+    background: rgba(42,255,220,0.13);
+    border-color: rgba(42,255,220,0.55);
+}
+
+.dispute-submit:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
 </style>

@@ -10,16 +10,18 @@ enum OrderStatus: string
     case Completed = 'completed';
     case Cancelled = 'cancelled';
     case Refunded  = 'refunded';
+    case Disputed  = 'disputed';
 
     public function label(): string
     {
         return match($this) {
-            self::Pending   => 'Ожидает',
+            self::Pending   => 'Создан',
             self::Accepted  => 'Принят',
             self::Paid      => 'Оплачен',
             self::Completed => 'Выполнен',
             self::Cancelled => 'Отменён',
-            self::Refunded  => 'Возвращён',
+            self::Refunded  => 'Аннулирован',
+            self::Disputed  => 'Оспаривается',
         };
     }
 
@@ -32,6 +34,7 @@ enum OrderStatus: string
             self::Completed => 'purple',
             self::Cancelled => 'red',
             self::Refunded  => 'orange',
+            self::Disputed  => 'red',
         };
     }
 }
