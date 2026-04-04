@@ -371,30 +371,13 @@ onUnmounted(() => {
                     </div>
 
                     <!-- Actions -->
-                    <div class="opanel__actions">
+                    <div class="opanel__actions" v-if="selectedOrder.conversation_id">
                         <button
-                            v-if="!selectedOrder.is_customer && selectedOrder.status === 'pending'"
-                            class="opanel__action-btn opanel__action-btn--accept"
-                            @click="acceptOrder(selectedOrder)"
-                        >
-                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7l4 4 6-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                            Принять заказ
-                        </button>
-                        <button
-                            v-if="selectedOrder.conversation_id"
                             class="opanel__action-btn opanel__action-btn--chat"
                             @click="openChat(selectedOrder.id)"
                         >
                             <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><path d="M1 1h13v9H8.5L5 13.5V10H1V1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
                             Открыть чат
-                        </button>
-                        <button
-                            v-if="selectedOrder.status !== 'cancelled'"
-                            class="opanel__action-btn opanel__action-btn--cancel"
-                            @click="openCancelModal(selectedOrder)"
-                        >
-                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                            Отменить
                         </button>
                     </div>
 
