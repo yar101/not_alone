@@ -200,6 +200,12 @@ class ConversationController extends Controller
             if ($status === OrderStatus::Completed) {
                 abort(422, 'order_completed');
             }
+            if ($status === OrderStatus::Disputed) {
+                abort(422, 'order_disputed');
+            }
+            if ($status === OrderStatus::Refunded) {
+                abort(422, 'order_refunded');
+            }
         }
 
         $otherId = $conversation->participants()

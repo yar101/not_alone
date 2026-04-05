@@ -1158,8 +1158,18 @@ function formatDate(iso) {
                                 <span class="chat-order-completed-bar__label">// ЗАКАЗ ВЫПОЛНЕН //</span>
                             </div>
 
-                            <!-- Textarea (скрыт если заказ отменён или выполнен) -->
-                            <div v-if="!activeOrderData || !['cancelled', 'completed'].includes(activeOrderData.status)" class="chat-input-inner">
+                            <!-- Плашка: спор -->
+                            <div v-if="activeOrderData?.status === 'disputed'" class="chat-order-disputed-bar">
+                                <span class="chat-order-disputed-bar__label">// ОТКРЫТ СПОР — ЧАТ ЗАМОРОЖЕН //</span>
+                            </div>
+
+                            <!-- Плашка: заказ аннулирован -->
+                            <div v-if="activeOrderData?.status === 'refunded'" class="chat-order-cancelled-bar">
+                                <span class="chat-order-cancelled-bar__label">// ЗАКАЗ АННУЛИРОВАН //</span>
+                            </div>
+
+                            <!-- Textarea (скрыт если заказ завершён в финальном статусе) -->
+                            <div v-if="!activeOrderData || !['cancelled', 'completed', 'disputed', 'refunded'].includes(activeOrderData.status)" class="chat-input-inner">
                                 <input
                                     type="file"
                                     ref="fileInput"
@@ -2987,6 +2997,25 @@ function formatDate(iso) {
     font-size: 0.75rem;
     font-weight: 700;
     color: rgba(80,240,160,0.75);
+    letter-spacing: 0.12em;
+}
+
+/* ── Disputed bar ───────────────────────────────────────── */
+.chat-order-disputed-bar {
+    display: flex;
+    align-items: center;
+    padding: 0.55rem 1.1rem;
+    background: rgba(255,160,30,0.05);
+    border-top: 1px dashed rgba(255,160,30,0.3);
+    border-bottom: 1px dashed rgba(255,160,30,0.3);
+    margin: 0 0 0.4rem;
+    flex-shrink: 0;
+    font-family: 'Courier New', Courier, monospace;
+}
+.chat-order-disputed-bar__label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: rgba(255,180,60,0.8);
     letter-spacing: 0.12em;
 }
 
