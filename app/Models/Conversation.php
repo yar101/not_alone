@@ -10,11 +10,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Conversation extends Model
 {
-    protected $fillable = ['order_id', 'is_support', 'closed_at'];
+    protected $fillable = ['order_id', 'is_support', 'closed_at', 'admin_read_at'];
 
     protected $casts = [
-        'is_support' => 'boolean',
-        'closed_at'  => 'datetime',
+        'is_support'    => 'boolean',
+        'closed_at'     => 'datetime',
+        'admin_read_at' => 'datetime',
     ];
 
     public function order(): BelongsTo

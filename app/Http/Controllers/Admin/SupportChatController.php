@@ -17,18 +17,54 @@ use Inertia\Response;
 class SupportChatController extends Controller
 {
     private const ADMIN_NAME = 'Поддержка no alone';
+    private const PER_PAGE   = 20;
 
     public function index(): Response
     {
-        $conversations = Conversation::where('is_support', true)
-            ->with(['participants.user', 'lastMessage'])
-            ->latest('updated_at')
-            ->get()
-            ->map(fn(Conversation $c) => $this->formatConversation($c));
+        [$conversations, $hasMore] = $this->queryConversations(request(), 1);
 
         return Inertia::render('Admin/Support/Index', [
             'conversations' => $conversations,
+            'has_more'      => $hasMore,
         ]);
+    }
+
+    public function moreConversations(Request $request): JsonResponse
+    {
+        [$conversations, $hasMore] = $this->queryConversations($request, $request->integer('page', 2));
+
+        return response()->json([
+            'conversations' => $conversations,
+            'has_more'      => $hasMore,
+        ]);
+    }
+
+    private function queryConversations(Request $request, int $page): array
+    {
+        $query = Conversation::where('is_support', true)
+            ->with(['participants.user', 'lastMessage']);
+
+        if ($search = $request->search) {
+            $query->whereHas('participants.user', fn($q) =>
+                $q->where('name', 'ilike', "%{$search}%")
+                  ->orWhere('email', 'ilike', "%{$search}%")
+            );
+        }
+
+        if ($request->status === 'open') {
+            $query->whereNull('closed_at');
+        } elseif ($request->status === 'closed') {
+            $query->whereNotNull('closed_at');
+        }
+
+        $total = $query->count();
+        $items = $query->latest('updated_at')
+            ->skip(($page - 1) * self::PER_PAGE)
+            ->take(self::PER_PAGE)
+            ->get()
+            ->map(fn(Conversation $c) => $this->formatConversation($c));
+
+        return [$items, ($page * self::PER_PAGE) < $total];
     }
 
     public function store(Request $request): JsonResponse
@@ -36,6 +72,15 @@ class SupportChatController extends Controller
         $request->validate(['user_id' => ['required', 'integer', 'exists:users,id']]);
 
         $user = User::findOrFail($request->user_id);
+
+        $existing = Conversation::where('is_support', true)
+            ->whereHas('participants', fn($q) => $q->where('user_id', $user->id))
+            ->latest('updated_at')
+            ->first();
+
+        if ($existing) {
+            return response()->json($this->formatConversation($existing->load(['participants.user', 'lastMessage'])));
+        }
 
         $conversation = Conversation::create(['is_support' => true]);
         $conversation->participants()->create(['user_id' => $user->id]);
@@ -55,6 +100,9 @@ class SupportChatController extends Controller
 
         $hasMore = $messages->isNotEmpty() &&
             $conversation->messages()->where('id', '<', $messages->first()->id)->exists();
+
+        // Mark conversation as read by admin
+        $conversation->update(['admin_read_at' => now()]);
 
         return response()->json([
             'messages' => $messages->map(fn($m) => $this->formatMessage($m)),
@@ -105,9 +153,9 @@ class SupportChatController extends Controller
             'body'      => '',
             'type'      => 'image',
             'metadata'  => [
-                'admin_id'  => $admin->id,
+                'admin_id'   => $admin->id,
                 'admin_name' => self::ADMIN_NAME,
-                'image_url' => $request->image_url,
+                'image_url'  => $request->image_url,
             ],
         ]);
 
@@ -158,11 +206,19 @@ class SupportChatController extends Controller
         $participant = $c->participants->first();
         $user = $participant?->user;
 
+        // Unread = user messages newer than admin_read_at
+        $unreadQuery = $c->messages()->whereNotNull('sender_id');
+        if ($c->admin_read_at) {
+            $unreadQuery->where('created_at', '>', $c->admin_read_at);
+        }
+        $unreadCount = $unreadQuery->count();
+
         return [
-            'id'         => $c->id,
-            'closed_at'  => $c->closed_at?->toISOString(),
-            'updated_at' => $c->updated_at->toISOString(),
-            'user'       => $user ? [
+            'id'           => $c->id,
+            'closed_at'    => $c->closed_at?->toISOString(),
+            'updated_at'   => $c->updated_at->toISOString(),
+            'unread_count' => $unreadCount,
+            'user'         => $user ? [
                 'id'     => $user->id,
                 'name'   => $user->name,
                 'avatar' => $user->avatar_url,
@@ -197,7 +253,6 @@ class SupportChatController extends Controller
             \Log::warning('Broadcast failed: ' . $e->getMessage());
         }
 
-        // Notify all user participants
         foreach ($conversation->participants as $participant) {
             try {
                 broadcast(new NewMessageReceived($participant->user_id, $conversation->id));

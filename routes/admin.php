@@ -185,6 +185,7 @@ Route::patch('/{trait}', [PersonalityTraitController::class, 'update'])->name('u
         // Support chat
         Route::prefix('support')->name('support.')->group(function () {
             Route::get('/', [SupportChatController::class, 'index'])->name('index');
+            Route::get('/more', [SupportChatController::class, 'moreConversations'])->name('more');
             Route::post('/', [SupportChatController::class, 'store'])->name('store');
             Route::get('/{conversation}/messages', [SupportChatController::class, 'messages'])->name('messages');
             Route::post('/{conversation}/messages', [SupportChatController::class, 'send'])->name('send');
