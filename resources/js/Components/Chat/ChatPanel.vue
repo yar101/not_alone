@@ -6,6 +6,7 @@ import axios from 'axios';
 import { Check, Lock } from '@element-plus/icons-vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
 import ServiceOfferModal from '@/Components/Chat/ServiceOfferModal.vue';
+import ReviewForm from '@/Components/Chat/ReviewForm.vue';
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -46,6 +47,7 @@ const onlineUserIds  = inject('onlineUserIds', ref([]));
 const injectAddToCart = inject('addToCart', null);
 const showOfferModal       = ref(false);
 const confirmAddModal      = ref(false);
+const hasReview            = ref(false);
 const confirmAddService    = ref(null); // { id, name, price, time_unit }
 const confirmAddLoading    = ref(false);
 
@@ -238,6 +240,7 @@ async function openConversation(conv) {
         otherLastReadAt.value = res.data.other_last_read_at ?? null;
         activeBlock.value = res.data.block ?? null;
         activeOrderData.value = res.data.order ?? null;
+        hasReview.value = res.data.has_review ?? false;
         activeConversation.value = {
             ...conv,
             ...(res.data.other_user ? { other_user: res.data.other_user } : {}),
@@ -520,6 +523,11 @@ const isOtherOnline = computed(() => {
 // ── Support chat helpers ──────────────────────────────────
 const isSupport    = computed(() => !!activeConversation.value?.is_support);
 const isChatClosed = computed(() => isSupport.value && !!activeConversation.value?.closed_at);
+const showReviewForm = computed(() =>
+    activeOrderData.value?.status === 'completed' &&
+    activeOrderData.value?.is_customer === true &&
+    !hasReview.value
+);
 
 function onOfferSent(msg) {
     // Push the message immediately on the idol's side (Echo skips own messages)
@@ -1002,7 +1010,47 @@ function formatDate(iso) {
                         <!-- Сообщения -->
                         <div class="chat-messages-wrap">
                         <div class="chat-messages" ref="messagesContainer" @scroll="onMessagesScroll">
-                            <div v-if="loadingMsgs" class="chat-empty">Загрузка…</div>
+                            <div v-if="loadingMsgs" class="chat-skeleton">
+                                <div class="chat-skeleton__row chat-skeleton__row--left">
+                                    <div class="chat-skeleton__avatar"></div>
+                                    <div class="chat-skeleton__bubbles">
+                                        <div class="chat-skeleton__bubble" style="width:54%"></div>
+                                    </div>
+                                </div>
+                                <div class="chat-skeleton__row chat-skeleton__row--right">
+                                    <div class="chat-skeleton__bubbles">
+                                        <div class="chat-skeleton__bubble" style="width:38%"></div>
+                                        <div class="chat-skeleton__bubble" style="width:62%"></div>
+                                    </div>
+                                    <div class="chat-skeleton__avatar"></div>
+                                </div>
+                                <div class="chat-skeleton__row chat-skeleton__row--left">
+                                    <div class="chat-skeleton__avatar"></div>
+                                    <div class="chat-skeleton__bubbles">
+                                        <div class="chat-skeleton__bubble" style="width:72%"></div>
+                                        <div class="chat-skeleton__bubble" style="width:45%"></div>
+                                    </div>
+                                </div>
+                                <div class="chat-skeleton__row chat-skeleton__row--right">
+                                    <div class="chat-skeleton__bubbles">
+                                        <div class="chat-skeleton__bubble" style="width:48%"></div>
+                                    </div>
+                                    <div class="chat-skeleton__avatar"></div>
+                                </div>
+                                <div class="chat-skeleton__row chat-skeleton__row--left">
+                                    <div class="chat-skeleton__avatar"></div>
+                                    <div class="chat-skeleton__bubbles">
+                                        <div class="chat-skeleton__bubble" style="width:60%"></div>
+                                    </div>
+                                </div>
+                                <div class="chat-skeleton__row chat-skeleton__row--right">
+                                    <div class="chat-skeleton__bubbles">
+                                        <div class="chat-skeleton__bubble" style="width:55%"></div>
+                                        <div class="chat-skeleton__bubble" style="width:30%"></div>
+                                    </div>
+                                    <div class="chat-skeleton__avatar"></div>
+                                </div>
+                            </div>
                             <template v-else>
                                 <!-- Индикатор подгрузки -->
                                 <div v-if="loadingMore" class="chat-loading-more">Загрузка…</div>
@@ -1087,6 +1135,27 @@ function formatDate(iso) {
                                                     </div>
                                                     <p class="sc-date">{{ formatTime(item.msg.created_at) }}</p>
                                                 </div>
+                                            </template>
+                                            <template v-else-if="item.msg.metadata?.event === 'completion_confirmed_by_idol'">
+                                                <div class="sc-card sc-card--confirm">
+                                                    <div class="sc-rule sc-rule--green"></div>
+                                                    <p class="sc-title sc-title--confirm">ВЫПОЛНЕНИЕ ПОДТВЕРЖДЕНО</p>
+                                                    <p class="sc-who">Айдол подтвердил завершение заказа</p>
+                                                    <p class="sc-date">{{ formatTime(item.msg.created_at) }}</p>
+                                                    <div class="sc-rule sc-rule--green"></div>
+                                                </div>
+                                            </template>
+                                            <template v-else-if="item.msg.metadata?.event === 'completion_confirmed_by_customer'">
+                                                <div class="sc-card sc-card--confirm">
+                                                    <div class="sc-rule sc-rule--green"></div>
+                                                    <p class="sc-title sc-title--confirm">ВЫПОЛНЕНИЕ ПОДТВЕРЖДЕНО</p>
+                                                    <p class="sc-who">Заказчик подтвердил завершение заказа</p>
+                                                    <p class="sc-date">{{ formatTime(item.msg.created_at) }}</p>
+                                                    <div class="sc-rule sc-rule--green"></div>
+                                                </div>
+                                            </template>
+                                            <template v-else-if="item.msg.metadata?.event === 'order_completed' || item.msg.metadata?.event === 'order_auto_completed'">
+                                                <div class="chat-event-label">// Заказ выполнен // <span class="chat-event-label__time">{{ formatTime(item.msg.created_at) }}</span></div>
                                             </template>
                                             <template v-else-if="item.msg.metadata?.event === 'chat_closed'">
                                                 <div class="chat-event-label">// Чат закрыт // <span class="chat-event-label__time">{{ formatTime(item.msg.created_at) }}</span></div>
@@ -1183,6 +1252,12 @@ function formatDate(iso) {
                                 <div v-if="isTyping" class="chat-typing">
                                     {{ activeConversation.other_user?.name }} печатает…
                                 </div>
+                                <ReviewForm
+                                    v-if="showReviewForm"
+                                    :order-id="activeOrderData.id"
+                                    :idol-id="activeOrderData.idol.id"
+                                    @submitted="hasReview = true"
+                                />
                                 <div ref="messagesEnd" />
                             </template>
                         </div>
@@ -1575,6 +1650,74 @@ function formatDate(iso) {
     text-align: center;
     color: rgba(255, 255, 255, 0.28);
     font-size: 0.95rem;
+}
+
+/* ── Messages skeleton loader ─────────────────────────── */
+.chat-skeleton {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 1.4rem;
+    padding: 1.5rem 1rem 2rem;
+    overflow: hidden;
+}
+.chat-skeleton__row {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.6rem;
+}
+.chat-skeleton__row--right { flex-direction: row-reverse; }
+
+.chat-skeleton__avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: rgba(100,200,255,0.07);
+    overflow: hidden;
+    position: relative;
+}
+.chat-skeleton__bubbles {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    flex: 1;
+    min-width: 0;
+}
+.chat-skeleton__row--right .chat-skeleton__bubbles {
+    align-items: flex-end;
+}
+.chat-skeleton__bubble {
+    height: 36px;
+    border-radius: 12px;
+    background: rgba(100,200,255,0.07);
+    position: relative;
+    overflow: hidden;
+}
+.chat-skeleton__row--right .chat-skeleton__bubble {
+    background: rgba(160,130,255,0.07);
+}
+
+/* GPU-accelerated shimmer via translateX on ::after */
+.chat-skeleton__bubble::after,
+.chat-skeleton__avatar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255,255,255,0.09) 50%,
+        transparent 100%
+    );
+    transform: translateX(-100%);
+    animation: skel-slide 1.2s ease-in-out infinite;
+    will-change: transform;
+}
+
+@keyframes skel-slide {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
 }
 
 /* ── Empty state ──────────────────────────────────────── */
@@ -3322,6 +3465,10 @@ function formatDate(iso) {
 .chat-system-msg:has(.sc-card--paid)::after {
     border-color: rgba(100,210,255,0.32);
 }
+.chat-system-msg:has(.sc-card--confirm)::before,
+.chat-system-msg:has(.sc-card--confirm)::after {
+    border-color: rgba(60,200,110,0.32);
+}
 
 /* base card */
 .sc-card {
@@ -3354,6 +3501,11 @@ function formatDate(iso) {
     border-color: rgba(100,210,255,0.22);
     text-align: center;
 }
+.sc-card--confirm {
+    background: rgba(60,200,110,0.04);
+    border-color: rgba(60,200,110,0.22);
+    text-align: center;
+}
 
 /* double rule */
 .sc-rule {
@@ -3377,10 +3529,11 @@ function formatDate(iso) {
     margin: 0.2rem 0;
     text-align: center;
 }
-.sc-title--accept { color: rgba(80,230,130,0.9); }
-.sc-title--cancel { color: rgba(255,110,110,0.85); }
-.sc-title--update { color: rgba(60,180,255,0.9); }
-.sc-title--paid   { color: rgba(100,210,255,0.9); }
+.sc-title--accept  { color: rgba(80,230,130,0.9); }
+.sc-title--cancel  { color: rgba(255,110,110,0.85); }
+.sc-title--update  { color: rgba(60,180,255,0.9); }
+.sc-title--paid    { color: rgba(100,210,255,0.9); }
+.sc-title--confirm { color: rgba(80,230,130,0.9); }
 
 /* who (idol name / canceller) */
 .sc-who {

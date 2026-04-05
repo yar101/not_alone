@@ -231,6 +231,14 @@ function isActive(routeName) {
                 </Link>
 
                 <Link
+                    :href="route('admin.review-epithets.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.review-epithets.index') }"
+                >
+                    Отзывы — Эпитеты
+                </Link>
+
+                <Link
                     :href="route('admin.news.index')"
                     class="nav-item"
                     :class="{ 'nav-item--active': isActive('admin.news.index') }"

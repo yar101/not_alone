@@ -123,6 +123,19 @@ class OrderService
         $order->update([$field => true]);
         $order->refresh();
 
+        $event = $isIdol ? 'completion_confirmed_by_idol' : 'completion_confirmed_by_customer';
+        if ($order->conversation_id) {
+            $msg = $order->conversation->messages()->create([
+                'sender_id' => $actor->id,
+                'body'      => '',
+                'type'      => 'system',
+                'metadata'  => ['event' => $event, 'actor_name' => $actor->name],
+            ]);
+            $msg->load('sender');
+            $this->safeBroadcast(new MessageSent($msg));
+            $order->conversation->touch();
+        }
+
         if ($order->completion_confirmed_by_idol && $order->completion_confirmed_by_customer) {
             $this->complete($order, 'user', $actor->id);
         } else {

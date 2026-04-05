@@ -742,11 +742,6 @@ watch(selectedCategory, (cat) => {
                     </div>
                 </div>
 
-                <!-- Reviews placeholder -->
-                <div v-if="selectedCategory.items.length > 0" class="cd-section cd-section--reviews">
-                    <p class="cd-section__label">Отзывы</p>
-                    <div class="cd-placeholder">Скоро здесь появятся отзывы</div>
-                </div>
             </div>
 
         </Transition>

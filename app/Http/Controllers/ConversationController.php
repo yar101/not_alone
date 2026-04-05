@@ -149,6 +149,12 @@ class ConversationController extends Controller
             }
         }
 
+        $hasReview = $conversation->order_id
+            ? \App\Models\Review::where('reviewer_id', $user->id)
+                ->where('idol_id', $conversation->order?->idol_id)
+                ->exists()
+            : false;
+
         return response()->json([
             'messages'           => $mapped,
             'other_user'         => $other ? [
@@ -163,6 +169,7 @@ class ConversationController extends Controller
             'order'              => $orderData,
             'is_support'         => (bool) $conversation->is_support,
             'closed_at'          => $conversation->closed_at?->toISOString(),
+            'has_review'         => $hasReview,
         ]);
     }
 
