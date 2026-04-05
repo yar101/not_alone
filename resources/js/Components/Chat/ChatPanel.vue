@@ -29,6 +29,8 @@ const loadingConvs    = ref(false);
 const loadingMsgs     = ref(false);
 const coverMessages   = ref(false);
 const sending         = ref(false);
+const uploading       = ref(false);
+const fileInput       = ref(null);
 const messagesEnd     = ref(null);
 const messagesContainer = ref(null);
 
@@ -205,9 +207,10 @@ async function fetchConversations() {
 
 // ── Filtered conversations (search) ─────────────────────
 const filteredConversations = computed(() =>
-    conversations.value.filter(c =>
-        c.other_user?.name?.toLowerCase().includes(searchQuery.value.toLowerCase())
-    )
+    conversations.value.filter(c => {
+        if (c.is_support) return 'поддержка no alone'.includes(searchQuery.value.toLowerCase());
+        return c.other_user?.name?.toLowerCase().includes(searchQuery.value.toLowerCase());
+    })
 );
 
 // ── Open a conversation ──────────────────────────────────
@@ -229,9 +232,12 @@ async function openConversation(conv) {
         otherLastReadAt.value = res.data.other_last_read_at ?? null;
         activeBlock.value = res.data.block ?? null;
         activeOrderData.value = res.data.order ?? null;
-        if (res.data.other_user) {
-            activeConversation.value = { ...conv, other_user: res.data.other_user };
-        }
+        activeConversation.value = {
+            ...conv,
+            ...(res.data.other_user ? { other_user: res.data.other_user } : {}),
+            is_support: res.data.is_support ?? conv.is_support ?? false,
+            closed_at:  res.data.closed_at  ?? null,
+        };
         const local = conversations.value.find(c => c.id === conv.id);
         if (local) local.unread_count = 0;
         router.reload({ only: ['unread_messages_count'] });
@@ -299,7 +305,14 @@ function subscribeEcho(conversationId) {
                 scrollToBottom();
                 markRead(conversationId);
                 updateLastMessage(conversationId, data);
-                playNotificationSound();
+                if (data.type !== 'system') playNotificationSound();
+            }
+            if (data.type === 'system' && activeConversation.value?.id === conversationId) {
+                if (data.metadata?.event === 'chat_closed') {
+                    activeConversation.value = { ...activeConversation.value, closed_at: data.created_at };
+                } else if (data.metadata?.event === 'chat_opened') {
+                    activeConversation.value = { ...activeConversation.value, closed_at: null };
+                }
             }
         })
         .listen('.message.read', (data) => {
@@ -382,7 +395,8 @@ async function markRead(conversationId) {
 function updateLastMessage(convId, msg) {
     const conv = conversations.value.find(c => c.id === convId);
     if (conv) {
-        conv.last_message = { body: msg.body, sender_id: msg.sender_id, created_at: msg.created_at };
+        const body = msg.type === 'image' ? '[фото]' : msg.body;
+        conv.last_message = { body, sender_id: msg.sender_id, created_at: msg.created_at };
         conv.updated_at = msg.created_at;
     }
 }
@@ -496,6 +510,39 @@ const isOtherOnline = computed(() => {
     const otherId = activeConversation.value?.other_user?.id;
     return otherId ? onlineUserIds.value.includes(otherId) : false;
 });
+
+// ── Support chat helpers ──────────────────────────────────
+const isSupport    = computed(() => !!activeConversation.value?.is_support);
+const isChatClosed = computed(() => isSupport.value && !!activeConversation.value?.closed_at);
+
+async function uploadAndSendImage(file) {
+    if (!file || uploading.value || !activeConversation.value) return;
+    uploading.value = true;
+    try {
+        const form = new FormData();
+        form.append('file', file);
+        const up = await axios.post(
+            route('conversations.upload', activeConversation.value.id),
+            form,
+            { headers: { 'Content-Type': 'multipart/form-data' } }
+        );
+        const res = await axios.post(
+            route('conversations.message', activeConversation.value.id),
+            { body: '', type: 'image', metadata: { image_url: up.data.url } }
+        );
+        messages.value.push(res.data);
+        scrollToBottom();
+        updateLastMessage(activeConversation.value.id, res.data);
+    } finally {
+        uploading.value = false;
+    }
+}
+
+function onFileChange(e) {
+    const file = e.target.files?.[0];
+    if (file) uploadAndSendImage(file);
+    e.target.value = '';
+}
 
 // ── Block / unblock ───────────────────────────────────────
 async function submitBlock() {
@@ -719,11 +766,16 @@ function formatDate(iso) {
                                     @click="openConversation(conv)"
                                 >
                                     <div class="chat-conv-avatar">
-                                        <img v-if="conv.other_user?.avatar_url" :src="conv.other_user.avatar_url" alt="" />
-                                        <span v-else>{{ conv.other_user?.name?.charAt(0) ?? '?' }}</span>
+                                        <template v-if="conv.is_support">
+                                            <span class="chat-support-icon">✦</span>
+                                        </template>
+                                        <template v-else>
+                                            <img v-if="conv.other_user?.avatar_url" :src="conv.other_user.avatar_url" alt="" />
+                                            <span v-else>{{ conv.other_user?.name?.charAt(0) ?? '?' }}</span>
+                                        </template>
                                     </div>
                                     <div class="chat-conv-info">
-                                        <div class="chat-conv-name">{{ conv.other_user?.name ?? '—' }}</div>
+                                        <div class="chat-conv-name">{{ conv.is_support ? 'Поддержка no alone' : (conv.other_user?.name ?? '—') }}</div>
                                         <div class="chat-conv-preview">{{ conv.last_message?.body ?? '' }}</div>
                                     </div>
                                     <div class="chat-conv-meta">
@@ -849,29 +901,40 @@ function formatDate(iso) {
                         <!-- Шапка диалога -->
                         <div class="chat-main__header">
                             <div
-                                class="chat-conv-avatar chat-conv-avatar--sm chat-conv-avatar--clickable"
-                                @click="avatarFullscreen = true"
-                                title="Посмотреть фото"
+                                class="chat-conv-avatar chat-conv-avatar--sm"
+                                :class="{ 'chat-conv-avatar--clickable': !isSupport }"
+                                @click="!isSupport && (avatarFullscreen = true)"
+                                :title="!isSupport ? 'Посмотреть фото' : undefined"
                             >
-                                <img v-if="activeConversation.other_user?.avatar_url" :src="activeConversation.other_user.avatar_url" alt="" />
-                                <span v-else>{{ activeConversation.other_user?.name?.charAt(0) ?? '?' }}</span>
+                                <template v-if="isSupport">
+                                    <span class="chat-support-icon">✦</span>
+                                </template>
+                                <template v-else>
+                                    <img v-if="activeConversation.other_user?.avatar_url" :src="activeConversation.other_user.avatar_url" alt="" />
+                                    <span v-else>{{ activeConversation.other_user?.name?.charAt(0) ?? '?' }}</span>
+                                </template>
                             </div>
                             <div class="chat-main__header-info">
                                 <div class="chat-main__name-row">
-                                    <a
-                                        :href="route('profile.show', { user: activeConversation.other_user?.id })"
-                                        target="_blank"
-                                        rel="noopener"
-                                        class="chat-main__name"
-                                    >{{ activeConversation.other_user?.name ?? '…' }}</a>
-                                    <IdolBadge v-if="activeConversation.other_user?.is_idol" />
+                                    <template v-if="isSupport">
+                                        <span class="chat-main__name">Поддержка no alone</span>
+                                    </template>
+                                    <template v-else>
+                                        <a
+                                            :href="route('profile.show', { user: activeConversation.other_user?.id })"
+                                            target="_blank"
+                                            rel="noopener"
+                                            class="chat-main__name"
+                                        >{{ activeConversation.other_user?.name ?? '…' }}</a>
+                                        <IdolBadge v-if="activeConversation.other_user?.is_idol" />
+                                    </template>
                                 </div>
-                                <span class="chat-online-badge" :class="{ 'chat-online-badge--visible': isOtherOnline }">
+                                <span v-if="!isSupport" class="chat-online-badge" :class="{ 'chat-online-badge--visible': isOtherOnline }">
                                     <span class="chat-online-dot"></span>онлайн
                                 </span>
                             </div>
                             <button
-                                v-if="!activeBlock?.active || activeBlock?.i_am_blocker"
+                                v-if="!isSupport && (!activeBlock?.active || activeBlock?.i_am_blocker)"
                                 class="chat-lock-btn"
                                 :class="{ 'chat-lock-btn--active': activeBlock?.active && activeBlock?.i_am_blocker }"
                                 :title="activeBlock?.active ? 'Заблокирован' : 'Заблокировать'"
@@ -958,6 +1021,12 @@ function formatDate(iso) {
                                                     <div class="sc-rule sc-rule--double sc-rule--red"></div>
                                                 </div>
                                             </template>
+                                            <template v-else-if="item.msg.metadata?.event === 'chat_closed'">
+                                                <div class="chat-event-label">// Чат закрыт //</div>
+                                            </template>
+                                            <template v-else-if="item.msg.metadata?.event === 'chat_opened'">
+                                                <div class="chat-event-label">// Чат открыт //</div>
+                                            </template>
                                         </div>
 
                                         <!-- Regular message -->
@@ -970,8 +1039,13 @@ function formatDate(iso) {
                                                 'chat-msg--last-in-group': item.isLastInGroup,
                                             }"
                                         >
-                                            <div class="chat-msg__bubble">
-                                                <span class="chat-msg__text">{{ item.msg.body }}</span>
+                                            <div class="chat-msg__bubble" :class="{ 'chat-msg__bubble--image': item.msg.type === 'image' && item.msg.metadata?.image_url }">
+                                                <template v-if="item.msg.type === 'image' && item.msg.metadata?.image_url">
+                                                    <a :href="item.msg.metadata.image_url" target="_blank" rel="noopener">
+                                                        <img :src="item.msg.metadata.image_url" class="chat-msg__image" />
+                                                    </a>
+                                                </template>
+                                                <span v-else class="chat-msg__text">{{ item.msg.body }}</span>
                                                 <span class="chat-msg__meta">
                                                     <span class="chat-msg__time">{{ formatTime(item.msg.created_at) }}</span>
                                                     <span
@@ -1023,6 +1097,11 @@ function formatDate(iso) {
                         <!-- Поле ввода + панель заказа (всё вместе в абс. блоке снизу) -->
                         <div class="chat-input-wrap">
                             <div class="chat-input-fade"></div>
+
+                            <!-- Баннер: чат закрыт -->
+                            <div v-if="isChatClosed" class="chat-closed-banner">
+                                // Чат закрыт — ожидайте ответа поддержки //
+                            </div>
 
                             <!-- Баннер блокировщика -->
                             <div v-if="activeBlock?.active && activeBlock?.i_am_blocker" class="chat-block-banner">
@@ -1076,20 +1155,37 @@ function formatDate(iso) {
 
                             <!-- Textarea (скрыт если заказ отменён) -->
                             <div v-if="!activeOrderData || activeOrderData.status !== 'cancelled'" class="chat-input-inner">
+                                <input
+                                    type="file"
+                                    ref="fileInput"
+                                    accept="image/*"
+                                    style="display:none"
+                                    @change="onFileChange"
+                                />
+                                <button
+                                    class="chat-attach-btn"
+                                    :disabled="isChatClosed || uploading || (!!activeBlock?.active && !activeBlock?.i_am_blocker)"
+                                    @click="fileInput.click()"
+                                    title="Прикрепить фото"
+                                >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                                    </svg>
+                                </button>
                                 <textarea
                                     v-model="newMessage"
                                     class="chat-input"
                                     placeholder="Сообщение…"
                                     rows="3"
                                     maxlength="500"
-                                    :disabled="!!activeBlock?.active && !activeBlock?.i_am_blocker"
+                                    :disabled="isChatClosed || (!!activeBlock?.active && !activeBlock?.i_am_blocker)"
                                     @keydown.enter="handleEnter"
                                     @input="onInput"
                                 />
                                 <span class="chat-char-count" :class="{ 'chat-char-count--warn': newMessage.length > 450 }">
                                     {{ newMessage.length }}/500
                                 </span>
-                                <button class="chat-send" :disabled="!newMessage.trim() || sending || (!!activeBlock?.active && !activeBlock?.i_am_blocker)" @click="sendMessage">
+                                <button class="chat-send" :disabled="!newMessage.trim() || sending || isChatClosed || (!!activeBlock?.active && !activeBlock?.i_am_blocker)" @click="sendMessage">
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <line x1="22" y1="2" x2="11" y2="13"/>
                                         <polygon points="22 2 15 22 11 13 2 9 22 2"/>
@@ -1773,7 +1869,7 @@ function formatDate(iso) {
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 6px;
-    padding: 0.65rem 5rem 2.25rem 0.85rem;
+    padding: 0.65rem 3.5rem 2.25rem 0.85rem;
     color: rgba(255, 255, 255, 0.95);
     font-size: 0.95rem;
     resize: none;
@@ -3065,4 +3161,73 @@ function formatDate(iso) {
 
 .chat-system-card__who { font-size: 0.8rem; color: rgba(255,255,255,0.45); margin: 0.2rem 0 0; font-weight: 600; }
 .chat-system-card__reason { font-size: 0.85rem; color: rgba(255,255,255,0.5); margin: 0.25rem 0 0; font-style: italic; }
+
+/* ── Support chat ─────────────────────────────────────── */
+.chat-support-icon {
+    font-size: 1rem;
+    color: rgba(155, 110, 232, 0.85);
+    line-height: 1;
+}
+
+.chat-event-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.25);
+    letter-spacing: 0.06em;
+    font-family: 'Courier New', monospace;
+    text-align: center;
+    padding: 0.2rem 0;
+}
+
+.chat-closed-banner {
+    padding: 0.5rem 1rem;
+    background: rgba(100, 60, 180, 0.12);
+    border-top: 1px solid rgba(120, 80, 200, 0.2);
+    font-size: 0.78rem;
+    color: rgba(190, 150, 255, 0.65);
+    letter-spacing: 0.04em;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+}
+
+/* ── Attach button ────────────────────────────────────── */
+.chat-attach-btn {
+    position: absolute;
+    right: 0.5rem;
+    bottom: 2.35rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.28);
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+    z-index: 1;
+}
+.chat-attach-btn:hover:not(:disabled) {
+    color: rgba(190, 145, 255, 0.8);
+    background: rgba(110, 110, 210, 0.12);
+}
+.chat-attach-btn:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+}
+
+/* ── Image messages ───────────────────────────────────── */
+.chat-msg__bubble--image {
+    padding: 0.3rem;
+    background: transparent !important;
+    border-color: rgba(110, 110, 210, 0.2) !important;
+}
+.chat-msg__image {
+    display: block;
+    max-width: 240px;
+    max-height: 300px;
+    border-radius: 6px;
+    object-fit: cover;
+    cursor: pointer;
+}
 </style>
