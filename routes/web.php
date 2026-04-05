@@ -123,6 +123,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/conversations', [ConversationController::class, 'store'])->name('conversations.store');
     Route::get('/conversations/{conversation}', [ConversationController::class, 'show'])->name('conversations.show');
     Route::post('/conversations/{conversation}/messages', [ConversationController::class, 'message'])->name('conversations.message');
+    Route::post('/conversations/{conversation}/upload', [ConversationController::class, 'upload'])->name('conversations.upload');
     Route::post('/conversations/{conversation}/block', [ConversationController::class, 'block'])->name('conversations.block');
     Route::delete('/conversations/{conversation}/block', [ConversationController::class, 'unblock'])->name('conversations.unblock');
 });

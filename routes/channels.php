@@ -26,3 +26,7 @@ Broadcast::channel('presence-online', function ($user) {
 Broadcast::channel('orders.{userId}', function ($user, $userId) {
     return (int) $user->id === (int) $userId;
 });
+
+Broadcast::channel('admin.support.{conversationId}', function ($admin, $conversationId) {
+    return \App\Models\Conversation::where('id', $conversationId)->where('is_support', true)->exists();
+}, ['guards' => ['admin']]);

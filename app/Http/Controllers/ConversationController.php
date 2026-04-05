@@ -11,6 +11,7 @@ use App\Models\Conversation;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class ConversationController extends Controller
 {
@@ -43,6 +44,8 @@ class ConversationController extends Controller
 
                 return [
                     'id'           => $conversation->id,
+                    'is_support'   => (bool) $conversation->is_support,
+                    'closed_at'    => $conversation->closed_at?->toISOString(),
                     'other_user'   => $other ? [
                         'id'         => $other->id,
                         'name'       => $other->name,
@@ -50,7 +53,7 @@ class ConversationController extends Controller
                         'is_idol'    => $other->is_idol,
                     ] : null,
                     'last_message' => $conversation->lastMessage ? [
-                        'body'       => $conversation->lastMessage->body,
+                        'body'       => $conversation->lastMessage->type === 'image' ? '[фото]' : $conversation->lastMessage->body,
                         'sender_id'  => $conversation->lastMessage->sender_id,
                         'created_at' => $conversation->lastMessage->created_at?->toISOString(),
                     ] : null,
@@ -158,6 +161,8 @@ class ConversationController extends Controller
             'has_more'           => $hasMore,
             'block'              => $this->blockStatus($conversation, $user),
             'order'              => $orderData,
+            'is_support'         => (bool) $conversation->is_support,
+            'closed_at'          => $conversation->closed_at?->toISOString(),
         ]);
     }
 
@@ -182,6 +187,9 @@ class ConversationController extends Controller
             403
         );
 
+        // Block messages in closed support conversations
+        abort_if($conversation->closed_at !== null, 422, 'chat_closed');
+
         // Block messages in cancelled order conversations
         if ($conversation->order_id) {
             $conversation->loadMissing('order');
@@ -202,11 +210,19 @@ class ConversationController extends Controller
             abort(403, 'blocked');
         }
 
-        $request->validate(['body' => 'required|string|max:5000']);
+        $type = $request->input('type', 'user');
+
+        $request->validate([
+            'body'     => $type === 'image' ? 'nullable|string|max:5000' : 'required|string|max:5000',
+            'type'     => 'nullable|string|in:user,image',
+            'metadata' => 'nullable|array',
+        ]);
 
         $msg = $conversation->messages()->create([
             'sender_id' => $user->id,
-            'body'      => $request->body,
+            'body'      => $request->body ?? '',
+            'type'      => $type,
+            'metadata'  => $request->metadata,
         ]);
 
         $conversation->touch();
@@ -224,12 +240,32 @@ class ConversationController extends Controller
         return response()->json([
             'id'             => $msg->id,
             'body'           => $msg->body,
+            'type'           => $msg->type,
+            'metadata'       => $msg->metadata,
             'sender_id'      => $msg->sender_id,
             'sender_name'    => $msg->sender->name,
             'sender_avatar'  => $msg->sender->avatar_url,
             'created_at'     => $msg->created_at->toISOString(),
             'conversation_id'=> $msg->conversation_id,
         ]);
+    }
+
+    public function upload(Request $request, Conversation $conversation): JsonResponse
+    {
+        $user = $request->user();
+
+        abort_unless(
+            $conversation->participants()->where('user_id', $user->id)->exists(),
+            403
+        );
+
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
+        ]);
+
+        $path = $request->file('file')->store("chat/{$conversation->id}", 'public');
+
+        return response()->json(['url' => Storage::url($path)]);
     }
 
     public function block(Request $request, Conversation $conversation): JsonResponse

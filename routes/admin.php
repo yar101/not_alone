@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\NewsController;
 use App\Http\Controllers\Admin\ConversationController;
 use App\Http\Controllers\Admin\DisputeController;
 use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\SupportChatController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -180,6 +181,18 @@ Route::patch('/{trait}', [PersonalityTraitController::class, 'update'])->name('u
 
         // Conversations (read-only for admin)
         Route::get('/conversations/{conversation}/messages', [ConversationController::class, 'messages'])->name('conversations.messages');
+
+        // Support chat
+        Route::prefix('support')->name('support.')->group(function () {
+            Route::get('/', [SupportChatController::class, 'index'])->name('index');
+            Route::post('/', [SupportChatController::class, 'store'])->name('store');
+            Route::get('/{conversation}/messages', [SupportChatController::class, 'messages'])->name('messages');
+            Route::post('/{conversation}/messages', [SupportChatController::class, 'send'])->name('send');
+            Route::post('/{conversation}/upload', [SupportChatController::class, 'upload'])->name('upload');
+            Route::post('/{conversation}/image', [SupportChatController::class, 'sendImage'])->name('image');
+            Route::post('/{conversation}/close', [SupportChatController::class, 'close'])->name('close');
+            Route::post('/{conversation}/open', [SupportChatController::class, 'open'])->name('open');
+        });
 
         // Export
         Route::prefix('export')->name('export.')->group(function () {

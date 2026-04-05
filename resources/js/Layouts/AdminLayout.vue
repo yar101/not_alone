@@ -152,6 +152,14 @@ function isActive(routeName) {
                     Споры
                 </Link>
 
+                <Link
+                    :href="route('admin.support.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.support.*') }"
+                >
+                    Поддержка
+                </Link>
+
                 <div class="nav-group">
                     <button
                         class="nav-item nav-item--group"
@@ -278,9 +286,10 @@ function isActive(routeName) {
 
 <style scoped>
 .admin-wrap {
-    min-height: 100vh;
+    height: 100vh;
     background: #07070f;
     display: flex;
+    overflow: hidden;
     font-family: 'Figtree', sans-serif;
 }
 
@@ -490,5 +499,6 @@ function isActive(routeName) {
     padding: 2rem;
     width: 100%;
     min-width: 0;
+    overflow-y: auto;
 }
 </style>
