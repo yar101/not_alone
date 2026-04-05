@@ -90,6 +90,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 // Services (idol owner)
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/profile/services/for-offer',       [ServiceController::class, 'forOffer'])->name('profile.services.for-offer');
     Route::post('/profile/services',                [ServiceController::class, 'store'])->name('profile.services.store');
     // Specific route before wildcard
     Route::patch('/profile/services/categories/{category}/description',
@@ -124,6 +125,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/conversations/{conversation}', [ConversationController::class, 'show'])->name('conversations.show');
     Route::post('/conversations/{conversation}/messages', [ConversationController::class, 'message'])->name('conversations.message');
     Route::post('/conversations/{conversation}/upload', [ConversationController::class, 'upload'])->name('conversations.upload');
+    Route::post('/conversations/{conversation}/offer-services', [ConversationController::class, 'offerServices'])->name('conversations.offer-services');
     Route::post('/conversations/{conversation}/block', [ConversationController::class, 'block'])->name('conversations.block');
     Route::delete('/conversations/{conversation}/block', [ConversationController::class, 'unblock'])->name('conversations.unblock');
 });
@@ -139,6 +141,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/orders/{order}/cancel',              [OrderController::class, 'cancel'])->name('orders.cancel');
     Route::patch('/orders/{order}/confirm-completion', [OrderController::class, 'confirmCompletion'])->name('orders.confirm-completion');
     Route::post('/orders/{order}/dispute',     [OrderController::class, 'dispute'])->name('orders.dispute');
+    Route::post('/orders/{order}/items',       [OrderController::class, 'addItem'])->name('orders.items.add');
 });
 
 require __DIR__.'/auth.php';

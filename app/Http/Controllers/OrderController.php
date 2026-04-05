@@ -206,6 +206,58 @@ class OrderController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function addItem(Request $request, Order $order): JsonResponse
+    {
+        $user = $request->user();
+
+        abort_unless($order->customer_id === $user->id, 403);
+        abort_unless(in_array($order->status, [OrderStatus::Pending, OrderStatus::Accepted]), 422);
+
+        $request->validate(['service_id' => ['required', 'integer', 'exists:services,id']]);
+
+        $service = Service::where('id', $request->service_id)
+            ->where('user_id', $order->idol_id)
+            ->where('is_active', true)
+            ->where('status', 'approved')
+            ->with('timeUnit:id,name')
+            ->firstOrFail();
+
+        $existing = $order->items()->where('service_id', $service->id)->first();
+        if ($existing) {
+            $existing->increment('quantity');
+        } else {
+            $order->items()->create(['service_id' => $service->id, 'quantity' => 1]);
+        }
+
+        $order->touch();
+
+        if ($order->conversation_id) {
+            $conv = $order->conversation;
+            $msg  = $conv->messages()->create([
+                'sender_id' => null,
+                'body'      => '',
+                'type'      => 'system',
+                'metadata'  => [
+                    'event'        => 'item_added',
+                    'service_id'   => $service->id,
+                    'service_name' => $service->name . ($service->timeUnit ? ' / ' . $service->timeUnit->name : ''),
+                ],
+            ]);
+            $msg->load('sender');
+            try {
+                broadcast(new \App\Events\MessageSent($msg));
+            } catch (\Throwable $e) {
+                \Log::warning('Broadcast failed: ' . $e->getMessage());
+            }
+        }
+
+        $order->load(['customer', 'idol', 'cancelledBy', 'items.service.timeUnit']);
+        $this->safeBroadcast(new OrderChanged($order->idol_id,     $this->service->formatOrder($order, $order->idol_id),     'updated'));
+        $this->safeBroadcast(new OrderChanged($order->customer_id, $this->service->formatOrder($order, $order->customer_id), 'updated'));
+
+        return response()->json(['success' => true]);
+    }
+
     public function index(Request $request): JsonResponse|InertiaResponse
     {
         $user = $request->user();

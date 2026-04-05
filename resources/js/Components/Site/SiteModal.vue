@@ -19,6 +19,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    maxWidth: {
+        type: String,
+        default: null,
+    },
 });
 
 const emit = defineEmits(['close']);
@@ -101,6 +105,7 @@ onUnmounted(() => {
                         variant === 'pink' ? 'site-modal-pink' : 'site-modal-cyan',
                         compact ? 'site-modal-sheet--compact' : ''
                     ]"
+                    :style="maxWidth ? { width: maxWidth, maxWidth } : {}"
                 >
                     <!-- Ambient orbs -->
                     <div class="site-modal-ambient" :class="variant === 'pink' ? 'ambient-pink' : 'ambient-cyan'" />

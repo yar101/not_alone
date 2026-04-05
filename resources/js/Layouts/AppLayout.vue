@@ -66,9 +66,34 @@ function openOrder(orderId) {
     chatPanel.value?.openOrder(orderId);
 }
 
+function addToCart(service, idol) {
+    // If cart has items from a different idol — clear and start fresh
+    if (cart.value.idol_id && cart.value.idol_id !== idol.id) {
+        cart.value = { idol_id: idol.id, idol_name: idol.name, idol_avatar: idol.avatar_url ?? null, items: [] };
+    } else if (!cart.value.idol_id) {
+        cart.value.idol_id    = idol.id;
+        cart.value.idol_name  = idol.name;
+        cart.value.idol_avatar = idol.avatar_url ?? null;
+    }
+
+    const existing = cart.value.items.find(i => i.service_id === service.id);
+    if (existing) {
+        existing.quantity = (existing.quantity || 1) + 1;
+    } else {
+        cart.value.items.push({
+            service_id: service.id,
+            name:       service.name,
+            price:      service.price,
+            quantity:   1,
+            time_unit:  service.time_unit ?? null,
+        });
+    }
+}
+
 provide('openAuth', openAuth);
 provide('openChatWith', openChatWith);
 provide('openOrder', openOrder);
+provide('addToCart', addToCart);
 provide('cart', cart);
 
 // ── Global online presence ────────────────────────────────

@@ -5,6 +5,7 @@ import SiteModal from '@/Components/Site/SiteModal.vue';
 import axios from 'axios';
 import { Check, Lock } from '@element-plus/icons-vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
+import ServiceOfferModal from '@/Components/Chat/ServiceOfferModal.vue';
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -41,7 +42,9 @@ const loadingMore     = ref(false);
 const searchQuery     = ref('');
 
 // Online status — from global presence channel in AppLayout
-const onlineUserIds = inject('onlineUserIds', ref([]));
+const onlineUserIds  = inject('onlineUserIds', ref([]));
+const injectAddToCart = inject('addToCart', null);
+const showOfferModal  = ref(false);
 
 // ── Orders tab ────────────────────────────────────────────
 const activeTab      = ref('messages'); // 'messages' | 'orders'
@@ -514,6 +517,31 @@ const isOtherOnline = computed(() => {
 // ── Support chat helpers ──────────────────────────────────
 const isSupport    = computed(() => !!activeConversation.value?.is_support);
 const isChatClosed = computed(() => isSupport.value && !!activeConversation.value?.closed_at);
+
+function onOfferSent(msg) {
+    // Push the message immediately on the idol's side (Echo skips own messages)
+    messages.value.push(msg);
+    nextTick(scrollToBottom);
+    if (activeConversation.value) {
+        updateLastMessage(activeConversation.value.id, msg);
+    }
+}
+
+async function addServiceToCart(svc) {
+    // Order chat with active modifiable order → add to order
+    if (activeOrderData.value && ['pending', 'accepted'].includes(activeOrderData.value.status)) {
+        try {
+            await axios.post(route('orders.items.add', activeOrderData.value.id), { service_id: svc.id });
+            // system message will arrive via Echo
+        } catch (e) {
+            alert(e.response?.data?.message ?? 'Не удалось добавить услугу к заказу');
+        }
+    } else if (injectAddToCart) {
+        // Global localStorage cart
+        const idol = activeConversation.value?.other_user;
+        if (idol) injectAddToCart(svc, idol);
+    }
+}
 
 async function uploadAndSendImage(file) {
     if (!file || uploading.value || !activeConversation.value) return;
@@ -1021,6 +1049,9 @@ function formatDate(iso) {
                                                     <div class="sc-rule sc-rule--double sc-rule--red"></div>
                                                 </div>
                                             </template>
+                                            <template v-else-if="item.msg.metadata?.event === 'item_added'">
+                                                <div class="chat-event-label">// Услуга «{{ item.msg.metadata.service_name }}» добавлена к заказу //</div>
+                                            </template>
                                             <template v-else-if="item.msg.metadata?.event === 'chat_closed'">
                                                 <div class="chat-event-label">// Чат закрыт //</div>
                                             </template>
@@ -1028,6 +1059,36 @@ function formatDate(iso) {
                                                 <div class="chat-event-label">// Чат открыт //</div>
                                             </template>
                                         </div>
+
+                                        <!-- Service offer message — one bubble per service -->
+                                        <template v-else-if="item.type === 'message' && item.msg.type === 'service_offer'">
+                                            <div
+                                                v-for="(svc, svcIdx) in (item.msg.metadata?.services ?? [])"
+                                                :key="svc.id"
+                                                class="chat-msg"
+                                                :class="{
+                                                    'chat-msg--mine': item.msg.sender_id === authUser?.id,
+                                                    'chat-msg--first-in-group': item.isFirstInGroup && svcIdx === 0,
+                                                    'chat-msg--last-in-group': item.isLastInGroup && svcIdx === (item.msg.metadata?.services?.length ?? 1) - 1,
+                                                }"
+                                            >
+                                                <div class="svc-offer-bubble">
+                                                    <div v-if="svcIdx === 0" class="svc-offer__header">✦ Предложение</div>
+                                                    <div class="svc-offer__card">
+                                                        <span class="svc-offer__svc">{{ svc.name }}</span>
+                                                        <button
+                                                            v-if="item.msg.sender_id !== authUser?.id"
+                                                            class="svc-offer__cart-btn"
+                                                            @click="addServiceToCart(svc)"
+                                                        >{{ activeOrderData && ['pending','accepted'].includes(activeOrderData.status) ? 'Добавить' : 'В корзину' }}</button>
+                                                    </div>
+                                                    <span
+                                                        v-if="svcIdx === (item.msg.metadata?.services?.length ?? 1) - 1"
+                                                        class="svc-offer__time"
+                                                    >{{ formatTime(item.msg.created_at) }}</span>
+                                                </div>
+                                            </div>
+                                        </template>
 
                                         <!-- Regular message -->
                                         <div
@@ -1114,11 +1175,6 @@ function formatDate(iso) {
                                 <button @click="submitUnblock" class="chat-block-unblock-btn">РАЗБЛОКИРОВАТЬ</button>
                             </div>
 
-                            <!-- Ссылка на страницу заказа -->
-                            <a v-if="activeOrderData" :href="route('orders.index') + '?order=' + activeOrderData.id" class="chat-order-detail-link">
-                                Подробнее о заказе →
-                            </a>
-
                             <!-- Панель действий заказа -->
                             <div v-if="activeOrderData && ['pending','accepted','paid'].includes(activeOrderData.status)" class="chat-order-actions">
                                 <button
@@ -1142,6 +1198,17 @@ function formatDate(iso) {
                                     class="chat-order-btn chat-order-btn--cancel"
                                     @click="cancelModal = true"
                                 >ОТМЕНИТЬ ЗАКАЗ</button>
+                                <!-- Предложить услугу — рядом с кнопками заказа -->
+                                <button
+                                    v-if="authUser?.is_idol && ['pending','accepted'].includes(activeOrderData.status)"
+                                    class="chat-order-btn chat-order-btn--offer"
+                                    @click="showOfferModal = true"
+                                >✦ ПРЕДЛОЖИТЬ</button>
+                            </div>
+
+                            <!-- Кнопка предложения услуги — для обычного чата (без заказа) -->
+                            <div v-if="authUser?.is_idol && !isSupport && !activeOrderData && !isChatClosed" class="chat-order-actions">
+                                <button class="chat-order-btn chat-order-btn--offer" @click="showOfferModal = true">✦ ПРЕДЛОЖИТЬ</button>
                             </div>
 
                             <!-- Плашка: заказ отменён -->
@@ -1171,6 +1238,7 @@ function formatDate(iso) {
                             <!-- Textarea (скрыт если заказ завершён в финальном статусе) -->
                             <div v-if="!activeOrderData || !['cancelled', 'completed', 'disputed', 'refunded'].includes(activeOrderData.status)" class="chat-input-inner">
                                 <input
+                                    v-if="isSupport"
                                     type="file"
                                     ref="fileInput"
                                     accept="image/*"
@@ -1178,6 +1246,7 @@ function formatDate(iso) {
                                     @change="onFileChange"
                                 />
                                 <button
+                                    v-if="isSupport"
                                     class="chat-attach-btn"
                                     :disabled="isChatClosed || uploading || (!!activeBlock?.active && !activeBlock?.i_am_blocker)"
                                     @click="fileInput.click()"
@@ -1292,6 +1361,14 @@ function formatDate(iso) {
             </div>
         </div>
     </SiteModal>
+
+    <!-- ── Модалка предложения услуги ───────────────────── -->
+    <ServiceOfferModal
+        v-if="activeConversation"
+        v-model="showOfferModal"
+        :conversation-id="activeConversation.id"
+        @sent="onOfferSent"
+    />
 
     <!-- ── Полноэкранный просмотр аватарки ──────────────── -->
     <Teleport to="body">
@@ -1769,7 +1846,7 @@ function formatDate(iso) {
 }
 
 .chat-msg__text {
-    font-size: 0.95rem;
+    font-size: 1.05rem;
     color: rgba(255, 255, 255, 0.92);
     line-height: 1.45;
     white-space: pre-wrap;
@@ -2922,6 +2999,22 @@ function formatDate(iso) {
     cursor: default;
 }
 
+.chat-order-btn--offer {
+    background: rgba(110,80,210,0.07);
+    border: 1px solid rgba(110,80,210,0.3);
+    color: rgba(155,110,232,0.85);
+}
+.chat-order-btn--offer::after {
+    background: linear-gradient(90deg, transparent 0%, rgba(155,110,232,0.5) 50%, transparent 100%);
+}
+.chat-order-btn--offer::before { border: 1px dashed rgba(110,80,210,0.18); }
+.chat-order-btn--offer:hover {
+    background: rgba(110,80,210,0.15);
+    border-color: rgba(110,80,210,0.5);
+}
+.chat-order-btn--offer:hover::before { opacity: 1; }
+
+
 .chat-order-timer-bar {
     flex-shrink: 0;
     padding: 0.55rem 1.25rem;
@@ -3017,6 +3110,74 @@ function formatDate(iso) {
     font-weight: 700;
     color: rgba(255,120,120,0.8);
     letter-spacing: 0.12em;
+}
+
+/* ── Service offer bubble ───────────────────────────────── */
+.svc-offer-bubble {
+    min-width: 180px;
+    width: 100%;
+    max-width: 100%;
+    background: linear-gradient(135deg, rgba(80,60,160,0.22), rgba(60,40,130,0.16));
+    border: 1px solid rgba(110,110,210,0.3);
+    border-radius: 10px;
+    border-bottom-left-radius: 2px;
+    overflow: hidden;
+    font-family: inherit;
+}
+.chat-msg--mine .svc-offer-bubble {
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 2px;
+}
+.svc-offer__header {
+    padding: 0.35rem 0.7rem 0.25rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(155,110,232,0.75);
+    border-bottom: 1px solid rgba(110,110,210,0.13);
+}
+.svc-offer__card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.35rem 0.7rem;
+    border-bottom: 1px solid rgba(110,110,210,0.08);
+}
+.svc-offer__card:last-of-type { border-bottom: none; }
+.svc-offer__svc {
+    font-size: 1.05rem;
+    color: rgba(255,255,255,0.88);
+    line-height: 1.3;
+    flex: 1;
+    min-width: 0;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    word-break: break-word;
+}
+.svc-offer__cart-btn {
+    flex-shrink: 0;
+    padding: 0.2rem 0.55rem;
+    background: rgba(110,110,210,0.18);
+    border: 1px solid rgba(110,110,210,0.4);
+    border-radius: 4px;
+    color: rgba(160,150,255,0.9);
+    font-size: 0.68rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+.svc-offer__cart-btn:hover { background: rgba(110,110,210,0.32); }
+.svc-offer__time {
+    display: block;
+    text-align: right;
+    font-size: 0.62rem;
+    color: rgba(255,255,255,0.22);
+    padding: 0.15rem 0.6rem 0.3rem;
 }
 
 /* ── Cancelled by in sidebar ────────────────────────────── */

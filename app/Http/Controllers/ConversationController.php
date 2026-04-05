@@ -260,6 +260,77 @@ class ConversationController extends Controller
         ]);
     }
 
+    public function offerServices(Request $request, Conversation $conversation): JsonResponse
+    {
+        $user = $request->user();
+
+        abort_unless(
+            $conversation->participants()->where('user_id', $user->id)->exists(),
+            403
+        );
+        abort_unless($user->is_idol, 403);
+
+        $request->validate([
+            'services'   => ['required', 'array', 'min:1', 'max:2'],
+            'services.*' => ['required', 'integer', 'exists:services,id'],
+        ]);
+
+        $services = \App\Models\Service::whereIn('id', $request->services)
+            ->where('user_id', $user->id)
+            ->where('is_active', true)
+            ->with(['category:id,name', 'timeUnit:id,name'])
+            ->get();
+
+        abort_if($services->count() !== count(array_unique($request->services)), 422, 'Некоторые услуги недоступны');
+
+        $msg = $conversation->messages()->create([
+            'sender_id' => $user->id,
+            'body'      => '',
+            'type'      => 'service_offer',
+            'metadata'  => [
+                'services' => $services->map(fn($s) => [
+                    'id'            => $s->id,
+                    'name'          => $s->name,
+                    'price'         => $s->price,
+                    'time_unit'     => $s->timeUnit?->name,
+                    'category_name' => $s->category?->name,
+                ])->values()->all(),
+            ],
+        ]);
+
+        $conversation->touch();
+        $msg->load('sender');
+
+        try {
+            broadcast(new MessageSent($msg));
+        } catch (\Throwable $e) {
+            \Log::warning('Broadcast failed: ' . $e->getMessage());
+        }
+
+        $conversation->participants()
+            ->where('user_id', '!=', $user->id)
+            ->pluck('user_id')
+            ->each(function ($recipientId) use ($conversation) {
+                try {
+                    broadcast(new NewMessageReceived($recipientId, $conversation->id));
+                } catch (\Throwable $e) {
+                    \Log::warning('Broadcast NewMessageReceived failed: ' . $e->getMessage());
+                }
+            });
+
+        return response()->json([
+            'id'            => $msg->id,
+            'body'          => $msg->body,
+            'type'          => $msg->type,
+            'metadata'      => $msg->metadata,
+            'sender_id'     => $msg->sender_id,
+            'sender_name'   => $msg->sender->name,
+            'sender_avatar' => $msg->sender->avatar_url,
+            'created_at'    => $msg->created_at->toISOString(),
+            'conversation_id' => $msg->conversation_id,
+        ]);
+    }
+
     public function upload(Request $request, Conversation $conversation): JsonResponse
     {
         $user = $request->user();
