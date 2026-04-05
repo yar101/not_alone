@@ -3005,9 +3005,9 @@ function formatDate(iso) {
     display: flex;
     align-items: center;
     padding: 0.55rem 1.1rem;
-    background: rgba(255,160,30,0.05);
-    border-top: 1px dashed rgba(255,160,30,0.3);
-    border-bottom: 1px dashed rgba(255,160,30,0.3);
+    background: rgba(180,30,30,0.07);
+    border-top: 1px dashed rgba(255,100,100,0.25);
+    border-bottom: 1px dashed rgba(255,100,100,0.25);
     margin: 0 0 0.4rem;
     flex-shrink: 0;
     font-family: 'Courier New', Courier, monospace;
@@ -3015,7 +3015,7 @@ function formatDate(iso) {
 .chat-order-disputed-bar__label {
     font-size: 0.75rem;
     font-weight: 700;
-    color: rgba(255,180,60,0.8);
+    color: rgba(255,120,120,0.8);
     letter-spacing: 0.12em;
 }
 
