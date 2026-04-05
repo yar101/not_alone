@@ -44,7 +44,10 @@ const searchQuery     = ref('');
 // Online status — from global presence channel in AppLayout
 const onlineUserIds  = inject('onlineUserIds', ref([]));
 const injectAddToCart = inject('addToCart', null);
-const showOfferModal  = ref(false);
+const showOfferModal       = ref(false);
+const confirmAddModal      = ref(false);
+const confirmAddService    = ref(null); // { id, name, price, time_unit }
+const confirmAddLoading    = ref(false);
 
 // ── Orders tab ────────────────────────────────────────────
 const activeTab      = ref('messages'); // 'messages' | 'orders'
@@ -303,7 +306,7 @@ function subscribeEcho(conversationId) {
     if (!window.Echo || !authUser.value) return;
     echoChannel = window.Echo.private(`conversation.${conversationId}`)
         .listen('.message.sent', (data) => {
-            if (data.sender_id !== authUser.value.id) {
+            if (data.sender_id !== authUser.value.id || data.type === 'system') {
                 messages.value.push(data);
                 scrollToBottom();
                 markRead(conversationId);
@@ -371,7 +374,7 @@ function subscribeOrdersEcho() {
         .listen('.order.changed', ({ change_type, order }) => {
             const idx = orders.value.findIndex(o => o.id === order.id);
             if (idx !== -1) {
-                orders.value[idx] = order;
+                orders.value.splice(idx, 1, order);
             } else {
                 orders.value.unshift(order);
             }
@@ -527,19 +530,26 @@ function onOfferSent(msg) {
     }
 }
 
-async function addServiceToCart(svc) {
-    // Order chat with active modifiable order → add to order
-    if (activeOrderData.value && ['pending', 'accepted'].includes(activeOrderData.value.status)) {
-        try {
-            await axios.post(route('orders.items.add', activeOrderData.value.id), { service_id: svc.id });
-            // system message will arrive via Echo
-        } catch (e) {
-            alert(e.response?.data?.message ?? 'Не удалось добавить услугу к заказу');
-        }
+function addServiceToCart(svc) {
+    if (activeOrderData.value && activeOrderData.value.status === 'pending') {
+        confirmAddService.value = svc;
+        confirmAddModal.value   = true;
     } else if (injectAddToCart) {
-        // Global localStorage cart
         const idol = activeConversation.value?.other_user;
         if (idol) injectAddToCart(svc, idol);
+    }
+}
+
+async function confirmAddToOrder() {
+    if (!confirmAddService.value || confirmAddLoading.value) return;
+    confirmAddLoading.value = true;
+    try {
+        await axios.post(route('orders.items.add', activeOrderData.value.id), { service_id: confirmAddService.value.id });
+        confirmAddModal.value = false;
+    } catch (e) {
+        alert(e.response?.data?.message ?? 'Не удалось добавить услугу к заказу');
+    } finally {
+        confirmAddLoading.value = false;
     }
 }
 
@@ -668,7 +678,7 @@ const acceptBtnText = computed(() => {
 });
 
 function orderTotal(order) {
-    return order.items.reduce((s, i) => s + (i.service?.price ?? 0), 0);
+    return order.items.reduce((s, i) => s + (i.service?.price ?? 0) * (i.quantity ?? 1), 0);
 }
 
 function cancelledByLabel(orderData) {
@@ -1023,6 +1033,7 @@ function formatDate(iso) {
                                                         <span class="sc-total__label">ИТОГО</span>
                                                         <span class="sc-total__value">{{ item.msg.metadata.services.reduce((sum, s) => sum + (s.price ?? 0) * (s.quantity ?? 1), 0).toLocaleString('ru-RU') }}&thinsp;₽</span>
                                                     </div>
+                                                    <p class="sc-date">{{ formatTime(item.msg.created_at) }}</p>
                                                 </div>
                                             </template>
                                             <template v-else-if="item.msg.metadata?.event === 'order_accepted'">
@@ -1035,8 +1046,16 @@ function formatDate(iso) {
                                                             'ГОТОВ(А) ПРИНЯТЬ ЗАКАЗ'
                                                         }}
                                                     </p>
-                                                    <p class="sc-date">{{ formatDate(item.msg.created_at) }}</p>
+                                                    <p class="sc-date">{{ formatTime(item.msg.created_at) }}</p>
                                                     <div class="sc-rule sc-rule--double sc-rule--green"></div>
+                                                </div>
+                                            </template>
+                                            <template v-else-if="item.msg.metadata?.event === 'order_paid'">
+                                                <div class="sc-card sc-card--paid">
+                                                    <div class="sc-rule sc-rule--double sc-rule--cyan"></div>
+                                                    <p class="sc-title sc-title--paid">ЗАКАЗ ОПЛАЧЕН</p>
+                                                    <p class="sc-date sc-date--paid">{{ formatTime(item.msg.created_at) }}</p>
+                                                    <div class="sc-rule sc-rule--double sc-rule--cyan"></div>
                                                 </div>
                                             </template>
                                             <template v-else-if="item.msg.metadata?.event === 'order_cancelled'">
@@ -1045,18 +1064,38 @@ function formatDate(iso) {
                                                     <p class="sc-title sc-title--cancel">ЗАКАЗ ОТМЕНЁН</p>
                                                     <p class="sc-who sc-who--cancel">{{ item.msg.metadata.cancelled_by === authUser?.id ? 'Вами' : (item.msg.metadata.cancelled_by_name ?? 'Другой стороной') }}</p>
                                                     <p v-if="item.msg.metadata.cancel_reason" class="sc-reason">{{ item.msg.metadata.cancel_reason }}</p>
-                                                    <p class="sc-date sc-date--cancel">{{ formatDate(item.msg.created_at) }}</p>
+                                                    <p class="sc-date sc-date--cancel">{{ formatTime(item.msg.created_at) }}</p>
                                                     <div class="sc-rule sc-rule--double sc-rule--red"></div>
                                                 </div>
                                             </template>
                                             <template v-else-if="item.msg.metadata?.event === 'item_added'">
-                                                <div class="chat-event-label">// Услуга «{{ item.msg.metadata.service_name }}» добавлена к заказу //</div>
+                                                <div class="sc-card sc-card--update">
+                                                    <p class="sc-title sc-title--update">ЗАКАЗ ОБНОВЛЁН</p>
+                                                    <div class="sc-rule sc-rule--double sc-rule--cyan"></div>
+                                                    <div class="sc-lines">
+                                                        <div v-for="s in item.msg.metadata.services" :key="s.id" class="sc-line">
+                                                            <span class="sc-line__name">{{ s.name }}</span>
+                                                            <span class="sc-line__dots"></span>
+                                                            <span class="sc-line__qty" v-if="(s.quantity ?? 1) > 1">×{{ s.quantity }}</span>
+                                                            <span class="sc-line__price">{{ ((s.price ?? 0) * (s.quantity ?? 1)).toLocaleString('ru-RU') }}&thinsp;₽<template v-if="s.time_unit">&thinsp;/&thinsp;{{ s.time_unit }}</template></span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="sc-perf"><span class="sc-perf__line"></span></div>
+                                                    <div class="sc-total">
+                                                        <span class="sc-total__label">ИТОГО</span>
+                                                        <span class="sc-total__value">{{ (item.msg.metadata.services ?? []).reduce((sum, s) => sum + (s.price ?? 0) * (s.quantity ?? 1), 0).toLocaleString('ru-RU') }}&thinsp;₽</span>
+                                                    </div>
+                                                    <p class="sc-date">{{ formatTime(item.msg.created_at) }}</p>
+                                                </div>
                                             </template>
                                             <template v-else-if="item.msg.metadata?.event === 'chat_closed'">
-                                                <div class="chat-event-label">// Чат закрыт //</div>
+                                                <div class="chat-event-label">// Чат закрыт // <span class="chat-event-label__time">{{ formatTime(item.msg.created_at) }}</span></div>
                                             </template>
                                             <template v-else-if="item.msg.metadata?.event === 'chat_opened'">
-                                                <div class="chat-event-label">// Чат открыт //</div>
+                                                <div class="chat-event-label">// Чат открыт // <span class="chat-event-label__time">{{ formatTime(item.msg.created_at) }}</span></div>
+                                            </template>
+                                            <template v-else>
+                                                <div class="chat-event-label">{{ item.msg.body || '—' }} <span class="chat-event-label__time">{{ formatTime(item.msg.created_at) }}</span></div>
                                             </template>
                                         </div>
 
@@ -1075,17 +1114,33 @@ function formatDate(iso) {
                                                 <div class="svc-offer-bubble">
                                                     <div v-if="svcIdx === 0" class="svc-offer__header">✦ Предложение</div>
                                                     <div class="svc-offer__card">
-                                                        <span class="svc-offer__svc">{{ svc.name }}</span>
+                                                        <span class="svc-offer__svc">{{ svc.name }}<template v-if="svc.time_unit">&thinsp;/&thinsp;{{ svc.time_unit }}</template></span>
                                                         <button
-                                                            v-if="item.msg.sender_id !== authUser?.id"
+                                                            v-if="item.msg.sender_id !== authUser?.id && (!activeOrderData || activeOrderData.status === 'pending' || !activeOrderData.id)"
                                                             class="svc-offer__cart-btn"
                                                             @click="addServiceToCart(svc)"
-                                                        >{{ activeOrderData && ['pending','accepted'].includes(activeOrderData.status) ? 'Добавить' : 'В корзину' }}</button>
+                                                        ><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                                            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+                                                            <line x1="3" y1="6" x2="21" y2="6"/>
+                                                            <path d="M16 10a4 4 0 01-8 0"/>
+                                                        </svg></button>
                                                     </div>
                                                     <span
                                                         v-if="svcIdx === (item.msg.metadata?.services?.length ?? 1) - 1"
-                                                        class="svc-offer__time"
-                                                    >{{ formatTime(item.msg.created_at) }}</span>
+                                                        class="chat-msg__meta"
+                                                    >
+                                                        <span class="chat-msg__time">{{ formatTime(item.msg.created_at) }}</span>
+                                                        <span
+                                                            v-if="item.msg.sender_id === authUser?.id"
+                                                            class="chat-msg__status"
+                                                            :class="{ 'chat-msg__status--read': isMessageRead(item.msg) }"
+                                                        >
+                                                            <span class="chat-ticks">
+                                                                <el-icon class="chat-tick chat-tick--1"><Check /></el-icon>
+                                                                <el-icon class="chat-tick chat-tick--2"><Check /></el-icon>
+                                                            </span>
+                                                        </span>
+                                                    </span>
                                                 </div>
                                             </div>
                                         </template>
@@ -1153,11 +1208,11 @@ function formatDate(iso) {
                                 <p class="chat-blocked-header">================================</p>
                             </div>
                         </div>
+                            <div class="chat-input-fade"></div>
                         </div><!-- end chat-messages-wrap -->
 
-                        <!-- Поле ввода + панель заказа (всё вместе в абс. блоке снизу) -->
+                        <!-- Поле ввода + панель заказа -->
                         <div class="chat-input-wrap">
-                            <div class="chat-input-fade"></div>
 
                             <!-- Баннер: чат закрыт -->
                             <div v-if="isChatClosed" class="chat-closed-banner">
@@ -1200,7 +1255,7 @@ function formatDate(iso) {
                                 >ОТМЕНИТЬ ЗАКАЗ</button>
                                 <!-- Предложить услугу — рядом с кнопками заказа -->
                                 <button
-                                    v-if="authUser?.is_idol && ['pending','accepted'].includes(activeOrderData.status)"
+                                    v-if="authUser?.is_idol && activeOrderData.status === 'pending'"
                                     class="chat-order-btn chat-order-btn--offer"
                                     @click="showOfferModal = true"
                                 >✦ ПРЕДЛОЖИТЬ</button>
@@ -1362,6 +1417,22 @@ function formatDate(iso) {
         </div>
     </SiteModal>
 
+    <!-- ── Подтверждение добавления услуги к заказу ────────── -->
+    <SiteModal :show="confirmAddModal" variant="cyan" compact max-width="420px" @close="confirmAddModal = false">
+        <div class="cm-title cm-title--cyan">ДОБАВИТЬ К ЗАКАЗУ</div>
+        <div class="confirm-add__svc">{{ confirmAddService?.name }}</div>
+        <div v-if="confirmAddService?.price" class="confirm-add__price">
+            {{ confirmAddService.price.toLocaleString('ru-RU') }}&thinsp;₽<template v-if="confirmAddService.time_unit">&thinsp;/&thinsp;{{ confirmAddService.time_unit }}</template>
+        </div>
+        <div class="cm-perf"><span class="cm-perf__line cm-perf__line--cyan"></span></div>
+        <div class="cm-footer">
+            <button class="cm-btn cm-btn--back" @click="confirmAddModal = false">НАЗАД</button>
+            <button class="cm-btn cm-btn--confirm-cyan" :disabled="confirmAddLoading" @click="confirmAddToOrder">
+                {{ confirmAddLoading ? 'ДОБАВЛЕНИЕ…' : 'ДОБАВИТЬ' }}
+            </button>
+        </div>
+    </SiteModal>
+
     <!-- ── Модалка предложения услуги ───────────────────── -->
     <ServiceOfferModal
         v-if="activeConversation"
@@ -1401,7 +1472,10 @@ function formatDate(iso) {
 /* ── Backdrop ─────────────────────────────────────────── */
 .chat-backdrop {
     position: fixed;
-    inset: 0;
+    top: 60px;
+    left: 0;
+    right: 0;
+    bottom: 0;
     z-index: 999;
     background: rgba(0, 0, 0, 0.4);
 }
@@ -1411,7 +1485,7 @@ function formatDate(iso) {
 /* ── Panel ────────────────────────────────────────────── */
 .chat-panel {
     position: fixed;
-    top: 0;
+    top: 60px;
     right: 0;
     bottom: 0;
     width: 1100px;
@@ -1530,13 +1604,12 @@ function formatDate(iso) {
     border: none;
     cursor: pointer;
     text-align: left;
-    transition: background 0.15s, transform 0.15s;
+    transition: background 0.15s;
     border-radius: 0;
     position: relative;
 }
 .chat-conv-item:hover {
     background: rgba(110, 110, 210, 0.06);
-    transform: translateX(2px);
 }
 .chat-conv-item--active {
     background: rgba(120, 90, 255, 0.1);
@@ -1738,6 +1811,7 @@ function formatDate(iso) {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
+    padding-bottom: 1.5rem;
 }
 
 /* ── Load more indicator ──────────────────────────────── */
@@ -1857,12 +1931,13 @@ function formatDate(iso) {
     display: flex;
     align-items: center;
     gap: 4px;
-    align-self: stretch;
+    align-self: flex-end;
+    justify-content: flex-end;
+    margin-top: 1px;
 }
 .chat-msg__time {
-    flex: 1;
-    font-size: 0.72rem;
-    color: rgba(255, 255, 255, 0.3);
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.45);
 }
 .chat-msg__status {
     display: inline-flex;
@@ -1921,21 +1996,19 @@ function formatDate(iso) {
 
 /* ── Input ────────────────────────────────────────────── */
 .chat-input-wrap {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    flex-shrink: 0;
     padding: 0 1.1rem 0.85rem;
     background: transparent;
 }
 .chat-input-fade {
     position: absolute;
-    bottom: 100%;
+    bottom: 0;
     left: 0;
     right: 0;
     height: 60px;
     background: linear-gradient(to bottom, transparent, #0e0e1c);
     pointer-events: none;
+    z-index: 1;
 }
 .chat-input-inner {
     flex: 1;
@@ -2139,7 +2212,6 @@ function formatDate(iso) {
     position: relative;
     display: flex;
     flex-direction: column;
-    padding-bottom: 160px;
 }
 .chat-messages-wrap .chat-messages {
     flex: 1;
@@ -2433,6 +2505,23 @@ function formatDate(iso) {
     text-align: center;
     margin: 0.3rem 0;
 }
+.cm-title--cyan { color: rgba(80,230,200,0.9); }
+.cm-perf__line--cyan { border-top-color: rgba(60,200,180,0.3); border-top-style: dashed; }
+
+.confirm-add__svc {
+    font-size: 1.05rem;
+    color: rgba(255,255,255,0.88);
+    text-align: center;
+    margin: 0.75rem 0 0.25rem;
+    font-weight: 500;
+}
+.confirm-add__price {
+    font-size: 0.95rem;
+    color: rgba(100,200,255,0.75);
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    margin-bottom: 0.75rem;
+}
 .cm-section-label {
     font-size: 0.68rem;
     letter-spacing: 0.12em;
@@ -2531,12 +2620,12 @@ function formatDate(iso) {
 }
 .cm-btn--back {
     background: transparent;
-    border: 1px dashed rgba(210,240,255,0.18);
-    color: rgba(210,240,255,0.4);
+    border: 1px solid rgba(210,240,255,0.25);
+    color: rgba(210,240,255,0.65);
 }
 .cm-btn--back:hover {
-    border-color: rgba(210,240,255,0.4);
-    color: rgba(210,240,255,0.75);
+    border-color: rgba(210,240,255,0.5);
+    color: rgba(210,240,255,0.9);
 }
 .cm-btn--confirm {
     background: rgba(220,60,60,0.08);
@@ -2548,6 +2637,19 @@ function formatDate(iso) {
     border-color: rgba(220,60,60,0.65);
 }
 .cm-btn--confirm:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+.cm-btn--confirm-cyan {
+    background: rgba(60,200,180,0.08);
+    border: 1px solid rgba(60,200,180,0.4);
+    color: rgba(80,230,200,0.9);
+}
+.cm-btn--confirm-cyan:hover:not(:disabled) {
+    background: rgba(60,200,180,0.18);
+    border-color: rgba(60,200,180,0.65);
+}
+.cm-btn--confirm-cyan:disabled {
     opacity: 0.3;
     cursor: not-allowed;
 }
@@ -2592,13 +2694,13 @@ function formatDate(iso) {
     text-align: left;
     position: relative;
     overflow: visible;
-    transition: background 0.15s, box-shadow 0.15s, transform 0.12s;
+    transition: background 0.15s, box-shadow 0.15s;
     box-shadow: 0 1px 8px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(110,110,210,0.13);
 }
 
 .order-stub:hover {
     background: rgba(255,255,255,0.055);
-    transform: translateY(-1px);
+
     box-shadow: 0 4px 16px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(140,110,255,0.2);
 }
 .order-stub--active {
@@ -2610,7 +2712,7 @@ function formatDate(iso) {
 /* head */
 .order-stub__head {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.6rem;
     padding: 0.6rem 0.75rem 0.55rem;
 }
@@ -2641,6 +2743,7 @@ function formatDate(iso) {
     padding: 0.14rem 0.42rem;
     border-radius: 3px;
     flex-shrink: 0;
+    margin-top: 0.1rem;
 }
 .order-stub__badge--pending,
 .order-stub__badge--accepted,
@@ -2670,6 +2773,7 @@ function formatDate(iso) {
     height: 9px;
     border-radius: 50%;
     background: #0b0b18;
+    border: 1px solid rgba(110,110,210,0.13);
     z-index: 2;
 }
 .order-stub__perf::before { left: -4px; }
@@ -2897,7 +3001,7 @@ function formatDate(iso) {
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2924,8 +3028,6 @@ function formatDate(iso) {
     height: 1px;
     border-radius: 3px 3px 0 0;
 }
-.chat-order-btn:hover { transform: translateY(-1px); }
-.chat-order-btn:active { transform: translateY(0); }
 
 .chat-order-btn--accept {
     background: rgba(60,200,110,0.07);
@@ -3115,7 +3217,7 @@ function formatDate(iso) {
 /* ── Service offer bubble ───────────────────────────────── */
 .svc-offer-bubble {
     min-width: 180px;
-    width: 100%;
+    width: fit-content;
     max-width: 100%;
     background: linear-gradient(135deg, rgba(80,60,160,0.22), rgba(60,40,130,0.16));
     border: 1px solid rgba(110,110,210,0.3);
@@ -3123,6 +3225,11 @@ function formatDate(iso) {
     border-bottom-left-radius: 2px;
     overflow: hidden;
     font-family: inherit;
+    display: flex;
+    flex-direction: column;
+}
+.svc-offer-bubble .chat-msg__meta {
+    padding: 0.1rem 0.7rem 0.3rem;
 }
 .chat-msg--mine .svc-offer-bubble {
     border-bottom-left-radius: 10px;
@@ -3159,26 +3266,24 @@ function formatDate(iso) {
 }
 .svc-offer__cart-btn {
     flex-shrink: 0;
-    padding: 0.2rem 0.55rem;
+    width: 2.2rem;
+    height: 2.2rem;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: rgba(110,110,210,0.18);
     border: 1px solid rgba(110,110,210,0.4);
-    border-radius: 4px;
+    border-radius: 6px;
     color: rgba(160,150,255,0.9);
-    font-size: 0.68rem;
-    font-weight: 600;
     cursor: pointer;
-    font-family: inherit;
-    transition: background 0.15s;
-    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+    line-height: 0;
+}
+.svc-offer__cart-btn svg {
+    display: block;
 }
 .svc-offer__cart-btn:hover { background: rgba(110,110,210,0.32); }
-.svc-offer__time {
-    display: block;
-    text-align: right;
-    font-size: 0.62rem;
-    color: rgba(255,255,255,0.22);
-    padding: 0.15rem 0.6rem 0.3rem;
-}
 
 /* ── Cancelled by in sidebar ────────────────────────────── */
 .chat-order-cancelled-by {
@@ -3209,6 +3314,14 @@ function formatDate(iso) {
 .chat-system-msg:has(.sc-card--cancel)::after {
     border-color: rgba(200,50,50,0.32);
 }
+.chat-system-msg:has(.sc-card--update)::before,
+.chat-system-msg:has(.sc-card--update)::after {
+    border-color: rgba(60,180,255,0.32);
+}
+.chat-system-msg:has(.sc-card--paid)::before,
+.chat-system-msg:has(.sc-card--paid)::after {
+    border-color: rgba(100,210,255,0.32);
+}
 
 /* base card */
 .sc-card {
@@ -3232,6 +3345,15 @@ function formatDate(iso) {
     background: rgba(200,50,50,0.05);
     border-color: rgba(200,50,50,0.25);
 }
+.sc-card--update {
+    background: rgba(60,180,255,0.04);
+    border-color: rgba(60,180,255,0.22);
+}
+.sc-card--paid {
+    background: rgba(100,210,255,0.04);
+    border-color: rgba(100,210,255,0.22);
+    text-align: center;
+}
 
 /* double rule */
 .sc-rule {
@@ -3243,6 +3365,8 @@ function formatDate(iso) {
 }
 .sc-rule--green { border-color: rgba(60,200,110,0.15); }
 .sc-rule--red   { border-color: rgba(200,50,50,0.15); }
+.sc-rule--cyan  { border-color: rgba(60,180,255,0.15); }
+.sc-rule--gold  { border-color: rgba(255,210,80,0.15); }
 
 /* title */
 .sc-title {
@@ -3255,6 +3379,8 @@ function formatDate(iso) {
 }
 .sc-title--accept { color: rgba(80,230,130,0.9); }
 .sc-title--cancel { color: rgba(255,110,110,0.85); }
+.sc-title--update { color: rgba(60,180,255,0.9); }
+.sc-title--paid   { color: rgba(100,210,255,0.9); }
 
 /* who (idol name / canceller) */
 .sc-who {
@@ -3275,14 +3401,19 @@ function formatDate(iso) {
     letter-spacing: 0.02em;
 }
 .sc-date {
-    font-size: 0.7rem;
-    color: rgba(80, 230, 130, 0.35);
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.35);
     letter-spacing: 0.1em;
     text-align: center;
     margin: 0.1rem 0 0;
 }
-.sc-date--cancel {
-    color: rgba(255, 110, 110, 0.35);
+.sc-date--cancel { color: rgba(255, 255, 255, 0.35); }
+.sc-date--paid   { color: rgba(255, 255, 255, 0.35); }
+
+.chat-event-label__time {
+    opacity: 0.5;
+    font-size: 0.75em;
+    margin-left: 0.4em;
 }
 
 /* line items with dot leaders */

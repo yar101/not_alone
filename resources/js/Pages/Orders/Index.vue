@@ -327,7 +327,7 @@ onUnmounted(() => {
                             <span class="opanel__date">{{ formatDate(selectedOrder.created_at) }}</span>
                         </div>
                         <span class="opanel__status-badge" :class="`opanel__status-badge--${selectedOrder.status}`">
-                            {{ { pending: 'Ожидает', accepted: 'Принят', paid: 'Оплачен', completed: 'Выполнен', cancelled: 'Отменён', refunded: 'Возврат' }[selectedOrder.status] }}
+                            {{ { pending: 'Создан', accepted: 'Принят', paid: 'Оплачен', completed: 'Выполнен', cancelled: 'Отменён', refunded: 'Возврат' }[selectedOrder.status] }}
                         </span>
                     </div>
 
@@ -731,7 +731,10 @@ onUnmounted(() => {
 /* ── Side panel ───────────────────────────────────────────── */
 .orders-panel-backdrop {
     position: fixed;
-    inset: 0;
+    top: 60px;
+    left: 0;
+    right: 0;
+    bottom: 0;
     z-index: 200;
     background: rgba(0,0,0,0.45);
     backdrop-filter: blur(4px);

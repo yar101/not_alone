@@ -222,7 +222,7 @@ onUnmounted(() => {
 .app-header {
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 1101;
     height: 60px;
     display: flex;
     align-items: center;

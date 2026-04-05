@@ -418,7 +418,7 @@ onUnmounted(() => {
     border: 1px solid rgba(155,110,232,0.18);
     border-radius: 16px;
     box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04) inset;
-    z-index: 500; overflow: hidden;
+    z-index: 1101; overflow: hidden;
 }
 
 /* ── Panel header ── */

@@ -270,6 +270,11 @@ class ConversationController extends Controller
         );
         abort_unless($user->is_idol, 403);
 
+        if ($conversation->order_id) {
+            $order = $conversation->order;
+            abort_unless($order && $order->status === OrderStatus::Pending, 422, 'Предлагать услуги можно только для заказов со статусом «Создан»');
+        }
+
         $request->validate([
             'services'   => ['required', 'array', 'min:1', 'max:2'],
             'services.*' => ['required', 'integer', 'exists:services,id'],

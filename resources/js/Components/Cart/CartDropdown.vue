@@ -142,7 +142,7 @@ async function createOrder() {
 .rc-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 1049;
+    z-index: 1100;
     background: rgba(0, 0, 0, 0.55);
 }
 
@@ -154,7 +154,7 @@ async function createOrder() {
     bottom: 0;
     width: 480px;
     max-width: 100vw;
-    z-index: 1050;
+    z-index: 1101;
     background: #09090f;
     border-left: 1px solid rgba(120, 220, 255, 0.1);
     box-shadow: -12px 0 60px rgba(0, 0, 0, 0.75);

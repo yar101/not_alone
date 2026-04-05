@@ -139,7 +139,7 @@ const ratingPct    = computed(() => ratingValue.value != null ? Math.min(ratingV
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.6);
-    z-index: 200;
+    z-index: 1100;
 }
 
 /* ── Panel ────────────────────────────────────────────────── */
@@ -149,7 +149,7 @@ const ratingPct    = computed(() => ratingValue.value != null ? Math.min(ratingV
     right: 0;
     bottom: 0;
     width: 360px;
-    z-index: 201;
+    z-index: 1101;
     display: flex;
     flex-direction: column;
     background: linear-gradient(175deg, #121228 0%, #0a0a1a 55%, #080814 100%);

@@ -211,7 +211,7 @@ class OrderController extends Controller
         $user = $request->user();
 
         abort_unless($order->customer_id === $user->id, 403);
-        abort_unless(in_array($order->status, [OrderStatus::Pending, OrderStatus::Accepted]), 422);
+        abort_unless($order->status === OrderStatus::Pending, 422);
 
         $request->validate(['service_id' => ['required', 'integer', 'exists:services,id']]);
 
@@ -233,14 +233,23 @@ class OrderController extends Controller
 
         if ($order->conversation_id) {
             $conv = $order->conversation;
+
+            $order->load(['items.service.timeUnit']);
+            $allItems = $order->items->map(fn($item) => [
+                'id'        => $item->service?->id,
+                'name'      => $item->service?->name,
+                'price'     => $item->service?->price,
+                'time_unit' => $item->service?->timeUnit?->name,
+                'quantity'  => $item->quantity ?? 1,
+            ])->values()->all();
+
             $msg  = $conv->messages()->create([
                 'sender_id' => null,
                 'body'      => '',
                 'type'      => 'system',
                 'metadata'  => [
-                    'event'        => 'item_added',
-                    'service_id'   => $service->id,
-                    'service_name' => $service->name . ($service->timeUnit ? ' / ' . $service->timeUnit->name : ''),
+                    'event'    => 'item_added',
+                    'services' => $allItems,
                 ],
             ]);
             $msg->load('sender');

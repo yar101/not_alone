@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import axios from 'axios';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppCheckbox from '@/Components/AppCheckbox.vue';
@@ -15,6 +15,25 @@ const activeCategory   = ref(null);
 const selectedServices = ref([]); // [{ id, name, price, category_name }]
 const loading          = ref(false);
 const sending          = ref(false);
+const catsEl           = ref(null);
+const catsHasMore      = ref(false);
+const catsHasLess      = ref(false);
+
+function onCatsScroll() {
+    if (!catsEl.value) return;
+    const { scrollTop, scrollHeight, clientHeight } = catsEl.value;
+    catsHasMore.value = scrollTop + clientHeight < scrollHeight - 4;
+    catsHasLess.value = scrollTop > 4;
+}
+
+function checkCatsScroll() {
+    nextTick(() => {
+        if (!catsEl.value) return;
+        const { scrollTop, scrollHeight, clientHeight } = catsEl.value;
+        catsHasMore.value = scrollHeight > clientHeight + 4;
+        catsHasLess.value = scrollTop > 4;
+    });
+}
 
 const activeServices = computed(() =>
     categories.value.find(c => c.category.id === activeCategory.value)?.services ?? []
@@ -45,6 +64,7 @@ async function loadCategories() {
         if (categories.value.length) {
             activeCategory.value = categories.value[0].category.id;
         }
+        checkCatsScroll();
     } finally {
         loading.value = false;
     }
@@ -100,20 +120,36 @@ watch(() => props.modelValue, (val) => {
             <!-- Picker -->
             <div class="sof-picker">
                 <!-- Categories -->
-                <div class="sof-cats">
-                    <button
-                        v-for="cat in categories"
-                        :key="cat.category.id"
-                        class="sof-cat"
-                        :class="{ 'sof-cat--active': activeCategory === cat.category.id }"
-                        @click="activeCategory = cat.category.id"
-                    >
-                        <span>{{ cat.category.name }}</span>
-                        <span
-                            v-if="selectedServices.some(s => s.category_name === cat.category.name)"
-                            class="sof-cat__dot"
-                        />
-                    </button>
+                <div class="sof-cats-wrap">
+                    <div class="sof-cats" ref="catsEl" @scroll="onCatsScroll">
+                        <button
+                            v-for="cat in categories"
+                            :key="cat.category.id"
+                            class="sof-cat"
+                            :class="{ 'sof-cat--active': activeCategory === cat.category.id }"
+                            @click="activeCategory = cat.category.id"
+                        >
+                            <span>{{ cat.category.name }}</span>
+                            <span
+                                v-if="selectedServices.some(s => s.category_name === cat.category.name)"
+                                class="sof-cat__dot"
+                            />
+                        </button>
+                    </div>
+                    <Transition name="sof-fade">
+                        <div v-if="catsHasLess" class="sof-cats-fade sof-cats-fade--top">
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                <path d="M2 8l4-4 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                    </Transition>
+                    <Transition name="sof-fade">
+                        <div v-if="catsHasMore" class="sof-cats-fade sof-cats-fade--bottom">
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                    </Transition>
                 </div>
 
                 <!-- Services -->
@@ -133,7 +169,7 @@ watch(() => props.modelValue, (val) => {
                             :disabled="!isSelected(svc.id) && limitReached"
                         />
                         <span class="sof-svc__name">{{ svc.name }}</span>
-                        <span class="sof-svc__price">{{ fmtPrice(svc.price) }}</span>
+                        <span class="sof-svc__price">{{ fmtPrice(svc.price) }}<template v-if="svc.time_unit">&thinsp;/&thinsp;{{ svc.time_unit }}</template></span>
                     </label>
                 </div>
             </div>
@@ -148,7 +184,7 @@ watch(() => props.modelValue, (val) => {
                         class="sof-island"
                     >
                         <span class="sof-island__name">{{ s.name }}</span>
-                        <span class="sof-island__price">{{ fmtPrice(s.price) }}</span>
+                        <span class="sof-island__price">{{ fmtPrice(s.price) }}<template v-if="s.time_unit">&thinsp;/&thinsp;{{ s.time_unit }}</template></span>
                         <button class="sof-island__remove" @click="removeSelected(s.id)" aria-label="Убрать">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
                                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -200,16 +236,42 @@ watch(() => props.modelValue, (val) => {
     margin-bottom: 1rem;
 }
 
-.sof-cats {
+.sof-cats-wrap {
+    position: relative;
     width: max-content;
     min-width: 160px;
     max-width: 260px;
     flex-shrink: 0;
     border-right: 1px solid rgba(255,255,255,0.05);
+}
+.sof-cats {
+    width: 100%;
     max-height: 300px;
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: rgba(100,200,255,0.35) rgba(255,255,255,0.05);
+}
+.sof-cats-fade {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 72px;
+    pointer-events: none;
+    display: flex;
+    justify-content: center;
+    color: rgba(100,200,255,0.7);
+}
+.sof-cats-fade--bottom {
+    bottom: 0;
+    background: linear-gradient(to bottom, transparent, rgba(8,8,20,0.97));
+    align-items: flex-end;
+    padding-bottom: 8px;
+}
+.sof-cats-fade--top {
+    top: 0;
+    background: linear-gradient(to top, transparent, rgba(8,8,20,0.97));
+    align-items: flex-start;
+    padding-top: 8px;
 }
 .sof-cats::-webkit-scrollbar { width: 5px; }
 .sof-cats::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); }
@@ -333,4 +395,10 @@ watch(() => props.modelValue, (val) => {
 }
 .sof-submit:hover:not(:disabled) { background: rgba(100,200,255,0.18); }
 .sof-submit:disabled { opacity: 0.35; cursor: default; }
+
+/* ── Transitions ─────────────────────────────────── */
+.sof-fade-enter-active,
+.sof-fade-leave-active { transition: opacity 0.2s ease; }
+.sof-fade-enter-from,
+.sof-fade-leave-to { opacity: 0; }
 </style>
