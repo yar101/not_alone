@@ -190,11 +190,15 @@ class ConversationController extends Controller
         // Block messages in closed support conversations
         abort_if($conversation->closed_at !== null, 422, 'chat_closed');
 
-        // Block messages in cancelled order conversations
+        // Block messages in cancelled or completed order conversations
         if ($conversation->order_id) {
             $conversation->loadMissing('order');
-            if ($conversation->order?->status === OrderStatus::Cancelled) {
+            $status = $conversation->order?->status;
+            if ($status === OrderStatus::Cancelled) {
                 abort(422, 'order_cancelled');
+            }
+            if ($status === OrderStatus::Completed) {
+                abort(422, 'order_completed');
             }
         }
 

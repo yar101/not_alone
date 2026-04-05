@@ -1153,8 +1153,13 @@ function formatDate(iso) {
                                 <span v-if="activeOrderData.cancel_reason" class="chat-order-cancelled-bar__reason">{{ activeOrderData.cancel_reason }}</span>
                             </div>
 
-                            <!-- Textarea (скрыт если заказ отменён) -->
-                            <div v-if="!activeOrderData || activeOrderData.status !== 'cancelled'" class="chat-input-inner">
+                            <!-- Плашка: заказ выполнен -->
+                            <div v-if="activeOrderData?.status === 'completed'" class="chat-order-completed-bar">
+                                <span class="chat-order-completed-bar__label">// ЗАКАЗ ВЫПОЛНЕН //</span>
+                            </div>
+
+                            <!-- Textarea (скрыт если заказ отменён или выполнен) -->
+                            <div v-if="!activeOrderData || !['cancelled', 'completed'].includes(activeOrderData.status)" class="chat-input-inner">
                                 <input
                                     type="file"
                                     ref="fileInput"
@@ -2964,6 +2969,25 @@ function formatDate(iso) {
     font-size: 0.75rem;
     color: rgba(255,255,255,0.3);
     font-style: italic;
+}
+
+/* ── Completed bar ──────────────────────────────────────── */
+.chat-order-completed-bar {
+    display: flex;
+    align-items: center;
+    padding: 0.55rem 1.1rem;
+    background: rgba(80,240,160,0.05);
+    border-top: 1px dashed rgba(80,240,160,0.25);
+    border-bottom: 1px dashed rgba(80,240,160,0.25);
+    margin: 0 0 0.4rem;
+    flex-shrink: 0;
+    font-family: 'Courier New', Courier, monospace;
+}
+.chat-order-completed-bar__label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: rgba(80,240,160,0.75);
+    letter-spacing: 0.12em;
 }
 
 /* ── Cancelled by in sidebar ────────────────────────────── */
