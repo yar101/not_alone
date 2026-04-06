@@ -16,6 +16,6 @@ class ReviewEpithet extends Model
 
     public function reviews(): BelongsToMany
     {
-        return $this->belongsToMany(Review::class);
+        return $this->belongsToMany(Review::class, 'review_epithet_review');
     }
 }

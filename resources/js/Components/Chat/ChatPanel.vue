@@ -529,6 +529,19 @@ const showReviewForm = computed(() =>
     !hasReview.value
 );
 
+function onReviewSubmitted() {
+    hasReview.value = true;
+    messages.value.push({
+        id: Date.now(),
+        sender_id: null,
+        created_at: new Date().toISOString(),
+        type: 'system',
+        body: null,
+        metadata: { event: 'review_submitted' },
+        read_at: null,
+    });
+}
+
 function onOfferSent(msg) {
     // Push the message immediately on the idol's side (Echo skips own messages)
     messages.value.push(msg);
@@ -1163,6 +1176,9 @@ function formatDate(iso) {
                                             <template v-else-if="item.msg.metadata?.event === 'chat_opened'">
                                                 <div class="chat-event-label">// Чат открыт // <span class="chat-event-label__time">{{ formatTime(item.msg.created_at) }}</span></div>
                                             </template>
+                                            <template v-else-if="item.msg.metadata?.event === 'review_submitted'">
+                                                <div class="chat-event-label chat-event-label--review">// Отзыв отправлен //</div>
+                                            </template>
                                             <template v-else>
                                                 <div class="chat-event-label">{{ item.msg.body || '—' }} <span class="chat-event-label__time">{{ formatTime(item.msg.created_at) }}</span></div>
                                             </template>
@@ -1256,7 +1272,7 @@ function formatDate(iso) {
                                     v-if="showReviewForm"
                                     :order-id="activeOrderData.id"
                                     :idol-id="activeOrderData.idol.id"
-                                    @submitted="hasReview = true"
+                                    @submitted="onReviewSubmitted"
                                 />
                                 <div ref="messagesEnd" />
                             </template>
@@ -3674,6 +3690,10 @@ function formatDate(iso) {
     font-family: 'Courier New', monospace;
     text-align: center;
     padding: 0.2rem 0;
+}
+
+.chat-event-label--review {
+    color: rgba(255, 140, 175, 0.6);
 }
 
 .chat-closed-banner {

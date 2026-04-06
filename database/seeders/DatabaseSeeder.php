@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             ServiceTimeUnitSeeder::class,
             BanReasonSeeder::class,
             NewsSeeder::class,
+            ReviewEpithetSeeder::class,
         ]);
     }
 }

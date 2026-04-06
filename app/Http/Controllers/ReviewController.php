@@ -64,12 +64,27 @@ class ReviewController extends Controller
     {
         abort_unless($user->is_idol, 404);
 
-        $reviews = Review::where('idol_id', $user->id)
-            ->with(['reviewer', 'epithets'])
-            ->latest()
-            ->paginate(20);
+        $query = Review::where('idol_id', $user->id)->with(['reviewer', 'epithets']);
+
+        match ($request->get('sort')) {
+            'oldest'      => $query->oldest(),
+            'rating_desc' => $query->orderByDesc('rating')->orderByDesc('created_at'),
+            'rating_asc'  => $query->orderBy('rating')->orderByDesc('created_at'),
+            default       => $query->latest(),
+        };
+
+        $reviews = $query->paginate(10);
 
         $avg = Review::where('idol_id', $user->id)->avg('rating');
+
+        $reviewIds = Review::where('idol_id', $user->id)->pluck('id');
+        $epithetCounts = \DB::table('review_epithet_review')
+            ->join('review_epithets', 'review_epithets.id', '=', 'review_epithet_review.review_epithet_id')
+            ->whereIn('review_epithet_review.review_id', $reviewIds)
+            ->selectRaw('review_epithets.id, review_epithets.label, COUNT(*) as count')
+            ->groupBy('review_epithets.id', 'review_epithets.label')
+            ->orderByDesc('count')
+            ->get();
 
         return response()->json([
             'reviews'    => $reviews->map(fn(Review $r) => [
@@ -86,7 +101,13 @@ class ReviewController extends Controller
                 'created_at'       => $r->created_at->toISOString(),
             ])->values(),
             'total'      => $reviews->total(),
+            'has_more'   => $reviews->hasMorePages(),
             'avg_rating' => $avg ? round($avg, 1) : null,
+            'epithet_counts' => $epithetCounts->map(fn($e) => [
+                'id'    => $e->id,
+                'label' => $e->label,
+                'count' => (int) $e->count,
+            ])->values(),
         ]);
     }
 }

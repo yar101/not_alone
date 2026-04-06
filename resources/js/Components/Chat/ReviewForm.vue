@@ -17,6 +17,7 @@ const loadingEpithets  = ref(true);
 const submitting       = ref(false);
 const warningOpen      = ref(false);
 const warnWrapEl       = ref(null);
+const poppingHeart     = ref(0);
 
 function onDocClick(e) {
     if (warningOpen.value && warnWrapEl.value && !warnWrapEl.value.contains(e.target)) {
@@ -60,19 +61,15 @@ async function submit() {
 
 <template>
     <div class="rv-wrap">
-        <div class="rv-header">
-            <svg class="rv-header__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-            </svg>
-            ОСТАВИТЬ ОТЗЫВ
-        </div>
-
-        <!-- Warning button + popup -->
-        <div class="rv-warn-wrap" ref="warnWrapEl">
+        <!-- Header row: title + warning button -->
+        <div class="rv-header-row">
+            <div class="rv-header">ОСТАВИТЬ ОТЗЫВ</div>
+            <div class="rv-warn-wrap" ref="warnWrapEl" @mouseleave="warningOpen = false">
             <button
                 class="rv-warn-btn"
                 :class="{ 'rv-warn-btn--active': warningOpen }"
                 @click="warningOpen = !warningOpen"
+                @mouseenter="warningOpen = true"
                 type="button"
                 aria-label="Важно"
             >
@@ -90,6 +87,9 @@ async function submit() {
                 </div>
             </Transition>
         </div>
+        </div>
+
+        <div class="rv-divider"><span></span></div>
 
         <!-- Hearts (shared gradient defs — rendered once) -->
         <svg width="0" height="0" style="position:absolute">
@@ -106,9 +106,10 @@ async function submit() {
                 v-for="i in 5"
                 :key="i"
                 class="rv-heart"
+                :class="{ 'rv-heart--pop': poppingHeart === i }"
                 @mouseenter="hovered = i"
                 @mouseleave="hovered = 0"
-                @click="rating = i"
+                @click="rating = i; poppingHeart = i; setTimeout(() => poppingHeart = 0, 350)"
                 type="button"
                 :aria-label="`${i} из 5`"
             >
@@ -193,22 +194,49 @@ async function submit() {
     position: relative;
 }
 
-.rv-header {
+.rv-header-row {
     display: flex;
     align-items: center;
-    gap: 0.45rem;
-    font-family: 'Courier New', monospace;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    color: rgba(255,160,185,0.65);
+    justify-content: flex-end;
+    position: relative;
 }
-.rv-header__icon { opacity: 0.7; }
+
+.rv-header {
+    position: absolute;
+    left: 0;
+    right: 0;
+    text-align: center;
+    pointer-events: none;
+    font-family: 'Courier New', monospace;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: rgba(255,160,185,0.8);
+}
+
+.rv-divider {
+    display: flex;
+    align-items: center;
+    margin: 0 -0.1rem;
+}
+.rv-divider span {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255,120,160,0.15) 15%,
+        rgba(255,120,160,0.45) 50%,
+        rgba(255,120,160,0.15) 85%,
+        transparent 100%
+    );
+}
 
 /* ── Hearts ───────────────────────────────── */
 .rv-hearts {
     display: flex;
     gap: 0;
+    justify-content: center;
 }
 .rv-heart {
     background: none;
@@ -224,6 +252,13 @@ async function submit() {
 }
 .rv-heart svg { width: 30px; height: 30px; }
 .rv-heart:hover { transform: scale(1.15); }
+.rv-heart--pop { animation: rv-heart-pop 0.35s ease; }
+@keyframes rv-heart-pop {
+    0%   { transform: scale(1); }
+    35%  { transform: scale(1.38); }
+    65%  { transform: scale(0.92); }
+    100% { transform: scale(1); }
+}
 
 .rv-heart__fill {
     opacity: 0;
@@ -266,7 +301,7 @@ async function submit() {
 .rv-epithet {
     background: rgba(160,160,255,0.05);
     border: 1px solid rgba(160,160,255,0.2);
-    border-radius: 100px;
+    border-radius: 4px;
     padding: 0.35rem 0.85rem;
     font-size: 0.92rem;
     color: rgba(160,160,255,0.6);
@@ -299,7 +334,12 @@ async function submit() {
     transition: border-color 0.15s;
     box-sizing: border-box;
 }
-.rv-textarea:focus { border-color: rgba(255,120,160,0.4); }
+.rv-textarea:focus,
+.rv-textarea:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: rgba(255,120,160,0.4);
+}
 .rv-textarea::placeholder { color: rgba(255,255,255,0.22); }
 .rv-char-count {
     position: absolute;
@@ -312,12 +352,12 @@ async function submit() {
 
 /* ── Warning button ───────────────────────── */
 .rv-warn-wrap {
-    position: absolute;
-    top: 0.75rem;
-    right: 0.85rem;
+    position: relative;
+    padding: 0.25rem;
+    flex-shrink: 0;
 }
 .rv-warn-btn {
-    width: 32px;
+    width: 52px;
     height: 32px;
     border-radius: 6px;
     border: 1.5px solid rgba(255,160,185,0.45);
@@ -332,7 +372,8 @@ async function submit() {
     justify-content: center;
     line-height: 1;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
-    padding: 0;
+    padding: 0 0.5rem;
+    gap: 0.35rem;
 }
 .rv-warn-btn:hover,
 .rv-warn-btn--active {
