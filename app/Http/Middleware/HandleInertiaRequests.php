@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\BanReason;
 use App\Models\IdolApplication;
+use App\Models\ReviewDispute;
 use App\Models\Service;
 use App\Models\InterestSuggestion;
 use App\Models\TraitSuggestion;
@@ -15,7 +16,7 @@ class HandleInertiaRequests extends Middleware
 {
     protected $rootView = 'app';
 
-    private const SERVICE_TYPES = ['idol_approved', 'idol_rejected', 'admin_broadcast', 'low_rating_warning', 'admin_rating'];
+    private const SERVICE_TYPES = ['idol_approved', 'idol_rejected', 'admin_broadcast', 'low_rating_warning', 'admin_rating', 'review_dispute_approved', 'review_dispute_rejected'];
     private const ORDER_TYPES   = ['order_created', 'order_accepted', 'order_cancelled'];
 
     public function version(Request $request): ?string
@@ -58,6 +59,9 @@ class HandleInertiaRequests extends Middleware
                 : 0,
             'pending_interest_suggestions_count' => fn() => auth('admin')->check()
                 ? InterestSuggestion::where('status', 'pending')->count()
+                : 0,
+            'pending_review_disputes_count' => fn() => auth('admin')->check()
+                ? ReviewDispute::where('status', 'pending')->count()
                 : 0,
             'unread_messages_count' => fn() => $user?->unreadMessagesCount() ?? 0,
             'chat_block_reasons' => fn() => $user
