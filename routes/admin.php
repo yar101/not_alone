@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\NewsController;
 use App\Http\Controllers\Admin\ConversationController;
 use App\Http\Controllers\Admin\DisputeController;
 use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\ReviewDisputeController;
 use App\Http\Controllers\Admin\ReviewEpithetController;
 use App\Http\Controllers\Admin\SupportChatController;
 use App\Http\Controllers\Admin\UserController;
@@ -188,6 +189,12 @@ Route::patch('/{trait}', [PersonalityTraitController::class, 'update'])->name('u
         // Disputes
         Route::get('/disputes', [DisputeController::class, 'index'])->name('disputes.index');
         Route::patch('/disputes/{dispute}/resolve', [DisputeController::class, 'resolve'])->name('disputes.resolve');
+
+        // Review disputes
+        Route::prefix('review-disputes')->name('review-disputes.')->group(function () {
+            Route::get('/', [ReviewDisputeController::class, 'index'])->name('index');
+            Route::patch('/{reviewDispute}/resolve', [ReviewDisputeController::class, 'resolve'])->name('resolve');
+        });
 
         // Conversations (read-only for admin)
         Route::get('/conversations/{conversation}/messages', [ConversationController::class, 'messages'])->name('conversations.messages');

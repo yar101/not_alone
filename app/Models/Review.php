@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Review extends Model
 {
@@ -15,10 +16,12 @@ class Review extends Model
         'rating',
         'text',
         'services_snapshot',
+        'is_hidden',
     ];
 
     protected $casts = [
         'services_snapshot' => 'array',
+        'is_hidden'         => 'boolean',
     ];
 
     public function reviewer(): BelongsTo
@@ -39,5 +42,10 @@ class Review extends Model
     public function epithets(): BelongsToMany
     {
         return $this->belongsToMany(ReviewEpithet::class, 'review_epithet_review');
+    }
+
+    public function disputes(): HasMany
+    {
+        return $this->hasMany(ReviewDispute::class);
     }
 }
