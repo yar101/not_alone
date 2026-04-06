@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\NewsController;
 use App\Http\Controllers\Admin\ConversationController;
 use App\Http\Controllers\Admin\DisputeController;
 use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\ReviewEpithetController;
 use App\Http\Controllers\Admin\SupportChatController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
@@ -158,6 +159,15 @@ Route::patch('/{trait}', [PersonalityTraitController::class, 'update'])->name('u
             Route::patch('/{banReason}', [BanReasonController::class, 'update'])->name('update');
             Route::delete('/{banReason}', [BanReasonController::class, 'destroy'])->name('destroy');
             Route::post('/reorder',     [BanReasonController::class, 'reorder'])->name('reorder');
+        });
+
+        // Review epithets
+        Route::prefix('review-epithets')->name('review-epithets.')->group(function () {
+            Route::get('/',              [ReviewEpithetController::class, 'index'])->name('index');
+            Route::post('/',             [ReviewEpithetController::class, 'store'])->name('store');
+            Route::patch('/{epithet}',   [ReviewEpithetController::class, 'update'])->name('update');
+            Route::delete('/{epithet}',  [ReviewEpithetController::class, 'destroy'])->name('destroy');
+            Route::post('/reorder',      [ReviewEpithetController::class, 'reorder'])->name('reorder');
         });
 
         // News (О проекте)

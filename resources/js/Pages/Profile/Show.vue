@@ -13,6 +13,7 @@ import ProfileTraits from '@/Components/Profile/ProfileTraits.vue';
 import ProfileInterests from '@/Components/Profile/ProfileInterests.vue';
 import ProfileLanguages from '@/Components/Profile/ProfileLanguages.vue';
 import ProfilePosts from '@/Components/Profile/ProfilePosts.vue';
+import ProfileReviews from '@/Components/Profile/ProfileReviews.vue';
 import ProfileServices from '@/Components/Profile/ProfileServices.vue';
 import ProfileVoice from '@/Components/Profile/ProfileVoice.vue';
 
@@ -61,7 +62,9 @@ function resendVerification() {
 }
 
 // ── Tabs ─────────────────────────────────────────────────────
-const TAB_ORDER = ['about', 'posts', 'services', 'content'];
+const TAB_ORDER = props.isIdol
+    ? ['about', 'posts', 'services', 'content', 'reviews']
+    : ['about', 'posts', 'services', 'content'];
 const storedTab = sessionStorage.getItem(`profile_tab_${props.profileUser.id}`);
 const hashTab   = window.location.hash.slice(1);
 const initialTab = TAB_ORDER.includes(hashTab) ? hashTab
@@ -291,6 +294,14 @@ onMounted(async () => {
                         >
                             Контент
                         </button>
+                        <button
+                            v-if="isIdol"
+                            class="tab-btn"
+                            :class="{ active: tab === 'reviews' }"
+                            @click="switchTab('reviews')"
+                        >
+                            Отзывы
+                        </button>
                         <button v-if="serviceNav.inCategory"
                                 class="cd-back"
                                 :style="{ '--cat-accent': serviceNav.accent }"
@@ -400,6 +411,10 @@ onMounted(async () => {
                                 <p class="coming-soon-text">У этого пользователя нет услуг</p>
                             </div>
                         </template>
+                    </div>
+
+                    <div v-else-if="tab === 'reviews'" key="reviews" class="tab-panel">
+                        <ProfileReviews :profile-user-id="profileUser.id" />
                     </div>
 
                     <div v-else key="content" class="tab-panel">

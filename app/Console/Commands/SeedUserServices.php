@@ -84,10 +84,9 @@ class SeedUserServices extends Command
                 [$timeUnits[min(1, count($timeUnits) - 1)], rand(800, 1500)],
             ];
             foreach ($pairs as [$unit, $price]) {
-                $name = "{$cat->name} — {$unit->name}";
                 Service::firstOrCreate(
-                    ['user_id' => $user->id, 'category_id' => $cat->id, 'name' => $name],
-                    ['time_unit_id' => $unit->id, 'price' => $price, 'is_active' => true]
+                    ['user_id' => $user->id, 'category_id' => $cat->id, 'time_unit_id' => $unit->id],
+                    ['name' => $cat->name, 'price' => $price, 'is_active' => true]
                 );
             }
             if ($bar) {
