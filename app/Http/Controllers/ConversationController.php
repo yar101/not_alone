@@ -137,8 +137,9 @@ class ConversationController extends Controller
                     'customer'      => ['id' => $o->customer->id, 'name' => $o->customer->name, 'avatar_url' => $o->customer->avatar_url],
                     'idol'          => ['id' => $o->idol->id, 'name' => $o->idol->name, 'avatar_url' => $o->idol->avatar_url, 'gender' => $o->idol->gender],
                     'items'         => $o->items->map(fn($item) => [
-                        'id'      => $item->id,
-                        'service' => $item->service ? [
+                        'id'       => $item->id,
+                        'quantity' => $item->quantity ?? 1,
+                        'service'  => $item->service ? [
                             'id'        => $item->service->id,
                             'name'      => $item->service->name,
                             'price'     => $item->service->price,
