@@ -64,7 +64,15 @@ class ReviewController extends Controller
     {
         abort_unless($user->is_idol, 404);
 
-        $query = Review::where('idol_id', $user->id)->with(['reviewer', 'epithets']);
+        $isOwner = $request->user()?->id === $user->id;
+
+        $query = Review::where('idol_id', $user->id)
+                       ->where('is_hidden', false)
+                       ->with(['reviewer', 'epithets']);
+
+        if ($isOwner) {
+            $query->with(['disputes' => fn($q) => $q->latest('created_at')->limit(1)]);
+        }
 
         match ($request->get('sort')) {
             'oldest'      => $query->oldest(),
@@ -75,9 +83,9 @@ class ReviewController extends Controller
 
         $reviews = $query->paginate(10);
 
-        $avg = Review::where('idol_id', $user->id)->avg('rating');
+        $avg = Review::where('idol_id', $user->id)->where('is_hidden', false)->avg('rating');
 
-        $reviewIds = Review::where('idol_id', $user->id)->pluck('id');
+        $reviewIds = Review::where('idol_id', $user->id)->where('is_hidden', false)->pluck('id');
         $epithetCounts = \DB::table('review_epithet_review')
             ->join('review_epithets', 'review_epithets.id', '=', 'review_epithet_review.review_epithet_id')
             ->whereIn('review_epithet_review.review_id', $reviewIds)
@@ -99,6 +107,7 @@ class ReviewController extends Controller
                     'avatar_url' => $r->reviewer->avatar_url,
                 ],
                 'created_at'       => $r->created_at->toISOString(),
+                'dispute_status'   => $isOwner ? ($r->disputes->first()?->status ?? null) : null,
             ])->values(),
             'total'      => $reviews->total(),
             'has_more'   => $reviews->hasMorePages(),

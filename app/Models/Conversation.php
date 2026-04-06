@@ -51,7 +51,9 @@ class Conversation extends Model
             return 0;
         }
 
-        $query = $this->messages()->where('sender_id', '!=', $user->id);
+        $query = $this->messages()->where(function ($q) use ($user) {
+            $q->whereNull('sender_id')->orWhere('sender_id', '!=', $user->id);
+        });
         if ($participant->last_read_at) {
             $query->where('created_at', '>', $participant->last_read_at);
         }

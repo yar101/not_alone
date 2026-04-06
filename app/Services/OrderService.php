@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\OrderStatus;
 use App\Events\MessageSent;
+use App\Events\NewMessageReceived;
 use App\Events\NewNotification;
 use App\Events\OrderChanged;
 use App\Events\OrderStatusChanged;
@@ -24,22 +25,17 @@ class OrderService
         $order->logStatusChange(OrderStatus::Pending->value, OrderStatus::Accepted->value, 'user', $actor->id);
         $order->update(['status' => OrderStatus::Accepted]);
 
-        if ($order->conversation_id) {
-            $msg = $order->conversation->messages()->create([
-                'sender_id' => $actor->id,
-                'body'      => '',
-                'type'      => 'system',
-                'metadata'  => [
-                    'event'       => 'order_accepted',
-                    'idol_id'     => $actor->id,
-                    'idol_name'   => $actor->name,
-                    'idol_gender' => $actor->gender,
-                ],
-            ]);
-            $order->conversation->touch();
-            $msg->load('sender');
-            $this->safeBroadcast(new MessageSent($msg));
-        }
+        $this->broadcastSystemMessage($order, [
+            'sender_id' => $actor->id,
+            'body'      => '',
+            'type'      => 'system',
+            'metadata'  => [
+                'event'       => 'order_accepted',
+                'idol_id'     => $actor->id,
+                'idol_name'   => $actor->name,
+                'idol_gender' => $actor->gender,
+            ],
+        ]);
 
         $this->broadcastStatusChanged($order, 'accepted');
         $this->broadcastOrderChanged($order);
@@ -53,21 +49,16 @@ class OrderService
         $order->logStatusChange(OrderStatus::Accepted->value, OrderStatus::Paid->value, 'user', $actor->id);
         $order->update(['status' => OrderStatus::Paid, 'paid_at' => now()]);
 
-        if ($order->conversation_id) {
-            $msg = $order->conversation->messages()->create([
-                'sender_id' => $actor->id,
-                'body'      => '',
-                'type'      => 'system',
-                'metadata'  => [
-                    'event'         => 'order_paid',
-                    'customer_id'   => $actor->id,
-                    'customer_name' => $actor->name,
-                ],
-            ]);
-            $order->conversation->touch();
-            $msg->load('sender');
-            $this->safeBroadcast(new MessageSent($msg));
-        }
+        $this->broadcastSystemMessage($order, [
+            'sender_id' => $actor->id,
+            'body'      => '',
+            'type'      => 'system',
+            'metadata'  => [
+                'event'         => 'order_paid',
+                'customer_id'   => $actor->id,
+                'customer_name' => $actor->name,
+            ],
+        ]);
 
         $this->broadcastStatusChanged($order, 'paid');
         $this->broadcastOrderChanged($order);
@@ -86,22 +77,17 @@ class OrderService
             'cancelled_by'  => $actor->id,
         ]);
 
-        if ($order->conversation_id) {
-            $msg = $order->conversation->messages()->create([
-                'sender_id' => $actor->id,
-                'body'      => '',
-                'type'      => 'system',
-                'metadata'  => [
-                    'event'             => 'order_cancelled',
-                    'cancelled_by'      => $actor->id,
-                    'cancelled_by_name' => $actor->name,
-                    'cancel_reason'     => $reason,
-                ],
-            ]);
-            $order->conversation->touch();
-            $msg->load('sender');
-            $this->safeBroadcast(new MessageSent($msg));
-        }
+        $this->broadcastSystemMessage($order, [
+            'sender_id' => $actor->id,
+            'body'      => '',
+            'type'      => 'system',
+            'metadata'  => [
+                'event'             => 'order_cancelled',
+                'cancelled_by'      => $actor->id,
+                'cancelled_by_name' => $actor->name,
+                'cancel_reason'     => $reason,
+            ],
+        ]);
 
         $this->broadcastStatusChanged($order, 'cancelled',
             cancelledBy:     $actor->id,
@@ -124,17 +110,12 @@ class OrderService
         $order->refresh();
 
         $event = $isIdol ? 'completion_confirmed_by_idol' : 'completion_confirmed_by_customer';
-        if ($order->conversation_id) {
-            $msg = $order->conversation->messages()->create([
-                'sender_id' => $actor->id,
-                'body'      => '',
-                'type'      => 'system',
-                'metadata'  => ['event' => $event, 'actor_name' => $actor->name],
-            ]);
-            $msg->load('sender');
-            $this->safeBroadcast(new MessageSent($msg));
-            $order->conversation->touch();
-        }
+        $this->broadcastSystemMessage($order, [
+            'sender_id' => $actor->id,
+            'body'      => '',
+            'type'      => 'system',
+            'metadata'  => ['event' => $event, 'actor_name' => $actor->name],
+        ]);
 
         if ($order->completion_confirmed_by_idol && $order->completion_confirmed_by_customer) {
             $this->complete($order, 'user', $actor->id);
@@ -319,16 +300,15 @@ class OrderService
         $order->logStatusChange($old, OrderStatus::Completed->value, $actorType, $actorId, $note);
         $order->update(['status' => OrderStatus::Completed, 'completed_at' => now()]);
 
-        if ($order->conversation_id) {
-            $event    = $actorType === 'system' ? 'order_auto_completed' : 'order_completed';
-            $order->conversation->messages()->create([
-                'sender_id' => null,
-                'body'      => '',
-                'type'      => 'system',
-                'metadata'  => ['event' => $event, 'order_id' => $order->id],
-            ]);
-            $order->conversation->touch();
-        }
+        $this->broadcastSystemMessage($order, [
+            'sender_id' => null,
+            'body'      => '',
+            'type'      => 'system',
+            'metadata'  => [
+                'event'    => $actorType === 'system' ? 'order_auto_completed' : 'order_completed',
+                'order_id' => $order->id,
+            ],
+        ]);
 
         $this->broadcastStatusChanged($order, 'completed');
         $this->broadcastOrderChanged($order);
@@ -376,6 +356,26 @@ class OrderService
             confirmedByIdol:  (bool) $order->completion_confirmed_by_idol,
             confirmedByCustomer: (bool) $order->completion_confirmed_by_customer,
         ));
+    }
+
+    private function broadcastSystemMessage(Order $order, array $messageAttributes): void
+    {
+        if (! $order->conversation_id) return;
+
+        $msg = $order->conversation->messages()->create($messageAttributes);
+        $order->conversation->touch();
+        $msg->load('sender');
+        $this->safeBroadcast(new MessageSent($msg));
+
+        $order->conversation->loadMissing('participants');
+        foreach ($order->conversation->participants as $participant) {
+            $this->safeBroadcast(new NewMessageReceived(
+                $participant->user_id,
+                $order->conversation_id,
+                $msg,
+                $order->id,
+            ));
+        }
     }
 
     private function safeBroadcast(mixed $event): void

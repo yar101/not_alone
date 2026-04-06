@@ -13,6 +13,7 @@ const pendingServicesCount = computed(() => page.props.pending_services_count ??
 const pendingReportsCount = computed(() => page.props.pending_reports_count ?? 0);
 const pendingTraitSuggestionsCount = computed(() => page.props.pending_trait_suggestions_count ?? 0);
 const pendingInterestSuggestionsCount = computed(() => page.props.pending_interest_suggestions_count ?? 0);
+const pendingReviewDisputesCount = computed(() => page.props.pending_review_disputes_count ?? 0);
 
 const servicesOpen  = ref(false);
 const traitsOpen    = ref(false);
@@ -150,6 +151,15 @@ function isActive(routeName) {
                     :class="{ 'nav-item--active': isActive('admin.disputes.*') }"
                 >
                     Споры
+                </Link>
+
+                <Link
+                    :href="route('admin.review-disputes.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.review-disputes.*') }"
+                >
+                    Отзывы (жалобы)
+                    <span v-if="pendingReviewDisputesCount > 0" class="nav-badge" style="margin-left: auto; margin-right: 0.25rem;">{{ pendingReviewDisputesCount }}</span>
                 </Link>
 
                 <Link

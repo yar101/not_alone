@@ -72,6 +72,10 @@ const subtabOrders = computed(() => {
         : orders.value.filter(o => !o.is_customer);
 });
 
+const ordersHaveUnread = computed(() => orders.value.some(o => (o.unread_count ?? 0) > 0));
+const mineHaveUnread = computed(() => orders.value.filter(o => o.is_customer).some(o => (o.unread_count ?? 0) > 0));
+const incomingHaveUnread = computed(() => orders.value.filter(o => !o.is_customer).some(o => (o.unread_count ?? 0) > 0));
+
 const orderStatusCounts = computed(() => ({
     all:       subtabOrders.value.length,
     pending:   subtabOrders.value.filter(o => o.status === 'pending').length,
@@ -198,6 +202,7 @@ const blockedUntilLabel = computed(() => {
 
 let echoChannel = null;
 let ordersEchoChannel = null;
+let userEchoChannel = null;
 
 // ── Close panel ──────────────────────────────────────────
 function close() {
@@ -379,9 +384,12 @@ function subscribeOrdersEcho() {
         .listen('.order.changed', ({ change_type, order }) => {
             const idx = orders.value.findIndex(o => o.id === order.id);
             if (idx !== -1) {
-                orders.value.splice(idx, 1, order);
+                orders.value.splice(idx, 1, {
+                    ...order,
+                    unread_count: orders.value[idx].unread_count ?? 0,
+                });
             } else {
-                orders.value.unshift(order);
+                orders.value.unshift({ ...order, unread_count: 0 });
             }
             if (activeOrderData.value?.id === order.id) {
                 activeOrderData.value = { ...activeOrderData.value, ...order };
@@ -396,10 +404,47 @@ function leaveOrdersEcho() {
     ordersEchoChannel = null;
 }
 
+function subscribeUserEcho() {
+    if (!window.Echo || !authUser.value) return;
+    userEchoChannel = window.Echo.private(`App.Models.User.${authUser.value.id}`)
+        .listen('.message.received', handleIncomingMessageForList);
+}
+
+function leaveUserEcho() {
+    if (userEchoChannel) {
+        userEchoChannel.stopListening('.message.received', handleIncomingMessageForList);
+    }
+    userEchoChannel = null;
+}
+
+function handleIncomingMessageForList(data) {
+    const { conversation_id, order_id, last_message } = data;
+
+    // Не трогать активный диалог — он уже обрабатывается через markRead
+    if (activeConversation.value?.id === conversation_id) return;
+
+    if (order_id) {
+        const order = orders.value.find(o => o.conversation_id === conversation_id);
+        if (order) {
+            order.unread_count = (order.unread_count ?? 0) + 1;
+        }
+    } else {
+        const conv = conversations.value.find(c => c.id === conversation_id);
+        if (conv) {
+            const body = last_message?.type === 'image' ? '[фото]' : (last_message?.body ?? '');
+            conv.last_message = { body, sender_id: last_message?.sender_id, created_at: last_message?.created_at };
+            conv.updated_at = last_message?.created_at;
+            conv.unread_count = (conv.unread_count ?? 0) + 1;
+        }
+    }
+}
+
 async function markRead(conversationId) {
     await axios.get(route('conversations.show', conversationId));
     const local = conversations.value.find(c => c.id === conversationId);
     if (local) local.unread_count = 0;
+    const order = orders.value.find(o => o.conversation_id === conversationId);
+    if (order) order.unread_count = 0;
     router.reload({ only: ['unread_messages_count'] });
 }
 
@@ -648,10 +693,12 @@ watch(isOpen, (val) => {
         fetchConversations();
         if (activeTab.value === 'orders') fetchOrders();
         subscribeOrdersEcho();
+        subscribeUserEcho();
     }
     if (!val) {
         leaveEcho();
         leaveOrdersEcho();
+        leaveUserEcho();
         activeConversation.value = null;
         activeOrderData.value = null;
         searchQuery.value = '';
@@ -680,6 +727,7 @@ watch(() => page.url, (newUrl, oldUrl) => {
 onUnmounted(() => {
     leaveEcho();
     leaveOrdersEcho();
+    leaveUserEcho();
     clearInterval(nowTimer);
 });
 
@@ -799,7 +847,10 @@ function formatDate(iso) {
                     <!-- Табы -->
                     <div class="chat-tabs">
                         <button class="chat-tab" :class="{ 'chat-tab--active': activeTab === 'messages' }" @click="activeTab = 'messages'">Сообщения</button>
-                        <button class="chat-tab" :class="{ 'chat-tab--active': activeTab === 'orders' }" @click="activeTab = 'orders'">Заказы</button>
+                        <button class="chat-tab" :class="{ 'chat-tab--active': activeTab === 'orders' }" @click="activeTab = 'orders'">
+                            Заказы
+                            <span v-if="ordersHaveUnread" class="chat-tab__dot"></span>
+                        </button>
                     </div>
 
                     <!-- Поиск по диалогам (только для сообщений) -->
@@ -864,12 +915,12 @@ function formatDate(iso) {
                                         class="chat-order-subtab"
                                         :class="{ 'chat-order-subtab--active': ordersSubTab === 'mine' }"
                                         @click="ordersSubTab = 'mine'"
-                                    >Мои</button>
+                                    >Мои <span v-if="mineHaveUnread" class="chat-tab__dot"></span></button>
                                     <button
                                         class="chat-order-subtab"
                                         :class="{ 'chat-order-subtab--active': ordersSubTab === 'incoming' }"
                                         @click="ordersSubTab = 'incoming'"
-                                    >Входящие</button>
+                                    >Входящие <span v-if="incomingHaveUnread" class="chat-tab__dot"></span></button>
                                 </div>
 
                                 <!-- ── Фильтры заказов ──────────────────── -->
@@ -938,6 +989,7 @@ function formatDate(iso) {
                                         <span class="order-stub__badge" :class="`order-stub__badge--${order.status}`">
                                             {{ { pending: 'Создан', accepted: 'Принят', paid: 'Оплачен', completed: 'Выполнен', cancelled: 'Отменён', refunded: 'Аннулирован', disputed: 'Оспаривается' }[order.status] }}
                                         </span>
+                                        <span v-if="(order.unread_count ?? 0) > 0" class="chat-conv-badge">{{ order.unread_count }}</span>
                                     </div>
                                     <div class="order-stub__perf">
                                         <span class="order-stub__perf-dot" v-for="n in 14" :key="n"></span>
@@ -2856,6 +2908,19 @@ function formatDate(iso) {
 .chat-tab--active {
     color: var(--color-base-1);
     border-bottom-color: var(--color-base-1);
+}
+.chat-tab {
+    position: relative;
+}
+.chat-tab__dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #e0558f;
+    vertical-align: middle;
+    margin-left: 4px;
+    flex-shrink: 0;
 }
 
 /* ── Order stub cards ───────────────────────────────────── */

@@ -414,7 +414,11 @@ onMounted(async () => {
                     </div>
 
                     <div v-else-if="tab === 'reviews'" key="reviews" class="tab-panel">
-                        <ProfileReviews :profile-user-id="profileUser.id" />
+                        <ProfileReviews
+                            :profile-user-id="profileUser.id"
+                            :is-owner="isOwner"
+                            :is-idol="isIdol"
+                        />
                     </div>
 
                     <div v-else key="content" class="tab-panel">

@@ -13,6 +13,7 @@ use App\Http\Controllers\AboutController;
 use App\Http\Controllers\NewsPublicController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\ReviewDisputeController;
 use App\Http\Controllers\UserSearchController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -144,6 +145,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/orders/{order}/dispute',     [OrderController::class, 'dispute'])->name('orders.dispute');
     Route::post('/orders/{order}/items',       [OrderController::class, 'addItem'])->name('orders.items.add');
     Route::post('/orders/{order}/review',      [ReviewController::class, 'store'])->name('orders.review.store');
+    Route::post('/reviews/{review}/dispute',   [ReviewDisputeController::class, 'store'])->name('reviews.dispute.store');
 });
 
 Route::get('/reviews/epithets', [ReviewController::class, 'epithets'])->name('reviews.epithets');

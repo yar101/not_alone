@@ -2,9 +2,12 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import axios from 'axios';
 import UserAvatar from '@/Components/UserAvatar.vue';
+import SiteModal from '@/Components/Site/SiteModal.vue';
 
 const props = defineProps({
     profileUserId: { type: Number, required: true },
+    isOwner:       { type: Boolean, default: false },
+    isIdol:        { type: Boolean, default: false },
 });
 
 const reviews       = ref([]);
@@ -23,6 +26,49 @@ const sentinel      = ref(null);
 const showBackTop   = ref(false);
 let observer        = null;
 let scrollContainer = null;
+
+// ── Dispute modal ─────────────────────────────────────────────
+const disputeModalOpen  = ref(false);
+const disputeReview     = ref(null);
+const disputeReason     = ref('');
+const disputeSubmitting = ref(false);
+const disputeError      = ref('');
+const disputeSuccess    = ref(false);
+
+function openDisputeModal(review) {
+    disputeReview.value    = review;
+    disputeReason.value    = '';
+    disputeError.value     = '';
+    disputeSuccess.value   = false;
+    disputeModalOpen.value = true;
+}
+
+function closeDisputeModal() {
+    disputeModalOpen.value = false;
+}
+
+async function submitDispute() {
+    if (disputeSubmitting.value || !disputeReason.value.trim()) return;
+    disputeSubmitting.value = true;
+    disputeError.value      = '';
+    try {
+        await axios.post(route('reviews.dispute.store', disputeReview.value.id), {
+            reason: disputeReason.value,
+        });
+        disputeReview.value.dispute_status = 'pending';
+        disputeSuccess.value = true;
+        setTimeout(closeDisputeModal, 1500);
+    } catch (e) {
+        const msg = e.response?.data?.message;
+        if (msg === 'dispute_pending') {
+            disputeError.value = 'Жалоба уже отправлена и ожидает рассмотрения.';
+        } else {
+            disputeError.value = 'Не удалось отправить жалобу. Попробуйте ещё раз.';
+        }
+    } finally {
+        disputeSubmitting.value = false;
+    }
+}
 
 const sortOptions = [
     { value: 'latest',      label: 'сначала новые' },
@@ -265,7 +311,31 @@ function formatDate(iso) {
                     </div>
                 </template>
 
-                <div v-else v-for="r in reviews" :key="r.id" class="pr-card">
+                <div
+                    v-else
+                    v-for="r in reviews"
+                    :key="r.id"
+                    class="pr-card"
+                    :class="{ 'pr-card--disputable': isOwner && isIdol }"
+                >
+                    <!-- Dispute overlay (idol only, no pending dispute) -->
+                    <div
+                        v-if="isOwner && isIdol && !r.dispute_status"
+                        class="pr-card__dispute-overlay"
+                        @click.stop="openDisputeModal(r)"
+                    >
+                        <button class="pr-card__dispute-btn" type="button">Оспорить</button>
+                    </div>
+                    <!-- Dispute status badges -->
+                    <div v-else-if="isOwner && isIdol && r.dispute_status === 'pending'" class="pr-card__dispute-badge pr-card__dispute-badge--pending">
+                        На рассмотрении
+                    </div>
+                    <div v-else-if="isOwner && isIdol && r.dispute_status === 'rejected'" class="pr-card__dispute-overlay">
+                        <div class="pr-card__dispute-rejected">
+                            Предыдущая жалоба отклонена — <span class="pr-card__dispute-retry" @click.stop="openDisputeModal(r)">оспорить повторно</span>
+                        </div>
+                    </div>
+
                     <!-- Reviewer -->
                     <div class="pr-card__head">
                         <UserAvatar :user="r.reviewer" :size="36" />
@@ -333,6 +403,45 @@ function formatDate(iso) {
         </button>
     </Transition>
     </div>
+
+    <!-- Dispute modal -->
+    <SiteModal
+        :show="disputeModalOpen"
+        variant="pink"
+        :compact="true"
+        max-width="640px"
+        @close="closeDisputeModal"
+    >
+        <div class="pd-wrap">
+            <template v-if="disputeSuccess">
+                <div class="pd-success">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    Жалоба отправлена. Мы рассмотрим её в ближайшее время.
+                </div>
+            </template>
+            <template v-else>
+                <h3 class="pd-title">Оспорить отзыв</h3>
+                <p class="pd-hint">Объясните, почему этот отзыв должен быть удалён (до 250 символов).</p>
+                <textarea
+                    v-model="disputeReason"
+                    class="pd-textarea"
+                    maxlength="250"
+                    rows="5"
+                    placeholder="Опишите причину…"
+                ></textarea>
+                <div class="pd-counter">{{ disputeReason.length }} / 250</div>
+                <p v-if="disputeError" class="pd-error">{{ disputeError }}</p>
+                <button
+                    class="pd-submit"
+                    type="button"
+                    :disabled="disputeSubmitting || !disputeReason.trim()"
+                    @click="submitDispute"
+                >
+                    {{ disputeSubmitting ? 'Отправка…' : 'Отправить жалобу' }}
+                </button>
+            </template>
+        </div>
+    </SiteModal>
 </template>
 
 <style scoped>
@@ -678,6 +787,219 @@ function formatDate(iso) {
     font-size: 0.8rem;
     color: rgba(255,255,255,0.45);
     white-space: nowrap;
+}
+
+/* ── Dispute overlay ─────────────────────── */
+.pr-card--disputable {
+    cursor: default;
+}
+.pr-card__dispute-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 2;
+}
+.pr-card--disputable:hover .pr-card__dispute-overlay {
+    pointer-events: auto;
+}
+.pr-card__dispute-btn {
+    margin-top: -1px;
+    padding: 0.3rem 1.15rem;
+    background: rgba(220,60,60,0.07);
+    border: 1px solid rgba(220,60,60,0.35);
+    border-top: none;
+    border-radius: 0 0 7px 7px;
+    color: rgba(255,120,120,0.88);
+    font-size: 0.84rem;
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transform: translateY(-100%);
+    transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), background 0.15s, border-color 0.15s;
+}
+.pr-card__dispute-btn::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,150,150,0.6) 50%, transparent 100%);
+}
+.pr-card--disputable:hover .pr-card__dispute-btn {
+    transform: translateY(0);
+}
+.pr-card__dispute-btn:hover {
+    background: rgba(220,60,60,0.15);
+    border-color: rgba(220,60,60,0.6);
+}
+.pr-card__dispute-badge {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.3rem 1.15rem;
+    border-top: none;
+    border-radius: 0 0 7px 7px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    white-space: nowrap;
+    z-index: 2;
+    overflow: hidden;
+}
+.pr-card__dispute-badge--pending {
+    background: rgba(160,160,255,0.07);
+    border: 1px solid rgba(160,160,255,0.25);
+    border-top: none;
+    color: rgba(180,180,255,0.85);
+}
+.pr-card__dispute-badge--pending::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(160,160,255,0.6) 50%, transparent 100%);
+}
+.pr-card__dispute-rejected {
+    margin-top: -1px;
+    padding: 0.3rem 1.15rem;
+    background: rgba(80,110,160,0.07);
+    border: 1px solid rgba(100,140,200,0.22);
+    border-top: none;
+    border-radius: 0 0 7px 7px;
+    color: rgba(150,175,220,0.75);
+    font-size: 0.84rem;
+    font-weight: 600;
+    cursor: default;
+    position: relative;
+    overflow: hidden;
+    transform: translateY(-100%);
+    transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.pr-card__dispute-rejected::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(100,150,220,0.5) 50%, transparent 100%);
+}
+.pr-card--disputable:hover .pr-card__dispute-rejected {
+    transform: translateY(0);
+}
+.pr-card__dispute-retry {
+    color: rgba(255,120,120,0.88);
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-color: rgba(255,120,120,0.35);
+    transition: color 0.15s;
+}
+.pr-card__dispute-retry:hover {
+    color: rgba(255,150,150,1);
+}
+
+/* ── Dispute modal content ───────────────── */
+.pd-wrap {
+    padding: 0.25rem 0.25rem 0.5rem;
+}
+.pd-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    margin: 0 0 0.5rem;
+}
+.pd-hint {
+    font-size: 0.92rem;
+    color: rgba(255,255,255,0.5);
+    margin: 0 0 0.85rem;
+    line-height: 1.5;
+}
+.pd-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    color: rgba(255,255,255,0.85);
+    font-size: 1rem;
+    line-height: 1.6;
+    padding: 0.75rem 0.9rem;
+    resize: none;
+    outline: none;
+    box-shadow: none;
+    -webkit-appearance: none;
+    transition: border-color 0.15s;
+    font-family: inherit;
+}
+.pd-textarea:focus {
+    outline: none;
+    box-shadow: none;
+    border-color: rgba(160,40,70,0.55);
+}
+.pd-counter {
+    text-align: right;
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.35);
+    margin-top: 0.3rem;
+    margin-bottom: 0.65rem;
+}
+.pd-error {
+    font-size: 0.88rem;
+    color: rgba(255,130,110,0.9);
+    margin: 0 0 0.65rem;
+}
+.pd-submit {
+    width: 100%;
+    padding: 0.7rem 1rem;
+    background: rgba(220,60,60,0.07);
+    border: 1px solid rgba(220,60,60,0.35);
+    border-radius: 6px;
+    color: rgba(255,120,120,0.88);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.15s, border-color 0.15s;
+}
+.pd-submit::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,150,150,0.6) 50%, transparent 100%);
+}
+.pd-submit:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+.pd-submit:not(:disabled):hover {
+    background: rgba(220,60,60,0.15);
+    border-color: rgba(220,60,60,0.6);
+}
+.pd-success {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: rgba(180,255,190,0.9);
+    font-size: 0.9rem;
+    padding: 0.5rem 0;
 }
 
 /* ── Back to top ─────────────────────────── */
