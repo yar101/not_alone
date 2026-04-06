@@ -7,6 +7,7 @@ import { Check, Lock } from '@element-plus/icons-vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
 import ServiceOfferModal from '@/Components/Chat/ServiceOfferModal.vue';
 import ReviewForm from '@/Components/Chat/ReviewForm.vue';
+import RepeatOrderModal from '@/Components/Chat/RepeatOrderModal.vue';
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -46,6 +47,7 @@ const searchQuery     = ref('');
 const onlineUserIds  = inject('onlineUserIds', ref([]));
 const injectAddToCart = inject('addToCart', null);
 const showOfferModal       = ref(false);
+const repeatOrderOpen      = ref(false);
 const confirmAddModal      = ref(false);
 const hasReview            = ref(false);
 const confirmAddService    = ref(null); // { id, name, price, time_unit }
@@ -540,6 +542,13 @@ function onReviewSubmitted() {
         metadata: { event: 'review_submitted' },
         read_at: null,
     });
+}
+
+async function onRepeatOrderCreated({ conversation_id }) {
+    repeatOrderOpen.value = false;
+    await fetchConversations();
+    const conv = conversations.value.find(c => c.id === conversation_id);
+    await openConversation(conv ?? { id: conversation_id, other_user: null, unread_count: 0 });
 }
 
 function onOfferSent(msg) {
@@ -1168,7 +1177,9 @@ function formatDate(iso) {
                                                 </div>
                                             </template>
                                             <template v-else-if="item.msg.metadata?.event === 'order_completed' || item.msg.metadata?.event === 'order_auto_completed'">
-                                                <div class="chat-event-label">// Заказ выполнен // <span class="chat-event-label__time">{{ formatTime(item.msg.created_at) }}</span></div>
+                                                <div v-if="activeOrderData?.is_customer" class="chat-repeat-wrap">
+                                                    <button class="chat-repeat-btn" @click="repeatOrderOpen = true">↺ ПОВТОРИТЬ ЗАКАЗ</button>
+                                                </div>
                                             </template>
                                             <template v-else-if="item.msg.metadata?.event === 'chat_closed'">
                                                 <div class="chat-event-label">// Чат закрыт // <span class="chat-event-label__time">{{ formatTime(item.msg.created_at) }}</span></div>
@@ -1274,6 +1285,13 @@ function formatDate(iso) {
                                     :idol-id="activeOrderData.idol.id"
                                     @submitted="onReviewSubmitted"
                                 />
+                                <RepeatOrderModal
+                                    v-if="activeOrderData"
+                                    :show="repeatOrderOpen"
+                                    :order="activeOrderData"
+                                    @created="onRepeatOrderCreated"
+                                    @close="repeatOrderOpen = false"
+                                />
                                 <div ref="messagesEnd" />
                             </template>
                         </div>
@@ -1369,6 +1387,7 @@ function formatDate(iso) {
                             <!-- Плашка: заказ выполнен -->
                             <div v-if="activeOrderData?.status === 'completed'" class="chat-order-completed-bar">
                                 <span class="chat-order-completed-bar__label">// ЗАКАЗ ВЫПОЛНЕН //</span>
+                                <span v-if="activeOrderData.completed_at" class="chat-order-completed-bar__time">{{ formatDate(activeOrderData.completed_at) }}</span>
                             </div>
 
                             <!-- Плашка: спор -->
@@ -3275,6 +3294,47 @@ function formatDate(iso) {
 }
 .chat-order-btn--offer:hover::before { opacity: 1; }
 
+.chat-repeat-wrap {
+    display: flex;
+    justify-content: center;
+}
+.chat-repeat-btn {
+    padding: 0.75rem 2rem;
+    border-radius: 3px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    font-family: 'Courier New', Courier, monospace;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    background: rgba(100, 210, 255, 0.06);
+    border: 1px solid rgba(100, 210, 255, 0.28);
+    color: var(--color-base-2);
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.chat-repeat-btn::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(100, 210, 255, 0.45) 50%, transparent 100%);
+}
+.chat-repeat-btn::before {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border-radius: 2px;
+    border: 1px dashed rgba(100, 210, 255, 0.18);
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.chat-repeat-btn:hover {
+    background: rgba(100, 210, 255, 0.12);
+    border-color: rgba(100, 210, 255, 0.5);
+}
+.chat-repeat-btn:hover::before { opacity: 1; }
+
 
 .chat-order-timer-bar {
     flex-shrink: 0;
@@ -3352,6 +3412,12 @@ function formatDate(iso) {
     font-weight: 700;
     color: rgba(80,240,160,0.75);
     letter-spacing: 0.12em;
+}
+.chat-order-completed-bar__time {
+    margin-left: auto;
+    font-size: 0.78rem;
+    color: rgba(80,240,160,0.7);
+    letter-spacing: 0.06em;
 }
 
 /* ── Disputed bar ───────────────────────────────────────── */
