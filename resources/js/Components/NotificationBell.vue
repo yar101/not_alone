@@ -338,13 +338,14 @@ onUnmounted(() => {
                             >
                                 <div class="notif-icon-wrap"
                                     :class="{
-                                        'icon--success': item.type === 'order_accepted',
-                                        'icon--danger': item.type === 'order_cancelled',
+                                        'icon--success': item.type === 'order_accepted' || item.type === 'order_completed',
+                                        'icon--paid':    item.type === 'order_paid',
+                                        'icon--danger':  item.type === 'order_cancelled',
                                         'icon--default': item.type === 'order_created',
                                     }"
                                 >
                                     <span class="notif-icon-char">
-                                        {{ item.type === 'order_accepted' ? '✓' : item.type === 'order_cancelled' ? '✕' : '◈' }}
+                                        {{ item.type === 'order_accepted' || item.type === 'order_completed' ? '✓' : item.type === 'order_cancelled' ? '✕' : item.type === 'order_paid' ? '₽' : '◈' }}
                                     </span>
                                 </div>
                                 <div class="notif-content">
@@ -352,6 +353,8 @@ onUnmounted(() => {
                                         <template v-if="item.type === 'order_created'">Новый заказ от {{ item.data?.customer_name }}</template>
                                         <template v-else-if="item.type === 'order_accepted'">{{ item.data?.idol_name }} принял(а) заказ</template>
                                         <template v-else-if="item.type === 'order_cancelled'">Заказ отменён</template>
+                                        <template v-else-if="item.type === 'order_paid'">{{ item.data?.customer_name }} оплатил(а) заказ</template>
+                                        <template v-else-if="item.type === 'order_completed'">Заказ успешно завершён</template>
                                     </p>
                                     <span class="notif-time">{{ relativeTime(item.created_at) }}</span>
                                 </div>
@@ -497,6 +500,7 @@ onUnmounted(() => {
 }
 .icon--success { background: rgba(76,222,143,0.1); color: #4cde8f; }
 .icon--danger  { background: rgba(239,68,68,0.1);  color: #f87171; }
+.icon--paid    { background: rgba(96,165,250,0.1);  color: #60a5fa; }
 .icon--broadcast { background: rgba(139,92,246,0.1); }
 .icon--default { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); font-size: 0.5rem; }
 .notif-icon-char { line-height: 1; }

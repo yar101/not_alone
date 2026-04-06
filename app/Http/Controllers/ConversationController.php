@@ -253,7 +253,12 @@ class ConversationController extends Controller
         $conversation->participants()
             ->where('user_id', '!=', $user->id)
             ->pluck('user_id')
-            ->each(fn($recipientId) => broadcast(new NewMessageReceived($recipientId, $conversation->id)));
+            ->each(fn($recipientId) => broadcast(new NewMessageReceived(
+                $recipientId,
+                $conversation->id,
+                $msg,
+                $conversation->order_id,
+            )));
 
         return response()->json([
             'id'             => $msg->id,

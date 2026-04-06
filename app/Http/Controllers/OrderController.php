@@ -279,16 +279,35 @@ class OrderController extends Controller
                 'cancelledBy',
                 'items.service.category',
                 'items.service.timeUnit',
+                'conversation' => fn($q) => $q->with([
+                    'participants' => fn($q) => $q->where('user_id', $user->id),
+                ]),
             ])
             ->latest()
             ->get()
-            ->map(fn(Order $order) => $this->service->formatOrder($order, $user->id));
+            ->map(function (Order $order) use ($user) {
+                $formatted                 = $this->service->formatOrder($order, $user->id);
+                $formatted['unread_count'] = $this->getOrderUnreadCount($order, $user->id);
+                return $formatted;
+            });
 
         if ($request->wantsJson()) {
             return response()->json(['orders' => $orders]);
         }
 
         return Inertia::render('Orders/Index', ['orders' => $orders]);
+    }
+
+    private function getOrderUnreadCount(Order $order, int $userId): int
+    {
+        if (! $order->conversation) return 0;
+        $participant = $order->conversation->participants->firstWhere('user_id', $userId);
+        return $order->conversation->messages()
+            ->where(function ($q) use ($userId) {
+                $q->whereNull('sender_id')->orWhere('sender_id', '!=', $userId);
+            })
+            ->when($participant?->last_read_at, fn($q, $date) => $q->where('created_at', '>', $date))
+            ->count();
     }
 
     private function safeBroadcast(mixed $event): void
