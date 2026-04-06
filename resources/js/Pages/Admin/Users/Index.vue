@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import IdolBadge from '@/Components/IdolBadge.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -216,7 +217,7 @@ function formatDate(dt) {
                         </td>
                         <td>
                             <div class="badges">
-                                <span v-if="user.is_idol" class="badge badge--idol">Айдол</span>
+                                <IdolBadge v-if="user.is_idol" />
                                 <span v-if="user.is_banned" class="badge badge--banned">Забанен</span>
                             </div>
                         </td>
@@ -438,7 +439,6 @@ function formatDate(dt) {
     letter-spacing: 0.04em;
     text-transform: uppercase;
 }
-.badge--idol   { background: rgba(155,110,232,0.15); color: #9B6EE8; border: 1px solid rgba(155,110,232,0.3); }
 .badge--banned { background: rgba(239,68,68,0.12);   color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
 
 /* Rating */

@@ -3,12 +3,27 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Conversation extends Model
 {
+    protected $fillable = ['order_id', 'is_support', 'closed_at', 'admin_read_at'];
+
+    protected $casts = [
+        'is_support'    => 'boolean',
+        'closed_at'     => 'datetime',
+        'admin_read_at' => 'datetime',
+    ];
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+
     public function messages(): HasMany
     {
         return $this->hasMany(Message::class);
@@ -46,11 +61,12 @@ class Conversation extends Model
 
     public static function findOrCreateBetween(User $a, User $b): self
     {
-        $conversation = self::whereHas('participants', function ($q) use ($a) {
-            $q->where('user_id', $a->id);
-        })->whereHas('participants', function ($q) use ($b) {
-            $q->where('user_id', $b->id);
-        })->first();
+        $conversation = self::whereNull('order_id')
+            ->whereHas('participants', function ($q) use ($a) {
+                $q->where('user_id', $a->id);
+            })->whereHas('participants', function ($q) use ($b) {
+                $q->where('user_id', $b->id);
+            })->first();
 
         if ($conversation) {
             return $conversation;

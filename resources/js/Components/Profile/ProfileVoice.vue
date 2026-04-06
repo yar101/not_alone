@@ -215,7 +215,7 @@ function deleteVoice() {
         <div class="disk-wrap">
             <img
                 ref="diskEl"
-                :src="!voiceUrl && !isOwner ? '/profile_disk_crashed.png' : '/profile_disk.png'"
+                :src="'/profile_disk.png'"
                 class="disk"
                 :class="{ spinning: isDiskSpinning && !returnStyle.transform }"
                 :style="returnStyle"
@@ -409,10 +409,10 @@ function deleteVoice() {
 /* ── Гость без аудио ─────────────────────────────────────── */
 .no-audio {
     text-align: center;
-    font-size: 0.78rem;
-    letter-spacing: 0.08em;
+    font-size: 0.82rem;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.45);
 }
 
 /* ── Кнопка записи ────────────────────────────────────────── */

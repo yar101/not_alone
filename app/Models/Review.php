@@ -1,0 +1,43 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+
+class Review extends Model
+{
+    protected $fillable = [
+        'reviewer_id',
+        'idol_id',
+        'order_id',
+        'rating',
+        'text',
+        'services_snapshot',
+    ];
+
+    protected $casts = [
+        'services_snapshot' => 'array',
+    ];
+
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewer_id');
+    }
+
+    public function idol(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'idol_id');
+    }
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+    public function epithets(): BelongsToMany
+    {
+        return $this->belongsToMany(ReviewEpithet::class, 'review_epithet_review');
+    }
+}

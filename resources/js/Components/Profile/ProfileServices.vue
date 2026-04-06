@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, nextTick, inject } from 'vue';
 import { useForm, router, usePage } from '@inertiajs/vue3';
 import { Plus } from '@element-plus/icons-vue';
 import AppSelect from '@/Components/AppSelect.vue';
@@ -20,12 +20,77 @@ const props = defineProps({
     isOwner: { type: Boolean, default: false },
     isIdol: { type: Boolean, default: false },
     profileUser: { type: Object, default: null },
+    isBlockedByIdol: { type: Boolean, default: false },
 });
 
 // ── localServices — не сбрасывается в null при redirect-рефетче ─
 const localServices = ref(null);
 
+// ── Cart ─────────────────────────────────────────────────────────
+const cart = inject('cart', null);
+const openAuth = inject('openAuth', null);
+const cartConflictModal = ref(false);
+const pendingCartItem   = ref(null);
+const blockError        = ref(false);
+let blockErrorTimer = null;
+
+function showBlockError() {
+    blockError.value = true;
+    clearTimeout(blockErrorTimer);
+    blockErrorTimer = setTimeout(() => { blockError.value = false; }, 3500);
+}
+
+function isInCart(serviceId) {
+    return !!cart?.value?.items.find(i => i.service_id === serviceId);
+}
+
+function addToCart(item) {
+    if (!page.props.auth?.user) { openAuth?.('register'); return; }
+    if (props.isBlockedByIdol) { showBlockError(); return; }
+    if (!cart) return;
+    const c = cart.value;
+    const idolId = props.profileUser?.id;
+    if (c.idol_id && c.idol_id !== idolId && c.items.length > 0) {
+        // Different idol — show conflict modal
+        pendingCartItem.value = item;
+        cartConflictModal.value = true;
+        return;
+    }
+    doAddToCart(item);
+}
+
+function doAddToCart(item) {
+    if (!cart) return;
+    const c = cart.value;
+    if (isInCart(item.id)) return;
+    c.idol_id     = props.profileUser?.id;
+    c.idol_name   = props.profileUser?.name ?? '';
+    c.idol_avatar = props.profileUser?.avatar_url ?? null;
+    c.items.push({
+        service_id: item.id,
+        name:       item.name,
+        price:      item.price,
+        time_unit:  item.time_unit?.name ?? null,
+        quantity:   1,
+    });
+}
+
+function confirmCartReplace() {
+    if (!cart) return;
+    cart.value.items = [];
+    cart.value.idol_id = null;
+    doAddToCart(pendingCartItem.value);
+    pendingCartItem.value = null;
+    cartConflictModal.value = false;
+}
+
+function cancelCartReplace() {
+    pendingCartItem.value = null;
+    cartConflictModal.value = false;
+}
+
 // ── Two-level navigation ────────────────────────────────────────
+const serviceNav = inject('serviceNav', null);
 const selectedCategory = ref(null);
 const pendingResync = ref(false);
 const catTransitionDir = ref('forward'); // 'forward' | 'back'
@@ -38,13 +103,18 @@ const SESSION_KEY = computed(() => `services_cat_${props.profileUser?.id}`);
 function openCategory(group) {
     catTransitionDir.value = 'forward';
     selectedCategory.value = group;
-    sessionStorage.setItem(SESSION_KEY.value, group.category.id);
+    if (serviceNav) {
+        serviceNav.inCategory = true;
+        serviceNav.accent = group.category.accent_color || '#a0a0ff';
+        serviceNav.onBack = backToList;
+    }
 }
 
 function backToList() {
     catTransitionDir.value = 'back';
     selectedCategory.value = null;
     sessionStorage.removeItem(SESSION_KEY.value);
+    if (serviceNav) serviceNav.inCategory = false;
     router.reload({ only: ['services', 'serviceCategories', 'serviceTimeUnits'] });
 }
 
@@ -57,8 +127,7 @@ function resyncSelectedCategory() {
 watch(() => props.services, (services) => {
     if (!services) return;
     localServices.value = services;
-    const catId = selectedCategory.value?.category?.id
-        ?? sessionStorage.getItem(SESSION_KEY.value);
+    const catId = selectedCategory.value?.category?.id;
     if (!catId) return;
     if (!selectedCategory.value || pendingResync.value) {
         const group = services.find(g => g.category.id == catId);
@@ -216,7 +285,7 @@ const sortedServices = computed(() => {
     if (!Array.isArray(localServices.value)) return { withItems: [], empty: [] };
     return {
         withItems: localServices.value.filter(g => g.items.length > 0),
-        empty:     localServices.value.filter(g => g.items.length === 0),
+        empty: localServices.value.filter(g => g.items.length === 0),
     };
 });
 
@@ -252,7 +321,7 @@ function loadDraft() {
         if (d.category_id) form.category_id = d.category_id;
         if (d.price) form.price = d.price;
         if (d.time_unit_id) form.time_unit_id = d.time_unit_id;
-    } catch {}
+    } catch { }
 }
 
 function saveDraft() {
@@ -301,6 +370,7 @@ onUnmounted(() => {
     document.removeEventListener('click', onDocClick, true);
     selectedCategory.value = null;
     sessionStorage.removeItem(SESSION_KEY.value);
+    if (serviceNav) serviceNav.inCategory = false;
 });
 
 // ── #8 Form validation ───────────────────────────────────────
@@ -312,29 +382,29 @@ const formValid = computed(() =>
 );
 
 // ── Carousel ─────────────────────────────────────────────────
-const carouselPage    = ref(1);
-const carouselIdols   = ref([]);
-const carouselTotal   = ref(0);
+const carouselPage = ref(1);
+const carouselIdols = ref([]);
+const carouselTotal = ref(0);
 const carouselHasMore = ref(false);
 const carouselLoading = ref(false);
-const carouselReady   = ref(false);
-const carouselDir     = ref('next'); // 'next' | 'prev'
+const carouselReady = ref(false);
+const carouselDir = ref('next'); // 'next' | 'prev'
 
 async function loadCarousel(page = 1) {
     carouselLoading.value = true;
     try {
         const res = await fetch(
             route('profile.category-idols', {
-                user:     props.profileUser?.id,
+                user: props.profileUser?.id,
                 category: selectedCategory.value.category.id,
             }) + `?page=${page}`
         );
         const data = await res.json();
-        carouselPage.value    = page;
-        carouselIdols.value   = data.idols;
-        carouselTotal.value   = data.total;
+        carouselPage.value = page;
+        carouselIdols.value = data.idols;
+        carouselTotal.value = data.total;
         carouselHasMore.value = data.hasMore;
-        carouselReady.value   = true;
+        carouselReady.value = true;
     } finally {
         carouselLoading.value = false;
     }
@@ -355,10 +425,10 @@ function carouselNext() {
 
 watch(selectedCategory, (cat) => {
     if (cat) {
-        carouselReady.value   = false;
-        carouselPage.value    = 1;
-        carouselIdols.value   = [];
-        carouselTotal.value   = 0;
+        carouselReady.value = false;
+        carouselPage.value = 1;
+        carouselIdols.value = [];
+        carouselTotal.value = 0;
         carouselHasMore.value = false;
         loadCarousel(1);
     }
@@ -367,6 +437,13 @@ watch(selectedCategory, (cat) => {
 
 <template>
     <div class="services-wrap">
+
+        <!-- Block error toast -->
+        <Transition name="block-err">
+            <div v-if="blockError" class="svc-block-error">
+                Вы заблокированы этим пользователем и не можете делать заказы
+            </div>
+        </Transition>
 
         <!-- Loading skeleton -->
         <template v-if="!loaded">
@@ -391,21 +468,18 @@ watch(selectedCategory, (cat) => {
 
                 <!-- Category cards -->
                 <div class="cat-grid">
-                    <button v-for="group in sortedServices.withItems" :key="group.category.id"
-                            class="cat-tile"
-                            @click="openCategory(group)"
-                            :style="{ '--cat-accent': group.category.accent_color || '#a0a0ff' }">
+                    <button v-for="group in sortedServices.withItems" :key="group.category.id" class="cat-tile"
+                        @click="openCategory(group)"
+                        :style="{ '--cat-accent': group.category.accent_color || '#a0a0ff' }">
                         <div class="cat-tile__img-wrap">
-                            <img v-if="group.category.image_url"
-                                 :src="group.category.image_url"
-                                 :alt="group.category.name"
-                                 class="cat-tile__img" />
+                            <img v-if="group.category.image_url" :src="group.category.image_url"
+                                :alt="group.category.name" class="cat-tile__img" />
                             <div v-else class="cat-tile__img-placeholder">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                                     stroke="currentColor" stroke-width="1.5" opacity="0.25">
-                                    <rect x="3" y="3" width="18" height="18" rx="2"/>
-                                    <circle cx="8.5" cy="8.5" r="1.5"/>
-                                    <path d="M21 15l-5-5L5 21"/>
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="1.5" opacity="0.25">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                                    <circle cx="8.5" cy="8.5" r="1.5" />
+                                    <path d="M21 15l-5-5L5 21" />
                                 </svg>
                             </div>
                         </div>
@@ -416,13 +490,9 @@ watch(selectedCategory, (cat) => {
                             </p>
                             <div class="cat-tile__footer">
                                 <span class="cat-tile__count">
-                                    {{ group.items.length + '\u00a0' + (group.items.length === 1 ? 'услуга' : group.items.length < 5 ? 'услуги' : 'услуг') }}
-                                </span>
-                                <svg class="cat-tile__arrow" width="11" height="11" viewBox="0 0 24 24"
-                                     fill="none" stroke="currentColor" stroke-width="2.5"
-                                     stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M9 18l6-6-6-6"/>
-                                </svg>
+                                    {{ group.items.length + '\u00a0' + (group.items.length === 1 ? 'услуга' :
+                                        group.items.length
+                                            < 5 ? 'услуги' : 'услуг') }} </span>
                             </div>
                         </div>
                     </button>
@@ -430,20 +500,17 @@ watch(selectedCategory, (cat) => {
                     <div v-if="sortedServices.empty.length > 0" class="cat-grid__divider"></div>
 
                     <button v-for="group in sortedServices.empty" :key="group.category.id"
-                            class="cat-tile cat-tile--empty"
-                            @click="openCategory(group)"
-                            :style="{ '--cat-accent': group.category.accent_color || '#a0a0ff' }">
+                        class="cat-tile cat-tile--empty" @click="openCategory(group)"
+                        :style="{ '--cat-accent': group.category.accent_color || '#a0a0ff' }">
                         <div class="cat-tile__img-wrap">
-                            <img v-if="group.category.image_url"
-                                 :src="group.category.image_url"
-                                 :alt="group.category.name"
-                                 class="cat-tile__img" />
+                            <img v-if="group.category.image_url" :src="group.category.image_url"
+                                :alt="group.category.name" class="cat-tile__img" />
                             <div v-else class="cat-tile__img-placeholder">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                                     stroke="currentColor" stroke-width="1.5" opacity="0.25">
-                                    <rect x="3" y="3" width="18" height="18" rx="2"/>
-                                    <circle cx="8.5" cy="8.5" r="1.5"/>
-                                    <path d="M21 15l-5-5L5 21"/>
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="1.5" opacity="0.25">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                                    <circle cx="8.5" cy="8.5" r="1.5" />
+                                    <path d="M21 15l-5-5L5 21" />
                                 </svg>
                             </div>
                         </div>
@@ -454,11 +521,6 @@ watch(selectedCategory, (cat) => {
                             </p>
                             <div class="cat-tile__footer">
                                 <span class="cat-tile__count cat-tile__count--empty">0 услуг</span>
-                                <svg class="cat-tile__arrow" width="11" height="11" viewBox="0 0 24 24"
-                                     fill="none" stroke="currentColor" stroke-width="2.5"
-                                     stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M9 18l6-6-6-6"/>
-                                </svg>
                             </div>
                         </div>
                     </button>
@@ -466,15 +528,8 @@ watch(selectedCategory, (cat) => {
             </div>
 
             <!-- ── CategoryDetail ── -->
-            <div v-else key="detail" class="cd-detail" :style="{ '--cat-accent': selectedCategory.category.accent_color || '#a0a0ff' }">
-                <!-- Back link -->
-                <button class="cd-back" @click="backToList">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M15 18l-6-6 6-6" />
-                    </svg>
-                    К категориям
-                </button>
+            <div v-else key="detail" class="cd-detail"
+                :style="{ '--cat-accent': selectedCategory.category.accent_color || '#a0a0ff' }">
 
                 <!-- Category hero card -->
                 <div class="cd-hero">
@@ -491,7 +546,9 @@ watch(selectedCategory, (cat) => {
                                     Изменить описание
                                 </button>
                                 <CreateButton v-if="isOwner && isIdol" @click="openAdd">
-                                    <template #icon><el-icon><Plus /></el-icon></template>
+                                    <template #icon><el-icon>
+                                            <Plus />
+                                        </el-icon></template>
                                     Добавить услугу
                                 </CreateButton>
                             </div>
@@ -526,20 +583,22 @@ watch(selectedCategory, (cat) => {
                         <p class="svc-empty__title">У этого айдола пока нет услуг в данной категории.</p>
                     </div>
                     <TransitionGroup v-else name="svc-item" tag="div" class="svc-list">
-                        <div v-for="item in selectedCategory.items" :key="item.id" class="svc-card"
-                            :class="{
-                                'svc-card--inactive': !item.is_active,
-                                'svc-card--pending':  isOwner && item.status === 'pending',
-                                'svc-card--rejected': isOwner && item.status === 'rejected',
-                            }">
+                        <div v-for="item in selectedCategory.items" :key="item.id" class="svc-card" :class="{
+                            'svc-card--inactive': !item.is_active,
+                            'svc-card--pending': isOwner && item.status === 'pending',
+                            'svc-card--rejected': isOwner && item.status === 'rejected',
+                        }">
 
                             <!-- Badges: top-right corner -->
                             <div v-if="isOwner" class="svc-card__badges">
                                 <span v-if="!item.is_active" class="svc-pill svc-pill--hidden">
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
-                                        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-                                        <line x1="1" y1="1" x2="23" y2="23"/>
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path
+                                            d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                                        <path
+                                            d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                                        <line x1="1" y1="1" x2="23" y2="23" />
                                     </svg>
                                     скрыто
                                 </span>
@@ -557,64 +616,83 @@ watch(selectedCategory, (cat) => {
                                     <span class="svc-card__name">{{ item.name }}</span>
                                 </div>
                                 <span v-if="isOwner && item.status === 'rejected' && item.rejection_reason"
-                                      class="svc-card__reason">{{ item.rejection_reason }}</span>
+                                    class="svc-card__reason">{{ item.rejection_reason }}</span>
                             </div>
 
                             <!-- Footer: price + actions -->
                             <div class="svc-card__footer">
-                            <div class="svc-card__price-block">
-                                <span class="svc-card__amount">{{ item.price.toLocaleString('ru') }}</span><span class="svc-card__rub">₽</span><span class="svc-card__sep">/</span><span class="svc-card__unit">{{ item.time_unit.name }}</span>
-                            </div>
-
-                            <!-- Actions column -->
-                            <div class="svc-card__actions">
-                                <button v-if="!isOwner" class="svc-buy-btn">
-                                    <span>Заказать</span>
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M5 12h14M12 5l7 7-7 7"/>
-                                    </svg>
-                                </button>
-                                <div v-if="isOwner" class="svc-menu">
-                                    <button
-                                        class="svc-menu__trigger"
-                                        :class="{ 'svc-menu__trigger--open': openMenuId === item.id }"
-                                        @click.stop="toggleMenu(item.id)"
-                                        title="Действия"
-                                    >
-                                        <span></span><span></span><span></span>
-                                    </button>
-                                    <Transition name="svc-menu-pop">
-                                        <div v-if="openMenuId === item.id" class="svc-menu__dropdown">
-                                            <template v-if="item.status === 'approved'">
-                                                <button class="svc-menu__item" @click="toggleActive(item); closeMenu()">
-                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                                        <circle cx="12" cy="12" r="10" />
-                                                        <line v-if="item.is_active" x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-                                                    </svg>
-                                                    {{ item.is_active ? 'Отключить' : 'Включить' }}
-                                                </button>
-                                                <button class="svc-menu__item" @click="openEdit(item); closeMenu()">
-                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                                    </svg>
-                                                    Редактировать
-                                                </button>
-                                                <div class="svc-menu__divider"></div>
-                                            </template>
-                                            <button class="svc-menu__item svc-menu__item--danger" @click="askDeleteService(item.id); closeMenu()">
-                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <polyline points="3 6 5 6 21 6" />
-                                                    <path d="M19 6l-1 14H6L5 6" />
-                                                    <path d="M10 11v6M14 11v6" />
-                                                    <path d="M9 6V4h6v2" />
-                                                </svg>
-                                                Удалить
-                                            </button>
-                                        </div>
-                                    </Transition>
+                                <div class="svc-card__price-block">
+                                    <span class="svc-card__amount">{{ item.price.toLocaleString('ru') }}</span><span
+                                        class="svc-card__rub">₽</span><span class="svc-card__sep">/</span><span
+                                        class="svc-card__unit">{{ item.time_unit.name }}</span>
                                 </div>
-                            </div>
+
+                                <!-- Actions column -->
+                                <div class="svc-card__actions">
+                                    <button
+                                        v-if="!isOwner && cart"
+                                        class="svc-buy-btn"
+                                        :class="{ 'svc-buy-btn--in-cart': isInCart(item.id) }"
+                                        @click="addToCart(item)"
+                                    >
+                                        <template v-if="isInCart(item.id)">
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                            <span>В корзине</span>
+                                        </template>
+                                        <template v-else>
+                                            <span>В корзину</span>
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                        </template>
+                                    </button>
+                                    <div v-if="isOwner" class="svc-menu">
+                                        <button class="svc-menu__trigger"
+                                            :class="{ 'svc-menu__trigger--open': openMenuId === item.id }"
+                                            @click.stop="toggleMenu(item.id)" title="Действия">
+                                            <span></span><span></span><span></span>
+                                        </button>
+                                        <Transition name="svc-menu-pop">
+                                            <div v-if="openMenuId === item.id" class="svc-menu__dropdown">
+                                                <template v-if="item.status === 'approved'">
+                                                    <button class="svc-menu__item"
+                                                        @click="toggleActive(item); closeMenu()">
+                                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                                            stroke="currentColor" stroke-width="2"
+                                                            stroke-linecap="round">
+                                                            <circle cx="12" cy="12" r="10" />
+                                                            <line v-if="item.is_active" x1="4.93" y1="4.93" x2="19.07"
+                                                                y2="19.07" />
+                                                        </svg>
+                                                        {{ item.is_active ? 'Отключить' : 'Включить' }}
+                                                    </button>
+                                                    <button class="svc-menu__item" @click="openEdit(item); closeMenu()">
+                                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                                            stroke="currentColor" stroke-width="2"
+                                                            stroke-linecap="round" stroke-linejoin="round">
+                                                            <path
+                                                                d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                            <path
+                                                                d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                                        </svg>
+                                                        Редактировать
+                                                    </button>
+                                                    <div class="svc-menu__divider"></div>
+                                                </template>
+                                                <button class="svc-menu__item svc-menu__item--danger"
+                                                    @click="askDeleteService(item.id); closeMenu()">
+                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                                        stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                        stroke-linejoin="round">
+                                                        <polyline points="3 6 5 6 21 6" />
+                                                        <path d="M19 6l-1 14H6L5 6" />
+                                                        <path d="M10 11v6M14 11v6" />
+                                                        <path d="M9 6V4h6v2" />
+                                                    </svg>
+                                                    Удалить
+                                                </button>
+                                            </div>
+                                        </Transition>
+                                    </div>
+                                </div>
                             </div><!-- /.svc-card__footer -->
 
                         </div>
@@ -625,41 +703,60 @@ watch(selectedCategory, (cat) => {
                 <div v-if="!carouselReady || carouselTotal > 0" class="cd-section cd-carousel">
                     <p class="cd-section__label">Другие айдолы в этой категории</p>
                     <div class="cd-carousel__row">
-                        <button class="cd-carousel__nav cd-carousel__nav--prev" :disabled="carouselPage === 1 || carouselLoading" @click="carouselPrev">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                        <button class="cd-carousel__nav cd-carousel__nav--prev"
+                            :disabled="carouselPage === 1 || carouselLoading" @click="carouselPrev">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M15 18l-6-6 6-6" />
+                            </svg>
                         </button>
                         <div class="cd-carousel__track">
                             <!-- Layer 1: skeletons — always in DOM, provide stable height -->
-                            <div class="cd-carousel__skeletons" :class="{ 'cd-carousel__skeletons--hidden': !carouselLoading && carouselReady }">
+                            <div class="cd-carousel__skeletons"
+                                :class="{ 'cd-carousel__skeletons--hidden': !carouselLoading && carouselReady }">
                                 <div v-for="n in 4" :key="n" class="cd-carousel__idol cd-carousel__idol--skel"></div>
                             </div>
                             <!-- Layer 2: real cards — absolute on top, only when loaded -->
-                            <Transition :name="carouselDir === 'next' ? 'carousel-next' : 'carousel-prev'" mode="out-in">
+                            <Transition :name="carouselDir === 'next' ? 'carousel-next' : 'carousel-prev'"
+                                mode="out-in">
                                 <div v-if="!carouselLoading" class="cd-carousel__idols" :key="carouselPage">
-                                    <a v-for="idol in carouselIdols" :key="idol.id"
-                                        href="#" class="cd-carousel__idol" @click.prevent="navigateToIdolInCategory(idol)">
-                                        <img v-if="idol.avatar_url" :src="idol.avatar_url" :alt="idol.name" class="cd-carousel__avatar" />
-                                        <div v-else class="cd-carousel__avatar cd-carousel__avatar--placeholder">{{ idol.name.charAt(0) }}</div>
+                                    <a v-for="idol in carouselIdols" :key="idol.id" href="#" class="cd-carousel__idol"
+                                        @click.prevent="navigateToIdolInCategory(idol)">
+                                        <img v-if="idol.avatar_url" :src="idol.avatar_url" :alt="idol.name"
+                                            class="cd-carousel__avatar" />
+                                        <div v-else class="cd-carousel__avatar cd-carousel__avatar--placeholder">{{
+                                            idol.name.charAt(0) }}</div>
                                         <span v-if="idol.rating" class="cd-carousel__rating">★ {{ idol.rating }}</span>
                                         <span class="cd-carousel__name">{{ idol.name }}</span>
                                     </a>
                                 </div>
                             </Transition>
                         </div>
-                        <button class="cd-carousel__nav cd-carousel__nav--next" :disabled="!carouselHasMore || carouselLoading" @click="carouselNext">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                        <button class="cd-carousel__nav cd-carousel__nav--next"
+                            :disabled="!carouselHasMore || carouselLoading" @click="carouselNext">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 18l6-6-6-6" />
+                            </svg>
                         </button>
                     </div>
                 </div>
 
-                <!-- Reviews placeholder -->
-                <div v-if="selectedCategory.items.length > 0" class="cd-section cd-section--reviews">
-                    <p class="cd-section__label">Отзывы</p>
-                    <div class="cd-placeholder">Скоро здесь появятся отзывы</div>
-                </div>
             </div>
 
         </Transition>
+
+        <!-- Cart conflict modal -->
+        <SiteModal :show="cartConflictModal" variant="pink" :compact="true" @close="cancelCartReplace">
+            <div class="sf-wrap">
+                <div class="sf-title">Очистить корзину?</div>
+                <p class="svc-pending-text">В корзине уже есть услуги другого айдола. Очистить корзину и добавить эту услугу?</p>
+                <div class="sf-actions">
+                    <button class="sf-btn-cancel" @click="cancelCartReplace">Отмена</button>
+                    <button class="sf-btn-submit" @click="confirmCartReplace">Очистить и добавить</button>
+                </div>
+            </div>
+        </SiteModal>
 
         <!-- Service pending modal -->
         <SiteModal :show="showPendingModal" variant="pink" :compact="true" @close="showPendingModal = false">
@@ -688,81 +785,82 @@ watch(selectedCategory, (cat) => {
         <SiteModal :show="showForm" variant="pink" :compact="true" @close="tryCloseForm">
             <div class="sf-wrap">
                 <Transition name="sf-screen" mode="out-in">
-                <div v-if="showCancelConfirm" key="confirm" class="sf-screen">
-                    <div class="sf-title">Выйти без сохранения?</div>
-                    <p class="svc-pending-text">Введённые данные будут потеряны.</p>
-                    <div class="sf-actions">
-                        <button type="button" class="svc-btn-cancel" @click="showCancelConfirm = false">Остаться</button>
-                        <button type="button" class="sf-btn-danger" @click="confirmCancelForm">Выйти</button>
-                    </div>
-                </div>
-                <div v-else key="form" class="sf-screen">
-                <div class="sf-title">{{ editingId ? 'Редактировать услугу' : 'Новая услуга' }}</div>
-                <form @submit.prevent="submitForm" class="sf-form">
-
-                    <div class="sf-field">
-                        <label class="sf-label">Категория</label>
-                        <AppSelect v-model="form.category_id"
-                            :options="(serviceCategories ?? []).map(c => ({ value: c.id, label: c.name }))"
-                            placeholder="Выберите категорию" :error="!!form.errors.category_id"
-                            :disabled="!editingId && !!selectedCategory" />
-                        <p v-if="form.errors.category_id" class="sf-err">{{ form.errors.category_id }}</p>
-                    </div>
-
-                    <div class="sf-field">
-                        <label class="sf-label">Название</label>
-                        <div class="sf-input-wrap">
-                            <input v-model="form.name" class="sf-input"
-                                :class="{ 'sf-input--err': form.errors.name }"
-                                :placeholder="namePlaceholder" maxlength="30" />
-                            <span class="sf-char-count" :class="{ 'sf-char-count--warn': form.name.length >= 25 }">
-                                {{ form.name.length }}/30
-                            </span>
+                    <div v-if="showCancelConfirm" key="confirm" class="sf-screen">
+                        <div class="sf-title">Выйти без сохранения?</div>
+                        <p class="svc-pending-text">Введённые данные будут потеряны.</p>
+                        <div class="sf-actions">
+                            <button type="button" class="svc-btn-cancel"
+                                @click="showCancelConfirm = false">Остаться</button>
+                            <button type="button" class="sf-btn-danger" @click="confirmCancelForm">Выйти</button>
                         </div>
-                        <div v-if="formSuggestions.length" class="svc-suggestions">
-                            <button v-for="s in formSuggestions" :key="s"
-                                type="button" class="svc-chip"
-                                :class="{ 'svc-chip--active': form.name === s, 'svc-chip--pop': animatingChip === s }"
-                                @click="selectChip(s)">{{ s }}</button>
-                        </div>
-                        <p v-if="form.errors.name" class="sf-err">{{ form.errors.name }}</p>
                     </div>
+                    <div v-else key="form" class="sf-screen">
+                        <div class="sf-title">{{ editingId ? 'Редактировать услугу' : 'Новая услуга' }}</div>
+                        <form @submit.prevent="submitForm" class="sf-form">
 
-                    <div class="sf-row">
-                        <div class="sf-field">
-                            <label class="sf-label">Цена</label>
-                            <div class="sf-input-wrap">
-                                <input v-model.number="form.price" type="number" min="1"
-                                    class="sf-input" :class="{ 'sf-input--err': form.errors.price }"
-                                    placeholder="500" />
-                                <Transition name="sf-preview-fade">
-                                    <span v-if="pricePreview" class="sf-preview">{{ pricePreview }}</span>
-                                </Transition>
+                            <div class="sf-field">
+                                <label class="sf-label">Категория</label>
+                                <AppSelect v-model="form.category_id"
+                                    :options="(serviceCategories ?? []).map(c => ({ value: c.id, label: c.name }))"
+                                    placeholder="Выберите категорию" :error="!!form.errors.category_id"
+                                    :disabled="!editingId && !!selectedCategory" />
+                                <p v-if="form.errors.category_id" class="sf-err">{{ form.errors.category_id }}</p>
                             </div>
-                            <p v-if="form.errors.price" class="sf-err">{{ form.errors.price }}</p>
-                        </div>
-                        <div class="sf-field">
-                            <label class="sf-label">Единица</label>
-                            <AppSelect v-model="form.time_unit_id"
-                                :options="(serviceTimeUnits ?? []).map(u => ({ value: u.id, label: u.name }))"
-                                placeholder="За..." :error="!!form.errors.time_unit_id" />
-                            <p v-if="form.errors.time_unit_id" class="sf-err">{{ form.errors.time_unit_id }}</p>
-                        </div>
-                    </div>
 
-                    <div class="sf-actions">
-                        <button type="button" class="svc-btn-cancel" @click="tryCloseForm">Отмена</button>
-                        <button type="submit" class="sf-btn-submit" :disabled="!formValid || form.processing">
-                            {{ editingId ? 'Сохранить' : 'Добавить' }}
-                        </button>
-                    </div>
+                            <div class="sf-field">
+                                <label class="sf-label">Название</label>
+                                <div class="sf-input-wrap">
+                                    <input v-model="form.name" class="sf-input"
+                                        :class="{ 'sf-input--err': form.errors.name }" :placeholder="namePlaceholder"
+                                        maxlength="45" />
+                                    <span class="sf-char-count"
+                                        :class="{ 'sf-char-count--warn': form.name.length >= 38 }">
+                                        {{ form.name.length }}/45
+                                    </span>
+                                </div>
+                                <div v-if="formSuggestions.length" class="svc-suggestions">
+                                    <button v-for="s in formSuggestions" :key="s" type="button" class="svc-chip"
+                                        :class="{ 'svc-chip--active': form.name === s, 'svc-chip--pop': animatingChip === s }"
+                                        @click="selectChip(s)">{{ s }}</button>
+                                </div>
+                                <p v-if="form.errors.name" class="sf-err">{{ form.errors.name }}</p>
+                            </div>
 
-                </form>
-                </div>
+                            <div class="sf-row">
+                                <div class="sf-field">
+                                    <label class="sf-label">Цена</label>
+                                    <div class="sf-input-wrap">
+                                        <input v-model.number="form.price" type="number" min="1" class="sf-input"
+                                            :class="{ 'sf-input--err': form.errors.price }" placeholder="500" />
+                                        <Transition name="sf-preview-fade">
+                                            <span v-if="pricePreview" class="sf-preview">{{ pricePreview }}</span>
+                                        </Transition>
+                                    </div>
+                                    <p v-if="form.errors.price" class="sf-err">{{ form.errors.price }}</p>
+                                </div>
+                                <div class="sf-field">
+                                    <label class="sf-label">Единица</label>
+                                    <AppSelect v-model="form.time_unit_id"
+                                        :options="(serviceTimeUnits ?? []).map(u => ({ value: u.id, label: u.name }))"
+                                        placeholder="За..." :error="!!form.errors.time_unit_id" />
+                                    <p v-if="form.errors.time_unit_id" class="sf-err">{{ form.errors.time_unit_id }}</p>
+                                </div>
+                            </div>
+
+                            <div class="sf-actions">
+                                <button type="button" class="svc-btn-cancel" @click="tryCloseForm">Отмена</button>
+                                <button type="submit" class="sf-btn-submit" :disabled="!formValid || form.processing">
+                                    {{ editingId ? 'Сохранить' : 'Добавить' }}
+                                </button>
+                            </div>
+
+                        </form>
+                    </div>
                 </Transition>
             </div>
         </SiteModal>
     </div>
+
 </template>
 
 <style scoped>
@@ -822,7 +920,7 @@ watch(selectedCategory, (cat) => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 0.75rem;
+    margin: 1.25rem 0;
     padding: 0 1.25rem;
 }
 
@@ -834,31 +932,19 @@ watch(selectedCategory, (cat) => {
     letter-spacing: -0.01em;
 }
 
-/* ── Category grid ────────────────────────────────────────── */
+/* ── Category list ────────────────────────────────────────── */
 .cat-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
     padding: 0 1.25rem;
 }
 
-@media (max-width: 1000px) {
-    .cat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-@media (max-width: 560px) {
-    .cat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-@media (max-width: 360px) {
-    .cat-grid { grid-template-columns: 1fr; }
-}
-
 .cat-grid__divider {
-    grid-column: 1 / -1;
+    width: 100%;
     height: 1px;
     background: linear-gradient(to right, transparent, rgba(180, 160, 255, 0.4), transparent);
-    margin: 0.75rem 0;
+    margin: 0.25rem 0;
 }
 
 .cat-tile--empty .cat-tile__img-wrap,
@@ -878,37 +964,49 @@ watch(selectedCategory, (cat) => {
 
 .cat-tile {
     display: flex;
-    flex-direction: column;
-    background: #06060e;
+    flex-direction: row;
+    align-items: stretch;
+    overflow: visible;
+    background:
+        linear-gradient(to right, transparent, color-mix(in srgb, var(--cat-accent) 80%, white), rgba(255, 255, 255, 0.2), transparent) 0 0 / 100% 1px no-repeat,
+        rgba(30, 28, 45, 0.55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
     text-align: left;
     overflow: hidden;
-    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.28);
 }
 
 .cat-tile:hover {
-    border-color: color-mix(in srgb, var(--cat-accent) 65%, transparent);
-    background: rgba(255, 255, 255, 0.018);
-    box-shadow: 0 0 18px color-mix(in srgb, var(--cat-accent) 22%, transparent);
+    background:
+        linear-gradient(to right, transparent, color-mix(in srgb, var(--cat-accent) 90%, white), rgba(255, 255, 255, 0.28), transparent) 0 0 / 100% 1px no-repeat,
+        rgba(38, 35, 55, 0.6);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow:
+        0 6px 32px rgba(0, 0, 0, 0.32),
+        0 0 22px color-mix(in srgb, var(--cat-accent) 20%, transparent);
 }
 
 .cat-tile__img-wrap {
-    width: 100%;
-    aspect-ratio: 2.5 / 1.2;
-    background: rgba(255, 255, 255, 0.03);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
+    width: 38%;
     flex-shrink: 0;
+    background: transparent;
+    position: relative;
+    overflow: visible;
+    order: 1;
 }
 
 .cat-tile__img {
+    position: absolute;
     width: 100%;
-    height: 100%;
-    object-fit: cover;
+    height: 160%;
+    top: 50%;
+    transform: translateY(-50%);
+    object-fit: contain;
 }
 
 .cat-tile__img-placeholder {
@@ -920,13 +1018,14 @@ watch(selectedCategory, (cat) => {
 }
 
 .cat-tile__body {
-    padding: 0.55rem 0.7rem;
+    padding: 0.6rem 0.9rem;
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
     flex: 1;
     min-width: 0;
     overflow: hidden;
+    order: 0;
 }
 
 .cat-tile__name {
@@ -942,16 +1041,16 @@ watch(selectedCategory, (cat) => {
 
 .cat-tile__desc {
     font-size: 1rem;
-    color: rgba(255, 255, 255, 0.38);
+    color: rgba(255, 255, 255, 0.50);
     line-height: 1.45;
-    margin: 0;
+    margin: auto 0;
 }
 
 .cat-tile__footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-top: 0.4rem;
+    margin-top: 0.25rem;
 }
 
 .cat-tile__count {
@@ -975,27 +1074,7 @@ watch(selectedCategory, (cat) => {
     padding: 0 1rem;
 }
 
-.cd-back {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    background: color-mix(in srgb, var(--cat-accent) 10%, transparent);
-    border: 1px solid color-mix(in srgb, var(--cat-accent) 35%, transparent);
-    border-radius: 5px;
-    color: color-mix(in srgb, var(--cat-accent) 80%, white);
-    font-family: inherit;
-    font-size: 0.88rem;
-    cursor: pointer;
-    padding: 0.35rem 0.75rem;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
-    margin-bottom: 0.75rem;
-}
 
-.cd-back:hover {
-    background: color-mix(in srgb, var(--cat-accent) 20%, transparent);
-    border-color: color-mix(in srgb, var(--cat-accent) 60%, transparent);
-    color: var(--cat-accent);
-}
 
 /* ── Hero card ────────────────────────────────────────────── */
 .cd-hero {
@@ -1201,8 +1280,13 @@ watch(selectedCategory, (cat) => {
     box-shadow: 0 0 10px rgba(155, 110, 232, 0.18);
 }
 
-.cd-carousel__nav--prev:hover:not(:disabled) svg { transform: translateX(-2px); }
-.cd-carousel__nav--next:hover:not(:disabled) svg { transform: translateX(2px); }
+.cd-carousel__nav--prev:hover:not(:disabled) svg {
+    transform: translateX(-2px);
+}
+
+.cd-carousel__nav--next:hover:not(:disabled) svg {
+    transform: translateX(2px);
+}
 
 .cd-carousel__nav:active:not(:disabled) {
     background: linear-gradient(135deg, rgba(155, 110, 232, 0.2) 0%, rgba(255, 255, 255, 0.04) 100%);
@@ -1224,12 +1308,10 @@ watch(selectedCategory, (cat) => {
 }
 
 .cd-carousel__idol--skel {
-    background: linear-gradient(
-        90deg,
-        rgba(255,255,255,0.05) 25%,
-        rgba(255,255,255,0.10) 50%,
-        rgba(255,255,255,0.05) 75%
-    );
+    background: linear-gradient(90deg,
+            rgba(255, 255, 255, 0.05) 25%,
+            rgba(255, 255, 255, 0.10) 50%,
+            rgba(255, 255, 255, 0.05) 75%);
     background-size: 400px 100%;
     animation: shimmer 1.4s infinite linear;
     pointer-events: none;
@@ -1292,7 +1374,7 @@ watch(selectedCategory, (cat) => {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    background: linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 100%);
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.35) 0%, transparent 100%);
 }
 
 .cd-carousel__rating {
@@ -1325,10 +1407,25 @@ watch(selectedCategory, (cat) => {
     width: 100%;
 }
 
-.carousel-next-enter-from { transform: translateX(100%); opacity: 0; }
-.carousel-next-leave-to   { transform: translateX(-100%); opacity: 0; }
-.carousel-prev-enter-from { transform: translateX(-100%); opacity: 0; }
-.carousel-prev-leave-to   { transform: translateX(100%); opacity: 0; }
+.carousel-next-enter-from {
+    transform: translateX(100%);
+    opacity: 0;
+}
+
+.carousel-next-leave-to {
+    transform: translateX(-100%);
+    opacity: 0;
+}
+
+.carousel-prev-enter-from {
+    transform: translateX(-100%);
+    opacity: 0;
+}
+
+.carousel-prev-leave-to {
+    transform: translateX(100%);
+    opacity: 0;
+}
 
 .carousel-next-enter-to,
 .carousel-next-leave-from,
@@ -1554,8 +1651,17 @@ watch(selectedCategory, (cat) => {
 }
 
 @keyframes svc-pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50%       { opacity: 0.45; transform: scale(0.65); }
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.45;
+        transform: scale(0.65);
+    }
 }
 
 /* Footer: price + action on one row */
@@ -1615,10 +1721,10 @@ watch(selectedCategory, (cat) => {
     align-items: center;
     gap: 0.4rem;
     padding: 0.38rem 0.85rem;
-    border: 1px solid rgba(200, 70, 126, 0.4);
+    border: 1px solid color-mix(in srgb, var(--cat-accent, #a0a0ff) 40%, transparent);
     border-radius: 6px;
-    background: rgba(200, 70, 126, 0.1);
-    color: rgba(220, 110, 155, 0.95);
+    background: color-mix(in srgb, var(--cat-accent, #a0a0ff) 10%, transparent);
+    color: color-mix(in srgb, var(--cat-accent, #a0a0ff) 85%, white);
     font-family: inherit;
     font-size: 0.78rem;
     font-weight: 600;
@@ -1635,9 +1741,9 @@ watch(selectedCategory, (cat) => {
     position: absolute;
     inset: 0;
     background: linear-gradient(105deg,
-        transparent 30%,
-        rgba(255, 255, 255, 0.08) 50%,
-        transparent 70%);
+            transparent 30%,
+            rgba(255, 255, 255, 0.08) 50%,
+            transparent 70%);
     transform: translateX(-100%);
     transition: transform 0.5s ease;
 }
@@ -1647,11 +1753,11 @@ watch(selectedCategory, (cat) => {
 }
 
 .svc-buy-btn:hover {
-    border-color: rgba(200, 70, 126, 0.72);
-    background: rgba(200, 70, 126, 0.18);
-    color: #fff;
-    box-shadow: 0 0 20px rgba(200, 70, 126, 0.2),
-                inset 0 0 12px rgba(200, 70, 126, 0.08);
+    border-color: color-mix(in srgb, var(--cat-accent, #a0a0ff) 65%, transparent);
+    background: color-mix(in srgb, var(--cat-accent, #a0a0ff) 18%, transparent);
+    color: var(--cat-accent, #a0a0ff);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--cat-accent, #a0a0ff) 20%, transparent),
+        inset 0 0 12px color-mix(in srgb, var(--cat-accent, #a0a0ff) 8%, transparent);
 }
 
 .svc-buy-btn svg {
@@ -1662,6 +1768,17 @@ watch(selectedCategory, (cat) => {
 .svc-buy-btn:hover svg {
     transform: translateX(2px);
 }
+.svc-buy-btn--in-cart {
+    background: rgba(100,200,130,0.08);
+    border-color: rgba(100,200,130,0.3);
+    color: rgba(140,255,180,0.85);
+}
+.svc-buy-btn--in-cart:hover {
+    background: rgba(100,200,130,0.12);
+    box-shadow: none;
+}
+.svc-buy-btn--in-cart svg { stroke: rgba(140,255,180,0.85); }
+.svc-buy-btn--in-cart:hover svg { transform: none; }
 
 /* ── 3-dot menu ───────────────────────────────────────────── */
 .svc-menu {
@@ -2009,13 +2126,16 @@ watch(selectedCategory, (cat) => {
 .sf-screen-enter-active {
     transition: opacity 0.2s ease, transform 0.22s ease;
 }
+
 .sf-screen-leave-active {
     transition: opacity 0.15s ease, transform 0.18s ease;
 }
+
 .sf-screen-enter-from {
     opacity: 0;
     transform: translateY(8px);
 }
+
 .sf-screen-leave-to {
     opacity: 0;
     transform: translateY(-8px);
@@ -2202,12 +2322,72 @@ watch(selectedCategory, (cat) => {
 
 /* ── Chip pop animation (#6) ──────────────────────────────── */
 @keyframes chip-pop {
-    0%   { transform: scale(1); }
-    40%  { transform: scale(0.88); }
-    100% { transform: scale(1); }
+    0% {
+        transform: scale(1);
+    }
+
+    40% {
+        transform: scale(0.88);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
 
 .svc-chip--pop {
     animation: chip-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sf-btn-cancel {
+    padding: 0.65rem 1.4rem;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 3px;
+    background: transparent;
+    color: rgba(255,255,255,0.5);
+    font-family: inherit;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: color 0.18s, border-color 0.18s;
+}
+.sf-btn-cancel:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.2); }
+
+.svc-block-error {
+    position: sticky;
+    top: 1rem;
+    z-index: 10;
+    margin: 0 1rem 1rem;
+    padding: 0.65rem 1rem;
+    background: rgba(255, 80, 80, 0.12);
+    border: 1px solid rgba(255, 80, 80, 0.35);
+    border-radius: 6px;
+    color: rgba(255, 140, 140, 0.95);
+    font-size: 0.9rem;
+    text-align: center;
+}
+.block-err-enter-active, .block-err-leave-active { transition: opacity 0.25s, transform 0.25s; }
+.block-err-enter-from, .block-err-leave-to { opacity: 0; transform: translateY(-6px); }
+</style>
+
+<style>
+.cd-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: rgba(160,160,255,0.08);
+    border: 1px solid rgba(160,160,255,0.28);
+    border-radius: 5px;
+    color: rgba(180,180,255,0.85);
+    font-family: inherit;
+    font-size: 0.88rem;
+    cursor: pointer;
+    padding: 0.35rem 0.75rem;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.cd-back:hover {
+    background: rgba(160,160,255,0.16);
+    border-color: rgba(160,160,255,0.5);
+    color: var(--color-base-1);
 }
 </style>

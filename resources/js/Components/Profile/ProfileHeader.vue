@@ -5,6 +5,7 @@ import { Edit, Setting } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppSelect from '@/Components/AppSelect.vue';
 import AvatarUploader from '@/Components/AvatarUploader.vue';
+import IdolBadge from '@/Components/IdolBadge.vue';
 
 // ── Pluralization ──────────────────────────────────────────────
 const agePR = new Intl.PluralRules('ru');
@@ -206,7 +207,7 @@ function deleteAvatar() {
                 <h1 ref="nameRef" class="header-name">{{ user.name }}</h1>
             </div>
             <div v-if="isIdol || user.gender || user.age" class="header-meta">
-                <span v-if="isIdol" class="meta-badge meta-badge--idol">Айдол</span>
+                <IdolBadge v-if="isIdol" />
                 <span v-if="user.gender" class="meta-badge" :class="'meta-badge--' + user.gender">{{ user.gender === 'female' ? '\u2640\uFE0F' : '\u2642\uFE0F' }}</span>
                 <span v-if="user.age" class="meta-badge meta-badge--age">{{ ageLabel(user.age) }}</span>
             </div>
@@ -488,6 +489,7 @@ function deleteAvatar() {
     border-radius: 3px;
     font-size: 0.92rem;
     letter-spacing: 0.04em;
+    line-height: 1;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.04);
     color: rgba(255, 255, 255, 0.55);
@@ -515,12 +517,6 @@ function deleteAvatar() {
     flex-shrink: 0;
 }
 
-.meta-badge--idol {
-    border-color: rgba(100, 200, 255, 0.35);
-    background: rgba(100, 200, 255, 0.07);
-    color: #7dd4fc;
-    font-weight: 600;
-}
 
 /* Рейтинг — верхний левый угол */
 .header-rating {

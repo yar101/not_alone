@@ -4,13 +4,48 @@ namespace App\Http\Controllers;
 
 use App\Models\PlatformSetting;
 use App\Models\Service;
+use App\Models\ServiceCategory;
 use App\Models\ServicePriceLimit;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 class ServiceController extends Controller
 {
+    public function forOffer(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $services = Service::where('user_id', $user->id)
+            ->where('is_active', true)
+            ->where('status', 'approved')
+            ->with(['category:id,name', 'timeUnit:id,name'])
+            ->get();
+
+        if ($services->isEmpty()) {
+            return response()->json([]);
+        }
+
+        $grouped = $services
+            ->groupBy('category_id')
+            ->map(fn($items, $categoryId) => [
+                'category' => [
+                    'id'   => $items->first()->category->id,
+                    'name' => $items->first()->category->name,
+                ],
+                'services' => $items->map(fn($s) => [
+                    'id'        => $s->id,
+                    'name'      => $s->name,
+                    'price'     => $s->price,
+                    'time_unit' => $s->timeUnit?->name,
+                ])->values(),
+            ])
+            ->values();
+
+        return response()->json($grouped);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $idol = $request->user();

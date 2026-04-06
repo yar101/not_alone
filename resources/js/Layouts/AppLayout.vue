@@ -1,9 +1,11 @@
 <script setup>
-import { ref, computed, provide, onMounted, onUnmounted } from 'vue';
+import { ref, computed, provide, watch, onMounted, onUnmounted } from 'vue';
 import { Link, usePage, router } from '@inertiajs/vue3';
 import NotificationBell from '@/Components/NotificationBell.vue';
 import ChatButton from '@/Components/Chat/ChatButton.vue';
 import ChatPanel from '@/Components/Chat/ChatPanel.vue';
+import CartIcon from '@/Components/Cart/CartIcon.vue';
+import CartDropdown from '@/Components/Cart/CartDropdown.vue';
 import AuthModal from '@/Components/Site/AuthModal.vue';
 import UserSidebar from '@/Components/UserSidebar.vue';
 
@@ -19,9 +21,31 @@ const showIdolBtn = computed(() => user.value && !isIdol.value && idolStatus.val
 
 const showAuthModal = ref(false);
 const authModalTab  = ref('login');
-const chatOpen = ref(false);
-const chatPanel = ref(null);
+const chatOpen   = ref(false);
+const chatPanel  = ref(null);
+const cartOpen   = ref(false);
 const sidebarOpen = ref(false);
+
+// ── Cart state (localStorage) ─────────────────────────────
+const CART_KEY = computed(() => user.value ? `cart_${user.value.id}` : null);
+const cart = ref({ idol_id: null, idol_name: '', idol_avatar: null, items: [] });
+
+function loadCart() {
+    if (!CART_KEY.value) return;
+    try {
+        const raw = localStorage.getItem(CART_KEY.value);
+        if (raw) cart.value = JSON.parse(raw);
+    } catch {}
+}
+
+function saveCart() {
+    if (!CART_KEY.value) return;
+    localStorage.setItem(CART_KEY.value, JSON.stringify(cart.value));
+}
+
+watch(cart, saveCart, { deep: true });
+
+onMounted(loadCart);
 
 function openAuth(tab) {
     authModalTab.value = tab;
@@ -32,7 +56,45 @@ function openChatWith(userId) {
     chatPanel.value?.startWith(userId);
 }
 
+function handleOpenOrderEvent(e) {
+    openOrder(e.detail);
+}
+
+function openOrder(orderId) {
+    cartOpen.value = false;
+    chatOpen.value = true;
+    chatPanel.value?.openOrder(orderId);
+}
+
+function addToCart(service, idol) {
+    // If cart has items from a different idol — clear and start fresh
+    if (cart.value.idol_id && cart.value.idol_id !== idol.id) {
+        cart.value = { idol_id: idol.id, idol_name: idol.name, idol_avatar: idol.avatar_url ?? null, items: [] };
+    } else if (!cart.value.idol_id) {
+        cart.value.idol_id    = idol.id;
+        cart.value.idol_name  = idol.name;
+        cart.value.idol_avatar = idol.avatar_url ?? null;
+    }
+
+    const existing = cart.value.items.find(i => i.service_id === service.id);
+    if (existing) {
+        existing.quantity = (existing.quantity || 1) + 1;
+    } else {
+        cart.value.items.push({
+            service_id: service.id,
+            name:       service.name,
+            price:      service.price,
+            quantity:   1,
+            time_unit:  service.time_unit ?? null,
+        });
+    }
+}
+
+provide('openAuth', openAuth);
 provide('openChatWith', openChatWith);
+provide('openOrder', openOrder);
+provide('addToCart', addToCart);
+provide('cart', cart);
 
 // ── Global online presence ────────────────────────────────
 const onlineUserIds = ref([]);
@@ -62,7 +124,12 @@ onMounted(() => {
             });
     }
 });
+onMounted(() => {
+    window.addEventListener('noalone:open-order', handleOpenOrderEvent);
+});
+
 onUnmounted(() => {
+    window.removeEventListener('noalone:open-order', handleOpenOrderEvent);
     if (msgChannel) msgChannel.stopListening('.message.received');
     if (window.Echo) window.Echo.leave('presence-online');
 });
@@ -90,6 +157,21 @@ onUnmounted(() => {
                     class="become-idol-btn"
                 >Стать Айдолом</Link>
 
+                <!-- Иконка поиска — только на мобиле вместо nav -->
+                <Link
+                    v-if="user"
+                    :href="route('users.search')"
+                    class="mobile-search-btn"
+                    :class="{ 'mobile-search-btn--active': $page.url.startsWith('/search') }"
+                    aria-label="Поиск"
+                >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                </Link>
+
+                <CartIcon v-if="user" :cart="cart" @click="cartOpen = !cartOpen" />
                 <ChatButton v-if="user" @click="chatOpen = !chatOpen" />
                 <NotificationBell v-if="user" />
 
@@ -121,6 +203,7 @@ onUnmounted(() => {
         </main>
 
         <AuthModal :show="showAuthModal" :initial-tab="authModalTab" @close="showAuthModal = false" />
+        <CartDropdown v-if="user" v-model="cartOpen" :cart="cart" @clear="cart = { idol_id: null, idol_name: '', idol_avatar: null, items: [] }" @remove-item="(idx) => cart.items.splice(idx, 1)" @change-quantity="(idx, delta) => { const q = (cart.items[idx].quantity || 1) + delta; cart.items[idx].quantity = Math.max(1, q); }" />
         <ChatPanel v-if="user" ref="chatPanel" v-model="chatOpen" />
         <UserSidebar v-if="user" v-model="sidebarOpen" :user="user" :is-idol="isIdol" :rating="user?.rating" />
     </div>
@@ -139,7 +222,7 @@ onUnmounted(() => {
 .app-header {
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 1101;
     height: 60px;
     display: flex;
     align-items: center;
@@ -352,8 +435,36 @@ onUnmounted(() => {
     color: #be91ff;
 }
 
-/* ── Mobile ──────────────────────────────────────────────── */
+/* ── Mobile search button (hidden on desktop) ────────────── */
+.mobile-search-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: none;
+    transition: color 0.18s, background 0.18s;
+    flex-shrink: 0;
+}
+.mobile-search-btn:hover,
+.mobile-search-btn--active {
+    color: #be91ff;
+    background: rgba(110, 110, 210, 0.08);
+}
+
+/* ── Tablet (640–899px) ──────────────────────────────────── */
+@media (max-width: 899px) {
+    .header-nav { display: none; }
+    .mobile-search-btn { display: inline-flex; }
+    .app-header { padding: 0 1.25rem; }
+}
+
+/* ── Mobile (< 640px) ────────────────────────────────────── */
 @media (max-width: 639px) {
+    .app-header { padding: 0 0.75rem; }
+    .header-right { gap: 0.25rem; }
     .user-name-clip { display: none; }
     .user-chip { padding: 0.25rem; }
     .guest-btn--fill { display: none; }

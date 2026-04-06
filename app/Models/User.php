@@ -144,7 +144,10 @@ class User extends Authenticatable implements MustVerifyEmail
             ->get()
             ->sum(function ($participant) {
                 $query = Message::where('conversation_id', $participant->conversation_id)
-                    ->where('sender_id', '!=', $this->id);
+                    ->where(function ($q) {
+                        $q->whereNull('sender_id')
+                          ->orWhere('sender_id', '!=', $this->id);
+                    });
                 if ($participant->last_read_at) {
                     $query->where('created_at', '>', $participant->last_read_at);
                 }

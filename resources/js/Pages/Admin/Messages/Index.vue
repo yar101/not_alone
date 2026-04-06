@@ -1,9 +1,9 @@
 <script setup>
-import { ref, watch, nextTick, computed, onBeforeUnmount } from 'vue';
+import { ref, computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AppSelect from '@/Components/AppSelect.vue';
-import axios from 'axios';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import UserPickerModal from '@/Components/Admin/UserPickerModal.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -48,113 +48,22 @@ function formatDateShort(str) {
 
 // ─── Picker state ──────────────────────────────────────────────────────────
 const showPicker = ref(false);
+const showFilteredPicker = ref(false);
 const selectedUser = ref(null);
 const selectedFilteredCount = ref(null);
-
-const pickerUsers = ref([]);
-const pickerLoading = ref(false);
-const pickerPage = ref(1);
-const pickerHasMore = ref(true);
-const pickerTotal = ref(0);
-
-const filters = ref({
-    q: '',
-    is_idol: null,
-    gender: null,
-    age_from: '',
-    age_to: '',
-    registered_from: '',
-    registered_to: '',
-});
-
-const activeFiltersCount = computed(() => {
-    const f = filters.value;
-    return [f.q, f.is_idol, f.gender, f.age_from, f.age_to, f.registered_from, f.registered_to]
-        .filter(v => v !== '' && v !== null).length;
-});
-
-let debounceTimer = null;
-let observer = null;
-
-async function loadUsers(reset = false) {
-    if (pickerLoading.value) return;
-    if (!reset && !pickerHasMore.value) return;
-
-    pickerLoading.value = true;
-    if (reset) {
-        pickerPage.value = 1;
-        pickerHasMore.value = true;
-    }
-
-    try {
-        const params = { ...filters.value, page: pickerPage.value };
-        Object.keys(params).forEach(k => {
-            if (params[k] === '' || params[k] === null) delete params[k];
-        });
-
-        const { data } = await axios.get(route('admin.users.search'), { params });
-        if (reset) {
-            pickerUsers.value = data.data;
-        } else {
-            pickerUsers.value.push(...data.data);
-        }
-        pickerHasMore.value = data.meta.current_page < data.meta.last_page;
-        pickerPage.value = data.meta.current_page + 1;
-        pickerTotal.value = data.meta.total;
-    } finally {
-        pickerLoading.value = false;
-    }
-}
-
-function onFiltersChange() {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => loadUsers(true), 300);
-}
-
-watch(filters, onFiltersChange, { deep: true });
-
-function openPicker() {
-    showPicker.value = true;
-    loadUsers(true);
-    nextTick(setupObserver);
-}
-
-function closePicker() {
-    showPicker.value = false;
-    teardownObserver();
-}
 
 function selectUser(user) {
     selectedUser.value = user;
     selectedFilteredCount.value = null;
     form.target_user_id = user.id;
     form.target_filters = null;
-    closePicker();
 }
 
-function selectAllFiltered() {
-    const activeFilters = { ...filters.value };
-    Object.keys(activeFilters).forEach(k => {
-        if (activeFilters[k] === '' || activeFilters[k] === null) delete activeFilters[k];
-    });
-
-    selectedFilteredCount.value = pickerTotal.value;
+function selectAllFiltered({ filters, total }) {
+    selectedFilteredCount.value = total;
     selectedUser.value = null;
     form.target_user_id = '';
-    form.target_filters = Object.keys(activeFilters).length ? activeFilters : {};
-    closePicker();
-}
-
-function resetFilters() {
-    filters.value = {
-        q: '',
-        is_idol: null,
-        gender: null,
-        age_from: '',
-        age_to: '',
-        registered_from: '',
-        registered_to: '',
-    };
+    form.target_filters = Object.keys(filters).length ? filters : {};
 }
 
 function clearSelection() {
@@ -162,21 +71,6 @@ function clearSelection() {
     selectedFilteredCount.value = null;
     form.target_user_id = '';
     form.target_filters = null;
-}
-
-function setupObserver() {
-    const sentinel = document.getElementById('picker-sentinel');
-    if (!sentinel) return;
-    observer = new IntersectionObserver(entries => {
-        if (entries[0].isIntersecting && pickerHasMore.value && !pickerLoading.value) {
-            loadUsers(false);
-        }
-    }, { threshold: 0.1 });
-    observer.observe(sentinel);
-}
-
-function teardownObserver() {
-    if (observer) { observer.disconnect(); observer = null; }
 }
 
 function filterLabel(key, value) {
@@ -245,9 +139,9 @@ function targetLabel(b) {
                             <span class="user-chip-name">{{ selectedUser.name || '—' }}</span>
                             <span class="user-chip-email">{{ selectedUser.email }}</span>
                         </span>
-                        <button type="button" class="btn-change" @click="openPicker">Изменить</button>
+                        <button type="button" class="btn-change" @click="showPicker = true">Изменить</button>
                     </div>
-                    <button v-else type="button" class="btn-pick" @click="openPicker">Выбрать пользователя</button>
+                    <button v-else type="button" class="btn-pick" @click="showPicker = true">Выбрать пользователя</button>
                     <p v-if="form.errors.target_user_id" class="field-error">{{ form.errors.target_user_id }}</p>
                 </div>
 
@@ -266,9 +160,9 @@ function targetLabel(b) {
                             </div>
                             <span v-else class="filtered-hint">без фильтров — все пользователи</span>
                         </div>
-                        <button type="button" class="btn-change" @click="openPicker">Изменить</button>
+                        <button type="button" class="btn-change" @click="showFilteredPicker = true">Изменить</button>
                     </div>
-                    <button v-else type="button" class="btn-pick" @click="openPicker">Настроить фильтры</button>
+                    <button v-else type="button" class="btn-pick" @click="showFilteredPicker = true">Настроить фильтры</button>
                     <p v-if="form.errors.target_filters" class="field-error">{{ form.errors.target_filters }}</p>
                 </div>
 
@@ -373,97 +267,21 @@ function targetLabel(b) {
             </div>
         </Teleport>
 
-        <!-- User Picker Modal -->
-        <Teleport to="body">
-            <div v-if="showPicker" class="modal-backdrop" @click.self="closePicker">
-                <div class="modal">
-                    <div class="modal-header">
-                        <h3 class="modal-title">Выбор пользователей</h3>
-                        <button class="modal-close" @click="closePicker">✕</button>
-                    </div>
+        <!-- Пикер: конкретный пользователь -->
+        <UserPickerModal
+            v-model="showPicker"
+            title="Выбор пользователя"
+            @select="selectUser"
+        />
 
-                    <!-- Filters -->
-                    <div class="filters">
-                        <input v-model="filters.q" class="filter-search" placeholder="Поиск по имени или email..." />
-                        <div class="filter-row">
-                            <div class="filter-group">
-                                <span class="filter-group-label">Айдол</span>
-                                <div class="btn-group">
-                                    <button type="button" :class="['btn-toggle', filters.is_idol === null ? 'active' : '']" @click="filters.is_idol = null">Все</button>
-                                    <button type="button" :class="['btn-toggle', filters.is_idol === '1' ? 'active' : '']" @click="filters.is_idol = '1'">Айдол</button>
-                                    <button type="button" :class="['btn-toggle', filters.is_idol === '0' ? 'active' : '']" @click="filters.is_idol = '0'">Не айдол</button>
-                                </div>
-                            </div>
-                            <div class="filter-group">
-                                <span class="filter-group-label">Пол</span>
-                                <div class="btn-group">
-                                    <button type="button" :class="['btn-toggle', filters.gender === null ? 'active' : '']" @click="filters.gender = null">Все</button>
-                                    <button type="button" :class="['btn-toggle', filters.gender === 'male' ? 'active' : '']" @click="filters.gender = 'male'">М</button>
-                                    <button type="button" :class="['btn-toggle', filters.gender === 'female' ? 'active' : '']" @click="filters.gender = 'female'">Ж</button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="filter-row">
-                            <div class="filter-group">
-                                <span class="filter-group-label">Возраст</span>
-                                <div class="filter-range">
-                                    <input v-model="filters.age_from" type="number" class="filter-num" placeholder="от" min="0" max="120" />
-                                    <span class="filter-dash">—</span>
-                                    <input v-model="filters.age_to" type="number" class="filter-num" placeholder="до" min="0" max="120" />
-                                </div>
-                            </div>
-                            <div class="filter-group">
-                                <span class="filter-group-label">Регистрация</span>
-                                <div class="filter-range">
-                                    <input v-model="filters.registered_from" type="date" class="filter-date" />
-                                    <span class="filter-dash">—</span>
-                                    <input v-model="filters.registered_to" type="date" class="filter-date" />
-                                </div>
-                            </div>
-                            <button type="button" class="btn-reset" @click="resetFilters">Сбросить</button>
-                        </div>
-                    </div>
-
-                    <!-- Select all banner (only for filtered mode) -->
-                    <div v-if="form.target === 'filtered' && !pickerLoading && pickerTotal > 0" class="select-all-bar">
-                        <span class="select-all-count">
-                            Найдено: <strong>{{ pickerTotal.toLocaleString('ru') }}</strong> пользователей
-                            <span v-if="activeFiltersCount"> по {{ activeFiltersCount }} фильтрам</span>
-                        </span>
-                        <button type="button" class="btn-select-all" @click="selectAllFiltered">
-                            Выбрать всех ({{ pickerTotal.toLocaleString('ru') }})
-                        </button>
-                    </div>
-
-                    <!-- User list -->
-                    <div class="picker-list">
-                        <div
-                            v-for="user in pickerUsers"
-                            :key="user.id"
-                            class="picker-row"
-                            :class="{ 'picker-row--clickable': form.target === 'user' }"
-                            @click="form.target === 'user' && selectUser(user)"
-                        >
-                            <div class="picker-avatar">{{ (user.name || user.email || '?')[0].toUpperCase() }}</div>
-                            <div class="picker-info">
-                                <span class="picker-name">{{ user.name || '—' }}</span>
-                                <span class="picker-email">{{ user.email }}</span>
-                            </div>
-                            <div class="picker-badges">
-                                <span v-if="user.is_idol" class="badge badge--idol">Айдол</span>
-                                <span v-if="user.gender === 'male'" class="badge badge--male">М</span>
-                                <span v-if="user.gender === 'female'" class="badge badge--female">Ж</span>
-                                <span v-if="user.age" class="badge badge--age">{{ user.age }} лет</span>
-                            </div>
-                        </div>
-
-                        <div id="picker-sentinel" style="height:1px;"></div>
-                        <div v-if="pickerLoading" class="picker-loader">Загрузка...</div>
-                        <div v-if="!pickerLoading && pickerUsers.length === 0" class="picker-empty">Пользователи не найдены</div>
-                    </div>
-                </div>
-            </div>
-        </Teleport>
+        <!-- Пикер: по фильтру -->
+        <UserPickerModal
+            v-model="showFilteredPicker"
+            title="Выбор аудитории"
+            :show-select-all="true"
+            @select="selectUser"
+            @select-all="selectAllFiltered"
+        />
     </div>
 </template>
 
@@ -610,128 +428,4 @@ function targetLabel(b) {
 .detail-user-name { font-size: 0.88rem; color: #fff; }
 .detail-user-email { font-size: 0.78rem; color: rgba(255,255,255,0.4); }
 
-/* Modal */
-.modal-backdrop {
-    position: fixed; inset: 0; z-index: 1000;
-    background: rgba(0,0,0,0.75);
-    display: flex; align-items: center; justify-content: center;
-    padding: 1rem;
-}
-.modal {
-    background: #0d0d1b;
-    border: 1px solid rgba(155,110,232,0.35);
-    width: 100%; max-width: 640px;
-    max-height: 85vh;
-    display: flex; flex-direction: column;
-    overflow: hidden;
-}
-.modal-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0.9rem 1.25rem;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    flex-shrink: 0;
-}
-.modal-title { font-size: 0.95rem; color: #fff; margin: 0; font-weight: 600; }
-.modal-close {
-    background: none; border: none; color: rgba(255,255,255,0.4);
-    font-size: 1rem; cursor: pointer; padding: 0.25rem; line-height: 1;
-}
-.modal-close:hover { color: #fff; }
-
-/* Filters */
-.filters {
-    padding: 0.9rem 1.25rem;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    display: flex; flex-direction: column; gap: 0.75rem;
-    flex-shrink: 0;
-}
-.filter-search {
-    width: 100%; box-sizing: border-box;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.12);
-    color: #fff;
-    padding: 0.5rem 0.75rem; font-size: 0.85rem; outline: none;
-    font-family: inherit;
-}
-.filter-search:focus { border-color: rgba(155,110,232,0.6); }
-.filter-search::placeholder { color: rgba(255,255,255,0.25); }
-.filter-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-.filter-group { display: flex; align-items: center; gap: 0.5rem; }
-.filter-group-label { font-size: 0.75rem; color: rgba(255,255,255,0.35); white-space: nowrap; }
-.btn-group { display: flex; gap: 0; }
-.btn-toggle {
-    padding: 0.22rem 0.58rem;
-    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.45); font-size: 0.75rem; cursor: pointer; font-family: inherit;
-    margin-left: -1px;
-}
-.btn-toggle:hover { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.75); }
-.btn-toggle.active { background: rgba(155,110,232,0.2); border-color: rgba(155,110,232,0.45); color: #9B6EE8; }
-.filter-range { display: flex; align-items: center; gap: 0.4rem; }
-.filter-num {
-    width: 60px; background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.12);
-    color: #fff;
-    padding: 0.22rem 0.4rem; font-size: 0.8rem; outline: none; text-align: center;
-    font-family: inherit;
-}
-.filter-date {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.7);
-    padding: 0.22rem 0.4rem; font-size: 0.8rem; outline: none; color-scheme: dark;
-}
-.filter-dash { color: rgba(255,255,255,0.25); font-size: 0.8rem; }
-.btn-reset {
-    margin-left: auto;
-    padding: 0.22rem 0.65rem;
-    background: none; border: 1px solid rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.35); font-size: 0.75rem; cursor: pointer; white-space: nowrap;
-    font-family: inherit;
-}
-.btn-reset:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.65); }
-
-/* Select all bar */
-.select-all-bar {
-    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-    padding: 0.6rem 1.25rem;
-    background: rgba(139,92,246,0.06);
-    border-bottom: 1px solid rgba(139,92,246,0.18);
-    flex-shrink: 0;
-}
-.select-all-count { font-size: 0.82rem; color: rgba(255,255,255,0.5); }
-.select-all-count strong { color: #a78bfa; }
-.btn-select-all {
-    padding: 0.3rem 0.85rem;
-    background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.4);
-    color: #a78bfa; font-size: 0.8rem; cursor: pointer; white-space: nowrap;
-    font-family: inherit;
-}
-.btn-select-all:hover { background: rgba(139,92,246,0.28); }
-
-/* Picker list */
-.picker-list { overflow-y: auto; flex: 1; padding: 0.35rem 0; }
-.picker-row {
-    display: flex; align-items: center; gap: 0.75rem;
-    padding: 0.6rem 1.25rem;
-}
-.picker-row--clickable { cursor: pointer; }
-.picker-row--clickable:hover { background: rgba(255,255,255,0.04); }
-.picker-avatar {
-    width: 34px; height: 34px; border-radius: 50%;
-    background: rgba(155,110,232,0.2);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.82rem; font-weight: 600; color: #9B6EE8; flex-shrink: 0;
-}
-.picker-info { display: flex; flex-direction: column; gap: 0.1rem; flex: 1; min-width: 0; }
-.picker-name { font-size: 0.87rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.picker-email { font-size: 0.75rem; color: rgba(255,255,255,0.35); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.picker-badges { display: flex; gap: 0.3rem; flex-wrap: wrap; }
-.badge { font-size: 0.68rem; padding: 0.1rem 0.4rem; font-weight: 600; letter-spacing: 0.03em; }
-.badge--idol { background: rgba(155,110,232,0.15); color: #9B6EE8; border: 1px solid rgba(155,110,232,0.3); }
-.badge--male { background: rgba(59,130,246,0.1); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
-.badge--female { background: rgba(236,72,153,0.1); color: #f472b6; border: 1px solid rgba(236,72,153,0.2); }
-.badge--age { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.1); }
-.picker-loader { text-align: center; padding: 1rem; font-size: 0.82rem; color: rgba(255,255,255,0.3); }
-.picker-empty { text-align: center; padding: 2rem 1rem; font-size: 0.85rem; color: rgba(255,255,255,0.25); }
 </style>

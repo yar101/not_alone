@@ -21,6 +21,12 @@ use App\Http\Controllers\Admin\ServiceCategoryController;
 use App\Http\Controllers\Admin\ServiceModerationController;
 use App\Http\Controllers\Admin\ServicePriceLimitController;
 use App\Http\Controllers\Admin\ServiceTimeUnitController;
+use App\Http\Controllers\Admin\NewsController;
+use App\Http\Controllers\Admin\ConversationController;
+use App\Http\Controllers\Admin\DisputeController;
+use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\ReviewEpithetController;
+use App\Http\Controllers\Admin\SupportChatController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -153,6 +159,50 @@ Route::patch('/{trait}', [PersonalityTraitController::class, 'update'])->name('u
             Route::patch('/{banReason}', [BanReasonController::class, 'update'])->name('update');
             Route::delete('/{banReason}', [BanReasonController::class, 'destroy'])->name('destroy');
             Route::post('/reorder',     [BanReasonController::class, 'reorder'])->name('reorder');
+        });
+
+        // Review epithets
+        Route::prefix('review-epithets')->name('review-epithets.')->group(function () {
+            Route::get('/',              [ReviewEpithetController::class, 'index'])->name('index');
+            Route::post('/',             [ReviewEpithetController::class, 'store'])->name('store');
+            Route::patch('/{epithet}',   [ReviewEpithetController::class, 'update'])->name('update');
+            Route::delete('/{epithet}',  [ReviewEpithetController::class, 'destroy'])->name('destroy');
+            Route::post('/reorder',      [ReviewEpithetController::class, 'reorder'])->name('reorder');
+        });
+
+        // News (О проекте)
+        Route::prefix('news')->name('news.')->group(function () {
+            Route::get('/',          [NewsController::class, 'index'])->name('index');
+            Route::post('/',         [NewsController::class, 'store'])->name('store');
+            Route::patch('/{news}',  [NewsController::class, 'update'])->name('update');
+            Route::delete('/{news}', [NewsController::class, 'destroy'])->name('destroy');
+        });
+
+        // Orders
+        Route::prefix('orders')->name('orders.')->group(function () {
+            Route::get('/', [OrderController::class, 'index'])->name('index');
+            Route::patch('/{order}/status', [OrderController::class, 'updateStatus'])->name('status');
+            Route::get('/{order}/history', [OrderController::class, 'history'])->name('history');
+        });
+
+        // Disputes
+        Route::get('/disputes', [DisputeController::class, 'index'])->name('disputes.index');
+        Route::patch('/disputes/{dispute}/resolve', [DisputeController::class, 'resolve'])->name('disputes.resolve');
+
+        // Conversations (read-only for admin)
+        Route::get('/conversations/{conversation}/messages', [ConversationController::class, 'messages'])->name('conversations.messages');
+
+        // Support chat
+        Route::prefix('support')->name('support.')->group(function () {
+            Route::get('/', [SupportChatController::class, 'index'])->name('index');
+            Route::get('/more', [SupportChatController::class, 'moreConversations'])->name('more');
+            Route::post('/', [SupportChatController::class, 'store'])->name('store');
+            Route::get('/{conversation}/messages', [SupportChatController::class, 'messages'])->name('messages');
+            Route::post('/{conversation}/messages', [SupportChatController::class, 'send'])->name('send');
+            Route::post('/{conversation}/upload', [SupportChatController::class, 'upload'])->name('upload');
+            Route::post('/{conversation}/image', [SupportChatController::class, 'sendImage'])->name('image');
+            Route::post('/{conversation}/close', [SupportChatController::class, 'close'])->name('close');
+            Route::post('/{conversation}/open', [SupportChatController::class, 'open'])->name('open');
         });
 
         // Export

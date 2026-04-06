@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue';
 import { router, usePage, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head } from '@inertiajs/vue3';
+import IdolBadge from '@/Components/IdolBadge.vue';
 
 
 const props = defineProps({
@@ -233,7 +234,7 @@ function initial(name) {
                         <Link
                             v-for="user in users.data"
                             :key="user.id"
-                            :href="route('profile.show', { user: user.id })"
+                            :href="route('profile.show', { user: user.id }) + '#about'"
                             class="user-card"
                         >
                             <div class="card-avatar">
@@ -246,7 +247,7 @@ function initial(name) {
                                     <div class="card-name">{{ user.name }}</div>
                                 </div>
                                 <div class="card-badges">
-                                    <span v-if="user.is_idol" class="card-badge card-badge--idol">Айдол</span>
+                                    <IdolBadge v-if="user.is_idol" />
                                     <span v-if="user.gender" class="card-badge" :class="user.gender === 'female' ? 'card-badge--female' : 'card-badge--male'">{{ user.gender === 'female' ? '\u2640\uFE0F' : '\u2642\uFE0F' }}</span>
                                     <span v-if="calcAge(user.birth_date)" class="card-badge card-badge--age">{{ calcAge(user.birth_date) }} лет</span>
                                 </div>
@@ -560,16 +561,16 @@ function initial(name) {
     gap: 0.3rem;
     padding: 0.2rem 0.55rem;
     border-radius: 20px;
-    background: rgba(180, 160, 255, 0.1);
+    background: rgba(160, 160, 255, 0.1);
     border: 1px solid rgba(160, 160, 255, 0.25);
-    color: #be91ff;
+    color: var(--color-base-1);
     font-size: 0.78rem;
     line-height: 1;
 }
 .active-chip__remove {
     background: none;
     border: none;
-    color: rgba(190, 145, 255, 0.6);
+    color: rgba(160, 160, 255, 0.6);
     cursor: pointer;
     padding: 0;
     font-size: 0.9rem;
@@ -578,7 +579,7 @@ function initial(name) {
     font-family: inherit;
 }
 .active-chip__remove:hover {
-    color: #e0558f;
+    color: rgba(160, 160, 255, 0.9);
 }
 .chips-fade-enter-active, .chips-fade-leave-active { transition: opacity 0.2s; }
 .chips-fade-enter-from, .chips-fade-leave-to { opacity: 0; }
@@ -588,8 +589,8 @@ function initial(name) {
     display: inline-block;
     padding: 0.1rem 0.38rem;
     border-radius: 20px;
-    background: rgba(180, 160, 255, 0.15);
-    color: #be91ff;
+    background: rgba(160, 160, 255, 0.15);
+    color: var(--color-base-1);
     font-size: 0.7rem;
     font-weight: 600;
     line-height: 1.4;
@@ -1022,7 +1023,7 @@ function initial(name) {
     top: 0.6rem;
     right: 0.75rem;
     font-size: 0.85rem;
-    color: #be91ff;
+    color: var(--color-base-1);
     font-weight: 600;
     white-space: nowrap;
 }
@@ -1050,12 +1051,6 @@ function initial(name) {
     white-space: nowrap;
 }
 
-.card-badge--idol {
-    border-color: rgba(100, 200, 255, 0.35);
-    background: rgba(100, 200, 255, 0.07);
-    color: #7dd4fc;
-    font-weight: 600;
-}
 
 .card-badge--female {
     border-color: rgba(160, 160, 255, 0.3);

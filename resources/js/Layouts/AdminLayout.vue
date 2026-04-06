@@ -136,6 +136,30 @@ function isActive(routeName) {
                     Пользователи
                 </Link>
 
+                <Link
+                    :href="route('admin.orders.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.orders.*') }"
+                >
+                    Заказы
+                </Link>
+
+                <Link
+                    :href="route('admin.disputes.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.disputes.*') }"
+                >
+                    Споры
+                </Link>
+
+                <Link
+                    :href="route('admin.support.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.support.*') }"
+                >
+                    Поддержка
+                </Link>
+
                 <div class="nav-group">
                     <button
                         class="nav-item nav-item--group"
@@ -207,6 +231,22 @@ function isActive(routeName) {
                 </Link>
 
                 <Link
+                    :href="route('admin.review-epithets.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.review-epithets.index') }"
+                >
+                    Отзывы — Эпитеты
+                </Link>
+
+                <Link
+                    :href="route('admin.news.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.news.index') }"
+                >
+                    Новости
+                </Link>
+
+                <Link
                     :href="route('admin.reports.index')"
                     class="nav-item"
                     :class="{ 'nav-item--active': isActive('admin.reports.*') }"
@@ -254,9 +294,10 @@ function isActive(routeName) {
 
 <style scoped>
 .admin-wrap {
-    min-height: 100vh;
+    height: 100vh;
     background: #07070f;
     display: flex;
+    overflow: hidden;
     font-family: 'Figtree', sans-serif;
 }
 
@@ -466,5 +507,6 @@ function isActive(routeName) {
     padding: 2rem;
     width: 100%;
     min-width: 0;
+    overflow-y: auto;
 }
 </style>

@@ -4,6 +4,11 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+    --color-base-1: #a0a0ff;
+    --color-base-2: #64d2ff;
+}
+
 body {
     font-family: 'Figtree', ui-sans-serif, system-ui, sans-serif;
 }

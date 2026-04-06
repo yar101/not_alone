@@ -3,16 +3,25 @@
 use App\Http\Controllers\Idol\ApplicationController as IdolApplicationController;
 use App\Http\Controllers\Idol\QuizController;
 use App\Http\Controllers\ConversationController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ServiceController;
 
+use App\Http\Controllers\AboutController;
+use App\Http\Controllers\NewsPublicController;
 use App\Http\Controllers\UserProfileController;
+use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\UserSearchController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
+Route::get('/about', AboutController::class)->name('about');
+Route::get('/news',           [NewsPublicController::class, 'index'])->name('news');
+Route::get('/news/feed',      [NewsPublicController::class, 'feed'])->name('news.feed');
+Route::get('/news/{news}',    [NewsPublicController::class, 'show'])->name('news.show');
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -82,6 +91,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 // Services (idol owner)
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/profile/services/for-offer',       [ServiceController::class, 'forOffer'])->name('profile.services.for-offer');
     Route::post('/profile/services',                [ServiceController::class, 'store'])->name('profile.services.store');
     // Specific route before wildcard
     Route::patch('/profile/services/categories/{category}/description',
@@ -104,6 +114,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/notifications/service', [NotificationController::class, 'service'])->name('notifications.service');
     Route::patch('/notifications/service/read-all', [NotificationController::class, 'markAllServiceRead'])->name('notifications.service.read-all');
+    Route::get('/notifications/orders', [NotificationController::class, 'orders'])->name('notifications.orders');
+    Route::patch('/notifications/orders/read-all', [NotificationController::class, 'markAllOrdersRead'])->name('notifications.orders.read-all');
     Route::patch('/broadcasts/{id}/read', [NotificationController::class, 'markBroadcastRead'])->name('broadcasts.read');
 });
 
@@ -113,8 +125,28 @@ Route::middleware('auth')->group(function () {
     Route::post('/conversations', [ConversationController::class, 'store'])->name('conversations.store');
     Route::get('/conversations/{conversation}', [ConversationController::class, 'show'])->name('conversations.show');
     Route::post('/conversations/{conversation}/messages', [ConversationController::class, 'message'])->name('conversations.message');
+    Route::post('/conversations/{conversation}/upload', [ConversationController::class, 'upload'])->name('conversations.upload');
+    Route::post('/conversations/{conversation}/offer-services', [ConversationController::class, 'offerServices'])->name('conversations.offer-services');
     Route::post('/conversations/{conversation}/block', [ConversationController::class, 'block'])->name('conversations.block');
     Route::delete('/conversations/{conversation}/block', [ConversationController::class, 'unblock'])->name('conversations.unblock');
 });
+
+// Orders
+Route::middleware('auth')->group(function () {
+    Route::get('/orders',                      [OrderController::class, 'index'])->name('orders.index');
+    Route::post('/orders',                     [OrderController::class, 'store'])->name('orders.store');
+    // Static routes before {order} wildcard
+    Route::get('/orders/disputable',           [OrderController::class, 'disputable'])->name('orders.disputable');
+    Route::patch('/orders/{order}/accept',     [OrderController::class, 'accept'])->name('orders.accept');
+    Route::patch('/orders/{order}/pay',        [OrderController::class, 'pay'])->name('orders.pay');
+    Route::patch('/orders/{order}/cancel',              [OrderController::class, 'cancel'])->name('orders.cancel');
+    Route::patch('/orders/{order}/confirm-completion', [OrderController::class, 'confirmCompletion'])->name('orders.confirm-completion');
+    Route::post('/orders/{order}/dispute',     [OrderController::class, 'dispute'])->name('orders.dispute');
+    Route::post('/orders/{order}/items',       [OrderController::class, 'addItem'])->name('orders.items.add');
+    Route::post('/orders/{order}/review',      [ReviewController::class, 'store'])->name('orders.review.store');
+});
+
+Route::get('/reviews/epithets', [ReviewController::class, 'epithets'])->name('reviews.epithets');
+Route::get('/users/{user}/reviews', [ReviewController::class, 'index'])->name('users.reviews');
 
 require __DIR__.'/auth.php';

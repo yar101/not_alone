@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, inject, onMounted, onUnmounted } from 'vue';
 import { usePage, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { Promotion, Trophy, CircleClose } from '@element-plus/icons-vue';
@@ -9,9 +9,13 @@ const open = ref(false);
 const activeTab = ref('notifications');
 
 const notifications = ref([]);
-const serviceItems = ref([]);
-const loadingNotifs = ref(false);
+const serviceItems  = ref([]);
+const orderItems    = ref([]);
+const loadingNotifs  = ref(false);
 const loadingService = ref(false);
+const loadingOrders  = ref(false);
+
+const openOrder = inject('openOrder', null);
 
 async function fetchNotifications() {
     loadingNotifs.value = true;
@@ -33,11 +37,22 @@ async function fetchService() {
     }
 }
 
+async function fetchOrders() {
+    loadingOrders.value = true;
+    try {
+        const res = await axios.get(route('notifications.orders'));
+        orderItems.value = res.data.items;
+    } finally {
+        loadingOrders.value = false;
+    }
+}
+
 function toggleDropdown() {
     open.value = !open.value;
     if (open.value) {
         if (activeTab.value === 'notifications') fetchNotifications();
-        else fetchService();
+        else if (activeTab.value === 'service') fetchService();
+        else if (activeTab.value === 'orders') fetchOrders();
     }
 }
 
@@ -45,6 +60,7 @@ function switchTab(tab) {
     activeTab.value = tab;
     if (tab === 'notifications' && notifications.value.length === 0) fetchNotifications();
     else if (tab === 'service' && serviceItems.value.length === 0) fetchService();
+    else if (tab === 'orders' && orderItems.value.length === 0) fetchOrders();
 }
 
 async function markNotifRead(id) {
@@ -72,16 +88,38 @@ async function markAllServiceRead() {
     router.reload({ only: ['service_unread'] });
 }
 
+async function markOrderItemRead(item) {
+    await axios.patch(route('notifications.read', item.id));
+    item.read_at = new Date().toISOString();
+    router.reload({ only: ['order_notifications_unread'] });
+}
+
+async function markAllOrdersRead() {
+    await axios.patch(route('notifications.orders.read-all'));
+    orderItems.value.forEach(i => { i.read_at = i.read_at || new Date().toISOString(); });
+    router.reload({ only: ['order_notifications_unread'] });
+}
+
+function openOrderFromNotif(item) {
+    if (!item.read_at) markOrderItemRead(item);
+    if (openOrder && item.order_id) {
+        open.value = false;
+        openOrder(item.order_id);
+    }
+}
+
 function closeOnOutside(e) {
     if (!e.target.closest('.notif-bell')) open.value = false;
 }
 
 const totalUnread = computed(() =>
-    (page.props.notifications_unread ?? 0) + (page.props.service_unread ?? 0)
+    (page.props.notifications_unread ?? 0) +
+    (page.props.service_unread ?? 0) +
+    (page.props.order_notifications_unread ?? 0)
 );
 
 function reloadCounts() {
-    router.reload({ only: ['notifications_unread', 'service_unread'] });
+    router.reload({ only: ['notifications_unread', 'service_unread', 'order_notifications_unread'] });
 }
 
 function relativeTime(dateStr) {
@@ -169,6 +207,14 @@ onUnmounted(() => {
                             Сервис
                             <span v-if="page.props.service_unread > 0" class="panel-tab-dot"></span>
                         </button>
+                        <button
+                            class="panel-tab"
+                            :class="{ 'panel-tab--active': activeTab === 'orders' }"
+                            @click="switchTab('orders')"
+                        >
+                            Заказы
+                            <span v-if="page.props.order_notifications_unread > 0" class="panel-tab-dot"></span>
+                        </button>
                     </div>
                 </div>
 
@@ -215,7 +261,7 @@ onUnmounted(() => {
                 </template>
 
                 <!-- Сервис -->
-                <template v-else>
+                <template v-else-if="activeTab === 'service'">
                     <div v-if="loadingService" class="notif-loader">
                         <span class="notif-spinner"></span>
                     </div>
@@ -262,6 +308,58 @@ onUnmounted(() => {
                         </div>
                         <div v-if="page.props.service_unread > 0" class="notif-footer">
                             <button @click="markAllServiceRead" class="footer-btn">
+                                Отметить все прочитанными
+                            </button>
+                        </div>
+                    </template>
+                </template>
+
+                <!-- Заказы -->
+                <template v-else-if="activeTab === 'orders'">
+                    <div v-if="loadingOrders" class="notif-loader">
+                        <span class="notif-spinner"></span>
+                    </div>
+                    <template v-else>
+                        <div v-if="orderItems.length === 0" class="notif-empty">
+                            <div class="empty-icon">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.3">
+                                    <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
+                                </svg>
+                            </div>
+                            <p class="empty-text">Нет уведомлений о заказах</p>
+                        </div>
+                        <div v-else class="notif-list">
+                            <div
+                                v-for="item in orderItems"
+                                :key="item.id"
+                                class="notif-item notif-item--clickable"
+                                :class="{ 'notif-item--unread': !item.read_at }"
+                                @click="openOrderFromNotif(item)"
+                            >
+                                <div class="notif-icon-wrap"
+                                    :class="{
+                                        'icon--success': item.type === 'order_accepted',
+                                        'icon--danger': item.type === 'order_cancelled',
+                                        'icon--default': item.type === 'order_created',
+                                    }"
+                                >
+                                    <span class="notif-icon-char">
+                                        {{ item.type === 'order_accepted' ? '✓' : item.type === 'order_cancelled' ? '✕' : '◈' }}
+                                    </span>
+                                </div>
+                                <div class="notif-content">
+                                    <p class="notif-msg">
+                                        <template v-if="item.type === 'order_created'">Новый заказ от {{ item.data?.customer_name }}</template>
+                                        <template v-else-if="item.type === 'order_accepted'">{{ item.data?.idol_name }} принял(а) заказ</template>
+                                        <template v-else-if="item.type === 'order_cancelled'">Заказ отменён</template>
+                                    </p>
+                                    <span class="notif-time">{{ relativeTime(item.created_at) }}</span>
+                                </div>
+                                <div v-if="!item.read_at" class="notif-unread-dot"></div>
+                            </div>
+                        </div>
+                        <div v-if="page.props.order_notifications_unread > 0" class="notif-footer">
+                            <button @click="markAllOrdersRead" class="footer-btn">
                                 Отметить все прочитанными
                             </button>
                         </div>
@@ -320,7 +418,7 @@ onUnmounted(() => {
     border: 1px solid rgba(155,110,232,0.18);
     border-radius: 16px;
     box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04) inset;
-    z-index: 500; overflow: hidden;
+    z-index: 1101; overflow: hidden;
 }
 
 /* ── Panel header ── */

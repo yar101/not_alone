@@ -1,7 +1,9 @@
 <script setup>
-import { computed, onMounted, onUnmounted } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AvatarUploader from '@/Components/AvatarUploader.vue';
+import IdolBadge from '@/Components/IdolBadge.vue';
+import HelpModal from '@/Components/Site/HelpModal.vue';
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -12,6 +14,9 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 function close() { emit('update:modelValue', false); }
+
+const showHelp = ref(false);
+function openHelp() { showHelp.value = true; }
 
 function onKey(e) { if (e.key === 'Escape') close(); }
 onMounted(() => document.addEventListener('keydown', onKey));
@@ -47,7 +52,7 @@ const ratingPct    = computed(() => ratingValue.value != null ? Math.min(ratingV
 
                     <div class="usb-name">{{ user.name }}</div>
                     <div class="usb-badges">
-                        <span v-if="isIdol" class="usb-badge usb-badge--idol">Айдол</span>
+                        <IdolBadge v-if="isIdol" />
                         <span v-if="user.gender" class="usb-badge" :class="'usb-badge--' + user.gender">{{ user.gender === 'female' ? '\u2640\uFE0F' : '\u2642\uFE0F' }}</span>
                         <span v-if="user.age" class="usb-badge usb-badge--age">{{ ageLabel(user.age) }}</span>
                         <span v-if="!isIdol && !user.gender && !user.age" class="usb-badge usb-badge--default">Пользователь</span>
@@ -83,6 +88,14 @@ const ratingPct    = computed(() => ratingValue.value != null ? Math.min(ratingV
                         </svg>
                         Настройки
                     </Link>
+                    <button class="usb-item" @click="openHelp">
+                        <svg class="usb-item__icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                            <circle cx="12" cy="17" r="0.5" fill="currentColor"/>
+                        </svg>
+                        Помощь
+                    </button>
                 </nav>
 
                 <!-- Feature cards -->
@@ -99,7 +112,7 @@ const ratingPct    = computed(() => ratingValue.value != null ? Math.min(ratingV
                         <span class="usb-feature-card__label">Кошелёк</span>
                     </div>
 
-                    <div class="usb-feature-card usb-feature-card--emerald">
+                    <Link :href="route('orders.index')" class="usb-feature-card usb-feature-card--emerald" @click="close">
                         <div class="usb-feature-card__glow" />
                         <div class="usb-feature-card__icon-wrap usb-feature-card__icon-wrap--emerald">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -110,12 +123,14 @@ const ratingPct    = computed(() => ratingValue.value != null ? Math.min(ratingV
                             </svg>
                         </div>
                         <span class="usb-feature-card__label">Заказы</span>
-                    </div>
+                    </Link>
                 </div>
 
             </div>
         </Transition>
     </Teleport>
+
+    <HelpModal :show="showHelp" @close="showHelp = false" />
 </template>
 
 <style scoped>
@@ -124,7 +139,7 @@ const ratingPct    = computed(() => ratingValue.value != null ? Math.min(ratingV
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.6);
-    z-index: 200;
+    z-index: 1100;
 }
 
 /* ── Panel ────────────────────────────────────────────────── */
@@ -134,7 +149,7 @@ const ratingPct    = computed(() => ratingValue.value != null ? Math.min(ratingV
     right: 0;
     bottom: 0;
     width: 360px;
-    z-index: 201;
+    z-index: 1101;
     display: flex;
     flex-direction: column;
     background: linear-gradient(175deg, #121228 0%, #0a0a1a 55%, #080814 100%);
@@ -221,12 +236,6 @@ const ratingPct    = computed(() => ratingValue.value != null ? Math.min(ratingV
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.04);
     color: rgba(255, 255, 255, 0.55);
-}
-.usb-badge--idol {
-    border-color: rgba(100, 200, 255, 0.35);
-    background: rgba(100, 200, 255, 0.07);
-    color: #7dd4fc;
-    font-weight: 600;
 }
 .usb-badge--female {
     border-color: rgba(160, 160, 255, 0.3);
@@ -351,6 +360,7 @@ const ratingPct    = computed(() => ratingValue.value != null ? Math.min(ratingV
     flex-direction: row;
     align-items: center;
     gap: 0.65rem;
+    text-decoration: none;
 }
 
 /* Top stripe */

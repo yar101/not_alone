@@ -1,12 +1,11 @@
 <script setup>
-import { ref, nextTick, onMounted, computed, inject } from 'vue';
+import { ref, onMounted, computed, inject, provide, reactive } from 'vue';
 import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { StarFilled, MagicStick } from '@element-plus/icons-vue';
 
 defineOptions({ layout: AppLayout });
-import { gsap } from 'gsap';
 import ProfileHeader from '@/Components/Profile/ProfileHeader.vue';
 import ProfileChecklist from '@/Components/Profile/ProfileChecklist.vue';
 import ProfileAbout from '@/Components/Profile/ProfileAbout.vue';
@@ -14,6 +13,7 @@ import ProfileTraits from '@/Components/Profile/ProfileTraits.vue';
 import ProfileInterests from '@/Components/Profile/ProfileInterests.vue';
 import ProfileLanguages from '@/Components/Profile/ProfileLanguages.vue';
 import ProfilePosts from '@/Components/Profile/ProfilePosts.vue';
+import ProfileReviews from '@/Components/Profile/ProfileReviews.vue';
 import ProfileServices from '@/Components/Profile/ProfileServices.vue';
 import ProfileVoice from '@/Components/Profile/ProfileVoice.vue';
 
@@ -31,12 +31,21 @@ const props = defineProps({
     services:           { default: null },
     serviceCategories:  { default: null },
     serviceTimeUnits:   { default: null },
+    isBlockedByIdol:    { type: Boolean, default: false },
 });
+
+// ── Auth ──────────────────────────────────────────────────────
+const openAuth = inject('openAuth', null);
 
 // ── Chat ──────────────────────────────────────────────────────
 const openChatWith = inject('openChatWith', null);
 function openChat() {
+    if (!page.props.auth?.user) { openAuth?.('register'); return; }
     openChatWith?.(props.profileUser.id);
+}
+
+function handleSubscribe() {
+    if (!page.props.auth?.user) { openAuth?.('register'); return; }
 }
 
 // ── Email verification banner ─────────────────────────────────
@@ -53,13 +62,18 @@ function resendVerification() {
 }
 
 // ── Tabs ─────────────────────────────────────────────────────
-const TAB_ORDER = ['about', 'posts', 'services', 'content'];
+const TAB_ORDER = props.isIdol
+    ? ['about', 'posts', 'services', 'content', 'reviews']
+    : ['about', 'posts', 'services', 'content'];
 const storedTab = sessionStorage.getItem(`profile_tab_${props.profileUser.id}`);
 const hashTab   = window.location.hash.slice(1);
-const initialTab = TAB_ORDER.includes(storedTab) ? storedTab
-    : TAB_ORDER.includes(hashTab) ? hashTab
+const initialTab = TAB_ORDER.includes(hashTab) ? hashTab
+    : TAB_ORDER.includes(storedTab) ? storedTab
     : 'about';
 const tab = ref(initialTab);
+
+const serviceNav = reactive({ inCategory: false, accent: '#a0a0ff', onBack: null });
+provide('serviceNav', serviceNav);
 
 function switchTab(name) {
     tab.value = name;
@@ -105,12 +119,6 @@ function submitReport() {
 const TOUR_KEY = 'profile_tour_done';
 
 onMounted(async () => {
-    // Initial entrance animation
-    await nextTick();
-    gsap.from('.page-block', {
-        y: 16, opacity: 0, duration: 0.4, stagger: 0.08, ease: 'power2.out',
-    });
-
     if (!props.isOwner) return;
     if (localStorage.getItem(TOUR_KEY)) return;
 
@@ -243,10 +251,10 @@ onMounted(async () => {
                         :languages="languages"
                     />
                     <div v-if="!isOwner" class="sidebar-actions">
-                        <button class="sidebar-subscribe-btn">
+                        <button class="sidebar-subscribe-btn" @click="handleSubscribe">
                             Отслеживать
                         </button>
-                        <button class="sidebar-message-btn" @click="openChat" title="Написать сообщение">
+                        <button v-if="page.props.auth?.user && page.props.is_idol" class="sidebar-message-btn" @click="openChat" title="Написать сообщение">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                             </svg>
@@ -285,6 +293,24 @@ onMounted(async () => {
                             @click="switchTab('content')"
                         >
                             Контент
+                        </button>
+                        <button
+                            v-if="isIdol"
+                            class="tab-btn"
+                            :class="{ active: tab === 'reviews' }"
+                            @click="switchTab('reviews')"
+                        >
+                            Отзывы
+                        </button>
+                        <button v-if="serviceNav.inCategory"
+                                class="cd-back"
+                                :style="{ '--cat-accent': serviceNav.accent }"
+                                @click="serviceNav.onBack?.()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M15 18l-6-6 6-6" />
+                            </svg>
+                            К категориям
                         </button>
                     </div>
                 <div class="tab-content-wrap page-block">
@@ -352,6 +378,7 @@ onMounted(async () => {
                                     :is-owner="isOwner"
                                     :is-idol="isIdol"
                                     :profile-user="profileUser"
+                                    :is-blocked-by-idol="isBlockedByIdol"
                                 />
                             </div>
                         </template>
@@ -384,6 +411,10 @@ onMounted(async () => {
                                 <p class="coming-soon-text">У этого пользователя нет услуг</p>
                             </div>
                         </template>
+                    </div>
+
+                    <div v-else-if="tab === 'reviews'" key="reviews" class="tab-panel">
+                        <ProfileReviews :profile-user-id="profileUser.id" />
                     </div>
 
                     <div v-else key="content" class="tab-panel">
@@ -598,6 +629,14 @@ onMounted(async () => {
     flex-direction: column;
 }
 
+/* ── Entrance animation ───────────────────────────────────── */
+@keyframes pb-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.page-block { animation: pb-in 0.4s cubic-bezier(0.33,1,0.68,1) both; }
+.page-block:nth-child(1) { animation-delay: 0s; }
+.page-block:nth-child(2) { animation-delay: 0.08s; }
+.page-block:nth-child(3) { animation-delay: 0.16s; }
+.page-block:nth-child(4) { animation-delay: 0.24s; }
+
 /* ── Two-column body ──────────────────────────────────────── */
 .profile-body {
     display: flex;
@@ -650,6 +689,11 @@ onMounted(async () => {
     margin-bottom: 0.75rem;
 }
 .profile-tabs::-webkit-scrollbar { display: none; }
+
+.cd-back {
+    margin-left: auto;
+    flex-shrink: 0;
+}
 
 .tab-btn {
     padding: 0.55rem 0.85rem;
@@ -880,10 +924,10 @@ onMounted(async () => {
 .sidebar-subscribe-btn {
     flex: 1;
     padding: 0.6rem;
-    background: rgba(160, 160, 255, 0.08);
-    border: 1px solid rgba(160, 160, 255, 0.38);
+    background: transparent;
+    border: 1px solid rgba(160, 160, 255, 0.35);
     border-radius: 6px;
-    color: rgba(210, 180, 255, 0.9);
+    color: var(--color-base-1);
     font-family: inherit;
     font-size: 0.88rem;
     font-weight: 600;
@@ -893,10 +937,10 @@ onMounted(async () => {
     flex-shrink: 0;
 }
 .sidebar-subscribe-btn:hover {
-    background: rgba(160, 160, 255, 0.18);
-    border-color: rgba(160, 160, 255, 0.65);
-    color: rgba(225, 205, 255, 1);
-    box-shadow: 0 0 14px rgba(160, 160, 255, 0.18);
+    background: rgba(160, 160, 255, 0.1);
+    border-color: rgba(160, 160, 255, 0.55);
+    color: #b8b8ff;
+    box-shadow: 0 0 14px rgba(160, 160, 255, 0.12);
 }
 .sidebar-message-btn {
     display: flex;
@@ -905,18 +949,18 @@ onMounted(async () => {
     width: 40px;
     height: 40px;
     border-radius: 6px;
-    background: rgba(160, 160, 255, 0.08);
-    border: 1px solid rgba(160, 160, 255, 0.38);
-    color: rgba(210, 180, 255, 0.9);
+    background: transparent;
+    border: 1px solid rgba(160, 160, 255, 0.35);
+    color: var(--color-base-1);
     cursor: pointer;
     flex-shrink: 0;
     transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
 .sidebar-message-btn:hover {
-    background: rgba(160, 160, 255, 0.18);
-    border-color: rgba(160, 160, 255, 0.65);
-    color: rgba(225, 205, 255, 1);
-    box-shadow: 0 0 14px rgba(160, 160, 255, 0.18);
+    background: rgba(160, 160, 255, 0.1);
+    border-color: rgba(160, 160, 255, 0.55);
+    color: #b8b8ff;
+    box-shadow: 0 0 14px rgba(160, 160, 255, 0.12);
 }
 
 /* ── Report modal content ────────────────────────────────── */
