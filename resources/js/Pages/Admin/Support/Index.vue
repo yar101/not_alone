@@ -36,7 +36,6 @@ const fileInput      = ref(null);
 const showNewChat    = ref(false);
 
 let echoChannel = null;
-const sentMsgIds = new Set();
 
 // ── Load more conversations (lazy) ────────────────────────────────────────
 async function loadMoreConvs() {
@@ -124,7 +123,7 @@ async function openConversation(conv) {
     if (window.Echo) {
         echoChannel = window.Echo.private('admin.support.' + conv.id)
             .listen('.message.sent', (data) => {
-                if (sentMsgIds.has(data.id)) { sentMsgIds.delete(data.id); return; }
+                if (messages.value.some(m => m.id === data.id)) return;
                 messages.value.push(data);
                 nextTick(scrollToBottom);
 
@@ -179,8 +178,7 @@ async function sendMessage() {
     sending.value = true;
     try {
         const res = await axios.post(route('admin.support.send', activeConv.value.id), { body });
-        sentMsgIds.add(res.data.id);
-        messages.value.push(res.data);
+        if (!messages.value.some(m => m.id === res.data.id)) messages.value.push(res.data);
         nextTick(scrollToBottom);
         updateLastMessage(activeConv.value.id, body);
     } finally {
@@ -206,8 +204,7 @@ async function onFileSelected(e) {
         fd.append('file', file);
         const upRes = await axios.post(route('admin.support.upload', activeConv.value.id), fd);
         const msgRes = await axios.post(route('admin.support.image', activeConv.value.id), { image_url: upRes.data.url });
-        sentMsgIds.add(msgRes.data.id);
-        messages.value.push(msgRes.data);
+        if (!messages.value.some(m => m.id === msgRes.data.id)) messages.value.push(msgRes.data);
         nextTick(scrollToBottom);
         updateLastMessage(activeConv.value.id, '[фото]');
     } finally {

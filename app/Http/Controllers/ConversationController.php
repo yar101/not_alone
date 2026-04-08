@@ -35,7 +35,9 @@ class ConversationController extends Controller
 
                 $unread = 0;
                 if ($participantMe) {
-                    $query = $conversation->messages()->where('sender_id', '!=', $user->id);
+                    $query = $conversation->messages()->where(function ($q) use ($user) {
+                        $q->where('sender_id', '!=', $user->id)->orWhereNull('sender_id');
+                    });
                     if ($participantMe->last_read_at) {
                         $query->where('created_at', '>', $participantMe->last_read_at);
                     }

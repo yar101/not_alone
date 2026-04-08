@@ -255,7 +255,7 @@ class SupportChatController extends Controller
 
         foreach ($conversation->participants as $participant) {
             try {
-                broadcast(new NewMessageReceived($participant->user_id, $conversation->id));
+                broadcast(new NewMessageReceived($participant->user_id, $conversation->id, $msg));
             } catch (\Throwable $e) {
                 \Log::warning('Broadcast NewMessageReceived failed: ' . $e->getMessage());
             }
