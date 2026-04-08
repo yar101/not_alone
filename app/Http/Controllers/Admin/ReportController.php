@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\UserReport;
+use App\Services\IdolRatingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -78,6 +79,11 @@ class ReportController extends Controller
             'reviewed_by' => auth('admin')->id(),
             'reviewed_at' => now(),
         ]);
+
+        $reported = $report->reported;
+        if ($reported?->is_idol) {
+            IdolRatingService::adjust($reported, 'report_accepted');
+        }
 
         return back()->with('success', 'Жалоба рассмотрена.');
     }

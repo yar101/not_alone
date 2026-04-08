@@ -274,6 +274,14 @@ function isActive(routeName) {
                 </Link>
 
                 <Link
+                    :href="route('admin.rating-logs.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.rating-logs.index') }"
+                >
+                    Рейтинг айдолов
+                </Link>
+
+                <Link
                     :href="route('admin.settings.index')"
                     class="nav-item"
                     :class="{ 'nav-item--active': isActive('admin.settings.index') }"

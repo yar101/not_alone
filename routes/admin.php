@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminLogController;
+use App\Http\Controllers\Admin\RatingLogController;
 use App\Http\Controllers\Admin\ApplicationController;
 use App\Http\Controllers\Admin\BanReasonController;
 use App\Http\Controllers\Admin\ChatBlockController;
@@ -103,6 +104,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Logs
         Route::get('/logs', [AdminLogController::class, 'index'])->name('logs.index');
+        Route::get('/rating-logs', [RatingLogController::class, 'index'])->name('rating-logs.index');
 
         // Reports
         Route::prefix('reports')->name('reports.')->group(function () {

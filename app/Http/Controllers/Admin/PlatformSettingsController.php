@@ -17,16 +17,36 @@ class PlatformSettingsController extends Controller
             'settings' => [
                 'rating_low_threshold' => PlatformSetting::get('rating_low_threshold', 30),
             ],
+            'rating_deltas' => [
+                'review_5star'            => (float) PlatformSetting::get('rating_delta_review_5star', 0.8),
+                'review_4star'            => (float) PlatformSetting::get('rating_delta_review_4star', 0.4),
+                'review_2star'            => (float) PlatformSetting::get('rating_delta_review_2star', -0.5),
+                'review_1star'            => (float) PlatformSetting::get('rating_delta_review_1star', -1.2),
+                'order_completed'         => (float) PlatformSetting::get('rating_delta_order_completed', 0.2),
+                'report_accepted'         => (float) PlatformSetting::get('rating_delta_report_accepted', -2.0),
+                'review_dispute_approved' => (float) PlatformSetting::get('rating_delta_review_dispute_approved', 0.6),
+            ],
         ]);
     }
 
     public function update(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'rating_low_threshold' => ['required', 'integer', 'min:0', 'max:100'],
+            'rating_low_threshold'                      => ['required', 'integer', 'min:0', 'max:100'],
+            'rating_deltas.review_5star'            => ['required', 'numeric', 'min:0', 'max:10'],
+            'rating_deltas.review_4star'            => ['required', 'numeric', 'min:0', 'max:10'],
+            'rating_deltas.review_2star'            => ['required', 'numeric', 'min:-10', 'max:0'],
+            'rating_deltas.review_1star'            => ['required', 'numeric', 'min:-10', 'max:0'],
+            'rating_deltas.order_completed'         => ['required', 'numeric', 'min:0', 'max:10'],
+            'rating_deltas.report_accepted'         => ['required', 'numeric', 'min:-10', 'max:0'],
+            'rating_deltas.review_dispute_approved' => ['required', 'numeric', 'min:0', 'max:10'],
         ]);
 
         PlatformSetting::set('rating_low_threshold', $data['rating_low_threshold']);
+
+        foreach ($data['rating_deltas'] as $event => $delta) {
+            PlatformSetting::set('rating_delta_' . $event, $delta);
+        }
 
         return back()->with('success', 'Настройки сохранены.');
     }
