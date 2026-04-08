@@ -181,6 +181,7 @@ class ConversationController extends Controller
         $request->validate(['target_user_id' => 'required|exists:users,id']);
 
         $target = User::findOrFail($request->target_user_id);
+        abort_if($target->is_idol, 422, 'target_is_idol');
         $conversation = Conversation::findOrCreateBetween($request->user(), $target);
 
         return response()->json(['conversation_id' => $conversation->id]);

@@ -460,10 +460,11 @@ onUnmounted(() => {
 }
 
 /* ── Notification list ── */
-.notif-list { max-height: 340px; overflow-y: auto; margin-top: 0.75rem; }
-.notif-list::-webkit-scrollbar { width: 3px; }
-.notif-list::-webkit-scrollbar-track { background: transparent; }
-.notif-list::-webkit-scrollbar-thumb { background: rgba(155,110,232,0.3); border-radius: 99px; }
+.notif-list { max-height: 340px; overflow-y: auto; margin-top: 0.75rem; scrollbar-width: thin; scrollbar-color: rgba(155,110,232,0.3) transparent; }
+.notif-list:deep(::-webkit-scrollbar) { width: 3px; }
+.notif-list:deep(::-webkit-scrollbar-track) { background: transparent; }
+.notif-list:deep(::-webkit-scrollbar-thumb) { background: rgba(155,110,232,0.3); border-radius: 99px; }
+.notif-list:deep(::-webkit-scrollbar-thumb:hover) { background: rgba(155,110,232,0.6); }
 
 .notif-item {
     display: flex; align-items: flex-start; gap: 0.75rem;
