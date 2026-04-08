@@ -330,10 +330,6 @@ class UserProfileController extends Controller
             'photo_path' => $photoPath,
         ]);
 
-        if ($user->is_idol) {
-            IdolRatingService::adjust($user, 'post_published');
-        }
-
         return back();
     }
 

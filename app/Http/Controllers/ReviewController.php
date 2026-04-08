@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Review;
 use App\Models\ReviewEpithet;
 use App\Models\User;
+use App\Services\IdolRatingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -56,6 +57,8 @@ class ReviewController extends Controller
         ]);
 
         $review->epithets()->sync($request->epithets ?? []);
+
+        IdolRatingService::adjust($order->idol, 'review_' . $review->rating . 'star');
 
         return response()->json(['success' => true]);
     }

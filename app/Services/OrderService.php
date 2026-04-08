@@ -15,6 +15,7 @@ use App\Notifications\OrderAcceptedNotification;
 use App\Notifications\OrderCancelledNotification;
 use App\Notifications\OrderCompletedNotification;
 use App\Notifications\OrderPaidNotification;
+use App\Services\IdolRatingService;
 
 class OrderService
 {
@@ -179,6 +180,8 @@ class OrderService
             case OrderStatus::Completed:
                 $attrs['completed_at'] = $order->completed_at ?? now();
 
+                IdolRatingService::adjust($order->idol, 'order_completed');
+
                 if ($order->conversation_id) {
                     $order->conversation->messages()->create([
                         'sender_id' => null,
@@ -299,6 +302,8 @@ class OrderService
         $old = $order->status->value;
         $order->logStatusChange($old, OrderStatus::Completed->value, $actorType, $actorId, $note);
         $order->update(['status' => OrderStatus::Completed, 'completed_at' => now()]);
+
+        IdolRatingService::adjust($order->idol, 'order_completed');
 
         $this->broadcastSystemMessage($order, [
             'sender_id' => null,
