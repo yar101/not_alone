@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class NotificationController extends Controller
@@ -10,47 +11,66 @@ class NotificationController extends Controller
     private const SERVICE_TYPES = ['idol_approved', 'idol_rejected', 'admin_broadcast', 'low_rating_warning', 'admin_rating', 'review_dispute_approved', 'review_dispute_rejected'];
     private const ORDER_TYPES   = ['order_created', 'order_accepted', 'order_cancelled', 'order_paid', 'order_completed'];
 
+    private function window(Request $request): array
+    {
+        $before      = $request->input('before') ? Carbon::parse($request->input('before')) : null;
+        $windowStart = ($before ?? now())->copy()->subHours(48);
+        return [$before, $windowStart];
+    }
+
     public function index(Request $request)
     {
         $user = $request->user();
+        [$before, $windowStart] = $this->window($request);
 
-        $excluded = array_merge(self::SERVICE_TYPES, self::ORDER_TYPES);
-        $notifications = $user->notifications()
-            ->latest()
-            ->take(30)
-            ->get()
-            ->filter(fn($n) => !in_array($n->data['type'] ?? '', $excluded))
-            ->values()
-            ->map(fn($n) => [
-                'id' => $n->id,
-                'source' => 'notification',
-                'type' => $n->data['type'] ?? 'info',
-                'message' => $n->data['message'] ?? '',
-                'reason' => $n->data['reason'] ?? null,
-                'read_at' => $n->read_at?->toIso8601String(),
-                'created_at' => $n->created_at->toIso8601String(),
-            ]);
-
+        $excluded     = array_merge(self::SERVICE_TYPES, self::ORDER_TYPES);
         $placeholders = implode(',', array_fill(0, count($excluded), '?'));
+
+        $query = $user->notifications()
+            ->whereRaw("(data::jsonb->>'type') NOT IN ($placeholders)", $excluded);
+
+        $items = (clone $query)
+            ->where('created_at', '>=', $windowStart)
+            ->when($before, fn($q) => $q->where('created_at', '<', $before))
+            ->latest()
+            ->get()
+            ->map(fn($n) => [
+                'id'         => $n->id,
+                'source'     => 'notification',
+                'type'       => $n->data['type'] ?? 'info',
+                'message'    => $n->data['message'] ?? '',
+                'reason'     => $n->data['reason'] ?? null,
+                'read_at'    => $n->read_at?->toIso8601String(),
+                'created_at' => $n->created_at->toIso8601String(),
+            ])->values();
+
+        $hasMore = (clone $query)->where('created_at', '<', $windowStart)->exists();
+
         $unread = $user->unreadNotifications()
             ->whereRaw("(data::jsonb->>'type') NOT IN ($placeholders)", $excluded)
             ->count();
 
         return response()->json([
-            'notifications' => $notifications,
-            'unread_count' => $unread,
+            'notifications' => $items,
+            'unread_count'  => $unread,
+            'has_more'      => $hasMore,
         ]);
     }
 
     public function service(Request $request)
     {
         $user = $request->user();
+        [$before, $windowStart] = $this->window($request);
 
         $placeholders = implode(',', array_fill(0, count(self::SERVICE_TYPES), '?'));
-        $items = $user->notifications()
-            ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::SERVICE_TYPES)
+
+        $query = $user->notifications()
+            ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::SERVICE_TYPES);
+
+        $items = (clone $query)
+            ->where('created_at', '>=', $windowStart)
+            ->when($before, fn($q) => $q->where('created_at', '<', $before))
             ->latest()
-            ->take(30)
             ->get()
             ->map(fn($n) => [
                 'id'         => $n->id,
@@ -61,7 +81,9 @@ class NotificationController extends Controller
                 'reason'     => $n->data['reason'] ?? null,
                 'read_at'    => $n->read_at?->toIso8601String(),
                 'created_at' => $n->created_at->toIso8601String(),
-            ]);
+            ])->values();
+
+        $hasMore = (clone $query)->where('created_at', '<', $windowStart)->exists();
 
         $unreadCount = $user->unreadNotifications()
             ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::SERVICE_TYPES)
@@ -70,6 +92,54 @@ class NotificationController extends Controller
         return response()->json([
             'items'        => $items,
             'unread_count' => $unreadCount,
+            'has_more'     => $hasMore,
+        ]);
+    }
+
+    public function combined(Request $request)
+    {
+        $user = $request->user();
+        [$before, $windowStart] = $this->window($request);
+
+        $query = $user->notifications()
+            ->where('created_at', '>=', $windowStart)
+            ->when($before, fn($q) => $q->where('created_at', '<', $before))
+            ->latest();
+
+        $items = $query->get()->map(function ($n) {
+            $type = $n->data['type'] ?? 'info';
+            $cat  = in_array($type, self::ORDER_TYPES) ? 'order' : 'service';
+
+            $base = [
+                'id'         => $n->id,
+                'type'       => $type,
+                '_cat'       => $cat,
+                'read_at'    => $n->read_at?->toIso8601String(),
+                'created_at' => $n->created_at->toIso8601String(),
+            ];
+
+            if ($cat === 'order') {
+                return array_merge($base, [
+                    'order_id' => $n->data['order_id'] ?? null,
+                    'data'     => $n->data,
+                ]);
+            }
+
+            return array_merge($base, [
+                'source'  => 'notification',
+                'title'   => $n->data['title'] ?? null,
+                'message' => $n->data['message'] ?? '',
+                'reason'  => $n->data['reason'] ?? null,
+            ]);
+        })->values();
+
+        $hasMore = $user->notifications()
+            ->where('created_at', '<', $windowStart)
+            ->exists();
+
+        return response()->json([
+            'items'    => $items,
+            'has_more' => $hasMore,
         ]);
     }
 
@@ -97,12 +167,17 @@ class NotificationController extends Controller
     public function orders(Request $request)
     {
         $user = $request->user();
+        [$before, $windowStart] = $this->window($request);
 
         $placeholders = implode(',', array_fill(0, count(self::ORDER_TYPES), '?'));
-        $items = $user->notifications()
-            ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::ORDER_TYPES)
+
+        $query = $user->notifications()
+            ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::ORDER_TYPES);
+
+        $items = (clone $query)
+            ->where('created_at', '>=', $windowStart)
+            ->when($before, fn($q) => $q->where('created_at', '<', $before))
             ->latest()
-            ->take(30)
             ->get()
             ->map(fn($n) => [
                 'id'         => $n->id,
@@ -111,7 +186,9 @@ class NotificationController extends Controller
                 'read_at'    => $n->read_at?->toIso8601String(),
                 'created_at' => $n->created_at->toIso8601String(),
                 'data'       => $n->data,
-            ]);
+            ])->values();
+
+        $hasMore = (clone $query)->where('created_at', '<', $windowStart)->exists();
 
         $unreadCount = $user->unreadNotifications()
             ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::ORDER_TYPES)
@@ -120,6 +197,7 @@ class NotificationController extends Controller
         return response()->json([
             'items'        => $items,
             'unread_count' => $unreadCount,
+            'has_more'     => $hasMore,
         ]);
     }
 

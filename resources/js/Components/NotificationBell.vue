@@ -1,33 +1,65 @@
 <script setup>
-import { ref, computed, inject, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, inject, onMounted, onUnmounted } from 'vue';
 import { usePage, router } from '@inertiajs/vue3';
 import axios from 'axios';
-import { Promotion, Trophy, CircleClose } from '@element-plus/icons-vue';
+import {
+    Promotion, Trophy, CircleClose,
+    DocumentAdd, CircleCheckFilled, CircleCloseFilled,
+    Coin, SuccessFilled, WarningFilled, Rank, Bell,
+} from '@element-plus/icons-vue';
 
 const page = usePage();
 const open = ref(false);
 
-const allItems  = ref([]);
-const loading   = ref(false);
+const allItems = ref([]);
+const loading = ref(false);
+const loadingMore = ref(false);
+const hasMore = ref(false);
+const beforeCursor = ref(null); // ISO string — oldest created_at seen so far
 let autoReadTimer = null;
 
 const openOrder = inject('openOrder', null);
 
+async function loadWindow(before) {
+    const params = before ? { before } : {};
+    const { data } = await axios.get(route('notifications.combined'), { params });
+
+    hasMore.value = data.has_more;
+
+    if (before) {
+        allItems.value = [...allItems.value, ...data.items];
+    } else {
+        allItems.value = data.items;
+    }
+
+    if (allItems.value.length > 0) {
+        beforeCursor.value = allItems.value[allItems.value.length - 1].created_at;
+    }
+}
+
 async function fetchAll() {
     loading.value = true;
+    allItems.value = [];
+    beforeCursor.value = null;
+    hasMore.value = false;
     try {
-        const [r1, r2, r3] = await Promise.all([
-            axios.get(route('notifications.index')),
-            axios.get(route('notifications.service')),
-            axios.get(route('notifications.orders')),
-        ]);
-        const personal = r1.data.notifications.map(n => ({ ...n, _cat: 'personal' }));
-        const service  = r2.data.items.map(n => ({ ...n, _cat: 'service' }));
-        const orders   = r3.data.items.map(n => ({ ...n, _cat: 'order' }));
-        allItems.value = [...personal, ...service, ...orders]
-            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        await loadWindow(null);
+        // Тихо догружаем под скелетоном, не трогая loadingMore
+        while (filteredItems.value.length === 0 && hasMore.value) {
+            await loadWindow(beforeCursor.value);
+        }
     } finally {
         loading.value = false;
+    }
+}
+
+async function fetchMore() {
+    if (loadingMore.value || !hasMore.value) return;
+    loadingMore.value = true;
+    try {
+        await loadWindow(beforeCursor.value);
+    } finally {
+        loadingMore.value = false;
     }
 }
 
@@ -82,11 +114,32 @@ function closeOnOutside(e) {
     if (!e.target.closest('.notif-bell')) open.value = false;
 }
 
+const activeFilter = ref('all');
+
+const filteredItems = computed(() => {
+    if (activeFilter.value === 'all') return allItems.value;
+    return allItems.value.filter(n => n._cat === activeFilter.value);
+});
+
+// Подгружаем следующие окна, пока в текущем фильтре нет элементов
+async function autoFetchIfEmpty() {
+    while (filteredItems.value.length === 0 && hasMore.value && !loadingMore.value) {
+        await fetchMore();
+    }
+}
+
+watch(activeFilter, autoFetchIfEmpty);
+
 const totalUnread = computed(() =>
     (page.props.notifications_unread ?? 0) +
     (page.props.service_unread ?? 0) +
     (page.props.order_notifications_unread ?? 0)
 );
+
+const serviceUnread = computed(() =>
+    (page.props.notifications_unread ?? 0) + (page.props.service_unread ?? 0)
+);
+const orderUnread = computed(() => page.props.order_notifications_unread ?? 0);
 
 function reloadCounts() {
     router.reload({ only: ['notifications_unread', 'service_unread', 'order_notifications_unread'] });
@@ -101,18 +154,28 @@ function relativeTime(dateStr) {
     return new Date(dateStr).toLocaleDateString('ru', { day: 'numeric', month: 'short' });
 }
 
-function itemIcon(item) {
+function itemIconComponent(item) {
     if (item._cat === 'order') {
-        if (item.type === 'order_accepted' || item.type === 'order_completed') return '✓';
-        if (item.type === 'order_cancelled') return '✕';
-        if (item.type === 'order_paid') return '₽';
-        return '◈';
+        return {
+            order_created: DocumentAdd,
+            order_accepted: CircleCheckFilled,
+            order_cancelled: CircleCloseFilled,
+            order_paid: Coin,
+            order_completed: SuccessFilled,
+        }[item.type] ?? DocumentAdd;
     }
-    if (item._cat === 'service') return null; // использует el-icon
-    const msg = (item.message || item.title || '').toLowerCase();
-    if (msg.includes('одобр') || msg.includes('утвержд')) return '✦';
-    if (msg.includes('отклон') || msg.includes('отказ')) return '✕';
-    return '●';
+    if (item._cat === 'service') {
+        return {
+            admin_broadcast: Promotion,
+            idol_approved: Trophy,
+            idol_rejected: CircleClose,
+            low_rating_warning: WarningFilled,
+            admin_rating: Rank,
+            review_dispute_approved: CircleCheckFilled,
+            review_dispute_rejected: CircleCloseFilled,
+        }[item.type] ?? Bell;
+    }
+    return Bell;
 }
 
 function itemIconClass(item) {
@@ -120,25 +183,25 @@ function itemIconClass(item) {
         if (item.type === 'order_accepted' || item.type === 'order_completed') return 'icon--success';
         if (item.type === 'order_cancelled') return 'icon--danger';
         if (item.type === 'order_paid') return 'icon--paid';
+        if (item.type === 'order_created') return 'icon--paid';
         return 'icon--default';
     }
     if (item._cat === 'service') {
         if (item.type === 'admin_broadcast') return 'icon--broadcast';
-        if (item.type === 'idol_approved') return 'icon--success';
-        if (item.type === 'idol_rejected') return 'icon--danger';
+        if (item.type === 'idol_approved' || item.type === 'review_dispute_approved') return 'icon--success';
+        if (item.type === 'idol_rejected' || item.type === 'review_dispute_rejected') return 'icon--danger';
+        if (item.type === 'low_rating_warning') return 'icon--warning';
+        if (item.type === 'admin_rating') return 'icon--paid';
         return 'icon--default';
     }
-    const msg = (item.message || item.title || '').toLowerCase();
-    if (msg.includes('одобр') || msg.includes('утвержд')) return 'icon--success';
-    if (msg.includes('отклон') || msg.includes('отказ')) return 'icon--danger';
-    return 'icon--default';
+    return 'icon--personal';
 }
 
 function orderMessage(item) {
-    if (item.type === 'order_created')   return `Новый заказ от ${item.data?.customer_name}`;
-    if (item.type === 'order_accepted')  return `${item.data?.idol_name} принял(а) заказ`;
+    if (item.type === 'order_created') return `Новый заказ от ${item.data?.customer_name}`;
+    if (item.type === 'order_accepted') return `${item.data?.idol_name} принял(а) заказ`;
     if (item.type === 'order_cancelled') return 'Заказ отменён';
-    if (item.type === 'order_paid')      return `${item.data?.customer_name} оплатил(а) заказ`;
+    if (item.type === 'order_paid') return `${item.data?.customer_name} оплатил(а) заказ`;
     if (item.type === 'order_completed') return 'Заказ успешно завершён';
     return '';
 }
@@ -169,9 +232,10 @@ onUnmounted(() => {
     <div class="notif-bell">
         <!-- Bell button -->
         <button class="bell-btn" @click.stop="toggleDropdown" :class="{ 'bell-btn--active': open }">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
             </svg>
             <Transition name="badge-pop">
                 <span v-if="totalUnread > 0" class="badge" :key="totalUnread">
@@ -186,21 +250,42 @@ onUnmounted(() => {
                 <!-- Header -->
                 <div class="notif-panel-header">
                     <span class="notif-panel-title">Уведомления</span>
-                    <span v-if="totalUnread > 0" class="notif-panel-count">{{ totalUnread }} новых</span>
+                    <div class="notif-filters">
+                        <button class="notif-filter-btn" :class="{ 'notif-filter-btn--active': activeFilter === 'all' }" @click="activeFilter = 'all'">
+                            Все
+                            <span v-if="totalUnread > 0" class="notif-filter-dot"></span>
+                        </button>
+                        <button class="notif-filter-btn" :class="{ 'notif-filter-btn--active': activeFilter === 'service' }" @click="activeFilter = 'service'">
+                            Сервис
+                            <span v-if="serviceUnread > 0" class="notif-filter-dot"></span>
+                        </button>
+                        <button class="notif-filter-btn" :class="{ 'notif-filter-btn--active': activeFilter === 'order' }" @click="activeFilter = 'order'">
+                            Заказы
+                            <span v-if="orderUnread > 0" class="notif-filter-dot"></span>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Loader -->
-                <div v-if="loading" class="notif-loader">
-                    <span class="notif-spinner"></span>
+                <!-- Skeleton loader -->
+                <div v-if="loading" class="notif-skeleton-list">
+                    <div v-for="i in 4" :key="i" class="notif-skeleton-item">
+                        <div class="sk-icon"></div>
+                        <div class="sk-lines">
+                            <div class="sk-line sk-line--title"></div>
+                            <div class="sk-line sk-line--body"></div>
+                            <div class="sk-line sk-line--time"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <template v-else>
                     <!-- Empty state -->
                     <div v-if="allItems.length === 0" class="notif-empty">
                         <div class="empty-icon">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.3">
-                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.3">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                             </svg>
                         </div>
                         <p class="empty-text">Нет уведомлений</p>
@@ -208,44 +293,46 @@ onUnmounted(() => {
 
                     <!-- Unified list -->
                     <div v-else class="notif-list">
-                        <div
-                            v-for="item in allItems"
-                            :key="item.id"
-                            class="notif-item"
-                            :class="{
-                                'notif-item--unread': !item.read_at,
-                                'notif-item--clickable': isClickable(item),
-                            }"
-                            @click="handleItemClick(item)"
-                        >
-                            <!-- Icon -->
-                            <div class="notif-icon-wrap" :class="itemIconClass(item)">
-                                <template v-if="item._cat === 'service'">
-                                    <el-icon>
-                                        <Promotion v-if="item.type === 'admin_broadcast'" />
-                                        <Trophy v-else-if="item.type === 'idol_approved'" />
-                                        <CircleClose v-else-if="item.type === 'idol_rejected'" />
-                                        <span v-else class="notif-icon-char">●</span>
-                                    </el-icon>
-                                </template>
-                                <span v-else class="notif-icon-char">{{ itemIcon(item) }}</span>
-                            </div>
-
+                        <div v-for="item in filteredItems" :key="item.id" class="notif-item" :class="{
+                            'notif-item--unread': !item.read_at,
+                            'notif-item--clickable': isClickable(item),
+                        }" @click="handleItemClick(item)">
                             <!-- Content -->
                             <div class="notif-content">
-                                <p v-if="item.title" class="notif-service-title">{{ item.title }}</p>
-                                <p class="notif-msg" :class="{ 'notif-msg--sub': item.title }">
-                                    <template v-if="item._cat === 'order'">{{ orderMessage(item) }}</template>
-                                    <template v-else>{{ item.message }}</template>
-                                </p>
-                                <p v-if="item.reason" class="notif-reason">{{ item.reason }}</p>
-                                <div class="notif-meta">
-                                    <span class="notif-time">{{ relativeTime(item.created_at) }}</span>
+                                <div class="notif-header">
+                                    <div class="notif-icon-wrap" :class="itemIconClass(item)">
+                                        <el-icon><component :is="itemIconComponent(item)" /></el-icon>
+                                    </div>
+                                    <p v-if="item.title" class="notif-service-title">{{ item.title }}</p>
+                                    <p v-else class="notif-msg notif-msg--headline">
+                                        <template v-if="item._cat === 'order'">{{ orderMessage(item) }}</template>
+                                        <template v-else>{{ item.message }}</template>
+                                    </p>
                                     <span class="notif-cat-tag" :class="`cat--${item._cat}`">
                                         {{ item._cat === 'personal' ? 'Личное' : item._cat === 'service' ? 'Сервис' : 'Заказ' }}
                                     </span>
                                 </div>
+                                <p v-if="item.title" class="notif-msg notif-msg--sub">
+                                    <template v-if="item._cat === 'order'">{{ orderMessage(item) }}</template>
+                                    <template v-else>{{ item.message }}</template>
+                                </p>
+                                <p v-if="item.reason" class="notif-reason">{{ item.reason }}</p>
+                                <div class="notif-footer-row">
+                                    <span class="notif-time">{{ relativeTime(item.created_at) }}</span>
+                                </div>
                             </div>
+                        </div>
+
+                        <!-- Load more button -->
+                        <div v-if="hasMore || loadingMore" class="notif-load-more-wrap">
+                            <button class="notif-load-more-btn" :disabled="loadingMore" @click="fetchMore">
+                                <span class="notif-load-more-text" :style="{ visibility: loadingMore ? 'hidden' : 'visible' }">Загрузить ещё</span>
+                                <span v-if="loadingMore" class="notif-load-more-dots">
+                                    <span class="notif-load-dot"></span>
+                                    <span class="notif-load-dot"></span>
+                                    <span class="notif-load-dot"></span>
+                                </span>
+                            </button>
                         </div>
                     </div>
                 </template>
@@ -257,187 +344,533 @@ onUnmounted(() => {
 
 <style scoped>
 /* ── Bell button ── */
-.notif-bell { position: relative; }
+.notif-bell {
+    position: relative;
+}
 
 .bell-btn {
     position: relative;
-    width: 36px; height: 36px;
+    width: 36px;
+    height: 36px;
     border-radius: 8px;
     background: transparent;
     border: 1px solid transparent;
-    color: rgba(255,255,255,0.45);
+    color: rgba(255, 255, 255, 0.45);
     cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: all 0.15s;
 }
+
 .bell-btn:hover {
-    background: rgba(255,255,255,0.06);
-    border-color: rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.8);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
 }
+
 .bell-btn--active {
-    background: rgba(155,110,232,0.1);
-    border-color: rgba(155,110,232,0.3);
-    color: #7070d8;
+    background: rgba(160, 160, 255, 0.1);
+    border-color: rgba(160, 160, 255, 0.3);
+    color: var(--color-base-1);
 }
 
 .badge {
     position: absolute;
-    top: 4px; right: 4px;
-    min-width: 15px; height: 15px;
-    background: #7070d8;
+    top: 4px;
+    right: 4px;
+    min-width: 15px;
+    height: 15px;
+    background: var(--color-base-1);
     border-radius: 999px;
-    font-size: 0.6rem; font-weight: 700; color: #fff;
-    display: flex; align-items: center; justify-content: center;
-    padding: 0 3px; line-height: 1;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    line-height: 1;
     border: 1.5px solid #0a0a14;
 }
 
 /* ── Dropdown panel ── */
 .notif-dropdown {
     position: absolute;
-    top: calc(100% + 10px); right: 0;
-    width: 420px;
+    top: calc(100% + 24px);
+    right: 0;
+    width: 500px;
     background: #0f0f1d;
-    border: 1px solid rgba(155,110,232,0.18);
-    border-radius: 16px;
-    box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04) inset;
-    z-index: 1101; overflow: hidden;
+    border: 1px solid rgba(160, 160, 255, 0.18);
+    border-radius: 6px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+    overflow: hidden;
+    z-index: 1101;
+    overflow: hidden;
+}
+
+.notif-dropdown::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(160, 160, 255, 0.3) 50%, transparent 100%);
+    pointer-events: none;
 }
 
 /* ── Panel header ── */
 .notif-panel-header {
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     padding: 1rem 1.25rem 0.75rem;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(160, 160, 255, 0.15);
 }
+
 .notif-panel-title {
-    font-size: 0.8rem; font-weight: 600;
-    color: rgba(255,255,255,0.35);
-    text-transform: uppercase; letter-spacing: 0.06em;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: rgba(160, 160, 255, 0.75);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
 }
-.notif-panel-count {
-    font-size: 0.75rem; font-weight: 600;
-    color: rgba(155,110,232,0.7);
-    background: rgba(155,110,232,0.1);
-    padding: 2px 8px; border-radius: 99px;
+
+/* ── Filter buttons ── */
+.notif-filters {
+    display: flex;
+    gap: 7px;
+}
+
+.notif-filter-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0.25rem 0.75rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    transition: all 0.15s;
+    overflow: hidden;
+}
+
+.notif-filter-btn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    border-radius: 6px 6px 0 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.22) 50%, transparent 100%);
+}
+
+.notif-filter-btn:hover {
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.notif-filter-btn--active {
+    background: rgba(160, 160, 255, 0.15);
+    border-color: rgba(160, 160, 255, 0.3);
+    color: rgba(160, 160, 255, 0.95);
+}
+
+.notif-filter-btn--active::after {
+    background: linear-gradient(90deg, transparent 0%, rgba(160, 160, 255, 0.55) 50%, transparent 100%);
+}
+
+.notif-filter-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--color-base-1);
+    flex-shrink: 0;
 }
 
 /* ── Notification list ── */
 .notif-list {
-    max-height: 400px; overflow-y: auto;
-    scrollbar-width: thin; scrollbar-color: rgba(155,110,232,0.3) transparent;
+    max-height: 560px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(160, 160, 255, 0.3) transparent;
 }
-.notif-list:deep(::-webkit-scrollbar) { width: 3px; }
-.notif-list:deep(::-webkit-scrollbar-track) { background: transparent; }
-.notif-list:deep(::-webkit-scrollbar-thumb) { background: rgba(155,110,232,0.3); border-radius: 99px; }
-.notif-list:deep(::-webkit-scrollbar-thumb:hover) { background: rgba(155,110,232,0.6); }
+
+.notif-list:deep(::-webkit-scrollbar) {
+    width: 3px;
+}
+
+.notif-list:deep(::-webkit-scrollbar-track) {
+    background: transparent;
+}
+
+.notif-list:deep(::-webkit-scrollbar-thumb) {
+    background: rgba(160, 160, 255, 0.3);
+    border-radius: 99px;
+}
+
+.notif-list:deep(::-webkit-scrollbar-thumb:hover) {
+    background: rgba(160, 160, 255, 0.6);
+}
 
 .notif-item {
-    display: flex; align-items: flex-start; gap: 0.85rem;
-    padding: 0.9rem 1.25rem;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    display: flex;
+    padding: 1.1rem 1.25rem 0.7rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.09);
     transition: background 0.12s;
     position: relative;
 }
-.notif-item:last-child { border-bottom: none; }
-.notif-item:hover { background: rgba(255,255,255,0.025); }
-.notif-item--unread { background: rgba(155,110,232,0.04); }
-.notif-item--unread:hover { background: rgba(155,110,232,0.07); }
-.notif-item--clickable { cursor: pointer; }
+
+.notif-item:last-child {
+    border-bottom: none;
+}
+
+.notif-item:hover {
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.notif-item--unread {
+    background: rgba(160, 160, 255, 0.04);
+}
+
+.notif-item--unread:hover {
+    background: rgba(160, 160, 255, 0.07);
+}
+
+.notif-item--clickable {
+    cursor: pointer;
+}
 
 /* unread left accent */
 .notif-item--unread::before {
     content: '';
     position: absolute;
-    left: 0; top: 20%; bottom: 20%;
+    left: 0;
+    top: 20%;
+    bottom: 20%;
     width: 2px;
-    background: #7070d8;
+    background: var(--color-base-1);
     border-radius: 0 2px 2px 0;
 }
 
 /* ── Icon ── */
 .notif-icon-wrap {
-    width: 36px; height: 36px; border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0; font-size: 0.9rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
-.icon--success   { background: rgba(76,222,143,0.1);   color: #4cde8f; }
-.icon--danger    { background: rgba(239,68,68,0.1);    color: #f87171; }
-.icon--paid      { background: rgba(96,165,250,0.1);   color: #60a5fa; }
-.icon--broadcast { background: rgba(139,92,246,0.1);   color: #a78bfa; }
-.icon--default   { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); font-size: 0.55rem; }
-.notif-icon-char { line-height: 1; }
-.notif-icon-wrap .el-icon { font-size: 1rem; }
+
+.notif-icon-wrap .el-icon {
+    font-size: 1.15rem;
+}
+
+.icon--success {
+    background: rgba(76, 222, 143, 0.12);
+    color: #4cde8f;
+}
+
+.icon--danger {
+    background: rgba(239, 68, 68, 0.12);
+    color: #f87171;
+}
+
+.icon--paid {
+    background: rgba(96, 165, 250, 0.12);
+    color: #60a5fa;
+}
+
+.icon--broadcast {
+    background: rgba(160, 160, 255, 0.12);
+    color: var(--color-base-1);
+}
+
+.icon--warning {
+    background: rgba(251, 191, 36, 0.12);
+    color: #fbbf24;
+}
+
+.icon--personal {
+    background: rgba(160, 160, 255, 0.12);
+    color: var(--color-base-1);
+}
+
+.icon--default {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.4);
+}
 
 /* ── Content ── */
-.notif-content { flex: 1; min-width: 0; }
+.notif-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
 .notif-service-title {
-    font-size: 0.9rem; font-weight: 600;
-    color: rgba(255,255,255,0.85); margin: 0 0 0.15rem;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-size: 1rem;
+    font-weight: 400;
+    color: rgba(255,255,255,0.75);
+    margin: 0 0 0.15rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
+
 .notif-msg {
-    font-size: 0.88rem; color: rgba(255,255,255,0.72);
-    margin: 0 0 0.35rem; line-height: 1.45;
+    font-size: 1rem;
+    color: #fff;
+    margin: 0 0 0.3rem;
+    line-height: 1.45;
 }
-.notif-msg--sub { font-size: 0.83rem; color: rgba(255,255,255,0.5); }
+
+.notif-msg--sub {
+    font-size: 0.92rem;
+    color: rgba(255, 255, 255, 0.75);
+}
+
 .notif-reason {
-    font-size: 0.8rem; color: rgba(239,68,68,0.7);
+    font-size: 0.8rem;
+    color: rgba(239, 68, 68, 0.7);
     margin: 0 0 0.3rem;
     padding: 0.2rem 0.5rem;
-    background: rgba(239,68,68,0.06);
-    border-radius: 5px; border-left: 2px solid rgba(239,68,68,0.3);
+    background: rgba(239, 68, 68, 0.06);
+    border-radius: 5px;
+    border-left: 2px solid rgba(239, 68, 68, 0.3);
 }
-.notif-meta {
-    display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+
+.notif-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
 }
+
+.notif-header .notif-service-title,
+.notif-header .notif-msg--headline {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 400;
+    color: rgba(255,255,255,0.75);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.notif-footer-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: auto;
+    padding-top: 0.5rem;
+}
+
 .notif-time {
-    font-size: 0.76rem; color: rgba(255,255,255,0.22);
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.45);
 }
 
 /* ── Category tag ── */
 .notif-cat-tag {
-    font-size: 0.66rem; font-weight: 600; text-transform: uppercase;
-    letter-spacing: 0.05em; padding: 2px 7px; border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 8px;
+    border-radius: 6px;
     flex-shrink: 0;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
-.cat--personal { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.3); }
-.cat--service  { background: rgba(155,110,232,0.12); color: rgba(155,110,232,0.7); }
-.cat--order    { background: rgba(96,165,250,0.1);   color: rgba(96,165,250,0.6); }
+
+.cat--personal {
+    background: rgba(255, 255, 255, 0.07);
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.cat--service {
+    background: rgba(160, 160, 255, 0.12);
+    color: rgba(160, 160, 255, 0.7);
+}
+
+.cat--order {
+    background: rgba(96, 165, 250, 0.1);
+    color: rgba(96, 165, 250, 0.6);
+}
 
 /* ── Empty state ── */
 .notif-empty {
-    padding: 2.5rem 1.5rem; text-align: center;
-    display: flex; flex-direction: column; align-items: center; gap: 0.6rem;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
 }
-.empty-icon { opacity: 0.4; }
-.empty-text { font-size: 0.86rem; color: rgba(255,255,255,0.25); margin: 0; }
 
-/* ── Spinner loader ── */
-.notif-loader {
-    display: flex; align-items: center; justify-content: center;
-    height: 100px;
+.empty-icon {
+    opacity: 0.4;
 }
-.notif-spinner {
-    width: 22px; height: 22px;
-    border: 2px solid rgba(255,255,255,0.08);
-    border-top-color: rgba(160,160,255,0.6);
+
+.empty-text {
+    font-size: 0.86rem;
+    color: rgba(255, 255, 255, 0.25);
+    margin: 0;
+}
+
+/* ── Skeleton loader ── */
+.notif-skeleton-list {
+    padding: 0.25rem 0;
+}
+
+.notif-skeleton-item {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1.1rem 1.25rem 0.7rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sk-icon {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.06);
+    animation: sk-pulse 1.4s ease-in-out infinite;
+    animation-fill-mode: backwards;
+}
+
+.sk-lines {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    justify-content: center;
+}
+
+.sk-line {
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    animation: sk-pulse 1.4s ease-in-out infinite;
+    animation-fill-mode: backwards;
+}
+
+.sk-line--title { height: 13px; width: 55%; }
+.sk-line--body  { height: 11px; width: 85%; animation-delay: 0.1s; }
+.sk-line--time  { height: 9px;  width: 30%; margin-top: 4px; animation-delay: 0.2s; }
+
+.notif-skeleton-item:nth-child(2) .sk-icon,
+.notif-skeleton-item:nth-child(2) .sk-line { animation-delay: 0.15s; }
+.notif-skeleton-item:nth-child(3) .sk-icon,
+.notif-skeleton-item:nth-child(3) .sk-line { animation-delay: 0.3s; }
+.notif-skeleton-item:nth-child(4) .sk-icon,
+.notif-skeleton-item:nth-child(4) .sk-line { animation-delay: 0.45s; }
+
+@keyframes sk-pulse {
+    0%, 100% { opacity: 0.35; }
+    50%       { opacity: 0.8; }
+}
+
+/* ── Load more button ── */
+.notif-load-more-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.notif-load-more-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    width: 100%;
+    padding: 0.55rem 1rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-top: none;
+    font-size: 0.92rem;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    transition: all 0.15s;
+    overflow: hidden;
+    font-family: inherit;
+}
+
+.notif-load-more-btn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    border-radius: 6px 6px 0 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.22) 50%, transparent 100%);
+}
+
+.notif-load-more-btn:hover:not(:disabled) {
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.notif-load-more-btn:disabled {
+    cursor: default;
+}
+
+.notif-load-more-dots {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* три точки внутри кнопки */
+.notif-load-dot {
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
-    animation: notif-spin 0.7s linear infinite;
+    background: rgba(160, 160, 255, 0.6);
+    animation: notif-bounce 1s ease-in-out infinite;
 }
-@keyframes notif-spin {
-    to { transform: rotate(360deg); }
+
+.notif-load-dot:nth-child(2) { animation-delay: 0.15s; }
+.notif-load-dot:nth-child(3) { animation-delay: 0.30s; }
+
+@keyframes notif-bounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+    40%            { transform: translateY(-5px); opacity: 1; }
 }
 
 /* ── Animations ── */
-.dropdown-enter-active, .dropdown-leave-active {
+.dropdown-enter-active,
+.dropdown-leave-active {
     transition: opacity 0.18s ease, transform 0.18s ease;
 }
-.dropdown-enter-from, .dropdown-leave-to {
-    opacity: 0; transform: translateY(-8px) scale(0.98);
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
 }
 
-.badge-pop-enter-active { transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s; }
-.badge-pop-enter-from { transform: scale(0); opacity: 0; }
+.badge-pop-enter-active {
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s;
+}
+
+.badge-pop-enter-from {
+    transform: scale(0);
+    opacity: 0;
+}
 </style>

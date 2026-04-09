@@ -12,7 +12,6 @@ const props = defineProps({
 
 const reviews       = ref([]);
 const total         = ref(0);
-const avgRating     = ref(null);
 const epithetCounts = ref([]);
 const loading       = ref(true);
 const loadingList   = ref(false);
@@ -118,8 +117,7 @@ onMounted(async () => {
         const data = await fetchPage(1);
         reviews.value       = data.reviews;
         total.value         = data.total;
-        avgRating.value     = data.avg_rating;
-        hasMore.value       = data.has_more;
+hasMore.value       = data.has_more;
         epithetCounts.value = data.epithet_counts ?? [];
     } finally {
         loading.value = false;
@@ -223,34 +221,6 @@ function formatDate(iso) {
         <template v-else>
             <!-- Summary -->
             <div class="pr-summary">
-                <div class="pr-summary__top">
-                    <div class="pr-summary__hearts">
-                        <svg
-                            v-for="i in 5"
-                            :key="i"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="pr-summary__heart"
-                        >
-                            <defs>
-                                <radialGradient :id="`sg-${i}`" cx="50%" cy="35%" r="65%">
-                                    <stop offset="0%" stop-color="rgba(255,190,210,0.95)" />
-                                    <stop offset="100%" stop-color="rgba(210,50,100,0.9)" />
-                                </radialGradient>
-                            </defs>
-                            <path
-                                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                                :fill="(avgRating && i <= Math.round(avgRating)) ? `url(#sg-${i})` : 'none'"
-                                :stroke="(avgRating && i <= Math.round(avgRating)) ? 'rgba(210,60,100,0.5)' : 'rgba(255,160,180,0.3)'"
-                                stroke-width="1.5"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            />
-                        </svg>
-                    </div>
-                    <span v-if="avgRating" class="pr-summary__score">{{ avgRating }}</span>
-                </div>
-
                 <!-- Epithet cloud -->
                 <div v-if="epithetCounts.length" class="pr-summary__epithets">
                     <span
@@ -533,26 +503,6 @@ function formatDate(iso) {
     flex-direction: column;
     gap: 0.85rem;
     padding: 0.9rem 0 0;
-}
-.pr-summary__top {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-}
-.pr-summary__hearts {
-    display: flex;
-    gap: 0.25rem;
-}
-.pr-summary__heart {
-    width: 20px;
-    height: 20px;
-}
-.pr-summary__score {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: rgba(255,190,210,0.9);
-    font-family: 'Courier New', monospace;
-    letter-spacing: 0.05em;
 }
 .pr-summary__epithets {
     display: flex;

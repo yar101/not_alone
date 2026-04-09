@@ -86,8 +86,6 @@ class ReviewController extends Controller
 
         $reviews = $query->paginate(10);
 
-        $avg = Review::where('idol_id', $user->id)->where('is_hidden', false)->avg('rating');
-
         $reviewIds = Review::where('idol_id', $user->id)->where('is_hidden', false)->pluck('id');
         $epithetCounts = \DB::table('review_epithet_review')
             ->join('review_epithets', 'review_epithets.id', '=', 'review_epithet_review.review_epithet_id')
@@ -114,7 +112,6 @@ class ReviewController extends Controller
             ])->values(),
             'total'      => $reviews->total(),
             'has_more'   => $reviews->hasMorePages(),
-            'avg_rating' => $avg ? round($avg, 1) : null,
             'epithet_counts' => $epithetCounts->map(fn($e) => [
                 'id'    => $e->id,
                 'label' => $e->label,

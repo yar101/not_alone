@@ -117,6 +117,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/notifications/service/read-all', [NotificationController::class, 'markAllServiceRead'])->name('notifications.service.read-all');
     Route::get('/notifications/orders', [NotificationController::class, 'orders'])->name('notifications.orders');
     Route::patch('/notifications/orders/read-all', [NotificationController::class, 'markAllOrdersRead'])->name('notifications.orders.read-all');
+    Route::get('/notifications/combined', [NotificationController::class, 'combined'])->name('notifications.combined');
     Route::patch('/broadcasts/{id}/read', [NotificationController::class, 'markBroadcastRead'])->name('broadcasts.read');
 });
 
