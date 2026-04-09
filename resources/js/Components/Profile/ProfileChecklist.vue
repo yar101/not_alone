@@ -65,8 +65,8 @@ const sortedItems = computed(() => [
 .pcl {
     margin-top: 0.65rem;
     padding: 0.875rem 1rem 0.75rem;
-    background: linear-gradient(135deg, rgba(155, 110, 232, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
-    border: 1px solid rgba(155, 110, 232, 0.18);
+    background: linear-gradient(135deg, rgba(160, 160, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+    border: 1px solid rgba(160, 160, 255, 0.18);
     border-radius: 3px;
     font-family: 'Figtree', sans-serif;
     position: relative;
@@ -79,7 +79,7 @@ const sortedItems = computed(() => [
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(190, 145, 255, 0.5), transparent);
+    background: linear-gradient(90deg, transparent, rgba(160, 160, 255, 0.5), transparent);
 }
 
 /* ── Header ── */
@@ -94,21 +94,21 @@ const sortedItems = computed(() => [
     font-size: 0.65rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: rgba(190, 145, 255, 0.5);
+    color: rgba(160, 160, 255, 0.5);
     font-weight: 600;
 }
 
 .pcl__counter {
     font-size: 0.78rem;
     font-weight: 700;
-    color: rgba(190, 145, 255, 0.9);
+    color: rgba(160, 160, 255, 0.9);
     letter-spacing: 0.02em;
     font-variant-numeric: tabular-nums;
-    text-shadow: 0 0 12px rgba(155, 110, 232, 0.4);
+    text-shadow: 0 0 12px rgba(160, 160, 255, 0.4);
 }
 .pcl__counter-total {
     font-weight: 400;
-    color: rgba(190, 145, 255, 0.4);
+    color: rgba(160, 160, 255, 0.4);
 }
 
 /* ── Progress bar ── */
@@ -123,8 +123,8 @@ const sortedItems = computed(() => [
 .pcl__bar-fill {
     height: 100%;
     border-radius: 99px;
-    background: linear-gradient(90deg, #7c4dcc, #a78bfa);
-    box-shadow: 0 0 8px rgba(155, 110, 232, 0.6);
+    background: linear-gradient(90deg, #6060cc, #a0a0ff);
+    box-shadow: 0 0 8px rgba(160, 160, 255, 0.6);
     transition: width 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 

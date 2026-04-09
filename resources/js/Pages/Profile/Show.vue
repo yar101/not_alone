@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, inject, provide, reactive } from 'vue';
+import { ref, onMounted, computed, inject, provide, reactive, nextTick, watch } from 'vue';
 import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -75,10 +75,30 @@ const tab = ref(initialTab);
 const serviceNav = reactive({ inCategory: false, accent: '#a0a0ff', onBack: null });
 provide('serviceNav', serviceNav);
 
+const tabsEl = ref(null);
+const sliderStyle = ref({ left: '0px', width: '0px', opacity: '0' });
+
+function updateSlider() {
+    nextTick(() => {
+        const container = tabsEl.value;
+        if (!container) return;
+        const activeBtn = container.querySelector('.tab-btn.active');
+        if (!activeBtn) return;
+        const cRect = container.getBoundingClientRect();
+        const bRect = activeBtn.getBoundingClientRect();
+        sliderStyle.value = {
+            left: (bRect.left - cRect.left + container.scrollLeft) + 'px',
+            width: bRect.width + 'px',
+            opacity: '1',
+        };
+    });
+}
+
 function switchTab(name) {
     tab.value = name;
     history.replaceState(null, '', '#' + name);
     sessionStorage.setItem(`profile_tab_${props.profileUser.id}`, name);
+    updateSlider();
 }
 
 // ── Report modal ──────────────────────────────────────────
@@ -117,6 +137,8 @@ function submitReport() {
 
 // ── driver.js Tour ─────────────────────────────────────────
 const TOUR_KEY = 'profile_tour_done';
+
+onMounted(() => { updateSlider(); });
 
 onMounted(async () => {
     if (!props.isOwner) return;
@@ -265,7 +287,8 @@ onMounted(async () => {
 
                 <!-- Right main: tabs + scrollable tab content -->
                 <div class="profile-main">
-                    <div class="profile-tabs page-block">
+                    <div class="profile-tabs page-block" ref="tabsEl">
+                        <div class="tab-slider" :style="sliderStyle" />
                         <button
                             class="tab-btn"
                             :class="{ active: tab === 'about' }"
@@ -686,8 +709,9 @@ onMounted(async () => {
     background: transparent;
     border: none;
     padding: 0.25rem 0;
+    position: relative;
     gap: 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
     overflow-x: auto;
     scrollbar-width: none;
     margin-bottom: 0.75rem;
@@ -699,10 +723,25 @@ onMounted(async () => {
     flex-shrink: 0;
 }
 
+.tab-slider {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    height: calc(100% - 0.5rem);
+    border-radius: 6px;
+    background: linear-gradient(160deg, rgba(160, 160, 255, 0.18) 0%, rgba(100, 100, 220, 0.10) 100%);
+    border: 1px solid rgba(160, 160, 255, 0.15);
+    box-shadow:
+        inset 0 1px 0 rgba(160, 160, 255, 0.40),
+        0 2px 12px rgba(120, 120, 255, 0.12);
+    pointer-events: none;
+    transition: left 0.28s cubic-bezier(0.4, 0, 0.2, 1), width 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.18s ease;
+}
+
 .tab-btn {
     padding: 0.55rem 0.85rem;
     border: none;
-    border-radius: 3px 3px 0 0;
+    border-radius: 6px;
     background: transparent;
     color: rgba(255,255,255,0.45);
     font-size: 0.88rem;
@@ -714,31 +753,14 @@ onMounted(async () => {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    transition: background 0.18s ease, color 0.18s ease;
+    transition: color 0.18s ease;
     white-space: nowrap;
     flex-shrink: 0;
     position: relative;
-}
-.tab-btn::before {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%) scaleX(0);
-    width: 60%;
-    height: 2px;
-    background: #a0a0ff;
-    border-radius: 2px 2px 0 0;
-    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.18s ease;
-    opacity: 0;
+    z-index: 1;
 }
 .tab-btn.active {
-    background: rgba(160, 160, 255, 0.08);
-    color: rgba(160, 160, 255, 0.95);
-}
-.tab-btn.active::before {
-    transform: translateX(-50%) scaleX(1);
-    opacity: 1;
+    color: rgba(200, 200, 255, 1);
 }
 .tab-btn:hover:not(.active) {
     background: rgba(255,255,255,0.04);

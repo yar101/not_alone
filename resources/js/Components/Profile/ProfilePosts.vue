@@ -165,11 +165,27 @@ function deletePost() {
             </CreateButton>
         </div>
 
-        <!-- Initial loader -->
-        <div v-if="loading && !posts.length" class="posts-initial-loader">
-            <span class="posts-loading__dot" />
-            <span class="posts-loading__dot" />
-            <span class="posts-loading__dot" />
+        <!-- Skeleton loader -->
+        <div v-if="loading && !posts.length" class="posts-skeleton-grid">
+            <div v-for="i in 4" :key="i" class="sk-card">
+                <div class="sk-card__header">
+                    <div class="sk-avatar sk-bone" />
+                    <div class="sk-header-text">
+                        <div class="sk-name sk-bone" />
+                        <div class="sk-date sk-bone" />
+                    </div>
+                </div>
+                <div class="sk-photo sk-bone" />
+                <div class="sk-body">
+                    <div class="sk-line sk-bone" style="width:92%" />
+                    <div class="sk-line sk-bone" style="width:78%" />
+                    <div class="sk-line sk-bone" style="width:55%" />
+                </div>
+                <div class="sk-footer">
+                    <div class="sk-action sk-bone" />
+                    <div class="sk-action sk-bone" />
+                </div>
+            </div>
         </div>
 
         <template v-else>
@@ -270,14 +286,103 @@ function deletePost() {
     margin: 0;
 }
 
-.posts-initial-loader {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 4rem 0;
+/* ── Skeleton ─────────────────────────────────────────────── */
+@keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position:  400px 0; }
 }
 
+.sk-bone {
+    border-radius: 4px;
+    background: linear-gradient(
+        90deg,
+        rgba(160, 160, 255, 0.05) 0%,
+        rgba(160, 160, 255, 0.13) 40%,
+        rgba(160, 160, 255, 0.05) 80%
+    );
+    background-size: 800px 100%;
+    animation: shimmer 1.6s infinite linear;
+}
+
+.posts-skeleton-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.6rem;
+}
+
+.sk-card {
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.02);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sk-card__header {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.6rem 0.85rem;
+}
+
+.sk-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.sk-header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    flex: 1;
+}
+
+.sk-name {
+    height: 11px;
+    width: 45%;
+    border-radius: 4px;
+}
+
+.sk-date {
+    height: 9px;
+    width: 28%;
+    border-radius: 4px;
+}
+
+.sk-photo {
+    width: 100%;
+    height: 140px;
+}
+
+.sk-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 0.65rem 0.85rem 0.5rem;
+}
+
+.sk-line {
+    height: 11px;
+    border-radius: 4px;
+}
+
+.sk-footer {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.55rem 0.75rem 0.65rem;
+    margin-top: auto;
+}
+
+.sk-action {
+    height: 28px;
+    width: 52px;
+    border-radius: 4px;
+}
+
+/* ── Pagination loader ────────────────────────────────────── */
 .posts-loading {
     display: flex;
     justify-content: center;
@@ -293,25 +398,12 @@ function deletePost() {
     animation: bounce 1.1s infinite ease-in-out both;
 }
 
-.posts-loading__dot:nth-child(2) {
-    animation-delay: 0.16s;
-}
-
-.posts-loading__dot:nth-child(3) {
-    animation-delay: 0.32s;
-}
+.posts-loading__dot:nth-child(2) { animation-delay: 0.16s; }
+.posts-loading__dot:nth-child(3) { animation-delay: 0.32s; }
 
 @keyframes bounce {
-
-    0%,
-    80%,
-    100% {
-        transform: scale(0);
-    }
-
-    40% {
-        transform: scale(1);
-    }
+    0%, 80%, 100% { transform: scale(0); }
+    40%           { transform: scale(1); }
 }
 
 .posts-sentinel {

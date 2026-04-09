@@ -373,7 +373,7 @@ function deleteVoice() {
     align-items: center;
     gap: 0.6rem;
     padding: 0.5rem 0.6rem;
-    border: 1px solid rgba(190,145,255,0.35);
+    border: 1px solid rgba(160,160,255,0.35);
     border-radius: 3px;
     box-sizing: border-box;
 }
@@ -422,9 +422,9 @@ function deleteVoice() {
     justify-content: center;
     gap: 0.55rem;
     padding: 0.65rem 0.75rem;
-    border: 1px solid rgba(190,145,255,0.3);
+    border: 1px solid rgba(160,160,255,0.3);
     border-radius: 3px;
-    background: rgba(190,145,255,0.05);
+    background: rgba(160,160,255,0.05);
     color: rgba(255,255,255,0.55);
     font-size: 0.88rem;
     font-family: inherit;
@@ -433,14 +433,14 @@ function deleteVoice() {
     transition: border-color 0.2s, color 0.2s, background 0.2s;
 }
 .rec-btn:hover {
-    border-color: rgba(190,145,255,0.65);
-    background: rgba(190,145,255,0.1);
+    border-color: rgba(160,160,255,0.65);
+    background: rgba(160,160,255,0.1);
     color: #fff;
 }
 .rec-btn-icon {
     width: 15px; height: 15px;
     flex-shrink: 0;
-    color: rgba(190,145,255,0.7);
+    color: rgba(160,160,255,0.7);
     transition: color 0.2s;
 }
 .rec-btn:hover .rec-btn-icon { color: #a0a0ff; }
