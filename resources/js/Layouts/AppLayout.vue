@@ -28,13 +28,31 @@ const sidebarOpen = ref(false);
 
 // ── Cart state (localStorage) ─────────────────────────────
 const CART_KEY = computed(() => user.value ? `cart_${user.value.id}` : null);
-const cart = ref({ idol_id: null, idol_name: '', idol_avatar: null, items: [] });
+
+const emptyCart = () => ({
+    services: { idol_id: null, idol_name: '', idol_avatar: null, items: [] },
+    content:  { items: [] },
+});
+
+const cart = ref(emptyCart());
 
 function loadCart() {
     if (!CART_KEY.value) return;
     try {
         const raw = localStorage.getItem(CART_KEY.value);
-        if (raw) cart.value = JSON.parse(raw);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            // Migrate old format: if it has .items directly (old services-only format)
+            if (Array.isArray(parsed.items)) {
+                cart.value = {
+                    services: { idol_id: parsed.idol_id ?? null, idol_name: parsed.idol_name ?? '', idol_avatar: parsed.idol_avatar ?? null, items: parsed.items ?? [] },
+                    content:  { items: [] },
+                };
+                localStorage.setItem(CART_KEY.value, JSON.stringify(cart.value));
+            } else {
+                cart.value = parsed;
+            }
+        }
     } catch {}
 }
 
@@ -46,6 +64,19 @@ function saveCart() {
 watch(cart, saveCart, { deep: true });
 
 onMounted(loadCart);
+
+function addToContentCart(pack) {
+    const already = cart.value.content.items.find(i => i.pack_id === pack.id);
+    if (already) return;
+    cart.value.content.items.push({
+        pack_id:    pack.id,
+        title:      pack.title,
+        price:      pack.price,
+        cover_url:  pack.cover_url ?? null,
+        idol_id:    pack.idol_id ?? null,
+        idol_name:  pack.idol_name ?? null,
+    });
+}
 
 function openAuth(tab) {
     authModalTab.value = tab;
@@ -67,20 +98,21 @@ function openOrder(orderId) {
 }
 
 function addToCart(service, idol) {
+    const sc = cart.value.services;
     // If cart has items from a different idol — clear and start fresh
-    if (cart.value.idol_id && cart.value.idol_id !== idol.id) {
-        cart.value = { idol_id: idol.id, idol_name: idol.name, idol_avatar: idol.avatar_url ?? null, items: [] };
-    } else if (!cart.value.idol_id) {
-        cart.value.idol_id    = idol.id;
-        cart.value.idol_name  = idol.name;
-        cart.value.idol_avatar = idol.avatar_url ?? null;
+    if (sc.idol_id && sc.idol_id !== idol.id) {
+        cart.value.services = { idol_id: idol.id, idol_name: idol.name, idol_avatar: idol.avatar_url ?? null, items: [] };
+    } else if (!sc.idol_id) {
+        sc.idol_id    = idol.id;
+        sc.idol_name  = idol.name;
+        sc.idol_avatar = idol.avatar_url ?? null;
     }
 
-    const existing = cart.value.items.find(i => i.service_id === service.id);
+    const existing = cart.value.services.items.find(i => i.service_id === service.id);
     if (existing) {
         existing.quantity = (existing.quantity || 1) + 1;
     } else {
-        cart.value.items.push({
+        cart.value.services.items.push({
             service_id: service.id,
             name:       service.name,
             price:      service.price,
@@ -94,6 +126,7 @@ provide('openAuth', openAuth);
 provide('openChatWith', openChatWith);
 provide('openOrder', openOrder);
 provide('addToCart', addToCart);
+provide('addToContentCart', addToContentCart);
 provide('cart', cart);
 
 // ── Global online presence ────────────────────────────────
@@ -203,7 +236,16 @@ onUnmounted(() => {
         </main>
 
         <AuthModal :show="showAuthModal" :initial-tab="authModalTab" @close="showAuthModal = false" />
-        <CartDropdown v-if="user" v-model="cartOpen" :cart="cart" @clear="cart = { idol_id: null, idol_name: '', idol_avatar: null, items: [] }" @remove-item="(idx) => cart.items.splice(idx, 1)" @change-quantity="(idx, delta) => { const q = (cart.items[idx].quantity || 1) + delta; cart.items[idx].quantity = Math.max(1, q); }" />
+        <CartDropdown
+            v-if="user"
+            v-model="cartOpen"
+            :cart="cart"
+            @clear-services="cart.services = { idol_id: null, idol_name: '', idol_avatar: null, items: [] }"
+            @clear-content="cart.content.items = []"
+            @remove-service="(idx) => cart.services.items.splice(idx, 1)"
+            @remove-content="(idx) => cart.content.items.splice(idx, 1)"
+            @change-quantity="(idx, delta) => { const q = (cart.services.items[idx].quantity || 1) + delta; cart.services.items[idx].quantity = Math.max(1, q); }"
+        />
         <ChatPanel v-if="user" ref="chatPanel" v-model="chatOpen" />
         <UserSidebar v-if="user" v-model="sidebarOpen" :user="user" :is-idol="isIdol" :rating="user?.rating" />
     </div>

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminLogController;
+use App\Http\Controllers\Admin\ContentPackModerationController;
 use App\Http\Controllers\Admin\RatingLogController;
 use App\Http\Controllers\Admin\ApplicationController;
 use App\Http\Controllers\Admin\BanReasonController;
@@ -71,6 +72,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
         Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
+
+        // Content pack moderation
+        Route::prefix('content-packs')->name('content-packs.')->group(function () {
+            Route::get('/', [ContentPackModerationController::class, 'index'])->name('index');
+            Route::get('/{pack}', [ContentPackModerationController::class, 'show'])->name('show');
+            Route::post('/{pack}/decide', [ContentPackModerationController::class, 'decide'])->name('decide');
+        });
 
         // Services management
         Route::prefix('services')->name('services.')->group(function () {

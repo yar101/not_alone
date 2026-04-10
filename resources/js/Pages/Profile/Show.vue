@@ -16,6 +16,7 @@ import ProfilePosts from '@/Components/Profile/ProfilePosts.vue';
 import ProfileReviews from '@/Components/Profile/ProfileReviews.vue';
 import ProfileServices from '@/Components/Profile/ProfileServices.vue';
 import ProfileVoice from '@/Components/Profile/ProfileVoice.vue';
+import ProfileContent from '@/Components/Profile/ProfileContent.vue';
 
 const props = defineProps({
     profileUser:        { type: Object, required: true },
@@ -32,6 +33,8 @@ const props = defineProps({
     serviceCategories:  { default: null },
     serviceTimeUnits:   { default: null },
     isBlockedByIdol:    { type: Boolean, default: false },
+    contentPacks:       { default: null },
+    purchasedPackIds:   { default: () => [] },
 });
 
 // ── Auth ──────────────────────────────────────────────────────
@@ -445,25 +448,13 @@ onMounted(async () => {
                     </div>
 
                     <div v-else key="content" class="tab-panel">
-                        <div class="anim-block idol-cta-block">
-                            <!-- Декоративная стопка карточек -->
-                            <svg class="idol-cta-deco" viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <rect x="8" y="28" width="58" height="42" stroke="currentColor" stroke-width="2.5"/>
-                                <rect x="15" y="18" width="58" height="42" stroke="currentColor" stroke-width="2.5"/>
-                                <rect x="22" y="8" width="58" height="42" stroke="currentColor" stroke-width="2.5"/>
-                                <polygon points="36,22 36,38 52,30" fill="currentColor" opacity="0.8"/>
-                            </svg>
-                            <span class="idol-cta-label">КОНТЕНТ</span>
-                            <p class="idol-cta-title">Платные паки контента</p>
-                            <p class="idol-cta-text">Загружай эксклюзивный контент и продавай паки подписчикам. Функция появится совсем скоро!</p>
-                            <span class="idol-cta-btn idol-cta-btn--soon">
-                                Скоро
-                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="7" cy="7" r="5"/>
-                                    <polyline points="7,4 7,7 9,9"/>
-                                </svg>
-                            </span>
-                        </div>
+                        <ProfileContent
+                            :content-packs="contentPacks"
+                            :purchased-pack-ids="purchasedPackIds"
+                            :is-owner="isOwner"
+                            :is-idol="isIdol"
+                            :profile-user="profileUser"
+                        />
                     </div>
 
                 </Transition>

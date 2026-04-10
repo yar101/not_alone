@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import axios from 'axios';
 import UserAvatar from '@/Components/UserAvatar.vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import SortDropdown from '@/Components/SortDropdown.vue';
 
 const props = defineProps({
     profileUserId: { type: Number, required: true },
@@ -19,8 +20,6 @@ const loadingMore   = ref(false);
 const hasMore       = ref(false);
 const page          = ref(1);
 const sort          = ref('latest');
-const sortOpen      = ref(false);
-const sortWrapEl    = ref(null);
 const sentinel      = ref(null);
 const showBackTop   = ref(false);
 let observer        = null;
@@ -75,15 +74,6 @@ const sortOptions = [
     { value: 'rating_desc', label: 'с высокой оценкой' },
     { value: 'rating_asc',  label: 'с низкой оценкой' },
 ];
-const sortLabel = computed(() => sortOptions.find(o => o.value === sort.value)?.label ?? 'сначала новые');
-
-function onSortDocClick(e) {
-    if (sortOpen.value && sortWrapEl.value && !sortWrapEl.value.contains(e.target)) {
-        sortOpen.value = false;
-    }
-}
-onMounted(() => document.addEventListener('click', onSortDocClick, true));
-onUnmounted(() => document.removeEventListener('click', onSortDocClick, true));
 
 async function fetchPage(p = 1) {
     const res = await axios.get(route('users.reviews', props.profileUserId), {
@@ -93,7 +83,6 @@ async function fetchPage(p = 1) {
 }
 
 async function setSort(value) {
-    sortOpen.value = false;
     if (sort.value === value) return;
     sort.value = value;
     observer?.disconnect();
@@ -235,28 +224,8 @@ function formatDate(iso) {
             </div>
 
             <!-- Sort dropdown -->
-            <div class="pr-sort" ref="sortWrapEl">
-                <span class="pr-sort__label">Сортировка:</span>
-                <div class="pr-sort__trigger">
-                    <button class="pr-sort__btn" @click="sortOpen = !sortOpen" type="button">
-                        {{ sortLabel }}
-                        <svg class="pr-sort__arrow" :class="{ 'pr-sort__arrow--open': sortOpen }" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="6 9 12 15 18 9"/>
-                        </svg>
-                    </button>
-                    <Transition name="pr-drop">
-                        <div v-if="sortOpen" class="pr-sort__dropdown">
-                            <button
-                                v-for="opt in sortOptions"
-                                :key="opt.value"
-                                class="pr-sort__option"
-                                :class="{ 'pr-sort__option--active': sort === opt.value }"
-                                @click="setSort(opt.value)"
-                                type="button"
-                            >{{ opt.label }}</button>
-                        </div>
-                    </Transition>
-                </div>
+            <div class="pr-sort">
+                <SortDropdown :options="sortOptions" :model-value="sort" @update:modelValue="setSort" />
                 <span class="pr-sort__total">{{ total }} {{ total === 1 ? 'отзыв' : total < 5 ? 'отзыва' : 'отзывов' }}</span>
             </div>
 
@@ -548,81 +517,6 @@ function formatDate(iso) {
     color: rgba(255,255,255,0.55);
     white-space: nowrap;
 }
-.pr-sort__label {
-    font-size: 0.92rem;
-    color: rgba(255,255,255,0.55);
-    white-space: nowrap;
-}
-.pr-sort__btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    background: none;
-    border: none;
-    padding: 0;
-    font-size: 0.92rem;
-    font-family: inherit;
-    color: var(--color-base-1);
-    cursor: pointer;
-    white-space: nowrap;
-}
-.pr-sort__btn:hover { opacity: 0.8; }
-.pr-sort__arrow {
-    transition: transform 0.18s ease;
-    opacity: 0.7;
-}
-.pr-sort__arrow--open { transform: rotate(180deg); }
-
-.pr-sort__trigger {
-    position: relative;
-}
-.pr-sort__dropdown {
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    background: rgba(12, 10, 20, 0.97);
-    border: 1px solid rgba(160,160,255,0.2);
-    border-radius: 6px;
-    padding: 0;
-    z-index: 20;
-    min-width: 180px;
-    box-shadow: 0 6px 24px rgba(0,0,0,0.5);
-    overflow: hidden;
-}
-.pr-sort__dropdown::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent 0%, rgba(255,140,175,0.5) 50%, transparent 100%);
-    pointer-events: none;
-}
-.pr-sort__option {
-    display: block;
-    width: 100%;
-    padding: 0.5rem 0.9rem;
-    background: none;
-    border: none;
-    text-align: left;
-    font-size: 0.92rem;
-    font-family: inherit;
-    color: rgba(255,255,255,0.5);
-    cursor: pointer;
-    transition: color 0.12s, background 0.12s;
-}
-.pr-sort__option:hover {
-    background: rgba(160,160,255,0.07);
-    color: rgba(200,200,255,0.9);
-}
-.pr-sort__option--active {
-    color: var(--color-base-1);
-}
-
-.pr-drop-enter-active { transition: opacity 0.15s ease, transform 0.15s ease; }
-.pr-drop-leave-active { transition: opacity 0.1s ease, transform 0.1s ease; }
-.pr-drop-enter-from, .pr-drop-leave-to { opacity: 0; transform: translateY(-4px); }
 
 /* ── List ────────────────────────────────── */
 .pr-list {

@@ -7,46 +7,82 @@ const props = defineProps({
     modelValue: { type: Boolean, default: false },
     cart: { type: Object, required: true },
 });
-const emit = defineEmits(['update:modelValue', 'clear', 'remove-item', 'change-quantity']);
+const emit = defineEmits(['update:modelValue', 'clear-services', 'clear-content', 'remove-service', 'remove-content', 'change-quantity']);
 
 const openOrder = inject('openOrder', null);
 
+// Active tab: 'services' | 'content'
+const activeTab = ref('services');
+
+// Auto-switch to non-empty tab when one is empty
+const servicesItems = computed(() => props.cart.services?.items ?? []);
+const contentItems  = computed(() => props.cart.content?.items ?? []);
+
+const hasBothCarts = computed(() => servicesItems.value.length > 0 && contentItems.value.length > 0);
+
+// Services tab state
 const creating = ref(false);
-const error    = ref('');
+const serviceError = ref('');
 const confirmDeleteIdx = ref(null);
 
 function askDelete(idx) { confirmDeleteIdx.value = idx; }
 function cancelDelete() { confirmDeleteIdx.value = null; }
-function confirmDelete(idx) { confirmDeleteIdx.value = null; emit('remove-item', idx); }
+function confirmDelete(idx) { confirmDeleteIdx.value = null; emit('remove-service', idx); }
 
 const isOpen = computed({
     get: () => props.modelValue,
     set: (v) => emit('update:modelValue', v),
 });
 
-const total = computed(() =>
-    props.cart.items.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0)
+const servicesTotal = computed(() =>
+    servicesItems.value.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0)
+);
+
+const contentTotal = computed(() =>
+    contentItems.value.reduce((sum, item) => sum + (item.price || 0), 0)
 );
 
 function close() { isOpen.value = false; }
 
 async function createOrder() {
-    if (creating.value || !props.cart.items.length) return;
+    const sc = props.cart.services;
+    if (creating.value || !sc.items.length) return;
     creating.value = true;
-    error.value = '';
+    serviceError.value = '';
     try {
         const res = await axios.post(route('orders.store'), {
-            idol_id: props.cart.idol_id,
-            services: props.cart.items.map(i => ({ id: i.service_id, quantity: i.quantity || 1 })),
+            idol_id:  sc.idol_id,
+            services: sc.items.map(i => ({ id: i.service_id, quantity: i.quantity || 1 })),
         });
-        emit('clear');
+        emit('clear-services');
         isOpen.value = false;
         if (openOrder) openOrder(res.data.order_id);
         router.reload({ only: ['order_notifications_unread'] });
     } catch (e) {
-        error.value = e.response?.data?.error ?? 'Ошибка при создании заказа';
+        serviceError.value = e.response?.data?.error ?? 'Ошибка при создании заказа';
     } finally {
         creating.value = false;
+    }
+}
+
+// Content tab state
+const purchasing = ref(false);
+const contentError = ref('');
+
+async function purchaseContent() {
+    if (purchasing.value || !contentItems.value.length) return;
+    purchasing.value = true;
+    contentError.value = '';
+    try {
+        await axios.post(route('content-packs.purchase'), {
+            items: contentItems.value.map(i => i.pack_id),
+        });
+        emit('clear-content');
+        isOpen.value = false;
+    } catch (e) {
+        contentError.value = e.response?.data?.error ?? 'Ошибка при оплате';
+    } finally {
+        purchasing.value = false;
     }
 }
 </script>
@@ -69,61 +105,120 @@ async function createOrder() {
                             </svg>
                         </button>
                     </div>
-                    <span v-if="cart.idol_name" class="rc-store-sub">Айдол: {{ cart.idol_name }}</span>
+
+                    <!-- Tab switcher — always shown so user can switch -->
+                    <div class="rc-tabs">
+                        <button
+                            class="rc-tab"
+                            :class="{ 'rc-tab--active': activeTab === 'services' }"
+                            @click="activeTab = 'services'"
+                        >
+                            Услуги
+                            <span v-if="servicesItems.length" class="rc-tab__badge">{{ servicesItems.length }}</span>
+                        </button>
+                        <button
+                            class="rc-tab"
+                            :class="{ 'rc-tab--active': activeTab === 'content' }"
+                            @click="activeTab = 'content'"
+                        >
+                            Контент
+                            <span v-if="contentItems.length" class="rc-tab__badge rc-tab__badge--content">{{ contentItems.length }}</span>
+                        </button>
+                    </div>
+
                     <div class="rc-rule rc-rule--double"></div>
                 </div>
 
-                <!-- ═══ Позиции ═══ -->
-                <div class="rc-body">
-                    <div v-if="!cart.items.length" class="rc-empty">
-                        — &nbsp;корзина пуста&nbsp; —
-                    </div>
-                    <template v-else>
-                        <div v-for="(item, idx) in cart.items" :key="item.service_id" class="rc-line">
-                            <div class="rc-line__top">
-                                <span class="rc-line__name">{{ item.name }}</span>
-                                <template v-if="confirmDeleteIdx === idx">
-                                    <div class="rc-line__confirm">
-                                        <span class="rc-line__confirm-text">Удалить?</span>
-                                        <button class="rc-line__confirm-yes" @click="confirmDelete(idx)" aria-label="Да">✓</button>
-                                        <button class="rc-line__confirm-no" @click="cancelDelete" aria-label="Нет">✕</button>
+                <!-- ═══ SERVICES tab ═══ -->
+                <template v-if="activeTab === 'services'">
+                    <span v-if="cart.services?.idol_name" class="rc-store-sub rc-store-sub--pad">Айдол: {{ cart.services.idol_name }}</span>
+
+                    <div class="rc-body">
+                        <div v-if="!servicesItems.length" class="rc-empty">
+                            — &nbsp;услуги не добавлены&nbsp; —
+                        </div>
+                        <template v-else>
+                            <div v-for="(item, idx) in servicesItems" :key="item.service_id" class="rc-line">
+                                <div class="rc-line__top">
+                                    <span class="rc-line__name">{{ item.name }}</span>
+                                    <template v-if="confirmDeleteIdx === idx">
+                                        <div class="rc-line__confirm">
+                                            <span class="rc-line__confirm-text">Удалить?</span>
+                                            <button class="rc-line__confirm-yes" @click="confirmDelete(idx)">✓</button>
+                                            <button class="rc-line__confirm-no" @click="cancelDelete">✕</button>
+                                        </div>
+                                    </template>
+                                    <button v-else class="rc-line__del" @click="askDelete(idx)">✕</button>
+                                </div>
+                                <div class="rc-line__bottom">
+                                    <span class="rc-line__price">{{ (item.price || 0).toLocaleString('ru-RU') }}&thinsp;₽<template v-if="item.time_unit">&thinsp;/&thinsp;{{ item.time_unit }}</template></span>
+                                    <div class="rc-qty">
+                                        <button class="rc-qty__btn" @click="emit('change-quantity', idx, -1)">−</button>
+                                        <span class="rc-qty__val">{{ item.quantity || 1 }}</span>
+                                        <button class="rc-qty__btn" @click="emit('change-quantity', idx, 1)">+</button>
                                     </div>
-                                </template>
-                                <button v-else class="rc-line__del" @click="askDelete(idx)" aria-label="Удалить">✕</button>
-                            </div>
-                            <div class="rc-line__bottom">
-                                <span class="rc-line__price">{{ (item.price || 0).toLocaleString('ru-RU') }}&thinsp;₽<template v-if="item.time_unit">&thinsp;/&thinsp;{{ item.time_unit }}</template></span>
-                                <div class="rc-qty">
-                                    <button class="rc-qty__btn" @click="emit('change-quantity', idx, -1)" aria-label="Меньше">−</button>
-                                    <span class="rc-qty__val">{{ item.quantity || 1 }}</span>
-                                    <button class="rc-qty__btn" @click="emit('change-quantity', idx, 1)" aria-label="Больше">+</button>
                                 </div>
                             </div>
+                        </template>
+                    </div>
+
+                    <div class="rc-perf"><span class="rc-perf__line"></span></div>
+                    <div class="rc-total">
+                        <span class="rc-total__label">ИТОГО</span>
+                        <span class="rc-total__sum">{{ servicesTotal.toLocaleString('ru-RU') }}&thinsp;₽</span>
+                    </div>
+                    <div class="rc-perf"><span class="rc-perf__line"></span></div>
+                    <div class="rc-footer">
+                        <p v-if="serviceError" class="rc-error">{{ serviceError }}</p>
+                        <button
+                            class="rc-submit"
+                            :disabled="!servicesItems.length || creating"
+                            @click="createOrder"
+                        >{{ creating ? 'ОФОРМЛЯЕМ…' : 'СОЗДАТЬ ЗАКАЗ' }}</button>
+                    </div>
+                </template>
+
+                <!-- ═══ CONTENT tab ═══ -->
+                <template v-else>
+                    <div class="rc-body">
+                        <div v-if="!contentItems.length" class="rc-empty">
+                            — &nbsp;контент не добавлен&nbsp; —
                         </div>
-                    </template>
-                </div>
+                        <template v-else>
+                            <div v-for="(item, idx) in contentItems" :key="item.pack_id" class="rc-line rc-line--content">
+                                <div class="rc-line__top">
+                                    <div class="rc-content-item">
+                                        <img v-if="item.cover_url" :src="item.cover_url" class="rc-content-item__cover" alt="" />
+                                        <div v-else class="rc-content-item__cover rc-content-item__cover--empty"></div>
+                                        <div class="rc-content-item__info">
+                                            <span class="rc-line__name">{{ item.title }}</span>
+                                            <span v-if="item.idol_name" class="rc-content-item__idol">{{ item.idol_name }}</span>
+                                        </div>
+                                    </div>
+                                    <button class="rc-line__del" @click="emit('remove-content', idx)">✕</button>
+                                </div>
+                                <div class="rc-line__bottom">
+                                    <span class="rc-line__price">{{ (item.price || 0).toLocaleString('ru-RU') }}&thinsp;₽</span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
 
-                <!-- ═══ Перфорация ═══ -->
-                <div class="rc-perf"><span class="rc-perf__line"></span></div>
-
-                <!-- ═══ Итого ═══ -->
-                <div class="rc-total">
-                    <span class="rc-total__label">ИТОГО</span>
-                    <span class="rc-total__sum">{{ total.toLocaleString('ru-RU') }}&thinsp;₽</span>
-                </div>
-
-                <!-- ═══ Перфорация ═══ -->
-                <div class="rc-perf"><span class="rc-perf__line"></span></div>
-
-                <!-- ═══ Футер ═══ -->
-                <div class="rc-footer">
-                    <p v-if="error" class="rc-error">{{ error }}</p>
-                    <button
-                        class="rc-submit"
-                        :disabled="!cart.items.length || creating"
-                        @click="createOrder"
-                    >{{ creating ? 'ОФОРМЛЯЕМ…' : 'СОЗДАТЬ ЗАКАЗ' }}</button>
-                </div>
+                    <div class="rc-perf"><span class="rc-perf__line"></span></div>
+                    <div class="rc-total">
+                        <span class="rc-total__label">ИТОГО</span>
+                        <span class="rc-total__sum">{{ contentTotal.toLocaleString('ru-RU') }}&thinsp;₽</span>
+                    </div>
+                    <div class="rc-perf"><span class="rc-perf__line"></span></div>
+                    <div class="rc-footer">
+                        <p v-if="contentError" class="rc-error">{{ contentError }}</p>
+                        <button
+                            class="rc-submit rc-submit--content"
+                            :disabled="!contentItems.length || purchasing"
+                            @click="purchaseContent"
+                        >{{ purchasing ? 'ОПЛАТА…' : 'ОПЛАТИТЬ' }}</button>
+                    </div>
+                </template>
 
             </div>
         </Transition>
@@ -165,7 +260,6 @@ async function createOrder() {
     overflow: hidden;
 }
 
-/* subtle grain overlay */
 .rc-panel::before {
     content: '';
     position: absolute;
@@ -211,6 +305,53 @@ async function createOrder() {
     background: rgba(120, 220, 255, 0.06);
 }
 
+/* ── Tabs ─────────────────────────────────────────────── */
+.rc-tabs {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.rc-tab {
+    flex: 1;
+    padding: 0.4rem 0.75rem;
+    border-radius: 4px;
+    background: transparent;
+    border: 1px solid rgba(120, 220, 255, 0.12);
+    color: rgba(210, 240, 255, 0.4);
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    text-transform: uppercase;
+}
+.rc-tab:hover {
+    background: rgba(120, 220, 255, 0.05);
+    color: rgba(210, 240, 255, 0.7);
+}
+.rc-tab--active {
+    background: rgba(100, 210, 255, 0.08);
+    border-color: rgba(100, 210, 255, 0.35);
+    color: rgba(100, 210, 255, 0.9);
+}
+
+.rc-tab__badge {
+    background: rgba(100, 210, 255, 0.2);
+    color: rgba(100, 210, 255, 0.9);
+    border-radius: 10px;
+    padding: 1px 6px;
+    font-size: 0.72rem;
+}
+.rc-tab__badge--content {
+    background: rgba(160, 100, 255, 0.2);
+    color: rgba(180, 130, 255, 0.9);
+}
+
 .rc-rule {
     width: 100%;
     border: none;
@@ -232,6 +373,7 @@ async function createOrder() {
     letter-spacing: 0.08em;
     color: rgba(100, 200, 255, 0.7);
 }
+.rc-store-sub--pad { padding: 0.25rem 1.5rem 0; }
 
 /* ── Body ─────────────────────────────────────────────── */
 .rc-body {
@@ -319,20 +461,12 @@ async function createOrder() {
     border: 1px solid rgba(255, 100, 100, 0.35);
     color: rgba(255, 100, 100, 0.75);
 }
-.rc-line__confirm-yes:hover {
-    color: rgba(255, 100, 100, 1);
-    border-color: rgba(255, 100, 100, 0.7);
-    background: rgba(255, 100, 100, 0.1);
-}
+.rc-line__confirm-yes:hover { color: rgba(255, 100, 100, 1); border-color: rgba(255, 100, 100, 0.7); background: rgba(255, 100, 100, 0.1); }
 .rc-line__confirm-no {
     border: 1px solid rgba(120, 220, 255, 0.2);
     color: rgba(120, 220, 255, 0.5);
 }
-.rc-line__confirm-no:hover {
-    color: rgba(120, 220, 255, 0.9);
-    border-color: rgba(120, 220, 255, 0.45);
-    background: rgba(120, 220, 255, 0.06);
-}
+.rc-line__confirm-no:hover { color: rgba(120, 220, 255, 0.9); border-color: rgba(120, 220, 255, 0.45); background: rgba(120, 220, 255, 0.06); }
 
 .rc-line__bottom {
     display: flex;
@@ -345,6 +479,37 @@ async function createOrder() {
     font-weight: 700;
     color: rgba(100, 210, 255, 0.95);
     white-space: nowrap;
+    letter-spacing: 0.03em;
+}
+
+/* Content item layout */
+.rc-content-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    flex: 1;
+    min-width: 0;
+}
+.rc-content-item__cover {
+    width: 40px;
+    height: 54px;
+    object-fit: cover;
+    border-radius: 3px;
+    flex-shrink: 0;
+    border: 1px solid rgba(255,255,255,0.06);
+}
+.rc-content-item__cover--empty {
+    background: rgba(255,255,255,0.04);
+}
+.rc-content-item__info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+.rc-content-item__idol {
+    font-size: 0.8rem;
+    color: rgba(180, 130, 255, 0.7);
     letter-spacing: 0.03em;
 }
 
@@ -370,10 +535,7 @@ async function createOrder() {
     font-family: inherit;
     transition: background 0.12s, color 0.12s;
 }
-.rc-qty__btn:hover {
-    background: rgba(100, 210, 255, 0.08);
-    color: rgba(100, 210, 255, 0.95);
-}
+.rc-qty__btn:hover { background: rgba(100, 210, 255, 0.08); color: rgba(100, 210, 255, 0.95); }
 .rc-qty__val {
     min-width: 34px;
     text-align: center;
@@ -471,8 +633,16 @@ async function createOrder() {
     border-color: rgba(100, 210, 255, 0.6);
     color: rgba(100, 210, 255, 1);
 }
-.rc-submit:disabled {
-    opacity: 0.25;
-    cursor: not-allowed;
+.rc-submit:disabled { opacity: 0.25; cursor: not-allowed; }
+
+.rc-submit--content {
+    border-color: rgba(160, 100, 255, 0.35);
+    background: rgba(160, 100, 255, 0.07);
+    color: rgba(180, 130, 255, 0.95);
+}
+.rc-submit--content:hover:not(:disabled) {
+    background: rgba(160, 100, 255, 0.13);
+    border-color: rgba(160, 100, 255, 0.6);
+    color: rgba(180, 130, 255, 1);
 }
 </style>

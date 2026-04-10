@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ContentPack;
+use App\Models\ContentPackPurchase;
 use App\Models\IdolCategoryDescription;
 use App\Models\InterestSuggestion;
 use App\Models\TraitSuggestion;
@@ -126,6 +128,71 @@ class UserProfileController extends Controller
                 fn () => ServiceTimeUnit::where('is_active', true)->orderBy('sort_order')->get(['id', 'name']),
                 'services'
             ),
+
+            // Deferred group "content" — content packs
+            'contentPacks' => Inertia::defer(function () use ($user) {
+                $authUser = auth()->user();
+                $isOwner  = $authUser && $authUser->id === $user->id;
+
+                if ($isOwner) {
+                    return ContentPack::where('user_id', $user->id)
+                        ->with(['photos', 'latestReview'])
+                        ->latest()
+                        ->get()
+                        ->map(fn (ContentPack $p) => [
+                            'id'          => $p->id,
+                            'title'       => $p->title,
+                            'description' => $p->description,
+                            'price'       => $p->price,
+                            'status'      => $p->status,
+                            'cover_url'   => $p->cover_url,
+                            'photos_count' => $p->photos->count(),
+                            'published_at' => $p->published_at?->toIso8601String(),
+                            'latest_review' => $p->latestReview ? [
+                                'decision'          => $p->latestReview->decision,
+                                'flagged_fields'    => $p->latestReview->flagged_fields ?? [],
+                                'field_comments'    => $p->latestReview->field_comments ?? [],
+                                'flagged_photo_ids' => $p->latestReview->flagged_photo_ids ?? [],
+                                'photo_comments'    => $p->latestReview->photo_comments ?? [],
+                            ] : null,
+                            'photos' => $p->photos->map(fn ($ph) => [
+                                'id'  => $ph->id,
+                                'url' => $ph->url,
+                            ])->values(),
+                        ])
+                        ->values();
+                }
+
+                return ContentPack::where('user_id', $user->id)
+                    ->where('status', 'published')
+                    ->with(['photos'])
+                    ->latest('published_at')
+                    ->get()
+                    ->map(fn (ContentPack $p) => [
+                        'id'          => $p->id,
+                        'title'       => $p->title,
+                        'description' => $p->description,
+                        'price'       => $p->price,
+                        'status'      => $p->status,
+                        'cover_url'   => $p->cover_url,
+                        'photos_count' => $p->photos->count(),
+                        'published_at' => $p->published_at?->toIso8601String(),
+                        'idol_id'     => $user->id,
+                        'idol_name'   => $user->name,
+                    ])
+                    ->values();
+            }, 'content'),
+
+            'purchasedPackIds' => Inertia::defer(function () use ($user) {
+                $authUser = auth()->user();
+                if (!$authUser || $authUser->id === $user->id) {
+                    return [];
+                }
+                return ContentPackPurchase::where('user_id', $authUser->id)
+                    ->whereHas('contentPack', fn ($q) => $q->where('user_id', $user->id))
+                    ->pluck('content_pack_id')
+                    ->toArray();
+            }, 'content'),
 
         ]);
     }

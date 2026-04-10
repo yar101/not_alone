@@ -41,14 +41,14 @@ function showBlockError() {
 }
 
 function isInCart(serviceId) {
-    return !!cart?.value?.items.find(i => i.service_id === serviceId);
+    return !!cart?.value?.services?.items.find(i => i.service_id === serviceId);
 }
 
 function addToCart(item) {
     if (!page.props.auth?.user) { openAuth?.('register'); return; }
     if (props.isBlockedByIdol) { showBlockError(); return; }
     if (!cart) return;
-    const c = cart.value;
+    const c = cart.value.services;
     const idolId = props.profileUser?.id;
     if (c.idol_id && c.idol_id !== idolId && c.items.length > 0) {
         // Different idol — show conflict modal
@@ -61,7 +61,7 @@ function addToCart(item) {
 
 function doAddToCart(item) {
     if (!cart) return;
-    const c = cart.value;
+    const c = cart.value.services;
     if (isInCart(item.id)) return;
     c.idol_id     = props.profileUser?.id;
     c.idol_name   = props.profileUser?.name ?? '';
@@ -77,8 +77,8 @@ function doAddToCart(item) {
 
 function confirmCartReplace() {
     if (!cart) return;
-    cart.value.items = [];
-    cart.value.idol_id = null;
+    cart.value.services.items = [];
+    cart.value.services.idol_id = null;
     doAddToCart(pendingCartItem.value);
     pendingCartItem.value = null;
     cartConflictModal.value = false;

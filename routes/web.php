@@ -10,6 +10,9 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ServiceController;
 
 use App\Http\Controllers\AboutController;
+use App\Http\Controllers\ContentPackController;
+use App\Http\Controllers\ContentPackPurchaseController;
+use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\NewsPublicController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\ReviewController;
@@ -100,6 +103,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
     )->name('profile.services.category.description');
     Route::patch('/profile/services/{service}',     [ServiceController::class, 'update'])->name('profile.services.update');
     Route::delete('/profile/services/{service}',    [ServiceController::class, 'destroy'])->name('profile.services.destroy');
+});
+
+// Content packs (idol management)
+Route::middleware(['auth', 'verified', 'not_banned'])->group(function () {
+    Route::post('/content-packs',                     [ContentPackController::class, 'store'])->name('content-packs.store');
+    Route::post('/content-packs/purchase',            [ContentPackPurchaseController::class, 'store'])->name('content-packs.purchase');
+    Route::patch('/content-packs/{pack}',             [ContentPackController::class, 'update'])->name('content-packs.update');
+    Route::post('/content-packs/{pack}/publish',      [ContentPackController::class, 'publish'])->name('content-packs.publish');
+    Route::delete('/content-packs/{pack}',            [ContentPackController::class, 'destroy'])->name('content-packs.destroy');
+});
+
+// Public content pack profile feed
+Route::get('/users/{user}/content-packs', [ContentPackController::class, 'indexForProfile'])->name('profile.content-packs.index');
+
+// Gallery
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/gallery',        [GalleryController::class, 'index'])->name('gallery.index');
+    Route::get('/gallery/photos', [GalleryController::class, 'photos'])->name('gallery.photos');
+    Route::get('/gallery/packs',  [GalleryController::class, 'packs'])->name('gallery.packs');
 });
 
 // Reports

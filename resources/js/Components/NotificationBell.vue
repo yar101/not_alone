@@ -6,6 +6,7 @@ import {
     Promotion, Trophy, CircleClose,
     DocumentAdd, CircleCheckFilled, CircleCloseFilled,
     Coin, SuccessFilled, WarningFilled, Rank, Bell,
+    PictureFilled,
 } from '@element-plus/icons-vue';
 
 const page = usePage();
@@ -94,10 +95,11 @@ function handleItemClick(item) {
     const profileTypes = [
         'idol_approved', 'idol_rejected', 'low_rating_warning',
         'admin_rating', 'review_dispute_approved', 'review_dispute_rejected',
+        'content_pack_approved', 'content_pack_remarks', 'content_pack_rejected',
     ];
     if (profileTypes.includes(item.type)) {
         open.value = false;
-        router.visit(route('profile.show', { user: page.props.auth.user.id }));
+        router.visit(route('profile.show', { user: page.props.auth.user.id }) + '#content');
     }
 }
 
@@ -106,6 +108,7 @@ function isClickable(item) {
     const profileTypes = [
         'idol_approved', 'idol_rejected', 'low_rating_warning',
         'admin_rating', 'review_dispute_approved', 'review_dispute_rejected',
+        'content_pack_approved', 'content_pack_remarks', 'content_pack_rejected',
     ];
     return profileTypes.includes(item.type);
 }
@@ -173,6 +176,9 @@ function itemIconComponent(item) {
             admin_rating: Rank,
             review_dispute_approved: CircleCheckFilled,
             review_dispute_rejected: CircleCloseFilled,
+            content_pack_approved:  PictureFilled,
+            content_pack_remarks:   PictureFilled,
+            content_pack_rejected:  PictureFilled,
         }[item.type] ?? Bell;
     }
     return Bell;
@@ -188,8 +194,9 @@ function itemIconClass(item) {
     }
     if (item._cat === 'service') {
         if (item.type === 'admin_broadcast') return 'icon--broadcast';
-        if (item.type === 'idol_approved' || item.type === 'review_dispute_approved') return 'icon--success';
-        if (item.type === 'idol_rejected' || item.type === 'review_dispute_rejected') return 'icon--danger';
+        if (item.type === 'idol_approved' || item.type === 'review_dispute_approved' || item.type === 'content_pack_approved') return 'icon--success';
+        if (item.type === 'idol_rejected' || item.type === 'review_dispute_rejected' || item.type === 'content_pack_remarks') return 'icon--warning';
+        if (item.type === 'content_pack_rejected') return 'icon--danger';
         if (item.type === 'low_rating_warning') return 'icon--warning';
         if (item.type === 'admin_rating') return 'icon--paid';
         return 'icon--default';
@@ -622,9 +629,6 @@ onUnmounted(() => {
     font-weight: 400;
     color: rgba(255,255,255,0.75);
     margin: 0 0 0.15rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .notif-msg {
@@ -664,9 +668,6 @@ onUnmounted(() => {
     font-size: 1rem;
     font-weight: 400;
     color: rgba(255,255,255,0.75);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .notif-footer-row {

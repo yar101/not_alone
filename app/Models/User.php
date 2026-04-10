@@ -138,6 +138,16 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(ChatBlock::class, 'blocked_id');
     }
 
+    public function contentPacks(): HasMany
+    {
+        return $this->hasMany(ContentPack::class);
+    }
+
+    public function contentPackPurchases(): HasMany
+    {
+        return $this->hasMany(ContentPackPurchase::class);
+    }
+
     public function unreadMessagesCount(): int
     {
         return $this->conversationParticipants()

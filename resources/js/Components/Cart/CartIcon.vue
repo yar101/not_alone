@@ -7,9 +7,11 @@ const props = defineProps({
 
 const emit = defineEmits(['click']);
 
-const count = computed(() =>
-    props.cart.items.reduce((sum, i) => sum + (i.quantity || 1), 0)
-);
+const count = computed(() => {
+    const servicesCount = (props.cart.services?.items ?? []).reduce((sum, i) => sum + (i.quantity || 1), 0);
+    const contentCount  = (props.cart.content?.items ?? []).length;
+    return servicesCount + contentCount;
+});
 </script>
 
 <template>

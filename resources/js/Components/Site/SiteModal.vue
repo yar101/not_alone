@@ -45,6 +45,7 @@ watch(
             }, 450);
         }
     },
+    { immediate: true },
 );
 
 const close = () => {

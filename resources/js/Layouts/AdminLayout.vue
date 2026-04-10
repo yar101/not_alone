@@ -130,6 +130,14 @@ function isActive(routeName) {
                 </Link>
 
                 <Link
+                    :href="route('admin.content-packs.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.content-packs.*') }"
+                >
+                    Контент-паки
+                </Link>
+
+                <Link
                     :href="route('admin.users.index')"
                     class="nav-item"
                     :class="{ 'nav-item--active': isActive('admin.users.*') }"

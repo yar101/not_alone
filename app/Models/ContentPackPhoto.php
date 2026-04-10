@@ -1,0 +1,29 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
+
+class ContentPackPhoto extends Model
+{
+    protected $fillable = [
+        'content_pack_id',
+        'path',
+        'original_filename',
+        'sort_order',
+    ];
+
+    protected $appends = ['url'];
+
+    public function getUrlAttribute(): string
+    {
+        return Storage::url($this->path);
+    }
+
+    public function contentPack(): BelongsTo
+    {
+        return $this->belongsTo(ContentPack::class);
+    }
+}
