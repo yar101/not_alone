@@ -151,7 +151,14 @@ const STATUS_COLORS = {
         <!-- Loading skeleton -->
         <template v-if="displayPacks() === null">
             <div class="pc-grid">
-                <div v-for="n in 6" :key="n" class="pc-skeleton" />
+                <div v-for="n in 6" :key="n" class="pc-skeleton-card">
+                    <div class="pc-skeleton-card__cover" />
+                    <div class="pc-skeleton-card__body">
+                        <div class="pc-skeleton-line pc-skeleton-line--title" />
+                        <div class="pc-skeleton-line pc-skeleton-line--short" />
+                        <div class="pc-skeleton-line pc-skeleton-line--xshort" />
+                    </div>
+                </div>
             </div>
         </template>
 
@@ -348,17 +355,52 @@ const STATUS_COLORS = {
     .pc-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-.pc-skeleton {
-    border-radius: 10px;
-    background: rgba(255,255,255,0.05);
-    aspect-ratio: 1/1;
-    animation: pulse 1.4s ease-in-out infinite;
+/* ── Skeleton ────────────────────────────────────────────── */
+@keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position:  200% 0; }
 }
 
-@keyframes pulse {
-    0%, 100% { opacity: 0.5; }
-    50%       { opacity: 1; }
+.pc-skeleton-card {
+    border-radius: 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
+
+.pc-skeleton-card__cover {
+    aspect-ratio: 1/1;
+    background: linear-gradient(90deg,
+        rgba(255,255,255,0.05) 25%,
+        rgba(255,255,255,0.1)  50%,
+        rgba(255,255,255,0.05) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+}
+
+.pc-skeleton-card__body {
+    padding: 0.5rem 0.6rem 0.65rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.pc-skeleton-line {
+    border-radius: 4px;
+    background: linear-gradient(90deg,
+        rgba(255,255,255,0.05) 25%,
+        rgba(255,255,255,0.1)  50%,
+        rgba(255,255,255,0.05) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+}
+.pc-skeleton-line--title  { height: 11px; width: 85%; animation-delay: 0.1s; }
+.pc-skeleton-line--short  { height: 10px; width: 45%; animation-delay: 0.2s; }
+.pc-skeleton-line--xshort { height: 9px;  width: 30%; animation-delay: 0.3s; }
 
 .pc-card {
     border-radius: 10px;
