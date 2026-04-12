@@ -6,7 +6,7 @@ import SiteModal from '@/Components/Site/SiteModal.vue';
 const props = defineProps({
     show: { type: Boolean, default: false },
 });
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'created']);
 
 const MAX_FILES    = 50;
 const MAX_SIZE_MB  = 10;
@@ -82,12 +82,13 @@ function submit() {
     if (!form.title.trim()) { errors.value.title = 'Введите название.'; return; }
     if (!form.price || Number(form.price) < 1) { errors.value.price = 'Укажите цену больше 0.'; return; }
     if (!photos.value.length) { errors.value.photos = 'Добавьте хотя бы одну фотографию.'; return; }
+    if (coverIndex.value === null) { errors.value.photos = 'Выберите обложку пака.'; return; }
 
     const fd = new FormData();
     fd.append('title',       form.title.trim());
     fd.append('description', form.description.trim());
     fd.append('price',       form.price);
-    if (coverIndex.value !== null) fd.append('cover_index', coverIndex.value);
+    fd.append('cover_index', coverIndex.value);
     photos.value.forEach((p) => fd.append('photos[]', p.file));
 
     submitting.value = true;
@@ -96,6 +97,7 @@ function submit() {
         preserveScroll: true,
         onSuccess: () => {
             resetForm();
+            emit('created');
             emit('close');
         },
         onError: (errs) => {
@@ -203,7 +205,7 @@ function submit() {
                         <div v-if="coverIndex === i" class="cpm-thumb__cover-badge">обложка</div>
                     </div>
                 </div>
-                <p v-if="photos.length" class="cpm-cover-hint">Нажмите на фото, чтобы выбрать обложку</p>
+                <p v-if="photos.length" class="cpm-cover-hint">Нажмите на фото, чтобы выбрать обложку <span class="req">*</span></p>
             </div>
 
             <!-- Actions -->

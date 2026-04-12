@@ -1,4 +1,6 @@
 <script setup>
+import { computed } from 'vue';
+
 const props = defineProps({
     status: { type: String, required: true },
 });
@@ -19,8 +21,8 @@ const STYLES = {
     rejected:       { color: '#ff6666', bg: 'rgba(220,60,60,0.14)',   border: 'rgba(220,60,60,0.28)',   shine: 'rgba(255,120,120,0.58)' },
 };
 
-const label  = LABELS[props.status] ?? props.status;
-const style  = STYLES[props.status] ?? STYLES.pending_review;
+const label  = computed(() => LABELS[props.status] ?? props.status);
+const style  = computed(() => STYLES[props.status] ?? STYLES.pending_review);
 </script>
 
 <template>

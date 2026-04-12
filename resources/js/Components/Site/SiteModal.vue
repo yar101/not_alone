@@ -19,7 +19,15 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    hideCloseBtn: {
+        type: Boolean,
+        default: false,
+    },
     maxWidth: {
+        type: String,
+        default: null,
+    },
+    minHeight: {
         type: String,
         default: null,
     },
@@ -106,7 +114,7 @@ onUnmounted(() => {
                         variant === 'pink' ? 'site-modal-pink' : 'site-modal-cyan',
                         compact ? 'site-modal-sheet--compact' : ''
                     ]"
-                    :style="maxWidth ? { width: maxWidth, maxWidth } : {}"
+                    :style="{ ...(maxWidth ? { width: maxWidth, maxWidth } : {}), ...(minHeight ? { minHeight } : {}) }"
                 >
                     <!-- Ambient orbs -->
                     <div class="site-modal-ambient" :class="variant === 'pink' ? 'ambient-pink' : 'ambient-cyan'" />
@@ -116,7 +124,7 @@ onUnmounted(() => {
 
                     <!-- Close button -->
                     <button
-                        v-if="closeable"
+                        v-if="closeable && !hideCloseBtn"
                         @click="close"
                         class="site-modal-close"
                         :class="variant === 'pink' ? 'site-modal-close-pink' : 'site-modal-close-cyan'"

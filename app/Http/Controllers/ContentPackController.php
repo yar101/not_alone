@@ -22,7 +22,7 @@ class ContentPackController extends Controller
             'price'       => ['required', 'integer', 'min:1', 'max:999999'],
             'photos'      => ['required', 'array', 'min:1', 'max:50'],
             'photos.*'    => ['file', 'mimes:jpeg,jpg,png,webp', 'max:10240'],
-            'cover_index' => ['nullable', 'integer', 'min:0'],
+            'cover_index' => ['required', 'integer', 'min:0'],
         ]);
 
         $pack = ContentPack::create([
@@ -139,6 +139,34 @@ class ContentPackController extends Controller
         ]);
 
         return back();
+    }
+
+    public function updatePrice(Request $request, ContentPack $pack): JsonResponse
+    {
+        abort_if($pack->user_id !== $request->user()->id, 403);
+        abort_if($pack->status !== 'published', 422);
+
+        $data = $request->validate([
+            'price' => ['required', 'integer', 'min:1', 'max:999999'],
+        ]);
+
+        $pack->update(['price' => $data['price']]);
+
+        return response()->json(['price' => $pack->price]);
+    }
+
+    public function updateDescription(Request $request, ContentPack $pack): JsonResponse
+    {
+        abort_if($pack->user_id !== $request->user()->id, 403);
+        abort_if($pack->status !== 'published', 422);
+
+        $data = $request->validate([
+            'description' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $pack->update(['description' => $data['description'] ?? null]);
+
+        return response()->json(['description' => $pack->description]);
     }
 
     public function updateTitle(Request $request, ContentPack $pack): JsonResponse

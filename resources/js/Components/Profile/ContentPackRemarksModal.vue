@@ -7,7 +7,7 @@ const props = defineProps({
     show: { type: Boolean, default: false },
     pack: { type: Object, required: true },
 });
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'submitted']);
 
 const FIELD_LABELS = {
     title:       'Название',
@@ -35,10 +35,10 @@ watch(() => props.pack, (p) => {
     }
 }, { immediate: true });
 
-const photoFiles   = ref({}); // { [photoId]: File }
-const deletedPhotos = ref(new Set()); // photo IDs marked for deletion
-const errors       = ref({});
-const submitting   = ref(false);
+const photoFiles    = ref({});
+const deletedPhotos = ref(new Set());
+const errors        = ref({});
+const submitting    = ref(false);
 
 const MAX_SIZE_MB  = 10;
 const ALLOWED_MIME = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -93,9 +93,9 @@ function submit() {
     router.post(route('content-packs.update', props.pack.id), fd, {
         forceFormData: true,
         preserveScroll: true,
-        onSuccess: () => { emit('close'); },
+        onSuccess: () => { emit('submitted', props.pack.id); emit('close'); },
         onError: (errs) => {
-            errors.value  = errs;
+            errors.value     = errs;
             submitting.value = false;
         },
         onFinish: () => { submitting.value = false; },
@@ -114,201 +114,303 @@ function previewForPhoto(id) {
 </script>
 
 <template>
-    <SiteModal :show="show" variant="pink" :max-width="'600px'" @close="emit('close')">
-        <div class="rm-wrap">
-            <h2 class="rm-title">Замечания администрации</h2>
+    <SiteModal :show="show" variant="pink" max-width="600px" @close="emit('close')">
+        <div class="rm">
 
-            <p class="rm-subtitle">Исправьте отмеченные поля и фотографии, затем отправьте на повторную проверку.</p>
+            <!-- Header -->
+            <div class="rm-header">
+                <div class="rm-header__icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="rm-header__title">Замечания по паку</h2>
+                    <p class="rm-header__sub">Исправьте отмеченные поля и отправьте на повторную проверку</p>
+                </div>
+            </div>
 
             <!-- Flagged fields -->
             <template v-if="flaggedFields.length">
-                <div v-for="field in flaggedFields" :key="field" class="rm-field rm-field--flagged">
-                    <div class="rm-field__label">{{ FIELD_LABELS[field] || field }}</div>
-                    <div v-if="fieldComments[field]" class="rm-admin-comment">
-                        <span class="rm-admin-comment__icon">📝</span>
-                        {{ fieldComments[field] }}
+                <div class="rm-section-label">Поля</div>
+                <div class="rm-fields">
+                    <div v-for="field in flaggedFields" :key="field" class="rm-field">
+                        <div class="rm-field__head">
+                            <span class="rm-field__name">{{ FIELD_LABELS[field] || field }}</span>
+                            <span class="rm-field__dot" />
+                        </div>
+
+                        <div v-if="fieldComments[field]" class="rm-comment">
+                            <div class="rm-comment__bar" />
+                            <p class="rm-comment__text">{{ fieldComments[field] }}</p>
+                        </div>
+
+                        <input
+                            v-if="field === 'title'"
+                            v-model="editFields.title"
+                            class="rm-input"
+                            type="text"
+                            maxlength="120"
+                            placeholder="Название"
+                        />
+                        <textarea
+                            v-else-if="field === 'description'"
+                            v-model="editFields.description"
+                            class="rm-input rm-textarea"
+                            rows="3"
+                            maxlength="2000"
+                            placeholder="Описание"
+                        />
+                        <input
+                            v-else-if="field === 'price'"
+                            v-model="editFields.price"
+                            class="rm-input"
+                            type="number"
+                            min="1"
+                            max="999999"
+                            placeholder="Цена в рублях"
+                        />
+                        <span v-if="errors[field]" class="rm-err">{{ errors[field] }}</span>
                     </div>
-                    <input
-                        v-if="field === 'title'"
-                        v-model="editFields.title"
-                        class="rm-input"
-                        type="text"
-                        maxlength="120"
-                    />
-                    <textarea
-                        v-else-if="field === 'description'"
-                        v-model="editFields.description"
-                        class="rm-input rm-textarea"
-                        rows="3"
-                        maxlength="2000"
-                    />
-                    <input
-                        v-else-if="field === 'price'"
-                        v-model="editFields.price"
-                        class="rm-input"
-                        type="number"
-                        min="1"
-                        max="999999"
-                    />
-                    <span v-if="errors[field]" class="rm-err">{{ errors[field] }}</span>
                 </div>
             </template>
 
             <!-- Flagged photos -->
             <template v-if="flaggedPhotoIds.length">
-                <div class="rm-section-label">Фотографии с замечаниями</div>
+                <div class="rm-section-label">Фотографии</div>
                 <div class="rm-photos">
-                    <div v-for="photoId in flaggedPhotoIds" :key="photoId" class="rm-photo">
-                        <div class="rm-photo__preview">
+                    <div
+                        v-for="photoId in flaggedPhotoIds"
+                        :key="photoId"
+                        class="rm-photo"
+                        :class="{ 'rm-photo--deleted': deletedPhotos.has(photoId) }"
+                    >
+                        <!-- Preview -->
+                        <div class="rm-photo__img-wrap">
                             <img v-if="previewForPhoto(photoId)" :src="previewForPhoto(photoId)" alt="фото" />
-                            <div v-else class="rm-photo__empty">нет фото</div>
+                            <div v-else class="rm-photo__empty">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                            </div>
+                            <div v-if="deletedPhotos.has(photoId)" class="rm-photo__deleted-overlay">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                            </div>
+                            <div v-else-if="photoFiles[photoId]" class="rm-photo__replaced-badge">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            </div>
                         </div>
-                        <div v-if="photoComments[photoId]" class="rm-admin-comment rm-admin-comment--photo">
-                            <span class="rm-admin-comment__icon">📝</span>
-                            {{ photoComments[photoId] }}
+
+                        <!-- Admin comment -->
+                        <div v-if="photoComments[photoId]" class="rm-comment rm-comment--photo">
+                            <div class="rm-comment__bar" />
+                            <p class="rm-comment__text">{{ photoComments[photoId] }}</p>
                         </div>
+
+                        <!-- Actions -->
                         <template v-if="!deletedPhotos.has(photoId)">
-                            <label class="rm-photo__replace">
+                            <label class="rm-photo__action rm-photo__action--replace">
                                 <input
                                     type="file"
                                     accept="image/jpeg,image/jpg,image/png,image/webp"
                                     style="display:none"
                                     @change="handlePhotoReplace(photoId, $event)"
                                 />
-                                {{ photoFiles[photoId] ? '✓ Загружено' : 'Заменить фото' }}
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                {{ photoFiles[photoId] ? 'Заменено' : 'Заменить' }}
                             </label>
-                            <button class="rm-photo__delete" @click="toggleDeletePhoto(photoId)">Удалить фото</button>
+                            <button class="rm-photo__action rm-photo__action--delete" @click="toggleDeletePhoto(photoId)">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                                Удалить
+                            </button>
                         </template>
                         <template v-else>
-                            <div class="rm-photo__deleted-label">Будет удалено</div>
-                            <button class="rm-photo__restore" @click="toggleDeletePhoto(photoId)">Отменить</button>
+                            <button class="rm-photo__action rm-photo__action--restore" @click="toggleDeletePhoto(photoId)">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.01"/></svg>
+                                Восстановить
+                            </button>
                         </template>
+
                         <span v-if="errors['photo_' + photoId]" class="rm-err">{{ errors['photo_' + photoId] }}</span>
                     </div>
                 </div>
             </template>
 
+            <!-- Empty state -->
             <div v-if="!flaggedFields.length && !flaggedPhotoIds.length" class="rm-empty">
-                Нет конкретных замечаний.
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <span>Конкретных замечаний нет</span>
             </div>
 
-            <div class="rm-actions">
-                <button class="rm-cancel" @click="emit('close')" :disabled="submitting">Закрыть</button>
-                <button class="rm-submit" @click="submit" :disabled="submitting">
+            <!-- Footer actions -->
+            <div class="rm-footer">
+                <button class="rm-btn rm-btn--submit" :disabled="submitting" @click="submit">
+                    <svg v-if="!submitting" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="rm-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
                     {{ submitting ? 'Отправка…' : 'Отправить на проверку' }}
                 </button>
             </div>
+
         </div>
     </SiteModal>
 </template>
 
 <style scoped>
-.rm-wrap {
-    padding: 1.5rem;
+.rm {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.25rem;
 }
 
-.rm-title {
-    font-size: 1.15rem;
+/* ── Header ──────────────────────────────────────────────── */
+.rm-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+}
+.rm-header__icon {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    background: rgba(220, 50, 50, 0.12);
+    border: 1px solid rgba(220, 50, 50, 0.28);
+    color: rgba(255, 100, 100, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.rm-header__title {
+    margin: 0 0 0.2rem;
+    font-size: 1.1rem;
     font-weight: 700;
-    color: rgba(255,255,255,0.9);
+    color: rgba(255, 255, 255, 0.92);
+    line-height: 1.2;
+}
+.rm-header__sub {
     margin: 0;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.38);
+    line-height: 1.45;
 }
 
-.rm-subtitle {
-    font-size: 0.88rem;
-    color: rgba(255,255,255,0.45);
-    margin: 0;
-    line-height: 1.5;
+/* ── Section label ───────────────────────────────────────── */
+.rm-section-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.28);
+    margin-bottom: -0.5rem;
 }
 
+/* ── Flagged field card ──────────────────────────────────── */
+.rm-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
 .rm-field {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
-}
-
-.rm-field--flagged {
-    background: rgba(255,80,80,0.06);
-    border: 1px solid rgba(255,80,80,0.2);
+    gap: 0.6rem;
+    background: rgba(160, 160, 255, 0.05);
+    border: 1px solid rgba(160, 160, 255, 0.15);
     border-radius: 8px;
-    padding: 0.75rem;
+    padding: 0.85rem;
 }
-
-.rm-field__label {
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: rgba(255,120,120,0.9);
-}
-
-.rm-admin-comment {
-    background: rgba(255,200,100,0.08);
-    border: 1px solid rgba(255,200,100,0.2);
-    border-radius: 6px;
-    padding: 0.45rem 0.7rem;
-    font-size: 0.82rem;
-    color: rgba(255,220,140,0.85);
+.rm-field__head {
     display: flex;
-    gap: 0.4rem;
-    align-items: flex-start;
+    align-items: center;
+    gap: 0.6rem;
+}
+.rm-field__name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+}
+.rm-field__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: rgba(220, 60, 60, 0.85);
+    box-shadow: inset 0 1px 0 rgba(255, 130, 130, 0.6);
 }
 
-.rm-admin-comment--photo { margin-bottom: 0.3rem; }
-
-.rm-admin-comment__icon { flex-shrink: 0; }
-
-.rm-input {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 7px;
-    color: rgba(255,255,255,0.88);
+/* ── Admin comment (quoted style) ───────────────────────── */
+.rm-comment {
+    display: flex;
+    gap: 0.65rem;
+    align-items: stretch;
+}
+.rm-comment--photo { margin-top: 0.25rem; }
+.rm-comment__bar {
+    flex-shrink: 0;
+    width: 3px;
+    border-radius: 3px;
+    background: rgba(220, 60, 60, 0.55);
+}
+.rm-comment__text {
+    margin: 0;
     font-size: 0.9rem;
-    font-family: inherit;
-    padding: 0.5rem 0.7rem;
-    outline: none;
+    color: rgba(255, 110, 110, 0.85);
+    line-height: 1.55;
+}
+
+/* ── Inputs ──────────────────────────────────────────────── */
+.rm-input {
     width: 100%;
     box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 7px;
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 0.95rem;
+    font-family: inherit;
+    padding: 0.5rem 0.75rem;
+    outline: none;
     transition: border-color 0.15s;
 }
-.rm-input:focus { border-color: rgba(200,100,100,0.5); }
-
-.rm-textarea { resize: vertical; min-height: 64px; }
-
-.rm-section-label {
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: rgba(255,255,255,0.45);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+.rm-input:focus { border-color: rgba(255, 140, 100, 0.45); }
+.rm-textarea {
+    resize: vertical;
+    min-height: 70px;
+    line-height: 1.5;
 }
+.rm-input[type="number"] {
+    -moz-appearance: textfield;
+}
+.rm-input[type="number"]::-webkit-outer-spin-button,
+.rm-input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 
+/* ── Photos grid ─────────────────────────────────────────── */
 .rm-photos {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 0.75rem;
 }
-
 .rm-photo {
-    width: 130px;
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
-    background: rgba(255,80,80,0.06);
-    border: 1px solid rgba(255,80,80,0.2);
+    gap: 0.45rem;
+    background: rgba(160, 160, 255, 0.05);
+    border: 1px solid rgba(160, 160, 255, 0.15);
     border-radius: 8px;
     padding: 0.6rem;
+    transition: opacity 0.2s;
 }
-
-.rm-photo__preview {
-    width: 100%;
+.rm-photo--deleted {
+    opacity: 0.5;
+}
+.rm-photo__img-wrap {
+    position: relative;
     aspect-ratio: 1;
     border-radius: 5px;
     overflow: hidden;
-    background: rgba(255,255,255,0.04);
+    background: rgba(255, 255, 255, 0.04);
 }
-.rm-photo__preview img {
+.rm-photo__img-wrap img {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -320,105 +422,140 @@ function previewForPhoto(id) {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.75rem;
-    color: rgba(255,255,255,0.25);
+    color: rgba(255, 255, 255, 0.18);
 }
-
-.rm-photo__replace {
-    font-size: 0.8rem;
-    color: rgba(160,160,255,0.8);
-    cursor: pointer;
-    text-align: center;
-    padding: 0.3rem;
-    border: 1px solid rgba(160,160,255,0.2);
-    border-radius: 5px;
-    text-align: center;
-    transition: background 0.15s;
-}
-.rm-photo__replace:hover { background: rgba(160,160,255,0.08); }
-
-.rm-photo__delete {
-    font-size: 0.78rem;
-    color: rgba(255,100,100,0.75);
-    cursor: pointer;
-    text-align: center;
-    padding: 0.3rem;
-    border: 1px solid rgba(255,80,80,0.2);
-    border-radius: 5px;
-    background: transparent;
-    font-family: inherit;
-    transition: background 0.15s;
-    width: 100%;
-}
-.rm-photo__delete:hover { background: rgba(255,80,80,0.08); }
-
-.rm-photo__deleted-label {
-    font-size: 0.75rem;
-    color: rgba(255,100,100,0.6);
-    text-align: center;
-    padding: 0.2rem 0;
-    font-style: italic;
-}
-
-.rm-photo__restore {
-    font-size: 0.78rem;
-    color: rgba(160,160,255,0.75);
-    cursor: pointer;
-    text-align: center;
-    padding: 0.3rem;
-    border: 1px solid rgba(160,160,255,0.2);
-    border-radius: 5px;
-    background: transparent;
-    font-family: inherit;
-    width: 100%;
-    transition: background 0.15s;
-}
-.rm-photo__restore:hover { background: rgba(160,160,255,0.08); }
-
-.rm-err {
-    font-size: 0.78rem;
-    color: #ff7b7b;
-}
-
-.rm-empty {
-    font-size: 0.88rem;
-    color: rgba(255,255,255,0.3);
-    text-align: center;
-    padding: 1rem;
-}
-
-.rm-actions {
+.rm-photo__deleted-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
     display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
-    padding-top: 0.5rem;
-    border-top: 1px solid rgba(255,255,255,0.06);
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 120, 100, 0.85);
+}
+.rm-photo__replaced-badge {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(80, 210, 140, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
 }
 
-.rm-cancel {
-    padding: 0.5rem 1.1rem;
-    border-radius: 7px;
+/* Photo action buttons */
+.rm-photo__action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    width: 100%;
+    padding: 0.32rem 0.5rem;
+    border-radius: 5px;
+    font-size: 0.82rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    border: 1px solid;
+}
+.rm-photo__action--replace {
+    background: rgba(110, 110, 210, 0.08);
+    border-color: rgba(110, 110, 210, 0.22);
+    color: rgba(160, 160, 255, 0.75);
+}
+.rm-photo__action--replace:hover {
+    background: rgba(110, 110, 210, 0.16);
+    color: rgba(180, 180, 255, 0.95);
+}
+.rm-photo__action--delete {
     background: transparent;
-    border: 1px solid rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.5);
-    font-size: 0.9rem;
-    font-family: inherit;
-    cursor: pointer;
+    border-color: rgba(255, 80, 60, 0.18);
+    color: rgba(255, 110, 90, 0.6);
 }
-.rm-cancel:disabled { opacity: 0.5; cursor: not-allowed; }
+.rm-photo__action--delete:hover {
+    background: rgba(255, 80, 60, 0.08);
+    color: rgba(255, 120, 100, 0.9);
+}
+.rm-photo__action--restore {
+    background: rgba(110, 110, 210, 0.08);
+    border-color: rgba(110, 110, 210, 0.22);
+    color: rgba(160, 160, 255, 0.75);
+}
+.rm-photo__action--restore:hover {
+    background: rgba(110, 110, 210, 0.16);
+    color: rgba(180, 180, 255, 0.95);
+}
 
-.rm-submit {
-    padding: 0.5rem 1.25rem;
-    border-radius: 7px;
-    background: rgba(200,80,80,0.12);
-    border: 1px solid rgba(200,80,80,0.35);
-    color: #ff9a9a;
-    font-size: 0.9rem;
-    font-family: inherit;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s;
+/* ── Error ───────────────────────────────────────────────── */
+.rm-err {
+    font-size: 0.82rem;
+    color: rgba(255, 110, 90, 0.9);
 }
-.rm-submit:hover:not(:disabled) { background: rgba(200,80,80,0.2); }
-.rm-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Empty state ─────────────────────────────────────────── */
+.rm-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 1.5rem;
+    font-size: 0.92rem;
+    color: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+}
+
+/* ── Footer ──────────────────────────────────────────────── */
+.rm-footer {
+    display: flex;
+    gap: 0.6rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.rm-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.6rem 1.1rem;
+    border-radius: 8px;
+    font-size: 0.92rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    border: 1px solid;
+    transition: background 0.15s, color 0.15s;
+}
+.rm-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.rm-btn--cancel {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.45);
+}
+.rm-btn--cancel:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.7);
+}
+.rm-btn--submit {
+    flex: 1;
+    background: rgba(110, 110, 210, 0.15);
+    border-color: rgba(110, 110, 210, 0.38);
+    color: rgba(170, 170, 255, 0.95);
+    box-shadow: inset 0 1px 0 rgba(180, 180, 255, 0.18);
+}
+.rm-btn--submit:hover:not(:disabled) {
+    background: rgba(110, 110, 210, 0.26);
+    color: rgba(200, 200, 255, 1);
+}
+
+@keyframes rm-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+.rm-spin { animation: rm-spin 0.8s linear infinite; }
 </style>
