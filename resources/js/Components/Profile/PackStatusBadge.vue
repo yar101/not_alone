@@ -1,0 +1,55 @@
+<script setup>
+const props = defineProps({
+    status: { type: String, required: true },
+});
+
+const LABELS = {
+    pending_review: 'На рассмотрении',
+    approved:       'Одобрен',
+    published:      'Опубликован',
+    has_remarks:    'Есть замечания',
+    rejected:       'Отклонён',
+};
+
+const STYLES = {
+    pending_review: { color: '#b0b0ff', bg: 'rgba(130,130,255,0.14)', border: 'rgba(130,130,255,0.28)', shine: 'rgba(180,180,255,0.65)' },
+    approved:       { color: '#70e0a8', bg: 'rgba(80,210,140,0.14)',  border: 'rgba(80,210,140,0.28)',  shine: 'rgba(120,240,175,0.60)' },
+    published:      { color: 'rgba(200,200,210,0.7)', bg: 'rgba(200,200,210,0.07)', border: 'rgba(200,200,210,0.15)', shine: 'rgba(220,220,230,0.45)' },
+    has_remarks:    { color: '#ff8f8f', bg: 'rgba(255,100,100,0.14)', border: 'rgba(255,100,100,0.28)', shine: 'rgba(255,150,150,0.62)' },
+    rejected:       { color: '#ff6666', bg: 'rgba(220,60,60,0.14)',   border: 'rgba(220,60,60,0.28)',   shine: 'rgba(255,120,120,0.58)' },
+};
+
+const label  = LABELS[props.status] ?? props.status;
+const style  = STYLES[props.status] ?? STYLES.pending_review;
+</script>
+
+<template>
+    <span class="psb" :style="{
+        '--psb-color':  style.color,
+        '--psb-bg':     style.bg,
+        '--psb-border': style.border,
+        '--psb-shine':  style.shine,
+    }">{{ label }}</span>
+</template>
+
+<style scoped>
+.psb {
+    display: inline-flex;
+    align-self: flex-start;
+    align-items: center;
+    padding: 0.2rem 0.65rem;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    color: var(--psb-color);
+    background: var(--psb-bg);
+    border: 1px solid var(--psb-border);
+    border-top: none;
+    box-shadow:
+        inset 0 1px 0 var(--psb-shine),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.12),
+        0 1px 3px rgba(0, 0, 0, 0.2);
+}
+</style>

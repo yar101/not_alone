@@ -44,7 +44,7 @@ class ContentPackController extends Controller
                 'original_filename' => $file->getClientOriginalName(),
                 'sort_order'        => $index,
             ]);
-            if ($index === $coverIndex) {
+            if ((int)$index === (int)$coverIndex) {
                 $coverPath = $path;
             }
         }
@@ -139,6 +139,38 @@ class ContentPackController extends Controller
         ]);
 
         return back();
+    }
+
+    public function updateTitle(Request $request, ContentPack $pack): JsonResponse
+    {
+        abort_if($pack->user_id !== $request->user()->id, 403);
+        abort_if($pack->status !== 'published', 422);
+
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:120'],
+        ]);
+
+        $pack->update(['title' => $data['title']]);
+
+        return response()->json(['title' => $pack->title]);
+    }
+
+    public function updateCover(Request $request, ContentPack $pack): JsonResponse
+    {
+        abort_if($pack->user_id !== $request->user()->id, 403);
+        abort_if($pack->status !== 'published', 422);
+
+        $data = $request->validate([
+            'photo_id' => ['required', 'integer'],
+        ]);
+
+        $photo = ContentPackPhoto::where('id', $data['photo_id'])
+            ->where('content_pack_id', $pack->id)
+            ->firstOrFail();
+
+        $pack->update(['cover_path' => $photo->path]);
+
+        return response()->json(['cover_url' => $pack->fresh()->cover_url]);
     }
 
     public function publish(Request $request, ContentPack $pack): RedirectResponse

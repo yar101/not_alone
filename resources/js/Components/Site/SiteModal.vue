@@ -42,7 +42,7 @@ watch(
             document.body.style.overflow = '';
             setTimeout(() => {
                 showSlot.value = false;
-            }, 450);
+            }, 180);
         }
     },
     { immediate: true },
@@ -362,21 +362,21 @@ onUnmounted(() => {
 
 /* ── Transitions ───────────────────────────────────── */
 .backdrop-enter-active,
-.backdrop-leave-active { transition: opacity 0.18s ease; }
+.backdrop-leave-active { transition: opacity 0.12s ease; }
 .backdrop-enter-from,
 .backdrop-leave-to { opacity: 0; }
 .backdrop-enter-to,
 .backdrop-leave-from { opacity: 1; }
 
 .sheet-enter-active {
-    transition: transform 0.2s cubic-bezier(0.2, 0, 0.2, 1), opacity 0.18s ease;
+    transition: transform 0.14s cubic-bezier(0.2, 0, 0.2, 1), opacity 0.12s ease;
 }
 .sheet-leave-active {
-    transition: transform 0.15s cubic-bezier(0.4, 0, 1, 1), opacity 0.15s ease;
+    transition: transform 0.12s cubic-bezier(0.4, 0, 1, 1), opacity 0.12s ease;
 }
 .sheet-enter-from,
 .sheet-leave-to {
-    transform: translateX(-50%) translateY(calc(-50% + 24px));
+    transform: translateX(-50%) translateY(calc(-50% + 14px));
     opacity: 0;
 }
 .sheet-enter-to,

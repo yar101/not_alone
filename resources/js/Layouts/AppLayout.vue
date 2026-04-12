@@ -23,7 +23,8 @@ const showAuthModal = ref(false);
 const authModalTab  = ref('login');
 const chatOpen   = ref(false);
 const chatPanel  = ref(null);
-const cartOpen   = ref(false);
+const cartOpen      = ref(false);
+const cartInitialTab = ref('services');
 const sidebarOpen = ref(false);
 
 // ── Cart state (localStorage) ─────────────────────────────
@@ -128,6 +129,7 @@ provide('openOrder', openOrder);
 provide('addToCart', addToCart);
 provide('addToContentCart', addToContentCart);
 provide('cart', cart);
+provide('openCart', (tab = 'services') => { cartInitialTab.value = tab; cartOpen.value = true; });
 
 // ── Global online presence ────────────────────────────────
 const onlineUserIds = ref([]);
@@ -240,6 +242,7 @@ onUnmounted(() => {
             v-if="user"
             v-model="cartOpen"
             :cart="cart"
+            :initial-tab="cartInitialTab"
             @clear-services="cart.services = { idol_id: null, idol_name: '', idol_avatar: null, items: [] }"
             @clear-content="cart.content.items = []"
             @remove-service="(idx) => cart.services.items.splice(idx, 1)"

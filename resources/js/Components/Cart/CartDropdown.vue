@@ -1,18 +1,20 @@
 <script setup>
-import { ref, computed, inject } from 'vue';
+import { ref, computed, watch, inject } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
-    cart: { type: Object, required: true },
+    cart:       { type: Object, required: true },
+    initialTab: { type: String, default: 'services' },
 });
 const emit = defineEmits(['update:modelValue', 'clear-services', 'clear-content', 'remove-service', 'remove-content', 'change-quantity']);
 
 const openOrder = inject('openOrder', null);
 
 // Active tab: 'services' | 'content'
-const activeTab = ref('services');
+const activeTab = ref(props.initialTab);
+watch(() => props.initialTab, (val) => { activeTab.value = val; });
 
 // Auto-switch to non-empty tab when one is empty
 const servicesItems = computed(() => props.cart.services?.items ?? []);

@@ -111,6 +111,8 @@ Route::middleware(['auth', 'verified', 'not_banned'])->group(function () {
     Route::post('/content-packs/purchase',            [ContentPackPurchaseController::class, 'store'])->name('content-packs.purchase');
     Route::patch('/content-packs/{pack}',             [ContentPackController::class, 'update'])->name('content-packs.update');
     Route::post('/content-packs/{pack}/publish',      [ContentPackController::class, 'publish'])->name('content-packs.publish');
+    Route::patch('/content-packs/{pack}/cover',       [ContentPackController::class, 'updateCover'])->name('content-packs.cover');
+    Route::patch('/content-packs/{pack}/title',       [ContentPackController::class, 'updateTitle'])->name('content-packs.title');
     Route::delete('/content-packs/{pack}',            [ContentPackController::class, 'destroy'])->name('content-packs.destroy');
 });
 
