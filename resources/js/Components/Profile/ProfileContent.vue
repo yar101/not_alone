@@ -69,17 +69,20 @@ const showEditMenu = ref(false);
 const editingPrice  = ref(false);
 const priceDraft    = ref('');
 const priceUpdating = ref(false);
+const priceError    = ref('');
 
 function startEditPrice() {
-    priceDraft.value  = String(detailPack.value.price);
+    priceDraft.value   = String(detailPack.value.price);
     editingPrice.value = true;
+    priceError.value   = '';
     showEditMenu.value = false;
 }
-function cancelEditPrice() { editingPrice.value = false; }
+function cancelEditPrice() { editingPrice.value = false; priceError.value = ''; }
 async function savePrice() {
     const val = parseInt(priceDraft.value, 10);
     if (!val || val === detailPack.value.price) { editingPrice.value = false; return; }
     priceUpdating.value = true;
+    priceError.value    = '';
     try {
         const { data } = await axios.patch(
             route('content-packs.price', detailPack.value.id),
@@ -91,6 +94,8 @@ async function savePrice() {
             if (idx !== -1) localPacks.value[idx] = { ...localPacks.value[idx], price: data.price };
         }
         editingPrice.value = false;
+    } catch (e) {
+        priceError.value = e.response?.data?.errors?.price?.[0] ?? 'Ошибка сохранения';
     } finally {
         priceUpdating.value = false;
     }
@@ -621,21 +626,23 @@ const sortOptions = [
                             {{ detailPack.photos_count }} фото
                         </span>
                         <template v-if="editingPrice">
-                            <div class="pcd-price-edit">
-                                <input
-                                    class="pcd-price-input"
-                                    v-model="priceDraft"
-                                    type="number"
-                                    min="1"
-                                    max="999999"
-                                    :disabled="priceUpdating"
-                                    @keydown.enter="savePrice"
-                                    @keydown.esc="cancelEditPrice"
-                                    autofocus
-                                />
-                                <span class="pcd-price-rub">₽</span>
-                                <button class="pcd-inline-btn pcd-inline-btn--save" :disabled="priceUpdating" @click="savePrice">OK</button>
-                                <button class="pcd-inline-btn pcd-inline-btn--cancel" @click="cancelEditPrice">✕</button>
+                            <div class="pcd-price-edit-wrap">
+                                <div class="pcd-price-edit">
+                                    <input
+                                        class="pcd-price-input"
+                                        v-model="priceDraft"
+                                        type="number"
+                                        min="1"
+                                        :disabled="priceUpdating"
+                                        @keydown.enter="savePrice"
+                                        @keydown.esc="cancelEditPrice"
+                                        autofocus
+                                    />
+                                    <span class="pcd-price-rub">₽</span>
+                                    <button class="pcd-inline-btn pcd-inline-btn--save" :disabled="priceUpdating" @click="savePrice">OK</button>
+                                    <button class="pcd-inline-btn pcd-inline-btn--cancel" @click="cancelEditPrice">✕</button>
+                                </div>
+                                <span v-if="priceError" class="pcd-price-err">{{ priceError }}</span>
                             </div>
                         </template>
                         <span v-else class="pcd-meta-price">{{ detailPack.price }} ₽</span>
@@ -1386,11 +1393,17 @@ const sortOptions = [
 .pcd-inline-btn--cancel:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.65); }
 
 /* Price inline edit */
+.pcd-price-edit-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.2rem;
+    margin-left: auto;
+}
 .pcd-price-edit {
     display: flex;
     align-items: center;
     gap: 0.3rem;
-    margin-left: auto;
 }
 .pcd-price-input {
     width: 90px;
@@ -1414,6 +1427,11 @@ const sortOptions = [
 .pcd-price-rub {
     font-size: 0.95rem;
     color: rgba(255,255,255,0.5);
+}
+.pcd-price-err {
+    font-size: 0.8rem;
+    color: rgba(255, 110, 90, 0.9);
+    margin-top: -0.25rem;
 }
 
 /* Edit dropdown */

@@ -11,7 +11,9 @@ const props = defineProps({
 });
 
 const form = useForm({
-    rating_low_threshold: props.settings.rating_low_threshold,
+    rating_low_threshold:   props.settings.rating_low_threshold,
+    content_pack_price_min: props.settings.content_pack_price_min,
+    content_pack_price_max: props.settings.content_pack_price_max,
     rating_deltas: { ...props.rating_deltas },
 });
 
@@ -90,6 +92,51 @@ const previewBase = computed(() =>
         <h1 class="page-title">Настройки платформы</h1>
 
         <form @submit.prevent="save" class="settings-form">
+
+            <!-- ── Раздел: Контент-паки ── -->
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Контент-паки</h2>
+                </div>
+
+                <div class="field">
+                    <div class="field-row">
+                        <div class="field-meta">
+                            <label class="field-label">Минимальная цена, ₽</label>
+                            <p class="field-hint">Айдол не сможет выставить цену ниже этого значения</p>
+                        </div>
+                        <div class="field-control">
+                            <input
+                                v-model.number="form.content_pack_price_min"
+                                type="number"
+                                min="1"
+                                class="input input--sm"
+                                :class="{ 'input--err': form.errors.content_pack_price_min }"
+                            />
+                        </div>
+                    </div>
+                    <p v-if="form.errors.content_pack_price_min" class="err">{{ form.errors.content_pack_price_min }}</p>
+                </div>
+
+                <div class="field">
+                    <div class="field-row">
+                        <div class="field-meta">
+                            <label class="field-label">Максимальная цена, ₽</label>
+                            <p class="field-hint">Айдол не сможет выставить цену выше этого значения</p>
+                        </div>
+                        <div class="field-control">
+                            <input
+                                v-model.number="form.content_pack_price_max"
+                                type="number"
+                                min="1"
+                                class="input input--sm"
+                                :class="{ 'input--err': form.errors.content_pack_price_max }"
+                            />
+                        </div>
+                    </div>
+                    <p v-if="form.errors.content_pack_price_max" class="err">{{ form.errors.content_pack_price_max }}</p>
+                </div>
+            </div>
 
             <!-- ── Раздел: Рейтинг ── -->
             <div class="section">

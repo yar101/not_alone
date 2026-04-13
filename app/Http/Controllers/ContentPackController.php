@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ContentPack;
 use App\Models\ContentPackPhoto;
+use App\Models\PlatformSetting;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -12,17 +13,29 @@ use Illuminate\Support\Facades\Storage;
 
 class ContentPackController extends Controller
 {
+    private function priceLimits(): array
+    {
+        return [
+            'min' => (int) PlatformSetting::get('content_pack_price_min', 100),
+            'max' => (int) PlatformSetting::get('content_pack_price_max', 10000),
+        ];
+    }
+
     public function store(Request $request): RedirectResponse
     {
         abort_if(!$request->user()->is_idol, 403);
 
+        $limits = $this->priceLimits();
         $data = $request->validate([
             'title'       => ['required', 'string', 'max:120'],
             'description' => ['nullable', 'string', 'max:2000'],
-            'price'       => ['required', 'integer', 'min:1', 'max:999999'],
+            'price'       => ['required', 'integer', 'min:' . $limits['min'], 'max:' . $limits['max']],
             'photos'      => ['required', 'array', 'min:1', 'max:50'],
             'photos.*'    => ['file', 'mimes:jpeg,jpg,png,webp', 'max:10240'],
             'cover_index' => ['required', 'integer', 'min:0'],
+        ], [
+            'price.min' => "Цена слишком низкая, минимум {$limits['min']} ₽",
+            'price.max' => "Цена слишком высокая, максимум {$limits['max']} ₽",
         ]);
 
         $pack = ContentPack::create([
@@ -65,6 +78,7 @@ class ContentPackController extends Controller
         $flaggedFields = $review?->flagged_fields ?? [];
         $flaggedPhotoIds = $review?->flagged_photo_ids ?? [];
 
+        $limits = $this->priceLimits();
         $rules = [];
         if (in_array('title', $flaggedFields)) {
             $rules['title'] = ['sometimes', 'string', 'max:120'];
@@ -73,7 +87,7 @@ class ContentPackController extends Controller
             $rules['description'] = ['sometimes', 'nullable', 'string', 'max:2000'];
         }
         if (in_array('price', $flaggedFields)) {
-            $rules['price'] = ['sometimes', 'integer', 'min:1', 'max:999999'];
+            $rules['price'] = ['sometimes', 'integer', 'min:' . $limits['min'], 'max:' . $limits['max']];
         }
         if (!empty($flaggedPhotoIds)) {
             $rules['photos']   = ['sometimes', 'array'];
@@ -84,7 +98,10 @@ class ContentPackController extends Controller
             $rules['delete_photo_ids.*']  = ['integer'];
         }
 
-        $data = $request->validate($rules);
+        $data = $request->validate($rules, [
+            'price.min' => "Цена слишком низкая, минимум {$limits['min']} ₽",
+            'price.max' => "Цена слишком высокая, максимум {$limits['max']} ₽",
+        ]);
 
         $updateFields = [];
         if (isset($data['title']))       $updateFields['title']       = $data['title'];
@@ -146,9 +163,14 @@ class ContentPackController extends Controller
         abort_if($pack->user_id !== $request->user()->id, 403);
         abort_if($pack->status !== 'published', 422);
 
-        $data = $request->validate([
-            'price' => ['required', 'integer', 'min:1', 'max:999999'],
-        ]);
+        $limits = $this->priceLimits();
+        $data = $request->validate(
+            ['price' => ['required', 'integer', 'min:' . $limits['min'], 'max:' . $limits['max']]],
+            [
+                'price.min' => "Цена слишком низкая, минимум {$limits['min']} ₽",
+                'price.max' => "Цена слишком высокая, максимум {$limits['max']} ₽",
+            ]
+        );
 
         $pack->update(['price' => $data['price']]);
 
