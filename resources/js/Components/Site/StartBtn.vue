@@ -66,7 +66,7 @@ const handleClick = (event) => {
 
     /* Усиленное свечение букв */
     text-shadow: 0 0 15px rgba(255, 255, 255, 0.3),
-    0 0 2px rgba(255, 255, 255, 0.5);
+        0 0 2px rgba(255, 255, 255, 0.5);
 
     /* Центровка (компенсация letter-spacing) */
     padding-left: 0.02em;
@@ -80,8 +80,11 @@ const handleClick = (event) => {
 .start-button::after {
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: radial-gradient(circle at center, rgba(255,255,255,0.05) 0%, transparent 70%);
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
     pointer-events: none;
 }
 
@@ -89,8 +92,7 @@ const handleClick = (event) => {
 .start-button:hover {
     /* Усиливаем яркость обводки и фона */
     box-shadow: inset 0 0 0 2px rgba(110, 110, 210, 0.1);
-    //background: linear-gradient(135deg, #3a263d 0%, #1a1a1a 50%, #1e2d2d 100%);
-    transform: translateY(-15px);
+    /* transform: translateY(-15px); */
 }
 
 .start-button:hover .label {
@@ -111,6 +113,7 @@ const handleClick = (event) => {
         width: 280px;
         height: 90px;
     }
+
     .label {
         font-size: 70px;
     }

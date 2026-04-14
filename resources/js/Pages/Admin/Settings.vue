@@ -11,9 +11,11 @@ const props = defineProps({
 });
 
 const form = useForm({
-    rating_low_threshold:   props.settings.rating_low_threshold,
-    content_pack_price_min: props.settings.content_pack_price_min,
-    content_pack_price_max: props.settings.content_pack_price_max,
+    rating_low_threshold:    props.settings.rating_low_threshold,
+    content_pack_price_min:  props.settings.content_pack_price_min,
+    content_pack_price_max:  props.settings.content_pack_price_max,
+    moderate_new_packs:      props.settings.moderate_new_packs,
+    moderate_existing_packs: props.settings.moderate_existing_packs,
     rating_deltas: { ...props.rating_deltas },
 });
 
@@ -135,6 +137,36 @@ const previewBase = computed(() =>
                         </div>
                     </div>
                     <p v-if="form.errors.content_pack_price_max" class="err">{{ form.errors.content_pack_price_max }}</p>
+                </div>
+
+                <div class="field">
+                    <div class="field-row">
+                        <div class="field-meta">
+                            <label class="field-label">Модерировать новые паки</label>
+                            <p class="field-hint">Новые паки проходят проверку модератором перед публикацией</p>
+                        </div>
+                        <div class="field-control">
+                            <label class="toggle">
+                                <input type="checkbox" v-model="form.moderate_new_packs" />
+                                <span class="toggle__track"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <div class="field-row">
+                        <div class="field-meta">
+                            <label class="field-label">Модерировать изменения в паках</label>
+                            <p class="field-hint">Изменения названия, описания и цены в опубликованных паках проходят проверку модератором</p>
+                        </div>
+                        <div class="field-control">
+                            <label class="toggle">
+                                <input type="checkbox" v-model="form.moderate_existing_packs" />
+                                <span class="toggle__track"></span>
+                            </label>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -342,6 +374,43 @@ const previewBase = computed(() =>
 .input:focus    { border-color: rgba(190,145,255,0.5); }
 .input--err     { border-color: rgba(239,68,68,0.55); }
 .input--sm      { width: 88px; text-align: center; }
+
+/* ── Toggle ── */
+.toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+.toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+.toggle__track {
+    width: 44px;
+    height: 24px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.15);
+    transition: background 0.2s, border-color 0.2s;
+    position: relative;
+}
+.toggle__track::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.5);
+    transition: transform 0.2s, background 0.2s;
+}
+.toggle input:checked + .toggle__track {
+    background: rgba(110,110,210,0.7);
+    border-color: rgba(110,110,210,0.5);
+}
+.toggle input:checked + .toggle__track::after {
+    transform: translateX(20px);
+    background: #fff;
+}
 
 /* hide native spinners */
 .input[type=number]::-webkit-inner-spin-button,

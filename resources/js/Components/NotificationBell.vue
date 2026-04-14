@@ -1,12 +1,13 @@
 <script setup>
-import { ref, computed, watch, inject, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, inject, onMounted, onUnmounted, h } from 'vue';
 import { usePage, router } from '@inertiajs/vue3';
 import axios from 'axios';
+import { ElNotification, ElIcon } from 'element-plus';
 import {
     Promotion, Trophy, CircleClose,
     DocumentAdd, CircleCheckFilled, CircleCloseFilled,
     Coin, SuccessFilled, WarningFilled, Rank, Bell,
-    PictureFilled,
+    PictureFilled, StarFilled,
 } from '@element-plus/icons-vue';
 
 const page = usePage();
@@ -92,6 +93,11 @@ function handleItemClick(item) {
         openOrder?.(item.order_id);
         return;
     }
+    if (item.type === 'new_review') {
+        open.value = false;
+        router.visit(route('profile.show', { user: page.props.auth.user.id }) + '#reviews');
+        return;
+    }
     const profileTypes = [
         'idol_approved', 'idol_rejected', 'low_rating_warning',
         'admin_rating', 'review_dispute_approved', 'review_dispute_rejected',
@@ -109,6 +115,7 @@ function isClickable(item) {
         'idol_approved', 'idol_rejected', 'low_rating_warning',
         'admin_rating', 'review_dispute_approved', 'review_dispute_rejected',
         'content_pack_approved', 'content_pack_remarks', 'content_pack_rejected',
+        'new_review',
     ];
     return profileTypes.includes(item.type);
 }
@@ -148,6 +155,77 @@ function reloadCounts() {
     router.reload({ only: ['notifications_unread', 'service_unread', 'order_notifications_unread'] });
 }
 
+// ── Popup notifications ───────────────────────────────────
+const latestKnownAt = ref(null);
+
+function notifPopupTitle(item) {
+    if (item._cat === 'order') {
+        return {
+            order_created:   'Новый заказ',
+            order_accepted:  'Заказ принят',
+            order_cancelled: 'Заказ отменён',
+            order_paid:      'Заказ оплачен',
+            order_completed: 'Заказ завершён',
+        }[item.type] ?? 'Заказ';
+    }
+    if (item.title) return item.title;
+    return {
+        content_pack_approved:        'Пак одобрен',
+        content_pack_remarks:         'Замечания к паку',
+        content_pack_rejected:        'Пак отклонён',
+        content_pack_change_approved: 'Изменения одобрены',
+        content_pack_change_remarks:  'Замечания к изменениям',
+        content_pack_change_rejected: 'Изменения отклонены',
+        idol_approved:                'Заявка одобрена',
+        idol_rejected:                'Заявка отклонена',
+        admin_broadcast:              'Объявление',
+        low_rating_warning:           'Предупреждение',
+        admin_rating:                 'Оценка',
+        review_dispute_approved:      'Спор одобрен',
+        review_dispute_rejected:      'Спор отклонён',
+        new_review:                   'Новый отзыв',
+    }[item.type] ?? 'Уведомление';
+}
+
+function showNotifPopup(item) {
+    const iconComp  = itemIconComponent(item);
+    const iconClass = itemIconClass(item);
+    const title     = notifPopupTitle(item);
+    const message   = item._cat === 'order' ? orderMessage(item) : (item.message ?? '');
+
+    ElNotification({
+        duration:    5000,
+        position:    'top-right',
+        offset:      70,
+        customClass: 'app-notif',
+        showClose:   true,
+        message: h('div', { class: 'app-notif__body' }, [
+            h('div', { class: `app-notif__icon ${iconClass}` }, [
+                h(ElIcon, null, { default: () => h(iconComp) }),
+            ]),
+            h('div', { class: 'app-notif__text' }, [
+                h('p', { class: 'app-notif__title' }, title),
+                ...(message ? [h('p', { class: 'app-notif__msg' }, message)] : []),
+            ]),
+        ]),
+    });
+}
+
+async function handleNewNotification() {
+    try {
+        const { data } = await axios.get(route('notifications.combined'));
+        if (data.items.length > 0) {
+            if (latestKnownAt.value) {
+                const fresh = data.items.filter(n => n.created_at > latestKnownAt.value);
+                fresh.slice(0, 3).forEach(showNotifPopup);
+            }
+            latestKnownAt.value = data.items[0].created_at;
+        }
+    } catch { /* ignore */ }
+    reloadCounts();
+    if (open.value) loadWindow(null);
+}
+
 function relativeTime(dateStr) {
     const diff = (Date.now() - new Date(dateStr)) / 1000;
     if (diff < 60) return 'только что';
@@ -176,9 +254,13 @@ function itemIconComponent(item) {
             admin_rating: Rank,
             review_dispute_approved: CircleCheckFilled,
             review_dispute_rejected: CircleCloseFilled,
-            content_pack_approved:  PictureFilled,
-            content_pack_remarks:   PictureFilled,
-            content_pack_rejected:  PictureFilled,
+            content_pack_approved:         PictureFilled,
+            content_pack_remarks:          PictureFilled,
+            content_pack_rejected:         PictureFilled,
+            content_pack_change_approved:  PictureFilled,
+            content_pack_change_remarks:   PictureFilled,
+            content_pack_change_rejected:  PictureFilled,
+            new_review:                    StarFilled,
         }[item.type] ?? Bell;
     }
     return Bell;
@@ -194,9 +276,10 @@ function itemIconClass(item) {
     }
     if (item._cat === 'service') {
         if (item.type === 'admin_broadcast') return 'icon--broadcast';
-        if (item.type === 'idol_approved' || item.type === 'review_dispute_approved' || item.type === 'content_pack_approved') return 'icon--success';
-        if (item.type === 'idol_rejected' || item.type === 'review_dispute_rejected' || item.type === 'content_pack_remarks') return 'icon--warning';
-        if (item.type === 'content_pack_rejected') return 'icon--danger';
+        if (item.type === 'idol_approved' || item.type === 'review_dispute_approved' || item.type === 'content_pack_approved' || item.type === 'content_pack_change_approved') return 'icon--success';
+        if (item.type === 'idol_rejected' || item.type === 'review_dispute_rejected' || item.type === 'content_pack_remarks' || item.type === 'content_pack_change_remarks') return 'icon--warning';
+        if (item.type === 'content_pack_rejected' || item.type === 'content_pack_change_rejected') return 'icon--danger';
+        if (item.type === 'new_review') return 'icon--success';
         if (item.type === 'low_rating_warning') return 'icon--warning';
         if (item.type === 'admin_rating') return 'icon--paid';
         return 'icon--default';
@@ -215,12 +298,22 @@ function orderMessage(item) {
 
 onMounted(() => {
     document.addEventListener('click', closeOnOutside);
+
+    // Инициализируем курсор, чтобы не показывать попапы для уже существующих уведомлений
+    axios.get(route('notifications.combined'))
+        .then(({ data }) => {
+            latestKnownAt.value = data.items.length > 0
+                ? data.items[0].created_at
+                : new Date().toISOString();
+        })
+        .catch(() => { latestKnownAt.value = new Date().toISOString(); });
+
     window.Echo.channel('notifications.global')
-        .listen('.new-notification', reloadCounts);
+        .listen('.new-notification', handleNewNotification);
     const userId = page.props.auth?.user?.id;
     if (userId) {
         window.Echo.private(`App.Models.User.${userId}`)
-            .listen('.new-notification', reloadCounts);
+            .listen('.new-notification', handleNewNotification);
     }
 });
 

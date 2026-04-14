@@ -136,7 +136,7 @@ class UserProfileController extends Controller
 
                 if ($isOwner) {
                     return ContentPack::where('user_id', $user->id)
-                        ->with(['photos', 'latestReview'])
+                        ->with(['photos', 'latestReview', 'pendingChangeRequest'])
                         ->latest()
                         ->get()
                         ->map(fn (ContentPack $p) => [
@@ -159,6 +159,16 @@ class UserProfileController extends Controller
                                 'id'  => $ph->id,
                                 'url' => $ph->url,
                             ])->values(),
+                            'pending_change' => $p->pendingChangeRequest ? [
+                                'changed_fields'      => $p->pendingChangeRequest->changed_fields,
+                                'pending_title'       => $p->pendingChangeRequest->pending_title,
+                                'pending_description' => $p->pendingChangeRequest->pending_description,
+                                'pending_price'       => $p->pendingChangeRequest->pending_price,
+                                'status'              => $p->pendingChangeRequest->status,
+                                'flagged_fields'      => $p->pendingChangeRequest->flagged_fields ?? [],
+                                'field_comments'      => $p->pendingChangeRequest->field_comments ?? [],
+                                'admin_comment'       => $p->pendingChangeRequest->admin_comment,
+                            ] : null,
                         ])
                         ->values();
                 }

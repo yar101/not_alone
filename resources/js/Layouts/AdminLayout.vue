@@ -15,9 +15,10 @@ const pendingTraitSuggestionsCount = computed(() => page.props.pending_trait_sug
 const pendingInterestSuggestionsCount = computed(() => page.props.pending_interest_suggestions_count ?? 0);
 const pendingReviewDisputesCount = computed(() => page.props.pending_review_disputes_count ?? 0);
 
-const servicesOpen  = ref(false);
-const traitsOpen    = ref(false);
-const interestsOpen = ref(false);
+const servicesOpen      = ref(false);
+const traitsOpen        = ref(false);
+const interestsOpen     = ref(false);
+const contentPacksOpen  = ref(false);
 
 const component = computed(() => page.component);
 
@@ -33,6 +34,10 @@ function isOnInterests() {
     return component.value?.startsWith('Admin/Interests/');
 }
 
+function isOnContentPacks() {
+    return component.value?.startsWith('Admin/ContentPacks/');
+}
+
 watch(component, (val) => {
     if (val?.startsWith('Admin/Services/')) {
         servicesOpen.value = true;
@@ -42,6 +47,9 @@ watch(component, (val) => {
     }
     if (val?.startsWith('Admin/Interests/')) {
         interestsOpen.value = true;
+    }
+    if (val?.startsWith('Admin/ContentPacks/')) {
+        contentPacksOpen.value = true;
     }
 }, { immediate: true });
 
@@ -129,13 +137,28 @@ function isActive(routeName) {
                     Рассылки
                 </Link>
 
-                <Link
-                    :href="route('admin.content-packs.index')"
-                    class="nav-item"
-                    :class="{ 'nav-item--active': isActive('admin.content-packs.*') }"
-                >
-                    Контент-паки
-                </Link>
+                <div class="nav-group">
+                    <button
+                        class="nav-item nav-item--group"
+                        :class="{ 'nav-item--active': isOnContentPacks() }"
+                        @click="contentPacksOpen = !contentPacksOpen"
+                    >
+                        <span>Контент-паки</span>
+                        <span class="nav-arrow" :class="{ 'nav-arrow--open': contentPacksOpen }">▾</span>
+                    </button>
+                    <div v-if="contentPacksOpen" class="nav-sub">
+                        <Link
+                            :href="route('admin.content-packs.index')"
+                            class="nav-item nav-item--sub"
+                            :class="{ 'nav-item--active': isActive('admin.content-packs.index') || isActive('admin.content-packs.show') }"
+                        >Модерация</Link>
+                        <Link
+                            :href="route('admin.content-packs.change-requests.index')"
+                            class="nav-item nav-item--sub"
+                            :class="{ 'nav-item--active': isActive('admin.content-packs.change-requests.*') }"
+                        >Изменения</Link>
+                    </div>
+                </div>
 
                 <Link
                     :href="route('admin.users.index')"

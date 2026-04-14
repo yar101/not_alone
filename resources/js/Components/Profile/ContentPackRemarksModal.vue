@@ -1,13 +1,17 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
+import axios from 'axios';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
     pack: { type: Object, required: true },
+    // 'review' = initial moderation remarks (default)
+    // 'change-request' = published pack change request remarks
+    mode: { type: String, default: 'review' },
 });
-const emit = defineEmits(['close', 'submitted']);
+const emit = defineEmits(['close', 'submitted', 'fixed']);
 
 const FIELD_LABELS = {
     title:       'Название',
@@ -15,11 +19,17 @@ const FIELD_LABELS = {
     price:       'Цена',
 };
 
+const isChangeRequest = computed(() => props.mode === 'change-request');
+
 const review = computed(() => props.pack?.latest_review);
-const flaggedFields   = computed(() => review.value?.flagged_fields ?? []);
-const fieldComments   = computed(() => review.value?.field_comments ?? {});
-const flaggedPhotoIds = computed(() => review.value?.flagged_photo_ids ?? []);
-const photoComments   = computed(() => review.value?.photo_comments ?? {});
+const flaggedFields   = computed(() => isChangeRequest.value
+    ? (props.pack?.pending_change?.flagged_fields ?? [])
+    : (review.value?.flagged_fields ?? []));
+const fieldComments   = computed(() => isChangeRequest.value
+    ? (props.pack?.pending_change?.field_comments ?? {})
+    : (review.value?.field_comments ?? {}));
+const flaggedPhotoIds = computed(() => isChangeRequest.value ? [] : (review.value?.flagged_photo_ids ?? []));
+const photoComments   = computed(() => isChangeRequest.value ? {} : (review.value?.photo_comments ?? {}));
 
 const editFields = reactive({
     title:       props.pack?.title ?? '',
@@ -27,11 +37,17 @@ const editFields = reactive({
     price:       props.pack?.price ?? '',
 });
 
-watch(() => props.pack, (p) => {
+watch([() => props.pack, () => props.mode], ([p]) => {
     if (p) {
-        editFields.title       = p.title ?? '';
-        editFields.description = p.description ?? '';
-        editFields.price       = p.price ?? '';
+        if (props.mode === 'change-request') {
+            editFields.title       = p.pending_change?.pending_title       ?? p.title       ?? '';
+            editFields.description = p.pending_change?.pending_description ?? p.description ?? '';
+            editFields.price       = p.pending_change?.pending_price       ?? p.price       ?? '';
+        } else {
+            editFields.title       = p.title       ?? '';
+            editFields.description = p.description ?? '';
+            editFields.price       = p.price       ?? '';
+        }
     }
 }, { immediate: true });
 
@@ -68,6 +84,11 @@ function handlePhotoReplace(photoId, e) {
 }
 
 function submit() {
+    if (isChangeRequest.value) {
+        submitChangeRequest();
+        return;
+    }
+
     errors.value = {};
     const fd = new FormData();
 
@@ -100,6 +121,30 @@ function submit() {
         },
         onFinish: () => { submitting.value = false; },
     });
+}
+
+async function submitChangeRequest() {
+    errors.value = {};
+    const fd = new FormData();
+
+    flaggedFields.value.forEach((field) => {
+        if (field === 'title')       fd.append('title',       editFields.title);
+        if (field === 'description') fd.append('description', editFields.description);
+        if (field === 'price')       fd.append('price',       editFields.price);
+    });
+
+    submitting.value = true;
+    try {
+        const { data } = await axios.post(route('content-packs.fix-change-request', props.pack.id), fd);
+        emit('fixed', props.pack.id, data.pending_change);
+        emit('close');
+    } catch (e) {
+        if (e.response?.data?.errors) {
+            errors.value = e.response.data.errors;
+        }
+    } finally {
+        submitting.value = false;
+    }
 }
 
 function photoById(id) {

@@ -333,7 +333,7 @@ class ConversationController extends Controller
             ->pluck('user_id')
             ->each(function ($recipientId) use ($conversation) {
                 try {
-                    broadcast(new NewMessageReceived($recipientId, $conversation->id));
+                    broadcast(new NewMessageReceived($recipientId, $conversation->id, $msg));
                 } catch (\Throwable $e) {
                     \Log::warning('Broadcast NewMessageReceived failed: ' . $e->getMessage());
                 }

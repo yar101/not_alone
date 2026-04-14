@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminLogController;
+use App\Http\Controllers\Admin\ContentPackChangeRequestController;
 use App\Http\Controllers\Admin\ContentPackModerationController;
 use App\Http\Controllers\Admin\RatingLogController;
 use App\Http\Controllers\Admin\ApplicationController;
@@ -76,6 +77,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Content pack moderation
         Route::prefix('content-packs')->name('content-packs.')->group(function () {
             Route::get('/', [ContentPackModerationController::class, 'index'])->name('index');
+            // Change requests (static prefix must come before /{pack})
+            Route::prefix('change-requests')->name('change-requests.')->group(function () {
+                Route::get('/',                              [ContentPackChangeRequestController::class, 'index'])->name('index');
+                Route::get('/{changeRequest}',               [ContentPackChangeRequestController::class, 'show'])->name('show');
+                Route::post('/{changeRequest}/decide',       [ContentPackChangeRequestController::class, 'decide'])->name('decide');
+            });
             Route::get('/{pack}', [ContentPackModerationController::class, 'show'])->name('show');
             Route::post('/{pack}/decide', [ContentPackModerationController::class, 'decide'])->name('decide');
         });

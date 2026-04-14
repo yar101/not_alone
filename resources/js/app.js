@@ -1,5 +1,6 @@
 import '../css/app.css';
 import 'element-plus/theme-chalk/dark/css-vars.css';
+import 'element-plus/theme-chalk/el-notification.css';
 import './bootstrap';
 
 import { createInertiaApp } from '@inertiajs/vue3';

@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Enums\OrderStatus;
+use App\Events\NewNotification;
 use App\Models\Order;
 use App\Models\Review;
 use App\Models\ReviewEpithet;
 use App\Models\User;
+use App\Notifications\NewReviewNotification;
 use App\Services\IdolRatingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -59,6 +61,9 @@ class ReviewController extends Controller
         $review->epithets()->sync($request->epithets ?? []);
 
         IdolRatingService::adjust($order->idol, 'review_' . $review->rating . 'star');
+
+        $order->idol->notify(new NewReviewNotification($review));
+        broadcast(new NewNotification('private', $order->idol_id));
 
         return response()->json(['success' => true]);
     }

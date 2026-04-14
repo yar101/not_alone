@@ -72,7 +72,8 @@ const subtabOrders = computed(() => {
         : orders.value.filter(o => !o.is_customer);
 });
 
-const ordersHaveUnread = computed(() => orders.value.some(o => (o.unread_count ?? 0) > 0));
+const pendingOrderUnread = ref(false);
+const ordersHaveUnread = computed(() => pendingOrderUnread.value || orders.value.some(o => (o.unread_count ?? 0) > 0));
 const mineHaveUnread = computed(() => orders.value.filter(o => o.is_customer).some(o => (o.unread_count ?? 0) > 0));
 const incomingHaveUnread = computed(() => orders.value.filter(o => !o.is_customer).some(o => (o.unread_count ?? 0) > 0));
 
@@ -182,7 +183,10 @@ const blockDurations = [
 
 const nowTick = ref(Date.now());
 let nowTimer = null;
-onMounted(() => { nowTimer = setInterval(() => { nowTick.value = Date.now(); }, 1000); });
+onMounted(() => {
+    nowTimer = setInterval(() => { nowTick.value = Date.now(); }, 1000);
+    subscribeUserEcho();
+});
 
 const blockedUntilLabel = computed(() => {
     if (!activeBlock.value) return '';
@@ -256,6 +260,8 @@ async function openConversation(conv) {
         };
         const local = conversations.value.find(c => c.id === conv.id);
         if (local) local.unread_count = 0;
+        const order = orders.value.find(o => o.conversation_id === conv.id);
+        if (order) order.unread_count = 0;
         router.reload({ only: ['unread_messages_count'] });
     } finally {
         coverMessages.value = true;
@@ -424,6 +430,7 @@ function handleIncomingMessageForList(data) {
     if (activeConversation.value?.id === conversation_id) return;
 
     if (order_id) {
+        pendingOrderUnread.value = true;
         const order = orders.value.find(o => o.conversation_id === conversation_id);
         if (order) {
             order.unread_count = (order.unread_count ?? 0) + 1;
@@ -693,12 +700,10 @@ watch(isOpen, (val) => {
         fetchConversations();
         if (activeTab.value === 'orders') fetchOrders();
         subscribeOrdersEcho();
-        subscribeUserEcho();
     }
     if (!val) {
         leaveEcho();
         leaveOrdersEcho();
-        leaveUserEcho();
         activeConversation.value = null;
         activeOrderData.value = null;
         searchQuery.value = '';
@@ -737,6 +742,7 @@ async function fetchOrders() {
     try {
         const res = await axios.get(route('orders.index'));
         orders.value = res.data.orders;
+        pendingOrderUnread.value = false;
     } finally {
         loadingOrders.value = false;
     }
@@ -1658,6 +1664,11 @@ function formatDate(iso) {
     border-left: 1px solid rgba(110, 110, 210, 0.22);
     box-shadow: -8px 0 64px rgba(0, 0, 0, 0.7), -1px 0 0 rgba(160, 100, 255, 0.06);
 }
+
+@media (min-width: 1440px) {
+    .chat-panel { width: 1320px; }
+}
+
 .slide-enter-active, .slide-leave-active { transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1); }
 .slide-enter-from, .slide-leave-to { transform: translateX(100%); }
 

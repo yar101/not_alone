@@ -15,9 +15,11 @@ class PlatformSettingsController extends Controller
     {
         return Inertia::render('Admin/Settings', [
             'settings' => [
-                'rating_low_threshold'   => PlatformSetting::get('rating_low_threshold', 30),
-                'content_pack_price_min' => (int) PlatformSetting::get('content_pack_price_min', 100),
-                'content_pack_price_max' => (int) PlatformSetting::get('content_pack_price_max', 10000),
+                'rating_low_threshold'        => PlatformSetting::get('rating_low_threshold', 30),
+                'content_pack_price_min'      => (int)  PlatformSetting::get('content_pack_price_min', 100),
+                'content_pack_price_max'      => (int)  PlatformSetting::get('content_pack_price_max', 10000),
+                'moderate_new_packs'          => (bool) (int) PlatformSetting::get('moderate_new_packs', 1),
+                'moderate_existing_packs'     => (bool) (int) PlatformSetting::get('moderate_existing_packs', 0),
             ],
             'rating_deltas' => [
                 'review_5star'            => (float) PlatformSetting::get('rating_delta_review_5star', 0.8),
@@ -37,6 +39,8 @@ class PlatformSettingsController extends Controller
             'rating_low_threshold'                      => ['required', 'integer', 'min:0', 'max:100'],
             'content_pack_price_min'                    => ['required', 'integer', 'min:1'],
             'content_pack_price_max'                    => ['required', 'integer', 'gt:content_pack_price_min'],
+            'moderate_new_packs'                        => ['required', 'boolean'],
+            'moderate_existing_packs'                   => ['required', 'boolean'],
             'rating_deltas.review_5star'            => ['required', 'numeric', 'min:0', 'max:10'],
             'rating_deltas.review_4star'            => ['required', 'numeric', 'min:0', 'max:10'],
             'rating_deltas.review_2star'            => ['required', 'numeric', 'min:-10', 'max:0'],
@@ -46,9 +50,11 @@ class PlatformSettingsController extends Controller
             'rating_deltas.review_dispute_approved' => ['required', 'numeric', 'min:0', 'max:10'],
         ]);
 
-        PlatformSetting::set('rating_low_threshold',   $data['rating_low_threshold']);
+        PlatformSetting::set('rating_low_threshold',    $data['rating_low_threshold']);
         PlatformSetting::set('content_pack_price_min', $data['content_pack_price_min']);
         PlatformSetting::set('content_pack_price_max', $data['content_pack_price_max']);
+        PlatformSetting::set('moderate_new_packs',     $data['moderate_new_packs'] ? '1' : '0');
+        PlatformSetting::set('moderate_existing_packs', $data['moderate_existing_packs'] ? '1' : '0');
 
         foreach ($data['rating_deltas'] as $event => $delta) {
             PlatformSetting::set('rating_delta_' . $event, $delta);

@@ -70,4 +70,9 @@ class ContentPack extends Model
     {
         return $this->belongsTo(Admin::class, 'moderated_by');
     }
+
+    public function pendingChangeRequest(): HasOne
+    {
+        return $this->hasOne(ContentPackChangeRequest::class)->whereIn('status', ['pending', 'has_remarks']);
+    }
 }
