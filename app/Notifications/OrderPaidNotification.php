@@ -20,10 +20,11 @@ class OrderPaidNotification extends Notification
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'          => 'order_paid',
-            'order_id'      => $this->order->id,
-            'customer_id'   => $this->order->customer_id,
-            'customer_name' => $this->order->customer->name,
+            'type'            => 'order_paid',
+            'order_id'        => $this->order->id,
+            'customer_id'     => $this->order->customer_id,
+            'customer_name'   => $this->order->customer->name,
+            'customer_gender' => $this->order->customer->gender,
         ];
     }
 

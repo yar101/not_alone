@@ -20,10 +20,11 @@ class OrderAcceptedNotification extends Notification
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'      => 'order_accepted',
-            'order_id'  => $this->order->id,
-            'idol_id'   => $this->order->idol_id,
-            'idol_name' => $this->order->idol->name,
+            'type'       => 'order_accepted',
+            'order_id'   => $this->order->id,
+            'idol_id'    => $this->order->idol_id,
+            'idol_name'  => $this->order->idol->name,
+            'idol_gender' => $this->order->idol->gender,
         ];
     }
 

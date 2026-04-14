@@ -289,9 +289,15 @@ function itemIconClass(item) {
 
 function orderMessage(item) {
     if (item.type === 'order_created') return `Новый заказ от ${item.data?.customer_name}`;
-    if (item.type === 'order_accepted') return `${item.data?.idol_name} принял(а) заказ`;
+    if (item.type === 'order_accepted') {
+        const verb = item.data?.idol_gender === 'female' ? 'приняла' : 'принял';
+        return `${item.data?.idol_name} ${verb} заказ`;
+    }
     if (item.type === 'order_cancelled') return 'Заказ отменён';
-    if (item.type === 'order_paid') return `${item.data?.customer_name} оплатил(а) заказ`;
+    if (item.type === 'order_paid') {
+        const verb = item.data?.customer_gender === 'female' ? 'оплатила' : 'оплатил';
+        return `${item.data?.customer_name} ${verb} заказ`;
+    }
     if (item.type === 'order_completed') return 'Заказ успешно завершён';
     return '';
 }
