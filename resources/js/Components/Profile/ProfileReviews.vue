@@ -853,10 +853,10 @@ function formatDate(iso) {
     align-self: flex-end;
     padding: 0.55rem 1.2rem;
     border-radius: 5px;
-    background: linear-gradient(180deg, rgba(200,45,90,0.97) 0%, rgba(160,25,65,0.97) 100%);
-    border: 1px solid rgba(255,100,140,0.45);
-    box-shadow: 0 2px 12px rgba(180,30,70,0.35), inset 0 1px 0 rgba(255,160,190,0.15);
-    color: rgba(255,220,230,0.95);
+    background: linear-gradient(180deg, rgba(80,70,180,0.97) 0%, rgba(55,48,145,0.97) 100%);
+    border: 1px solid rgba(120,115,220,0.45);
+    box-shadow: 0 2px 12px rgba(55,48,145,0.45), inset 0 1px 0 rgba(160,155,255,0.15);
+    color: rgba(200,200,255,0.95);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -878,20 +878,20 @@ function formatDate(iso) {
     right: 0;
     height: 1px;
     border-radius: 5px 5px 0 0;
-    background: linear-gradient(90deg, transparent 0%, rgba(255,180,200,0.7) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(200,200,255,0.7) 50%, transparent 100%);
 }
 .pr-backtop::before {
     content: '';
     position: absolute;
     inset: 2px;
     border-radius: 3px;
-    border: 1px dashed rgba(255,120,160,0.2);
+    border: 1px dashed rgba(160,155,255,0.2);
     opacity: 0;
     transition: opacity 0.15s;
 }
 .pr-backtop:hover {
-    box-shadow: 0 4px 18px rgba(180,30,70,0.5), inset 0 1px 0 rgba(255,160,190,0.2);
-    border-color: rgba(255,120,160,0.65);
+    box-shadow: 0 4px 18px rgba(55,48,145,0.6), inset 0 1px 0 rgba(160,155,255,0.2);
+    border-color: rgba(120,115,220,0.7);
 }
 .pr-backtop:hover::before { opacity: 1; }
 .pr-backtop-enter-active { transition: opacity 0.2s ease, transform 0.2s ease; }

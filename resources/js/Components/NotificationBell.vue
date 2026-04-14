@@ -638,7 +638,7 @@ onUnmounted(() => {
 
 .notif-item {
     display: flex;
-    padding: 1.1rem 1.25rem 0.7rem;
+    padding: 0.7rem 1rem 0.5rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.09);
     transition: background 0.12s;
     position: relative;
@@ -769,7 +769,7 @@ onUnmounted(() => {
 
 .notif-header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.75rem;
     margin-bottom: 0.5rem;
 }
@@ -779,6 +779,7 @@ onUnmounted(() => {
     flex: 1;
     min-width: 0;
     margin: 0;
+    padding: 0;
     font-size: 0.8rem;
     font-weight: 400;
     color: rgba(255, 255, 255, 0.75);

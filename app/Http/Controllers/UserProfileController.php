@@ -48,6 +48,7 @@ class UserProfileController extends Controller
                 'avatar_url'       => $user->avatar_url,
                 'timezone'         => $user->timezone,
                 'checklist_snoozed' => $checklistSnoozed,
+                'is_banned'        => $user->isActiveBanned(),
             ],
             'isOwner'          => auth()->id() === $user->id,
             'isIdol'           => (bool) $user->is_idol,
@@ -490,6 +491,9 @@ class UserProfileController extends Controller
 
     public function toggleLike(Request $request, Post $post): JsonResponse
     {
+        $postOwner = User::select(['id', 'is_banned', 'banned_until'])->find($post->user_id);
+        abort_if($postOwner && $postOwner->isActiveBanned(), 422, 'user_banned');
+
         $userId = $request->user()->id;
         $existing = PostLike::where('post_id', $post->id)->where('user_id', $userId)->first();
 
@@ -513,6 +517,9 @@ class UserProfileController extends Controller
             'body'      => ['required', 'string', 'max:177'],
             'parent_id' => ['nullable', 'integer', 'exists:post_comments,id'],
         ]);
+
+        $postOwner = User::select(['id', 'is_banned', 'banned_until'])->find($post->user_id);
+        abort_if($postOwner && $postOwner->isActiveBanned(), 422, 'user_banned');
 
         if (!empty($data['parent_id'])) {
             $parent = PostComment::findOrFail($data['parent_id']);

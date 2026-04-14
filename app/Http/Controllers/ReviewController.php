@@ -32,6 +32,9 @@ class ReviewController extends Controller
             'already_reviewed'
         );
 
+        $order->loadMissing('idol');
+        abort_if($order->idol->isActiveBanned(), 422, 'user_banned');
+
         $request->validate([
             'rating'   => 'required|integer|min:1|max:5',
             'text'     => 'nullable|string|max:250',

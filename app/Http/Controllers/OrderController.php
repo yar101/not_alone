@@ -56,6 +56,10 @@ class OrderController extends Controller
             return response()->json(['error' => 'Некоторые услуги недоступны'], 422);
         }
 
+        if ($idol->isActiveBanned()) {
+            return response()->json(['error' => 'Пользователь недоступен'], 422);
+        }
+
         if (ChatBlock::active()->where('blocker_id', $idol->id)->where('blocked_id', $user->id)->exists()) {
             return response()->json(['error' => 'Вы заблокированы этим пользователем'], 422);
         }

@@ -171,7 +171,7 @@ function submitRegister() {
                             </div>
 
                             <button type="submit" class="auth-submit" :disabled="loginForm.processing">
-                                {{ loginForm.processing ? 'Вхожу…' : 'Войти' }}
+                                {{ loginForm.processing ? 'Вход…' : 'Войти' }}
                             </button>
 
                             <p class="auth-footer">
@@ -302,7 +302,7 @@ function submitRegister() {
                             </div>
 
                             <button type="submit" class="auth-submit" :disabled="registerForm.processing">
-                                {{ registerForm.processing ? 'Регистрируюсь…' : 'Зарегистрироваться' }}
+                                {{ registerForm.processing ? 'Регистрация…' : 'Зарегистрироваться' }}
                             </button>
 
                             <p class="auth-footer">

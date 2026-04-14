@@ -1,7 +1,6 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick, inject } from 'vue';
 import { useForm, router, usePage } from '@inertiajs/vue3';
-import { Plus } from '@element-plus/icons-vue';
 import AppSelect from '@/Components/AppSelect.vue';
 import CreateButton from '@/Components/CreateButton.vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
@@ -458,12 +457,7 @@ watch(selectedCategory, (cat) => {
             <div v-if="!selectedCategory" key="list">
                 <div class="svc-list-header">
                     <h2 class="svc-list-header__title">Категории</h2>
-                    <CreateButton v-if="isOwner && isIdol" @click="openAdd">
-                        <template #icon><el-icon>
-                                <Plus />
-                            </el-icon></template>
-                        Добавить услугу
-                    </CreateButton>
+                    <CreateButton v-if="isOwner && isIdol" @click="openAdd">Новая услуга</CreateButton>
                 </div>
 
                 <!-- Category cards -->
@@ -545,12 +539,7 @@ watch(selectedCategory, (cat) => {
                                     </svg>
                                     Изменить описание
                                 </button>
-                                <CreateButton v-if="isOwner && isIdol" @click="openAdd">
-                                    <template #icon><el-icon>
-                                            <Plus />
-                                        </el-icon></template>
-                                    Добавить услугу
-                                </CreateButton>
+                                <CreateButton v-if="isOwner && isIdol" @click="openAdd">Новая услуга</CreateButton>
                             </div>
                         </div>
 

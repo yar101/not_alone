@@ -442,10 +442,7 @@ const ownerSortOptions = [
             <template v-else-if="isOwner && isIdol">
                 <div class="pc-toolbar">
                     <SortDropdown :options="ownerSortOptions" v-model="sort" @update:modelValue="onSortChange" />
-                    <CreateButton @click="showCreateModal = true">
-                        <template #icon>+</template>
-                        Создать пак
-                    </CreateButton>
+                    <CreateButton @click="showCreateModal = true">Новый пак</CreateButton>
                 </div>
 
                 <div v-if="ownerPacksSorted !== null && !ownerPacksSorted?.length && !loading" class="pc-empty">

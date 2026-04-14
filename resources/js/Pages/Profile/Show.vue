@@ -289,7 +289,7 @@ onMounted(async () => {
                 </div>
 
                 <!-- Right main: tabs + scrollable tab content -->
-                <div class="profile-main">
+                <div class="profile-main" :class="{ 'profile-main--banned': profileUser.is_banned && !isOwner }">
                     <div class="profile-tabs page-block" ref="tabsEl">
                         <div class="tab-slider" :style="sliderStyle" />
                         <button
@@ -459,6 +459,26 @@ onMounted(async () => {
 
                 </Transition>
                 </div><!-- /tab-content-wrap -->
+
+                    <div v-if="profileUser.is_banned && !isOwner" class="profile-banned-overlay">
+                        <div class="profile-banned-card">
+                            <div class="profile-banned-card__stripe" />
+                            <div class="profile-banned-card__body">
+                                <span class="profile-banned-card__label">СТАТУС АККАУНТА</span>
+                                <div class="profile-banned-card__header">
+                                    <svg class="profile-banned-card__icon" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="1.8"
+                                        stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                                    </svg>
+                                    <p class="profile-banned-card__title">Аккаунт заблокирован</p>
+                                </div>
+                                <p class="profile-banned-card__sub">Пользователь заблокирован администрацией платформы</p>
+                            </div>
+                        </div>
+                    </div>
+
                 </div><!-- /profile-main -->
 
             </div><!-- /profile-body -->
@@ -688,6 +708,98 @@ onMounted(async () => {
     display: flex;
     flex-direction: column;
     padding-left: 0.25rem;
+    position: relative;
+}
+
+.profile-main--banned > *:not(.profile-banned-overlay) {
+    filter: blur(3px);
+    pointer-events: none;
+    user-select: none;
+    opacity: 0.45;
+}
+
+.profile-banned-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(4, 3, 12, 0.6);
+    backdrop-filter: blur(6px);
+    border-radius: 8px;
+}
+
+.profile-banned-card {
+    display: flex;
+    flex-direction: column;
+    width: min(640px, 90%);
+    background: rgb(10, 8, 20);
+    border: 1px solid rgba(200, 60, 60, 0.2);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 100, 100, 0.12),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.4),
+        0 2px 1px rgba(200, 60, 60, 0.06),
+        0 24px 64px rgba(0, 0, 0, 0.7);
+    overflow: hidden;
+}
+
+.profile-banned-card__stripe {
+    height: 2px;
+    flex-shrink: 0;
+    background: linear-gradient(
+        90deg,
+        rgba(220, 60, 60, 0) 0%,
+        rgba(220, 60, 60, 0.9) 25%,
+        rgba(220, 60, 60, 0.9) 75%,
+        rgba(220, 60, 60, 0) 100%
+    );
+}
+
+.profile-banned-card__body {
+    flex: 1;
+    padding: 1.6rem 1.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.profile-banned-card__label {
+    font-size: 0.75rem;
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: rgba(200, 60, 60, 0.7);
+    text-transform: uppercase;
+}
+
+.profile-banned-card__header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.profile-banned-card__icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    color: rgba(255, 100, 100, 0.75);
+}
+
+.profile-banned-card__title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: rgba(255, 200, 200, 0.92);
+    margin: 0;
+}
+
+.profile-banned-card__sub {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.28);
+    margin: 0;
+    line-height: 1.5;
+    letter-spacing: 0.01em;
 }
 
 

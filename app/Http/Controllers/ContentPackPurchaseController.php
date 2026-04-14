@@ -26,6 +26,7 @@ class ContentPackPurchaseController extends Controller
 
         $packs = ContentPack::whereIn('id', $packIds)
             ->where('status', 'published')
+            ->whereHas('user', fn($q) => $q->where('is_banned', false))
             ->get()
             ->keyBy('id');
 

@@ -152,8 +152,10 @@ Route::middleware('auth')->group(function () {
 // Chat / Conversations
 Route::middleware('auth')->group(function () {
     Route::get('/conversations', [ConversationController::class, 'index'])->name('conversations.index');
-    Route::post('/conversations', [ConversationController::class, 'store'])->name('conversations.store');
     Route::get('/conversations/{conversation}', [ConversationController::class, 'show'])->name('conversations.show');
+});
+Route::middleware(['auth', 'not_banned'])->group(function () {
+    Route::post('/conversations', [ConversationController::class, 'store'])->name('conversations.store');
     Route::post('/conversations/{conversation}/messages', [ConversationController::class, 'message'])->name('conversations.message');
     Route::post('/conversations/{conversation}/upload', [ConversationController::class, 'upload'])->name('conversations.upload');
     Route::post('/conversations/{conversation}/offer-services', [ConversationController::class, 'offerServices'])->name('conversations.offer-services');
@@ -164,7 +166,6 @@ Route::middleware('auth')->group(function () {
 // Orders
 Route::middleware('auth')->group(function () {
     Route::get('/orders',                      [OrderController::class, 'index'])->name('orders.index');
-    Route::post('/orders',                     [OrderController::class, 'store'])->name('orders.store');
     // Static routes before {order} wildcard
     Route::get('/orders/disputable',           [OrderController::class, 'disputable'])->name('orders.disputable');
     Route::patch('/orders/{order}/accept',     [OrderController::class, 'accept'])->name('orders.accept');
@@ -173,8 +174,11 @@ Route::middleware('auth')->group(function () {
     Route::patch('/orders/{order}/confirm-completion', [OrderController::class, 'confirmCompletion'])->name('orders.confirm-completion');
     Route::post('/orders/{order}/dispute',     [OrderController::class, 'dispute'])->name('orders.dispute');
     Route::post('/orders/{order}/items',       [OrderController::class, 'addItem'])->name('orders.items.add');
-    Route::post('/orders/{order}/review',      [ReviewController::class, 'store'])->name('orders.review.store');
     Route::post('/reviews/{review}/dispute',   [ReviewDisputeController::class, 'store'])->name('reviews.dispute.store');
+});
+Route::middleware(['auth', 'not_banned'])->group(function () {
+    Route::post('/orders',                     [OrderController::class, 'store'])->name('orders.store');
+    Route::post('/orders/{order}/review',      [ReviewController::class, 'store'])->name('orders.review.store');
 });
 
 Route::get('/reviews/epithets', [ReviewController::class, 'epithets'])->name('reviews.epithets');

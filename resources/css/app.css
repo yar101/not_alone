@@ -100,6 +100,23 @@ body {
     -webkit-box-orient: vertical;
 }
 
+/* Warn variant for ban/block notifications */
+.app-notif--warn.el-notification {
+    border-color: rgba(251, 191, 36, 0.35);
+    box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.12), 0 8px 32px rgba(0, 0, 0, 0.55);
+}
+.app-notif--warn .el-notification__content {
+    color: rgba(255, 220, 120, 0.9);
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+.app-notif--warn .el-notification__closeBtn {
+    color: rgba(251, 191, 36, 0.35);
+}
+.app-notif--warn .el-notification__closeBtn:hover {
+    color: rgba(251, 191, 36, 0.75);
+}
+
 /* Icon color classes (global — used in teleported popup) */
 .icon--success { background: rgba(76, 222, 143, 0.12);  color: #4cde8f; }
 .icon--danger  { background: rgba(239, 68, 68, 0.12);   color: #f87171; }

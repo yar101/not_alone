@@ -65,6 +65,12 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
+    public function isActiveBanned(): bool
+    {
+        if (!$this->is_banned) return false;
+        return $this->banned_until === null || $this->banned_until->isFuture();
+    }
+
     public function getAgeAttribute(): ?int
     {
         return $this->birth_date ? Carbon::parse($this->birth_date)->age : null;

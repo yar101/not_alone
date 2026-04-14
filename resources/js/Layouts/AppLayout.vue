@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, provide, watch, onMounted, onUnmounted } from 'vue';
 import { Link, usePage, router } from '@inertiajs/vue3';
+import { ElNotification } from 'element-plus';
 import NotificationBell from '@/Components/NotificationBell.vue';
 import ChatButton from '@/Components/Chat/ChatButton.vue';
 import ChatPanel from '@/Components/Chat/ChatPanel.vue';
@@ -159,12 +160,25 @@ onMounted(() => {
             });
     }
 });
+function handleUserBannedEvent() {
+    ElNotification({
+        duration: 5000,
+        position: 'top-right',
+        offset: 70,
+        customClass: 'app-notif app-notif--warn',
+        showClose: true,
+        message: 'Невозможно взаимодействовать с заблокированным пользователем',
+    });
+}
+
 onMounted(() => {
     window.addEventListener('noalone:open-order', handleOpenOrderEvent);
+    window.addEventListener('noalone:user-banned', handleUserBannedEvent);
 });
 
 onUnmounted(() => {
     window.removeEventListener('noalone:open-order', handleOpenOrderEvent);
+    window.removeEventListener('noalone:user-banned', handleUserBannedEvent);
     if (msgChannel) msgChannel.stopListening('.message.received');
     if (window.Echo) window.Echo.leave('presence-online');
 });

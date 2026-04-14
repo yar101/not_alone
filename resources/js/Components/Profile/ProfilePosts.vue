@@ -2,7 +2,6 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import axios from 'axios';
-import { Plus } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import CreateButton from '@/Components/CreateButton.vue';
 import PostFeedCard from '@/Components/Profile/PostFeedCard.vue';
@@ -157,12 +156,7 @@ function deletePost() {
     <div class="posts-section">
         <!-- Toolbar: create button for owner -->
         <div v-if="isOwner" class="posts-toolbar">
-            <CreateButton @click="createModal = true">
-                <template #icon><el-icon>
-                        <Plus />
-                    </el-icon></template>
-                Новая запись
-            </CreateButton>
+            <CreateButton @click="createModal = true">Новая запись</CreateButton>
         </div>
 
         <!-- Skeleton loader -->
