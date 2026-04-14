@@ -159,7 +159,7 @@ function previewForPhoto(id) {
 </script>
 
 <template>
-    <SiteModal :show="show" variant="pink" max-width="600px" @close="emit('close')">
+    <SiteModal :show="show" variant="pink" max-width="600px" compact @close="emit('close')">
         <div class="rm">
 
             <!-- Header -->

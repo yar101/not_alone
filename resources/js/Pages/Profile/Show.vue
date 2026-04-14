@@ -670,7 +670,6 @@ onMounted(async () => {
     flex-direction: column;
     overflow-y: auto;
     overflow-x: hidden;
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
     padding-right: 1rem;
     scrollbar-width: thin;
     scrollbar-color: rgba(190,145,255,0.25) transparent;

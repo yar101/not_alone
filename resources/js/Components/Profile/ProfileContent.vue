@@ -451,6 +451,7 @@ const sortOptions = [
                         <div class="pc-card__body">
                             <div class="pc-card__title">{{ pack.title }}</div>
                             <div class="pc-card__badges">
+                                <PackStatusBadge v-if="pack.status === 'has_remarks'" status="pending_review" />
                                 <PackStatusBadge :status="pack.status" />
                                 <PackStatusBadge v-if="pack.pending_change?.status === 'has_remarks'"
                                     status="has_remarks" />
@@ -462,7 +463,7 @@ const sortOptions = [
                         <div class="pc-card__footer">
                             <template v-if="pack.status === 'has_remarks'">
                                 <button class="pc-btn--details pc-btn--details-warn"
-                                    @click.stop="openRemarks(pack)">Исправить замечания</button>
+                                    @click.stop="openRemarks(pack)">Исправить</button>
                                 <button class="pc-btn--details-icon" @click.stop="handleDelete(pack)">
                                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <polyline points="3 6 5 6 21 6" stroke-width="2" stroke-linecap="round"
@@ -480,7 +481,7 @@ const sortOptions = [
                                 <!-- Change request has remarks: prominent CTA -->
                                 <button v-if="pack.pending_change?.status === 'has_remarks'"
                                     class="pc-btn--details pc-btn--details-warn pc-btn--grow"
-                                    @click.stop="openChangeRequestRemarks(pack)">Исправить замечания</button>
+                                    @click.stop="openChangeRequestRemarks(pack)">Исправить</button>
                                 <template v-else>
                                     <button v-if="pack.status === 'approved'"
                                         class="pc-btn pc-btn--primary pc-btn--grow"
@@ -637,9 +638,11 @@ const sortOptions = [
 
                 <!-- ⓪ Top bar: badge (owner) + close button -->
                 <div class="pcd-topbar">
+                    <PackStatusBadge v-if="isOwner && detailPack.status === 'has_remarks'" status="pending_review" />
                     <PackStatusBadge v-if="isOwner" :status="detailPack.status" />
+                    <PackStatusBadge v-if="isOwner && detailPack.pending_change?.status === 'has_remarks'" status="has_remarks" />
                     <span
-                        v-if="isOwner && detailPack.pending_change?.status === 'pending' && detailPack.pending_change?.changed_fields?.length"
+                        v-else-if="isOwner && detailPack.pending_change?.changed_fields?.length"
                         class="pc-card__pending-badge">На проверке</span>
                     <div class="pcd-topbar__spacer" />
                     <button class="pcd-topbar__close" @click="closeDetail" aria-label="Закрыть">
@@ -1228,7 +1231,7 @@ const sortOptions = [
 }
 
 .pc-card__body {
-    padding: 0.5rem 0.6rem 0.4rem;
+    padding: 0.5rem 0 0.4rem;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -1240,7 +1243,7 @@ const sortOptions = [
 }
 
 .pc-card__footer {
-    padding: 0 0.6rem 0.6rem;
+    padding: 0;
     display: flex;
     gap: 0.3rem;
     flex-shrink: 0;
