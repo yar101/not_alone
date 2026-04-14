@@ -148,6 +148,7 @@ class UserProfileController extends Controller
                             'cover_url'   => $p->cover_url,
                             'photos_count' => $p->photos->count(),
                             'published_at' => $p->published_at?->toIso8601String(),
+                            'hidden_at'    => $p->hidden_at?->toIso8601String(),
                             'latest_review' => $p->latestReview ? [
                                 'decision'          => $p->latestReview->decision,
                                 'flagged_fields'    => $p->latestReview->flagged_fields ?? [],
@@ -175,6 +176,7 @@ class UserProfileController extends Controller
 
                 return ContentPack::where('user_id', $user->id)
                     ->where('status', 'published')
+                    ->whereNull('hidden_at')
                     ->with(['photos'])
                     ->latest('published_at')
                     ->get()

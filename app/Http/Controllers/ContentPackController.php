@@ -403,12 +403,27 @@ class ContentPackController extends Controller
         return back();
     }
 
+    public function toggleVisibility(Request $request, ContentPack $pack): JsonResponse
+    {
+        abort_if($pack->user_id !== $request->user()->id, 403);
+        abort_if($pack->status !== 'published', 422);
+
+        $pack->update(['hidden_at' => $pack->hidden_at ? null : now()]);
+
+        return response()->json(['hidden_at' => $pack->hidden_at?->toIso8601String()]);
+    }
+
     public function destroy(Request $request, ContentPack $pack): RedirectResponse
     {
         abort_if($pack->user_id !== $request->user()->id, 403);
-        abort_if(in_array($pack->status, ['published', 'pending_review']), 422);
 
-        // For rejected packs photos are already deleted by admin
+        // Published pack with purchases → soft delete so buyers keep gallery access
+        if ($pack->status === 'published' && $pack->purchases()->exists()) {
+            $pack->delete();
+            return back();
+        }
+
+        // Rejected packs — files already deleted by admin
         if ($pack->status !== 'rejected') {
             foreach ($pack->photos as $photo) {
                 Storage::disk('public')->delete($photo->path);
@@ -416,7 +431,7 @@ class ContentPackController extends Controller
             Storage::disk('public')->deleteDirectory('content-packs/' . $pack->id);
         }
 
-        $pack->delete();
+        $pack->forceDelete();
 
         return back();
     }
@@ -453,6 +468,7 @@ class ContentPackController extends Controller
         } else {
             $query = ContentPack::where('user_id', $user->id)
                 ->where('status', 'published')
+                ->whereNull('hidden_at')
                 ->with(['photos']);
 
             if ($sort === 'newest') {
@@ -491,6 +507,7 @@ class ContentPackController extends Controller
             'cover_url'    => $pack->cover_url,
             'photos_count' => $pack->photos->count(),
             'published_at' => $pack->published_at?->toIso8601String(),
+            'hidden_at'    => $pack->hidden_at?->toIso8601String(),
         ];
 
         if ($isOwner || $isPurchased) {

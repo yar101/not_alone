@@ -95,11 +95,11 @@ onUnmounted(() => document.removeEventListener('click', onDocClick, true));
     position: absolute;
     top: calc(100% + 6px);
     left: 0;
-    background: rgba(12, 10, 20, 0.97);
+    background: rgb(12, 10, 20);
     border: 1px solid rgba(160,160,255,0.2);
     border-radius: 6px;
     z-index: 20;
-    min-width: 180px;
+    width: max-content;
     box-shadow: 0 6px 24px rgba(0,0,0,0.5);
     overflow: hidden;
 }
@@ -125,6 +125,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick, true));
     font-family: inherit;
     color: rgba(255,255,255,0.65);
     cursor: pointer;
+    white-space: nowrap;
     transition: color 0.12s, background 0.12s;
 }
 .sd-option:hover { background: rgba(160,160,255,0.07); color: rgba(200,200,255,0.9); }

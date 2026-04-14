@@ -11,6 +11,7 @@ const LABELS = {
     published:      'Опубликован',
     has_remarks:    'Есть замечания',
     rejected:       'Отклонён',
+    hidden:         'Скрыт',
 };
 
 const STYLES = {
@@ -19,6 +20,7 @@ const STYLES = {
     published:      { color: 'rgba(200,200,210,0.7)', bg: 'rgba(200,200,210,0.07)', border: 'rgba(200,200,210,0.15)', shine: 'rgba(220,220,230,0.45)' },
     has_remarks:    { color: '#ff8f8f', bg: 'rgba(255,100,100,0.14)', border: 'rgba(255,100,100,0.28)', shine: 'rgba(255,150,150,0.62)' },
     rejected:       { color: '#ff6666', bg: 'rgba(220,60,60,0.14)',   border: 'rgba(220,60,60,0.28)',   shine: 'rgba(255,120,120,0.58)' },
+    hidden:         { color: 'rgba(180,180,200,0.65)', bg: 'rgba(180,180,200,0.08)', border: 'rgba(180,180,200,0.18)', shine: 'rgba(220,220,230,0.38)' },
 };
 
 const label  = computed(() => LABELS[props.status] ?? props.status);

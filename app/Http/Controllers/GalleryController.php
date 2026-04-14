@@ -19,7 +19,7 @@ class GalleryController extends Controller
 
         // Distinct idols from whom the user purchased content, ordered by most recent purchase
         $idols = ContentPackPurchase::where('user_id', $userId)
-            ->with('contentPack.user:id,name,avatar_path')
+            ->with(['contentPack' => fn ($q) => $q->withTrashed()->with('user:id,name,avatar_path')])
             ->orderByDesc('purchased_at')
             ->get()
             ->map(fn ($purchase) => $purchase->contentPack?->user)
@@ -142,7 +142,7 @@ class GalleryController extends Controller
                 ->orderByDesc('id')
                 ->get();
         } else {
-            $packs = ContentPack::query()
+            $packs = ContentPack::withTrashed()
                 ->whereHas('purchases', fn ($q) => $q->where('user_id', $userId))
                 ->where('status', 'published')
                 ->when($idolId, fn ($q) => $q->where('user_id', $idolId))

@@ -242,7 +242,14 @@ function packPriority(pack) {
 const ownerPacksSorted = computed(() => {
     const packs = displayPacks();
     if (!packs) return packs;
-    return [...packs].sort((a, b) => packPriority(a) - packPriority(b));
+    return [...packs].sort((a, b) => {
+        if (sort.value === 'hidden_first') {
+            const aHidden = a.hidden_at ? 0 : 1;
+            const bHidden = b.hidden_at ? 0 : 1;
+            if (aHidden !== bHidden) return aHidden - bHidden;
+        }
+        return packPriority(a) - packPriority(b);
+    });
 });
 
 async function fetchPacks(reset = false) {
@@ -250,7 +257,8 @@ async function fetchPacks(reset = false) {
     loading.value = true;
 
     try {
-        const params = { sort: sort.value };
+        const apiSort = sort.value === 'hidden_first' ? 'newest' : sort.value;
+        const params = { sort: apiSort };
         if (!reset && cursor.value) params.cursor = cursor.value;
 
         const res = await axios.get(route('profile.content-packs.index', props.profileUser), { params });
@@ -290,6 +298,10 @@ let packNotifyChannel = null;
 
 onMounted(() => {
     setupObserver();
+    // Re-entering the tab: localPacks already has stale data from Inertia cache → refresh
+    if (localPacks.value !== null) {
+        fetchPacks(true);
+    }
     // Refresh pack list when owner receives a notification (e.g. change request remarks)
     if (props.isOwner && window.Echo && props.profileUser?.id) {
         packNotifyChannel = window.Echo.private(`App.Models.User.${props.profileUser.id}`)
@@ -347,6 +359,15 @@ function handlePublish(pack) {
     });
 }
 
+async function handleToggleVisibility(pack) {
+    const { data } = await axios.post(route('content-packs.toggle-visibility', pack.id));
+    updatePackInList(pack.id, { hidden_at: data.hidden_at });
+    if (detailPack.value?.id === pack.id) {
+        detailPack.value = { ...detailPack.value, hidden_at: data.hidden_at };
+    }
+    showEditMenu.value = false;
+}
+
 const showDeleteConfirm = ref(false);
 const packToDelete = ref(null);
 
@@ -384,6 +405,12 @@ const sortOptions = [
     { value: 'oldest', label: 'сначала старые' },
 ];
 
+const ownerSortOptions = [
+    { value: 'newest', label: 'сначала новые' },
+    { value: 'oldest', label: 'сначала старые' },
+    { value: 'hidden_first', label: 'сначала скрытые' },
+];
+
 </script>
 
 <template>
@@ -414,7 +441,7 @@ const sortOptions = [
             <!-- Owner + Idol view -->
             <template v-else-if="isOwner && isIdol">
                 <div class="pc-toolbar">
-                    <SortDropdown :options="sortOptions" v-model="sort" @update:modelValue="onSortChange" />
+                    <SortDropdown :options="ownerSortOptions" v-model="sort" @update:modelValue="onSortChange" />
                     <CreateButton @click="showCreateModal = true">
                         <template #icon>+</template>
                         Создать пак
@@ -427,10 +454,12 @@ const sortOptions = [
 
                 <div v-else class="pc-grid">
                     <div v-for="pack in ownerPacksSorted" :key="pack.id" class="pc-card pc-card--owner"
+                        :class="{ 'pc-card--hidden': pack.hidden_at }"
                         @click="openDetail(pack)">
                         <div class="pc-card__cover">
                             <img v-if="pack.cover_url" :src="pack.cover_url" :alt="pack.title" loading="lazy" />
                             <div v-else class="pc-card__cover-placeholder" />
+                            <div v-if="pack.hidden_at" class="pc-card__hidden-veil" />
                             <div class="pc-card__photo-badge">
                                 <el-icon :size="18">
                                     <Picture />
@@ -453,6 +482,7 @@ const sortOptions = [
                             <div class="pc-card__badges">
                                 <PackStatusBadge v-if="pack.status === 'has_remarks'" status="pending_review" />
                                 <PackStatusBadge :status="pack.status" />
+                                <PackStatusBadge v-if="pack.hidden_at" status="hidden" />
                                 <PackStatusBadge v-if="pack.pending_change?.status === 'has_remarks'"
                                     status="has_remarks" />
                                 <span v-else-if="pack.pending_change?.changed_fields?.length"
@@ -632,7 +662,7 @@ const sortOptions = [
             @fixed="onChangeRequestFixed" />
 
         <!-- Pack detail modal -->
-        <SiteModal :show="showDetailModal" @close="closeDetail" compact max-width="560px" min-height="70vh"
+        <SiteModal :show="showDetailModal" @close="closeDetail" compact max-width="560px"
             variant="pink" hide-close-btn>
             <template v-if="detailPack">
 
@@ -640,6 +670,7 @@ const sortOptions = [
                 <div class="pcd-topbar">
                     <PackStatusBadge v-if="isOwner && detailPack.status === 'has_remarks'" status="pending_review" />
                     <PackStatusBadge v-if="isOwner" :status="detailPack.status" />
+                    <PackStatusBadge v-if="isOwner && detailPack.hidden_at" status="hidden" />
                     <PackStatusBadge v-if="isOwner && detailPack.pending_change?.status === 'has_remarks'" status="has_remarks" />
                     <span
                         v-else-if="isOwner && detailPack.pending_change?.changed_fields?.length"
@@ -905,6 +936,28 @@ const sortOptions = [
                                     </svg>
                                     Изменить цену
                                 </button>
+                                <hr class="pcd-edit-divider" />
+                                <button class="pcd-edit-item" @click="handleToggleVisibility(detailPack)">
+                                    <svg v-if="detailPack.hidden_at" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                        <circle cx="12" cy="12" r="3" />
+                                    </svg>
+                                    <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                                        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                                        <line x1="1" y1="1" x2="23" y2="23" />
+                                    </svg>
+                                    {{ detailPack.hidden_at ? 'Показать пак' : 'Скрыть пак' }}
+                                </button>
+                                <button class="pcd-edit-item pcd-edit-item--danger" @click="handleDelete(detailPack); closeDetail()">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="3 6 5 6 21 6" />
+                                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                        <path d="M10 11v6M14 11v6" />
+                                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                                    </svg>
+                                    Удалить пак
+                                </button>
                             </div>
                         </Transition>
                         <button class="pcd-edit-toggle" @click="showEditMenu = !showEditMenu">
@@ -1116,6 +1169,26 @@ const sortOptions = [
 
 .pc-card--owner:hover {}
 
+.pc-card--hidden {
+    opacity: 0.55;
+}
+
+.pc-card--hidden:hover {
+    opacity: 0.75;
+}
+
+.pc-card__hidden-veil {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.48);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    color: rgba(255, 255, 255, 0.45);
+    z-index: 1;
+}
+
 .pc-card__cover {
     position: relative;
     aspect-ratio: 1/1;
@@ -1273,6 +1346,10 @@ const sortOptions = [
 
 
 .pc-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
     padding: 0.38rem 0.8rem;
     border-radius: 5px;
     font-size: 0.85rem;
@@ -1905,6 +1982,21 @@ const sortOptions = [
 .pcd-edit-item:hover {
     background: rgba(255, 255, 255, 0.06);
     color: rgba(255, 255, 255, 0.92);
+}
+
+.pcd-edit-item--danger {
+    color: rgba(255, 110, 110, 0.65);
+}
+
+.pcd-edit-item--danger:hover {
+    background: rgba(180, 60, 60, 0.1);
+    color: rgba(255, 110, 110, 0.95);
+}
+
+.pcd-edit-divider {
+    margin: 0;
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .pcd-edit-toggle {
