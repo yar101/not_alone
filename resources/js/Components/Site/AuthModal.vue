@@ -48,9 +48,9 @@ const registerForm = useForm({
 });
 
 // ── Birth date selects ─────────────────────────────────────
-const bdDay   = ref('');
+const bdDay = ref('');
 const bdMonth = ref('');
-const bdYear  = ref('');
+const bdYear = ref('');
 
 const currentYear = new Date().getFullYear();
 
@@ -70,8 +70,8 @@ const yearOptions = computed(() => {
 const dayOptions = computed(() => {
     if (!bdMonth.value) return Array.from({ length: 31 }, (_, i) => i + 1);
     const month = parseInt(bdMonth.value);
-    const year  = bdYear.value ? parseInt(bdYear.value) : 2000;
-    const days  = new Date(year, month, 0).getDate();
+    const year = bdYear.value ? parseInt(bdYear.value) : 2000;
+    const days = new Date(year, month, 0).getDate();
     return Array.from({ length: days }, (_, i) => i + 1);
 });
 
@@ -105,11 +105,7 @@ function submitRegister() {
                     <a :href="route('profile')" class="auth-submit auth-known-continue">
                         Продолжить
                     </a>
-                    <button
-                        type="button"
-                        class="auth-known-logout"
-                        @click="router.post(route('logout'))"
-                    >
+                    <button type="button" class="auth-known-logout" @click="router.post(route('logout'))">
                         Выйти из аккаунта
                     </button>
                 </div>
@@ -117,237 +113,205 @@ function submitRegister() {
                 <!-- Tab switcher (shown only when not logged in) -->
                 <div v-else class="auth-tabs-wrapper">
                     <div class="auth-tabs">
-                <button
-                    class="auth-tab"
-                    :class="{ 'auth-tab--active': tab === 'login' }"
-                    @click="switchTab('login')"
-                >
-                    Войти
-                </button>
-                <button
-                    class="auth-tab"
-                    :class="{ 'auth-tab--active': tab === 'register' }"
-                    @click="switchTab('register')"
-                >
-                    Зарегистрироваться
-                </button>
-            </div>
+                        <button class="auth-tab" :class="{ 'auth-tab--active': tab === 'login' }"
+                            @click="switchTab('login')">
+                            Войти
+                        </button>
+                        <button class="auth-tab" :class="{ 'auth-tab--active': tab === 'register' }"
+                            @click="switchTab('register')">
+                            Зарегистрироваться
+                        </button>
+                    </div>
 
-            <!-- Forms with transition -->
-            <Transition name="tab-slide" mode="out-in">
-                <!-- Login Form -->
-                <form v-if="tab === 'login'" key="login" @submit.prevent="submitLogin" class="auth-form">
-                    <div class="auth-field">
-                        <label class="auth-field-label">Email</label>
-                        <input
-                            v-model="loginForm.email"
-                            type="email"
-                            class="auth-input"
-                            :class="{ 'auth-input--error': loginForm.errors.email }"
-                            autocomplete="username"
-                            placeholder="you@example.com"
-                        />
-                        <Transition name="err-fade">
-                            <p v-show="loginForm.errors.email" class="auth-error">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                {{ loginForm.errors.email }}
+                    <!-- Forms with transition -->
+                    <Transition name="tab-slide" mode="out-in">
+                        <!-- Login Form -->
+                        <form v-if="tab === 'login'" key="login" @submit.prevent="submitLogin" class="auth-form">
+                            <div class="auth-field">
+                                <label class="auth-field-label">Email</label>
+                                <input v-model="loginForm.email" type="email" class="auth-input"
+                                    :class="{ 'auth-input--error': loginForm.errors.email }" autocomplete="username"
+                                    placeholder="you@example.com" />
+                                <Transition name="err-fade">
+                                    <p v-show="loginForm.errors.email" class="auth-error">
+                                        {{ loginForm.errors.email }}
+                                    </p>
+                                </Transition>
+                            </div>
+
+                            <div class="auth-field">
+                                <label class="auth-field-label">Пароль</label>
+                                <input v-model="loginForm.password" type="password" class="auth-input"
+                                    :class="{ 'auth-input--error': loginForm.errors.password }"
+                                    autocomplete="current-password" placeholder="••••••••" />
+                                <Transition name="err-fade">
+                                    <p v-show="loginForm.errors.password" class="auth-error">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2.5">
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line x1="12" y1="8" x2="12" y2="12" />
+                                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                                        </svg>
+                                        {{ loginForm.errors.password }}
+                                    </p>
+                                </Transition>
+                            </div>
+
+                            <div class="auth-remember">
+                                <label class="auth-remember-label">
+                                    <input v-model="loginForm.remember" type="checkbox" class="auth-checkbox-native" />
+                                    <span class="auth-checkbox-box">
+                                        <svg class="auth-checkbox-check" viewBox="0 0 10 8" fill="none">
+                                            <path d="M1 4L3.5 6.5L9 1" stroke="currentColor" stroke-width="1.5"
+                                                stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                    </span>
+                                    <span class="auth-remember-text">Запомнить меня</span>
+                                </label>
+                            </div>
+
+                            <button type="submit" class="auth-submit" :disabled="loginForm.processing">
+                                {{ loginForm.processing ? 'Вхожу…' : 'Войти' }}
+                            </button>
+
+                            <p class="auth-footer">
+                                Нет аккаунта?
+                                <button type="button" class="auth-switch-link"
+                                    @click="switchTab('register')">Зарегистрироваться</button>
                             </p>
-                        </Transition>
-                    </div>
+                        </form>
 
-                    <div class="auth-field">
-                        <label class="auth-field-label">Пароль</label>
-                        <input
-                            v-model="loginForm.password"
-                            type="password"
-                            class="auth-input"
-                            :class="{ 'auth-input--error': loginForm.errors.password }"
-                            autocomplete="current-password"
-                            placeholder="••••••••"
-                        />
-                        <Transition name="err-fade">
-                            <p v-show="loginForm.errors.password" class="auth-error">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                {{ loginForm.errors.password }}
+                        <!-- Register Form -->
+                        <form v-else key="register" @submit.prevent="submitRegister" class="auth-form">
+                            <div class="auth-field">
+                                <label class="auth-field-label">Имя</label>
+                                <input v-model="registerForm.name" type="text" class="auth-input"
+                                    :class="{ 'auth-input--error': registerForm.errors.name }" autocomplete="name"
+                                    placeholder="ivan_petrov" />
+                                <Transition name="err-fade">
+                                    <p v-show="registerForm.errors.name" class="auth-error">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2.5">
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line x1="12" y1="8" x2="12" y2="12" />
+                                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                                        </svg>
+                                        {{ registerForm.errors.name }}
+                                    </p>
+                                </Transition>
+                            </div>
+
+                            <div class="auth-field">
+                                <label class="auth-field-label">Пол</label>
+                                <div class="auth-gender-group">
+                                    <button type="button" class="auth-gender-btn"
+                                        :class="{ 'auth-gender-btn--active': registerForm.gender === 'male' }"
+                                        @click="registerForm.gender = 'male'">Мужской</button>
+                                    <button type="button" class="auth-gender-btn"
+                                        :class="{ 'auth-gender-btn--active': registerForm.gender === 'female' }"
+                                        @click="registerForm.gender = 'female'">Женский</button>
+                                </div>
+                                <Transition name="err-fade">
+                                    <p v-show="registerForm.errors.gender" class="auth-error">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2.5">
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line x1="12" y1="8" x2="12" y2="12" />
+                                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                                        </svg>
+                                        {{ registerForm.errors.gender }}
+                                    </p>
+                                </Transition>
+                            </div>
+
+                            <div class="auth-field">
+                                <label class="auth-field-label">Дата рождения</label>
+                                <div class="auth-dob-group">
+                                    <AppSelect v-model="bdDay" :options="dayOptions" placeholder="День"
+                                        :error="!!registerForm.errors.birth_date" style="flex:1;min-width:0" />
+                                    <AppSelect v-model="bdMonth" :options="monthOptions" placeholder="Месяц"
+                                        :error="!!registerForm.errors.birth_date" style="flex:1;min-width:0" />
+                                    <AppSelect v-model="bdYear" :options="yearOptions" placeholder="Год"
+                                        :error="!!registerForm.errors.birth_date" style="flex:1;min-width:0" />
+                                </div>
+                                <Transition name="err-fade">
+                                    <p v-show="registerForm.errors.birth_date" class="auth-error">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2.5">
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line x1="12" y1="8" x2="12" y2="12" />
+                                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                                        </svg>
+                                        {{ registerForm.errors.birth_date }}
+                                    </p>
+                                </Transition>
+                            </div>
+
+                            <div class="auth-field">
+                                <label class="auth-field-label">Email</label>
+                                <input v-model="registerForm.email" type="email" class="auth-input"
+                                    :class="{ 'auth-input--error': registerForm.errors.email }" autocomplete="username"
+                                    placeholder="you@example.com" />
+                                <Transition name="err-fade">
+                                    <p v-show="registerForm.errors.email" class="auth-error">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2.5">
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line x1="12" y1="8" x2="12" y2="12" />
+                                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                                        </svg>
+                                        {{ registerForm.errors.email }}
+                                    </p>
+                                </Transition>
+                            </div>
+
+                            <div class="auth-field">
+                                <label class="auth-field-label">Пароль</label>
+                                <input v-model="registerForm.password" type="password" class="auth-input"
+                                    :class="{ 'auth-input--error': registerForm.errors.password }"
+                                    autocomplete="new-password" placeholder="••••••••" />
+                                <Transition name="err-fade">
+                                    <p v-show="registerForm.errors.password" class="auth-error">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2.5">
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line x1="12" y1="8" x2="12" y2="12" />
+                                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                                        </svg>
+                                        {{ registerForm.errors.password }}
+                                    </p>
+                                </Transition>
+                            </div>
+
+                            <div class="auth-field">
+                                <label class="auth-field-label">Подтверждение пароля</label>
+                                <input v-model="registerForm.password_confirmation" type="password" class="auth-input"
+                                    :class="{ 'auth-input--error': registerForm.errors.password_confirmation }"
+                                    autocomplete="new-password" placeholder="••••••••" />
+                                <Transition name="err-fade">
+                                    <p v-show="registerForm.errors.password_confirmation" class="auth-error">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2.5">
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line x1="12" y1="8" x2="12" y2="12" />
+                                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                                        </svg>
+                                        {{ registerForm.errors.password_confirmation }}
+                                    </p>
+                                </Transition>
+                            </div>
+
+                            <button type="submit" class="auth-submit" :disabled="registerForm.processing">
+                                {{ registerForm.processing ? 'Регистрируюсь…' : 'Зарегистрироваться' }}
+                            </button>
+
+                            <p class="auth-footer">
+                                Уже есть аккаунт?
+                                <button type="button" class="auth-switch-link"
+                                    @click="switchTab('login')">Войти</button>
                             </p>
-                        </Transition>
-                    </div>
-
-                    <div class="auth-remember">
-                        <label class="auth-remember-label">
-                            <input
-                                v-model="loginForm.remember"
-                                type="checkbox"
-                                class="auth-checkbox-native"
-                            />
-                            <span class="auth-checkbox-box">
-                                <svg class="auth-checkbox-check" viewBox="0 0 10 8" fill="none">
-                                    <path d="M1 4L3.5 6.5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                            </span>
-                            <span class="auth-remember-text">Запомнить меня</span>
-                        </label>
-                    </div>
-
-                    <button
-                        type="submit"
-                        class="auth-submit"
-                        :disabled="loginForm.processing"
-                    >
-                        {{ loginForm.processing ? 'Вхожу…' : 'Войти' }}
-                    </button>
-
-                    <p class="auth-footer">
-                        Нет аккаунта?
-                        <button type="button" class="auth-switch-link" @click="switchTab('register')">Зарегистрироваться</button>
-                    </p>
-                </form>
-
-                <!-- Register Form -->
-                <form v-else key="register" @submit.prevent="submitRegister" class="auth-form">
-                    <div class="auth-field">
-                        <label class="auth-field-label">Имя</label>
-                        <input
-                            v-model="registerForm.name"
-                            type="text"
-                            class="auth-input"
-                            :class="{ 'auth-input--error': registerForm.errors.name }"
-                            autocomplete="name"
-                            placeholder="ivan_petrov"
-                        />
-                        <Transition name="err-fade">
-                            <p v-show="registerForm.errors.name" class="auth-error">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                {{ registerForm.errors.name }}
-                            </p>
-                        </Transition>
-                    </div>
-
-                    <div class="auth-field">
-                        <label class="auth-field-label">Пол</label>
-                        <div class="auth-gender-group">
-                            <button
-                                type="button"
-                                class="auth-gender-btn"
-                                :class="{ 'auth-gender-btn--active': registerForm.gender === 'male' }"
-                                @click="registerForm.gender = 'male'"
-                            >Мужской</button>
-                            <button
-                                type="button"
-                                class="auth-gender-btn"
-                                :class="{ 'auth-gender-btn--active': registerForm.gender === 'female' }"
-                                @click="registerForm.gender = 'female'"
-                            >Женский</button>
-                        </div>
-                        <Transition name="err-fade">
-                            <p v-show="registerForm.errors.gender" class="auth-error">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                {{ registerForm.errors.gender }}
-                            </p>
-                        </Transition>
-                    </div>
-
-                    <div class="auth-field">
-                        <label class="auth-field-label">Дата рождения</label>
-                        <div class="auth-dob-group">
-                            <AppSelect
-                                v-model="bdDay"
-                                :options="dayOptions"
-                                placeholder="День"
-                                :error="!!registerForm.errors.birth_date"
-                                style="flex:1;min-width:0"
-                            />
-                            <AppSelect
-                                v-model="bdMonth"
-                                :options="monthOptions"
-                                placeholder="Месяц"
-                                :error="!!registerForm.errors.birth_date"
-                                style="flex:1;min-width:0"
-                            />
-                            <AppSelect
-                                v-model="bdYear"
-                                :options="yearOptions"
-                                placeholder="Год"
-                                :error="!!registerForm.errors.birth_date"
-                                style="flex:1;min-width:0"
-                            />
-                        </div>
-                        <Transition name="err-fade">
-                            <p v-show="registerForm.errors.birth_date" class="auth-error">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                {{ registerForm.errors.birth_date }}
-                            </p>
-                        </Transition>
-                    </div>
-
-                    <div class="auth-field">
-                        <label class="auth-field-label">Email</label>
-                        <input
-                            v-model="registerForm.email"
-                            type="email"
-                            class="auth-input"
-                            :class="{ 'auth-input--error': registerForm.errors.email }"
-                            autocomplete="username"
-                            placeholder="you@example.com"
-                        />
-                        <Transition name="err-fade">
-                            <p v-show="registerForm.errors.email" class="auth-error">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                {{ registerForm.errors.email }}
-                            </p>
-                        </Transition>
-                    </div>
-
-                    <div class="auth-field">
-                        <label class="auth-field-label">Пароль</label>
-                        <input
-                            v-model="registerForm.password"
-                            type="password"
-                            class="auth-input"
-                            :class="{ 'auth-input--error': registerForm.errors.password }"
-                            autocomplete="new-password"
-                            placeholder="••••••••"
-                        />
-                        <Transition name="err-fade">
-                            <p v-show="registerForm.errors.password" class="auth-error">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                {{ registerForm.errors.password }}
-                            </p>
-                        </Transition>
-                    </div>
-
-                    <div class="auth-field">
-                        <label class="auth-field-label">Подтверждение пароля</label>
-                        <input
-                            v-model="registerForm.password_confirmation"
-                            type="password"
-                            class="auth-input"
-                            :class="{ 'auth-input--error': registerForm.errors.password_confirmation }"
-                            autocomplete="new-password"
-                            placeholder="••••••••"
-                        />
-                        <Transition name="err-fade">
-                            <p v-show="registerForm.errors.password_confirmation" class="auth-error">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                {{ registerForm.errors.password_confirmation }}
-                            </p>
-                        </Transition>
-                    </div>
-
-                    <button
-                        type="submit"
-                        class="auth-submit"
-                        :disabled="registerForm.processing"
-                    >
-                        {{ registerForm.processing ? 'Регистрируюсь…' : 'Зарегистрироваться' }}
-                    </button>
-
-                    <p class="auth-footer">
-                        Уже есть аккаунт?
-                        <button type="button" class="auth-switch-link" @click="switchTab('login')">Войти</button>
-                    </p>
-                </form>
-            </Transition>
+                        </form>
+                    </Transition>
                 </div><!-- /.auth-tabs-wrapper -->
             </Transition>
         </div>
@@ -534,7 +498,7 @@ function submitRegister() {
 
 /* ── Error messages ───────────────────────────────────── */
 .auth-error {
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     color: rgba(220, 100, 140, 0.9);
     display: flex;
     align-items: center;
@@ -611,13 +575,13 @@ function submitRegister() {
     transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
-.auth-checkbox-native:checked ~ .auth-checkbox-box {
+.auth-checkbox-native:checked~.auth-checkbox-box {
     background: rgba(110, 110, 210, 0.65);
     border-color: rgba(110, 110, 210, 0.8);
     box-shadow: 0 0 8px rgba(110, 110, 210, 0.3);
 }
 
-.auth-checkbox-native:checked ~ .auth-checkbox-box .auth-checkbox-check {
+.auth-checkbox-native:checked~.auth-checkbox-box .auth-checkbox-check {
     opacity: 1;
     transform: scale(1);
 }
@@ -632,7 +596,7 @@ function submitRegister() {
     transition: color 0.15s ease;
 }
 
-.auth-checkbox-native:checked ~ .auth-remember-text {
+.auth-checkbox-native:checked~.auth-remember-text {
     color: rgba(255, 255, 255, 0.65);
 }
 
@@ -689,10 +653,12 @@ function submitRegister() {
 .tab-slide-leave-active {
     transition: opacity 0.18s ease, transform 0.18s ease;
 }
+
 .tab-slide-enter-from {
     opacity: 0;
     transform: translateX(12px);
 }
+
 .tab-slide-leave-to {
     opacity: 0;
     transform: translateX(-12px);
@@ -702,6 +668,7 @@ function submitRegister() {
 .err-fade-leave-active {
     transition: opacity 0.15s ease, transform 0.15s ease;
 }
+
 .err-fade-enter-from,
 .err-fade-leave-to {
     opacity: 0;

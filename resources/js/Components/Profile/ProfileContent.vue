@@ -2,7 +2,7 @@
 import { ref, computed, inject, watch, onMounted, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
-import { Picture } from '@element-plus/icons-vue';
+import { Picture, WarnTriangleFilled } from '@element-plus/icons-vue';
 import CreateButton from '@/Components/CreateButton.vue';
 import SortDropdown from '@/Components/SortDropdown.vue';
 import CreateContentPackModal from '@/Components/Profile/CreateContentPackModal.vue';
@@ -463,7 +463,7 @@ const sortOptions = [
                         <div class="pc-card__footer">
                             <template v-if="pack.status === 'has_remarks'">
                                 <button class="pc-btn--details pc-btn--details-warn"
-                                    @click.stop="openRemarks(pack)">Исправить</button>
+                                    @click.stop="openDetail(pack)">Исправить</button>
                                 <button class="pc-btn--details-icon" @click.stop="handleDelete(pack)">
                                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <polyline points="3 6 5 6 21 6" stroke-width="2" stroke-linecap="round"
@@ -704,13 +704,10 @@ const sortOptions = [
                 <div class="pcd-body">
 
                     <!-- Change request remarks banner -->
-                    <div v-if="isOwner && detailPack.pending_change?.status === 'has_remarks'"
+                    <div v-if="isOwner && (detailPack.status === 'has_remarks' || detailPack.pending_change?.status === 'has_remarks')"
                         class="pcd-remarks-banner">
-                        <span class="pcd-remarks-banner__icon">⚠</span>
-                        <div>
-                            <strong>Требуются исправления</strong>
-                            <p>Модератор оставил замечания по изменениям. Исправьте отмеченные поля и сохраните.</p>
-                        </div>
+                        <el-icon class="pcd-remarks-banner__icon"><WarnTriangleFilled /></el-icon>
+                        <strong>Требуются исправления</strong>
                     </div>
 
                     <!-- Title -->
@@ -729,19 +726,7 @@ const sortOptions = [
                         <template v-else>
                             <div class="pcd-title-row">
                                 <h3 class="pcd-title">{{ detailPack.title }}</h3>
-                                <span
-                                    v-if="detailPack.pending_change?.changed_fields?.includes('title') && !(detailPack.pending_change.status === 'has_remarks' && detailPack.pending_change.flagged_fields?.includes('title'))"
-                                    class="pcd-pending-icon">
-                                    <span class="pcd-pending-dot" />
-                                </span>
                             </div>
-                            <template
-                                v-if="detailPack.pending_change?.changed_fields?.includes('title') && detailPack.pending_change.status === 'has_remarks' && detailPack.pending_change.flagged_fields?.includes('title')">
-                                <span class="pcd-pending-badge pcd-pending-badge--remarks">Нужно исправить</span>
-                                <span v-if="detailPack.pending_change.field_comments?.title"
-                                    class="pcd-remarks-comment">{{ detailPack.pending_change.field_comments.title
-                                    }}</span>
-                            </template>
                         </template>
                     </div>
 
@@ -763,19 +748,7 @@ const sortOptions = [
                                 <p v-if="detailPack.description" class="pcd-desc">{{ detailPack.description }}</p>
                                 <p v-else-if="isOwner && detailPack.status === 'published'"
                                     class="pcd-desc pcd-desc--empty">Описание не добавлено</p>
-                                <span
-                                    v-if="detailPack.pending_change?.changed_fields?.includes('description') && !(detailPack.pending_change.status === 'has_remarks' && detailPack.pending_change.flagged_fields?.includes('description'))"
-                                    class="pcd-pending-icon">
-                                    <span class="pcd-pending-dot" />
-                                </span>
                             </div>
-                            <template
-                                v-if="detailPack.pending_change?.changed_fields?.includes('description') && detailPack.pending_change.status === 'has_remarks' && detailPack.pending_change.flagged_fields?.includes('description')">
-                                <span class="pcd-pending-badge pcd-pending-badge--remarks">Нужно исправить</span>
-                                <span v-if="detailPack.pending_change.field_comments?.description"
-                                    class="pcd-remarks-comment">{{ detailPack.pending_change.field_comments.description
-                                    }}</span>
-                            </template>
                         </template>
                     </div>
 
@@ -807,25 +780,13 @@ const sortOptions = [
                         </template>
                         <template v-else>
                             <span class="pcd-meta-price">{{ detailPack.price }} ₽</span>
-                            <template v-if="detailPack.pending_change?.changed_fields?.includes('price')">
-                                <template
-                                    v-if="detailPack.pending_change.status === 'has_remarks' && detailPack.pending_change.flagged_fields?.includes('price')">
-                                    <span class="pcd-pending-badge pcd-pending-badge--remarks">Нужно исправить</span>
-                                    <span v-if="detailPack.pending_change.field_comments?.price"
-                                        class="pcd-remarks-comment">{{ detailPack.pending_change.field_comments.price
-                                        }}</span>
-                                </template>
-                                <span v-else class="pcd-pending-icon">
-                                    <span class="pcd-pending-dot" />
-                                </span>
-                            </template>
                         </template>
                     </div>
 
                     <!-- Cart / owner management -->
                     <div class="pcd-actions">
                         <template v-if="isOwner">
-                            <div v-if="['has_remarks', 'approved', 'rejected'].includes(detailPack.status)"
+                            <div v-if="['approved', 'rejected'].includes(detailPack.status)"
                                 class="pcd-owner-btns">
                                 <button v-if="detailPack.status === 'approved'"
                                     class="pc-btn pc-btn--primary pc-btn--grow"
@@ -839,9 +800,6 @@ const sortOptions = [
                                     </svg>
                                     {{ publishingPackId === detailPack.id ? 'Публикация…' : 'Опубликовать' }}
                                 </button>
-                                <button v-if="detailPack.status === 'has_remarks'"
-                                    class="pc-btn pc-btn--warn pc-btn--grow"
-                                    @click="openRemarks(detailPack); closeDetail()">Посмотреть замечания</button>
                                 <button class="pc-btn pc-btn--danger pc-btn--icon"
                                     @click="handleDelete(detailPack); closeDetail()">
                                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -892,9 +850,17 @@ const sortOptions = [
                         </template>
                     </div>
 
-                    <!-- Edit dropdown (owner + published, bottom) -->
-                    <div v-if="isOwner && detailPack.status === 'published' && !editingTitle && !editingDesc && !editingPrice"
+                    <!-- Bottom action (owner) -->
+                    <div v-if="isOwner && (detailPack.status === 'has_remarks' || (detailPack.status === 'published' && !editingTitle && !editingDesc && !editingPrice))"
                         class="pcd-edit-wrap">
+                        <!-- "Исправить" — для has_remarks и published+change_request_remarks -->
+                        <template v-if="detailPack.status === 'has_remarks' || detailPack.pending_change?.status === 'has_remarks'">
+                            <button class="pcd-edit-toggle pcd-edit-toggle--danger"
+                                @click="detailPack.status === 'has_remarks' ? openRemarks(detailPack) : openChangeRequestRemarks(detailPack)">
+                                Исправить
+                            </button>
+                        </template>
+                        <template v-else>
                         <!-- Backdrop to close menu -->
                         <div v-if="showEditMenu" class="pcd-edit-backdrop" @click="showEditMenu = false" />
                         <!-- Menu (opens upward) -->
@@ -951,6 +917,7 @@ const sortOptions = [
                                 <polyline points="18 15 12 9 6 15" />
                             </svg>
                         </button>
+                        </template>
                     </div>
 
                 </div><!-- /pcd-body -->
@@ -1808,6 +1775,10 @@ const sortOptions = [
     background: rgba(100, 210, 255, 0.85);
     box-shadow: inset 0 1px 0 rgba(180, 240, 255, 0.6);
 }
+.pcd-pending-dot--danger {
+    background: rgba(220, 60, 60, 0.85);
+    box-shadow: inset 0 1px 0 rgba(255, 130, 130, 0.6);
+}
 
 .pcd-pending-badge {
     display: inline-block;
@@ -1835,28 +1806,22 @@ const sortOptions = [
 
 .pcd-remarks-banner {
     display: flex;
-    align-items: flex-start;
-    gap: 0.65rem;
-    background: rgba(255, 150, 60, 0.12);
-    border: 1px solid rgba(255, 150, 60, 0.35);
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: rgba(200, 50, 50, 0.08);
+    border: 1px solid rgba(200, 50, 50, 0.25);
     border-radius: 8px;
-    padding: 0.8rem 1rem;
+    padding: 0.6rem 1rem;
     margin-bottom: 1rem;
-    font-size: 0.85rem;
-    color: rgba(255, 190, 110, 0.95);
-    line-height: 1.4;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: rgba(255, 110, 110, 0.75);
 }
 
 .pcd-remarks-banner__icon {
-    font-size: 1.1rem;
+    font-size: 0.95rem;
     flex-shrink: 0;
-    margin-top: 0.05rem;
-}
-
-.pcd-remarks-banner strong {
-    display: block;
-    margin-bottom: 0.25rem;
-    font-size: 0.9rem;
 }
 
 .pcd-remarks-banner p {
@@ -1869,6 +1834,24 @@ const sortOptions = [
 .pcd-edit-wrap {
     position: relative;
     margin-top: -0.5rem;
+}
+
+.pcd-edit-wrap--row {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.pcd-edit-toggle--delete {
+    flex: 0 0 2.75rem;
+    width: 2.75rem;
+    border-color: rgba(180, 60, 60, 0.3);
+    background: rgba(180, 60, 60, 0.08);
+    color: rgba(255, 110, 110, 0.75);
+    box-shadow: inset 0 1px 0 rgba(255, 120, 120, 0.40);
+}
+.pcd-edit-toggle--delete:hover {
+    background: rgba(180, 60, 60, 0.16);
+    color: rgba(255, 110, 110, 1);
 }
 
 .pcd-edit-backdrop {
@@ -1939,6 +1922,17 @@ const sortOptions = [
 .pcd-edit-toggle:hover {
     background: rgba(255, 255, 255, 0.09);
     color: rgba(255, 255, 255, 0.82);
+}
+
+.pcd-edit-toggle--danger {
+    border-color: rgba(160, 160, 255, 0.35);
+    background: rgba(160, 160, 255, 0.10);
+    color: var(--color-base-1);
+    box-shadow: inset 0 1px 0 rgba(180, 180, 255, 0.70);
+}
+.pcd-edit-toggle--danger:hover {
+    background: rgba(160, 160, 255, 0.18);
+    color: rgba(180, 180, 255, 1);
 }
 
 /* Menu transition */

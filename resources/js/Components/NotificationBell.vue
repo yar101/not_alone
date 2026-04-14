@@ -161,44 +161,44 @@ const latestKnownAt = ref(null);
 function notifPopupTitle(item) {
     if (item._cat === 'order') {
         return {
-            order_created:   'Новый заказ',
-            order_accepted:  'Заказ принят',
+            order_created: 'Новый заказ',
+            order_accepted: 'Заказ принят',
             order_cancelled: 'Заказ отменён',
-            order_paid:      'Заказ оплачен',
+            order_paid: 'Заказ оплачен',
             order_completed: 'Заказ завершён',
         }[item.type] ?? 'Заказ';
     }
     if (item.title) return item.title;
     return {
-        content_pack_approved:        'Пак одобрен',
-        content_pack_remarks:         'Замечания к паку',
-        content_pack_rejected:        'Пак отклонён',
+        content_pack_approved: 'Пак одобрен',
+        content_pack_remarks: 'Замечания к паку',
+        content_pack_rejected: 'Пак отклонён',
         content_pack_change_approved: 'Изменения одобрены',
-        content_pack_change_remarks:  'Замечания к изменениям',
+        content_pack_change_remarks: 'Замечания к изменениям',
         content_pack_change_rejected: 'Изменения отклонены',
-        idol_approved:                'Заявка одобрена',
-        idol_rejected:                'Заявка отклонена',
-        admin_broadcast:              'Объявление',
-        low_rating_warning:           'Предупреждение',
-        admin_rating:                 'Оценка',
-        review_dispute_approved:      'Спор одобрен',
-        review_dispute_rejected:      'Спор отклонён',
-        new_review:                   'Новый отзыв',
+        idol_approved: 'Заявка одобрена',
+        idol_rejected: 'Заявка отклонена',
+        admin_broadcast: 'Объявление',
+        low_rating_warning: 'Предупреждение',
+        admin_rating: 'Оценка',
+        review_dispute_approved: 'Спор одобрен',
+        review_dispute_rejected: 'Спор отклонён',
+        new_review: 'Новый отзыв',
     }[item.type] ?? 'Уведомление';
 }
 
 function showNotifPopup(item) {
-    const iconComp  = itemIconComponent(item);
+    const iconComp = itemIconComponent(item);
     const iconClass = itemIconClass(item);
-    const title     = notifPopupTitle(item);
-    const message   = item._cat === 'order' ? orderMessage(item) : (item.message ?? '');
+    const title = notifPopupTitle(item);
+    const message = item._cat === 'order' ? orderMessage(item) : (item.message ?? '');
 
     ElNotification({
-        duration:    5000,
-        position:    'top-right',
-        offset:      70,
+        duration: 5000,
+        position: 'top-right',
+        offset: 70,
         customClass: 'app-notif',
-        showClose:   true,
+        showClose: true,
         message: h('div', { class: 'app-notif__body' }, [
             h('div', { class: `app-notif__icon ${iconClass}` }, [
                 h(ElIcon, null, { default: () => h(iconComp) }),
@@ -254,13 +254,13 @@ function itemIconComponent(item) {
             admin_rating: Rank,
             review_dispute_approved: CircleCheckFilled,
             review_dispute_rejected: CircleCloseFilled,
-            content_pack_approved:         PictureFilled,
-            content_pack_remarks:          PictureFilled,
-            content_pack_rejected:         PictureFilled,
-            content_pack_change_approved:  PictureFilled,
-            content_pack_change_remarks:   PictureFilled,
-            content_pack_change_rejected:  PictureFilled,
-            new_review:                    StarFilled,
+            content_pack_approved: PictureFilled,
+            content_pack_remarks: PictureFilled,
+            content_pack_rejected: PictureFilled,
+            content_pack_change_approved: PictureFilled,
+            content_pack_change_remarks: PictureFilled,
+            content_pack_change_rejected: PictureFilled,
+            new_review: StarFilled,
         }[item.type] ?? Bell;
     }
     return Bell;
@@ -357,15 +357,20 @@ onUnmounted(() => {
                 <div class="notif-panel-header">
                     <span class="notif-panel-title">Уведомления</span>
                     <div class="notif-filters">
-                        <button class="notif-filter-btn" :class="{ 'notif-filter-btn--active': activeFilter === 'all' }" @click="activeFilter = 'all'">
+                        <button class="notif-filter-btn" :class="{ 'notif-filter-btn--active': activeFilter === 'all' }"
+                            @click="activeFilter = 'all'">
                             Все
                             <span v-if="totalUnread > 0" class="notif-filter-dot"></span>
                         </button>
-                        <button class="notif-filter-btn" :class="{ 'notif-filter-btn--active': activeFilter === 'service' }" @click="activeFilter = 'service'">
+                        <button class="notif-filter-btn"
+                            :class="{ 'notif-filter-btn--active': activeFilter === 'service' }"
+                            @click="activeFilter = 'service'">
                             Сервис
                             <span v-if="serviceUnread > 0" class="notif-filter-dot"></span>
                         </button>
-                        <button class="notif-filter-btn" :class="{ 'notif-filter-btn--active': activeFilter === 'order' }" @click="activeFilter = 'order'">
+                        <button class="notif-filter-btn"
+                            :class="{ 'notif-filter-btn--active': activeFilter === 'order' }"
+                            @click="activeFilter = 'order'">
                             Заказы
                             <span v-if="orderUnread > 0" class="notif-filter-dot"></span>
                         </button>
@@ -407,7 +412,9 @@ onUnmounted(() => {
                             <div class="notif-content">
                                 <div class="notif-header">
                                     <div class="notif-icon-wrap" :class="itemIconClass(item)">
-                                        <el-icon><component :is="itemIconComponent(item)" /></el-icon>
+                                        <el-icon>
+                                            <component :is="itemIconComponent(item)" />
+                                        </el-icon>
                                     </div>
                                     <p v-if="item.title" class="notif-service-title">{{ item.title }}</p>
                                     <p v-else class="notif-msg notif-msg--headline">
@@ -415,14 +422,17 @@ onUnmounted(() => {
                                         <template v-else>{{ item.message }}</template>
                                     </p>
                                     <span class="notif-cat-tag" :class="`cat--${item._cat}`">
-                                        {{ item._cat === 'personal' ? 'Личное' : item._cat === 'service' ? 'Сервис' : 'Заказ' }}
+                                        {{ item._cat === 'personal' ? 'Личное' : item._cat === 'service' ? 'Сервис' :
+                                            'Заказ' }}
                                     </span>
                                 </div>
                                 <p v-if="item.title" class="notif-msg notif-msg--sub">
                                     <template v-if="item._cat === 'order'">{{ orderMessage(item) }}</template>
                                     <template v-else>{{ item.message }}</template>
                                 </p>
-                                <p v-if="item.reason" class="notif-reason">{{ item.reason }}</p>
+                                <p v-if="item.reason" class="notif-reason">
+                                    <span class="notif-reason--sub">Причина:</span> {{ item.reason }}
+                                </p>
                                 <div class="notif-footer-row">
                                     <span class="notif-time">{{ relativeTime(item.created_at) }}</span>
                                 </div>
@@ -432,7 +442,9 @@ onUnmounted(() => {
                         <!-- Load more button -->
                         <div v-if="hasMore || loadingMore" class="notif-load-more-wrap">
                             <button class="notif-load-more-btn" :disabled="loadingMore" @click="fetchMore">
-                                <span class="notif-load-more-text" :style="{ visibility: loadingMore ? 'hidden' : 'visible' }">Загрузить ещё</span>
+                                <span class="notif-load-more-text"
+                                    :style="{ visibility: loadingMore ? 'hidden' : 'visible' }">Загрузить
+                                    ещё</span>
                                 <span v-if="loadingMore" class="notif-load-more-dots">
                                     <span class="notif-load-dot"></span>
                                     <span class="notif-load-dot"></span>
@@ -726,7 +738,7 @@ onUnmounted(() => {
 .notif-service-title {
     font-size: 1rem;
     font-weight: 400;
-    color: rgba(255,255,255,0.75);
+    color: rgba(255, 255, 255, 0.75);
     margin: 0 0 0.15rem;
 }
 
@@ -744,12 +756,15 @@ onUnmounted(() => {
 
 .notif-reason {
     font-size: 0.8rem;
-    color: rgba(239, 68, 68, 0.7);
+    color: rgba(239, 68, 68, 0.8);
     margin: 0 0 0.3rem;
     padding: 0.2rem 0.5rem;
-    background: rgba(239, 68, 68, 0.06);
+    /* background: rgba(239, 68, 68, 0.06); */
     border-radius: 5px;
-    border-left: 2px solid rgba(239, 68, 68, 0.3);
+
+    .notif-reason--sub {
+        color: rgba(255, 255, 255, 0.75);
+    }
 }
 
 .notif-header {
@@ -764,9 +779,9 @@ onUnmounted(() => {
     flex: 1;
     min-width: 0;
     margin: 0;
-    font-size: 1rem;
+    font-size: 0.8rem;
     font-weight: 400;
-    color: rgba(255,255,255,0.75);
+    color: rgba(255, 255, 255, 0.75);
 }
 
 .notif-footer-row {
@@ -865,20 +880,49 @@ onUnmounted(() => {
     animation-fill-mode: backwards;
 }
 
-.sk-line--title { height: 13px; width: 55%; }
-.sk-line--body  { height: 11px; width: 85%; animation-delay: 0.1s; }
-.sk-line--time  { height: 9px;  width: 30%; margin-top: 4px; animation-delay: 0.2s; }
+.sk-line--title {
+    height: 13px;
+    width: 55%;
+}
+
+.sk-line--body {
+    height: 11px;
+    width: 85%;
+    animation-delay: 0.1s;
+}
+
+.sk-line--time {
+    height: 9px;
+    width: 30%;
+    margin-top: 4px;
+    animation-delay: 0.2s;
+}
 
 .notif-skeleton-item:nth-child(2) .sk-icon,
-.notif-skeleton-item:nth-child(2) .sk-line { animation-delay: 0.15s; }
+.notif-skeleton-item:nth-child(2) .sk-line {
+    animation-delay: 0.15s;
+}
+
 .notif-skeleton-item:nth-child(3) .sk-icon,
-.notif-skeleton-item:nth-child(3) .sk-line { animation-delay: 0.3s; }
+.notif-skeleton-item:nth-child(3) .sk-line {
+    animation-delay: 0.3s;
+}
+
 .notif-skeleton-item:nth-child(4) .sk-icon,
-.notif-skeleton-item:nth-child(4) .sk-line { animation-delay: 0.45s; }
+.notif-skeleton-item:nth-child(4) .sk-line {
+    animation-delay: 0.45s;
+}
 
 @keyframes sk-pulse {
-    0%, 100% { opacity: 0.35; }
-    50%       { opacity: 0.8; }
+
+    0%,
+    100% {
+        opacity: 0.35;
+    }
+
+    50% {
+        opacity: 0.8;
+    }
 }
 
 /* ── Load more button ── */
@@ -945,12 +989,27 @@ onUnmounted(() => {
     animation: notif-bounce 1s ease-in-out infinite;
 }
 
-.notif-load-dot:nth-child(2) { animation-delay: 0.15s; }
-.notif-load-dot:nth-child(3) { animation-delay: 0.30s; }
+.notif-load-dot:nth-child(2) {
+    animation-delay: 0.15s;
+}
+
+.notif-load-dot:nth-child(3) {
+    animation-delay: 0.30s;
+}
 
 @keyframes notif-bounce {
-    0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
-    40%            { transform: translateY(-5px); opacity: 1; }
+
+    0%,
+    80%,
+    100% {
+        transform: translateY(0);
+        opacity: 0.5;
+    }
+
+    40% {
+        transform: translateY(-5px);
+        opacity: 1;
+    }
 }
 
 /* ── Animations ── */
