@@ -707,7 +707,10 @@ const sortOptions = [
                     <div v-if="isOwner && (detailPack.status === 'has_remarks' || detailPack.pending_change?.status === 'has_remarks')"
                         class="pcd-remarks-banner">
                         <el-icon class="pcd-remarks-banner__icon"><WarnTriangleFilled /></el-icon>
-                        <strong>Требуются исправления</strong>
+                        <span>
+                            <strong>Требуются исправления</strong>
+                            <span v-if="detailPack.status === 'has_remarks'" class="pcd-remarks-banner__note">Пак не виден другим пользователям</span>
+                        </span>
                     </div>
 
                     <!-- Title -->
@@ -1806,8 +1809,7 @@ const sortOptions = [
 
 .pcd-remarks-banner {
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: flex-start;
     gap: 0.5rem;
     background: rgba(200, 50, 50, 0.08);
     border: 1px solid rgba(200, 50, 50, 0.25);
@@ -1822,6 +1824,12 @@ const sortOptions = [
 .pcd-remarks-banner__icon {
     font-size: 0.95rem;
     flex-shrink: 0;
+}
+
+.pcd-remarks-banner__note {
+    display: block;
+    opacity: 0.65;
+    font-weight: 400;
 }
 
 .pcd-remarks-banner p {
