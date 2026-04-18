@@ -10,6 +10,7 @@ use App\Models\InterestSuggestion;
 use App\Models\TraitSuggestion;
 use App\Models\UserReport;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -74,7 +75,21 @@ class HandleInertiaRequests extends Middleware
                 'success'         => $request->session()->get('success'),
                 'service_pending' => $request->session()->get('service_pending'),
             ],
+            'locale' => [
+                'current'      => app()->getLocale(),
+                'available'    => config('app.available_locales'),
+                'translations' => $this->getTranslations(),
+            ],
         ];
+    }
+
+    private function getTranslations(): array
+    {
+        $path = lang_path(app()->getLocale() . '.json');
+        if (File::exists($path)) {
+            return json_decode(File::get($path), true) ?? [];
+        }
+        return [];
     }
 
     private function countUnreadNotifications($user): int

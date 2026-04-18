@@ -13,6 +13,7 @@ use App\Http\Controllers\AboutController;
 use App\Http\Controllers\ContentPackController;
 use App\Http\Controllers\ContentPackPurchaseController;
 use App\Http\Controllers\GalleryController;
+use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\NewsPublicController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\ReviewController;
@@ -21,6 +22,8 @@ use App\Http\Controllers\UserSearchController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
+Route::post('/locale', [LocaleController::class, 'switch'])->name('locale.switch');
 
 Route::get('/about', AboutController::class)->name('about');
 Route::get('/news',           [NewsPublicController::class, 'index'])->name('news');
