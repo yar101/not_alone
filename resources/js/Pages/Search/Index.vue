@@ -7,11 +7,11 @@ import IdolBadge from '@/Components/IdolBadge.vue';
 
 
 const props = defineProps({
-    users:              Object,
-    traits:             Array,
+    users: Object,
+    traits: Array,
     interestCategories: Array,
-    serviceCategories:  Array,
-    filters:            Object,
+    serviceCategories: Array,
+    filters: Object,
 });
 
 const LANGUAGES = [
@@ -40,28 +40,28 @@ const TIMEZONES = [
 
 // ── Reactive filters ────────────────────────────────────────
 const f = ref({
-    name:               props.filters.name               ?? '',
-    gender:             props.filters.gender             ?? '',
-    age_from:           props.filters.age_from           ?? '',
-    age_to:             props.filters.age_to             ?? '',
-    is_idol:            props.filters.is_idol            ?? '',
-    rating_from:        props.filters.rating_from        ?? '',
-    rating_to:          props.filters.rating_to          ?? '',
-    traits:             props.filters.traits             ? [].concat(props.filters.traits).map(Number) : [],
-    interests:          props.filters.interests          ? [].concat(props.filters.interests).map(Number) : [],
-    languages:          props.filters.languages          ? [].concat(props.filters.languages) : [],
-    timezone:           props.filters.timezone           ?? '',
+    name: props.filters.name ?? '',
+    gender: props.filters.gender ?? '',
+    age_from: props.filters.age_from ?? '',
+    age_to: props.filters.age_to ?? '',
+    is_idol: props.filters.is_idol ?? '',
+    rating_from: props.filters.rating_from ?? '',
+    rating_to: props.filters.rating_to ?? '',
+    traits: props.filters.traits ? [].concat(props.filters.traits).map(Number) : [],
+    interests: props.filters.interests ? [].concat(props.filters.interests).map(Number) : [],
+    languages: props.filters.languages ? [].concat(props.filters.languages) : [],
+    timezone: props.filters.timezone ?? '',
     service_categories: props.filters.service_categories ? [].concat(props.filters.service_categories).map(Number) : [],
-    sort_by:            props.filters.sort_by            ?? 'rating',
-    sort_dir:           props.filters.sort_dir           ?? 'desc',
+    sort_by: props.filters.sort_by ?? 'rating',
+    sort_dir: props.filters.sort_dir ?? 'desc',
 });
 
 // Snapshot of last applied state (excluding sort_*)
 const appliedFilters = ref({ ...f.value });
 
-const DIRTY_KEYS = ['name','gender','age_from','age_to','is_idol',
-                    'rating_from','rating_to','traits','interests','languages',
-                    'timezone','service_categories'];
+const DIRTY_KEYS = ['name', 'gender', 'age_from', 'age_to', 'is_idol',
+    'rating_from', 'rating_to', 'traits', 'interests', 'languages',
+    'timezone', 'service_categories'];
 
 const isDirty = computed(() =>
     DIRTY_KEYS.some(k => JSON.stringify(f.value[k]) !== JSON.stringify(appliedFilters.value[k]))
@@ -83,7 +83,7 @@ function applyFilters() {
 }
 
 // Sort watchers — apply immediately, don't affect isDirty
-watch(() => f.value.sort_by,  apply);
+watch(() => f.value.sort_by, apply);
 watch(() => f.value.sort_dir, apply);
 
 function resetFilters() {
@@ -171,13 +171,13 @@ const activeChips = computed(() => {
 });
 
 function resetChip(chip) {
-    if (chip.key === 'name')    f.value.name = '';
-    else if (chip.key === 'gender')   f.value.gender = '';
-    else if (chip.key === 'age')      { f.value.age_from = ''; f.value.age_to = ''; }
-    else if (chip.key === 'is_idol')  f.value.is_idol = '';
-    else if (chip.key === 'rating')   { f.value.rating_from = ''; f.value.rating_to = ''; }
+    if (chip.key === 'name') f.value.name = '';
+    else if (chip.key === 'gender') f.value.gender = '';
+    else if (chip.key === 'age') { f.value.age_from = ''; f.value.age_to = ''; }
+    else if (chip.key === 'is_idol') f.value.is_idol = '';
+    else if (chip.key === 'rating') { f.value.rating_from = ''; f.value.rating_to = ''; }
     else if (chip.key === 'timezone') f.value.timezone = '';
-    else if (['traits','interests','languages','service_categories'].includes(chip.key))
+    else if (['traits', 'interests', 'languages', 'service_categories'].includes(chip.key))
         f.value[chip.key] = f.value[chip.key].filter(v => v !== chip.value);
 }
 
@@ -193,7 +193,7 @@ function calcAge(birthDate) {
 }
 
 function genderLabel(g) {
-    if (g === 'male')   return 'М';
+    if (g === 'male') return 'М';
     if (g === 'female') return 'Ж';
     return '';
 }
@@ -210,6 +210,7 @@ function initial(name) {
 </script>
 
 <template>
+
     <Head title="Поиск пользователей" />
     <AppLayout>
         <div class="search-page">
@@ -219,9 +220,12 @@ function initial(name) {
                 <div class="sort-bar">
                     <div class="sort-controls">
                         <span class="sort-label">Сортировать по</span>
-                        <button :class="['sort-btn', { active: f.sort_by === 'rating' }]" @click="f.sort_by = 'rating'">Рейтингу</button>
-                        <button :class="['sort-btn', { active: f.sort_by === 'created_at' }]" @click="f.sort_by = 'created_at'">Дате регистрации</button>
-                        <button @click="toggleSortDir" class="sort-dir-btn" :title="f.sort_dir === 'desc' ? 'По убыванию' : 'По возрастанию'">
+                        <button :class="['sort-btn', { active: f.sort_by === 'rating' }]"
+                            @click="f.sort_by = 'rating'">Рейтингу</button>
+                        <button :class="['sort-btn', { active: f.sort_by === 'created_at' }]"
+                            @click="f.sort_by = 'created_at'">Дате регистрации</button>
+                        <button @click="toggleSortDir" class="sort-dir-btn"
+                            :title="f.sort_dir === 'desc' ? 'По убыванию' : 'По возрастанию'">
                             {{ f.sort_dir === 'desc' ? '↓' : '↑' }}
                         </button>
                     </div>
@@ -231,14 +235,11 @@ function initial(name) {
                 <!-- Cards -->
                 <div class="results-body">
                     <div v-if="users.data.length > 0" class="user-grid">
-                        <Link
-                            v-for="user in users.data"
-                            :key="user.id"
-                            :href="route('profile.show', { user: user.id }) + '#about'"
-                            class="user-card"
-                        >
+                        <Link v-for="user in users.data" :key="user.id"
+                            :href="route('profile.show', { user: user.id }) + '#about'" class="user-card">
                             <div class="card-avatar">
-                                <img v-if="avatarUrl(user)" :src="avatarUrl(user)" alt="Аватар" class="card-avatar__img" />
+                                <img v-if="avatarUrl(user)" :src="avatarUrl(user)" alt="Аватар"
+                                    class="card-avatar__img" />
                                 <span v-else class="card-avatar__initials">{{ initial(user.name) }}</span>
                             </div>
                             <span v-if="user.rating" class="card-rating">★ {{ user.rating }}</span>
@@ -248,8 +249,11 @@ function initial(name) {
                                 </div>
                                 <div class="card-badges">
                                     <IdolBadge v-if="user.is_idol" />
-                                    <span v-if="user.gender" class="card-badge" :class="user.gender === 'female' ? 'card-badge--female' : 'card-badge--male'">{{ user.gender === 'female' ? '\u2640\uFE0F' : '\u2642\uFE0F' }}</span>
-                                    <span v-if="calcAge(user.birth_date)" class="card-badge card-badge--age">{{ calcAge(user.birth_date) }} лет</span>
+                                    <span v-if="user.gender" class="card-badge"
+                                        :class="user.gender === 'female' ? 'card-badge--female' : 'card-badge--male'">{{
+                                            user.gender === 'female' ? '\u2640\uFE0F' : '\u2642\uFE0F' }}</span>
+                                    <span v-if="calcAge(user.birth_date)" class="card-badge card-badge--age">{{
+                                        calcAge(user.birth_date) }} лет</span>
                                 </div>
                             </div>
                         </Link>
@@ -262,29 +266,20 @@ function initial(name) {
 
                 <!-- Pagination -->
                 <div v-if="users.last_page > 1" class="pagination">
-                    <Link
-                        v-if="users.prev_page_url"
-                        :href="users.prev_page_url"
-                        class="page-btn"
-                    >←</Link>
+                    <Link v-if="users.prev_page_url" :href="users.prev_page_url" class="page-btn">←</Link>
                     <span v-else class="page-btn page-btn--disabled">←</span>
 
                     <template v-for="link in users.links" :key="link.label">
                         <template v-if="!link.label.includes('Previous') && !link.label.includes('Next')">
-                            <Link
-                                v-if="link.url && !link.active"
-                                :href="link.url"
-                                class="page-btn"
-                            >{{ link.label }}</Link>
-                            <span v-else :class="['page-btn', { 'page-btn--active': link.active, 'page-btn--disabled': !link.url }]">{{ link.label }}</span>
+                            <Link v-if="link.url && !link.active" :href="link.url" class="page-btn">{{ link.label }}
+                            </Link>
+                            <span v-else
+                                :class="['page-btn', { 'page-btn--active': link.active, 'page-btn--disabled': !link.url }]">{{
+                                link.label }}</span>
                         </template>
                     </template>
 
-                    <Link
-                        v-if="users.next_page_url"
-                        :href="users.next_page_url"
-                        class="page-btn"
-                    >→</Link>
+                    <Link v-if="users.next_page_url" :href="users.next_page_url" class="page-btn">→</Link>
                     <span v-else class="page-btn page-btn--disabled">→</span>
                 </div>
             </div>
@@ -297,11 +292,7 @@ function initial(name) {
                     <!-- Active chips -->
                     <Transition name="chips-fade">
                         <div v-if="activeChips.length" class="active-chips">
-                            <span
-                                v-for="chip in activeChips"
-                                :key="chip.key + (chip.value ?? '')"
-                                class="active-chip"
-                            >
+                            <span v-for="chip in activeChips" :key="chip.key + (chip.value ?? '')" class="active-chip">
                                 {{ chip.label }}
                                 <button class="active-chip__remove" @click="resetChip(chip)">×</button>
                             </span>
@@ -318,9 +309,12 @@ function initial(name) {
                     <div class="filter-group">
                         <label class="filter-label">Пол</label>
                         <div class="btn-group">
-                            <button :class="['btn-toggle', { active: f.gender === '' }]" @click="f.gender = ''">Любой</button>
-                            <button :class="['btn-toggle', { active: f.gender === 'male' }]" @click="f.gender = 'male'">Мужской</button>
-                            <button :class="['btn-toggle', { active: f.gender === 'female' }]" @click="f.gender = 'female'">Женский</button>
+                            <button :class="['btn-toggle', { active: f.gender === '' }]"
+                                @click="f.gender = ''">Любой</button>
+                            <button :class="['btn-toggle', { active: f.gender === 'male' }]"
+                                @click="f.gender = 'male'">Мужской</button>
+                            <button :class="['btn-toggle', { active: f.gender === 'female' }]"
+                                @click="f.gender = 'female'">Женский</button>
                         </div>
                     </div>
 
@@ -328,9 +322,11 @@ function initial(name) {
                     <div class="filter-group">
                         <label class="filter-label">Возраст</label>
                         <div class="range-row">
-                            <input v-model="f.age_from" type="number" min="18" max="120" class="filter-input filter-input--sm" placeholder="от" />
+                            <input v-model="f.age_from" type="number" min="18" max="120"
+                                class="filter-input filter-input--sm" placeholder="от" />
                             <span class="range-sep">—</span>
-                            <input v-model="f.age_to" type="number" min="18" max="120" class="filter-input filter-input--sm" placeholder="до" />
+                            <input v-model="f.age_to" type="number" min="18" max="120"
+                                class="filter-input filter-input--sm" placeholder="до" />
                         </div>
                     </div>
 
@@ -338,9 +334,12 @@ function initial(name) {
                     <div class="filter-group">
                         <label class="filter-label">Айдол</label>
                         <div class="btn-group">
-                            <button :class="['btn-toggle', { active: f.is_idol === '' }]" @click="f.is_idol = ''">Любой</button>
-                            <button :class="['btn-toggle', { active: f.is_idol === '1' }]" @click="f.is_idol = '1'">Да</button>
-                            <button :class="['btn-toggle', { active: f.is_idol === '0' }]" @click="f.is_idol = '0'">Нет</button>
+                            <button :class="['btn-toggle', { active: f.is_idol === '' }]"
+                                @click="f.is_idol = ''">Любой</button>
+                            <button :class="['btn-toggle', { active: f.is_idol === '1' }]"
+                                @click="f.is_idol = '1'">Да</button>
+                            <button :class="['btn-toggle', { active: f.is_idol === '0' }]"
+                                @click="f.is_idol = '0'">Нет</button>
                         </div>
                     </div>
 
@@ -348,9 +347,11 @@ function initial(name) {
                     <div class="filter-group">
                         <label class="filter-label">Рейтинг</label>
                         <div class="range-row">
-                            <input v-model="f.rating_from" type="number" min="0" max="100" class="filter-input filter-input--sm" placeholder="от" />
+                            <input v-model="f.rating_from" type="number" min="0" max="100"
+                                class="filter-input filter-input--sm" placeholder="от" />
                             <span class="range-sep">—</span>
-                            <input v-model="f.rating_to" type="number" min="0" max="100" class="filter-input filter-input--sm" placeholder="до" />
+                            <input v-model="f.rating_to" type="number" min="0" max="100"
+                                class="filter-input filter-input--sm" placeholder="до" />
                         </div>
                     </div>
 
@@ -361,17 +362,17 @@ function initial(name) {
                     <div class="filter-group">
                         <div class="filter-section-header" @click="toggleSection('traits')">
                             <label class="filter-label">Характер</label>
-                            <span v-if="!openSections.has('traits') && f.traits.length" class="section-badge">{{ f.traits.length }}</span>
-                            <svg class="section-chevron" :class="{ open: openSections.has('traits') }" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M2.5 5L7 9.5L11.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <span v-if="!openSections.has('traits') && f.traits.length" class="section-badge">{{
+                                f.traits.length
+                                }}</span>
+                            <svg class="section-chevron" :class="{ open: openSections.has('traits') }"
+                                viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M2.5 5L7 9.5L11.5 5" stroke="currentColor" stroke-width="1.5"
+                                    stroke-linecap="round" stroke-linejoin="round" />
                             </svg>
                         </div>
-                        <input
-                            v-if="openSections.has('traits')"
-                            class="section-search"
-                            v-model="sectionSearch.traits"
-                            placeholder="Поиск..."
-                        />
+                        <input v-if="openSections.has('traits')" class="section-search" v-model="sectionSearch.traits"
+                            placeholder="Поиск..." />
                         <div v-if="openSections.has('traits')" class="checkbox-list">
                             <label v-for="trait in filteredTraits" :key="trait.id" class="checkbox-item">
                                 <input type="checkbox" :value="trait.id" v-model="f.traits" class="checkbox-input" />
@@ -386,20 +387,22 @@ function initial(name) {
                         <div v-for="cat in interestCategories" :key="cat.id" class="interest-cat">
                             <div class="filter-section-header" @click="toggleSection(`interest_cat_${cat.id}`)">
                                 <div class="interest-cat__name">{{ cat.name_ru }}</div>
-                                <span v-if="!openSections.has(`interest_cat_${cat.id}`) && interestCountForCat(cat)" class="section-badge">{{ interestCountForCat(cat) }}</span>
-                                <svg class="section-chevron" :class="{ open: openSections.has(`interest_cat_${cat.id}`) }" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M2.5 5L7 9.5L11.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <span v-if="!openSections.has(`interest_cat_${cat.id}`) && interestCountForCat(cat)"
+                                    class="section-badge">{{ interestCountForCat(cat) }}</span>
+                                <svg class="section-chevron"
+                                    :class="{ open: openSections.has(`interest_cat_${cat.id}`) }" viewBox="0 0 14 14"
+                                    fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M2.5 5L7 9.5L11.5 5" stroke="currentColor" stroke-width="1.5"
+                                        stroke-linecap="round" stroke-linejoin="round" />
                                 </svg>
                             </div>
-                            <input
-                                v-if="openSections.has(`interest_cat_${cat.id}`)"
-                                class="section-search"
-                                v-model="sectionSearch[`interest_cat_${cat.id}`]"
-                                placeholder="Поиск..."
-                            />
+                            <input v-if="openSections.has(`interest_cat_${cat.id}`)" class="section-search"
+                                v-model="sectionSearch[`interest_cat_${cat.id}`]" placeholder="Поиск..." />
                             <div v-if="openSections.has(`interest_cat_${cat.id}`)" class="checkbox-list">
-                                <label v-for="interest in filteredInterests(cat)" :key="interest.id" class="checkbox-item">
-                                    <input type="checkbox" :value="interest.id" v-model="f.interests" class="checkbox-input" />
+                                <label v-for="interest in filteredInterests(cat)" :key="interest.id"
+                                    class="checkbox-item">
+                                    <input type="checkbox" :value="interest.id" v-model="f.interests"
+                                        class="checkbox-input" />
                                     <span class="checkbox-label">{{ interest.name_ru }}</span>
                                 </label>
                             </div>
@@ -410,20 +413,20 @@ function initial(name) {
                     <div class="filter-group">
                         <div class="filter-section-header" @click="toggleSection('languages')">
                             <label class="filter-label">Языки</label>
-                            <span v-if="!openSections.has('languages') && f.languages.length" class="section-badge">{{ f.languages.length }}</span>
-                            <svg class="section-chevron" :class="{ open: openSections.has('languages') }" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M2.5 5L7 9.5L11.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <span v-if="!openSections.has('languages') && f.languages.length" class="section-badge">{{
+                                f.languages.length }}</span>
+                            <svg class="section-chevron" :class="{ open: openSections.has('languages') }"
+                                viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M2.5 5L7 9.5L11.5 5" stroke="currentColor" stroke-width="1.5"
+                                    stroke-linecap="round" stroke-linejoin="round" />
                             </svg>
                         </div>
-                        <input
-                            v-if="openSections.has('languages')"
-                            class="section-search"
-                            v-model="sectionSearch.languages"
-                            placeholder="Поиск..."
-                        />
+                        <input v-if="openSections.has('languages')" class="section-search"
+                            v-model="sectionSearch.languages" placeholder="Поиск..." />
                         <div v-if="openSections.has('languages')" class="checkbox-list">
                             <label v-for="lang in filteredLanguages" :key="lang.code" class="checkbox-item">
-                                <input type="checkbox" :value="lang.code" v-model="f.languages" class="checkbox-input" />
+                                <input type="checkbox" :value="lang.code" v-model="f.languages"
+                                    class="checkbox-input" />
                                 <span class="checkbox-label">{{ lang.label }}</span>
                             </label>
                         </div>
@@ -442,20 +445,20 @@ function initial(name) {
                     <div class="filter-group">
                         <div class="filter-section-header" @click="toggleSection('service_categories')">
                             <label class="filter-label">Категории услуг</label>
-                            <span v-if="!openSections.has('service_categories') && f.service_categories.length" class="section-badge">{{ f.service_categories.length }}</span>
-                            <svg class="section-chevron" :class="{ open: openSections.has('service_categories') }" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M2.5 5L7 9.5L11.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <span v-if="!openSections.has('service_categories') && f.service_categories.length"
+                                class="section-badge">{{ f.service_categories.length }}</span>
+                            <svg class="section-chevron" :class="{ open: openSections.has('service_categories') }"
+                                viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M2.5 5L7 9.5L11.5 5" stroke="currentColor" stroke-width="1.5"
+                                    stroke-linecap="round" stroke-linejoin="round" />
                             </svg>
                         </div>
-                        <input
-                            v-if="openSections.has('service_categories')"
-                            class="section-search"
-                            v-model="sectionSearch.service_categories"
-                            placeholder="Поиск..."
-                        />
+                        <input v-if="openSections.has('service_categories')" class="section-search"
+                            v-model="sectionSearch.service_categories" placeholder="Поиск..." />
                         <div v-if="openSections.has('service_categories')" class="checkbox-list">
                             <label v-for="cat in filteredServiceCategories" :key="cat.id" class="checkbox-item">
-                                <input type="checkbox" :value="cat.id" v-model="f.service_categories" class="checkbox-input" />
+                                <input type="checkbox" :value="cat.id" v-model="f.service_categories"
+                                    class="checkbox-input" />
                                 <span class="checkbox-label">{{ cat.name }}</span>
                             </label>
                         </div>
@@ -496,11 +499,28 @@ function initial(name) {
     flex-direction: column;
 }
 
-.sidebar-inner { scrollbar-width: thin; scrollbar-color: rgba(224, 85, 143, 0.6) rgba(255,255,255,0.04); }
-.sidebar-inner::-webkit-scrollbar { width: 6px; }
-.sidebar-inner::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 3px; }
-.sidebar-inner::-webkit-scrollbar-thumb { background: rgba(224, 85, 143, 0.5); border-radius: 3px; }
-.sidebar-inner::-webkit-scrollbar-thumb:hover { background: rgba(224, 85, 143, 0.8); }
+.sidebar-inner {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(224, 85, 143, 0.6) rgba(255, 255, 255, 0.04);
+}
+
+.sidebar-inner::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar-inner::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 3px;
+}
+
+.sidebar-inner::-webkit-scrollbar-thumb {
+    background: rgba(224, 85, 143, 0.5);
+    border-radius: 3px;
+}
+
+.sidebar-inner::-webkit-scrollbar-thumb:hover {
+    background: rgba(224, 85, 143, 0.8);
+}
 
 .sidebar-inner {
     flex: 1;
@@ -531,18 +551,27 @@ function initial(name) {
     transition: all 0.15s;
     font-family: inherit;
 }
+
 .apply-btn:hover {
     background: rgba(110, 110, 210, 0.28);
     border-color: rgba(160, 160, 255, 0.8);
 }
 
-.slide-up-enter-active, .slide-up-leave-active { transition: opacity 0.2s, transform 0.2s; }
-.slide-up-enter-from, .slide-up-leave-to { opacity: 0; transform: translateY(8px); }
+.slide-up-enter-active,
+.slide-up-leave-active {
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+    opacity: 0;
+    transform: translateY(8px);
+}
 
 .sidebar-title {
     font-size: 1.05rem;
     font-weight: 600;
-    color: rgba(255,255,255,0.7);
+    color: rgba(255, 255, 255, 0.7);
     margin: 0;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -555,6 +584,7 @@ function initial(name) {
     gap: 0.4rem;
     margin-top: -0.6rem;
 }
+
 .active-chip {
     display: inline-flex;
     align-items: center;
@@ -567,6 +597,7 @@ function initial(name) {
     font-size: 0.78rem;
     line-height: 1;
 }
+
 .active-chip__remove {
     background: none;
     border: none;
@@ -578,11 +609,20 @@ function initial(name) {
     transition: color 0.15s;
     font-family: inherit;
 }
+
 .active-chip__remove:hover {
     color: rgba(160, 160, 255, 0.9);
 }
-.chips-fade-enter-active, .chips-fade-leave-active { transition: opacity 0.2s; }
-.chips-fade-enter-from, .chips-fade-leave-to { opacity: 0; }
+
+.chips-fade-enter-active,
+.chips-fade-leave-active {
+    transition: opacity 0.2s;
+}
+
+.chips-fade-enter-from,
+.chips-fade-leave-to {
+    opacity: 0;
+}
 
 /* ── Section badge ───────────────────────────────────────── */
 .section-badge {
@@ -603,11 +643,14 @@ function initial(name) {
     align-items: center;
     gap: 0.5rem;
 }
-.filter-divider::before, .filter-divider::after {
+
+.filter-divider::before,
+.filter-divider::after {
     content: '';
     flex: 1;
     border-top: 1px solid rgba(110, 110, 210, 0.15);
 }
+
 .filter-divider span {
     font-size: 0.7rem;
     color: rgba(160, 160, 255, 0.35);
@@ -633,10 +676,10 @@ function initial(name) {
 
 .filter-input {
     width: 100%;
-    background: rgba(255,255,255,0.04);
+    background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(110, 110, 210, 0.2);
     border-radius: 4px;
-    color: rgba(255,255,255,0.85);
+    color: rgba(255, 255, 255, 0.85);
     padding: 0.5rem 0.75rem;
     font-size: 0.92rem;
     font-family: inherit;
@@ -644,15 +687,19 @@ function initial(name) {
     transition: border-color 0.18s;
     box-sizing: border-box;
 }
+
 .filter-input:focus {
     border-color: rgba(110, 110, 210, 0.5);
 }
+
 .filter-input--sm {
     width: calc(50% - 0.5rem);
 }
+
 .filter-select {
     cursor: pointer;
 }
+
 .filter-select option {
     background: #0e0e1e;
 }
@@ -662,8 +709,9 @@ function initial(name) {
     align-items: center;
     gap: 0.5rem;
 }
+
 .range-sep {
-    color: rgba(255,255,255,0.3);
+    color: rgba(255, 255, 255, 0.3);
     font-size: 0.8rem;
     flex-shrink: 0;
 }
@@ -680,17 +728,19 @@ function initial(name) {
     border-radius: 20px;
     border: 1px solid rgba(110, 110, 210, 0.25);
     background: transparent;
-    color: rgba(255,255,255,0.5);
+    color: rgba(255, 255, 255, 0.5);
     font-size: 0.88rem;
     cursor: pointer;
     transition: all 0.15s;
     font-family: inherit;
 }
+
 .btn-toggle:hover {
     background: rgba(110, 110, 210, 0.06);
     border-color: rgba(110, 110, 210, 0.5);
-    color: rgba(255,255,255,0.8);
+    color: rgba(255, 255, 255, 0.8);
 }
+
 .btn-toggle.active {
     border-color: rgba(160, 160, 255, 0.6);
     background: rgba(110, 110, 210, 0.15);
@@ -710,22 +760,26 @@ function initial(name) {
     margin: 0 -0.4rem;
     transition: background 0.15s;
 }
+
 .filter-section-header:hover {
     background: rgba(110, 110, 210, 0.08);
 }
+
 .filter-section-header .filter-label {
     flex: 1;
     cursor: pointer;
     margin: 0;
 }
+
 .filter-section-header .interest-cat__name {
     flex: 1;
 }
+
 .section-search {
-    background: rgba(255,255,255,0.04);
+    background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(110, 110, 210, 0.2);
     border-radius: 3px;
-    color: rgba(255,255,255,0.8);
+    color: rgba(255, 255, 255, 0.8);
     padding: 0.3rem 0.6rem;
     font-size: 0.82rem;
     font-family: inherit;
@@ -735,16 +789,19 @@ function initial(name) {
     margin-top: 0.4rem;
     margin-bottom: 0.4rem;
 }
+
 .section-search:focus {
     border-color: rgba(110, 110, 210, 0.5);
 }
+
 .section-chevron {
     width: 14px;
     height: 14px;
-    color: rgba(255,255,255,0.3);
+    color: rgba(255, 255, 255, 0.3);
     transition: transform 0.2s;
     flex-shrink: 0;
 }
+
 .section-chevron.open {
     transform: rotate(180deg);
 }
@@ -758,11 +815,29 @@ function initial(name) {
     overflow-y: auto;
     padding: 0.5rem 0.25rem 0.25rem 0.5rem;
 }
-.checkbox-list { scrollbar-width: thin; scrollbar-color: rgba(224, 85, 143, 0.6) rgba(255,255,255,0.04); }
-.checkbox-list::-webkit-scrollbar { width: 6px; }
-.checkbox-list::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 3px; }
-.checkbox-list::-webkit-scrollbar-thumb { background: rgba(224, 85, 143, 0.5); border-radius: 3px; }
-.checkbox-list::-webkit-scrollbar-thumb:hover { background: rgba(224, 85, 143, 0.8); }
+
+.checkbox-list {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(224, 85, 143, 0.6) rgba(255, 255, 255, 0.04);
+}
+
+.checkbox-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.checkbox-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 3px;
+}
+
+.checkbox-list::-webkit-scrollbar-thumb {
+    background: rgba(224, 85, 143, 0.5);
+    border-radius: 3px;
+}
+
+.checkbox-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(224, 85, 143, 0.8);
+}
 
 .checkbox-item {
     display: flex;
@@ -770,6 +845,7 @@ function initial(name) {
     gap: 0.5rem;
     cursor: pointer;
 }
+
 .checkbox-input {
     appearance: none;
     -webkit-appearance: none;
@@ -783,10 +859,12 @@ function initial(name) {
     flex-shrink: 0;
     transition: border-color 0.15s, background 0.15s;
 }
+
 .checkbox-input:checked {
     background: rgba(110, 110, 210, 0.5);
     border-color: rgba(160, 160, 255, 0.7);
 }
+
 .checkbox-input:checked::after {
     content: '';
     position: absolute;
@@ -799,16 +877,21 @@ function initial(name) {
     border-left: none;
     transform: rotate(45deg);
 }
+
 .checkbox-label {
     font-size: 0.92rem;
-    color: rgba(255,255,255,0.6);
+    color: rgba(255, 255, 255, 0.6);
     transition: color 0.15s;
 }
-.checkbox-item:hover .checkbox-label { color: rgba(255,255,255,0.9); }
+
+.checkbox-item:hover .checkbox-label {
+    color: rgba(255, 255, 255, 0.9);
+}
 
 .interest-cat {
     margin-bottom: 0.5rem;
 }
+
 .interest-cat__name {
     font-size: 0.8rem;
     color: rgba(160, 160, 255, 0.5);
@@ -831,17 +914,35 @@ function initial(name) {
     font-family: inherit;
     align-self: flex-start;
 }
+
 .reset-btn:hover {
     border-color: rgba(224, 85, 143, 0.5);
     color: #e0558f;
 }
 
 /* ── Results panel ───────────────────────────────────────── */
-.results-body { scrollbar-width: thin; scrollbar-color: rgba(224, 85, 143, 0.6) rgba(255,255,255,0.04); }
-.results-body::-webkit-scrollbar { width: 6px; }
-.results-body::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 3px; }
-.results-body::-webkit-scrollbar-thumb { background: rgba(224, 85, 143, 0.5); border-radius: 3px; }
-.results-body::-webkit-scrollbar-thumb:hover { background: rgba(224, 85, 143, 0.8); }
+.results-body {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(224, 85, 143, 0.6) rgba(255, 255, 255, 0.04);
+}
+
+.results-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.results-body::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 3px;
+}
+
+.results-body::-webkit-scrollbar-thumb {
+    background: rgba(224, 85, 143, 0.5);
+    border-radius: 3px;
+}
+
+.results-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(224, 85, 143, 0.8);
+}
 
 .search-results {
     flex: 1;
@@ -860,7 +961,7 @@ function initial(name) {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: start;
 }
 
 /* ── Sort bar ────────────────────────────────────────────── */
@@ -880,7 +981,7 @@ function initial(name) {
 
 .sort-label {
     font-size: 0.88rem;
-    color: rgba(255,255,255,0.4);
+    color: rgba(255, 255, 255, 0.4);
 }
 
 .sort-btn {
@@ -888,13 +989,15 @@ function initial(name) {
     border-radius: 3px;
     border: 1px solid rgba(110, 110, 210, 0.2);
     background: transparent;
-    color: rgba(255,255,255,0.5);
+    color: rgba(255, 255, 255, 0.5);
     font-size: 0.88rem;
     cursor: pointer;
     transition: all 0.15s;
     font-family: inherit;
 }
-.sort-btn:hover, .sort-btn.active {
+
+.sort-btn:hover,
+.sort-btn.active {
     border-color: rgba(110, 110, 210, 0.5);
     color: #be91ff;
     background: rgba(110, 110, 210, 0.1);
@@ -905,21 +1008,22 @@ function initial(name) {
     border-radius: 3px;
     border: 1px solid rgba(110, 110, 210, 0.2);
     background: transparent;
-    color: rgba(255,255,255,0.5);
+    color: rgba(255, 255, 255, 0.5);
     font-size: 1rem;
     cursor: pointer;
     transition: all 0.15s;
     font-family: inherit;
     line-height: 1;
 }
+
 .sort-dir-btn:hover {
     border-color: rgba(110, 110, 210, 0.5);
-    color: rgba(255,255,255,0.9);
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .found-count {
     font-size: 0.9rem;
-    color: rgba(255,255,255,0.35);
+    color: rgba(255, 255, 255, 0.35);
 }
 
 
@@ -933,17 +1037,23 @@ function initial(name) {
 
 /* ~1600px и меньше → 3 колонки */
 @media (max-width: 1600px) {
-    .user-grid { grid-template-columns: repeat(3, 1fr); }
+    .user-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
 }
 
 /* ~1200px и меньше → 2 колонки */
 @media (max-width: 1200px) {
-    .user-grid { grid-template-columns: repeat(2, 1fr); }
+    .user-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 /* ~900px и меньше → 1 колонка */
 @media (max-width: 900px) {
-    .user-grid { grid-template-columns: repeat(1, 1fr); }
+    .user-grid {
+        grid-template-columns: repeat(1, 1fr);
+    }
 }
 
 
@@ -952,7 +1062,7 @@ function initial(name) {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    background: rgba(255,255,255,0.03);
+    background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(110, 110, 210, 0.12);
     border-radius: 8px;
     padding: 1rem;
@@ -961,6 +1071,7 @@ function initial(name) {
     min-width: 0;
     overflow: hidden;
 }
+
 .user-card:hover {
     border-color: rgba(110, 110, 210, 0.35);
     background: rgba(110, 110, 210, 0.06);
@@ -980,11 +1091,13 @@ function initial(name) {
     justify-content: center;
     align-self: center;
 }
+
 .card-avatar__img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
+
 .card-avatar__initials {
     font-size: 2rem;
     font-weight: 600;
@@ -1011,7 +1124,7 @@ function initial(name) {
 .card-name {
     font-size: 1.2rem;
     font-weight: 600;
-    color: rgba(255,255,255,0.9);
+    color: rgba(255, 255, 255, 0.9);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1070,7 +1183,7 @@ function initial(name) {
 
 .card-about {
     font-size: 0.92rem;
-    color: rgba(255,255,255,0.4);
+    color: rgba(255, 255, 255, 0.4);
     line-height: 1.4;
     overflow: hidden;
     display: -webkit-box;
@@ -1085,7 +1198,7 @@ function initial(name) {
     align-items: center;
     justify-content: center;
     padding: 4rem 0;
-    color: rgba(255,255,255,0.3);
+    color: rgba(255, 255, 255, 0.3);
     font-size: 1rem;
 }
 
@@ -1099,6 +1212,7 @@ function initial(name) {
     padding-top: 0.5rem;
     flex-shrink: 0;
 }
+
 .pagination::before,
 .pagination::after {
     content: '';
@@ -1107,8 +1221,14 @@ function initial(name) {
     background: linear-gradient(to var(--dir), rgba(140, 100, 230, 0.7), transparent);
     min-width: 2rem;
 }
-.pagination::before { --dir: left; }
-.pagination::after  { --dir: right; }
+
+.pagination::before {
+    --dir: left;
+}
+
+.pagination::after {
+    --dir: right;
+}
 
 .page-btn {
     display: inline-flex;
@@ -1120,21 +1240,24 @@ function initial(name) {
     border-radius: 5px;
     border: 1px solid rgba(110, 110, 210, 0.2);
     background: transparent;
-    color: rgba(255,255,255,0.5);
+    color: rgba(255, 255, 255, 0.5);
     font-size: 1rem;
     text-decoration: none;
     transition: all 0.15s;
 }
+
 .page-btn:not(.page-btn--disabled):not(.page-btn--active):hover {
     border-color: rgba(110, 110, 210, 0.5);
-    color: rgba(255,255,255,0.9);
+    color: rgba(255, 255, 255, 0.9);
     background: rgba(110, 110, 210, 0.08);
 }
+
 .page-btn--active {
     border-color: rgba(160, 160, 255, 0.6);
     background: rgba(110, 110, 210, 0.2);
     color: #be91ff;
 }
+
 .page-btn--disabled {
     opacity: 0.3;
     cursor: default;
@@ -1147,6 +1270,7 @@ function initial(name) {
         height: auto;
         overflow: visible;
     }
+
     .search-sidebar {
         width: 100%;
         height: auto;
@@ -1154,19 +1278,23 @@ function initial(name) {
         border-top: 1px solid rgba(110, 110, 210, 0.12);
         order: 2;
     }
+
     .sidebar-inner {
         overflow-y: visible;
         padding: 1rem;
     }
+
     .search-results {
         height: auto;
         overflow: visible;
         order: 1;
     }
+
     .results-body {
         overflow-y: visible;
         justify-content: flex-start;
     }
+
     .user-grid {
         grid-template-columns: repeat(2, 1fr);
     }

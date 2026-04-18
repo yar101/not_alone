@@ -16,6 +16,7 @@
 - Composer
 
 > Установка расширений на Fedora/RHEL:
+>
 > ```bash
 > sudo dnf install php-bcmath php-pgsql
 > sudo systemctl restart php-fpm
@@ -31,6 +32,7 @@ npm install
 php artisan key:generate
 php artisan migrate
 php artisan db:seed --class=AdminSeeder
+php artisan storage:link
 
 # Создать симлинк для публичного хранилища (картинки категорий, аватары и т.д.)
 php artisan storage:link
@@ -69,6 +71,7 @@ php artisan ide-helper:meta
 > Файлы `_ide_helper.php`, `_ide_helper_models.php` и `.phpstorm.meta.php` добавлены в `.gitignore` — каждый разработчик генерирует их локально.
 
 **Когда перегенерировать:**
+
 - `ide-helper:models` — после изменения миграций или добавления связей в моделях
 - `ide-helper:generate` — после обновления Laravel или добавления новых фасадов
 
@@ -103,7 +106,7 @@ php artisan db:seed --class=AdminSeeder
 
 | Поле  | Значение              |
 |-------|-----------------------|
-| Email | admin@noalone.test    |
+| Email | <admin@noalone.test>    |
 | Пароль | password             |
 
 Панель доступна по адресу `/admin`.

@@ -5,7 +5,7 @@ import axios from 'axios';
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
-    cart:       { type: Object, required: true },
+    cart: { type: Object, required: true },
     initialTab: { type: String, default: 'services' },
 });
 const emit = defineEmits(['update:modelValue', 'clear-services', 'clear-content', 'remove-service', 'remove-content', 'change-quantity']);
@@ -18,7 +18,7 @@ watch(() => props.initialTab, (val) => { activeTab.value = val; });
 
 // Auto-switch to non-empty tab when one is empty
 const servicesItems = computed(() => props.cart.services?.items ?? []);
-const contentItems  = computed(() => props.cart.content?.items ?? []);
+const contentItems = computed(() => props.cart.content?.items ?? []);
 
 const hasBothCarts = computed(() => servicesItems.value.length > 0 && contentItems.value.length > 0);
 
@@ -53,7 +53,7 @@ async function createOrder() {
     serviceError.value = '';
     try {
         const res = await axios.post(route('orders.store'), {
-            idol_id:  sc.idol_id,
+            idol_id: sc.idol_id,
             services: sc.items.map(i => ({ id: i.service_id, quantity: i.quantity || 1 })),
         });
         emit('clear-services');
@@ -102,29 +102,26 @@ async function purchaseContent() {
                     <div class="rc-header-top">
                         <span class="rc-store-name">КОРЗИНА</span>
                         <button class="rc-close" @click="close" aria-label="Закрыть">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
                             </svg>
                         </button>
                     </div>
 
                     <!-- Tab switcher — always shown so user can switch -->
                     <div class="rc-tabs">
-                        <button
-                            class="rc-tab"
-                            :class="{ 'rc-tab--active': activeTab === 'services' }"
-                            @click="activeTab = 'services'"
-                        >
+                        <button class="rc-tab" :class="{ 'rc-tab--active': activeTab === 'services' }"
+                            @click="activeTab = 'services'">
                             Услуги
                             <span v-if="servicesItems.length" class="rc-tab__badge">{{ servicesItems.length }}</span>
                         </button>
-                        <button
-                            class="rc-tab"
-                            :class="{ 'rc-tab--active': activeTab === 'content' }"
-                            @click="activeTab = 'content'"
-                        >
+                        <button class="rc-tab" :class="{ 'rc-tab--active': activeTab === 'content' }"
+                            @click="activeTab = 'content'">
                             Контент
-                            <span v-if="contentItems.length" class="rc-tab__badge rc-tab__badge--content">{{ contentItems.length }}</span>
+                            <span v-if="contentItems.length" class="rc-tab__badge">{{
+                                contentItems.length }}</span>
                         </button>
                     </div>
 
@@ -133,7 +130,8 @@ async function purchaseContent() {
 
                 <!-- ═══ SERVICES tab ═══ -->
                 <template v-if="activeTab === 'services'">
-                    <span v-if="cart.services?.idol_name" class="rc-store-sub rc-store-sub--pad">Айдол: {{ cart.services.idol_name }}</span>
+                    <span v-if="cart.services?.idol_name" class="rc-store-sub rc-store-sub--pad">Айдол: {{
+                        cart.services.idol_name }}</span>
 
                     <div class="rc-body">
                         <div v-if="!servicesItems.length" class="rc-empty">
@@ -153,7 +151,9 @@ async function purchaseContent() {
                                     <button v-else class="rc-line__del" @click="askDelete(idx)">✕</button>
                                 </div>
                                 <div class="rc-line__bottom">
-                                    <span class="rc-line__price">{{ (item.price || 0).toLocaleString('ru-RU') }}&thinsp;₽<template v-if="item.time_unit">&thinsp;/&thinsp;{{ item.time_unit }}</template></span>
+                                    <span class="rc-line__price">{{ (item.price || 0).toLocaleString('ru-RU')
+                                    }}&thinsp;₽<template v-if="item.time_unit">&thinsp;/&thinsp;{{ item.time_unit
+                                        }}</template></span>
                                     <div class="rc-qty">
                                         <button class="rc-qty__btn" @click="emit('change-quantity', idx, -1)">−</button>
                                         <span class="rc-qty__val">{{ item.quantity || 1 }}</span>
@@ -172,11 +172,9 @@ async function purchaseContent() {
                     <div class="rc-perf"><span class="rc-perf__line"></span></div>
                     <div class="rc-footer">
                         <p v-if="serviceError" class="rc-error">{{ serviceError }}</p>
-                        <button
-                            class="rc-submit"
-                            :disabled="!servicesItems.length || creating"
-                            @click="createOrder"
-                        >{{ creating ? 'ОФОРМЛЯЕМ…' : 'СОЗДАТЬ ЗАКАЗ' }}</button>
+                        <button class="rc-submit" :disabled="!servicesItems.length || creating" @click="createOrder">{{
+                            creating ?
+                                'ОФОРМЛЯЕМ…' : 'СОЗДАТЬ ЗАКАЗ' }}</button>
                     </div>
                 </template>
 
@@ -187,20 +185,24 @@ async function purchaseContent() {
                             — &nbsp;контент не добавлен&nbsp; —
                         </div>
                         <template v-else>
-                            <div v-for="(item, idx) in contentItems" :key="item.pack_id" class="rc-line rc-line--content">
+                            <div v-for="(item, idx) in contentItems" :key="item.pack_id"
+                                class="rc-line rc-line--content">
                                 <div class="rc-line__top">
                                     <div class="rc-content-item">
-                                        <img v-if="item.cover_url" :src="item.cover_url" class="rc-content-item__cover" alt="" />
+                                        <img v-if="item.cover_url" :src="item.cover_url" class="rc-content-item__cover"
+                                            alt="" />
                                         <div v-else class="rc-content-item__cover rc-content-item__cover--empty"></div>
                                         <div class="rc-content-item__info">
                                             <span class="rc-line__name">{{ item.title }}</span>
-                                            <span v-if="item.idol_name" class="rc-content-item__idol">{{ item.idol_name }}</span>
+                                            <span v-if="item.idol_name" class="rc-content-item__idol">{{ item.idol_name
+                                            }}</span>
                                         </div>
                                     </div>
                                     <button class="rc-line__del" @click="emit('remove-content', idx)">✕</button>
                                 </div>
                                 <div class="rc-line__bottom">
-                                    <span class="rc-line__price">{{ (item.price || 0).toLocaleString('ru-RU') }}&thinsp;₽</span>
+                                    <span class="rc-line__price">{{ (item.price || 0).toLocaleString('ru-RU')
+                                    }}&thinsp;₽</span>
                                 </div>
                             </div>
                         </template>
@@ -214,11 +216,9 @@ async function purchaseContent() {
                     <div class="rc-perf"><span class="rc-perf__line"></span></div>
                     <div class="rc-footer">
                         <p v-if="contentError" class="rc-error">{{ contentError }}</p>
-                        <button
-                            class="rc-submit rc-submit--content"
-                            :disabled="!contentItems.length || purchasing"
-                            @click="purchaseContent"
-                        >{{ purchasing ? 'ОПЛАТА…' : 'ОПЛАТИТЬ' }}</button>
+                        <button class="rc-submit" :disabled="!contentItems.length || purchasing"
+                            @click="purchaseContent">{{ purchasing ?
+                                'ОПЛАТА…' : 'ОПЛАТИТЬ' }}</button>
                     </div>
                 </template>
 
@@ -229,11 +229,25 @@ async function purchaseContent() {
 
 <style scoped>
 /* ── Transitions ──────────────────────────────────────── */
-.rc-fade-enter-active, .rc-fade-leave-active { transition: opacity 0.22s; }
-.rc-fade-enter-from, .rc-fade-leave-to       { opacity: 0; }
+.rc-fade-enter-active,
+.rc-fade-leave-active {
+    transition: opacity 0.22s;
+}
 
-.rc-slide-enter-active, .rc-slide-leave-active { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-.rc-slide-enter-from, .rc-slide-leave-to       { transform: translateX(100%); }
+.rc-fade-enter-from,
+.rc-fade-leave-to {
+    opacity: 0;
+}
+
+.rc-slide-enter-active,
+.rc-slide-leave-active {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.rc-slide-enter-from,
+.rc-slide-leave-to {
+    transform: translateX(100%);
+}
 
 /* ── Backdrop ─────────────────────────────────────────── */
 .rc-backdrop {
@@ -271,7 +285,11 @@ async function purchaseContent() {
     opacity: 0.4;
     z-index: 0;
 }
-.rc-panel > * { position: relative; z-index: 1; }
+
+.rc-panel>* {
+    position: relative;
+    z-index: 1;
+}
 
 /* ── Header ───────────────────────────────────────────── */
 .rc-header {
@@ -281,11 +299,13 @@ async function purchaseContent() {
     flex-direction: column;
     gap: 0.45rem;
 }
+
 .rc-header-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
 }
+
 .rc-close {
     width: 30px;
     height: 30px;
@@ -301,6 +321,7 @@ async function purchaseContent() {
     font-family: inherit;
     flex-shrink: 0;
 }
+
 .rc-close:hover {
     color: rgba(210, 240, 255, 0.9);
     border-color: rgba(120, 220, 255, 0.45);
@@ -327,15 +348,16 @@ async function purchaseContent() {
     cursor: pointer;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     gap: 0.4rem;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
-    text-transform: uppercase;
 }
+
 .rc-tab:hover {
     background: rgba(120, 220, 255, 0.05);
     color: rgba(210, 240, 255, 0.7);
 }
+
 .rc-tab--active {
     background: rgba(100, 210, 255, 0.08);
     border-color: rgba(100, 210, 255, 0.35);
@@ -343,15 +365,9 @@ async function purchaseContent() {
 }
 
 .rc-tab__badge {
-    background: rgba(100, 210, 255, 0.2);
     color: rgba(100, 210, 255, 0.9);
-    border-radius: 10px;
-    padding: 1px 6px;
-    font-size: 0.72rem;
-}
-.rc-tab__badge--content {
-    background: rgba(160, 100, 255, 0.2);
-    color: rgba(180, 130, 255, 0.9);
+    border-radius: 3px;
+    font-size: 0.8rem;
 }
 
 .rc-rule {
@@ -360,6 +376,7 @@ async function purchaseContent() {
     height: 0;
     margin-top: 0.3rem;
 }
+
 .rc-rule--double {
     border-top: 2px double rgba(120, 220, 255, 0.35);
 }
@@ -370,12 +387,16 @@ async function purchaseContent() {
     letter-spacing: 0.3em;
     color: rgba(210, 240, 255, 0.95);
 }
+
 .rc-store-sub {
     font-size: 0.9rem;
     letter-spacing: 0.08em;
     color: rgba(100, 200, 255, 0.7);
 }
-.rc-store-sub--pad { padding: 0.25rem 1.5rem 0; }
+
+.rc-store-sub--pad {
+    padding: 0.25rem 1.5rem 0;
+}
 
 /* ── Body ─────────────────────────────────────────────── */
 .rc-body {
@@ -383,7 +404,7 @@ async function purchaseContent() {
     overflow-y: auto;
     padding: 0.6rem 0;
     scrollbar-width: thin;
-    scrollbar-color: rgba(120,220,255,0.1) transparent;
+    scrollbar-color: rgba(120, 220, 255, 0.1) transparent;
 }
 
 .rc-empty {
@@ -401,7 +422,10 @@ async function purchaseContent() {
     border-bottom: 1px solid rgba(120, 220, 255, 0.06);
     transition: background 0.12s;
 }
-.rc-line:hover { background: rgba(120, 220, 255, 0.03); }
+
+.rc-line:hover {
+    background: rgba(120, 220, 255, 0.03);
+}
 
 .rc-line__top {
     display: flex;
@@ -409,6 +433,7 @@ async function purchaseContent() {
     justify-content: space-between;
     gap: 0.6rem;
 }
+
 .rc-line__name {
     font-size: 1.05rem;
     color: rgba(210, 240, 255, 0.82);
@@ -417,6 +442,7 @@ async function purchaseContent() {
     flex: 1;
     min-width: 0;
 }
+
 .rc-line__del {
     flex-shrink: 0;
     border: 1px solid rgba(255, 100, 100, 0.2);
@@ -430,6 +456,7 @@ async function purchaseContent() {
     padding: 0.2rem 0.45rem;
     line-height: 1;
 }
+
 .rc-line__del:hover {
     color: rgba(255, 100, 100, 0.95);
     border-color: rgba(255, 100, 100, 0.5);
@@ -442,12 +469,14 @@ async function purchaseContent() {
     gap: 0.35rem;
     flex-shrink: 0;
 }
+
 .rc-line__confirm-text {
     font-size: 0.85rem;
     color: rgba(255, 100, 100, 0.75);
     letter-spacing: 0.03em;
     white-space: nowrap;
 }
+
 .rc-line__confirm-yes,
 .rc-line__confirm-no {
     border-radius: 3px;
@@ -459,16 +488,28 @@ async function purchaseContent() {
     padding: 0.2rem 0.45rem;
     transition: color 0.12s, border-color 0.12s, background 0.12s;
 }
+
 .rc-line__confirm-yes {
     border: 1px solid rgba(255, 100, 100, 0.35);
     color: rgba(255, 100, 100, 0.75);
 }
-.rc-line__confirm-yes:hover { color: rgba(255, 100, 100, 1); border-color: rgba(255, 100, 100, 0.7); background: rgba(255, 100, 100, 0.1); }
+
+.rc-line__confirm-yes:hover {
+    color: rgba(255, 100, 100, 1);
+    border-color: rgba(255, 100, 100, 0.7);
+    background: rgba(255, 100, 100, 0.1);
+}
+
 .rc-line__confirm-no {
     border: 1px solid rgba(120, 220, 255, 0.2);
     color: rgba(120, 220, 255, 0.5);
 }
-.rc-line__confirm-no:hover { color: rgba(120, 220, 255, 0.9); border-color: rgba(120, 220, 255, 0.45); background: rgba(120, 220, 255, 0.06); }
+
+.rc-line__confirm-no:hover {
+    color: rgba(120, 220, 255, 0.9);
+    border-color: rgba(120, 220, 255, 0.45);
+    background: rgba(120, 220, 255, 0.06);
+}
 
 .rc-line__bottom {
     display: flex;
@@ -476,6 +517,7 @@ async function purchaseContent() {
     justify-content: space-between;
     margin-top: 0.5rem;
 }
+
 .rc-line__price {
     font-size: 1.05rem;
     font-weight: 700;
@@ -492,23 +534,27 @@ async function purchaseContent() {
     flex: 1;
     min-width: 0;
 }
+
 .rc-content-item__cover {
     width: 40px;
     height: 54px;
     object-fit: cover;
     border-radius: 3px;
     flex-shrink: 0;
-    border: 1px solid rgba(255,255,255,0.06);
+    border: 1px solid rgba(255, 255, 255, 0.06);
 }
+
 .rc-content-item__cover--empty {
-    background: rgba(255,255,255,0.04);
+    background: rgba(255, 255, 255, 0.04);
 }
+
 .rc-content-item__info {
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
     min-width: 0;
 }
+
 .rc-content-item__idol {
     font-size: 0.8rem;
     color: rgba(180, 130, 255, 0.7);
@@ -522,6 +568,7 @@ async function purchaseContent() {
     border-radius: 4px;
     overflow: hidden;
 }
+
 .rc-qty__btn {
     width: 28px;
     height: 28px;
@@ -537,7 +584,12 @@ async function purchaseContent() {
     font-family: inherit;
     transition: background 0.12s, color 0.12s;
 }
-.rc-qty__btn:hover { background: rgba(100, 210, 255, 0.08); color: rgba(100, 210, 255, 0.95); }
+
+.rc-qty__btn:hover {
+    background: rgba(100, 210, 255, 0.08);
+    color: rgba(100, 210, 255, 0.95);
+}
+
 .rc-qty__val {
     min-width: 34px;
     text-align: center;
@@ -559,6 +611,7 @@ async function purchaseContent() {
     margin: 0.7rem 0;
     position: relative;
 }
+
 .rc-perf::before,
 .rc-perf::after {
     content: '';
@@ -571,10 +624,17 @@ async function purchaseContent() {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    box-shadow: inset 0 0 4px rgba(0,0,0,0.6);
+    box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.6);
 }
-.rc-perf::before { left: -6px; }
-.rc-perf::after  { right: -6px; }
+
+.rc-perf::before {
+    left: -6px;
+}
+
+.rc-perf::after {
+    right: -6px;
+}
+
 .rc-perf__line {
     flex: 1;
     display: block;
@@ -589,11 +649,13 @@ async function purchaseContent() {
     align-items: baseline;
     padding: 0.35rem 1.5rem;
 }
+
 .rc-total__label {
     font-size: 0.9rem;
     letter-spacing: 0.2em;
     color: rgba(210, 240, 255, 0.45);
 }
+
 .rc-total__sum {
     font-size: 1.5rem;
     font-weight: 700;
@@ -610,12 +672,14 @@ async function purchaseContent() {
     flex-direction: column;
     gap: 0.65rem;
 }
+
 .rc-error {
     font-size: 0.82rem;
     color: rgba(255, 110, 110, 0.85);
     margin: 0;
     letter-spacing: 0.04em;
 }
+
 .rc-submit {
     width: 100%;
     padding: 0.8rem;
@@ -630,21 +694,15 @@ async function purchaseContent() {
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
+
 .rc-submit:hover:not(:disabled) {
     background: rgba(100, 210, 255, 0.13);
     border-color: rgba(100, 210, 255, 0.6);
     color: rgba(100, 210, 255, 1);
 }
-.rc-submit:disabled { opacity: 0.25; cursor: not-allowed; }
 
-.rc-submit--content {
-    border-color: rgba(160, 100, 255, 0.35);
-    background: rgba(160, 100, 255, 0.07);
-    color: rgba(180, 130, 255, 0.95);
-}
-.rc-submit--content:hover:not(:disabled) {
-    background: rgba(160, 100, 255, 0.13);
-    border-color: rgba(160, 100, 255, 0.6);
-    color: rgba(180, 130, 255, 1);
+.rc-submit:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
 }
 </style>
