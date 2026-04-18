@@ -3,6 +3,10 @@ import { ref, computed, watch } from 'vue';
 import { useForm, usePage, router } from '@inertiajs/vue3';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppSelect from '@/Components/AppSelect.vue';
+import LocaleSwitcher from '@/Components/Site/LocaleSwitcher.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -54,11 +58,6 @@ const bdYear = ref('');
 
 const currentYear = new Date().getFullYear();
 
-const monthNames = [
-    'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
-];
-
 const yearOptions = computed(() => {
     const years = [];
     for (let y = currentYear - 18; y >= currentYear - 100; y--) {
@@ -75,7 +74,9 @@ const dayOptions = computed(() => {
     return Array.from({ length: days }, (_, i) => i + 1);
 });
 
-const monthOptions = computed(() => monthNames.map((n, i) => ({ value: i + 1, label: n })));
+const monthOptions = computed(() =>
+    Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: __(`auth.month.${i + 1}`) }))
+);
 
 function submitRegister() {
     if (bdDay.value && bdMonth.value && bdYear.value) {
@@ -100,13 +101,13 @@ function submitRegister() {
                     <div class="auth-known-avatar">
                         {{ authUser.email.charAt(0).toUpperCase() }}
                     </div>
-                    <p class="auth-known-greeting">Добро пожаловать</p>
+                    <p class="auth-known-greeting">{{ __('auth.welcome') }}</p>
                     <p class="auth-known-email">{{ authUser.email }}</p>
                     <a :href="route('profile')" class="auth-submit auth-known-continue">
-                        Продолжить
+                        {{ __('auth.continue') }}
                     </a>
                     <button type="button" class="auth-known-logout" @click="router.post(route('logout'))">
-                        Выйти из аккаунта
+                        {{ __('auth.logout') }}
                     </button>
                 </div>
 
@@ -115,11 +116,11 @@ function submitRegister() {
                     <div class="auth-tabs">
                         <button class="auth-tab" :class="{ 'auth-tab--active': tab === 'login' }"
                             @click="switchTab('login')">
-                            Войти
+                            {{ __('auth.tab.login') }}
                         </button>
                         <button class="auth-tab" :class="{ 'auth-tab--active': tab === 'register' }"
                             @click="switchTab('register')">
-                            Зарегистрироваться
+                            {{ __('auth.tab.register') }}
                         </button>
                     </div>
 
@@ -128,10 +129,10 @@ function submitRegister() {
                         <!-- Login Form -->
                         <form v-if="tab === 'login'" key="login" @submit.prevent="submitLogin" class="auth-form">
                             <div class="auth-field">
-                                <label class="auth-field-label">Email</label>
+                                <label class="auth-field-label">{{ __('auth.email') }}</label>
                                 <input v-model="loginForm.email" type="email" class="auth-input"
                                     :class="{ 'auth-input--error': loginForm.errors.email }" autocomplete="username"
-                                    placeholder="you@example.com" />
+                                    :placeholder="__('auth.email.placeholder')" />
                                 <Transition name="err-fade">
                                     <p v-show="loginForm.errors.email" class="auth-error">
                                         {{ loginForm.errors.email }}
@@ -140,10 +141,10 @@ function submitRegister() {
                             </div>
 
                             <div class="auth-field">
-                                <label class="auth-field-label">Пароль</label>
+                                <label class="auth-field-label">{{ __('auth.password') }}</label>
                                 <input v-model="loginForm.password" type="password" class="auth-input"
                                     :class="{ 'auth-input--error': loginForm.errors.password }"
-                                    autocomplete="current-password" placeholder="••••••••" />
+                                    autocomplete="current-password" :placeholder="__('auth.password.placeholder')" />
                                 <Transition name="err-fade">
                                     <p v-show="loginForm.errors.password" class="auth-error">
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -166,28 +167,28 @@ function submitRegister() {
                                                 stroke-linecap="round" stroke-linejoin="round" />
                                         </svg>
                                     </span>
-                                    <span class="auth-remember-text">Запомнить меня</span>
+                                    <span class="auth-remember-text">{{ __('auth.remember') }}</span>
                                 </label>
                             </div>
 
                             <button type="submit" class="auth-submit" :disabled="loginForm.processing">
-                                {{ loginForm.processing ? 'Вход…' : 'Войти' }}
+                                {{ loginForm.processing ? __('auth.login.loading') : __('auth.login.submit') }}
                             </button>
 
                             <p class="auth-footer">
-                                Нет аккаунта?
+                                {{ __('auth.no_account') }}
                                 <button type="button" class="auth-switch-link"
-                                    @click="switchTab('register')">Зарегистрироваться</button>
+                                    @click="switchTab('register')">{{ __('auth.tab.register') }}</button>
                             </p>
                         </form>
 
                         <!-- Register Form -->
                         <form v-else key="register" @submit.prevent="submitRegister" class="auth-form">
                             <div class="auth-field">
-                                <label class="auth-field-label">Имя</label>
+                                <label class="auth-field-label">{{ __('auth.name') }}</label>
                                 <input v-model="registerForm.name" type="text" class="auth-input"
                                     :class="{ 'auth-input--error': registerForm.errors.name }" autocomplete="name"
-                                    placeholder="ivan_petrov" />
+                                    :placeholder="__('auth.name.placeholder')" />
                                 <Transition name="err-fade">
                                     <p v-show="registerForm.errors.name" class="auth-error">
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -202,14 +203,14 @@ function submitRegister() {
                             </div>
 
                             <div class="auth-field">
-                                <label class="auth-field-label">Пол</label>
+                                <label class="auth-field-label">{{ __('auth.gender') }}</label>
                                 <div class="auth-gender-group">
                                     <button type="button" class="auth-gender-btn"
                                         :class="{ 'auth-gender-btn--active': registerForm.gender === 'male' }"
-                                        @click="registerForm.gender = 'male'">Мужской</button>
+                                        @click="registerForm.gender = 'male'">{{ __('auth.gender.male') }}</button>
                                     <button type="button" class="auth-gender-btn"
                                         :class="{ 'auth-gender-btn--active': registerForm.gender === 'female' }"
-                                        @click="registerForm.gender = 'female'">Женский</button>
+                                        @click="registerForm.gender = 'female'">{{ __('auth.gender.female') }}</button>
                                 </div>
                                 <Transition name="err-fade">
                                     <p v-show="registerForm.errors.gender" class="auth-error">
@@ -225,13 +226,13 @@ function submitRegister() {
                             </div>
 
                             <div class="auth-field">
-                                <label class="auth-field-label">Дата рождения</label>
+                                <label class="auth-field-label">{{ __('auth.birth_date') }}</label>
                                 <div class="auth-dob-group">
-                                    <AppSelect v-model="bdDay" :options="dayOptions" placeholder="День"
+                                    <AppSelect v-model="bdDay" :options="dayOptions" :placeholder="__('auth.birth_date.day')"
                                         :error="!!registerForm.errors.birth_date" style="flex:1;min-width:0" />
-                                    <AppSelect v-model="bdMonth" :options="monthOptions" placeholder="Месяц"
+                                    <AppSelect v-model="bdMonth" :options="monthOptions" :placeholder="__('auth.birth_date.month')"
                                         :error="!!registerForm.errors.birth_date" style="flex:1;min-width:0" />
-                                    <AppSelect v-model="bdYear" :options="yearOptions" placeholder="Год"
+                                    <AppSelect v-model="bdYear" :options="yearOptions" :placeholder="__('auth.birth_date.year')"
                                         :error="!!registerForm.errors.birth_date" style="flex:1;min-width:0" />
                                 </div>
                                 <Transition name="err-fade">
@@ -248,10 +249,10 @@ function submitRegister() {
                             </div>
 
                             <div class="auth-field">
-                                <label class="auth-field-label">Email</label>
+                                <label class="auth-field-label">{{ __('auth.email') }}</label>
                                 <input v-model="registerForm.email" type="email" class="auth-input"
                                     :class="{ 'auth-input--error': registerForm.errors.email }" autocomplete="username"
-                                    placeholder="you@example.com" />
+                                    :placeholder="__('auth.email.placeholder')" />
                                 <Transition name="err-fade">
                                     <p v-show="registerForm.errors.email" class="auth-error">
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -266,10 +267,10 @@ function submitRegister() {
                             </div>
 
                             <div class="auth-field">
-                                <label class="auth-field-label">Пароль</label>
+                                <label class="auth-field-label">{{ __('auth.password') }}</label>
                                 <input v-model="registerForm.password" type="password" class="auth-input"
                                     :class="{ 'auth-input--error': registerForm.errors.password }"
-                                    autocomplete="new-password" placeholder="••••••••" />
+                                    autocomplete="new-password" :placeholder="__('auth.password.placeholder')" />
                                 <Transition name="err-fade">
                                     <p v-show="registerForm.errors.password" class="auth-error">
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -284,10 +285,10 @@ function submitRegister() {
                             </div>
 
                             <div class="auth-field">
-                                <label class="auth-field-label">Подтверждение пароля</label>
+                                <label class="auth-field-label">{{ __('auth.password.confirm') }}</label>
                                 <input v-model="registerForm.password_confirmation" type="password" class="auth-input"
                                     :class="{ 'auth-input--error': registerForm.errors.password_confirmation }"
-                                    autocomplete="new-password" placeholder="••••••••" />
+                                    autocomplete="new-password" :placeholder="__('auth.password.placeholder')" />
                                 <Transition name="err-fade">
                                     <p v-show="registerForm.errors.password_confirmation" class="auth-error">
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -302,18 +303,21 @@ function submitRegister() {
                             </div>
 
                             <button type="submit" class="auth-submit" :disabled="registerForm.processing">
-                                {{ registerForm.processing ? 'Регистрация…' : 'Зарегистрироваться' }}
+                                {{ registerForm.processing ? __('auth.register.loading') : __('auth.register.submit') }}
                             </button>
 
                             <p class="auth-footer">
-                                Уже есть аккаунт?
+                                {{ __('auth.have_account') }}
                                 <button type="button" class="auth-switch-link"
-                                    @click="switchTab('login')">Войти</button>
+                                    @click="switchTab('login')">{{ __('auth.tab.login') }}</button>
                             </p>
                         </form>
                     </Transition>
                 </div><!-- /.auth-tabs-wrapper -->
             </Transition>
+            <div class="auth-locale-wrap">
+                <LocaleSwitcher />
+            </div>
         </div>
     </SiteModal>
 </template>
@@ -325,6 +329,13 @@ function submitRegister() {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
+    position: relative;
+}
+
+.auth-locale-wrap {
+    display: flex;
+    justify-content: center;
+    padding-top: 0.5rem;
 }
 
 /* ── Already logged in ────────────────────────────────── */

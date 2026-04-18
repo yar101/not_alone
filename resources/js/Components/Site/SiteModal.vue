@@ -1,5 +1,8 @@
 <script setup>
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     show: {
@@ -128,7 +131,7 @@ onUnmounted(() => {
                         @click="close"
                         class="site-modal-close"
                         :class="variant === 'pink' ? 'site-modal-close-pink' : 'site-modal-close-cyan'"
-                        aria-label="Закрыть"
+                        :aria-label="__('common.close')"
                     >
                         <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />

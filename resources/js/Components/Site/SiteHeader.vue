@@ -1,6 +1,7 @@
 <script setup>
 import { Link } from '@inertiajs/vue3';
 import PublicNav from '@/Components/Site/PublicNav.vue';
+import LocaleSwitcher from '@/Components/Site/LocaleSwitcher.vue';
 
 defineProps({
     activePage: { type: String, default: 'home' },
@@ -28,6 +29,8 @@ defineProps({
 
         <!-- Контакты -->
         <div class="site-header__contacts">
+            <LocaleSwitcher />
+
             <a href="https://t.me/no_alone" class="site-header__contact" title="Telegram">
                 <svg class="site-header__contact-icon" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.67-.52.36-.99.53-1.42.52-.47-.01-1.37-.26-2.03-.48-.82-.27-1.47-.42-1.42-.88.03-.24.37-.48 1.02-.73 3.99-1.74 6.66-2.89 8-3.45 3.81-1.58 4.6-1.85 5.12-1.86.11 0 .37.03.53.16.14.11.18.26.2.37.01.08.03.29.01.45z"/>
@@ -86,6 +89,7 @@ a.site-header__logo { cursor: pointer; }
 .site-header__contact:hover { color: rgba(255,255,255,0.85); }
 
 .site-header__contact-icon { width: 18px; height: 18px; flex-shrink: 0; }
+
 
 @media (max-width: 768px) {
     .site-header { padding: 0.75rem 1.5rem 0; gap: 0.75rem; }

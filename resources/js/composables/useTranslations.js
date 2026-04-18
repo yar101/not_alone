@@ -1,5 +1,7 @@
 import { router, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+
+export const localeLoading = ref(false);
 
 export function useTranslations() {
     const page = usePage();
@@ -62,9 +64,11 @@ export function useTranslations() {
 
     const switchLocale = (newLocale) => {
         if (locale.value?.available?.[newLocale]) {
+            localeLoading.value = true;
             router.post('/locale', { locale: newLocale }, {
-                preserveState: false,
+                preserveState: true,
                 preserveScroll: true,
+                onFinish: () => { setTimeout(() => { localeLoading.value = false; }, 900); },
             });
         }
     };

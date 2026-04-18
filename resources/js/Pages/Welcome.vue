@@ -4,13 +4,18 @@ import StartBtn from "@/Components/Site/StartBtn.vue";
 import HelpModal from "@/Components/Site/HelpModal.vue";
 import AuthModal from "@/Components/Site/AuthModal.vue";
 import SiteHeader from "@/Components/Site/SiteHeader.vue";
+import { useTranslations } from '@/composables/useTranslations';
+import LocaleLoader from '@/Components/LocaleLoader.vue';
 
 const showHelpModal = ref(false);
 const showAuthModal  = ref(false);
 
+const { __ } = useTranslations();
+
 </script>
 
 <template>
+    <LocaleLoader />
     <!-- Декоративные фоновые элементы (круги) -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div class="circle1"/>
@@ -38,7 +43,7 @@ const showAuthModal  = ref(false);
 
                 <!-- Главная кнопка (START) -->
                 <div class="scale-110 sm:scale-105 backdrop-blur md:scale-125 mb-14 md:mb-16 transform transition-transform wlc-fade-start">
-                    <StartBtn @click="showAuthModal = true" />
+                    <StartBtn :label="__('welcome.start')" @click="showAuthModal = true" />
                 </div>
 
                 <!-- Кнопки -->
@@ -50,7 +55,7 @@ const showAuthModal  = ref(false);
                                 @click="showHelpModal = true"
                             >
                                 <span class="text-gray-200 group-hover:text-white transition-colors">
-                                    Справка
+                                    {{ __('welcome.help') }}
                                 </span>
                             </button>
                         </div>

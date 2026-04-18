@@ -9,6 +9,7 @@ import CartIcon from '@/Components/Cart/CartIcon.vue';
 import CartDropdown from '@/Components/Cart/CartDropdown.vue';
 import AuthModal from '@/Components/Site/AuthModal.vue';
 import UserSidebar from '@/Components/UserSidebar.vue';
+import LocaleLoader from '@/Components/LocaleLoader.vue';
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
@@ -185,6 +186,7 @@ onUnmounted(() => {
 </script>
 
 <template>
+    <LocaleLoader />
     <div class="app-wrap">
         <header class="app-header">
             <Link href="/" class="app-logo">NoAlone</Link>
