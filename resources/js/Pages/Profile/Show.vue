@@ -411,23 +411,17 @@ onMounted(async () => {
                         <!-- Owner but not idol yet -->
                         <template v-else-if="isOwner">
                             <div class="anim-block idol-cta-block">
-                                <svg class="idol-cta-deco" viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <polygon points="10,70 10,35 25,15 35,35 50,5 65,35 75,15 90,35 90,70" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
-                                    <line x1="10" y1="70" x2="90" y2="70" stroke="currentColor" stroke-width="2.5"/>
-                                    <polygon points="25,15 28,9 25,3 22,9" fill="currentColor" opacity="0.8"/>
-                                    <polygon points="50,5 53,-1 50,-7 47,-1" fill="currentColor" opacity="0.8"/>
-                                    <polygon points="75,15 78,9 75,3 72,9" fill="currentColor" opacity="0.8"/>
-                                </svg>
-                                <span class="idol-cta-label">АЙДОЛ</span>
-                                <p class="idol-cta-title">Стань Айдолом</p>
-                                <p class="idol-cta-text">Айдолы могут предоставлять уникальные услуги другим участникам платформы. Пройди тест и подай заявку!</p>
-                                <Link href="/idol/apply" class="idol-cta-btn">
-                                    Стать Айдолом
-                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <line x1="2" y1="7" x2="12" y2="7"/>
-                                        <polyline points="8,3 12,7 8,11"/>
-                                    </svg>
-                                </Link>
+                                <div class="idol-cta-content">
+                                    <div class="idol-cta-left">
+                                        <span class="idol-cta-eyebrow">Раздел айдолов</span>
+                                        <p class="idol-cta-title">Твои таланты<br>работают на тебя</p>
+                                        <div class="idol-cta-tags">
+                                            <span class="idol-cta-tag">Предлагай услуги</span>
+                                            <span class="idol-cta-tag">Монетизируй аудиторию</span>
+                                        </div>
+                                    </div>
+                                    <Link href="/idol/apply" class="idol-cta-btn">Подать заявку</Link>
+                                </div>
                             </div>
                         </template>
                         <!-- Visitor viewing a non-idol profile -->
@@ -982,64 +976,119 @@ onMounted(async () => {
 .idol-cta-block {
     position: relative;
     overflow: hidden;
+    border: 1px solid rgba(160, 160, 255, 0.18);
+    border-top-color: rgba(160, 160, 255, 0.3);
+    border-radius: 6px;
+    background:
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 23px,
+            rgba(160, 160, 255, 0.025) 24px
+        ),
+        linear-gradient(120deg,
+            rgba(160, 160, 255, 0.1) 0%,
+            rgba(100, 100, 200, 0.04) 50%,
+            rgba(100, 210, 255, 0.07) 100%
+        );
+    box-shadow:
+        inset 0 1px 0 rgba(160, 160, 255, 0.12),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.22),
+        0 6px 32px rgba(0, 0, 0, 0.2);
+}
+
+.idol-cta-block::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 70% 100% at 100% 50%, rgba(100, 210, 255, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.idol-cta-content {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 2rem;
+    min-height: 140px;
+}
+
+.idol-cta-left {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 0.6rem;
-    padding: 2rem 2rem 1.75rem;
-    background: linear-gradient(135deg, rgba(155,110,232,0.07) 0%, rgba(100,30,160,0.04) 100%);
-    border: 1px solid rgba(155,110,232,0.2);
-    border-radius: 3px;
+    gap: 0.35rem;
 }
-.idol-cta-deco {
-    position: absolute;
-    top: -2.5rem;
-    right: -2rem;
-    width: 220px;
-    height: 220px;
-    color: #a0a0ff;
-    opacity: 0.07;
-    pointer-events: none;
-    flex-shrink: 0;
-}
-.idol-cta-label {
-    font-size: 0.6rem;
+
+.idol-cta-eyebrow {
+    font-size: 0.58rem;
     font-weight: 700;
-    letter-spacing: 0.28em;
-    color: rgba(190,145,255,0.6);
+    letter-spacing: 0.32em;
     text-transform: uppercase;
+    color: var(--color-base-1);
+    opacity: 0.5;
 }
-.idol-cta-title { font-size: 1.35rem; color: rgba(255,255,255,0.92); margin: 0; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
-.idol-cta-text { font-size: 0.84rem; color: rgba(255,255,255,0.4); margin: 0.2rem 0 0.5rem; max-width: 340px; line-height: 1.65; }
+
+.idol-cta-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.92);
+    margin: 0;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+}
+
+.idol-cta-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.55rem;
+}
+
+.idol-cta-tag {
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    color: var(--color-base-1);
+    opacity: 0.8;
+    background: rgba(160, 160, 255, 0.08);
+    border: 1px solid rgba(160, 160, 255, 0.2);
+    border-radius: 3px;
+    padding: 0.2rem 0.55rem;
+    box-shadow: inset 0 1px 0 rgba(160, 160, 255, 0.08);
+}
+
 .idol-cta-btn {
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.6rem 1.25rem;
-    background: linear-gradient(135deg, #7070d8 0%, #6B3FD9 100%);
-    border: 1px solid rgba(190,145,255,0.45);
-    border-radius: 3px;
-    color: #fff;
-    font-size: 0.78rem;
+    padding: 0.65rem 1.35rem;
+    border: 1px solid rgba(160, 160, 255, 0.3);
+    border-radius: 4px;
+    background: rgba(160, 160, 255, 0.09);
+    color: var(--color-base-1);
+    font-size: 0.74rem;
     font-weight: 600;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.13em;
     text-transform: uppercase;
     text-decoration: none;
-    transition: box-shadow 0.2s, transform 0.15s;
+    white-space: nowrap;
+    box-shadow:
+        inset 0 1px 0 rgba(160, 160, 255, 0.1),
+        0 2px 12px rgba(160, 160, 255, 0.08);
+    transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.15s;
 }
+
 .idol-cta-btn:hover {
-    box-shadow: 0 0 22px rgba(155,110,232,0.4), 0 4px 12px rgba(0,0,0,0.3);
+    background: rgba(160, 160, 255, 0.16);
+    border-color: rgba(160, 160, 255, 0.55);
+    color: rgba(200, 200, 255, 1);
+    box-shadow:
+        inset 0 1px 0 rgba(160, 160, 255, 0.15),
+        0 0 20px rgba(160, 160, 255, 0.18),
+        0 4px 18px rgba(0, 0, 0, 0.25);
     transform: translateY(-1px);
-}
-.idol-cta-btn--soon {
-    background: rgba(155,110,232,0.12);
-    border-color: rgba(155,110,232,0.2);
-    color: rgba(255,255,255,0.35);
-    cursor: default;
-}
-.idol-cta-btn--soon:hover {
-    box-shadow: none;
-    transform: none;
 }
 
 

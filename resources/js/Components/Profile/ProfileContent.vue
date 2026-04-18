@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, inject, watch, onMounted, onUnmounted } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { router, Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import { Picture, WarnTriangleFilled } from '@element-plus/icons-vue';
 import CreateButton from '@/Components/CreateButton.vue';
@@ -433,8 +433,18 @@ const ownerSortOptions = [
 
             <!-- Owner but not idol yet -->
             <template v-else-if="isOwner && !isIdol">
-                <div class="pc-empty">
-                    <p>Раздел контента доступен только для айдолов.</p>
+                <div class="pc-idol-cta-block">
+                    <div class="pc-idol-cta-content">
+                        <div class="pc-idol-cta-left">
+                            <span class="pc-idol-cta-eyebrow">Раздел айдолов</span>
+                            <p class="pc-idol-cta-title">Дай фанатам<br>эксклюзив</p>
+                            <div class="pc-idol-cta-tags">
+                                <span class="pc-idol-cta-tag">Эксклюзивные паки</span>
+                                <span class="pc-idol-cta-tag">Платный доступ</span>
+                            </div>
+                        </div>
+                        <Link href="/idol/apply" class="pc-idol-cta-btn">Подать заявку</Link>
+                    </div>
                 </div>
             </template>
 
@@ -2334,5 +2344,124 @@ const ownerSortOptions = [
 
 @keyframes pc-spin { to { transform: rotate(360deg); } }
 .pc-spin { animation: pc-spin 0.8s linear infinite; display: block; }
+
+/* ── Content idol CTA block ──────────────────────────────── */
+.pc-idol-cta-block {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(160, 160, 255, 0.18);
+    border-top-color: rgba(160, 160, 255, 0.3);
+    border-radius: 6px;
+    background:
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 23px,
+            rgba(160, 160, 255, 0.025) 24px
+        ),
+        linear-gradient(120deg,
+            rgba(160, 160, 255, 0.1) 0%,
+            rgba(100, 100, 200, 0.04) 50%,
+            rgba(100, 210, 255, 0.07) 100%
+        );
+    box-shadow:
+        inset 0 1px 0 rgba(160, 160, 255, 0.12),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.22),
+        0 6px 32px rgba(0, 0, 0, 0.2);
+}
+
+.pc-idol-cta-block::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 70% 100% at 100% 50%, rgba(100, 210, 255, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.pc-idol-cta-content {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 2rem;
+    min-height: 140px;
+}
+
+.pc-idol-cta-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.pc-idol-cta-eyebrow {
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--color-base-1);
+    opacity: 0.5;
+}
+
+.pc-idol-cta-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.92);
+    margin: 0;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+}
+
+.pc-idol-cta-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.55rem;
+}
+
+.pc-idol-cta-tag {
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    color: var(--color-base-1);
+    opacity: 0.8;
+    background: rgba(160, 160, 255, 0.08);
+    border: 1px solid rgba(160, 160, 255, 0.2);
+    border-radius: 3px;
+    padding: 0.2rem 0.55rem;
+    box-shadow: inset 0 1px 0 rgba(160, 160, 255, 0.08);
+}
+
+.pc-idol-cta-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.65rem 1.35rem;
+    border: 1px solid rgba(160, 160, 255, 0.3);
+    border-radius: 4px;
+    background: rgba(160, 160, 255, 0.09);
+    color: var(--color-base-1);
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    text-decoration: none;
+    white-space: nowrap;
+    box-shadow:
+        inset 0 1px 0 rgba(160, 160, 255, 0.1),
+        0 2px 12px rgba(160, 160, 255, 0.08);
+    transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.15s;
+}
+
+.pc-idol-cta-btn:hover {
+    background: rgba(160, 160, 255, 0.16);
+    border-color: rgba(160, 160, 255, 0.55);
+    color: rgba(200, 200, 255, 1);
+    box-shadow:
+        inset 0 1px 0 rgba(160, 160, 255, 0.15),
+        0 0 20px rgba(160, 160, 255, 0.18),
+        0 4px 18px rgba(0, 0, 0, 0.25);
+    transform: translateY(-1px);
+}
 </style>
 
