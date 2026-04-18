@@ -1,4 +1,12 @@
 {
+    "nav.user": "Пользователь",
+    "nav.profile": "Профиль",
+    "nav.settings": "Настройки",
+    "nav.gallery": "Галерея",
+    "nav.help": "Помощь",
+    "nav.wallet": "Кошелёк",
+    "nav.orders": "Заказы",
+
     "(and :count more error)": "(и ещё :count ошибка)",
     "(and :count more errors)": "(и ещё :count ошибка)|(и ещё :count ошибки)|(и ещё :count ошибок)",
     "A decryption key is required.": "Ключ дешифровки обязателен.",

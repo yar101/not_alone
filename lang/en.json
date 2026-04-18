@@ -1,2 +1,9 @@
 {
+    "nav.user": "User",
+    "nav.profile": "Profile",
+    "nav.settings": "Settings",
+    "nav.gallery": "Gallery",
+    "nav.help": "Help",
+    "nav.wallet": "Wallet",
+    "nav.orders": "Orders"
 }
