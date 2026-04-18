@@ -4,6 +4,7 @@ import { Link } from '@inertiajs/vue3';
 import AvatarUploader from '@/Components/AvatarUploader.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
 import HelpModal from '@/Components/Site/HelpModal.vue';
+import { useTranslations } from '@/composables/useTranslations';
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -29,6 +30,8 @@ function ageLabel(n) { return `${n} ${ageForms[agePR.select(n)]}`; }
 const ratingValue  = computed(() => props.rating != null ? Number(props.rating) : null);
 const ratingLabel  = computed(() => ratingValue.value != null ? ratingValue.value : '—');
 const ratingPct    = computed(() => ratingValue.value != null ? Math.min(ratingValue.value / 100, 1) * 100 : 0);
+
+const { locale, switchLocale } = useTranslations();
 </script>
 
 <template>
@@ -131,6 +134,20 @@ const ratingPct    = computed(() => ratingValue.value != null ? Math.min(ratingV
                         </div>
                         <span class="usb-feature-card__label">Заказы</span>
                     </Link>
+                </div>
+
+                <!-- Language switcher -->
+                <div class="usb-locale">
+                    <button
+                        v-for="(label, code) in locale?.available"
+                        :key="code"
+                        class="usb-locale__btn"
+                        :class="{ 'usb-locale__btn--active': locale?.current === code }"
+                        @click="switchLocale(code)"
+                    >
+                        <span class="usb-locale__flag">{{ code === 'ru' ? '🇷🇺' : '🇬🇧' }}</span>
+                        {{ label }}
+                    </button>
                 </div>
 
             </div>
@@ -479,4 +496,56 @@ const ratingPct    = computed(() => ratingValue.value != null ? Math.min(ratingV
 .sidebar-panel-leave-active { transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1); }
 .sidebar-panel-enter-from,
 .sidebar-panel-leave-to    { transform: translateX(100%); }
+
+/* ── Language switcher ────────────────────────────────────── */
+.usb-locale {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid rgba(110, 110, 210, 0.12);
+    margin-top: auto;
+}
+
+.usb-locale__btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(110, 110, 210, 0.15);
+    padding: 0.45rem 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.35);
+    cursor: pointer;
+    font-family: inherit;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.usb-locale__btn:hover {
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(110, 110, 210, 0.3);
+}
+
+.usb-locale__btn--active {
+    color: var(--color-base-1);
+    background: rgba(160, 160, 255, 0.1);
+    border-color: rgba(160, 160, 255, 0.3);
+    box-shadow: inset 0 1px 0 rgba(160, 160, 255, 0.08);
+}
+
+.usb-locale__btn--active:hover {
+    color: var(--color-base-1);
+    background: rgba(160, 160, 255, 0.14);
+}
+
+.usb-locale__flag {
+    font-size: 0.9rem;
+    line-height: 1;
+}
 </style>
