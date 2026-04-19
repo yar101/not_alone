@@ -64,7 +64,7 @@ async function createOrder() {
         if (openOrder) openOrder(res.data.order_id);
         router.reload({ only: ['order_notifications_unread'] });
     } catch (e) {
-        serviceError.value = e.response?.data?.error ?? 'Ошибка при создании заказа';
+        serviceError.value = e.response?.data?.error ?? __('cart.order.error');
     } finally {
         creating.value = false;
     }
@@ -85,7 +85,7 @@ async function purchaseContent() {
         emit('clear-content');
         isOpen.value = false;
     } catch (e) {
-        contentError.value = e.response?.data?.error ?? 'Ошибка при оплате';
+        contentError.value = e.response?.data?.error ?? __('cart.pay.error');
     } finally {
         purchasing.value = false;
     }

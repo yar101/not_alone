@@ -40,7 +40,7 @@ async function submit() {
         });
         emit('created', { conversation_id: res.data.conversation_id });
     } catch (e) {
-        error.value = e.response?.data?.error ?? 'Не удалось создать заказ';
+        error.value = e.response?.data?.error ?? __('chat.repeat.error');
         submitting.value = false;
     }
 }
@@ -92,10 +92,10 @@ function formatPrice(n) {
 
             <!-- Warnings -->
             <div v-if="unavailableItems.length > 0 && availableItems.length > 0" class="rom__warn">
-                Часть услуг недоступна и не войдёт в заказ
+                {{ __('chat.repeat.warn.partial') }}
             </div>
             <div v-else-if="availableItems.length === 0" class="rom__warn rom__warn--block">
-                Все услуги из этого заказа недоступны
+                {{ __('chat.repeat.warn.all') }}
             </div>
 
             <!-- Error -->
@@ -105,7 +105,7 @@ function formatPrice(n) {
             <div class="rom__actions">
 <button class="rom__btn rom__btn--submit" :disabled="!canSubmit" @click="submit">
                     <span v-if="submitting" class="rom__spinner" />
-                    <span v-else>↺ ПОВТОРИТЬ ЗАКАЗ</span>
+                    <span v-else>{{ __('chat.msg.repeat') }}</span>
                 </button>
             </div>
         </div>

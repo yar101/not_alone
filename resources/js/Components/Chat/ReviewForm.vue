@@ -74,7 +74,7 @@ async function submit() {
                 @click="warningOpen = !warningOpen"
                 @mouseenter="warningOpen = true"
                 type="button"
-                aria-label="Важно"
+                :aria-label="__('review.important')"
             >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
@@ -112,7 +112,7 @@ async function submit() {
                 @mouseleave="hovered = 0"
                 @click="rating = i; poppingHeart = i; setTimeout(() => poppingHeart = 0, 350)"
                 type="button"
-                :aria-label="`${i} из 5`"
+                :aria-label="__('review.rating.aria', { value: i })"
             >
                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <!-- Filled layer: always present, opacity transitions smoothly -->
@@ -164,7 +164,7 @@ async function submit() {
                 v-model="text"
                 class="rv-textarea"
                 maxlength="250"
-                placeholder="Ваш комментарий (необязательно)"
+                :placeholder="__('review.comment.placeholder')"
                 rows="3"
             ></textarea>
             <span class="rv-char-count">{{ text.length }}/250</span>
@@ -177,7 +177,7 @@ async function submit() {
             @click="submit"
             type="button"
         >
-            {{ submitting ? 'Отправка…' : 'Оставить отзыв' }}
+            {{ submitting ? __('common.sending') : __('review.submit') }}
         </button>
     </div>
 </template>

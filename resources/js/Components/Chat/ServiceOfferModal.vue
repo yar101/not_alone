@@ -3,6 +3,9 @@ import { ref, computed, watch, nextTick } from 'vue';
 import axios from 'axios';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppCheckbox from '@/Components/AppCheckbox.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     modelValue:     { type: Boolean, default: false },
@@ -105,15 +108,15 @@ watch(() => props.modelValue, (val) => {
 <template>
     <SiteModal :show="modelValue" variant="cyan" compact max-width="min(910px, 63vw)" @close="close">
 
-        <div class="sof-title">Предложить услугу</div>
+        <div class="sof-title">{{ __('chat.offer.title') }}</div>
 
         <!-- Loading -->
-        <div v-if="loading" class="sof-empty">Загрузка…</div>
+        <div v-if="loading" class="sof-empty">{{ __('common.loading') }}</div>
 
         <!-- No services -->
         <div v-else-if="!categories.length" class="sof-empty">
-            Нет доступных услуг.<br>
-            <span class="sof-empty__hint">Убедитесь, что ваши услуги активны и одобрены.</span>
+            {{ __('chat.offer.empty') }}<br>
+            <span class="sof-empty__hint">{{ __('chat.offer.empty.hint') }}</span>
         </div>
 
         <template v-else>
@@ -176,7 +179,7 @@ watch(() => props.modelValue, (val) => {
 
             <!-- Selected islands -->
             <div v-if="selectedServices.length" class="sof-selected">
-                <span class="sof-selected__label">Выбрано {{ selectedServices.length }}/2:</span>
+                <span class="sof-selected__label">{{ __('chat.offer.selected', { count: selectedServices.length }) }}</span>
                 <div class="sof-islands">
                     <div
                         v-for="s in selectedServices"
@@ -185,7 +188,7 @@ watch(() => props.modelValue, (val) => {
                     >
                         <span class="sof-island__name">{{ s.name }}</span>
                         <span class="sof-island__price">{{ fmtPrice(s.price) }}<template v-if="s.time_unit">&thinsp;/&thinsp;{{ s.time_unit }}</template></span>
-                        <button class="sof-island__remove" @click="removeSelected(s.id)" aria-label="Убрать">
+                        <button class="sof-island__remove" @click="removeSelected(s.id)" :aria-label="__('chat.offer.remove')">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
                                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                             </svg>
@@ -200,7 +203,7 @@ watch(() => props.modelValue, (val) => {
                 :disabled="!selectedServices.length || sending"
                 @click="submit"
             >
-                {{ sending ? 'Отправка…' : 'Предложить →' }}
+                {{ sending ? __('common.sending') : __('chat.offer.send') }}
             </button>
         </template>
 

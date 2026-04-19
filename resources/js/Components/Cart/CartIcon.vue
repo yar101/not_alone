@@ -1,5 +1,8 @@
 <script setup>
 import { computed } from 'vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     cart: { type: Object, required: true },
@@ -15,7 +18,7 @@ const count = computed(() => {
 </script>
 
 <template>
-    <button class="cart-icon-btn" :class="{ 'cart-icon-btn--active': count > 0 }" @click="emit('click')" title="Корзина">
+    <button class="cart-icon-btn" :class="{ 'cart-icon-btn--active': count > 0 }" @click="emit('click')" :title="__('cart.icon.title')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
             <line x1="3" y1="6" x2="21" y2="6"/>

@@ -124,7 +124,7 @@ const orderTimerLabel = computed(() => {
     const hours = Math.floor((totalSec % 86400) / 3600);
     const mins  = Math.floor((totalSec % 3600) / 60);
     const secs  = totalSec % 60;
-    if (days > 0) return `${days} д. ${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+    if (days > 0) return `${days} ${__('chat.days')} ${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
     return `${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
 });
 
@@ -642,7 +642,7 @@ async function confirmAddToOrder() {
         await axios.post(route('orders.items.add', activeOrderData.value.id), { service_id: confirmAddService.value.id });
         confirmAddModal.value = false;
     } catch (e) {
-        alert(e.response?.data?.message ?? 'Не удалось добавить услугу к заказу');
+        alert(e.response?.data?.message ?? __('chat.add_service.error'));
     } finally {
         confirmAddLoading.value = false;
     }
@@ -891,7 +891,7 @@ function formatDate(iso) {
                             <template v-else-if="conversations.length === 0">
                                 <div class="chat-no-convs">
                                     <p>{{ $page.props.is_idol ? __('chat.empty.dialogs') : __('chat.empty.dialogs.sub') }}</p>
-                                    <a v-if="$page.props.is_idol" :href="route('users.search')">Найти пользователей →</a>
+                                    <a v-if="$page.props.is_idol" :href="route('users.search')">{{ __('chat.find_users') }}</a>
                                 </div>
                             </template>
                             <template v-else>

@@ -141,7 +141,7 @@ onUnmounted(() => document.removeEventListener('paste', onPaste));
                 <span v-if="isDragging">{{ __('upload.drop') }}</span>
                 <span v-else>{{ __('upload.hint') }} <kbd>Ctrl+V</kbd><br><span class="dz-zone__link">{{ __('upload.hint.select') }}</span></span>
             </p>
-            <p class="dz-zone__hint">{{ ACCEPT.map(t => t.split('/')[1].toUpperCase()).join(', ') }} · до {{ maxSizeMb }} МБ</p>
+            <p class="dz-zone__hint">{{ ACCEPT.map(t => t.split('/')[1].toUpperCase()).join(', ') }} · {{ __('upload.hint.up_to') }} {{ maxSizeMb }} {{ __('upload.size.suffix') }}</p>
         </div>
 
         <p v-if="error" class="dz-error">{{ error }}</p>
