@@ -3,6 +3,9 @@ import { ref, computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { EditPen } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     traits:    { default: null },
@@ -75,8 +78,8 @@ function submitSuggestion() {
 <template>
     <div id="tour-traits" class="block-section">
         <div class="section-header">
-            <span class="section-title">Характер</span>
-            <button v-if="isOwner" class="edit-btn" @click="openEdit" title="Редактировать">
+            <span class="section-title">{{ __('profile.traits.title') }}</span>
+            <button v-if="isOwner" class="edit-btn" @click="openEdit" :title="__('common.edit')">
                 <el-icon><EditPen /></el-icon>
             </button>
         </div>
@@ -86,13 +89,13 @@ function submitSuggestion() {
                 {{ applyGender(t.name_ru, gender) }}
             </span>
         </div>
-        <p v-else-if="isOwner" class="empty">Добавь свои черты характера</p>
-        <p v-else class="empty">Не указано</p>
+        <p v-else-if="isOwner" class="empty">{{ __('profile.traits.empty') }}</p>
+        <p v-else class="empty">{{ __('profile.traits.not_specified') }}</p>
 
         <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
             <div class="edit-form">
-                <h3 class="edit-title">Характер</h3>
-                <p class="edit-hint">Выбери подходящие (до 10)</p>
+                <h3 class="edit-title">{{ __('profile.traits.title') }}</h3>
+                <p class="edit-hint">{{ __('profile.traits.subtitle') }}</p>
 
                 <Transition name="view-slide" mode="out-in">
                 <div v-if="view === 'list'" key="list">
@@ -101,9 +104,9 @@ function submitSuggestion() {
                             v-model="traitSearch"
                             type="text"
                             class="search-input"
-                            placeholder="Поиск по чертам..."
+                            :placeholder="__('profile.traits.search')"
                         />
-                        <button class="suggest-btn" @click="view = 'suggest'">Свой вариант</button>
+                        <button class="suggest-btn" @click="view = 'suggest'">{{ __('profile.traits.suggest_btn') }}</button>
                     </div>
                     <div class="trait-grid">
                         <button
@@ -116,30 +119,30 @@ function submitSuggestion() {
                             :disabled="!selected.has(t.id) && selected.size >= 10"
                         >{{ applyGender(t.name_ru, gender) }}</button>
                     </div>
-                    <p v-if="filteredTraits.length === 0" class="no-results">Ничего не найдено</p>
+                    <p v-if="filteredTraits.length === 0" class="no-results">{{ __('profile.traits.not_found') }}</p>
                     <button class="save-btn" :disabled="form.processing" @click="submit">
-                        Сохранить ({{ selected.size }})
+                        {{ __('common.save') }} ({{ selected.size }})
                     </button>
                 </div>
 
                 <div v-else key="suggest" class="suggest-form">
-                    <button class="back-btn" @click="view = 'list'">← Назад</button>
-                    <h4 class="suggest-title">Предложить черту</h4>
-                    <p class="suggest-hint">Напиши название — мы рассмотрим его и добавим, если подойдёт</p>
+                    <button class="back-btn" @click="view = 'list'">{{ __('profile.traits.back') }}</button>
+                    <h4 class="suggest-title">{{ __('profile.traits.suggest.title') }}</h4>
+                    <p class="suggest-hint">{{ __('profile.traits.suggest.hint') }}</p>
                     <textarea
                         v-model="suggestionText"
                         class="suggestion-textarea"
                         maxlength="100"
                         rows="3"
-                        placeholder="Например: Меланхоличный..."
+                        :placeholder="__('profile.traits.suggest.ph')"
                     />
                     <div class="suggest-footer">
                         <span class="char-count">{{ suggestionText.length }}/100</span>
                         <button class="save-btn suggest-submit-btn" :disabled="!suggestionText.trim() || suggForm.processing" @click="submitSuggestion">
-                            Отправить
+                            {{ __('common.send') }}
                         </button>
                     </div>
-                    <p v-if="suggSuccess" class="sugg-success">Предложение отправлено!</p>
+                    <p v-if="suggSuccess" class="sugg-success">{{ __('profile.traits.sent') }}</p>
                 </div>
                 </Transition>
             </div>

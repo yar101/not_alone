@@ -1,5 +1,8 @@
 <script setup>
 import { computed } from 'vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     user:      { type: Object, required: true },
@@ -9,12 +12,12 @@ const props = defineProps({
 });
 
 const items = computed(() => [
-    { key: 'about',     label: 'Заполните текст «О себе»',  done: !!props.user.about },
-    { key: 'traits',    label: 'Укажите черты характера',  done: (props.traits?.length ?? 0) > 0 },
-    { key: 'interests', label: 'Укажите интересы',         done: (props.interests?.length ?? 0) > 0 },
-    { key: 'voice',     label: 'Запишите аудио',           done: !!props.user.voice_url },
-    { key: 'languages', label: 'Укажите языки',            done: (props.languages?.length ?? 0) > 0 },
-    { key: 'timezone',  label: 'Укажите часовой пояс',     done: !!props.user.timezone },
+    { key: 'about',     label: __('checklist.about'),     done: !!props.user.about },
+    { key: 'traits',    label: __('checklist.traits'),    done: (props.traits?.length ?? 0) > 0 },
+    { key: 'interests', label: __('checklist.interests'), done: (props.interests?.length ?? 0) > 0 },
+    { key: 'voice',     label: __('checklist.audio'),     done: !!props.user.voice_url },
+    { key: 'languages', label: __('checklist.languages'), done: (props.languages?.length ?? 0) > 0 },
+    { key: 'timezone',  label: __('checklist.timezone'),  done: !!props.user.timezone },
 ]);
 
 const done      = computed(() => items.value.filter(i => i.done).length);
@@ -31,7 +34,7 @@ const sortedItems = computed(() => [
     <div v-if="remaining > 0" class="pcl">
         <!-- Header -->
         <div class="pcl__header">
-            <span class="pcl__title">Заполните профиль</span>
+            <span class="pcl__title">{{ __('checklist.title') }}</span>
             <span class="pcl__counter">{{ done }}<span class="pcl__counter-total">/{{ items.length }}</span></span>
         </div>
 

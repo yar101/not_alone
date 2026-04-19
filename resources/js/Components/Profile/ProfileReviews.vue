@@ -4,6 +4,9 @@ import axios from 'axios';
 import UserAvatar from '@/Components/UserAvatar.vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import SortDropdown from '@/Components/SortDropdown.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __, transChoice } = useTranslations();
 
 const props = defineProps({
     profileUserId: { type: Number, required: true },
@@ -59,21 +62,21 @@ async function submitDispute() {
     } catch (e) {
         const msg = e.response?.data?.message;
         if (msg === 'dispute_pending') {
-            disputeError.value = 'Жалоба уже отправлена и ожидает рассмотрения.';
+            disputeError.value = __('reviews.error.reported');
         } else {
-            disputeError.value = 'Не удалось отправить жалобу. Попробуйте ещё раз.';
+            disputeError.value = __('reviews.error.failed');
         }
     } finally {
         disputeSubmitting.value = false;
     }
 }
 
-const sortOptions = [
-    { value: 'latest',      label: 'сначала новые' },
-    { value: 'oldest',      label: 'сначала старые' },
-    { value: 'rating_desc', label: 'с высокой оценкой' },
-    { value: 'rating_asc',  label: 'с низкой оценкой' },
-];
+const sortOptions = computed(() => [
+    { value: 'latest',      label: __('reviews.sort.newest') },
+    { value: 'oldest',      label: __('reviews.sort.oldest') },
+    { value: 'rating_desc', label: __('reviews.sort.highest') },
+    { value: 'rating_asc',  label: __('reviews.sort.lowest') },
+]);
 
 async function fetchPage(p = 1) {
     const res = await axios.get(route('users.reviews', props.profileUserId), {
@@ -203,8 +206,8 @@ function formatDate(iso) {
             <svg class="pr-empty__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
             </svg>
-            <p class="pr-empty__title">Отзывов пока нет</p>
-            <p class="pr-empty__hint">Отзывы появятся после завершения заказов</p>
+            <p class="pr-empty__title">{{ __('reviews.empty') }}</p>
+            <p class="pr-empty__hint">{{ __('reviews.after_orders') }}</p>
         </div>
 
         <template v-else>
@@ -226,7 +229,7 @@ function formatDate(iso) {
             <!-- Sort dropdown -->
             <div class="pr-sort">
                 <SortDropdown :options="sortOptions" :model-value="sort" @update:modelValue="setSort" />
-                <span class="pr-sort__total">{{ total }} {{ total === 1 ? 'отзыв' : total < 5 ? 'отзыва' : 'отзывов' }}</span>
+                <span class="pr-sort__total">{{ transChoice('reviews.total', total, { count: total }) }}</span>
             </div>
 
             <!-- List -->
@@ -263,15 +266,15 @@ function formatDate(iso) {
                         class="pr-card__dispute-overlay"
                         @click.stop="openDisputeModal(r)"
                     >
-                        <button class="pr-card__dispute-btn" type="button">Оспорить</button>
+                        <button class="pr-card__dispute-btn" type="button">{{ __('reviews.dispute.btn') }}</button>
                     </div>
                     <!-- Dispute status badges -->
                     <div v-else-if="isOwner && isIdol && r.dispute_status === 'pending'" class="pr-card__dispute-badge pr-card__dispute-badge--pending">
-                        На рассмотрении
+                        {{ __('reviews.dispute.pending') }}
                     </div>
                     <div v-else-if="isOwner && isIdol && r.dispute_status === 'rejected'" class="pr-card__dispute-overlay">
                         <div class="pr-card__dispute-rejected">
-                            Предыдущая жалоба отклонена — <span class="pr-card__dispute-retry" @click.stop="openDisputeModal(r)">оспорить повторно</span>
+                            {{ __('reviews.dispute.rejected') }} <span class="pr-card__dispute-retry" @click.stop="openDisputeModal(r)">{{ __('reviews.dispute.retry') }}</span>
                         </div>
                     </div>
 
@@ -327,18 +330,18 @@ function formatDate(iso) {
                 <!-- Sentinel for IntersectionObserver -->
                 <template v-if="!loadingList">
                     <div ref="sentinel" class="pr-sentinel"></div>
-                    <div v-if="loadingMore" class="pr-loading-more">Загрузка…</div>
+                    <div v-if="loadingMore" class="pr-loading-more">{{ __('common.loading') }}</div>
                 </template>
             </div>
         </template>
 
     <!-- Back to top -->
     <Transition name="pr-backtop">
-        <button v-if="showBackTop" class="pr-backtop" @click="scrollToTop" type="button" aria-label="Наверх">
+        <button v-if="showBackTop" class="pr-backtop" @click="scrollToTop" type="button" :aria-label="__('reviews.backtop')">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="18 15 12 9 6 15"/>
             </svg>
-            Наверх
+            {{ __('reviews.backtop') }}
         </button>
     </Transition>
     </div>
@@ -355,18 +358,18 @@ function formatDate(iso) {
             <template v-if="disputeSuccess">
                 <div class="pd-success">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    Жалоба отправлена. Мы рассмотрим её в ближайшее время.
+                    {{ __('reviews.dispute.sent') }}
                 </div>
             </template>
             <template v-else>
-                <h3 class="pd-title">Оспорить отзыв</h3>
-                <p class="pd-hint">Объясните, почему этот отзыв должен быть удалён (до 250 символов).</p>
+                <h3 class="pd-title">{{ __('reviews.dispute.title') }}</h3>
+                <p class="pd-hint">{{ __('reviews.dispute.hint') }}</p>
                 <textarea
                     v-model="disputeReason"
                     class="pd-textarea"
                     maxlength="250"
                     rows="5"
-                    placeholder="Опишите причину…"
+                    :placeholder="__('reviews.dispute.ph')"
                 ></textarea>
                 <div class="pd-counter">{{ disputeReason.length }} / 250</div>
                 <p v-if="disputeError" class="pd-error">{{ disputeError }}</p>
@@ -376,7 +379,7 @@ function formatDate(iso) {
                     :disabled="disputeSubmitting || !disputeReason.trim()"
                     @click="submitDispute"
                 >
-                    {{ disputeSubmitting ? 'Отправка…' : 'Отправить жалобу' }}
+                    {{ disputeSubmitting ? __('reviews.dispute.submitting') : __('reviews.dispute.submit') }}
                 </button>
             </template>
         </div>

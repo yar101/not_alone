@@ -1,6 +1,9 @@
 <script setup>
 import { ref } from 'vue';
 import AuthModal from '@/Components/Site/AuthModal.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const showAuth = ref(false);
 const authTab  = ref('login');
@@ -13,10 +16,10 @@ function open(tab = 'login') {
 
 <template>
     <div class="guest-banner">
-        <p class="guest-banner__text">Войди или зарегистрируйся, чтобы оставлять комментарии и ставить лайки</p>
+        <p class="guest-banner__text">{{ __('profile.guest.text') }}</p>
         <div class="guest-banner__actions">
-            <button class="guest-banner__btn guest-banner__btn--login" @click="open('login')">Войти</button>
-            <button class="guest-banner__btn guest-banner__btn--register" @click="open('register')">Регистрация</button>
+            <button class="guest-banner__btn guest-banner__btn--login" @click="open('login')">{{ __('common.login') }}</button>
+            <button class="guest-banner__btn guest-banner__btn--register" @click="open('register')">{{ __('common.register') }}</button>
         </div>
     </div>
 

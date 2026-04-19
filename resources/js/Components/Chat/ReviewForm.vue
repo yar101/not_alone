@@ -1,6 +1,9 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     orderId: { type: Number, required: true },
@@ -63,7 +66,7 @@ async function submit() {
     <div class="rv-wrap">
         <!-- Header row: title + warning button -->
         <div class="rv-header-row">
-            <div class="rv-header">ОСТАВИТЬ ОТЗЫВ</div>
+            <div class="rv-header">{{ __('review.title') }}</div>
             <div class="rv-warn-wrap" ref="warnWrapEl" @mouseleave="warningOpen = false">
             <button
                 class="rv-warn-btn"
@@ -81,9 +84,7 @@ async function submit() {
             </button>
             <Transition name="rv-warn">
                 <div v-if="warningOpen" class="rv-warn-popup">
-                    <p class="rv-warn-popup__text">
-                        Это ваш единственный отзыв об этом айдоле. После отправки его нельзя изменить или оставить новый — отнеситесь к нему серьёзно.
-                    </p>
+                    <p class="rv-warn-popup__text">{{ __('review.only_one') }}</p>
                 </div>
             </Transition>
         </div>

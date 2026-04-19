@@ -10,6 +10,9 @@ import CartDropdown from '@/Components/Cart/CartDropdown.vue';
 import AuthModal from '@/Components/Site/AuthModal.vue';
 import UserSidebar from '@/Components/UserSidebar.vue';
 import LocaleLoader from '@/Components/LocaleLoader.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
@@ -168,7 +171,7 @@ function handleUserBannedEvent() {
         offset: 70,
         customClass: 'app-notif app-notif--warn',
         showClose: true,
-        message: 'Невозможно взаимодействовать с заблокированным пользователем',
+        message: __('layout.banned_error'),
     });
 }
 
@@ -197,7 +200,7 @@ onUnmounted(() => {
                         <circle cx="11" cy="11" r="8"/>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                     </svg>
-                    Поиск
+                    {{ __('common.search') }}
                 </Link>
             </nav>
 
@@ -206,7 +209,7 @@ onUnmounted(() => {
                     v-if="showIdolBtn"
                     href="/idol/apply"
                     class="become-idol-btn"
-                >Стать Айдолом</Link>
+                >{{ __('layout.become_idol') }}</Link>
 
                 <!-- Иконка поиска — только на мобиле вместо nav -->
                 <Link
@@ -214,7 +217,7 @@ onUnmounted(() => {
                     :href="route('users.search')"
                     class="mobile-search-btn"
                     :class="{ 'mobile-search-btn--active': $page.url.startsWith('/search') }"
-                    aria-label="Поиск"
+                    :aria-label="__('common.search')"
                 >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="11" cy="11" r="8"/>
@@ -233,7 +236,7 @@ onUnmounted(() => {
                                 v-if="user.avatar_url"
                                 :src="user.avatar_url"
                                 class="user-avatar__img"
-                                alt="Аватар"
+                                :alt="__('common.avatar')"
                             />
                             <span v-else class="user-avatar__initials">{{ initials }}</span>
                         </div>
@@ -243,8 +246,8 @@ onUnmounted(() => {
                     </button>
                 </template>
                 <template v-else>
-                    <button @click="openAuth('login')" class="guest-btn guest-btn--outline">Войти</button>
-                    <button @click="openAuth('register')" class="guest-btn guest-btn--fill">Регистрация</button>
+                    <button @click="openAuth('login')" class="guest-btn guest-btn--outline">{{ __('common.login') }}</button>
+                    <button @click="openAuth('register')" class="guest-btn guest-btn--fill">{{ __('common.register') }}</button>
                 </template>
             </div>
         </header>

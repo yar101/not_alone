@@ -2,6 +2,9 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import SiteHeader from '@/Components/Site/SiteHeader.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     item: Object,
@@ -51,7 +54,7 @@ onUnmounted(() => heroObserver?.disconnect());
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 12H5M12 5l-7 7 7 7"/>
                 </svg>
-                <span>Все новости</span>
+                <span>{{ __('news.back') }}</span>
             </Link>
         </Transition>
 
@@ -66,7 +69,7 @@ onUnmounted(() => heroObserver?.disconnect());
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M19 12H5M12 5l-7 7 7 7"/>
                         </svg>
-                        <span>Все новости</span>
+                        <span>{{ __('news.back') }}</span>
                     </Link>
 
                     <!-- Герой -->

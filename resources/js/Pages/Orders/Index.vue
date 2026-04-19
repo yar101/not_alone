@@ -4,6 +4,9 @@ import { usePage, Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import axios from 'axios';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __, transChoice } = useTranslations();
 
 const props = defineProps({ orders: Array });
 
@@ -29,22 +32,33 @@ const cancelReason      = ref('');
 const cancelSubmitting  = ref(false);
 const cancelOrderId     = ref(null);
 
-const cancelTemplatesCustomer = [
-    'Изменились планы',
-    'Нашёл другого исполнителя',
-    'Сделал заказ по ошибке',
-    'Не устраивают условия',
-    'Не получил ответа от исполнителя',
-    'По личным причинам',
-];
-const cancelTemplatesIdol = [
-    'Изменились планы',
-    'Не смогу выполнить этот заказ',
-    'Не хватает времени',
-    'Слишком большой объём работы',
-    'Это не моя специализация',
-    'По личным причинам',
-];
+const cancelTemplatesCustomer = computed(() => [
+    __('order.cancel.customer.1'),
+    __('order.cancel.customer.2'),
+    __('order.cancel.customer.3'),
+    __('order.cancel.customer.4'),
+    __('order.cancel.customer.5'),
+    __('order.cancel.customer.6'),
+]);
+const cancelTemplatesIdol = computed(() => [
+    __('order.cancel.idol.1'),
+    __('order.cancel.idol.2'),
+    __('order.cancel.idol.3'),
+    __('order.cancel.idol.4'),
+    __('order.cancel.idol.5'),
+    __('order.cancel.idol.6'),
+]);
+
+const statusLabels = computed(() => ({
+    all:       __('order.status.all'),
+    pending:   __('order.status.pending'),
+    accepted:  __('order.status.accepted'),
+    paid:      __('order.status.paid'),
+    completed: __('order.status.completed'),
+    cancelled: __('order.status.cancelled'),
+    refunded:  __('order.status.refunded'),
+    disputed:  __('order.status.disputed'),
+}));
 
 // ── Helpers ───────────────────────────────────────────────────
 function partner(order) {
@@ -56,9 +70,7 @@ function orderTotal(order) {
 }
 
 function servicesNoun(n) {
-    if (n === 1) return 'услуга';
-    if (n >= 2 && n <= 4) return 'услуги';
-    return 'услуг';
+    return transChoice('order.service_count', n, { count: n });
 }
 
 function formatDate(iso) {
@@ -185,13 +197,13 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <Head title="Заказы" />
+    <Head :title="__('orders.title')" />
     <AppLayout>
         <div class="orders-page">
 
             <!-- ── Header ──────────────────────────────────────── -->
             <div class="orders-header">
-                <h1 class="orders-title">Заказы</h1>
+                <h1 class="orders-title">{{ __('orders.title') }}</h1>
 
                 <div class="orders-controls">
                     <!-- Subtabs (idol only) -->
@@ -200,12 +212,12 @@ onUnmounted(() => {
                             class="orders-subtab"
                             :class="{ 'orders-subtab--active': subTab === 'mine' }"
                             @click="subTab = 'mine'; statusFilter = 'all'"
-                        >Мои</button>
+                        >{{ __('order.my') }}</button>
                         <button
                             class="orders-subtab"
                             :class="{ 'orders-subtab--active': subTab === 'incoming' }"
                             @click="subTab = 'incoming'; statusFilter = 'all'"
-                        >Входящие</button>
+                        >{{ __('order.incoming') }}</button>
                     </div>
 
                     <!-- Status filters -->
@@ -217,7 +229,7 @@ onUnmounted(() => {
                             :class="[`orders-status-btn--${s}`, { 'orders-status-btn--active': statusFilter === s }]"
                             @click="statusFilter = s"
                         >
-                            {{ { all: 'Все', pending: 'Создан', accepted: 'Принят', paid: 'Оплачен', completed: 'Выполнен', cancelled: 'Отменён', refunded: 'Аннулирован', disputed: 'Оспаривается' }[s] }}
+                            {{ statusLabels[s] }}
                             <span class="orders-status-btn__count">{{ statusCounts[s] ?? baseOrders.filter(o => o.status === s).length }}</span>
                         </button>
                     </div>
@@ -229,7 +241,7 @@ onUnmounted(() => {
                         v-model="search"
                         class="orders-search__input"
                         type="text"
-                        placeholder="Поиск по имени..."
+                        :placeholder="__('orders.search')"
                     />
                 </div>
             </div>
@@ -254,7 +266,7 @@ onUnmounted(() => {
                             <span class="ocard__date">{{ formatDate(order.created_at) }}</span>
                         </div>
                         <span class="ocard__badge" :class="`ocard__badge--${order.status}`">
-                            {{ { pending: 'Создан', accepted: 'Принят', paid: 'Оплачен', completed: 'Выполнен', cancelled: 'Отменён', refunded: 'Аннулирован', disputed: 'Оспаривается' }[order.status] }}
+                            {{ statusLabels[order.status] }}
                         </span>
                     </div>
 
@@ -274,7 +286,7 @@ onUnmounted(() => {
 
                     <!-- Foot -->
                     <div class="ocard__foot">
-                        <span class="ocard__count">{{ order.items.length }}&thinsp;{{ servicesNoun(order.items.length) }}</span>
+                        <span class="ocard__count">{{ servicesNoun(order.items.length) }}</span>
                         <span class="ocard__total">{{ orderTotal(order).toLocaleString('ru-RU') }}&thinsp;₽</span>
                     </div>
 
@@ -284,11 +296,11 @@ onUnmounted(() => {
                             v-if="!order.is_customer && order.status === 'pending'"
                             class="ocard__btn ocard__btn--accept"
                             @click="acceptOrder(order)"
-                        >Принять</button>
+                        >{{ __('order.accept') }}</button>
                         <button
                             class="ocard__btn ocard__btn--cancel"
                             @click="openCancelModal(order)"
-                        >Отменить</button>
+                        >{{ __('order.decline') }}</button>
                     </div>
                     <div v-else class="ocard__cancelled-note">
                         <span v-if="order.cancel_reason">{{ order.cancel_reason }}</span>
@@ -307,7 +319,7 @@ onUnmounted(() => {
 
             <!-- Empty state -->
             <div v-if="filteredOrders.length === 0" class="orders-empty">
-                <p>Заказов нет</p>
+                <p>{{ __('order.empty') }}</p>
             </div>
 
         </div>
@@ -323,11 +335,11 @@ onUnmounted(() => {
                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         </button>
                         <div class="opanel__header-text">
-                            <span class="opanel__title">Заказ #{{ selectedOrder.id }}</span>
+                            <span class="opanel__title">{{ __('order.number', { id: selectedOrder.id }) }}</span>
                             <span class="opanel__date">{{ formatDate(selectedOrder.created_at) }}</span>
                         </div>
                         <span class="opanel__status-badge" :class="`opanel__status-badge--${selectedOrder.status}`">
-                            {{ { pending: 'Создан', accepted: 'Принят', paid: 'Оплачен', completed: 'Выполнен', cancelled: 'Отменён', refunded: 'Возврат' }[selectedOrder.status] }}
+                            {{ statusLabels[selectedOrder.status] }}
                         </span>
                     </div>
 
@@ -339,7 +351,7 @@ onUnmounted(() => {
                         </div>
                         <div class="opanel__partner-info">
                             <span class="opanel__partner-name">{{ partner(selectedOrder).name }}</span>
-                            <span class="opanel__partner-role">{{ selectedOrder.is_customer ? 'Исполнитель' : 'Заказчик' }}</span>
+                            <span class="opanel__partner-role">{{ selectedOrder.is_customer ? __('order.role.idol') : __('order.role.customer') }}</span>
                         </div>
                     </div>
 
@@ -358,14 +370,14 @@ onUnmounted(() => {
 
                     <!-- Total -->
                     <div class="opanel__total">
-                        <span class="opanel__total-label">Итого</span>
+                        <span class="opanel__total-label">{{ __('order.total') }}</span>
                         <span class="opanel__total-value">{{ orderTotal(selectedOrder).toLocaleString('ru-RU') }}&thinsp;₽</span>
                     </div>
 
                     <!-- Cancel note -->
                     <div v-if="selectedOrder.status === 'cancelled'" class="opanel__cancel-note">
                         <span class="opanel__cancel-by">
-                            {{ selectedOrder.cancelled_by === authUser?.id ? 'Отменили вы' : 'Отменил ' + (selectedOrder.cancelled_by_name ?? 'другая сторона') }}
+                            {{ selectedOrder.cancelled_by === authUser?.id ? __('order.cancelled_by_you') : __('order.cancelled_by', { name: selectedOrder.cancelled_by_name ?? '...' }) }}
                         </span>
                         <span v-if="selectedOrder.cancel_reason" class="opanel__cancel-reason">{{ selectedOrder.cancel_reason }}</span>
                     </div>
@@ -377,7 +389,7 @@ onUnmounted(() => {
                             @click="openChat(selectedOrder.id)"
                         >
                             <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><path d="M1 1h13v9H8.5L5 13.5V10H1V1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
-                            Открыть чат
+                            {{ __('order.open_chat') }}
                         </button>
                     </div>
 
@@ -389,10 +401,10 @@ onUnmounted(() => {
         <SiteModal :show="cancelModal" variant="pink" compact @close="cancelModal = false">
             <div class="cm-wrap">
                 <div class="cm-rule cm-rule--double cm-rule--red"></div>
-                <h2 class="cm-title">ОТМЕНА ЗАКАЗА</h2>
+                <h2 class="cm-title">{{ __('order.cancel.title') }}</h2>
                 <div class="cm-rule cm-rule--double cm-rule--red"></div>
 
-                <div class="cm-section-label">// ВЫБЕРИТЕ ПРИЧИНУ</div>
+                <div class="cm-section-label">{{ __('order.cancel.choose') }}</div>
                 <div class="cm-tags">
                     <button
                         v-for="t in (localOrders.find(o => o.id === cancelOrderId)?.is_customer ? cancelTemplatesCustomer : cancelTemplatesIdol)"
@@ -403,11 +415,11 @@ onUnmounted(() => {
                     >{{ t }}</button>
                 </div>
 
-                <div class="cm-section-label">// ИЛИ НАПИШИТЕ СВОЮ</div>
+                <div class="cm-section-label">{{ __('order.cancel.custom') }}</div>
                 <textarea
                     v-model="cancelReason"
                     class="cm-textarea"
-                    placeholder="причина отмены…"
+                    :placeholder="__('orders.cancel_reason')"
                     rows="3"
                     maxlength="1000"
                 ></textarea>
@@ -415,12 +427,12 @@ onUnmounted(() => {
                 <div class="cm-perf"><span class="cm-perf__line"></span></div>
 
                 <div class="cm-footer">
-                    <button class="cm-btn cm-btn--back" @click="cancelModal = false">НАЗАД</button>
+                    <button class="cm-btn cm-btn--back" @click="cancelModal = false">{{ __('order.cancel.back') }}</button>
                     <button
                         class="cm-btn cm-btn--confirm"
                         :disabled="!cancelReason.trim() || cancelSubmitting"
                         @click="submitCancel"
-                    >{{ cancelSubmitting ? 'ОТМЕНЯЕМ…' : 'ПОДТВЕРДИТЬ' }}</button>
+                    >{{ cancelSubmitting ? __('order.cancel.loading') : __('order.cancel.submit') }}</button>
                 </div>
             </div>
         </SiteModal>

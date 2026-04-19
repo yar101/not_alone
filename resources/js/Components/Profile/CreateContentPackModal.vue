@@ -2,6 +2,9 @@
 import { ref, reactive } from 'vue';
 import { router } from '@inertiajs/vue3';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -52,17 +55,17 @@ function addFiles(files) {
     errors.value.photos = null;
     const remaining = MAX_FILES - photos.value.length;
     if (remaining <= 0) {
-        errors.value.photos = `Максимум ${MAX_FILES} фотографий.`;
+        errors.value.photos = __('pack.error.max_photos', { count: MAX_FILES });
         return;
     }
     const toAdd = files.slice(0, remaining);
     for (const file of toAdd) {
         if (!ALLOWED_MIME.includes(file.type)) {
-            errors.value.photos = 'Только JPEG, PNG или WebP.';
+            errors.value.photos = __('pack.error.format');
             continue;
         }
         if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-            errors.value.photos = `Файл «${file.name}» превышает ${MAX_SIZE_MB} МБ.`;
+            errors.value.photos = __('pack.error.file_size', { name: file.name, size: MAX_SIZE_MB });
             continue;
         }
         const preview = URL.createObjectURL(file);
@@ -79,10 +82,10 @@ function removePhoto(index) {
 
 function submit() {
     errors.value = {};
-    if (!form.title.trim()) { errors.value.title = 'Введите название.'; return; }
-    if (!form.price || Number(form.price) < 1) { errors.value.price = 'Укажите цену больше 0.'; return; }
-    if (!photos.value.length) { errors.value.photos = 'Добавьте хотя бы одну фотографию.'; return; }
-    if (coverIndex.value === null) { errors.value.photos = 'Выберите обложку пака.'; return; }
+    if (!form.title.trim()) { errors.value.title = __('pack.error.title'); return; }
+    if (!form.price || Number(form.price) < 1) { errors.value.price = __('pack.error.price'); return; }
+    if (!photos.value.length) { errors.value.photos = __('pack.error.no_photos'); return; }
+    if (coverIndex.value === null) { errors.value.photos = __('pack.error.no_cover'); return; }
 
     const fd = new FormData();
     fd.append('title',       form.title.trim());
@@ -112,37 +115,37 @@ function submit() {
 <template>
     <SiteModal :show="show" variant="cyan" :max-width="'640px'" @close="close">
         <div class="cpm-wrap">
-            <h2 class="cpm-title">Создать пак</h2>
+            <h2 class="cpm-title">{{ __('pack.create_title') }}</h2>
 
             <!-- Title -->
             <div class="cpm-field">
-                <label class="cpm-label">Название <span class="req">*</span></label>
+                <label class="cpm-label">{{ __('pack.field.title') }} <span class="req">*</span></label>
                 <input
                     v-model="form.title"
                     class="cpm-input"
                     :class="{ 'cpm-input--error': errors.title }"
                     type="text"
                     maxlength="120"
-                    placeholder="Название пака"
+                    :placeholder="__('pack.field.title_placeholder')"
                 />
                 <span v-if="errors.title" class="cpm-err">{{ errors.title }}</span>
             </div>
 
             <!-- Description -->
             <div class="cpm-field">
-                <label class="cpm-label">Описание</label>
+                <label class="cpm-label">{{ __('pack.field.desc') }}</label>
                 <textarea
                     v-model="form.description"
                     class="cpm-input cpm-textarea"
                     maxlength="2000"
                     rows="3"
-                    placeholder="Описание пака..."
+                    :placeholder="__('pack.field.desc_placeholder')"
                 />
             </div>
 
             <!-- Price -->
             <div class="cpm-field">
-                <label class="cpm-label">Цена, ₽ <span class="req">*</span></label>
+                <label class="cpm-label">{{ __('pack.field.price') }} <span class="req">*</span></label>
                 <input
                     v-model="form.price"
                     class="cpm-input"
@@ -158,8 +161,8 @@ function submit() {
             <!-- Photos -->
             <div class="cpm-field">
                 <label class="cpm-label">
-                    Фотографии <span class="req">*</span>
-                    <span class="cpm-hint">до {{ MAX_FILES }} штук, до {{ MAX_SIZE_MB }} МБ каждая</span>
+                    {{ __('pack.field.photos') }} <span class="req">*</span>
+                    <span class="cpm-hint">{{ __('pack.field.photos_hint', { max: MAX_FILES, size: MAX_SIZE_MB }) }}</span>
                 </label>
 
                 <!-- Drop zone -->
@@ -183,7 +186,7 @@ function submit() {
                         <polyline points="21 15 16 10 5 21"/>
                     </svg>
                     <span class="cpm-dropzone__text">
-                        Нажмите или перетащите фотографии
+                        {{ __('pack.dropzone_text') }}
                         <br/><small>({{ photos.length }}/{{ MAX_FILES }})</small>
                     </span>
                 </div>
@@ -198,21 +201,21 @@ function submit() {
                         class="cpm-thumb"
                         :class="{ 'cpm-thumb--cover': coverIndex === i }"
                         @click="coverIndex = coverIndex === i ? null : i"
-                        title="Нажмите, чтобы выбрать обложкой"
+                        :title="__('profile.content.select_cover_title')"
                     >
                         <img :src="p.preview" :alt="p.name" />
-                        <button class="cpm-thumb__del" @click.stop="removePhoto(i)" title="Удалить">×</button>
-                        <div v-if="coverIndex === i" class="cpm-thumb__cover-badge">обложка</div>
+                        <button class="cpm-thumb__del" @click.stop="removePhoto(i)" :title="__('common.delete')">×</button>
+                        <div v-if="coverIndex === i" class="cpm-thumb__cover-badge">{{ __('pack.cover_badge') }}</div>
                     </div>
                 </div>
-                <p v-if="photos.length" class="cpm-cover-hint">Нажмите на фото, чтобы выбрать обложку <span class="req">*</span></p>
+                <p v-if="photos.length" class="cpm-cover-hint">{{ __('pack.cover_hint') }} <span class="req">*</span></p>
             </div>
 
             <!-- Actions -->
             <div class="cpm-actions">
-                <button class="cpm-cancel" @click="close" :disabled="submitting">Отмена</button>
+                <button class="cpm-cancel" @click="close" :disabled="submitting">{{ __('common.cancel') }}</button>
                 <button class="cpm-submit" @click="submit" :disabled="submitting">
-                    {{ submitting ? 'Отправка…' : 'Отправить на проверку' }}
+                    {{ submitting ? __('pack.submit.loading') : __('pack.submit') }}
                 </button>
             </div>
         </div>

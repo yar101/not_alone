@@ -3,6 +3,9 @@ import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { EditPen } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     languages: { default: null },
@@ -69,8 +72,8 @@ function openEdit() {
 <template>
     <div id="tour-languages" class="block-section">
         <div class="section-header">
-            <span class="section-title">Языки</span>
-            <button v-if="isOwner" class="edit-btn" @click="openEdit" title="Редактировать">
+            <span class="section-title">{{ __('profile.languages.title') }}</span>
+            <button v-if="isOwner" class="edit-btn" @click="openEdit" :title="__('common.edit')">
                 <el-icon><EditPen /></el-icon>
             </button>
         </div>
@@ -80,12 +83,12 @@ function openEdit() {
                 {{ langInfo(code).flag }} {{ langInfo(code).name }}
             </span>
         </div>
-        <p v-else-if="isOwner" class="empty">Укажи языки, которыми владеешь</p>
-        <p v-else class="empty">Не указано</p>
+        <p v-else-if="isOwner" class="empty">{{ __('profile.languages.empty.owner') }}</p>
+        <p v-else class="empty">{{ __('common.not_specified') }}</p>
 
         <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
             <div class="edit-form">
-                <h3 class="edit-title">Языки</h3>
+                <h3 class="edit-title">{{ __('profile.languages.title') }}</h3>
                 <div class="lang-grid">
                     <button
                         v-for="l in ALL_LANGUAGES"
@@ -96,7 +99,7 @@ function openEdit() {
                         @click="toggleLang(l.code)"
                     >{{ l.flag }} {{ l.name }}</button>
                 </div>
-                <button class="save-btn" :disabled="form.processing" @click="submit">Сохранить</button>
+                <button class="save-btn" :disabled="form.processing" @click="submit">{{ __('common.save') }}</button>
             </div>
         </SiteModal>
     </div>

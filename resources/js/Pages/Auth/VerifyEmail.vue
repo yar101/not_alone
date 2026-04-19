@@ -1,6 +1,9 @@
 <script setup>
 import { computed } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     status: {
@@ -20,7 +23,7 @@ const verificationLinkSent = computed(
 </script>
 
 <template>
-    <Head title="Подтверждение email" />
+    <Head :title="__('verify.title')" />
 
     <div class="verify-page">
         <div class="verify-card">
@@ -33,15 +36,12 @@ const verificationLinkSent = computed(
                 </svg>
             </div>
 
-            <h1 class="verify-title">Подтвердите email</h1>
+            <h1 class="verify-title">{{ __('verify.title') }}</h1>
 
-            <p class="verify-text">
-                Мы отправили письмо со ссылкой для подтверждения на ваш адрес.
-                Перейдите по ссылке в письме, чтобы активировать аккаунт.
-            </p>
+            <p class="verify-text">{{ __('verify.text') }}</p>
 
             <p v-if="verificationLinkSent" class="verify-sent">
-                Письмо отправлено повторно. Проверьте папку «Входящие» и «Спам».
+                {{ __('verify.resent') }}
             </p>
 
             <form @submit.prevent="submit" class="verify-actions">
@@ -50,7 +50,7 @@ const verificationLinkSent = computed(
                     class="verify-btn-primary"
                     :disabled="form.processing"
                 >
-                    {{ form.processing ? 'Отправляем…' : 'Отправить повторно' }}
+                    {{ form.processing ? __('verify.resending') : __('verify.resend') }}
                 </button>
 
                 <Link
@@ -59,7 +59,7 @@ const verificationLinkSent = computed(
                     as="button"
                     class="verify-btn-ghost"
                 >
-                    Выйти
+                    {{ __('verify.logout') }}
                 </Link>
             </form>
 

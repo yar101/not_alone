@@ -8,6 +8,7 @@ import IdolBadge from '@/Components/IdolBadge.vue';
 import ServiceOfferModal from '@/Components/Chat/ServiceOfferModal.vue';
 import ReviewForm from '@/Components/Chat/ReviewForm.vue';
 import RepeatOrderModal from '@/Components/Chat/RepeatOrderModal.vue';
+import { useTranslations } from '@/composables/useTranslations';
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -15,6 +16,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const page = usePage();
+const { __, transChoice, locale } = useTranslations();
 const authUser = computed(() => page.props.auth.user);
 
 const isOpen = computed({
@@ -77,6 +79,16 @@ const ordersHaveUnread = computed(() => pendingOrderUnread.value || orders.value
 const mineHaveUnread = computed(() => orders.value.filter(o => o.is_customer).some(o => (o.unread_count ?? 0) > 0));
 const incomingHaveUnread = computed(() => orders.value.filter(o => !o.is_customer).some(o => (o.unread_count ?? 0) > 0));
 
+const orderStatusLabels = computed(() => ({
+    pending:   __('order.status.pending'),
+    accepted:  __('order.status.accepted'),
+    paid:      __('order.status.paid'),
+    completed: __('order.status.completed'),
+    cancelled: __('order.status.cancelled'),
+    refunded:  __('order.status.refunded'),
+    disputed:  __('order.status.disputed'),
+}));
+
 const orderStatusCounts = computed(() => ({
     all:       subtabOrders.value.length,
     pending:   subtabOrders.value.filter(o => o.status === 'pending').length,
@@ -106,7 +118,7 @@ const orderTimerLabel = computed(() => {
     if (!paidAt) return '— : — : —';
     const deadline = new Date(paidAt).getTime() + 72 * 3600 * 1000;
     const diff = Math.max(0, deadline - nowTick.value);
-    if (diff === 0) return 'Завершается…';
+    if (diff === 0) return __('chat.completing');
     const totalSec = Math.floor(diff / 1000);
     const days  = Math.floor(totalSec / 86400);
     const hours = Math.floor((totalSec % 86400) / 3600);
@@ -138,26 +150,26 @@ async function confirmCompletion() {
 const cancelModal       = ref(false);
 const cancelReason      = ref('');
 const cancelSubmitting  = ref(false);
-const CANCEL_TEMPLATES_CUSTOMER = [
-    'Изменились планы',
-    'Нашёл другого исполнителя',
-    'Сделал заказ по ошибке',
-    'Не устраивают условия',
-    'Не получил ответа от исполнителя',
-    'По личным причинам',
-];
+const cancelTemplatesCustomer = computed(() => [
+    __('order.cancel.customer.1'),
+    __('order.cancel.customer.2'),
+    __('order.cancel.customer.3'),
+    __('order.cancel.customer.4'),
+    __('order.cancel.customer.5'),
+    __('order.cancel.customer.6'),
+]);
 
-const CANCEL_TEMPLATES_IDOL = [
-    'Изменились планы',
-    'Не смогу выполнить этот заказ',
-    'Не хватает времени',
-    'Слишком большой объём работы',
-    'Это не моя специализация',
-    'По личным причинам',
-];
+const cancelTemplatesIdol = computed(() => [
+    __('order.cancel.idol.1'),
+    __('order.cancel.idol.2'),
+    __('order.cancel.idol.3'),
+    __('order.cancel.idol.4'),
+    __('order.cancel.idol.5'),
+    __('order.cancel.idol.6'),
+]);
 
 const cancelTemplates = computed(() =>
-    activeOrderData.value?.is_customer ? CANCEL_TEMPLATES_CUSTOMER : CANCEL_TEMPLATES_IDOL
+    activeOrderData.value?.is_customer ? cancelTemplatesCustomer.value : cancelTemplatesIdol.value
 );
 
 // ── Avatar fullscreen ─────────────────────────────────────
@@ -173,13 +185,13 @@ const blockSubmitting     = ref(false);
 
 const blockReasons = computed(() => page.props.chat_block_reasons ?? []);
 
-const blockDurations = [
-    { label: '1 час',    minutes: 60 },
-    { label: '24 часа',  minutes: 1440 },
-    { label: '7 дней',   minutes: 10080 },
-    { label: '30 дней',  minutes: 43200 },
-    { label: 'Навсегда', minutes: null },
-];
+const blockDurations = computed(() => [
+    { label: __('chat.block.dur.1h'),      minutes: 60 },
+    { label: __('chat.block.dur.24h'),     minutes: 1440 },
+    { label: __('chat.block.dur.7d'),      minutes: 10080 },
+    { label: __('chat.block.dur.30d'),     minutes: 43200 },
+    { label: __('chat.block.dur.forever'), minutes: null },
+]);
 
 const nowTick = ref(Date.now());
 let nowTimer = null;
@@ -190,18 +202,18 @@ onMounted(() => {
 
 const blockedUntilLabel = computed(() => {
     if (!activeBlock.value) return '';
-    if (!activeBlock.value.blocked_until) return 'Навсегда';
+    if (!activeBlock.value.blocked_until) return __('chat.block.dur.forever');
     const diff = Math.max(0, new Date(activeBlock.value.blocked_until).getTime() - nowTick.value);
-    if (diff === 0) return 'Срок вышел';
+    if (diff === 0) return __('chat.block.expired');
     const totalSec = Math.floor(diff / 1000);
     const days  = Math.floor(totalSec / 86400);
     const hours = Math.floor((totalSec % 86400) / 3600);
     const mins  = Math.floor((totalSec % 3600) / 60);
     const secs  = totalSec % 60;
-    if (days > 0)  return `${days} дн. ${hours} ч.`;
-    if (hours > 0) return `${hours} ч. ${mins} мин.`;
-    if (mins > 0)  return `${mins} мин. ${secs} сек.`;
-    return `${secs} сек.`;
+    if (days > 0)  return `${days} ${__('chat.block.time.d')} ${hours} ${__('chat.block.time.h')}`;
+    if (hours > 0) return `${hours} ${__('chat.block.time.h')} ${mins} ${__('chat.block.time.m')}`;
+    if (mins > 0)  return `${mins} ${__('chat.block.time.m')} ${secs} ${__('chat.block.time.s')}`;
+    return `${secs} ${__('chat.block.time.s')}`;
 });
 
 let echoChannel = null;
@@ -438,7 +450,7 @@ function handleIncomingMessageForList(data) {
     } else {
         const conv = conversations.value.find(c => c.id === conversation_id);
         if (conv) {
-            const body = last_message?.type === 'image' ? '[фото]' : (last_message?.body ?? '');
+            const body = last_message?.type === 'image' ? `[${__('chat.photo.label')}]` : (last_message?.body ?? '');
             conv.last_message = { body, sender_id: last_message?.sender_id, created_at: last_message?.created_at };
             conv.updated_at = last_message?.created_at;
             conv.unread_count = (conv.unread_count ?? 0) + 1;
@@ -458,7 +470,7 @@ async function markRead(conversationId) {
 function updateLastMessage(convId, msg) {
     const conv = conversations.value.find(c => c.id === convId);
     if (conv) {
-        const body = msg.type === 'image' ? '[фото]' : msg.body;
+        const body = msg.type === 'image' ? `[${__('chat.photo.label')}]` : msg.body;
         conv.last_message = { body, sender_id: msg.sender_id, created_at: msg.created_at };
         conv.updated_at = msg.created_at;
     }
@@ -536,12 +548,13 @@ const groupedMessages = computed(() => {
 
         if (dateKey !== prevDate) {
             let label;
+            const loc = locale.value?.current === 'ru' ? 'ru-RU' : 'en-US';
             if (dateKey === today.toDateString()) {
-                label = 'Сегодня';
+                label = __('chat.date.today');
             } else if (dateKey === yesterday.toDateString()) {
-                label = 'Вчера';
+                label = __('chat.date.yesterday');
             } else {
-                label = msgDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+                label = msgDate.toLocaleDateString(loc, { day: 'numeric', month: 'long' });
             }
             result.push({ type: 'divider', label, key: 'divider-' + dateKey });
             prevDate = dateKey;
@@ -756,9 +769,9 @@ async function openOrderConversation(order) {
 
 const acceptBtnText = computed(() => {
     const gender = activeOrderData.value?.idol?.gender;
-    if (gender === 'male')   return 'Готов принять заказ';
-    if (gender === 'female') return 'Готова принять заказ';
-    return 'Готов(а) принять заказ';
+    if (gender === 'male')   return __('chat.msg.accept.male');
+    if (gender === 'female') return __('chat.msg.accept.female');
+    return __('chat.msg.accept.neutral');
 });
 
 function orderTotal(order) {
@@ -767,7 +780,7 @@ function orderTotal(order) {
 
 function cancelledByLabel(orderData) {
     if (!orderData?.cancelled_by) return null;
-    if (orderData.cancelled_by === authUser.value?.id) return 'вами';
+    if (orderData.cancelled_by === authUser.value?.id) return __('chat.msg.by_you');
     return orderData.cancelled_by_name ?? null;
 }
 
@@ -818,7 +831,8 @@ defineExpose({ startWith, openOrder });
 // ── Helpers ──────────────────────────────────────────────
 function formatTime(iso) {
     if (!iso) return '';
-    return new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    const loc = locale.value?.current === 'ru' ? 'ru-RU' : 'en-US';
+    return new Date(iso).toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
 }
 
 function formatDate(iso) {
@@ -826,7 +840,8 @@ function formatDate(iso) {
     const d = new Date(iso);
     const now = new Date();
     if (d.toDateString() === now.toDateString()) return formatTime(iso);
-    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+    const loc = locale.value?.current === 'ru' ? 'ru-RU' : 'en-US';
+    return d.toLocaleDateString(loc, { day: 'numeric', month: 'short' });
 }
 </script>
 
@@ -842,7 +857,7 @@ function formatDate(iso) {
                 <!-- ── Sidebar: список диалогов ───────────── -->
                 <div class="chat-sidebar">
                     <div class="chat-sidebar__header">
-                        <span class="chat-sidebar__title">Чат</span>
+                        <span class="chat-sidebar__title">{{ __('chat.title') }}</span>
                         <button class="chat-icon-btn" @click="close">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -852,9 +867,9 @@ function formatDate(iso) {
 
                     <!-- Табы -->
                     <div class="chat-tabs">
-                        <button class="chat-tab" :class="{ 'chat-tab--active': activeTab === 'messages' }" @click="activeTab = 'messages'">Сообщения</button>
+                        <button class="chat-tab" :class="{ 'chat-tab--active': activeTab === 'messages' }" @click="activeTab = 'messages'">{{ __('chat.messages') }}</button>
                         <button class="chat-tab" :class="{ 'chat-tab--active': activeTab === 'orders' }" @click="activeTab = 'orders'">
-                            Заказы
+                            {{ __('chat.tab.orders') }}
                             <span v-if="ordersHaveUnread" class="chat-tab__dot"></span>
                         </button>
                     </div>
@@ -865,17 +880,17 @@ function formatDate(iso) {
                             v-model="searchQuery"
                             type="text"
                             class="chat-search-input"
-                            placeholder="Поиск…"
+                            :placeholder="__('chat.search')"
                         />
                     </div>
 
                     <div class="chat-sidebar__list">
                         <!-- ── Сообщения ── -->
                         <template v-if="activeTab === 'messages'">
-                            <div v-if="loadingConvs" class="chat-empty">Загрузка…</div>
+                            <div v-if="loadingConvs" class="chat-empty">{{ __('common.loading') }}</div>
                             <template v-else-if="conversations.length === 0">
                                 <div class="chat-no-convs">
-                                    <p>{{ $page.props.is_idol ? 'Нет диалогов' : 'У вас пока нет сообщений' }}</p>
+                                    <p>{{ $page.props.is_idol ? __('chat.empty.dialogs') : __('chat.empty.dialogs.sub') }}</p>
                                     <a v-if="$page.props.is_idol" :href="route('users.search')">Найти пользователей →</a>
                                 </div>
                             </template>
@@ -900,7 +915,7 @@ function formatDate(iso) {
                                         </template>
                                     </div>
                                     <div class="chat-conv-info">
-                                        <div class="chat-conv-name">{{ conv.is_support ? 'Поддержка no alone' : (conv.other_user?.name ?? '—') }}</div>
+                                        <div class="chat-conv-name">{{ conv.is_support ? __('chat.support') : (conv.other_user?.name ?? '—') }}</div>
                                         <div class="chat-conv-preview">{{ conv.last_message?.body ?? '' }}</div>
                                     </div>
                                     <div class="chat-conv-meta">
@@ -913,7 +928,7 @@ function formatDate(iso) {
 
                         <!-- ── Заказы ── -->
                         <template v-else-if="activeTab === 'orders'">
-                            <div v-if="loadingOrders" class="chat-empty">Загрузка…</div>
+                            <div v-if="loadingOrders" class="chat-empty">{{ __('common.loading') }}</div>
                             <template v-else>
                                 <!-- Саб-табы только для айдолов -->
                                 <div v-if="authUser?.is_idol" class="chat-order-subtabs">
@@ -921,12 +936,12 @@ function formatDate(iso) {
                                         class="chat-order-subtab"
                                         :class="{ 'chat-order-subtab--active': ordersSubTab === 'mine' }"
                                         @click="ordersSubTab = 'mine'"
-                                    >Мои <span v-if="mineHaveUnread" class="chat-tab__dot"></span></button>
+                                    >{{ __('order.my') }} <span v-if="mineHaveUnread" class="chat-tab__dot"></span></button>
                                     <button
                                         class="chat-order-subtab"
                                         :class="{ 'chat-order-subtab--active': ordersSubTab === 'incoming' }"
                                         @click="ordersSubTab = 'incoming'"
-                                    >Входящие <span v-if="incomingHaveUnread" class="chat-tab__dot"></span></button>
+                                    >{{ __('order.incoming') }} <span v-if="incomingHaveUnread" class="chat-tab__dot"></span></button>
                                 </div>
 
                                 <!-- ── Фильтры заказов ──────────────────── -->
@@ -935,14 +950,14 @@ function formatDate(iso) {
                                         v-model="orderSearch"
                                         type="text"
                                         class="chat-search-input order-filters__search-input"
-                                        placeholder="Поиск по имени…"
+                                        :placeholder="__('chat.search.name')"
                                     />
                                     <button
                                         class="order-filters__toggle"
                                         :class="{ 'order-filters__toggle--open': orderFiltersOpen }"
                                         @click="orderFiltersOpen = !orderFiltersOpen"
                                     >
-                                        Фильтры
+                                        {{ __('chat.orders.filters') }}
                                         <svg class="order-filters__arrow" width="10" height="10" viewBox="0 0 10 10" fill="none">
                                             <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                                         </svg>
@@ -951,10 +966,10 @@ function formatDate(iso) {
                                         <div v-if="orderFiltersOpen" class="order-filters__pills">
                                             <button
                                                 v-for="pill in [
-                                                    { key: 'all',       label: 'Все' },
-                                                    { key: 'pending',   label: 'Ожидает' },
-                                                    { key: 'accepted',  label: 'Принят' },
-                                                    { key: 'cancelled', label: 'Отменён' },
+                                                    { key: 'all',       label: __('chat.orders.filter.all') },
+                                                    { key: 'pending',   label: __('chat.orders.filter.pending') },
+                                                    { key: 'accepted',  label: __('chat.orders.filter.accepted') },
+                                                    { key: 'cancelled', label: __('chat.orders.filter.cancelled') },
                                                 ]"
                                                 :key="pill.key"
                                                 class="order-filter-pill"
@@ -972,7 +987,7 @@ function formatDate(iso) {
                                 </div>
 
                                 <template v-if="visibleOrders.length === 0">
-                                    <div class="chat-no-convs"><p>Нет заказов</p></div>
+                                    <div class="chat-no-convs"><p>{{ __('chat.orders.empty') }}</p></div>
                                 </template>
                                 <template v-else>
                                 <button
@@ -993,7 +1008,7 @@ function formatDate(iso) {
                                             <span class="order-stub__date">{{ formatDate(order.created_at) }}</span>
                                         </div>
                                         <span class="order-stub__badge" :class="`order-stub__badge--${order.status}`">
-                                            {{ { pending: 'Создан', accepted: 'Принят', paid: 'Оплачен', completed: 'Выполнен', cancelled: 'Отменён', refunded: 'Аннулирован', disputed: 'Оспаривается' }[order.status] }}
+                                            {{ orderStatusLabels[order.status] }}
                                         </span>
                                         <span v-if="(order.unread_count ?? 0) > 0" class="chat-conv-badge">{{ order.unread_count }}</span>
                                     </div>
@@ -1002,7 +1017,7 @@ function formatDate(iso) {
                                     </div>
                                     <div class="order-stub__foot">
                                         <span class="order-stub__count">
-                                            {{ order.items.length }}&thinsp;{{ order.items.length === 1 ? 'услуга' : order.items.length < 5 ? 'услуги' : 'услуг' }}
+                                            {{ transChoice('order.service_count', order.items.length, { count: order.items.length }) }}
                                         </span>
                                         <span class="order-stub__total">{{ orderTotal(order).toLocaleString('ru-RU') }}&thinsp;₽</span>
                                     </div>
@@ -1020,7 +1035,7 @@ function formatDate(iso) {
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.2">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                         </svg>
-                        <span>Выберите диалог</span>
+                        <span>{{ __('chat.empty.select') }}</span>
                     </div>
 
                     <template v-else>
@@ -1030,7 +1045,7 @@ function formatDate(iso) {
                                 class="chat-conv-avatar chat-conv-avatar--sm"
                                 :class="{ 'chat-conv-avatar--clickable': !isSupport }"
                                 @click="!isSupport && (avatarFullscreen = true)"
-                                :title="!isSupport ? 'Посмотреть фото' : undefined"
+                                :title="!isSupport ? __('chat.photo.view') : undefined"
                             >
                                 <template v-if="isSupport">
                                     <span class="chat-support-icon">✦</span>
@@ -1043,7 +1058,7 @@ function formatDate(iso) {
                             <div class="chat-main__header-info">
                                 <div class="chat-main__name-row">
                                     <template v-if="isSupport">
-                                        <span class="chat-main__name">Поддержка no alone</span>
+                                        <span class="chat-main__name">{{ __('chat.support') }}</span>
                                     </template>
                                     <template v-else>
                                         <a
@@ -1056,14 +1071,14 @@ function formatDate(iso) {
                                     </template>
                                 </div>
                                 <span v-if="!isSupport" class="chat-online-badge" :class="{ 'chat-online-badge--visible': isOtherOnline }">
-                                    <span class="chat-online-dot"></span>онлайн
+                                    <span class="chat-online-dot"></span>{{ __('chat.online') }}
                                 </span>
                             </div>
                             <button
                                 v-if="!isSupport && (!activeBlock?.active || activeBlock?.i_am_blocker)"
                                 class="chat-lock-btn"
                                 :class="{ 'chat-lock-btn--active': activeBlock?.active && activeBlock?.i_am_blocker }"
-                                :title="activeBlock?.active ? 'Заблокирован' : 'Заблокировать'"
+                                :title="activeBlock?.active ? __('chat.blocked') : __('chat.block.action')"
                                 @click="blockModal = true"
                                 style="margin-left: auto;"
                             >
@@ -1081,7 +1096,7 @@ function formatDate(iso) {
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">
                                         <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                                     </svg>
-                                    <span class="chat-order-timer-bar__label">Авто-завершение через</span>
+                                    <span class="chat-order-timer-bar__label">{{ __('chat.auto_complete') }}</span>
                                     <span class="chat-order-timer-bar__value">{{ orderTimerLabel }}</span>
                                 </div>
                             </div>
@@ -1133,7 +1148,7 @@ function formatDate(iso) {
                             </div>
                             <template v-else>
                                 <!-- Индикатор подгрузки -->
-                                <div v-if="loadingMore" class="chat-loading-more">Загрузка…</div>
+                                <div v-if="loadingMore" class="chat-loading-more">{{ __('common.loading') }}</div>
 
                                 <TransitionGroup name="msg" tag="div" class="chat-messages-inner">
                                     <template v-for="item in groupedMessages" :key="item.key ?? item.msg?.id">
@@ -1146,7 +1161,7 @@ function formatDate(iso) {
                                         <div v-else-if="item.type === 'message' && item.msg.type === 'system'" class="chat-system-msg">
                                             <template v-if="item.msg.metadata?.event === 'order_created'">
                                                 <div class="sc-card">
-                                                    <p class="sc-title">ЗАКАЗ ОФОРМЛЕН</p>
+                                                    <p class="sc-title">{{ __('chat.msg.order_placed') }}</p>
                                                     <div class="sc-rule sc-rule--double"></div>
                                                     <div class="sc-lines">
                                                         <div v-for="s in item.msg.metadata.services" :key="s.id" class="sc-line">
@@ -1158,7 +1173,7 @@ function formatDate(iso) {
                                                     </div>
                                                     <div class="sc-perf"><span class="sc-perf__line"></span></div>
                                                     <div class="sc-total">
-                                                        <span class="sc-total__label">ИТОГО</span>
+                                                        <span class="sc-total__label">{{ __('chat.msg.total') }}</span>
                                                         <span class="sc-total__value">{{ item.msg.metadata.services.reduce((sum, s) => sum + (s.price ?? 0) * (s.quantity ?? 1), 0).toLocaleString('ru-RU') }}&thinsp;₽</span>
                                                     </div>
                                                     <p class="sc-date">{{ formatTime(item.msg.created_at) }}</p>
@@ -1169,9 +1184,9 @@ function formatDate(iso) {
                                                     <div class="sc-rule sc-rule--double sc-rule--green"></div>
                                                     <p class="sc-title sc-title--accept">
                                                         {{
-                                                            item.msg.metadata.idol_gender === 'male'   ? 'ГОТОВ ПРИНЯТЬ ЗАКАЗ' :
-                                                            item.msg.metadata.idol_gender === 'female' ? 'ГОТОВА ПРИНЯТЬ ЗАКАЗ' :
-                                                            'ГОТОВ(А) ПРИНЯТЬ ЗАКАЗ'
+                                                            item.msg.metadata.idol_gender === 'male'   ? __('chat.msg.accept.male') :
+                                                            item.msg.metadata.idol_gender === 'female' ? __('chat.msg.accept.female') :
+                                                            __('chat.msg.accept.neutral')
                                                         }}
                                                     </p>
                                                     <p class="sc-date">{{ formatTime(item.msg.created_at) }}</p>
@@ -1181,7 +1196,7 @@ function formatDate(iso) {
                                             <template v-else-if="item.msg.metadata?.event === 'order_paid'">
                                                 <div class="sc-card sc-card--paid">
                                                     <div class="sc-rule sc-rule--double sc-rule--cyan"></div>
-                                                    <p class="sc-title sc-title--paid">ЗАКАЗ ОПЛАЧЕН</p>
+                                                    <p class="sc-title sc-title--paid">{{ __('chat.msg.order_paid') }}</p>
                                                     <p class="sc-date sc-date--paid">{{ formatTime(item.msg.created_at) }}</p>
                                                     <div class="sc-rule sc-rule--double sc-rule--cyan"></div>
                                                 </div>
@@ -1189,8 +1204,8 @@ function formatDate(iso) {
                                             <template v-else-if="item.msg.metadata?.event === 'order_cancelled'">
                                                 <div class="sc-card sc-card--cancel">
                                                     <div class="sc-rule sc-rule--double sc-rule--red"></div>
-                                                    <p class="sc-title sc-title--cancel">ЗАКАЗ ОТМЕНЁН</p>
-                                                    <p class="sc-who sc-who--cancel">{{ item.msg.metadata.cancelled_by === authUser?.id ? 'Вами' : (item.msg.metadata.cancelled_by_name ?? 'Другой стороной') }}</p>
+                                                    <p class="sc-title sc-title--cancel">{{ __('chat.msg.order_cancelled') }}</p>
+                                                    <p class="sc-who sc-who--cancel">{{ item.msg.metadata.cancelled_by === authUser?.id ? __('chat.msg.cancelled_by_you') : (item.msg.metadata.cancelled_by_name ?? __('chat.msg.cancelled_by_other')) }}</p>
                                                     <p v-if="item.msg.metadata.cancel_reason" class="sc-reason">{{ item.msg.metadata.cancel_reason }}</p>
                                                     <p class="sc-date sc-date--cancel">{{ formatTime(item.msg.created_at) }}</p>
                                                     <div class="sc-rule sc-rule--double sc-rule--red"></div>
@@ -1198,7 +1213,7 @@ function formatDate(iso) {
                                             </template>
                                             <template v-else-if="item.msg.metadata?.event === 'item_added'">
                                                 <div class="sc-card sc-card--update">
-                                                    <p class="sc-title sc-title--update">ЗАКАЗ ОБНОВЛЁН</p>
+                                                    <p class="sc-title sc-title--update">{{ __('chat.msg.order_updated') }}</p>
                                                     <div class="sc-rule sc-rule--double sc-rule--cyan"></div>
                                                     <div class="sc-lines">
                                                         <div v-for="s in item.msg.metadata.services" :key="s.id" class="sc-line">
@@ -1210,7 +1225,7 @@ function formatDate(iso) {
                                                     </div>
                                                     <div class="sc-perf"><span class="sc-perf__line"></span></div>
                                                     <div class="sc-total">
-                                                        <span class="sc-total__label">ИТОГО</span>
+                                                        <span class="sc-total__label">{{ __('chat.msg.total') }}</span>
                                                         <span class="sc-total__value">{{ (item.msg.metadata.services ?? []).reduce((sum, s) => sum + (s.price ?? 0) * (s.quantity ?? 1), 0).toLocaleString('ru-RU') }}&thinsp;₽</span>
                                                     </div>
                                                     <p class="sc-date">{{ formatTime(item.msg.created_at) }}</p>
@@ -1219,8 +1234,8 @@ function formatDate(iso) {
                                             <template v-else-if="item.msg.metadata?.event === 'completion_confirmed_by_idol'">
                                                 <div class="sc-card sc-card--confirm">
                                                     <div class="sc-rule sc-rule--green"></div>
-                                                    <p class="sc-title sc-title--confirm">ВЫПОЛНЕНИЕ ПОДТВЕРЖДЕНО</p>
-                                                    <p class="sc-who">Айдол подтвердил завершение заказа</p>
+                                                    <p class="sc-title sc-title--confirm">{{ __('chat.msg.completed') }}</p>
+                                                    <p class="sc-who">{{ __('chat.msg.completed.idol') }}</p>
                                                     <p class="sc-date">{{ formatTime(item.msg.created_at) }}</p>
                                                     <div class="sc-rule sc-rule--green"></div>
                                                 </div>
@@ -1228,25 +1243,25 @@ function formatDate(iso) {
                                             <template v-else-if="item.msg.metadata?.event === 'completion_confirmed_by_customer'">
                                                 <div class="sc-card sc-card--confirm">
                                                     <div class="sc-rule sc-rule--green"></div>
-                                                    <p class="sc-title sc-title--confirm">ВЫПОЛНЕНИЕ ПОДТВЕРЖДЕНО</p>
-                                                    <p class="sc-who">Заказчик подтвердил завершение заказа</p>
+                                                    <p class="sc-title sc-title--confirm">{{ __('chat.msg.completed') }}</p>
+                                                    <p class="sc-who">{{ __('chat.msg.completed.customer') }}</p>
                                                     <p class="sc-date">{{ formatTime(item.msg.created_at) }}</p>
                                                     <div class="sc-rule sc-rule--green"></div>
                                                 </div>
                                             </template>
                                             <template v-else-if="item.msg.metadata?.event === 'order_completed' || item.msg.metadata?.event === 'order_auto_completed'">
                                                 <div v-if="activeOrderData?.is_customer" class="chat-repeat-wrap">
-                                                    <button class="chat-repeat-btn" @click="repeatOrderOpen = true">↺ ПОВТОРИТЬ ЗАКАЗ</button>
+                                                    <button class="chat-repeat-btn" @click="repeatOrderOpen = true">{{ __('chat.msg.repeat') }}</button>
                                                 </div>
                                             </template>
                                             <template v-else-if="item.msg.metadata?.event === 'chat_closed'">
-                                                <div class="chat-event-label">// Чат закрыт // <span class="chat-event-label__time">{{ formatTime(item.msg.created_at) }}</span></div>
+                                                <div class="chat-event-label">{{ __('chat.status.closed') }} <span class="chat-event-label__time">{{ formatTime(item.msg.created_at) }}</span></div>
                                             </template>
                                             <template v-else-if="item.msg.metadata?.event === 'chat_opened'">
-                                                <div class="chat-event-label">// Чат открыт // <span class="chat-event-label__time">{{ formatTime(item.msg.created_at) }}</span></div>
+                                                <div class="chat-event-label">{{ __('chat.status.open') }} <span class="chat-event-label__time">{{ formatTime(item.msg.created_at) }}</span></div>
                                             </template>
                                             <template v-else-if="item.msg.metadata?.event === 'review_submitted'">
-                                                <div class="chat-event-label chat-event-label--review">// Отзыв отправлен //</div>
+                                                <div class="chat-event-label chat-event-label--review">{{ __('chat.status.reviewed') }}</div>
                                             </template>
                                             <template v-else>
                                                 <div class="chat-event-label">{{ item.msg.body || '—' }} <span class="chat-event-label__time">{{ formatTime(item.msg.created_at) }}</span></div>
@@ -1266,7 +1281,7 @@ function formatDate(iso) {
                                                 }"
                                             >
                                                 <div class="svc-offer-bubble">
-                                                    <div v-if="svcIdx === 0" class="svc-offer__header">✦ Предложение</div>
+                                                    <div v-if="svcIdx === 0" class="svc-offer__header">{{ __('chat.msg.offer_label') }}</div>
                                                     <div class="svc-offer__card">
                                                         <span class="svc-offer__svc">{{ svc.name }}<template v-if="svc.time_unit">&thinsp;/&thinsp;{{ svc.time_unit }}</template></span>
                                                         <button
@@ -1335,7 +1350,7 @@ function formatDate(iso) {
                                 </TransitionGroup>
 
                                 <div v-if="isTyping" class="chat-typing">
-                                    {{ activeConversation.other_user?.name }} печатает…
+                                    {{ __('chat.typing', { name: activeConversation.other_user?.name }) }}
                                 </div>
                                 <ReviewForm
                                     v-if="showReviewForm"
@@ -1363,13 +1378,13 @@ function formatDate(iso) {
                         <div v-if="activeBlock?.active && !activeBlock?.i_am_blocker" class="chat-blocked-overlay">
                             <div class="chat-blocked-card">
                                 <p class="chat-blocked-header">================================</p>
-                                <p class="chat-blocked-title">// ДОСТУП ЗАПРЕЩЁН //</p>
+                                <p class="chat-blocked-title">{{ __('chat.access_denied') }}</p>
                                 <p class="chat-blocked-header">================================</p>
                                 <p class="chat-blocked-reason">{{ activeBlock.reason }}</p>
                                 <p class="chat-blocked-header">--------------------------------</p>
                                 <div class="chat-blocked-timer">
-                                    <span class="chat-blocked-timer__label" v-if="activeBlock.blocked_until">ОСТАЛОСЬ</span>
-                                    <span class="chat-blocked-timer__label" v-else>СРОК БЛОКИРОВКИ</span>
+                                    <span class="chat-blocked-timer__label" v-if="activeBlock.blocked_until">{{ __('chat.time_left') }}</span>
+                                    <span class="chat-blocked-timer__label" v-else>{{ __('chat.block_until') }}</span>
                                     <span class="chat-blocked-timer__value">{{ blockedUntilLabel }}</span>
                                 </div>
                                 <p class="chat-blocked-header">================================</p>
@@ -1383,18 +1398,18 @@ function formatDate(iso) {
 
                             <!-- Баннер: чат закрыт -->
                             <div v-if="isChatClosed" class="chat-closed-banner">
-                                // Чат закрыт — ожидайте ответа поддержки //
+                                {{ __('chat.wait_support') }}
                             </div>
 
                             <!-- Баннер блокировщика -->
                             <div v-if="activeBlock?.active && activeBlock?.i_am_blocker" class="chat-block-banner">
                                 <div class="chat-block-banner__info">
-                                    <span class="chat-block-banner__label">// ПОЛЬЗОВАТЕЛЬ ЗАБЛОКИРОВАН //</span>
+                                    <span class="chat-block-banner__label">{{ __('chat.user_blocked_label') }}</span>
                                     <span class="chat-block-banner__timer">
-                                        {{ activeBlock.blocked_until ? blockedUntilLabel + ' осталось' : 'Навсегда' }}
+                                        {{ activeBlock.blocked_until ? __('chat.block.time_remaining', { time: blockedUntilLabel }) : __('chat.block.dur.forever') }}
                                     </span>
                                 </div>
-                                <button @click="submitUnblock" class="chat-block-unblock-btn">РАЗБЛОКИРОВАТЬ</button>
+                                <button @click="submitUnblock" class="chat-block-unblock-btn">{{ __('chat.block.unblock') }}</button>
                             </div>
 
                             <!-- Панель действий заказа -->
@@ -1408,34 +1423,34 @@ function formatDate(iso) {
                                     v-if="activeOrderData.is_customer && activeOrderData.status === 'accepted'"
                                     class="chat-order-btn chat-order-btn--pay"
                                     @click="payOrder"
-                                >ОПЛАТИТЬ ЗАКАЗ</button>
+                                >{{ __('chat.btn.pay_order') }}</button>
                                 <button
                                     v-if="activeOrderData.status === 'paid'"
                                     class="chat-order-btn chat-order-btn--complete"
                                     :disabled="myConfirmation"
                                     @click="confirmCompletion"
-                                >{{ myConfirmation ? 'ВЫ ПОДТВЕРДИЛИ' : 'ЗАКАЗ ВЫПОЛНЕН' }}</button>
+                                >{{ myConfirmation ? __('chat.btn.confirmed') : __('chat.btn.order_done') }}</button>
                                 <button
                                     v-if="['pending','accepted'].includes(activeOrderData.status)"
                                     class="chat-order-btn chat-order-btn--cancel"
                                     @click="cancelModal = true"
-                                >ОТМЕНИТЬ ЗАКАЗ</button>
+                                >{{ __('chat.btn.cancel') }}</button>
                                 <!-- Предложить услугу — рядом с кнопками заказа -->
                                 <button
                                     v-if="authUser?.is_idol && activeOrderData.status === 'pending'"
                                     class="chat-order-btn chat-order-btn--offer"
                                     @click="showOfferModal = true"
-                                >✦ ПРЕДЛОЖИТЬ</button>
+                                >{{ __('chat.btn.offer') }}</button>
                             </div>
 
                             <!-- Кнопка предложения услуги — для обычного чата (без заказа) -->
                             <div v-if="authUser?.is_idol && !isSupport && !activeOrderData && !isChatClosed" class="chat-order-actions">
-                                <button class="chat-order-btn chat-order-btn--offer" @click="showOfferModal = true">✦ ПРЕДЛОЖИТЬ</button>
+                                <button class="chat-order-btn chat-order-btn--offer" @click="showOfferModal = true">{{ __('chat.btn.offer') }}</button>
                             </div>
 
                             <!-- Плашка: заказ отменён -->
                             <div v-if="activeOrderData?.status === 'cancelled'" class="chat-order-cancelled-bar">
-                                <span class="chat-order-cancelled-bar__label">// ЗАКАЗ ОТМЕНЁН //</span>
+                                <span class="chat-order-cancelled-bar__label">{{ __('chat.order.cancelled_label') }}</span>
                                 <template v-if="cancelledByLabel(activeOrderData)">
                                     <span class="chat-order-cancelled-bar__who">{{ cancelledByLabel(activeOrderData) }}</span>
                                 </template>
@@ -1444,18 +1459,18 @@ function formatDate(iso) {
 
                             <!-- Плашка: заказ выполнен -->
                             <div v-if="activeOrderData?.status === 'completed'" class="chat-order-completed-bar">
-                                <span class="chat-order-completed-bar__label">// ЗАКАЗ ВЫПОЛНЕН //</span>
+                                <span class="chat-order-completed-bar__label">{{ __('chat.order.done_label') }}</span>
                                 <span v-if="activeOrderData.completed_at" class="chat-order-completed-bar__time">{{ formatDate(activeOrderData.completed_at) }}</span>
                             </div>
 
                             <!-- Плашка: спор -->
                             <div v-if="activeOrderData?.status === 'disputed'" class="chat-order-disputed-bar">
-                                <span class="chat-order-disputed-bar__label">// ОТКРЫТ СПОР — ЧАТ ЗАМОРОЖЕН //</span>
+                                <span class="chat-order-disputed-bar__label">{{ __('chat.order.dispute_label') }}</span>
                             </div>
 
                             <!-- Плашка: заказ аннулирован -->
                             <div v-if="activeOrderData?.status === 'refunded'" class="chat-order-cancelled-bar">
-                                <span class="chat-order-cancelled-bar__label">// ЗАКАЗ АННУЛИРОВАН //</span>
+                                <span class="chat-order-cancelled-bar__label">{{ __('chat.order.annulled_label') }}</span>
                             </div>
 
                             <!-- Textarea (скрыт если заказ завершён в финальном статусе) -->
@@ -1473,7 +1488,7 @@ function formatDate(iso) {
                                     class="chat-attach-btn"
                                     :disabled="isChatClosed || uploading || (!!activeBlock?.active && !activeBlock?.i_am_blocker)"
                                     @click="fileInput.click()"
-                                    title="Прикрепить фото"
+                                    :title="__('chat.attach')"
                                 >
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
@@ -1482,7 +1497,7 @@ function formatDate(iso) {
                                 <textarea
                                     v-model="newMessage"
                                     class="chat-input"
-                                    placeholder="Сообщение…"
+                                    :placeholder="__('chat.placeholder')"
                                     rows="3"
                                     maxlength="500"
                                     :disabled="isChatClosed || (!!activeBlock?.active && !activeBlock?.i_am_blocker)"
@@ -1511,9 +1526,9 @@ function formatDate(iso) {
 
         <!-- ── Модалка блокировки ─────────────────────── -->
         <SiteModal :show="blockModal" variant="pink" compact @close="blockModal = false">
-            <h2 class="bm-title">Заблокировать пользователя: <span class="bm-title-name">{{ activeConversation?.other_user?.name }}</span></h2>
+            <h2 class="bm-title">{{ __('chat.block.user_title') }} <span class="bm-title-name">{{ activeConversation?.other_user?.name }}</span></h2>
 
-            <div class="bm-section-label">Причина</div>
+            <div class="bm-section-label">{{ __('common.reason') }}</div>
             <div class="bm-reasons">
                 <button
                     v-for="r in blockReasons"
@@ -1524,7 +1539,7 @@ function formatDate(iso) {
                 >{{ r }}</button>
             </div>
 
-            <div class="bm-section-label">Срок</div>
+            <div class="bm-section-label">{{ __('chat.block.duration') }}</div>
             <div class="bm-durations">
                 <button
                     v-for="d in blockDurations"
@@ -1536,12 +1551,12 @@ function formatDate(iso) {
             </div>
 
             <div class="bm-footer">
-                <button class="bm-cancel" @click="blockModal = false">Отмена</button>
+                <button class="bm-cancel" @click="blockModal = false">{{ __('common.cancel') }}</button>
                 <button
                     class="bm-submit"
                     :disabled="!blockReason || !blockDurationChosen || blockSubmitting"
                     @click="submitBlock"
-                >Заблокировать</button>
+                >{{ __('chat.block.action') }}</button>
             </div>
         </SiteModal>
 
@@ -1549,10 +1564,10 @@ function formatDate(iso) {
     <SiteModal :show="cancelModal" variant="pink" compact @close="cancelModal = false">
         <div class="cm-wrap">
             <div class="cm-rule cm-rule--double cm-rule--red"></div>
-            <h2 class="cm-title">ОТМЕНА ЗАКАЗА</h2>
+            <h2 class="cm-title">{{ __('order.cancel.title') }}</h2>
             <div class="cm-rule cm-rule--double cm-rule--red"></div>
 
-            <div class="cm-section-label">// ВЫБЕРИТЕ ПРИЧИНУ</div>
+            <div class="cm-section-label">{{ __('order.cancel.choose') }}</div>
             <div class="cm-tags">
                 <button
                     v-for="t in cancelTemplates"
@@ -1563,7 +1578,7 @@ function formatDate(iso) {
                 >{{ t }}</button>
             </div>
 
-            <div class="cm-section-label">// ИЛИ НАПИШИТЕ СВОЮ</div>
+            <div class="cm-section-label">{{ __('order.cancel.custom') }}</div>
             <textarea
                 v-model="cancelReason"
                 class="cm-textarea"
@@ -1575,28 +1590,28 @@ function formatDate(iso) {
             <div class="cm-perf"><span class="cm-perf__line"></span></div>
 
             <div class="cm-footer">
-                <button class="cm-btn cm-btn--back" @click="cancelModal = false">НАЗАД</button>
+                <button class="cm-btn cm-btn--back" @click="cancelModal = false">{{ __('order.cancel.back') }}</button>
                 <button
                     class="cm-btn cm-btn--confirm"
                     :disabled="!cancelReason.trim() || cancelSubmitting"
                     @click="submitCancelOrder"
-                >{{ cancelSubmitting ? 'ОТМЕНЯЕМ…' : 'ПОДТВЕРДИТЬ' }}</button>
+                >{{ cancelSubmitting ? __('order.cancel.loading') : __('order.cancel.submit') }}</button>
             </div>
         </div>
     </SiteModal>
 
     <!-- ── Подтверждение добавления услуги к заказу ────────── -->
     <SiteModal :show="confirmAddModal" variant="cyan" compact max-width="420px" @close="confirmAddModal = false">
-        <div class="cm-title cm-title--cyan">ДОБАВИТЬ К ЗАКАЗУ</div>
+        <div class="cm-title cm-title--cyan">{{ __('chat.add_to_order') }}</div>
         <div class="confirm-add__svc">{{ confirmAddService?.name }}</div>
         <div v-if="confirmAddService?.price" class="confirm-add__price">
             {{ confirmAddService.price.toLocaleString('ru-RU') }}&thinsp;₽<template v-if="confirmAddService.time_unit">&thinsp;/&thinsp;{{ confirmAddService.time_unit }}</template>
         </div>
         <div class="cm-perf"><span class="cm-perf__line cm-perf__line--cyan"></span></div>
         <div class="cm-footer">
-            <button class="cm-btn cm-btn--back" @click="confirmAddModal = false">НАЗАД</button>
+            <button class="cm-btn cm-btn--back" @click="confirmAddModal = false">{{ __('order.cancel.back') }}</button>
             <button class="cm-btn cm-btn--confirm-cyan" :disabled="confirmAddLoading" @click="confirmAddToOrder">
-                {{ confirmAddLoading ? 'ДОБАВЛЕНИЕ…' : 'ДОБАВИТЬ' }}
+                {{ confirmAddLoading ? __('chat.add_to_order.loading') : __('chat.add_to_order.btn') }}
             </button>
         </div>
     </SiteModal>
@@ -1627,7 +1642,7 @@ function formatDate(iso) {
                     />
                     <div v-else class="avatar-fs-placeholder">
                         <span class="avatar-fs-initial">{{ activeConversation?.other_user?.name?.charAt(0)?.toUpperCase() ?? '?' }}</span>
-                        <span class="avatar-fs-noavatar">Нет фото</span>
+                        <span class="avatar-fs-noavatar">{{ __('chat.no_photos') }}</span>
                     </div>
                     <div class="avatar-fs-name">{{ activeConversation?.other_user?.name }}</div>
                 </div>

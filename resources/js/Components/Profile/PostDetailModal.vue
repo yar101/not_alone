@@ -1,6 +1,9 @@
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import GuestBanner from '@/Components/Profile/GuestBanner.vue';
 import AuthModal from '@/Components/Site/AuthModal.vue';
@@ -95,7 +98,7 @@ async function submitComment() {
         replyToId.value   = null;
         replyToName.value = '';
     } catch (e) {
-        cmtError.value = e.response?.data?.message ?? 'Ошибка';
+        cmtError.value = e.response?.data?.message ?? __('post.detail.error');
     } finally {
         submitting.value = false;
     }
@@ -147,7 +150,7 @@ async function deleteComment(commentId, parentId) {
 
                 <div v-if="post.photo_url" class="detail__photo-wrap">
                     <img :src="post.photo_url" class="detail__photo" @click="openFullscreen" />
-                    <button class="detail__photo-expand" @click="openFullscreen" title="На весь экран">
+                    <button class="detail__photo-expand" @click="openFullscreen" :title="__('post.detail.fullscreen')">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
                             <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
@@ -180,7 +183,7 @@ async function deleteComment(commentId, parentId) {
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
                             </svg>
-                            Удалить
+                            {{ __('common.delete') }}
                         </button>
                     </div>
                 </div>
@@ -191,7 +194,7 @@ async function deleteComment(commentId, parentId) {
 
                 <!-- Fixed header -->
                 <div class="detail__cmts-header">
-                    <span class="detail__cmts-label">Комментарии</span>
+                    <span class="detail__cmts-label">{{ __('post.detail.comments') }}</span>
                     <span class="detail__cmts-count">{{ comments.length }}</span>
                 </div>
 
@@ -201,7 +204,7 @@ async function deleteComment(commentId, parentId) {
                         <span class="detail__cmts-dot" /><span class="detail__cmts-dot" /><span class="detail__cmts-dot" />
                     </div>
                     <div v-else-if="comments.length === 0" class="detail__cmts-state detail__cmts-state--empty">
-                        Комментариев пока нет
+                        {{ __('post.detail.empty') }}
                     </div>
                     <template v-else>
                         <div v-for="cmt in comments" :key="cmt.id" class="detail__cmt">
@@ -224,7 +227,7 @@ async function deleteComment(commentId, parentId) {
                                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                         <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
                                                     </svg>
-                                                    Удалить
+                                                    {{ __('common.delete') }}
                                                 </button>
                                             </div>
                                         </div>
@@ -232,7 +235,7 @@ async function deleteComment(commentId, parentId) {
                                     <p class="detail__cmt-body">{{ cmt.body }}</p>
                                     <div class="detail__cmt-acts">
                                         <span class="detail__cmt-time">{{ cmt.created_at }}</span>
-                                        <button v-if="authUser" class="detail__cmt-btn detail__cmt-btn--reply" @click="startReply(cmt)">↩ ответить</button>
+                                        <button v-if="authUser" class="detail__cmt-btn detail__cmt-btn--reply" @click="startReply(cmt)">{{ __('post.detail.reply') }}</button>
                                     </div>
                                 </div>
                             </div>
@@ -286,7 +289,7 @@ async function deleteComment(commentId, parentId) {
                             <textarea
                                 v-model="newBody"
                                 class="detail__textarea"
-                                :placeholder="replyToId ? 'Ваш ответ...' : 'Написать комментарий...'"
+                                :placeholder="replyToId ? __('post.detail.placeholder.reply') : __('post.detail.placeholder.comment')"
                                 rows="3"
                                 maxlength="177"
                                 @keydown.enter.exact.prevent="submitComment"

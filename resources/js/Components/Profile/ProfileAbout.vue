@@ -3,6 +3,9 @@ import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { EditPen } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     about: { type: String, default: null },
@@ -24,31 +27,31 @@ function submit() {
 <template>
     <div id="tour-about" class="block-section">
         <div class="section-header">
-            <span class="section-title">О себе</span>
-            <button v-if="isOwner" class="edit-btn" @click="editModal = true" title="Редактировать">
+            <span class="section-title">{{ __('profile.about.title') }}</span>
+            <button v-if="isOwner" class="edit-btn" @click="editModal = true" :title="__('common.edit')">
                 <el-icon><EditPen /></el-icon>
             </button>
         </div>
 
         <p v-if="about" class="about-text">{{ about }}</p>
         <p v-else-if="isOwner" class="about-empty">
-            Расскажи о себе — нажми <el-icon class="inline-icon"><EditPen /></el-icon> чтобы добавить
+            {{ __('profile.about.owner_hint_before') }} <el-icon class="inline-icon"><EditPen /></el-icon> {{ __('profile.about.owner_hint_after') }}
         </p>
-        <p v-else class="about-empty">Пользователь пока ничего не написал</p>
+        <p v-else class="about-empty">{{ __('profile.about.empty') }}</p>
 
         <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
             <div class="edit-form">
-                <h3 class="edit-title">О себе</h3>
+                <h3 class="edit-title">{{ __('profile.about.title') }}</h3>
                 <textarea
                     v-model="form.about"
                     class="edit-textarea"
-                    placeholder="Напиши что-нибудь о себе…"
+                    :placeholder="__('profile.about.placeholder')"
                     rows="5"
                     maxlength="200"
                 />
                 <div class="char-count">{{ form.about.length }}/200</div>
                 <p v-if="form.errors.about" class="edit-error">{{ form.errors.about }}</p>
-                <button class="save-btn" :disabled="form.processing" @click="submit">Сохранить</button>
+                <button class="save-btn" :disabled="form.processing" @click="submit">{{ __('common.save') }}</button>
             </div>
         </SiteModal>
     </div>

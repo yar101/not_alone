@@ -2,6 +2,9 @@
 import { ref, computed, watch, inject } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -100,8 +103,8 @@ async function purchaseContent() {
                 <!-- ═══ Шапка ═══ -->
                 <div class="rc-header">
                     <div class="rc-header-top">
-                        <span class="rc-store-name">КОРЗИНА</span>
-                        <button class="rc-close" @click="close" aria-label="Закрыть">
+                        <span class="rc-store-name">{{ __('cart.title') }}</span>
+                        <button class="rc-close" @click="close" :aria-label="__('common.close')">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2.5" stroke-linecap="round">
                                 <line x1="18" y1="6" x2="6" y2="18" />
@@ -114,12 +117,12 @@ async function purchaseContent() {
                     <div class="rc-tabs">
                         <button class="rc-tab" :class="{ 'rc-tab--active': activeTab === 'services' }"
                             @click="activeTab = 'services'">
-                            Услуги
+                            {{ __('cart.tab.services') }}
                             <span v-if="servicesItems.length" class="rc-tab__badge">{{ servicesItems.length }}</span>
                         </button>
                         <button class="rc-tab" :class="{ 'rc-tab--active': activeTab === 'content' }"
                             @click="activeTab = 'content'">
-                            Контент
+                            {{ __('cart.tab.content') }}
                             <span v-if="contentItems.length" class="rc-tab__badge">{{
                                 contentItems.length }}</span>
                         </button>
@@ -130,12 +133,12 @@ async function purchaseContent() {
 
                 <!-- ═══ SERVICES tab ═══ -->
                 <template v-if="activeTab === 'services'">
-                    <span v-if="cart.services?.idol_name" class="rc-store-sub rc-store-sub--pad">Айдол: {{
+                    <span v-if="cart.services?.idol_name" class="rc-store-sub rc-store-sub--pad">{{ __('cart.idol') }} {{
                         cart.services.idol_name }}</span>
 
                     <div class="rc-body">
                         <div v-if="!servicesItems.length" class="rc-empty">
-                            — &nbsp;услуги не добавлены&nbsp; —
+                            {{ __('cart.empty.services') }}
                         </div>
                         <template v-else>
                             <div v-for="(item, idx) in servicesItems" :key="item.service_id" class="rc-line">
@@ -143,7 +146,7 @@ async function purchaseContent() {
                                     <span class="rc-line__name">{{ item.name }}</span>
                                     <template v-if="confirmDeleteIdx === idx">
                                         <div class="rc-line__confirm">
-                                            <span class="rc-line__confirm-text">Удалить?</span>
+                                            <span class="rc-line__confirm-text">{{ __('cart.delete_confirm') }}</span>
                                             <button class="rc-line__confirm-yes" @click="confirmDelete(idx)">✓</button>
                                             <button class="rc-line__confirm-no" @click="cancelDelete">✕</button>
                                         </div>
@@ -166,7 +169,7 @@ async function purchaseContent() {
 
                     <div class="rc-perf"><span class="rc-perf__line"></span></div>
                     <div class="rc-total">
-                        <span class="rc-total__label">ИТОГО</span>
+                        <span class="rc-total__label">{{ __('cart.total') }}</span>
                         <span class="rc-total__sum">{{ servicesTotal.toLocaleString('ru-RU') }}&thinsp;₽</span>
                     </div>
                     <div class="rc-perf"><span class="rc-perf__line"></span></div>
@@ -174,7 +177,7 @@ async function purchaseContent() {
                         <p v-if="serviceError" class="rc-error">{{ serviceError }}</p>
                         <button class="rc-submit" :disabled="!servicesItems.length || creating" @click="createOrder">{{
                             creating ?
-                                'ОФОРМЛЯЕМ…' : 'СОЗДАТЬ ЗАКАЗ' }}</button>
+                                __('cart.order.submitting') : __('cart.order.submit') }}</button>
                     </div>
                 </template>
 
@@ -182,7 +185,7 @@ async function purchaseContent() {
                 <template v-else>
                     <div class="rc-body">
                         <div v-if="!contentItems.length" class="rc-empty">
-                            — &nbsp;контент не добавлен&nbsp; —
+                            {{ __('cart.empty.content') }}
                         </div>
                         <template v-else>
                             <div v-for="(item, idx) in contentItems" :key="item.pack_id"
@@ -210,7 +213,7 @@ async function purchaseContent() {
 
                     <div class="rc-perf"><span class="rc-perf__line"></span></div>
                     <div class="rc-total">
-                        <span class="rc-total__label">ИТОГО</span>
+                        <span class="rc-total__label">{{ __('cart.total') }}</span>
                         <span class="rc-total__sum">{{ contentTotal.toLocaleString('ru-RU') }}&thinsp;₽</span>
                     </div>
                     <div class="rc-perf"><span class="rc-perf__line"></span></div>
@@ -218,7 +221,7 @@ async function purchaseContent() {
                         <p v-if="contentError" class="rc-error">{{ contentError }}</p>
                         <button class="rc-submit" :disabled="!contentItems.length || purchasing"
                             @click="purchaseContent">{{ purchasing ?
-                                'ОПЛАТА…' : 'ОПЛАТИТЬ' }}</button>
+                                __('cart.pay.loading') : __('cart.pay.submit') }}</button>
                     </div>
                 </template>
 

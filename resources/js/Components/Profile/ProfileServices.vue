@@ -4,6 +4,9 @@ import { useForm, router, usePage } from '@inertiajs/vue3';
 import AppSelect from '@/Components/AppSelect.vue';
 import CreateButton from '@/Components/CreateButton.vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __, transChoice } = useTranslations();
 
 const page = usePage();
 const showPendingModal = ref(false);
@@ -297,7 +300,7 @@ const formSuggestions = computed(() =>
         : []
 );
 const namePlaceholder = computed(() =>
-    formSuggestions.value[0] ?? 'Название услуги'
+    formSuggestions.value[0] ?? __('profile.services.search_ph')
 );
 
 // ── #1 Price preview ─────────────────────────────────────────
@@ -440,7 +443,7 @@ watch(selectedCategory, (cat) => {
         <!-- Block error toast -->
         <Transition name="block-err">
             <div v-if="blockError" class="svc-block-error">
-                Вы заблокированы этим пользователем и не можете делать заказы
+                {{ __('profile.services.blocked_error') }}
             </div>
         </Transition>
 
@@ -456,8 +459,8 @@ watch(selectedCategory, (cat) => {
             <!-- ── CategoryList ── -->
             <div v-if="!selectedCategory" key="list">
                 <div class="svc-list-header">
-                    <h2 class="svc-list-header__title">Категории</h2>
-                    <CreateButton v-if="isOwner && isIdol" @click="openAdd">Новая услуга</CreateButton>
+                    <h2 class="svc-list-header__title">{{ __('profile.services.categories_label') }}</h2>
+                    <CreateButton v-if="isOwner && isIdol" @click="openAdd">{{ __('profile.services.new_btn') }}</CreateButton>
                 </div>
 
                 <!-- Category cards -->
@@ -484,9 +487,7 @@ watch(selectedCategory, (cat) => {
                             </p>
                             <div class="cat-tile__footer">
                                 <span class="cat-tile__count">
-                                    {{ group.items.length + '\u00a0' + (group.items.length === 1 ? 'услуга' :
-                                        group.items.length
-                                            < 5 ? 'услуги' : 'услуг') }} </span>
+                                    {{ transChoice('order.service_count', group.items.length, { count: group.items.length }) }}</span>
                             </div>
                         </div>
                     </button>
@@ -514,7 +515,7 @@ watch(selectedCategory, (cat) => {
                                 {{ group.category.description }}
                             </p>
                             <div class="cat-tile__footer">
-                                <span class="cat-tile__count cat-tile__count--empty">0 услуг</span>
+                                <span class="cat-tile__count cat-tile__count--empty">{{ transChoice('order.service_count', 0, { count: 0 }) }}</span>
                             </div>
                         </div>
                     </button>
@@ -537,9 +538,9 @@ watch(selectedCategory, (cat) => {
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                     </svg>
-                                    Изменить описание
+                                    {{ __('profile.services.desc_edit') }}
                                 </button>
-                                <CreateButton v-if="isOwner && isIdol" @click="openAdd">Новая услуга</CreateButton>
+                                <CreateButton v-if="isOwner && isIdol" @click="openAdd">{{ __('profile.services.new_btn') }}</CreateButton>
                             </div>
                         </div>
 
@@ -548,16 +549,16 @@ watch(selectedCategory, (cat) => {
                                 <p v-if="selectedCategory.idol_description" class="cd-hero__desc">{{
                                     selectedCategory.idol_description }}</p>
                                 <p v-else-if="isOwner" class="cd-hero__desc cd-hero__desc--placeholder">
-                                    Напишите описание своих услуг в этой категории…</p>
+                                    {{ __('profile.services.desc_ph') }}</p>
                                 <p v-else class="cd-hero__desc cd-hero__desc--placeholder">
-                                    Айдол пока не добавил описание</p>
+                                    {{ __('profile.services.desc_empty') }}</p>
                             </div>
                             <div v-else key="edit">
                                 <textarea v-model="descDraft" class="cd-hero__textarea" rows="3" maxlength="1000"
-                                    placeholder="Расскажите об этой категории услуг…" />
+                                    :placeholder="__('profile.services.desc_edit_ph')" />
                                 <div class="cd-hero__actions">
-                                    <button class="svc-btn-cancel" @click="cancelDescEdit">Отмена</button>
-                                    <button class="svc-btn-submit" @click="saveDesc">Сохранить</button>
+                                    <button class="svc-btn-cancel" @click="cancelDescEdit">{{ __('common.cancel') }}</button>
+                                    <button class="svc-btn-submit" @click="saveDesc">{{ __('common.save') }}</button>
                                 </div>
                             </div>
                         </Transition>
@@ -566,10 +567,10 @@ watch(selectedCategory, (cat) => {
 
                 <!-- Services section -->
                 <div class="cd-section cd-section--services">
-                    <span class="cd-section__label">Варианты</span>
+                    <span class="cd-section__label">{{ __('profile.services.variants') }}</span>
 
                     <div v-if="selectedCategory.items.length === 0" class="svc-empty">
-                        <p class="svc-empty__title">У этого айдола пока нет услуг в данной категории.</p>
+                        <p class="svc-empty__title">{{ __('profile.services.empty') }}</p>
                     </div>
                     <TransitionGroup v-else name="svc-item" tag="div" class="svc-list">
                         <div v-for="item in selectedCategory.items" :key="item.id" class="svc-card" :class="{
@@ -589,13 +590,13 @@ watch(selectedCategory, (cat) => {
                                             d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
                                         <line x1="1" y1="1" x2="23" y2="23" />
                                     </svg>
-                                    скрыто
+                                    {{ __('profile.services.status.hidden') }}
                                 </span>
                                 <span v-if="item.status === 'pending'" class="svc-pill svc-pill--pending">
-                                    <i class="svc-pill__dot"></i>модерация
+                                    <i class="svc-pill__dot"></i>{{ __('profile.services.status.pending') }}
                                 </span>
                                 <span v-else-if="item.status === 'rejected'" class="svc-pill svc-pill--rejected">
-                                    отклонено
+                                    {{ __('profile.services.status.rejected') }}
                                 </span>
                             </div>
 
@@ -626,17 +627,17 @@ watch(selectedCategory, (cat) => {
                                     >
                                         <template v-if="isInCart(item.id)">
                                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                                            <span>В корзине</span>
+                                            <span>{{ __('profile.services.in_cart') }}</span>
                                         </template>
                                         <template v-else>
-                                            <span>В корзину</span>
+                                            <span>{{ __('profile.services.to_cart') }}</span>
                                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                                         </template>
                                     </button>
                                     <div v-if="isOwner" class="svc-menu">
                                         <button class="svc-menu__trigger"
                                             :class="{ 'svc-menu__trigger--open': openMenuId === item.id }"
-                                            @click.stop="toggleMenu(item.id)" title="Действия">
+                                            @click.stop="toggleMenu(item.id)" :title="__('profile.services.actions')">
                                             <span></span><span></span><span></span>
                                         </button>
                                         <Transition name="svc-menu-pop">
@@ -651,7 +652,7 @@ watch(selectedCategory, (cat) => {
                                                             <line v-if="item.is_active" x1="4.93" y1="4.93" x2="19.07"
                                                                 y2="19.07" />
                                                         </svg>
-                                                        {{ item.is_active ? 'Отключить' : 'Включить' }}
+                                                        {{ item.is_active ? __('common.disable') : __('common.enable') }}
                                                     </button>
                                                     <button class="svc-menu__item" @click="openEdit(item); closeMenu()">
                                                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
@@ -662,7 +663,7 @@ watch(selectedCategory, (cat) => {
                                                             <path
                                                                 d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                                         </svg>
-                                                        Редактировать
+                                                        {{ __('common.edit') }}
                                                     </button>
                                                     <div class="svc-menu__divider"></div>
                                                 </template>
@@ -676,7 +677,7 @@ watch(selectedCategory, (cat) => {
                                                         <path d="M10 11v6M14 11v6" />
                                                         <path d="M9 6V4h6v2" />
                                                     </svg>
-                                                    Удалить
+                                                    {{ __('common.delete') }}
                                                 </button>
                                             </div>
                                         </Transition>
@@ -690,7 +691,7 @@ watch(selectedCategory, (cat) => {
 
                 <!-- Carousel of other idols -->
                 <div v-if="!carouselReady || carouselTotal > 0" class="cd-section cd-carousel">
-                    <p class="cd-section__label">Другие айдолы в этой категории</p>
+                    <p class="cd-section__label">{{ __('profile.services.other_idols') }}</p>
                     <div class="cd-carousel__row">
                         <button class="cd-carousel__nav cd-carousel__nav--prev"
                             :disabled="carouselPage === 1 || carouselLoading" @click="carouselPrev">
@@ -738,11 +739,11 @@ watch(selectedCategory, (cat) => {
         <!-- Cart conflict modal -->
         <SiteModal :show="cartConflictModal" variant="pink" :compact="true" @close="cancelCartReplace">
             <div class="sf-wrap">
-                <div class="sf-title">Очистить корзину?</div>
-                <p class="svc-pending-text">В корзине уже есть услуги другого айдола. Очистить корзину и добавить эту услугу?</p>
+                <div class="sf-title">{{ __('profile.services.cart_conflict.title') }}</div>
+                <p class="svc-pending-text">{{ __('profile.services.cart_conflict.body') }}</p>
                 <div class="sf-actions">
-                    <button class="sf-btn-cancel" @click="cancelCartReplace">Отмена</button>
-                    <button class="sf-btn-submit" @click="confirmCartReplace">Очистить и добавить</button>
+                    <button class="sf-btn-cancel" @click="cancelCartReplace">{{ __('common.cancel') }}</button>
+                    <button class="sf-btn-submit" @click="confirmCartReplace">{{ __('profile.services.cart_conflict.confirm') }}</button>
                 </div>
             </div>
         </SiteModal>
@@ -750,10 +751,10 @@ watch(selectedCategory, (cat) => {
         <!-- Service pending modal -->
         <SiteModal :show="showPendingModal" variant="pink" :compact="true" @close="showPendingModal = false">
             <div class="sf-wrap">
-                <div class="sf-title">Услуга отправлена на модерацию</div>
-                <p class="svc-pending-text">Она появится в вашем профиле после проверки администратором.</p>
+                <div class="sf-title">{{ __('profile.services.moderation.title') }}</div>
+                <p class="svc-pending-text">{{ __('profile.services.moderation.body') }}</p>
                 <div class="sf-actions">
-                    <button class="sf-btn-submit" @click="showPendingModal = false">Понятно</button>
+                    <button class="sf-btn-submit" @click="showPendingModal = false">{{ __('common.got_it') }}</button>
                 </div>
             </div>
         </SiteModal>
@@ -761,11 +762,11 @@ watch(selectedCategory, (cat) => {
         <!-- Delete confirm modal -->
         <SiteModal :show="deleteConfirmId !== null" variant="pink" :compact="true" @close="cancelDeleteService">
             <div class="sf-wrap">
-                <div class="sf-title">Удалить услугу?</div>
-                <p class="svc-pending-text">Это действие нельзя отменить.</p>
+                <div class="sf-title">{{ __('profile.services.delete_confirm.title') }}</div>
+                <p class="svc-pending-text">{{ __('profile.services.delete_confirm.body') }}</p>
                 <div class="sf-actions">
-                    <button type="button" class="svc-btn-cancel" @click="cancelDeleteService">Отмена</button>
-                    <button type="button" class="sf-btn-danger" @click="confirmDeleteService">Удалить</button>
+                    <button type="button" class="svc-btn-cancel" @click="cancelDeleteService">{{ __('common.cancel') }}</button>
+                    <button type="button" class="sf-btn-danger" @click="confirmDeleteService">{{ __('common.delete') }}</button>
                 </div>
             </div>
         </SiteModal>
@@ -775,29 +776,29 @@ watch(selectedCategory, (cat) => {
             <div class="sf-wrap">
                 <Transition name="sf-screen" mode="out-in">
                     <div v-if="showCancelConfirm" key="confirm" class="sf-screen">
-                        <div class="sf-title">Выйти без сохранения?</div>
-                        <p class="svc-pending-text">Введённые данные будут потеряны.</p>
+                        <div class="sf-title">{{ __('common.leave_confirm') }}</div>
+                        <p class="svc-pending-text">{{ __('common.leave_body') }}</p>
                         <div class="sf-actions">
                             <button type="button" class="svc-btn-cancel"
-                                @click="showCancelConfirm = false">Остаться</button>
-                            <button type="button" class="sf-btn-danger" @click="confirmCancelForm">Выйти</button>
+                                @click="showCancelConfirm = false">{{ __('common.stay') }}</button>
+                            <button type="button" class="sf-btn-danger" @click="confirmCancelForm">{{ __('common.leave') }}</button>
                         </div>
                     </div>
                     <div v-else key="form" class="sf-screen">
-                        <div class="sf-title">{{ editingId ? 'Редактировать услугу' : 'Новая услуга' }}</div>
+                        <div class="sf-title">{{ editingId ? __('profile.services.form.edit_title') : __('profile.services.form.new_title') }}</div>
                         <form @submit.prevent="submitForm" class="sf-form">
 
                             <div class="sf-field">
-                                <label class="sf-label">Категория</label>
+                                <label class="sf-label">{{ __('profile.services.form.category') }}</label>
                                 <AppSelect v-model="form.category_id"
                                     :options="(serviceCategories ?? []).map(c => ({ value: c.id, label: c.name }))"
-                                    placeholder="Выберите категорию" :error="!!form.errors.category_id"
+                                    :placeholder="__('profile.services.form.category_ph')" :error="!!form.errors.category_id"
                                     :disabled="!editingId && !!selectedCategory" />
                                 <p v-if="form.errors.category_id" class="sf-err">{{ form.errors.category_id }}</p>
                             </div>
 
                             <div class="sf-field">
-                                <label class="sf-label">Название</label>
+                                <label class="sf-label">{{ __('profile.services.form.name') }}</label>
                                 <div class="sf-input-wrap">
                                     <input v-model="form.name" class="sf-input"
                                         :class="{ 'sf-input--err': form.errors.name }" :placeholder="namePlaceholder"
@@ -817,7 +818,7 @@ watch(selectedCategory, (cat) => {
 
                             <div class="sf-row">
                                 <div class="sf-field">
-                                    <label class="sf-label">Цена</label>
+                                    <label class="sf-label">{{ __('profile.services.form.price') }}</label>
                                     <div class="sf-input-wrap">
                                         <input v-model.number="form.price" type="number" min="1" class="sf-input"
                                             :class="{ 'sf-input--err': form.errors.price }" placeholder="500" />
@@ -828,18 +829,18 @@ watch(selectedCategory, (cat) => {
                                     <p v-if="form.errors.price" class="sf-err">{{ form.errors.price }}</p>
                                 </div>
                                 <div class="sf-field">
-                                    <label class="sf-label">Единица</label>
+                                    <label class="sf-label">{{ __('profile.services.form.unit') }}</label>
                                     <AppSelect v-model="form.time_unit_id"
                                         :options="(serviceTimeUnits ?? []).map(u => ({ value: u.id, label: u.name }))"
-                                        placeholder="За..." :error="!!form.errors.time_unit_id" />
+                                        :placeholder="__('profile.services.form.unit_ph')" :error="!!form.errors.time_unit_id" />
                                     <p v-if="form.errors.time_unit_id" class="sf-err">{{ form.errors.time_unit_id }}</p>
                                 </div>
                             </div>
 
                             <div class="sf-actions">
-                                <button type="button" class="svc-btn-cancel" @click="tryCloseForm">Отмена</button>
+                                <button type="button" class="svc-btn-cancel" @click="tryCloseForm">{{ __('common.cancel') }}</button>
                                 <button type="submit" class="sf-btn-submit" :disabled="!formValid || form.processing">
-                                    {{ editingId ? 'Сохранить' : 'Добавить' }}
+                                    {{ editingId ? __('common.save') : __('common.add') }}
                                 </button>
                             </div>
 

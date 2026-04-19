@@ -2,6 +2,9 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import axios from 'axios';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import CreateButton from '@/Components/CreateButton.vue';
 import PostFeedCard from '@/Components/Profile/PostFeedCard.vue';
@@ -100,7 +103,7 @@ function onPhotoChange(e) {
     e.target.value = '';
     if (!file) return;
     if (file.size > 1024 * 1024) {
-        photoError.value = 'Файл слишком большой. Максимум 1 МБ.';
+        photoError.value = __('post.create.photo_error');
         form.photo = null;
         photoPreview.value = null;
         return;
@@ -156,7 +159,7 @@ function deletePost() {
     <div class="posts-section">
         <!-- Toolbar: create button for owner -->
         <div v-if="isOwner" class="posts-toolbar">
-            <CreateButton @click="createModal = true">Новая запись</CreateButton>
+            <CreateButton @click="createModal = true">{{ __('post.new') }}</CreateButton>
         </div>
 
         <!-- Skeleton loader -->
@@ -191,7 +194,7 @@ function deletePost() {
 
             <!-- Empty state -->
             <p v-else class="posts-empty">
-                {{ isOwner ? 'Нет публикаций — поделись чем-нибудь' : 'Публикаций пока нет' }}
+                {{ isOwner ? __('post.empty.owner') : __('post.empty.guest') }}
             </p>
         </template>
 
@@ -212,10 +215,10 @@ function deletePost() {
         <!-- Delete confirmation modal -->
         <SiteModal :show="confirmDeleteId !== null" variant="pink" :compact="true" @close="confirmDeleteId = null">
             <div class="confirm-delete">
-                <p class="confirm-delete__text">Удалить запись? Это действие нельзя отменить.</p>
+                <p class="confirm-delete__text">{{ __('post.delete.title') }}</p>
                 <div class="confirm-delete__actions">
-                    <button class="confirm-delete__cancel" @click="confirmDeleteId = null">Отмена</button>
-                    <button class="confirm-delete__confirm" @click="deletePost">Удалить</button>
+                    <button class="confirm-delete__cancel" @click="confirmDeleteId = null">{{ __('common.cancel') }}</button>
+                    <button class="confirm-delete__confirm" @click="deletePost">{{ __('common.delete') }}</button>
                 </div>
             </div>
         </SiteModal>
@@ -223,14 +226,14 @@ function deletePost() {
         <!-- Create post modal -->
         <SiteModal :show="createModal" variant="pink" :compact="false" @close="createModal = false">
             <div class="create-form">
-                <h3 class="create-title">Новая запись</h3>
+                <h3 class="create-title">{{ __('post.new') }}</h3>
 
                 <div v-if="photoPreview" class="photo-preview-wrap">
                     <img :src="photoPreview" alt="Preview" class="photo-preview" />
                     <button class="remove-photo-btn" type="button" @click="removePhoto">✕</button>
                 </div>
 
-                <textarea v-model="form.body" class="post-textarea" placeholder="Напиши что-нибудь..." rows="5"
+                <textarea v-model="form.body" class="post-textarea" :placeholder="__('post.create.placeholder')" rows="5"
                     maxlength="377" />
                 <div class="char-count" :class="{ 'char-count--warn': form.body.length > 340 }">{{ form.body.length
                     }}/377</div>
@@ -238,14 +241,13 @@ function deletePost() {
                 <label class="photo-label">
                     <input type="file" accept="image/jpeg,image/png,image/webp" class="hidden-input"
                         @change="onPhotoChange" />
-                    <span class="photo-btn">{{ photoPreview ? 'Сменить фото' : '+ Добавить фото (необязательно)'
-                        }}</span>
+                    <span class="photo-btn">{{ photoPreview ? __('post.create.change_photo') : __('post.create.add_photo') }}</span>
                 </label>
                 <div v-if="photoError" class="photo-error">{{ photoError }}</div>
                 <div v-if="form.errors.photo" class="photo-error">{{ form.errors.photo }}</div>
 
                 <button class="save-btn" :disabled="form.processing || !form.body.trim()"
-                    @click="submitPost">Опубликовать</button>
+                    @click="submitPost">{{ __('common.publish') }}</button>
             </div>
         </SiteModal>
     </div>

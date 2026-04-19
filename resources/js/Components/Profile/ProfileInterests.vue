@@ -3,6 +3,9 @@ import { ref, computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { EditPen } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     interests:     { default: null },
@@ -89,8 +92,8 @@ function submitSuggestion() {
 <template>
     <div id="tour-interests" class="block-section">
         <div class="section-header">
-            <span class="section-title">Интересы</span>
-            <button v-if="isOwner" class="edit-btn" @click="openEdit" title="Редактировать">
+            <span class="section-title">{{ __('profile.interests.title') }}</span>
+            <button v-if="isOwner" class="edit-btn" @click="openEdit" :title="__('common.edit')">
                 <el-icon><EditPen /></el-icon>
             </button>
         </div>
@@ -98,22 +101,22 @@ function submitSuggestion() {
         <div v-if="interests?.length" class="tags-row">
             <span v-for="i in interests" :key="i.id" class="tag">{{ i.name_ru }}</span>
         </div>
-        <p v-else-if="isOwner" class="empty">Добавь свои интересы</p>
-        <p v-else class="empty">Не указано</p>
+        <p v-else-if="isOwner" class="empty">{{ __('profile.interests.empty') }}</p>
+        <p v-else class="empty">{{ __('profile.interests.not_specified') }}</p>
 
         <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
             <div class="edit-form">
-                <h3 class="edit-title">Интересы</h3>
+                <h3 class="edit-title">{{ __('profile.interests.title') }}</h3>
 
                 <Transition name="view-slide" mode="out-in">
                 <div v-if="view === 'list'" key="list">
-                    <p class="edit-hint">Выбери по категориям (до 10)</p>
+                    <p class="edit-hint">{{ __('profile.interests.subtitle') }}</p>
 
                     <input
                         v-model="interestSearch"
                         type="text"
                         class="search-input"
-                        placeholder="Поиск по интересам..."
+                        :placeholder="__('profile.interests.search')"
                     />
 
                     <div class="categories">
@@ -139,35 +142,35 @@ function submitSuggestion() {
                                 </div>
                             </div>
                         </template>
-                        <p v-else class="no-results">Ничего не найдено</p>
+                        <p v-else class="no-results">{{ __('common.not_found') }}</p>
                     </div>
 
                     <div class="list-footer">
-                        <button class="suggest-btn" @click="view = 'suggest'">Предложить свой</button>
+                        <button class="suggest-btn" @click="view = 'suggest'">{{ __('profile.interests.suggest_btn') }}</button>
                         <button class="save-btn save-btn--inline" :disabled="form.processing" @click="submit">
-                            Сохранить ({{ selected.size }}/10)
+                            {{ __('common.save') }} ({{ selected.size }}/10)
                         </button>
                     </div>
                 </div>
 
                 <div v-else key="suggest" class="suggest-form">
-                    <button class="back-btn" @click="view = 'list'">← Назад</button>
-                    <h4 class="suggest-title">Предложить интерес</h4>
-                    <p class="suggest-hint">Напиши название — мы рассмотрим его и добавим, если подойдёт</p>
+                    <button class="back-btn" @click="view = 'list'">{{ __('profile.interests.back') }}</button>
+                    <h4 class="suggest-title">{{ __('profile.interests.suggest.title') }}</h4>
+                    <p class="suggest-hint">{{ __('profile.interests.suggest.hint') }}</p>
                     <textarea
                         v-model="suggestionText"
                         class="suggestion-textarea"
                         maxlength="100"
                         rows="3"
-                        placeholder="Например: Настольные игры..."
+                        :placeholder="__('profile.interests.suggest.ph')"
                     />
                     <div class="suggest-footer">
                         <span class="char-count">{{ suggestionText.length }}/100</span>
                         <button class="save-btn suggest-submit-btn" :disabled="!suggestionText.trim() || suggForm.processing" @click="submitSuggestion">
-                            Отправить
+                            {{ __('common.send') }}
                         </button>
                     </div>
-                    <p v-if="suggSuccess" class="sugg-success">Предложение отправлено!</p>
+                    <p v-if="suggSuccess" class="sugg-success">{{ __('profile.interests.sent') }}</p>
                 </div>
                 </Transition>
             </div>

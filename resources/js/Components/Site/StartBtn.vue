@@ -3,12 +3,19 @@
  * Компонент элегантной кнопки в стиле "Start"
  * Использует шрифт Brygada 1918 и внутренние тени для создания эффекта обводки
  */
-defineProps({
+import { computed } from 'vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
+
+const props = defineProps({
     label: {
         type: String,
-        default: 'НАЧАТЬ'
+        default: null,
     }
 });
+
+const effectiveLabel = computed(() => props.label ?? __('welcome.start'));
 
 const emit = defineEmits(['click']);
 
@@ -19,7 +26,7 @@ const handleClick = (event) => {
 
 <template>
     <button class="start-button" @click="handleClick">
-        <span class="label">{{ label }}</span>
+        <span class="label">{{ effectiveLabel }}</span>
     </button>
 </template>
 

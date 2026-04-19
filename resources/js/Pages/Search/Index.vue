@@ -4,6 +4,9 @@ import { router, usePage, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head } from '@inertiajs/vue3';
 import IdolBadge from '@/Components/IdolBadge.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __, transChoice } = useTranslations();
 
 
 const props = defineProps({
@@ -138,15 +141,15 @@ function filteredInterests(cat) {
 const activeChips = computed(() => {
     const chips = [];
     if (f.value.name)
-        chips.push({ label: `Имя: ${f.value.name}`, key: 'name' });
+        chips.push({ label: __('search.active.name', { value: f.value.name }), key: 'name' });
     if (f.value.gender)
-        chips.push({ label: `Пол: ${f.value.gender === 'male' ? 'Мужской' : 'Женский'}`, key: 'gender' });
+        chips.push({ label: __('search.active.gender', { value: f.value.gender === 'male' ? __('gender.male') : __('gender.female') }), key: 'gender' });
     if (f.value.age_from || f.value.age_to)
-        chips.push({ label: `Возраст: ${f.value.age_from || '…'}–${f.value.age_to || '…'}`, key: 'age' });
+        chips.push({ label: __('search.active.age', { from: f.value.age_from || '…', to: f.value.age_to || '…' }), key: 'age' });
     if (f.value.is_idol !== '')
-        chips.push({ label: `Айдол: ${f.value.is_idol === '1' ? 'Да' : 'Нет'}`, key: 'is_idol' });
+        chips.push({ label: __('search.active.idol', { value: f.value.is_idol === '1' ? __('common.yes') : __('common.no') }), key: 'is_idol' });
     if (f.value.rating_from || f.value.rating_to)
-        chips.push({ label: `Рейтинг: ${f.value.rating_from || '…'}–${f.value.rating_to || '…'}`, key: 'rating' });
+        chips.push({ label: __('search.active.rating', { from: f.value.rating_from || '…', to: f.value.rating_to || '…' }), key: 'rating' });
     f.value.traits.forEach(id => {
         const t = props.traits.find(x => x.id === id);
         if (t) chips.push({ label: t.name_ru, key: 'traits', value: id });
@@ -193,8 +196,8 @@ function calcAge(birthDate) {
 }
 
 function genderLabel(g) {
-    if (g === 'male') return 'М';
-    if (g === 'female') return 'Ж';
+    if (g === 'male') return __('gender.abbr.male');
+    if (g === 'female') return __('gender.abbr.female');
     return '';
 }
 
@@ -211,7 +214,7 @@ function initial(name) {
 
 <template>
 
-    <Head title="Поиск пользователей" />
+    <Head :title="__('search.title')" />
     <AppLayout>
         <div class="search-page">
             <!-- Results -->
@@ -219,17 +222,17 @@ function initial(name) {
                 <!-- Sort bar -->
                 <div class="sort-bar">
                     <div class="sort-controls">
-                        <span class="sort-label">Сортировать по</span>
+                        <span class="sort-label">{{ __('search.sort_by') }}</span>
                         <button :class="['sort-btn', { active: f.sort_by === 'rating' }]"
-                            @click="f.sort_by = 'rating'">Рейтингу</button>
+                            @click="f.sort_by = 'rating'">{{ __('search.sort.rating') }}</button>
                         <button :class="['sort-btn', { active: f.sort_by === 'created_at' }]"
-                            @click="f.sort_by = 'created_at'">Дате регистрации</button>
+                            @click="f.sort_by = 'created_at'">{{ __('search.sort.date') }}</button>
                         <button @click="toggleSortDir" class="sort-dir-btn"
-                            :title="f.sort_dir === 'desc' ? 'По убыванию' : 'По возрастанию'">
+                            :title="f.sort_dir === 'desc' ? __('search.sort.desc') : __('search.sort.asc')">
                             {{ f.sort_dir === 'desc' ? '↓' : '↑' }}
                         </button>
                     </div>
-                    <div class="found-count">Найдено: {{ users.total }}</div>
+                    <div class="found-count">{{ __('search.found', { count: users.total }) }}</div>
                 </div>
 
                 <!-- Cards -->
@@ -238,7 +241,7 @@ function initial(name) {
                         <Link v-for="user in users.data" :key="user.id"
                             :href="route('profile.show', { user: user.id }) + '#about'" class="user-card">
                             <div class="card-avatar">
-                                <img v-if="avatarUrl(user)" :src="avatarUrl(user)" alt="Аватар"
+                                <img v-if="avatarUrl(user)" :src="avatarUrl(user)" :alt="__('common.avatar')"
                                     class="card-avatar__img" />
                                 <span v-else class="card-avatar__initials">{{ initial(user.name) }}</span>
                             </div>
@@ -253,14 +256,14 @@ function initial(name) {
                                         :class="user.gender === 'female' ? 'card-badge--female' : 'card-badge--male'">{{
                                             user.gender === 'female' ? '\u2640\uFE0F' : '\u2642\uFE0F' }}</span>
                                     <span v-if="calcAge(user.birth_date)" class="card-badge card-badge--age">{{
-                                        calcAge(user.birth_date) }} лет</span>
+                                        calcAge(user.birth_date) }} {{ transChoice('search.age.years', calcAge(user.birth_date)) }}</span>
                                 </div>
                             </div>
                         </Link>
                     </div>
 
                     <div v-else class="no-results">
-                        <p>Пользователи не найдены</p>
+                        <p>{{ __('search.empty') }}</p>
                     </div>
                 </div>
 
@@ -287,7 +290,7 @@ function initial(name) {
             <!-- Sidebar (right) -->
             <aside class="search-sidebar">
                 <div class="sidebar-inner">
-                    <h2 class="sidebar-title">Фильтры</h2>
+                    <h2 class="sidebar-title">{{ __('search.filters.title') }}</h2>
 
                     <!-- Active chips -->
                     <Transition name="chips-fade">
@@ -301,67 +304,67 @@ function initial(name) {
 
                     <!-- Имя -->
                     <div class="filter-group">
-                        <label class="filter-label">Имя</label>
-                        <input v-model="f.name" type="text" class="filter-input" placeholder="Поиск по имени" />
+                        <label class="filter-label">{{ __('auth.name') }}</label>
+                        <input v-model="f.name" type="text" class="filter-input" :placeholder="__('search.name')" />
                     </div>
 
                     <!-- Пол -->
                     <div class="filter-group">
-                        <label class="filter-label">Пол</label>
+                        <label class="filter-label">{{ __('auth.gender') }}</label>
                         <div class="btn-group">
                             <button :class="['btn-toggle', { active: f.gender === '' }]"
-                                @click="f.gender = ''">Любой</button>
+                                @click="f.gender = ''">{{ __('gender.any') }}</button>
                             <button :class="['btn-toggle', { active: f.gender === 'male' }]"
-                                @click="f.gender = 'male'">Мужской</button>
+                                @click="f.gender = 'male'">{{ __('gender.male') }}</button>
                             <button :class="['btn-toggle', { active: f.gender === 'female' }]"
-                                @click="f.gender = 'female'">Женский</button>
+                                @click="f.gender = 'female'">{{ __('gender.female') }}</button>
                         </div>
                     </div>
 
                     <!-- Возраст -->
                     <div class="filter-group">
-                        <label class="filter-label">Возраст</label>
+                        <label class="filter-label">{{ __('search.filters.age') }}</label>
                         <div class="range-row">
                             <input v-model="f.age_from" type="number" min="18" max="120"
-                                class="filter-input filter-input--sm" placeholder="от" />
+                                class="filter-input filter-input--sm" :placeholder="__('search.price.from')" />
                             <span class="range-sep">—</span>
                             <input v-model="f.age_to" type="number" min="18" max="120"
-                                class="filter-input filter-input--sm" placeholder="до" />
+                                class="filter-input filter-input--sm" :placeholder="__('search.price.to')" />
                         </div>
                     </div>
 
                     <!-- Айдол -->
                     <div class="filter-group">
-                        <label class="filter-label">Айдол</label>
+                        <label class="filter-label">{{ __('search.filters.idol') }}</label>
                         <div class="btn-group">
                             <button :class="['btn-toggle', { active: f.is_idol === '' }]"
-                                @click="f.is_idol = ''">Любой</button>
+                                @click="f.is_idol = ''">{{ __('common.any') }}</button>
                             <button :class="['btn-toggle', { active: f.is_idol === '1' }]"
-                                @click="f.is_idol = '1'">Да</button>
+                                @click="f.is_idol = '1'">{{ __('common.yes') }}</button>
                             <button :class="['btn-toggle', { active: f.is_idol === '0' }]"
-                                @click="f.is_idol = '0'">Нет</button>
+                                @click="f.is_idol = '0'">{{ __('common.no') }}</button>
                         </div>
                     </div>
 
                     <!-- Рейтинг -->
                     <div class="filter-group">
-                        <label class="filter-label">Рейтинг</label>
+                        <label class="filter-label">{{ __('search.filters.rating') }}</label>
                         <div class="range-row">
                             <input v-model="f.rating_from" type="number" min="0" max="100"
-                                class="filter-input filter-input--sm" placeholder="от" />
+                                class="filter-input filter-input--sm" :placeholder="__('search.price.from')" />
                             <span class="range-sep">—</span>
                             <input v-model="f.rating_to" type="number" min="0" max="100"
-                                class="filter-input filter-input--sm" placeholder="до" />
+                                class="filter-input filter-input--sm" :placeholder="__('search.price.to')" />
                         </div>
                     </div>
 
                     <!-- Divider -->
-                    <div class="filter-divider"><span>Расширенные</span></div>
+                    <div class="filter-divider"><span>{{ __('search.filters.advanced') }}</span></div>
 
                     <!-- Черты характера -->
                     <div class="filter-group">
                         <div class="filter-section-header" @click="toggleSection('traits')">
-                            <label class="filter-label">Характер</label>
+                            <label class="filter-label">{{ __('search.filters.traits') }}</label>
                             <span v-if="!openSections.has('traits') && f.traits.length" class="section-badge">{{
                                 f.traits.length
                                 }}</span>
@@ -372,7 +375,7 @@ function initial(name) {
                             </svg>
                         </div>
                         <input v-if="openSections.has('traits')" class="section-search" v-model="sectionSearch.traits"
-                            placeholder="Поиск..." />
+                            :placeholder="__('search.filter')" />
                         <div v-if="openSections.has('traits')" class="checkbox-list">
                             <label v-for="trait in filteredTraits" :key="trait.id" class="checkbox-item">
                                 <input type="checkbox" :value="trait.id" v-model="f.traits" class="checkbox-input" />
@@ -383,7 +386,7 @@ function initial(name) {
 
                     <!-- Интересы -->
                     <div class="filter-group">
-                        <label class="filter-label">Интересы</label>
+                        <label class="filter-label">{{ __('search.filters.interests') }}</label>
                         <div v-for="cat in interestCategories" :key="cat.id" class="interest-cat">
                             <div class="filter-section-header" @click="toggleSection(`interest_cat_${cat.id}`)">
                                 <div class="interest-cat__name">{{ cat.name_ru }}</div>
@@ -397,7 +400,7 @@ function initial(name) {
                                 </svg>
                             </div>
                             <input v-if="openSections.has(`interest_cat_${cat.id}`)" class="section-search"
-                                v-model="sectionSearch[`interest_cat_${cat.id}`]" placeholder="Поиск..." />
+                                v-model="sectionSearch[`interest_cat_${cat.id}`]" :placeholder="__('search.filter')" />
                             <div v-if="openSections.has(`interest_cat_${cat.id}`)" class="checkbox-list">
                                 <label v-for="interest in filteredInterests(cat)" :key="interest.id"
                                     class="checkbox-item">
@@ -412,7 +415,7 @@ function initial(name) {
                     <!-- Языки -->
                     <div class="filter-group">
                         <div class="filter-section-header" @click="toggleSection('languages')">
-                            <label class="filter-label">Языки</label>
+                            <label class="filter-label">{{ __('search.filters.languages') }}</label>
                             <span v-if="!openSections.has('languages') && f.languages.length" class="section-badge">{{
                                 f.languages.length }}</span>
                             <svg class="section-chevron" :class="{ open: openSections.has('languages') }"
@@ -422,7 +425,7 @@ function initial(name) {
                             </svg>
                         </div>
                         <input v-if="openSections.has('languages')" class="section-search"
-                            v-model="sectionSearch.languages" placeholder="Поиск..." />
+                            v-model="sectionSearch.languages" :placeholder="__('search.filter')" />
                         <div v-if="openSections.has('languages')" class="checkbox-list">
                             <label v-for="lang in filteredLanguages" :key="lang.code" class="checkbox-item">
                                 <input type="checkbox" :value="lang.code" v-model="f.languages"
@@ -434,9 +437,9 @@ function initial(name) {
 
                     <!-- Часовой пояс -->
                     <div class="filter-group">
-                        <label class="filter-label">Часовой пояс</label>
+                        <label class="filter-label">{{ __('search.filters.timezone') }}</label>
                         <select v-model="f.timezone" class="filter-input filter-select">
-                            <option value="">Любой</option>
+                            <option value="">{{ __('search.filters.any_tz') }}</option>
                             <option v-for="tz in TIMEZONES" :key="tz" :value="tz">{{ tz }}</option>
                         </select>
                     </div>
@@ -444,7 +447,7 @@ function initial(name) {
                     <!-- Категории услуг -->
                     <div class="filter-group">
                         <div class="filter-section-header" @click="toggleSection('service_categories')">
-                            <label class="filter-label">Категории услуг</label>
+                            <label class="filter-label">{{ __('search.filters.services') }}</label>
                             <span v-if="!openSections.has('service_categories') && f.service_categories.length"
                                 class="section-badge">{{ f.service_categories.length }}</span>
                             <svg class="section-chevron" :class="{ open: openSections.has('service_categories') }"
@@ -454,7 +457,7 @@ function initial(name) {
                             </svg>
                         </div>
                         <input v-if="openSections.has('service_categories')" class="section-search"
-                            v-model="sectionSearch.service_categories" placeholder="Поиск..." />
+                            v-model="sectionSearch.service_categories" :placeholder="__('search.filter')" />
                         <div v-if="openSections.has('service_categories')" class="checkbox-list">
                             <label v-for="cat in filteredServiceCategories" :key="cat.id" class="checkbox-item">
                                 <input type="checkbox" :value="cat.id" v-model="f.service_categories"
@@ -465,12 +468,12 @@ function initial(name) {
                     </div>
 
                     <!-- Сбросить -->
-                    <button @click="resetFilters" class="reset-btn">Сбросить фильтры</button>
+                    <button @click="resetFilters" class="reset-btn">{{ __('search.filters.reset') }}</button>
                 </div>
 
                 <Transition name="slide-up">
                     <div v-if="isDirty" class="sidebar-footer">
-                        <button class="apply-btn" @click="applyFilters">Применить фильтры</button>
+                        <button class="apply-btn" @click="applyFilters">{{ __('search.filters.apply') }}</button>
                     </div>
                 </Transition>
             </aside>

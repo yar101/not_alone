@@ -1,5 +1,8 @@
 <script setup>
 import { computed, ref, shallowRef, onUnmounted } from 'vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __, locale } = useTranslations();
 import axios from 'axios';
 import {
     QuestionFilled,
@@ -192,14 +195,14 @@ function backToList() {
 }
 
 // ── Dispute form ──────────────────────────────────────────
-const DISPUTE_REASONS = [
-    'Непристойное поведение',
-    'Оскорбления',
-    'Мошенничество',
-    'Заказ не выполнен',
-    'Угрозы',
-    'Спам и навязывание',
-];
+const DISPUTE_REASONS = computed(() => [
+    __('help.dispute.reason.1'),
+    __('help.dispute.reason.2'),
+    __('help.dispute.reason.3'),
+    __('help.dispute.reason.4'),
+    __('help.dispute.reason.5'),
+    __('help.dispute.reason.6'),
+]);
 
 const disputeView        = ref(false);
 const disputableOrders   = ref([]);
@@ -231,7 +234,7 @@ async function openDisputeForm() {
             tickInterval = setInterval(() => { nowTick.value = Date.now(); }, 1000);
         }
     } catch {
-        disputeErrors.value = { _general: 'Не удалось загрузить заказы' };
+        disputeErrors.value = { _general: __('help.fail') };
     } finally {
         disputeLoading.value = false;
     }
@@ -240,15 +243,16 @@ async function openDisputeForm() {
 function orderTimeLeft(completedAt) {
     const deadline = new Date(completedAt).getTime() + 3600 * 1000;
     const diff = deadline - nowTick.value;
-    if (diff <= 0) return 'истекает…';
+    if (diff <= 0) return __('help.timer.expiring');
     const m = Math.floor(diff / 60000);
     const s = Math.floor((diff % 60000) / 1000);
-    return `осталось ${m}:${s.toString().padStart(2, '0')}`;
+    return __('help.timer.left', { time: `${m}:${s.toString().padStart(2, '0')}` });
 }
 
 function fmtDate(iso) {
     if (!iso) return '—';
-    return new Date(iso).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const loc = locale.value?.current === 'ru' ? 'ru-RU' : 'en-US';
+    return new Date(iso).toLocaleString(loc, { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
 onUnmounted(() => { clearInterval(tickInterval); });
@@ -271,7 +275,7 @@ async function submitDispute() {
                 Object.entries(errs).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v])
             );
         } else {
-            disputeErrors.value = { _general: e.response?.data?.message ?? 'Ошибка при отправке' };
+            disputeErrors.value = { _general: e.response?.data?.message ?? __('help.dispute.error') };
         }
     } finally {
         disputeSubmitting.value = false;
@@ -285,7 +289,7 @@ async function submitDispute() {
 
             <!-- ── Sidebar ── -->
             <nav class="faq-sidebar">
-                <div class="faq-sidebar__label">Разделы</div>
+                <div class="faq-sidebar__label">{{ __('help.sections.label') }}</div>
                 <FaqItem
                     v-for="cat in faqCategories"
                     :key="cat.id"
@@ -303,7 +307,7 @@ async function submitDispute() {
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                         </svg>
-                        Техподдержка
+                        {{ __('help.support.btn') }}
                     </button>
                     <button v-if="showDispute" class="faq-action-btn faq-action-btn--dispute" :class="{ 'faq-action-btn--dispute-active': disputeView }" @click="openDisputeForm">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -311,7 +315,7 @@ async function submitDispute() {
                             <line x1="12" y1="8" x2="12" y2="12"/>
                             <line x1="12" y1="16" x2="12.01" y2="16"/>
                         </svg>
-                        Оспорить заказ
+                        {{ __('help.dispute.btn') }}
                     </button>
                 </div>
             </nav>
@@ -326,24 +330,24 @@ async function submitDispute() {
                     <div v-if="disputeView" key="dispute" class="faq-content-inner">
                         <div class="faq-content__header">
                             <span class="faq-content__counter">— / —</span>
-                            <h3 class="faq-content__title">Оспорить заказ</h3>
+                            <h3 class="faq-content__title">{{ __('help.dispute.title') }}</h3>
                         </div>
 
-                        <div v-if="disputeLoading" class="dispute-loading">Загрузка…</div>
+                        <div v-if="disputeLoading" class="dispute-loading">{{ __('help.dispute.loading') }}</div>
 
                         <div v-else-if="disputeSuccess" class="dispute-success">
-                            <p>Спор отправлен. Мы рассмотрим в течение 24 часов.</p>
+                            <p>{{ __('help.dispute.sent') }}</p>
                         </div>
 
                         <div v-else-if="disputableOrders.length === 0" class="dispute-empty">
-                            <p>Нет заказов, доступных для оспаривания.<br>
-                            Спор можно открыть в течение 1 часа после завершения заказа.</p>
+                            <p>{{ __('help.dispute.no_orders') }}<br>
+                            {{ __('help.dispute.time_limit') }}</p>
                         </div>
 
                         <div v-else class="dispute-form">
                             <p v-if="disputeErrors._general" class="dispute-field-error">{{ disputeErrors._general }}</p>
 
-                            <label class="dispute-label">Заказ</label>
+                            <label class="dispute-label">{{ __('help.dispute.order_label') }}</label>
                             <div class="dispute-orders-list">
                                 <div
                                     v-for="o in disputableOrders"
@@ -359,34 +363,34 @@ async function submitDispute() {
                                         <span class="dispute-order-card__timer">{{ orderTimeLeft(o.completed_at) }}</span>
                                     </div>
                                     <div class="dispute-order-card__dates">
-                                        <span>Создан: {{ fmtDate(o.created_at) }}</span>
-                                        <span>Выполнен: {{ fmtDate(o.completed_at) }}</span>
+                                        <span>{{ __('help.dispute.date.created') }} {{ fmtDate(o.created_at) }}</span>
+                                        <span>{{ __('help.dispute.date.completed') }} {{ fmtDate(o.completed_at) }}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <label class="dispute-label" style="margin-top:0.5rem;">Причина</label>
+                            <label class="dispute-label" style="margin-top:0.5rem;">{{ __('help.dispute.reason_label') }}</label>
                             <select
                                 v-model="disputeReason"
                                 class="dispute-select"
                                 @change="delete disputeErrors.reason"
                             >
-                                <option value="">— выберите причину —</option>
+                                <option value="">{{ __('help.dispute.reason_select') }}</option>
                                 <option v-for="r in DISPUTE_REASONS" :key="r" :value="r">{{ r }}</option>
                             </select>
                             <p v-if="disputeErrors.reason" class="dispute-field-error">{{ disputeErrors.reason }}</p>
 
-                            <label class="dispute-label">Детали (мин. 100 символов)</label>
+                            <label class="dispute-label">{{ __('help.dispute.details_label') }}</label>
                             <textarea
                                 v-model="disputeDetails"
                                 class="dispute-textarea"
-                                placeholder="Опишите ситуацию подробнее…"
+                                :placeholder="__('help.dispute.details_ph')"
                                 rows="4"
                                 maxlength="2000"
                                 @input="delete disputeErrors.details"
                             ></textarea>
                             <span class="dispute-charcount" :class="{ 'dispute-charcount--warn': disputeDetails.trim().length > 0 && disputeDetails.trim().length < 100 }">
-                                {{ disputeDetails.trim().length }} / мин. 100
+                                {{ __('help.char_count', { current: disputeDetails.trim().length, min: 100 }) }}
                             </span>
                             <p v-if="disputeErrors.details" class="dispute-field-error">{{ disputeErrors.details }}</p>
 
@@ -394,7 +398,7 @@ async function submitDispute() {
                                 class="dispute-submit"
                                 :disabled="!disputeOrderId || !disputeReason || disputeDetails.trim().length < 100 || disputeSubmitting"
                                 @click="submitDispute"
-                            >{{ disputeSubmitting ? 'Отправка…' : 'Отправить спор' }}</button>
+                            >{{ disputeSubmitting ? __('help.dispute.submitting') : __('help.dispute.submit') }}</button>
                         </div>
                     </div>
 
@@ -428,7 +432,7 @@ async function submitDispute() {
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M15 18l-6-6 6-6"/>
                                 </svg>
-                                Назад
+                                {{ __('help.back') }}
                             </button>
                             <h3 class="faq-content__title">{{ activeQuestion.q }}</h3>
                         </div>

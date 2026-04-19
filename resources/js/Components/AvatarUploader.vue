@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { useTranslations } from '@/composables/useTranslations';
 import { Camera } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import ImageDropzone from '@/Components/ImageDropzone.vue';
@@ -12,6 +13,8 @@ const props = defineProps({
     size:     { type: Number, default: 88 },
     editable: { type: Boolean, default: false },
 });
+
+const { __ } = useTranslations();
 
 const initials = props.user?.name?.charAt(0).toUpperCase() ?? '?';
 
@@ -89,7 +92,7 @@ function applyCrop() {
     <!-- Upload modal -->
     <SiteModal :show="avatarModal" variant="pink" :compact="true" @close="avatarModal = false">
         <div class="au-upload-form">
-            <h3 class="au-title">Загрузить фото</h3>
+            <h3 class="au-title">{{ __('upload.avatar.title') }}</h3>
             <ImageDropzone :max-size-mb="5" @change="processAvatarFile" />
         </div>
     </SiteModal>
@@ -97,7 +100,7 @@ function applyCrop() {
     <!-- Crop modal -->
     <SiteModal :show="cropModal" variant="pink" :compact="true" @close="cancelCrop">
         <div class="au-crop-form">
-            <h3 class="au-title">Обрезка фото</h3>
+            <h3 class="au-title">{{ __('upload.avatar.crop') }}</h3>
             <div v-if="cropError" class="au-crop-error">{{ cropError }}</div>
             <template v-else>
                 <div class="au-crop-wrap" :style="{ height: cropWrapHeight + 'px' }">
@@ -118,7 +121,7 @@ function applyCrop() {
             </template>
             <div class="au-crop-actions">
                 <button class="au-save-btn" type="button" :disabled="!!cropError || cropUploading" @click="applyCrop">
-                    {{ cropUploading ? 'Загрузка...' : 'Сохранить' }}
+                    {{ cropUploading ? __('upload.avatar.saving') : __('common.save') }}
                 </button>
             </div>
         </div>

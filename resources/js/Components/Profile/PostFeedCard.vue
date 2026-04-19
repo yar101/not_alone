@@ -2,6 +2,9 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 import axios from 'axios';
 import AuthModal from '@/Components/Site/AuthModal.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     post:     { type: Object, required: true },
@@ -106,7 +109,7 @@ onMounted(async () => {
 
         <!-- Read more -->
         <button v-if="isClamped" class="feed-card__read-more">
-            ··· читать далее
+            {{ __('post.read_more') }}
         </button>
 
         <!-- Footer: [like] [comment] -->
@@ -149,7 +152,7 @@ onMounted(async () => {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
                 </svg>
-                Удалить
+                {{ __('common.delete') }}
             </button>
         </div>
     </Teleport>

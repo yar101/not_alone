@@ -6,11 +6,11 @@ import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppSelect from '@/Components/AppSelect.vue';
 import AvatarUploader from '@/Components/AvatarUploader.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
+import { useTranslations } from '@/composables/useTranslations';
 
-// ── Pluralization ──────────────────────────────────────────────
-const agePR = new Intl.PluralRules('ru');
-const ageForms = { one: 'год', few: 'года', many: 'лет', other: 'лет' };
-function ageLabel(n) { return `${n} ${ageForms[agePR.select(n)]}`; }
+const { __, transChoice } = useTranslations();
+
+function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 
 const props = defineProps({
     user: { type: Object, required: true },
@@ -75,10 +75,10 @@ const NAME_RE = /^\p{L}+(\s\p{L}+)?$/u;
 const nameError = ref('');
 
 function validateName(value) {
-    if (!value.trim()) return 'Имя обязательно.';
-    if (value.trim().length < 2) return 'Имя слишком короткое.';
-    if (value.trim().length > 100) return 'Имя слишком длинное.';
-    if (!NAME_RE.test(value.trim())) return 'Одно или два слова, только буквы.';
+    if (!value.trim()) return __('profile.header.err.required');
+    if (value.trim().length < 2) return __('profile.header.err.too_short');
+    if (value.trim().length > 100) return __('profile.header.err.too_long');
+    if (!NAME_RE.test(value.trim())) return __('profile.header.err.invalid');
     return '';
 }
 
@@ -92,7 +92,6 @@ const TIMEZONES = [
 ];
 
 const currentYear = new Date().getFullYear();
-const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
 function parseBd(dateStr) {
     if (!dateStr) return { y: '', m: '', d: '' };
@@ -117,9 +116,11 @@ const dayOptions = computed(() => {
     return Array.from({ length: days }, (_, i) => i + 1);
 });
 
-const monthOptions = computed(() => monthNames.map((n, i) => ({ value: i + 1, label: n })));
+const monthOptions = computed(() =>
+    Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: __(`auth.month.${i + 1}`) }))
+);
 const timezoneOptions = computed(() => [
-    { value: '', label: 'Не указан' },
+    { value: '', label: __('common.not_specified') },
     ...TIMEZONES.map(tz => ({ value: tz, label: tz })),
 ]);
 
@@ -174,18 +175,18 @@ function deleteAvatar() {
                     <div v-if="showOwnerMenu" class="owner-menu__dropdown">
                         <button class="owner-menu__item" @click="editModal = true; showOwnerMenu = false">
                             <el-icon><Edit /></el-icon>
-                            Редактировать профиль
+                            {{ __('profile.header.edit') }}
                         </button>
                         <a :href="route('settings.edit')" class="owner-menu__item" @click="showOwnerMenu = false">
                             <el-icon><Setting /></el-icon>
-                            Настройки
+                            {{ __('profile.header.settings_btn') }}
                         </a>
                     </div>
                 </Transition>
             </div>
         </div>
         <div v-else-if="canReport" class="header-actions">
-            <button class="action-pill action-pill--report" @click="emit('report')" title="Пожаловаться">
+            <button class="action-pill action-pill--report" @click="emit('report')" :title="__('profile.header.report')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
                     <line x1="4" y1="22" x2="4" y2="15"/>
@@ -226,11 +227,11 @@ function deleteAvatar() {
         <!-- Edit modal -->
         <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
             <div class="edit-form">
-                <h3 class="edit-title">Редактировать профиль</h3>
+                <h3 class="edit-title">{{ __('profile.header.edit') }}</h3>
 
                 <div class="edit-field">
-                    <label class="edit-label">Имя</label>
-                    <input v-model="form.name" class="edit-input" type="text" placeholder="Имя или Имя Фамилия"
+                    <label class="edit-label">{{ __('auth.name') }}</label>
+                    <input v-model="form.name" class="edit-input" type="text" :placeholder="__('profile.header.name_ph')"
                         @input="nameError = ''" />
                     <span v-if="nameError || form.errors.name" class="edit-field-error">
                         {{ nameError || form.errors.name }}
@@ -238,38 +239,38 @@ function deleteAvatar() {
                 </div>
 
                 <div class="edit-field">
-                    <label class="edit-label">Пол</label>
+                    <label class="edit-label">{{ __('auth.gender') }}</label>
                     <div class="gender-group">
                         <button type="button" class="gender-btn" :class="{ active: form.gender === 'male' }"
-                            @click="form.gender = 'male'">Мужской</button>
+                            @click="form.gender = 'male'">{{ __('auth.gender.male') }}</button>
                         <button type="button" class="gender-btn" :class="{ active: form.gender === 'female' }"
-                            @click="form.gender = 'female'">Женский</button>
+                            @click="form.gender = 'female'">{{ __('auth.gender.female') }}</button>
                     </div>
                 </div>
 
                 <div class="edit-field">
-                    <label class="edit-label">Дата рождения</label>
+                    <label class="edit-label">{{ __('auth.birth_date') }}</label>
                     <div class="dob-row">
-                        <AppSelect v-model="bdDay" :options="dayOptions" placeholder="День"
+                        <AppSelect v-model="bdDay" :options="dayOptions" :placeholder="__('auth.birth_date.day')"
                             style="flex:1;min-width:0" />
-                        <AppSelect v-model="bdMonth" :options="monthOptions" placeholder="Месяц"
+                        <AppSelect v-model="bdMonth" :options="monthOptions" :placeholder="__('auth.birth_date.month')"
                             style="flex:1;min-width:0" />
-                        <AppSelect v-model="bdYear" :options="yearOptions" placeholder="Год"
+                        <AppSelect v-model="bdYear" :options="yearOptions" :placeholder="__('auth.birth_date.year')"
                             style="flex:1;min-width:0" />
                     </div>
                 </div>
 
                 <div class="edit-field">
-                    <label class="edit-label">Часовой пояс</label>
-                    <AppSelect v-model="form.timezone" :options="timezoneOptions" placeholder="Не указан" />
+                    <label class="edit-label">{{ __('search.filters.timezone') }}</label>
+                    <AppSelect v-model="form.timezone" :options="timezoneOptions" :placeholder="__('profile.header.tz_ph')" />
                 </div>
 
                 <div v-if="user.avatar_url" class="edit-field">
-                    <label class="edit-label">Аватар</label>
-                    <button class="delete-avatar-btn" type="button" @click="deleteAvatar">Удалить фото</button>
+                    <label class="edit-label">{{ __('common.avatar') }}</label>
+                    <button class="delete-avatar-btn" type="button" @click="deleteAvatar">{{ __('profile.header.delete_avatar') }}</button>
                 </div>
 
-                <button class="save-btn" :disabled="form.processing" @click="submitEdit">Сохранить</button>
+                <button class="save-btn" :disabled="form.processing" @click="submitEdit">{{ __('common.save') }}</button>
             </div>
         </SiteModal>
     </div>

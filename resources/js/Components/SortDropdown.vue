@@ -1,5 +1,8 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     modelValue: { type: String, required: true },
@@ -31,7 +34,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick, true));
 
 <template>
     <div class="sd-wrap" ref="wrapEl">
-        <span class="sd-label">Сортировка:</span>
+        <span class="sd-label">{{ __('common.sort') }}</span>
         <div class="sd-trigger">
             <button class="sd-btn" type="button" @click="open = !open">
                 {{ currentLabel }}

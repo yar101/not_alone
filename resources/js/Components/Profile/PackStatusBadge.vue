@@ -1,18 +1,21 @@
 <script setup>
 import { computed } from 'vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     status: { type: String, required: true },
 });
 
-const LABELS = {
-    pending_review: 'На рассмотрении',
-    approved:       'Одобрен',
-    published:      'Опубликован',
-    has_remarks:    'Есть замечания',
-    rejected:       'Отклонён',
-    hidden:         'Скрыт',
-};
+const LABELS = computed(() => ({
+    pending_review: __('pack.status.pending'),
+    approved:       __('pack.status.approved'),
+    published:      __('pack.status.published'),
+    has_remarks:    __('pack.status.remarks'),
+    rejected:       __('pack.status.rejected'),
+    hidden:         __('pack.status.hidden'),
+}));
 
 const STYLES = {
     pending_review: { color: 'var(--color-base-1)', bg: 'rgba(160,160,255,0.14)', border: 'rgba(160,160,255,0.28)', shine: 'rgba(200,200,255,0.65)' },
@@ -23,7 +26,7 @@ const STYLES = {
     hidden:         { color: 'rgba(180,180,200,0.65)', bg: 'rgba(180,180,200,0.08)', border: 'rgba(180,180,200,0.18)', shine: 'rgba(220,220,230,0.38)' },
 };
 
-const label  = computed(() => LABELS[props.status] ?? props.status);
+const label  = computed(() => LABELS.value[props.status] ?? props.status);
 const style  = computed(() => STYLES[props.status] ?? STYLES.pending_review);
 </script>
 

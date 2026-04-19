@@ -10,7 +10,10 @@ import {
     PictureFilled, StarFilled,
 } from '@element-plus/icons-vue';
 
+import { useTranslations } from '@/composables/useTranslations';
+
 const page = usePage();
+const { __, locale } = useTranslations();
 const open = ref(false);
 
 const allItems = ref([]);
@@ -161,30 +164,30 @@ const latestKnownAt = ref(null);
 function notifPopupTitle(item) {
     if (item._cat === 'order') {
         return {
-            order_created: 'Новый заказ',
-            order_accepted: 'Заказ принят',
-            order_cancelled: 'Заказ отменён',
-            order_paid: 'Заказ оплачен',
-            order_completed: 'Заказ завершён',
-        }[item.type] ?? 'Заказ';
+            order_created: __('notification.type.order_created'),
+            order_accepted: __('notification.type.order_accepted'),
+            order_cancelled: __('notification.type.order_cancelled'),
+            order_paid: __('notification.type.order_paid'),
+            order_completed: __('notification.type.order_completed'),
+        }[item.type] ?? __('notification.type.order_created');
     }
     if (item.title) return item.title;
     return {
-        content_pack_approved: 'Пак одобрен',
-        content_pack_remarks: 'Замечания к паку',
-        content_pack_rejected: 'Пак отклонён',
-        content_pack_change_approved: 'Изменения одобрены',
-        content_pack_change_remarks: 'Замечания к изменениям',
-        content_pack_change_rejected: 'Изменения отклонены',
-        idol_approved: 'Заявка одобрена',
-        idol_rejected: 'Заявка отклонена',
-        admin_broadcast: 'Объявление',
-        low_rating_warning: 'Предупреждение',
-        admin_rating: 'Оценка',
-        review_dispute_approved: 'Спор одобрен',
-        review_dispute_rejected: 'Спор отклонён',
-        new_review: 'Новый отзыв',
-    }[item.type] ?? 'Уведомление';
+        content_pack_approved: __('notification.type.pack_approved'),
+        content_pack_remarks: __('notification.type.pack_remarks'),
+        content_pack_rejected: __('notification.type.pack_rejected'),
+        content_pack_change_approved: __('notification.type.pack_change_approved'),
+        content_pack_change_remarks: __('notification.type.pack_change_remarks'),
+        content_pack_change_rejected: __('notification.type.pack_change_rejected'),
+        idol_approved: __('notification.type.app_approved'),
+        idol_rejected: __('notification.type.app_rejected'),
+        admin_broadcast: __('notification.type.broadcast'),
+        low_rating_warning: __('notification.type.low_rating'),
+        admin_rating: __('notification.type.admin_rating'),
+        review_dispute_approved: __('notification.type.dispute_approved'),
+        review_dispute_rejected: __('notification.type.dispute_rejected'),
+        new_review: __('notification.type.new_review'),
+    }[item.type] ?? __('notification.type.default');
 }
 
 function showNotifPopup(item) {
@@ -228,11 +231,12 @@ async function handleNewNotification() {
 
 function relativeTime(dateStr) {
     const diff = (Date.now() - new Date(dateStr)) / 1000;
-    if (diff < 60) return 'только что';
-    if (diff < 3600) return `${Math.floor(diff / 60)} мин. назад`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)} ч. назад`;
-    if (diff < 2592000) return `${Math.floor(diff / 86400)} дн. назад`;
-    return new Date(dateStr).toLocaleDateString('ru', { day: 'numeric', month: 'short' });
+    if (diff < 60) return __('notification.time.just_now');
+    if (diff < 3600) return __('notification.time.minutes', { n: Math.floor(diff / 60) });
+    if (diff < 86400) return __('notification.time.hours', { n: Math.floor(diff / 3600) });
+    if (diff < 2592000) return __('notification.time.days', { n: Math.floor(diff / 86400) });
+    const loc = locale.value?.current === 'ru' ? 'ru' : 'en';
+    return new Date(dateStr).toLocaleDateString(loc, { day: 'numeric', month: 'short' });
 }
 
 function itemIconComponent(item) {
@@ -288,17 +292,21 @@ function itemIconClass(item) {
 }
 
 function orderMessage(item) {
-    if (item.type === 'order_created') return `Новый заказ от ${item.data?.customer_name}`;
+    if (item.type === 'order_created') return __('notification.msg.new_order', { name: item.data?.customer_name });
     if (item.type === 'order_accepted') {
-        const verb = item.data?.idol_gender === 'female' ? 'приняла' : 'принял';
-        return `${item.data?.idol_name} ${verb} заказ`;
+        const key = item.data?.idol_gender === 'female'
+            ? 'notification.msg.order_accepted.female'
+            : 'notification.msg.order_accepted.male';
+        return __(key, { name: item.data?.idol_name });
     }
-    if (item.type === 'order_cancelled') return 'Заказ отменён';
+    if (item.type === 'order_cancelled') return __('notification.msg.order_cancelled');
     if (item.type === 'order_paid') {
-        const verb = item.data?.customer_gender === 'female' ? 'оплатила' : 'оплатил';
-        return `${item.data?.customer_name} ${verb} заказ`;
+        const key = item.data?.customer_gender === 'female'
+            ? 'notification.msg.order_paid.female'
+            : 'notification.msg.order_paid.male';
+        return __(key, { name: item.data?.customer_name });
     }
-    if (item.type === 'order_completed') return 'Заказ успешно завершён';
+    if (item.type === 'order_completed') return __('notification.msg.order_completed');
     return '';
 }
 
@@ -355,23 +363,23 @@ onUnmounted(() => {
 
                 <!-- Header -->
                 <div class="notif-panel-header">
-                    <span class="notif-panel-title">Уведомления</span>
+                    <span class="notif-panel-title">{{ __('notification.title') }}</span>
                     <div class="notif-filters">
                         <button class="notif-filter-btn" :class="{ 'notif-filter-btn--active': activeFilter === 'all' }"
                             @click="activeFilter = 'all'">
-                            Все
+                            {{ __('notification.tab.all') }}
                             <span v-if="totalUnread > 0" class="notif-filter-dot"></span>
                         </button>
                         <button class="notif-filter-btn"
                             :class="{ 'notif-filter-btn--active': activeFilter === 'service' }"
                             @click="activeFilter = 'service'">
-                            Сервис
+                            {{ __('notification.tab.service') }}
                             <span v-if="serviceUnread > 0" class="notif-filter-dot"></span>
                         </button>
                         <button class="notif-filter-btn"
                             :class="{ 'notif-filter-btn--active': activeFilter === 'order' }"
                             @click="activeFilter = 'order'">
-                            Заказы
+                            {{ __('notification.tab.orders') }}
                             <span v-if="orderUnread > 0" class="notif-filter-dot"></span>
                         </button>
                     </div>
@@ -399,7 +407,7 @@ onUnmounted(() => {
                                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                             </svg>
                         </div>
-                        <p class="empty-text">Нет уведомлений</p>
+                        <p class="empty-text">{{ __('notification.empty') }}</p>
                     </div>
 
                     <!-- Unified list -->
@@ -422,8 +430,7 @@ onUnmounted(() => {
                                         <template v-else>{{ item.message }}</template>
                                     </p>
                                     <span class="notif-cat-tag" :class="`cat--${item._cat}`">
-                                        {{ item._cat === 'personal' ? 'Личное' : item._cat === 'service' ? 'Сервис' :
-                                            'Заказ' }}
+                                        {{ item._cat === 'personal' ? __('notification.tag.personal') : item._cat === 'service' ? __('notification.tag.service') : __('notification.tag.order') }}
                                     </span>
                                 </div>
                                 <p v-if="item.title" class="notif-msg notif-msg--sub">
@@ -431,7 +438,7 @@ onUnmounted(() => {
                                     <template v-else>{{ item.message }}</template>
                                 </p>
                                 <p v-if="item.reason" class="notif-reason">
-                                    <span class="notif-reason--sub">Причина:</span> {{ item.reason }}
+                                    <span class="notif-reason--sub">{{ __('notification.reason') }}</span> {{ item.reason }}
                                 </p>
                                 <div class="notif-footer-row">
                                     <span class="notif-time">{{ relativeTime(item.created_at) }}</span>
@@ -443,8 +450,7 @@ onUnmounted(() => {
                         <div v-if="hasMore || loadingMore" class="notif-load-more-wrap">
                             <button class="notif-load-more-btn" :disabled="loadingMore" @click="fetchMore">
                                 <span class="notif-load-more-text"
-                                    :style="{ visibility: loadingMore ? 'hidden' : 'visible' }">Загрузить
-                                    ещё</span>
+                                    :style="{ visibility: loadingMore ? 'hidden' : 'visible' }">{{ __('notification.load_more') }}</span>
                                 <span v-if="loadingMore" class="notif-load-more-dots">
                                     <span class="notif-load-dot"></span>
                                     <span class="notif-load-dot"></span>

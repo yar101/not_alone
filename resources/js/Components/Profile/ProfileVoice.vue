@@ -2,6 +2,9 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import WaveSurfer from 'wavesurfer.js';
 import { router } from '@inertiajs/vue3';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     voiceUrl: { type: String, default: null },
@@ -180,7 +183,7 @@ async function startRecording() {
         countdown.value  = MAX_SEC;
         timer = setInterval(() => { if (--countdown.value <= 0) stopRecording(); }, 1000);
     } catch {
-        alert('Не удалось получить доступ к микрофону');
+        alert(__('profile.voice.err.mic'));
     }
 }
 
@@ -203,7 +206,7 @@ function upload() {
 }
 
 function deleteVoice() {
-    if (!confirm('Удалить аудио?')) return;
+    if (!confirm(__('profile.voice.confirm.del'))) return;
     if (ws) { ws.destroy(); ws = null; wsReady.value = false; playing.value = false; }
     router.delete(route('profile.delete.voice'), { preserveState: true, preserveScroll: true });
 }
@@ -229,7 +232,7 @@ function deleteVoice() {
                 class="play-btn"
                 :disabled="!wsReady"
                 @click="togglePlay"
-                :title="playing ? 'Пауза' : 'Играть'"
+                :title="playing ? __('profile.voice.pause') : __('profile.voice.play')"
             >
                 <svg v-if="!wsReady" class="icon-loading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <circle cx="12" cy="12" r="9" stroke-opacity="0.2"/>
@@ -249,7 +252,7 @@ function deleteVoice() {
                 <div class="times">{{ fmt(currentSec) }} / {{ fmt(totalSec) }}</div>
             </div>
 
-            <button v-if="isOwner" class="del-btn" @click="deleteVoice" title="Удалить">
+            <button v-if="isOwner" class="del-btn" @click="deleteVoice" :title="__('common.delete')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
@@ -259,12 +262,12 @@ function deleteVoice() {
         <!-- Запись идёт -->
         <div v-else-if="recording" class="recording">
             <span class="rec-dot" />
-            <span class="rec-timer">{{ countdown }}с</span>
-            <button class="stop-btn" @click="stopRecording">Стоп</button>
+            <span class="rec-timer">{{ countdown }}{{ __('common.sec') }}</span>
+            <button class="stop-btn" @click="stopRecording">{{ __('profile.voice.stop') }}</button>
         </div>
 
         <!-- Гость: аудио нет -->
-        <div v-else-if="!isOwner" class="no-audio">Аудио отсутствует</div>
+        <div v-else-if="!isOwner" class="no-audio">{{ __('profile.voice.empty') }}</div>
 
         <!-- Кнопка записи -->
         <button v-else-if="isOwner" class="rec-btn" @click="startRecording">
@@ -274,7 +277,7 @@ function deleteVoice() {
                 <line x1="12" y1="19" x2="12" y2="22"/>
                 <line x1="8" y1="22" x2="16" y2="22"/>
             </svg>
-            <span>Записать аудио</span>
+            <span>{{ __('profile.voice.record') }}</span>
         </button>
     </div>
 </template>

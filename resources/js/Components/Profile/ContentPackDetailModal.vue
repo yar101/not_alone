@@ -2,6 +2,9 @@
 import { inject, ref, computed, onMounted, onUnmounted } from 'vue';
 import { Picture } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     show:      { type: Boolean, default: false },
@@ -86,7 +89,7 @@ function handleAddToCart() {
                     </div>
                     <div class="cdm-cover__badge">
                         <el-icon :size="14"><Picture /></el-icon>
-                        {{ pack.photos_count }} фото
+                        {{ __('pack.photos', { count: pack.photos_count }) }}
                     </div>
                 </div>
             </template>
@@ -100,16 +103,16 @@ function handleAddToCart() {
                     </div>
                     <div class="cdm-meta">
                         <span class="cdm-price">{{ pack.price }} ₽</span>
-                        <span class="cdm-count">{{ pack.photos_count }} фото</span>
+                        <span class="cdm-count">{{ __('pack.photos', { count: pack.photos_count }) }}</span>
                     </div>
                 </div>
 
                 <div class="cdm-actions">
                     <template v-if="!isOwner">
-                        <button v-if="purchased" class="cdm-btn cdm-btn--purchased" disabled>Уже куплено</button>
-                        <button v-else class="cdm-btn cdm-btn--cart" @click="handleAddToCart">Добавить в корзину</button>
+                        <button v-if="purchased" class="cdm-btn cdm-btn--purchased" disabled>{{ __('pack.already_purchased') }}</button>
+                        <button v-else class="cdm-btn cdm-btn--cart" @click="handleAddToCart">{{ __('pack.add_to_cart') }}</button>
                     </template>
-                    <button class="cdm-btn cdm-btn--close" @click="emit('close')">Закрыть</button>
+                    <button class="cdm-btn cdm-btn--close" @click="emit('close')">{{ __('common.close') }}</button>
                 </div>
             </div>
         </div>

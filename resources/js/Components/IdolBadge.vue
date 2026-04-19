@@ -1,5 +1,10 @@
+<script setup>
+import { useTranslations } from '@/composables/useTranslations';
+const { __ } = useTranslations();
+</script>
+
 <template>
-    <span class="idol-badge">Айдол</span>
+    <span class="idol-badge">{{ __('common.idol') }}</span>
 </template>
 
 <style scoped>

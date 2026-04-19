@@ -2,6 +2,9 @@
 import { ref, computed } from 'vue';
 import axios from 'axios';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     show:  { type: Boolean, default: false },
@@ -54,7 +57,7 @@ function formatPrice(n) {
         <div class="rom">
             <!-- Idol -->
             <div class="rom__idol">
-                <span class="rom__idol-label">Айдол:</span>
+                <span class="rom__idol-label">{{ __('chat.idol') }}</span>
 <span class="rom__idol-name">{{ order.idol.name }}</span>
             </div>
 
@@ -75,14 +78,14 @@ function formatPrice(n) {
 
                 <div v-for="item in unavailableItems" :key="'u-' + item.id" class="rom__line rom__line--unavailable">
                     <span class="rom__line-name">—</span>
-                    <span class="rom__line-tag">недоступно</span>
+                    <span class="rom__line-tag">{{ __('chat.unavailable') }}</span>
                     <span class="rom__line-price">—</span>
                 </div>
 
                 <div class="rom__divider rom__divider--sm" />
 
                 <div class="rom__total">
-                    <span class="rom__total-label">ИТОГО</span>
+                    <span class="rom__total-label">{{ __('cart.total') }}</span>
                     <span class="rom__total-value">{{ formatPrice(total) }}</span>
                 </div>
             </div>

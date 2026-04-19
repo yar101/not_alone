@@ -9,6 +9,9 @@ import CreateContentPackModal from '@/Components/Profile/CreateContentPackModal.
 import ContentPackRemarksModal from '@/Components/Profile/ContentPackRemarksModal.vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import PackStatusBadge from '@/Components/Profile/PackStatusBadge.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     contentPacks: { default: null },
@@ -103,7 +106,7 @@ async function savePrice() {
         }
         editingPrice.value = false;
     } catch (e) {
-        priceError.value = e.response?.data?.errors?.price?.[0] ?? 'Ошибка сохранения';
+        priceError.value = e.response?.data?.errors?.price?.[0] ?? __('common.saving');
     } finally {
         priceUpdating.value = false;
     }
@@ -400,16 +403,16 @@ function handleAddToCart(pack) {
     addToContentCart(pack);
 }
 
-const sortOptions = [
-    { value: 'newest', label: 'сначала новые' },
-    { value: 'oldest', label: 'сначала старые' },
-];
+const sortOptions = computed(() => [
+    { value: 'newest', label: __('reviews.sort.newest') },
+    { value: 'oldest', label: __('reviews.sort.oldest') },
+]);
 
-const ownerSortOptions = [
-    { value: 'newest', label: 'сначала новые' },
-    { value: 'oldest', label: 'сначала старые' },
-    { value: 'hidden_first', label: 'сначала скрытые' },
-];
+const ownerSortOptions = computed(() => [
+    { value: 'newest', label: __('reviews.sort.newest') },
+    { value: 'oldest', label: __('reviews.sort.oldest') },
+    { value: 'hidden_first', label: __('profile.content.sort.hidden') },
+]);
 
 </script>
 
@@ -436,14 +439,14 @@ const ownerSortOptions = [
                 <div class="pc-idol-cta-block">
                     <div class="pc-idol-cta-content">
                         <div class="pc-idol-cta-left">
-                            <span class="pc-idol-cta-eyebrow">Раздел айдолов</span>
-                            <p class="pc-idol-cta-title">Дай фанатам<br>эксклюзив</p>
+                            <span class="pc-idol-cta-eyebrow">{{ __('nav.content') }}</span>
+                            <p class="pc-idol-cta-title">{{ __('profile.content.become.tagline') }}</p>
                             <div class="pc-idol-cta-tags">
-                                <span class="pc-idol-cta-tag">Эксклюзивные паки</span>
-                                <span class="pc-idol-cta-tag">Платный доступ</span>
+                                <span class="pc-idol-cta-tag">{{ __('profile.content.feature.packs') }}</span>
+                                <span class="pc-idol-cta-tag">{{ __('profile.content.feature.paid') }}</span>
                             </div>
                         </div>
-                        <Link href="/idol/apply" class="pc-idol-cta-btn">Подать заявку</Link>
+                        <Link href="/idol/apply" class="pc-idol-cta-btn">{{ __('profile.content.apply') }}</Link>
                     </div>
                 </div>
             </template>
@@ -452,11 +455,11 @@ const ownerSortOptions = [
             <template v-else-if="isOwner && isIdol">
                 <div class="pc-toolbar">
                     <SortDropdown :options="ownerSortOptions" v-model="sort" @update:modelValue="onSortChange" />
-                    <CreateButton @click="showCreateModal = true">Новый пак</CreateButton>
+                    <CreateButton @click="showCreateModal = true">{{ __('profile.content.new_pack') }}</CreateButton>
                 </div>
 
                 <div v-if="ownerPacksSorted !== null && !ownerPacksSorted?.length && !loading" class="pc-empty">
-                    <p>У вас пока нет паков. Создайте первый!</p>
+                    <p>{{ __('profile.content.empty') }}</p>
                 </div>
 
                 <div v-else class="pc-grid">
@@ -480,7 +483,7 @@ const ownerSortOptions = [
                                         <circle cx="11" cy="11" r="8" />
                                         <line x1="21" y1="21" x2="16.65" y2="16.65" />
                                     </svg>
-                                    Подробнее
+                                    {{ __('common.details') }}
                                 </button>
                             </div>
                         </div>
@@ -493,14 +496,13 @@ const ownerSortOptions = [
                                 <PackStatusBadge v-if="pack.pending_change?.status === 'has_remarks'"
                                     status="has_remarks" />
                                 <span v-else-if="pack.pending_change?.changed_fields?.length"
-                                    class="pc-card__pending-badge">На
-                                    проверке</span>
+                                    class="pc-card__pending-badge">{{ __('profile.content.pending_badge') }}</span>
                             </div>
                         </div>
                         <div class="pc-card__footer">
                             <template v-if="pack.status === 'has_remarks'">
                                 <button class="pc-btn--details pc-btn--details-warn"
-                                    @click.stop="openDetail(pack)">Исправить</button>
+                                    @click.stop="openDetail(pack)">{{ __('profile.content.fix') }}</button>
                                 <button class="pc-btn--details-icon" @click.stop="handleDelete(pack)">
                                     <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <polyline points="3 6 5 6 21 6" stroke-width="2" stroke-linecap="round"
@@ -518,7 +520,7 @@ const ownerSortOptions = [
                                 <!-- Change request has remarks: prominent CTA -->
                                 <button v-if="pack.pending_change?.status === 'has_remarks'"
                                     class="pc-btn--details pc-btn--details-warn pc-btn--grow"
-                                    @click.stop="openChangeRequestRemarks(pack)">Исправить</button>
+                                    @click.stop="openChangeRequestRemarks(pack)">{{ __('profile.content.fix') }}</button>
                                 <template v-else>
                                     <button v-if="pack.status === 'approved'"
                                         class="pc-btn pc-btn--primary pc-btn--grow"
@@ -530,10 +532,10 @@ const ownerSortOptions = [
                                             stroke-linecap="round" class="pc-spin">
                                             <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                                         </svg>
-                                        {{ publishingPackId === pack.id ? 'Публикация…' : 'Опубликовать' }}
+                                        {{ publishingPackId === pack.id ? __('profile.content.publishing') : __('common.publish') }}
                                     </button>
                                     <button v-if="pack.status !== 'approved'" class="pc-btn--details"
-                                        @click.stop="openDetail(pack)">Подробнее</button>
+                                        @click.stop="openDetail(pack)">{{ __('common.details') }}</button>
                                 </template>
                                 <button v-if="['approved', 'rejected'].includes(pack.status)"
                                     class="pc-btn--details-icon" @click.stop="handleDelete(pack)">
@@ -561,7 +563,7 @@ const ownerSortOptions = [
                 </div>
 
                 <div v-if="displayPacks() !== null && !displayPacks().length && !loading" class="pc-empty">
-                    <p>Нет опубликованных паков.</p>
+                    <p>{{ __('profile.content.no_published') }}</p>
                 </div>
                 <div v-else class="pc-grid">
                     <div v-for="pack in displayPacks()" :key="pack.id" class="pc-card pc-card--visitor"
@@ -582,7 +584,7 @@ const ownerSortOptions = [
                                         <circle cx="11" cy="11" r="8" />
                                         <line x1="21" y1="21" x2="16.65" y2="16.65" />
                                     </svg>
-                                    Подробнее
+                                    {{ __('common.details') }}
                                 </button>
                             </div>
                         </div>
@@ -599,7 +601,7 @@ const ownerSortOptions = [
                                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <polyline points="20 6 9 17 4 12" />
                                 </svg>
-                                Открыт
+                                {{ __('profile.content.open') }}
                             </template>
                             <template v-else-if="isInCart(pack.id)">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -608,7 +610,7 @@ const ownerSortOptions = [
                                     <circle cx="20" cy="21" r="1" />
                                     <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
                                 </svg>
-                                Добавлено
+                                {{ __('profile.content.added') }}
                             </template>
                             <template v-else>
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -617,7 +619,7 @@ const ownerSortOptions = [
                                     <circle cx="20" cy="21" r="1" />
                                     <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
                                 </svg>
-                                В корзину
+                                {{ __('profile.content.to_cart') }}
                             </template>
                         </button>
                     </div>
@@ -651,15 +653,13 @@ const ownerSortOptions = [
                             stroke-linejoin="round" />
                     </svg>
                 </div>
-                <div class="pc-delete-confirm__title">Удалить пак?</div>
-                <div class="pc-delete-confirm__text">«{{ packToDelete?.title }}» будет удалён без возможности
-                    восстановления.
-                </div>
+                <div class="pc-delete-confirm__title">{{ __('common.delete') }}?</div>
+                <div class="pc-delete-confirm__text">«{{ packToDelete?.title }}» {{ __('profile.content.delete_body') }}</div>
                 <div class="pc-delete-confirm__actions">
                     <button class="pc-delete-confirm__btn pc-delete-confirm__btn--cancel"
-                        @click="cancelDelete">Отмена</button>
+                        @click="cancelDelete">{{ __('common.cancel') }}</button>
                     <button class="pc-delete-confirm__btn pc-delete-confirm__btn--confirm"
-                        @click="confirmDelete">Удалить</button>
+                        @click="confirmDelete">{{ __('common.delete') }}</button>
                 </div>
             </div>
         </SiteModal>
@@ -681,9 +681,9 @@ const ownerSortOptions = [
                     <PackStatusBadge v-if="isOwner && detailPack.pending_change?.status === 'has_remarks'" status="has_remarks" />
                     <span
                         v-else-if="isOwner && detailPack.pending_change?.changed_fields?.length"
-                        class="pc-card__pending-badge">На проверке</span>
+                        class="pc-card__pending-badge">{{ __('profile.content.pending_badge') }}</span>
                     <div class="pcd-topbar__spacer" />
-                    <button class="pcd-topbar__close" @click="closeDetail" aria-label="Закрыть">
+                    <button class="pcd-topbar__close" @click="closeDetail" :aria-label="__('common.close')">
                         <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                                 d="M6 18L18 6M6 6l12 12" />
@@ -706,7 +706,7 @@ const ownerSortOptions = [
                     <div class="pcd-hero__scrim">
                         <div class="pcd-hero__spacer" />
                         <button v-if="detailPack.cover_url" class="pcd-hero__zoom" @click.stop="coverFullscreen = true"
-                            title="Открыть">
+                            :title="__('common.details')">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="15 3 21 3 21 9" />
@@ -721,7 +721,7 @@ const ownerSortOptions = [
                 <!-- ② Cover picker (owner, slide-in) -->
                 <Transition name="pcd-slide">
                     <div v-if="showCoverPicker && detailPack.photos?.length" class="pcd-picker">
-                        <div class="pcd-picker__label">Выберите обложку</div>
+                        <div class="pcd-picker__label">{{ __('profile.content.pick_cover') }}</div>
                         <div class="pcd-picker__grid">
                             <button v-for="photo in detailPack.photos" :key="photo.id" class="pcd-picker__item"
                                 :class="{ 'pcd-picker__item--active': detailPack.cover_url === photo.url }"
@@ -746,8 +746,8 @@ const ownerSortOptions = [
                         class="pcd-remarks-banner">
                         <el-icon class="pcd-remarks-banner__icon"><WarnTriangleFilled /></el-icon>
                         <span>
-                            <strong>Требуются исправления</strong>
-                            <span v-if="detailPack.status === 'has_remarks'" class="pcd-remarks-banner__note">Пак не виден другим пользователям</span>
+                            <strong>{{ __('profile.content.needs_fix') }}</strong>
+                            <span v-if="detailPack.status === 'has_remarks'" class="pcd-remarks-banner__note">{{ __('profile.content.hidden_msg') }}</span>
                         </span>
                     </div>
 
@@ -759,9 +759,9 @@ const ownerSortOptions = [
                                 autofocus />
                             <div class="pcd-inline-btns">
                                 <button class="pcd-inline-btn pcd-inline-btn--save" :disabled="titleUpdating"
-                                    @click="saveTitle">Сохранить</button>
+                                    @click="saveTitle">{{ __('common.save') }}</button>
                                 <button class="pcd-inline-btn pcd-inline-btn--cancel"
-                                    @click="cancelEditTitle">Отмена</button>
+                                    @click="cancelEditTitle">{{ __('common.cancel') }}</button>
                             </div>
                         </template>
                         <template v-else>
@@ -775,20 +775,20 @@ const ownerSortOptions = [
                     <div class="pcd-desc-wrap">
                         <template v-if="isOwner && detailPack.status === 'published' && editingDesc">
                             <textarea class="pcd-field-input pcd-field-input--desc" v-model="descDraft" maxlength="2000"
-                                :disabled="descUpdating" rows="4" placeholder="Описание пака..."
+                                :disabled="descUpdating" rows="4" :placeholder="__('profile.services.desc_ph')"
                                 @keydown.esc="cancelEditDesc" />
                             <div class="pcd-inline-btns">
                                 <button class="pcd-inline-btn pcd-inline-btn--save" :disabled="descUpdating"
-                                    @click="saveDesc">Сохранить</button>
+                                    @click="saveDesc">{{ __('common.save') }}</button>
                                 <button class="pcd-inline-btn pcd-inline-btn--cancel"
-                                    @click="cancelEditDesc">Отмена</button>
+                                    @click="cancelEditDesc">{{ __('common.cancel') }}</button>
                             </div>
                         </template>
                         <template v-else-if="detailPack.description || (isOwner && detailPack.status === 'published')">
                             <div class="pcd-desc-row">
                                 <p v-if="detailPack.description" class="pcd-desc">{{ detailPack.description }}</p>
                                 <p v-else-if="isOwner && detailPack.status === 'published'"
-                                    class="pcd-desc pcd-desc--empty">Описание не добавлено</p>
+                                    class="pcd-desc pcd-desc--empty">{{ __('profile.content.no_desc') }}</p>
                             </div>
                         </template>
                     </div>
@@ -802,7 +802,7 @@ const ownerSortOptions = [
                                 <circle cx="8.5" cy="8.5" r="1.5" />
                                 <polyline points="21 15 16 10 5 21" />
                             </svg>
-                            {{ detailPack.photos_count }} фото
+                            {{ __('pack.photos', { count: detailPack.photos_count }) }}
                         </span>
                         <template v-if="editingPrice">
                             <div class="pcd-price-edit-wrap">
@@ -839,7 +839,7 @@ const ownerSortOptions = [
                                         stroke-linecap="round" class="pc-spin">
                                         <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                                     </svg>
-                                    {{ publishingPackId === detailPack.id ? 'Публикация…' : 'Опубликовать' }}
+                                    {{ publishingPackId === detailPack.id ? __('profile.content.publishing') : __('common.publish') }}
                                 </button>
                                 <button class="pc-btn pc-btn--danger pc-btn--icon"
                                     @click="handleDelete(detailPack); closeDetail()">
@@ -867,7 +867,7 @@ const ownerSortOptions = [
                                         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                         <polyline points="20 6 9 17 4 12" />
                                     </svg>
-                                    Открыт
+                                    {{ __('profile.content.open') }}
                                 </template>
                                 <template v-else-if="isInCart(detailPack.id)">
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -876,7 +876,7 @@ const ownerSortOptions = [
                                         <circle cx="20" cy="21" r="1" />
                                         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
                                     </svg>
-                                    Добавлено
+                                    {{ __('profile.content.added') }}
                                 </template>
                                 <template v-else>
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -885,7 +885,7 @@ const ownerSortOptions = [
                                         <circle cx="20" cy="21" r="1" />
                                         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
                                     </svg>
-                                    В корзину
+                                    {{ __('profile.content.to_cart') }}
                                 </template>
                             </button>
                         </template>
@@ -898,7 +898,7 @@ const ownerSortOptions = [
                         <template v-if="detailPack.status === 'has_remarks' || detailPack.pending_change?.status === 'has_remarks'">
                             <button class="pcd-edit-toggle pcd-edit-toggle--danger"
                                 @click="detailPack.status === 'has_remarks' ? openRemarks(detailPack) : openChangeRequestRemarks(detailPack)">
-                                Исправить
+                                {{ __('profile.content.fix') }}
                             </button>
                         </template>
                         <template v-else>
@@ -915,7 +915,7 @@ const ownerSortOptions = [
                                             d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                                         <circle cx="12" cy="13" r="4" />
                                     </svg>
-                                    Сменить обложку
+                                    {{ __('profile.content.change_cover') }}
                                 </button>
                                 <button class="pcd-edit-item" @click="startEditTitle(); showEditMenu = false">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -923,7 +923,7 @@ const ownerSortOptions = [
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                     </svg>
-                                    Изменить название
+                                    {{ __('profile.content.change_title') }}
                                 </button>
                                 <button class="pcd-edit-item" @click="startEditDesc(); showEditMenu = false">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -933,7 +933,7 @@ const ownerSortOptions = [
                                         <line x1="21" y1="14" x2="3" y2="14" />
                                         <line x1="17" y1="18" x2="3" y2="18" />
                                     </svg>
-                                    Изменить описание
+                                    {{ __('profile.content.change_desc') }}
                                 </button>
                                 <button class="pcd-edit-item" @click="startEditPrice()">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -941,7 +941,7 @@ const ownerSortOptions = [
                                         <line x1="12" y1="1" x2="12" y2="23" />
                                         <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                                     </svg>
-                                    Изменить цену
+                                    {{ __('profile.content.change_price') }}
                                 </button>
                                 <hr class="pcd-edit-divider" />
                                 <button class="pcd-edit-item" @click="handleToggleVisibility(detailPack)">
@@ -954,7 +954,7 @@ const ownerSortOptions = [
                                         <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
                                         <line x1="1" y1="1" x2="23" y2="23" />
                                     </svg>
-                                    {{ detailPack.hidden_at ? 'Показать пак' : 'Скрыть пак' }}
+                                    {{ detailPack.hidden_at ? __('profile.content.show_pack') : __('profile.content.hide_pack') }}
                                 </button>
                                 <button class="pcd-edit-item pcd-edit-item--danger" @click="handleDelete(detailPack); closeDetail()">
                                     <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -963,7 +963,7 @@ const ownerSortOptions = [
                                         <path d="M10 11v6M14 11v6" />
                                         <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                                     </svg>
-                                    Удалить пак
+                                    {{ __('profile.content.delete_pack') }}
                                 </button>
                             </div>
                         </Transition>
@@ -973,7 +973,7 @@ const ownerSortOptions = [
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                             </svg>
-                            Редактировать
+                            {{ __('common.edit') }}
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
                                 :style="{ transform: showEditMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }">

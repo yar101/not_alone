@@ -3,6 +3,9 @@ import { ref, reactive, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -13,11 +16,11 @@ const props = defineProps({
 });
 const emit = defineEmits(['close', 'submitted', 'fixed']);
 
-const FIELD_LABELS = {
-    title:       'Название',
-    description: 'Описание',
-    price:       'Цена',
-};
+const FIELD_LABELS = computed(() => ({
+    title:       __('pack.remark.title'),
+    description: __('pack.remark.desc'),
+    price:       __('pack.remark.price'),
+}));
 
 const isChangeRequest = computed(() => props.mode === 'change-request');
 
@@ -72,11 +75,11 @@ function handlePhotoReplace(photoId, e) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!ALLOWED_MIME.includes(file.type)) {
-        errors.value['photo_' + photoId] = 'Только JPEG, PNG, WebP.';
+        errors.value['photo_' + photoId] = __('pack.remark.format');
         return;
     }
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-        errors.value['photo_' + photoId] = `Файл превышает ${MAX_SIZE_MB} МБ.`;
+        errors.value['photo_' + photoId] = __('pack.remark.file_size', { size: MAX_SIZE_MB });
         return;
     }
     errors.value['photo_' + photoId] = null;
@@ -172,14 +175,14 @@ function previewForPhoto(id) {
                     </svg>
                 </div>
                 <div>
-                    <h2 class="rm-header__title">Замечания по паку</h2>
-                    <p class="rm-header__sub">Исправьте отмеченные поля и отправьте на повторную проверку</p>
+                    <h2 class="rm-header__title">{{ __('pack.remarks_title') }}</h2>
+                    <p class="rm-header__sub">{{ __('pack.remarks_sub') }}</p>
                 </div>
             </div>
 
             <!-- Flagged fields -->
             <template v-if="flaggedFields.length">
-                <div class="rm-section-label">Поля</div>
+                <div class="rm-section-label">{{ __('pack.remarks.fields_label') }}</div>
                 <div class="rm-fields">
                     <div v-for="field in flaggedFields" :key="field" class="rm-field">
                         <div class="rm-field__head">
@@ -198,7 +201,7 @@ function previewForPhoto(id) {
                             class="rm-input"
                             type="text"
                             maxlength="120"
-                            placeholder="Название"
+                            :placeholder="__('pack.remark.title')"
                         />
                         <textarea
                             v-else-if="field === 'description'"
@@ -206,7 +209,7 @@ function previewForPhoto(id) {
                             class="rm-input rm-textarea"
                             rows="3"
                             maxlength="2000"
-                            placeholder="Описание"
+                            :placeholder="__('pack.remark.desc')"
                         />
                         <input
                             v-else-if="field === 'price'"
@@ -215,7 +218,7 @@ function previewForPhoto(id) {
                             type="number"
                             min="1"
                             max="999999"
-                            placeholder="Цена в рублях"
+                            :placeholder="__('pack.field.price_placeholder')"
                         />
                         <span v-if="errors[field]" class="rm-err">{{ errors[field] }}</span>
                     </div>
@@ -224,7 +227,7 @@ function previewForPhoto(id) {
 
             <!-- Flagged photos -->
             <template v-if="flaggedPhotoIds.length">
-                <div class="rm-section-label">Фотографии</div>
+                <div class="rm-section-label">{{ __('pack.field.photos') }}</div>
                 <div class="rm-photos">
                     <div
                         v-for="photoId in flaggedPhotoIds"
@@ -234,7 +237,7 @@ function previewForPhoto(id) {
                     >
                         <!-- Preview -->
                         <div class="rm-photo__img-wrap">
-                            <img v-if="previewForPhoto(photoId)" :src="previewForPhoto(photoId)" alt="фото" />
+                            <img v-if="previewForPhoto(photoId)" :src="previewForPhoto(photoId)" :alt="__('chat.photo.label')" />
                             <div v-else class="rm-photo__empty">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                             </div>
@@ -262,17 +265,17 @@ function previewForPhoto(id) {
                                     @change="handlePhotoReplace(photoId, $event)"
                                 />
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                {{ photoFiles[photoId] ? 'Заменено' : 'Заменить' }}
+                                {{ photoFiles[photoId] ? __('pack.photo.replaced') : __('upload.replace') }}
                             </label>
                             <button class="rm-photo__action rm-photo__action--delete" @click="toggleDeletePhoto(photoId)">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-                                Удалить
+                                {{ __('common.delete') }}
                             </button>
                         </template>
                         <template v-else>
                             <button class="rm-photo__action rm-photo__action--restore" @click="toggleDeletePhoto(photoId)">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.01"/></svg>
-                                Восстановить
+                                {{ __('pack.photo.restore') }}
                             </button>
                         </template>
 
@@ -284,7 +287,7 @@ function previewForPhoto(id) {
             <!-- Empty state -->
             <div v-if="!flaggedFields.length && !flaggedPhotoIds.length" class="rm-empty">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                <span>Конкретных замечаний нет</span>
+                <span>{{ __('pack.remarks.empty') }}</span>
             </div>
 
             <!-- Footer actions -->
@@ -292,7 +295,7 @@ function previewForPhoto(id) {
                 <button class="rm-btn rm-btn--submit" :disabled="submitting" @click="submit">
                     <svg v-if="!submitting" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                     <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="rm-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                    {{ submitting ? 'Отправка…' : 'Отправить на проверку' }}
+                    {{ submitting ? __('pack.submit.loading') : __('pack.submit') }}
                 </button>
             </div>
 

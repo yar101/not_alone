@@ -1,13 +1,18 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     modelValue: { default: null },
     options:     { type: Array,   default: () => [] },
-    placeholder: { type: String,  default: 'Выберите...' },
+    placeholder: { type: String,  default: '' },
     disabled:    { type: Boolean, default: false },
     error:       { type: Boolean, default: false },
 });
+
+const effectivePlaceholder = computed(() => props.placeholder || __('common.select'));
 
 const emit = defineEmits(['update:modelValue', 'change']);
 
@@ -81,7 +86,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onOutsideClick));
         @click="toggle"
     >
         <span class="app-select__val" :class="{ 'app-select__val--ph': !selectedLabel }">
-            {{ selectedLabel ?? placeholder }}
+            {{ selectedLabel ?? effectivePlaceholder }}
         </span>
         <svg
             class="app-select__caret"

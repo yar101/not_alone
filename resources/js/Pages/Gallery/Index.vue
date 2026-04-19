@@ -2,6 +2,9 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 import axios from 'axios';
 
 defineOptions({ layout: AppLayout });
@@ -26,7 +29,7 @@ const filteredIdols = computed(() => {
 const sidebarItems = computed(() => {
     const items = [];
     if (props.is_idol) {
-        items.push({ id: 'mine', name: 'Мои', type: 'mine', avatar_url: null });
+        items.push({ id: 'mine', name: __('gallery.mine'), type: 'mine', avatar_url: null });
     }
     for (const idol of filteredIdols.value) {
         items.push({ ...idol, type: 'idol' });
@@ -163,7 +166,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey));
 </script>
 
 <template>
-    <Head title="Галерея" />
+    <Head :title="__('gallery.title')" />
 
     <div class="gallery-page">
 
@@ -174,7 +177,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey));
                     v-model="searchQuery"
                     type="text"
                     class="gallery-search"
-                    placeholder="Поиск айдола..."
+                    :placeholder="__('gallery.search')"
                 />
             </div>
 
@@ -192,7 +195,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey));
                             <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
                         </svg>
                     </div>
-                    <span class="gallery-idol-item__name">Все</span>
+                    <span class="gallery-idol-item__name">{{ __('common.all') }}</span>
                 </button>
 
                 <!-- Мои + айдолы — единый список -->
@@ -239,7 +242,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey));
                             </div>
                             <div class="gallery-pack-item__info">
                                 <span class="gallery-pack-item__title">{{ pack.title }}</span>
-                                <span class="gallery-pack-item__count">{{ pack.photo_count }} фото</span>
+                                <span class="gallery-pack-item__count">{{ __('pack.photos', { count: pack.photo_count }) }}</span>
                             </div>
                         </button>
                     </div>
@@ -297,12 +300,12 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey));
                     <polyline points="21 15 16 10 5 21"/>
                 </svg>
                 <template v-if="selectedIdolId === 'mine'">
-                    <p class="gallery-empty__title">У вас пока нет контент паков</p>
-                    <p class="gallery-empty__sub">Создайте паки в своём профиле, чтобы они появились здесь</p>
+                    <p class="gallery-empty__title">{{ __('gallery.empty.my_packs') }}</p>
+                    <p class="gallery-empty__sub">{{ __('gallery.empty.my_packs.sub') }}</p>
                 </template>
                 <template v-else>
-                    <p class="gallery-empty__title">У вас пока нет купленного контента</p>
-                    <p class="gallery-empty__sub">Посетите профили айдолов и добавьте паки в корзину</p>
+                    <p class="gallery-empty__title">{{ __('gallery.empty.purchased') }}</p>
+                    <p class="gallery-empty__sub">{{ __('gallery.empty.purchased.sub') }}</p>
                 </template>
             </div>
 
@@ -339,14 +342,14 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey));
                     <div class="lb-counter">{{ lightboxIndex + 1 }} / {{ photos.length }}</div>
 
                     <!-- Close -->
-                    <button class="lb-close" @click.stop="closeLightbox" aria-label="Закрыть">
+                    <button class="lb-close" @click.stop="closeLightbox" :aria-label="__('common.close')">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
                             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                         </svg>
                     </button>
 
                     <!-- Prev arrow -->
-                    <button class="lb-arrow lb-arrow--prev" @click.stop="prevPhoto" aria-label="Предыдущее">&#8249;</button>
+                    <button class="lb-arrow lb-arrow--prev" @click.stop="prevPhoto" :aria-label="__('gallery.prev')">&#8249;</button>
 
                     <!-- Image -->
                     <div class="lb-content" @click.stop>
@@ -355,7 +358,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey));
                     </div>
 
                     <!-- Next arrow -->
-                    <button class="lb-arrow lb-arrow--next" @click.stop="nextPhoto" aria-label="Следующее">&#8250;</button>
+                    <button class="lb-arrow lb-arrow--next" @click.stop="nextPhoto" :aria-label="__('gallery.next')">&#8250;</button>
 
                 </div>
             </Transition>
