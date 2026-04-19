@@ -15,7 +15,8 @@ const showForm  = ref(false);
 const editingId = ref(null);
 
 const form = useForm({
-    name:       '',
+    name_ru:    '',
+    name_en:    '',
     sort_order: 0,
     is_active:  true,
 });
@@ -29,7 +30,8 @@ function openAdd() {
 
 function openEdit(unit) {
     editingId.value = unit.id;
-    form.name       = unit.name;
+    form.name_ru    = unit.name_ru ?? '';
+    form.name_en    = unit.name_en ?? '';
     form.sort_order = unit.sort_order;
     form.is_active  = unit.is_active;
     showForm.value  = true;
@@ -85,7 +87,7 @@ function destroy(id) {
                 <tbody>
                     <tr v-for="unit in timeUnits" :key="unit.id">
                         <td>{{ unit.sort_order }}</td>
-                        <td>{{ unit.name }}</td>
+                        <td>{{ unit.name_ru }}<span v-if="unit.name_en" style="color:#888;font-size:0.82em"> / {{ unit.name_en }}</span></td>
                         <td><span :class="['badge', unit.is_active ? 'badge--on' : 'badge--off']">{{ unit.is_active ? 'Да' : 'Нет' }}</span></td>
                         <td>
                             <div class="actions">
@@ -110,9 +112,14 @@ function destroy(id) {
                     </div>
                     <form @submit.prevent="submit" class="modal__body">
                         <div class="field">
-                            <label>Название</label>
-                            <input v-model="form.name" class="input" :class="{ 'input--err': form.errors.name }" placeholder="15 минут" />
-                            <p v-if="form.errors.name" class="err">{{ form.errors.name }}</p>
+                            <label>Название (RU)</label>
+                            <input v-model="form.name_ru" class="input" :class="{ 'input--err': form.errors.name_ru }" placeholder="15 минут" />
+                            <p v-if="form.errors.name_ru" class="err">{{ form.errors.name_ru }}</p>
+                        </div>
+                        <div class="field">
+                            <label>Название (EN)</label>
+                            <input v-model="form.name_en" class="input" :class="{ 'input--err': form.errors.name_en }" placeholder="15 minutes" />
+                            <p v-if="form.errors.name_en" class="err">{{ form.errors.name_en }}</p>
                         </div>
                         <div class="field">
                             <label>Порядок сортировки</label>

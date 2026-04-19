@@ -142,7 +142,11 @@ class UserProfileController extends Controller
                             'status'           => $s->status,
                             'rejection_reason' => $s->rejection_reason,
                             'category_id'      => $s->category_id,
-                            'time_unit'        => ['id' => $s->timeUnit->id, 'name' => $s->timeUnit->name],
+                            'time_unit'        => [
+                                'id'      => $s->timeUnit->id,
+                                'name_ru' => $s->timeUnit->getTranslation('name', 'ru'),
+                                'name_en' => $s->timeUnit->getTranslation('name', 'en', false) ?: null,
+                            ],
                         ])->values(),
                     ];
                 })->values();
@@ -159,7 +163,11 @@ class UserProfileController extends Controller
                 'services'
             ),
             'serviceTimeUnits' => Inertia::defer(
-                fn () => ServiceTimeUnit::where('is_active', true)->orderBy('sort_order')->get(['id', 'name']),
+                fn () => ServiceTimeUnit::where('is_active', true)->orderBy('sort_order')->get()->map(fn ($u) => [
+                    'id'      => $u->id,
+                    'name_ru' => $u->getTranslation('name', 'ru'),
+                    'name_en' => $u->getTranslation('name', 'en', false) ?: null,
+                ]),
                 'services'
             ),
 

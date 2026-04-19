@@ -18,6 +18,10 @@ function catDesc(cat) {
         : (cat?.description_ru ?? null);
 }
 
+function localUnitName(unit) {
+    return locale.value?.current === 'en' && unit?.name_en ? unit.name_en : (unit?.name_ru ?? '');
+}
+
 const page = usePage();
 const showPendingModal = ref(false);
 
@@ -82,7 +86,7 @@ function doAddToCart(item) {
         service_id: item.id,
         name:       item.name,
         price:      item.price,
-        time_unit:  item.time_unit?.name ?? null,
+        time_unit:  localUnitName(item.time_unit) || null,
         quantity:   1,
     });
 }
@@ -318,7 +322,7 @@ const pricePreview = computed(() => {
     if (!form.price || !form.time_unit_id) return null;
     const unit = (props.serviceTimeUnits ?? []).find(u => u.id === form.time_unit_id);
     if (!unit) return null;
-    return `${Number(form.price).toLocaleString('ru')} ₽ / ${unit.name}`;
+    return `${Number(form.price).toLocaleString('ru')} ₽ / ${localUnitName(unit)}`;
 });
 
 // ── #4 Draft ─────────────────────────────────────────────────
@@ -624,7 +628,7 @@ watch(selectedCategory, (cat) => {
                                 <div class="svc-card__price-block">
                                     <span class="svc-card__amount">{{ item.price.toLocaleString('ru') }}</span><span
                                         class="svc-card__rub">₽</span><span class="svc-card__sep">/</span><span
-                                        class="svc-card__unit">{{ item.time_unit.name }}</span>
+                                        class="svc-card__unit">{{ localUnitName(item.time_unit) }}</span>
                                 </div>
 
                                 <!-- Actions column -->
@@ -841,7 +845,7 @@ watch(selectedCategory, (cat) => {
                                 <div class="sf-field">
                                     <label class="sf-label">{{ __('profile.services.form.unit') }}</label>
                                     <AppSelect v-model="form.time_unit_id"
-                                        :options="(serviceTimeUnits ?? []).map(u => ({ value: u.id, label: u.name }))"
+                                        :options="(serviceTimeUnits ?? []).map(u => ({ value: u.id, label: localUnitName(u) }))"
                                         :placeholder="__('profile.services.form.unit_ph')" :error="!!form.errors.time_unit_id" />
                                     <p v-if="form.errors.time_unit_id" class="sf-err">{{ form.errors.time_unit_id }}</p>
                                 </div>
