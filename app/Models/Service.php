@@ -4,10 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Translatable\HasTranslations;
 
 class Service extends Model
 {
-    protected $fillable = ['user_id', 'category_id', 'time_unit_id', 'name', 'price', 'is_active', 'status', 'rejection_reason', 'moderated_by', 'moderated_at'];
+    use HasTranslations;
+
+    public array $translatable = ['name'];
+
+    protected $fillable = ['user_id', 'category_id', 'time_unit_id', 'price', 'is_active', 'status', 'rejection_reason', 'moderated_by', 'moderated_at'];
 
     protected function casts(): array
     {

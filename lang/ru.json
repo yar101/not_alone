@@ -618,6 +618,12 @@
     "auth.month.11": "Ноябрь",
     "auth.month.12": "Декабрь",
 
+    "profile.services.form.name_ru": "Название (RU)",
+    "profile.services.form.name_en": "Название (EN)",
+    "profile.services.form.add_en": "Добавить название на английском",
+    "profile.services.form.add_ru": "Добавить название на русском",
+    "profile.services.search_ph_en": "напр. Let's chat about hobbies",
+
     "auth.forgot": "Забыли пароль?",
     "auth.forgot.title": "Забыли пароль",
     "auth.forgot.hint": "Введите email-адрес — мы отправим ссылку для сброса пароля.",

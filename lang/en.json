@@ -618,6 +618,12 @@
     "auth.month.11": "November",
     "auth.month.12": "December",
 
+    "profile.services.form.name_ru": "Name (RU)",
+    "profile.services.form.name_en": "Name (EN)",
+    "profile.services.form.add_en": "Add name in English",
+    "profile.services.form.add_ru": "Add name in Russian",
+    "profile.services.search_ph_en": "e.g. Let's chat about hobbies",
+
     "auth.forgot": "Forgot password?",
     "auth.forgot.title": "Forgot password",
     "auth.forgot.hint": "Enter your email address and we'll send you a password reset link.",

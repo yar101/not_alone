@@ -22,6 +22,12 @@ function localUnitName(unit) {
     return locale.value?.current === 'en' && unit?.name_en ? unit.name_en : (unit?.name_ru ?? '');
 }
 
+function localServiceName(item) {
+    return locale.value?.current === 'en' && item?.name_en
+        ? item.name_en
+        : (item?.name_ru ?? item?.name ?? '');
+}
+
 const page = usePage();
 const showPendingModal = ref(false);
 
@@ -84,7 +90,7 @@ function doAddToCart(item) {
     c.idol_avatar = props.profileUser?.avatar_url ?? null;
     c.items.push({
         service_id: item.id,
-        name:       item.name,
+        name:       localServiceName(item),
         price:      item.price,
         time_unit:  localUnitName(item.time_unit) || null,
         quantity:   1,
@@ -196,9 +202,12 @@ function saveDesc() {
 // ── Add / Edit service form ─────────────────────────────────────
 const showForm = ref(false);
 const editingId = ref(null);
+const showNameRu = ref(true);
+const showNameEn = ref(false);
 
 const form = useForm({
-    name: '',
+    name_ru: '',
+    name_en: '',
     category_id: null,
     time_unit_id: null,
     price: '',
@@ -207,6 +216,13 @@ const form = useForm({
 function openAdd() {
     editingId.value = null;
     form.reset();
+    if (locale.value?.current === 'en') {
+        showNameEn.value = true;
+        showNameRu.value = false;
+    } else {
+        showNameRu.value = true;
+        showNameEn.value = false;
+    }
     // Pre-fill category if we're inside a category detail
     if (selectedCategory.value) {
         form.category_id = selectedCategory.value.category.id;
@@ -217,7 +233,14 @@ function openAdd() {
 
 function openEdit(item) {
     editingId.value = item.id;
-    form.name = item.name;
+    form.name_ru = item.name_ru ?? '';
+    form.name_en = item.name_en ?? '';
+    showNameRu.value = !!item.name_ru;
+    showNameEn.value = !!item.name_en;
+    if (!showNameRu.value && !showNameEn.value) {
+        if (locale.value?.current === 'en') showNameEn.value = true;
+        else showNameRu.value = true;
+    }
     form.category_id = item.category_id ?? null;
     form.time_unit_id = item.time_unit?.id ?? null;
     form.price = item.price;
@@ -227,6 +250,8 @@ function openEdit(item) {
 function closeForm() {
     showForm.value = false;
     editingId.value = null;
+    showNameRu.value = true;
+    showNameEn.value = false;
     form.reset();
     form.clearErrors();
     clearDraft();
@@ -251,7 +276,7 @@ function submitForm() {
 const showCancelConfirm = ref(false);
 
 function tryCloseForm() {
-    if (!editingId.value && (form.name || form.price || form.time_unit_id)) {
+    if (!editingId.value && (form.name_ru || form.price || form.time_unit_id)) {
         showCancelConfirm.value = true;
     } else {
         closeForm();
@@ -261,6 +286,13 @@ function tryCloseForm() {
 function confirmCancelForm() {
     showCancelConfirm.value = false;
     closeForm();
+}
+
+function removeNameRu() { showNameRu.value = false; form.name_ru = ''; }
+function removeNameEn() { showNameEn.value = false; form.name_en = ''; }
+function addSecondary() {
+    if (locale.value?.current === 'en') showNameRu.value = true;
+    else showNameEn.value = true;
 }
 
 const deleteConfirmId = ref(null);
@@ -308,13 +340,19 @@ const sortedServices = computed(() => {
 const formCategory = computed(() =>
     (props.serviceCategories ?? []).find(c => c.id === form.category_id) ?? null
 );
-const formSuggestions = computed(() =>
-    Array.isArray(formCategory.value?.name_suggestions)
-        ? formCategory.value.name_suggestions
-        : []
+const formSuggestionsRu = computed(() =>
+    Array.isArray(formCategory.value?.name_suggestions?.ru)
+        ? formCategory.value.name_suggestions.ru : []
 );
-const namePlaceholder = computed(() =>
-    formSuggestions.value[0] ?? __('profile.services.search_ph')
+const formSuggestionsEn = computed(() =>
+    Array.isArray(formCategory.value?.name_suggestions?.en)
+        ? formCategory.value.name_suggestions.en : []
+);
+const namePlaceholderRu = computed(() =>
+    formSuggestionsRu.value[0] ?? __('profile.services.search_ph')
+);
+const namePlaceholderEn = computed(() =>
+    formSuggestionsEn.value[0] ?? __('profile.services.search_ph_en')
 );
 
 // ── #1 Price preview ─────────────────────────────────────────
@@ -333,7 +371,8 @@ function loadDraft() {
         const raw = localStorage.getItem(DRAFT_KEY.value);
         if (!raw) return;
         const d = JSON.parse(raw);
-        if (d.name) form.name = d.name;
+        if (d.name_ru) { form.name_ru = d.name_ru; showNameRu.value = true; }
+        if (d.name_en) { form.name_en = d.name_en; showNameEn.value = true; }
         if (d.category_id) form.category_id = d.category_id;
         if (d.price) form.price = d.price;
         if (d.time_unit_id) form.time_unit_id = d.time_unit_id;
@@ -343,7 +382,8 @@ function loadDraft() {
 function saveDraft() {
     if (!editingId.value) {
         localStorage.setItem(DRAFT_KEY.value, JSON.stringify({
-            name: form.name,
+            name_ru: form.name_ru,
+            name_en: form.name_en,
             category_id: form.category_id,
             price: form.price,
             time_unit_id: form.time_unit_id,
@@ -355,13 +395,14 @@ function clearDraft() {
     localStorage.removeItem(DRAFT_KEY.value);
 }
 
-watch([() => form.name, () => form.category_id, () => form.price, () => form.time_unit_id], saveDraft);
+watch([() => form.name_ru, () => form.name_en, () => form.category_id, () => form.price, () => form.time_unit_id], saveDraft);
 
 // ── #6 Chip animation ────────────────────────────────────────
 const animatingChip = ref(null);
 
-function selectChip(s) {
-    form.name = s;
+function selectChip(s, lang) {
+    if (lang === 'en') form.name_en = s;
+    else form.name_ru = s;
     animatingChip.value = s;
     setTimeout(() => { animatingChip.value = null; }, 300);
 }
@@ -390,8 +431,15 @@ onUnmounted(() => {
 });
 
 // ── #8 Form validation ───────────────────────────────────────
+const formAccentColor = computed(() => {
+    if (selectedCategory.value) return selectedCategory.value.category.accent_color || '#a0a0ff';
+    const cat = (props.serviceCategories ?? []).find(c => c.id === form.category_id);
+    return cat?.accent_color || '#a0a0ff';
+});
+
 const formValid = computed(() =>
-    form.name.trim().length > 0 &&
+    ((showNameRu.value && form.name_ru.trim().length > 0) ||
+     (showNameEn.value && form.name_en.trim().length > 0)) &&
     form.category_id !== null &&
     Number(form.price) > 0 &&
     form.time_unit_id !== null
@@ -617,7 +665,7 @@ watch(selectedCategory, (cat) => {
                             <!-- Info column -->
                             <div class="svc-card__info">
                                 <div class="svc-card__name-row">
-                                    <span class="svc-card__name">{{ item.name }}</span>
+                                    <span class="svc-card__name">{{ localServiceName(item) }}</span>
                                 </div>
                                 <span v-if="isOwner && item.status === 'rejected' && item.rejection_reason"
                                     class="svc-card__reason">{{ item.rejection_reason }}</span>
@@ -787,7 +835,7 @@ watch(selectedCategory, (cat) => {
 
         <!-- Add/Edit modal -->
         <SiteModal :show="showForm" variant="pink" :compact="true" @close="tryCloseForm">
-            <div class="sf-wrap">
+            <div class="sf-wrap" :style="{ '--cat-accent': formAccentColor }">
                 <Transition name="sf-screen" mode="out-in">
                     <div v-if="showCancelConfirm" key="confirm" class="sf-screen">
                         <div class="sf-title">{{ __('common.leave_confirm') }}</div>
@@ -811,24 +859,65 @@ watch(selectedCategory, (cat) => {
                                 <p v-if="form.errors.category_id" class="sf-err">{{ form.errors.category_id }}</p>
                             </div>
 
-                            <div class="sf-field">
-                                <label class="sf-label">{{ __('profile.services.form.name') }}</label>
+                            <Transition name="sf-name-fade">
+                            <div v-if="showNameRu" class="sf-field">
+                                <div class="sf-label-row">
+                                    <label class="sf-label">{{ __('profile.services.form.name_ru') }}</label>
+                                    <button v-if="showNameRu && showNameEn" type="button"
+                                        class="sf-name-remove" @click="removeNameRu" aria-label="Remove RU">×</button>
+                                </div>
                                 <div class="sf-input-wrap">
-                                    <input v-model="form.name" class="sf-input"
-                                        :class="{ 'sf-input--err': form.errors.name }" :placeholder="namePlaceholder"
-                                        maxlength="45" />
+                                    <input v-model="form.name_ru" class="sf-input"
+                                        :class="{ 'sf-input--err': form.errors.name_ru }"
+                                        :placeholder="namePlaceholderRu" maxlength="45" />
                                     <span class="sf-char-count"
-                                        :class="{ 'sf-char-count--warn': form.name.length >= 38 }">
-                                        {{ form.name.length }}/45
+                                        :class="{ 'sf-char-count--warn': form.name_ru.length >= 38 }">
+                                        {{ form.name_ru.length }}/45
                                     </span>
                                 </div>
-                                <div v-if="formSuggestions.length" class="svc-suggestions">
-                                    <button v-for="s in formSuggestions" :key="s" type="button" class="svc-chip"
-                                        :class="{ 'svc-chip--active': form.name === s, 'svc-chip--pop': animatingChip === s }"
-                                        @click="selectChip(s)">{{ s }}</button>
+                                <div v-if="formSuggestionsRu.length" class="svc-suggestions">
+                                    <button v-for="s in formSuggestionsRu" :key="s" type="button" class="svc-chip"
+                                        :class="{ 'svc-chip--active': form.name_ru === s, 'svc-chip--pop': animatingChip === s }"
+                                        @click="selectChip(s, 'ru')">{{ s }}</button>
                                 </div>
-                                <p v-if="form.errors.name" class="sf-err">{{ form.errors.name }}</p>
+                                <p v-if="form.errors.name_ru" class="sf-err">{{ form.errors.name_ru }}</p>
                             </div>
+                            </Transition>
+
+                            <button v-if="showNameRu && !showNameEn" type="button"
+                                class="sf-add-lang" @click="addSecondary">
+                                + {{ __('profile.services.form.add_en') }}
+                            </button>
+                            <button v-if="showNameEn && !showNameRu" type="button"
+                                class="sf-add-lang" @click="addSecondary">
+                                + {{ __('profile.services.form.add_ru') }}
+                            </button>
+
+                            <Transition name="sf-name-fade">
+                            <div v-if="showNameEn" class="sf-field">
+                                <div class="sf-label-row">
+                                    <label class="sf-label">{{ __('profile.services.form.name_en') }}</label>
+                                    <button v-if="showNameRu && showNameEn" type="button"
+                                        class="sf-name-remove" @click="removeNameEn" aria-label="Remove EN">×</button>
+                                </div>
+                                <div class="sf-input-wrap">
+                                    <input v-model="form.name_en" class="sf-input"
+                                        :class="{ 'sf-input--err': form.errors.name_en }"
+                                        :placeholder="namePlaceholderEn" maxlength="45"
+                                        @input="form.name_en = form.name_en.replace(/[\u0400-\u04FF\u0500-\u052F]/g, '')" />
+                                    <span class="sf-char-count"
+                                        :class="{ 'sf-char-count--warn': form.name_en.length >= 38 }">
+                                        {{ form.name_en.length }}/45
+                                    </span>
+                                </div>
+                                <div v-if="formSuggestionsEn.length" class="svc-suggestions">
+                                    <button v-for="s in formSuggestionsEn" :key="s" type="button" class="svc-chip"
+                                        :class="{ 'svc-chip--active': form.name_en === s, 'svc-chip--pop': animatingChip === s }"
+                                        @click="selectChip(s, 'en')">{{ s }}</button>
+                                </div>
+                                <p v-if="form.errors.name_en" class="sf-err">{{ form.errors.name_en }}</p>
+                            </div>
+                            </Transition>
 
                             <div class="sf-row">
                                 <div class="sf-field">
@@ -1118,27 +1207,30 @@ watch(selectedCategory, (cat) => {
 }
 
 .cd-hero__edit-btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 0.45rem;
     padding: 0.45rem 1rem;
-    border: 1px solid rgba(155, 110, 232, 0.35);
+    border: 1px solid color-mix(in srgb, var(--cat-accent) 35%, transparent);
+    border-top: none;
     border-radius: 6px;
-    background: rgba(155, 110, 232, 0.08);
-    color: rgba(155, 110, 232, 0.75);
+    background: color-mix(in srgb, var(--cat-accent) 8%, transparent);
+    color: color-mix(in srgb, var(--cat-accent) 80%, white);
     font-size: 0.92rem;
     font-family: inherit;
     font-weight: 500;
     cursor: pointer;
     flex-shrink: 0;
     white-space: nowrap;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--cat-accent) 25%, transparent),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.18);
 }
 
 .cd-hero__edit-btn:hover {
-    border-color: rgba(155, 110, 232, 0.65);
-    background: rgba(155, 110, 232, 0.15);
-    color: rgba(155, 110, 232, 1);
+    background: color-mix(in srgb, var(--cat-accent) 16%, transparent);
+    border-color: color-mix(in srgb, var(--cat-accent) 55%, transparent);
+    color: var(--cat-accent);
 }
 
 .cd-hero__top-actions {
@@ -2094,7 +2186,7 @@ watch(selectedCategory, (cat) => {
 .svc-chip {
     padding: 0.45rem 1rem;
     border: 1px solid rgba(200, 70, 126, 0.3);
-    border-radius: 99px;
+    border-radius: 6px;
     background: transparent;
     color: rgba(200, 70, 126, 0.75);
     font-family: inherit;
@@ -2178,11 +2270,43 @@ watch(selectedCategory, (cat) => {
     font-size: 0.95rem;
 }
 
+.sf-name-fade-enter-active, .sf-name-fade-leave-active { transition: opacity 0.18s ease; }
+.sf-name-fade-enter-from, .sf-name-fade-leave-to { opacity: 0; }
+
+.sf-label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem; }
+.sf-label-row .sf-label { margin-bottom: 0; }
+
+.sf-name-remove {
+    background: none; border: none; padding: 0 0.1rem;
+    color: rgba(255,255,255,0.2); cursor: pointer; font-size: 1.35rem; line-height: 1;
+    transition: color 0.15s; flex-shrink: 0;
+}
+.sf-name-remove:hover { color: rgba(239,68,68,0.7); }
+
+.sf-add-lang {
+    display: block; width: 100%;
+    padding: 0.55rem 1rem;
+    margin-top: 0.1rem;
+    background: color-mix(in srgb, var(--cat-accent, #a0a0ff) 8%, transparent);
+    border: 1px dashed color-mix(in srgb, var(--cat-accent, #a0a0ff) 35%, transparent);
+    border-radius: 8px;
+    font-size: 0.9rem; font-family: inherit;
+    color: color-mix(in srgb, var(--cat-accent, #a0a0ff) 65%, white);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    text-align: center;
+}
+.sf-add-lang:hover {
+    background: color-mix(in srgb, var(--cat-accent, #a0a0ff) 15%, transparent);
+    border-color: color-mix(in srgb, var(--cat-accent, #a0a0ff) 60%, transparent);
+    color: color-mix(in srgb, var(--cat-accent, #a0a0ff) 90%, white);
+}
+
 .sf-label {
     font-size: 0.78rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: rgba(200, 70, 126, 0.85);
+    color: color-mix(in srgb, var(--cat-accent, #a0a0ff) 80%, white);
 }
 
 .sf-input {

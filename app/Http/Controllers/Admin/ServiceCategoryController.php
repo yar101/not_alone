@@ -18,10 +18,12 @@ class ServiceCategoryController extends Controller
             'categories' => ServiceCategory::orderBy('sort_order')->get()->map(fn ($c) => array_merge(
                 $c->toArray(),
                 [
-                    'name_ru'        => $c->getTranslation('name', 'ru'),
-                    'name_en'        => $c->getTranslation('name', 'en', false) ?: '',
-                    'description_ru' => $c->getTranslation('description', 'ru', false) ?: '',
-                    'description_en' => $c->getTranslation('description', 'en', false) ?: '',
+                    'name_ru'             => $c->getTranslation('name', 'ru'),
+                    'name_en'             => $c->getTranslation('name', 'en', false) ?: '',
+                    'description_ru'      => $c->getTranslation('description', 'ru', false) ?: '',
+                    'description_en'      => $c->getTranslation('description', 'en', false) ?: '',
+                    'name_suggestions_ru' => $c->name_suggestions['ru'] ?? [],
+                    'name_suggestions_en' => $c->name_suggestions['en'] ?? [],
                 ]
             )),
             'active_tab' => 'categories',
@@ -35,16 +37,19 @@ class ServiceCategoryController extends Controller
             'name_en'            => ['nullable', 'string', 'max:100'],
             'description_ru'     => ['nullable', 'string', 'max:1000'],
             'description_en'     => ['nullable', 'string', 'max:1000'],
-            'name_suggestions'   => ['nullable', 'array'],
-            'name_suggestions.*' => ['string', 'max:120'],
-            'accent_color'       => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
-            'is_active'          => ['boolean'],
+            'name_suggestions_ru'   => ['nullable', 'array'],
+            'name_suggestions_ru.*' => ['string', 'max:120'],
+            'name_suggestions_en'   => ['nullable', 'array'],
+            'name_suggestions_en.*' => ['string', 'max:120'],
+            'accent_color'          => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'is_active'             => ['boolean'],
         ]);
 
         $data['sort_order'] = (ServiceCategory::max('sort_order') ?? -1) + 1;
         $data['name'] = array_filter(['ru' => $data['name_ru'], 'en' => $data['name_en'] ?? null]);
         $data['description'] = array_filter(['ru' => $data['description_ru'] ?? null, 'en' => $data['description_en'] ?? null]) ?: null;
-        unset($data['name_ru'], $data['name_en'], $data['description_ru'], $data['description_en']);
+        $data['name_suggestions'] = ['ru' => $data['name_suggestions_ru'] ?? [], 'en' => $data['name_suggestions_en'] ?? []];
+        unset($data['name_ru'], $data['name_en'], $data['description_ru'], $data['description_en'], $data['name_suggestions_ru'], $data['name_suggestions_en']);
 
         ServiceCategory::create($data);
 
@@ -69,9 +74,11 @@ class ServiceCategoryController extends Controller
             'name_en'            => ['nullable', 'string', 'max:100'],
             'description_ru'     => ['nullable', 'string', 'max:1000'],
             'description_en'     => ['nullable', 'string', 'max:1000'],
-            'name_suggestions'   => ['nullable', 'array'],
-            'name_suggestions.*' => ['string', 'max:120'],
-            'accent_color'       => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'name_suggestions_ru'   => ['nullable', 'array'],
+            'name_suggestions_ru.*' => ['string', 'max:120'],
+            'name_suggestions_en'   => ['nullable', 'array'],
+            'name_suggestions_en.*' => ['string', 'max:120'],
+            'accent_color'          => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'sort_order'         => ['sometimes', 'integer', 'min:0'],
             'is_active'          => ['sometimes', 'boolean'],
         ]);
@@ -94,6 +101,15 @@ class ServiceCategoryController extends Controller
                 $category->setTranslation('description', 'en', $data['description_en']);
             }
             unset($data['description_ru'], $data['description_en']);
+        }
+
+        if (array_key_exists('name_suggestions_ru', $data) || array_key_exists('name_suggestions_en', $data)) {
+            $existing = $category->name_suggestions ?? [];
+            $data['name_suggestions'] = [
+                'ru' => $data['name_suggestions_ru'] ?? $existing['ru'] ?? [],
+                'en' => $data['name_suggestions_en'] ?? $existing['en'] ?? [],
+            ];
+            unset($data['name_suggestions_ru'], $data['name_suggestions_en']);
         }
 
         $category->save();

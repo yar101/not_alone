@@ -193,40 +193,46 @@ const rejectModalTitle = computed(() => {
 const showCatForm     = ref(false);
 const catEditingId    = ref(null);
 const catImagePreview = ref(null);
-const newSuggestion   = ref('');
+const newSuggestionRu = ref('');
+const newSuggestionEn = ref('');
 
 const catForm = useForm({
-    name_ru:          '',
-    name_en:          '',
-    description_ru:   '',
-    description_en:   '',
-    name_suggestions: [],
-    accent_color:     '#a0a0ff',
-    sort_order:       0,
-    is_active:        true,
-    image:            null,
-    remove_image:     false,
+    name_ru:             '',
+    name_en:             '',
+    description_ru:      '',
+    description_en:      '',
+    name_suggestions_ru: [],
+    name_suggestions_en: [],
+    accent_color:        '#a0a0ff',
+    sort_order:          0,
+    is_active:           true,
+    image:               null,
+    remove_image:        false,
 });
 
 function openCatAdd() {
     catEditingId.value    = null;
     catImagePreview.value = null;
-    newSuggestion.value   = '';
+    newSuggestionRu.value = '';
+    newSuggestionEn.value = '';
     catForm.reset();
     catForm.is_active = true;
-    catForm.name_suggestions = [];
+    catForm.name_suggestions_ru = [];
+    catForm.name_suggestions_en = [];
     showCatForm.value = true;
 }
 
 function openCatEdit(cat) {
     catEditingId.value    = cat.id;
     catImagePreview.value = cat.image_path ? `/storage/${cat.image_path}` : null;
-    newSuggestion.value   = '';
-    catForm.name_ru          = cat.name_ru ?? '';
-    catForm.name_en          = cat.name_en ?? '';
-    catForm.description_ru   = cat.description_ru ?? '';
-    catForm.description_en   = cat.description_en ?? '';
-    catForm.name_suggestions = cat.name_suggestions ?? [];
+    newSuggestionRu.value = '';
+    newSuggestionEn.value = '';
+    catForm.name_ru             = cat.name_ru ?? '';
+    catForm.name_en             = cat.name_en ?? '';
+    catForm.description_ru      = cat.description_ru ?? '';
+    catForm.description_en      = cat.description_en ?? '';
+    catForm.name_suggestions_ru = cat.name_suggestions_ru ?? [];
+    catForm.name_suggestions_en = cat.name_suggestions_en ?? [];
     catForm.accent_color     = cat.accent_color ?? '#a0a0ff';
     catForm.sort_order       = cat.sort_order;
     catForm.is_active        = cat.is_active;
@@ -238,20 +244,32 @@ function closeCatForm() {
     showCatForm.value     = false;
     catEditingId.value    = null;
     catImagePreview.value = null;
-    newSuggestion.value   = '';
+    newSuggestionRu.value = '';
+    newSuggestionEn.value = '';
     catForm.reset();
     catForm.clearErrors();
 }
 
-function addSuggestion() {
-    const s = newSuggestion.value.trim();
-    if (!s || catForm.name_suggestions.includes(s)) return;
-    catForm.name_suggestions.push(s);
-    newSuggestion.value = '';
+function addSuggestionRu() {
+    const s = newSuggestionRu.value.trim();
+    if (!s || catForm.name_suggestions_ru.includes(s)) return;
+    catForm.name_suggestions_ru.push(s);
+    newSuggestionRu.value = '';
 }
 
-function removeSuggestion(index) {
-    catForm.name_suggestions.splice(index, 1);
+function removeSuggestionRu(index) {
+    catForm.name_suggestions_ru.splice(index, 1);
+}
+
+function addSuggestionEn() {
+    const s = newSuggestionEn.value.trim();
+    if (!s || catForm.name_suggestions_en.includes(s)) return;
+    catForm.name_suggestions_en.push(s);
+    newSuggestionEn.value = '';
+}
+
+function removeSuggestionEn(index) {
+    catForm.name_suggestions_en.splice(index, 1);
 }
 
 function onCatImageChange(file, url) {
@@ -536,21 +554,30 @@ function destroyLimit(id) {
                                 <input v-model="catForm.accent_color" type="color" class="input input--color" />
                             </div>
                             <div class="field">
-                                <label>Варианты названий</label>
+                                <label>Варианты названий (RU)</label>
                                 <div class="sug-input-row">
-                                    <input
-                                        v-model="newSuggestion"
-                                        class="input"
-                                        placeholder="Введите вариант…"
-                                        maxlength="120"
-                                        @keydown.enter.prevent="addSuggestion"
-                                    />
-                                    <button type="button" class="sug-add-btn" @click="addSuggestion">+</button>
+                                    <input v-model="newSuggestionRu" class="input" placeholder="Введите вариант…"
+                                        maxlength="120" @keydown.enter.prevent="addSuggestionRu" />
+                                    <button type="button" class="sug-add-btn" @click="addSuggestionRu">+</button>
                                 </div>
-                                <div v-if="catForm.name_suggestions.length" class="sug-chips">
-                                    <span v-for="(s, i) in catForm.name_suggestions" :key="i" class="sug-chip">
+                                <div v-if="catForm.name_suggestions_ru.length" class="sug-chips">
+                                    <span v-for="(s, i) in catForm.name_suggestions_ru" :key="i" class="sug-chip">
                                         {{ s }}
-                                        <button type="button" class="sug-chip__remove" @click="removeSuggestion(i)">×</button>
+                                        <button type="button" class="sug-chip__remove" @click="removeSuggestionRu(i)">×</button>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label>Варианты названий (EN)</label>
+                                <div class="sug-input-row">
+                                    <input v-model="newSuggestionEn" class="input" placeholder="Enter suggestion…"
+                                        maxlength="120" @keydown.enter.prevent="addSuggestionEn" />
+                                    <button type="button" class="sug-add-btn" @click="addSuggestionEn">+</button>
+                                </div>
+                                <div v-if="catForm.name_suggestions_en.length" class="sug-chips">
+                                    <span v-for="(s, i) in catForm.name_suggestions_en" :key="i" class="sug-chip">
+                                        {{ s }}
+                                        <button type="button" class="sug-chip__remove" @click="removeSuggestionEn(i)">×</button>
                                     </span>
                                 </div>
                             </div>

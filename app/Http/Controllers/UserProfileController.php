@@ -136,7 +136,8 @@ class UserProfileController extends Controller
                         'idol_description' => $descriptions[$cat->id] ?? null,
                         'items'            => $group->map(fn (Service $s) => [
                             'id'               => $s->id,
-                            'name'             => $s->name,
+                            'name_ru'          => $s->getTranslation('name', 'ru'),
+                            'name_en'          => $s->getTranslation('name', 'en', false) ?: null,
                             'price'            => $s->price,
                             'is_active'        => $s->is_active,
                             'status'           => $s->status,

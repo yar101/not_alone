@@ -31,14 +31,17 @@ class ServiceController extends Controller
             ->groupBy('category_id')
             ->map(fn($items, $categoryId) => [
                 'category' => [
-                    'id'   => $items->first()->category->id,
-                    'name' => $items->first()->category->name,
+                    'id'      => $items->first()->category->id,
+                    'name_ru' => $items->first()->category->getTranslation('name', 'ru'),
+                    'name_en' => $items->first()->category->getTranslation('name', 'en', false) ?: null,
                 ],
                 'services' => $items->map(fn($s) => [
-                    'id'        => $s->id,
-                    'name'      => $s->name,
-                    'price'     => $s->price,
-                    'time_unit' => $s->timeUnit?->name,
+                    'id'      => $s->id,
+                    'name_ru' => $s->getTranslation('name', 'ru'),
+                    'name_en' => $s->getTranslation('name', 'en', false) ?: null,
+                    'price'   => $s->price,
+                    'time_unit_ru' => $s->timeUnit?->getTranslation('name', 'ru'),
+                    'time_unit_en' => $s->timeUnit?->getTranslation('name', 'en', false) ?: null,
                 ])->values(),
             ])
             ->values();
@@ -52,19 +55,29 @@ class ServiceController extends Controller
         abort_if(!$idol->is_idol, 403);
 
         $data = $request->validate([
-            'name'         => ['required', 'string', 'max:120'],
+            'name_ru'      => ['nullable', 'string', 'max:120'],
+            'name_en'      => ['nullable', 'string', 'max:120', 'regex:/^[^\x{0400}-\x{04FF}\x{0500}-\x{052F}]*$/u'],
             'category_id'  => ['required', 'integer', 'exists:service_categories,id'],
             'time_unit_id' => ['required', 'integer', 'exists:service_time_units,id'],
             'price'        => ['required', 'integer', 'min:1', 'max:999999'],
         ]);
 
+        if (empty($data['name_ru']) && empty($data['name_en'])) {
+            throw ValidationException::withMessages([
+                'name_ru' => 'Укажите хотя бы одно название услуги.',
+            ]);
+        }
+
         $this->validatePriceLimit($idol, $data['time_unit_id'], $data['price']);
 
         Service::create([
-            ...$data,
-            'user_id'   => $idol->id,
-            'is_active' => true,
-            'status'    => 'pending',
+            'name'         => array_filter(['ru' => $data['name_ru'] ?? null, 'en' => $data['name_en'] ?? null]),
+            'user_id'      => $idol->id,
+            'category_id'  => $data['category_id'],
+            'time_unit_id' => $data['time_unit_id'],
+            'price'        => $data['price'],
+            'is_active'    => true,
+            'status'       => 'pending',
         ]);
 
         return back()->with('service_pending', true);
@@ -75,7 +88,8 @@ class ServiceController extends Controller
         abort_if($service->user_id !== $request->user()->id, 403);
 
         $data = $request->validate([
-            'name'         => ['sometimes', 'string', 'max:120'],
+            'name_ru'      => ['sometimes', 'string', 'max:120'],
+            'name_en'      => ['nullable', 'string', 'max:120', 'regex:/^[^\x{0400}-\x{04FF}\x{0500}-\x{052F}]*$/u'],
             'category_id'  => ['sometimes', 'integer', 'exists:service_categories,id'],
             'time_unit_id' => ['sometimes', 'integer', 'exists:service_time_units,id'],
             'price'        => ['sometimes', 'integer', 'min:1', 'max:999999'],
@@ -89,7 +103,32 @@ class ServiceController extends Controller
             $this->validatePriceLimit($request->user(), $timeUnitId, $price);
         }
 
-        $service->update($data);
+        if (array_key_exists('name_ru', $data) || array_key_exists('name_en', $data)) {
+            $ruAfter = $data['name_ru'] ?? $service->getTranslation('name', 'ru', false);
+            $enAfter = $data['name_en'] ?? $service->getTranslation('name', 'en', false);
+            if (empty($ruAfter) && empty($enAfter)) {
+                throw ValidationException::withMessages([
+                    'name_ru' => 'Укажите хотя бы одно название услуги.',
+                ]);
+            }
+        }
+
+        if (isset($data['name_ru'])) {
+            $service->setTranslation('name', 'ru', $data['name_ru']);
+        }
+        if (array_key_exists('name_en', $data)) {
+            if (!empty($data['name_en'])) {
+                $service->setTranslation('name', 'en', $data['name_en']);
+            } else {
+                $service->forgetTranslation('name', 'en');
+            }
+        }
+
+        $rest = array_diff_key($data, array_flip(['name_ru', 'name_en']));
+        if (!empty($rest)) {
+            $service->fill($rest);
+        }
+        $service->save();
 
         return back()->with('success', 'Услуга обновлена.');
     }
