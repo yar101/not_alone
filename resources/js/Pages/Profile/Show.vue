@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, inject, provide, reactive, nextTick, watch } from 'vue';
 import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3';
+import { useTranslations } from '@/composables/useTranslations.js';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { StarFilled, MagicStick } from '@element-plus/icons-vue';
@@ -50,6 +51,8 @@ function openChat() {
 function handleSubscribe() {
     if (!page.props.auth?.user) { openAuth?.('register'); return; }
 }
+
+const { __ } = useTranslations();
 
 // ── Email verification banner ─────────────────────────────────
 const page = usePage();
@@ -297,28 +300,28 @@ onMounted(async () => {
                             :class="{ active: tab === 'about' }"
                             @click="switchTab('about')"
                         >
-                            О себе
+                            {{ __('profile.tabs.about') }}
                         </button>
                         <button
                             class="tab-btn"
                             :class="{ active: tab === 'posts' }"
                             @click="switchTab('posts')"
                         >
-                            Публикации
+                            {{ __('profile.tabs.posts') }}
                         </button>
                         <button
                             class="tab-btn"
                             :class="{ active: tab === 'services' }"
                             @click="switchTab('services')"
                         >
-                            Услуги
+                            {{ __('profile.tabs.services') }}
                         </button>
                         <button
                             class="tab-btn"
                             :class="{ active: tab === 'content' }"
                             @click="switchTab('content')"
                         >
-                            Контент
+                            {{ __('profile.tabs.content') }}
                         </button>
                         <button
                             v-if="isIdol"
@@ -326,7 +329,7 @@ onMounted(async () => {
                             :class="{ active: tab === 'reviews' }"
                             @click="switchTab('reviews')"
                         >
-                            Отзывы
+                            {{ __('profile.tabs.reviews') }}
                         </button>
                         <button v-if="serviceNav.inCategory"
                                 class="cd-back"
@@ -336,7 +339,7 @@ onMounted(async () => {
                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M15 18l-6-6 6-6" />
                             </svg>
-                            К категориям
+                            {{ __('profile.tabs.back_to_categories') }}
                         </button>
                     </div>
                 <div class="tab-content-wrap page-block">

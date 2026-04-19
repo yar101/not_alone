@@ -61,6 +61,13 @@
     "review.title": "LEAVE A REVIEW",
     "review.only_one": "This is your only review for this idol. It cannot be changed after publishing.",
 
+    "profile.tabs.about": "About me",
+    "profile.tabs.posts": "Posts",
+    "profile.tabs.services": "Services",
+    "profile.tabs.content": "Content",
+    "profile.tabs.reviews": "Reviews",
+    "profile.tabs.back_to_categories": "Back to categories",
+
     "profile.about.title": "About me",
     "profile.about.empty": "User hasn't written anything yet",
     "profile.about.placeholder": "Write something about yourself…",

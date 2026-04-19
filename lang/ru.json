@@ -61,6 +61,13 @@
     "review.title": "ОСТАВИТЬ ОТЗЫВ",
     "review.only_one": "Это ваш единственный отзыв об этом айдоле. После публикации изменить его будет нельзя.",
 
+    "profile.tabs.about": "О себе",
+    "profile.tabs.posts": "Публикации",
+    "profile.tabs.services": "Услуги",
+    "profile.tabs.content": "Контент",
+    "profile.tabs.reviews": "Отзывы",
+    "profile.tabs.back_to_categories": "К категориям",
+
     "profile.about.title": "О себе",
     "profile.about.empty": "Пользователь пока ничего не написал",
     "profile.about.placeholder": "Напиши что-нибудь о себе…",
