@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PersonalityTrait;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -14,27 +15,48 @@ class PersonalityTraitController extends Controller
     public function index(): Response
     {
         return Inertia::render('Admin/Traits/Index', [
-            'traits' => PersonalityTrait::withCount('users')->orderBy('sort_order')->get(),
+            'traits' => PersonalityTrait::withCount('users')->orderBy('sort_order')->get()->map(fn ($t) => array_merge(
+                $t->toArray(),
+                ['name_ru' => $t->getTranslation('name', 'ru'), 'name_en' => $t->getTranslation('name', 'en', false) ?: '']
+            )),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'name_ru'    => 'required|string|max:100|unique:traits,name_ru',
+            'name_ru'    => ['required', 'string', 'max:100', function ($attr, $val, $fail) {
+                if (DB::table('traits')->whereRaw("name->>'ru' = ?", [$val])->exists()) $fail('Такая черта уже существует.');
+            }],
+            'name_en'    => 'nullable|string|max:100',
             'sort_order' => 'integer|min:0',
         ]);
-        PersonalityTrait::create($data);
+
+        PersonalityTrait::create([
+            'name'       => array_filter(['ru' => $data['name_ru'], 'en' => $data['name_en'] ?? null]),
+            'sort_order' => $data['sort_order'] ?? 0,
+        ]);
+
         return back()->with('success', 'Черта добавлена.');
     }
 
     public function update(Request $request, PersonalityTrait $trait): RedirectResponse
     {
         $data = $request->validate([
-            'name_ru'    => 'required|string|max:100|unique:traits,name_ru,' . $trait->id,
+            'name_ru'    => ['required', 'string', 'max:100', function ($attr, $val, $fail) use ($trait) {
+                if (DB::table('traits')->whereRaw("name->>'ru' = ?", [$val])->where('id', '!=', $trait->id)->exists()) $fail('Такая черта уже существует.');
+            }],
+            'name_en'    => 'nullable|string|max:100',
             'sort_order' => 'integer|min:0',
         ]);
-        $trait->update($data);
+
+        $trait->setTranslation('name', 'ru', $data['name_ru']);
+        if (!empty($data['name_en'])) {
+            $trait->setTranslation('name', 'en', $data['name_en']);
+        }
+        $trait->sort_order = $data['sort_order'] ?? $trait->sort_order;
+        $trait->save();
+
         return back()->with('success', 'Черта обновлена.');
     }
 

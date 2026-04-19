@@ -6,7 +6,11 @@ import CreateButton from '@/Components/CreateButton.vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
-const { __, transChoice } = useTranslations();
+const { __, transChoice, locale } = useTranslations();
+
+function catName(cat) {
+    return locale.value?.current === 'en' && cat?.name_en ? cat.name_en : (cat?.name_ru ?? cat?.name ?? '');
+}
 
 const page = usePage();
 const showPendingModal = ref(false);
@@ -470,7 +474,7 @@ watch(selectedCategory, (cat) => {
                         :style="{ '--cat-accent': group.category.accent_color || '#a0a0ff' }">
                         <div class="cat-tile__img-wrap">
                             <img v-if="group.category.image_url" :src="group.category.image_url"
-                                :alt="group.category.name" class="cat-tile__img" />
+                                :alt="catName(group.category)" class="cat-tile__img" />
                             <div v-else class="cat-tile__img-placeholder">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="1.5" opacity="0.25">
@@ -481,7 +485,7 @@ watch(selectedCategory, (cat) => {
                             </div>
                         </div>
                         <div class="cat-tile__body">
-                            <span class="cat-tile__name">{{ group.category.name }}</span>
+                            <span class="cat-tile__name">{{ catName(group.category) }}</span>
                             <p v-if="group.category.description" class="cat-tile__desc">
                                 {{ group.category.description }}
                             </p>
@@ -499,7 +503,7 @@ watch(selectedCategory, (cat) => {
                         :style="{ '--cat-accent': group.category.accent_color || '#a0a0ff' }">
                         <div class="cat-tile__img-wrap">
                             <img v-if="group.category.image_url" :src="group.category.image_url"
-                                :alt="group.category.name" class="cat-tile__img" />
+                                :alt="catName(group.category)" class="cat-tile__img" />
                             <div v-else class="cat-tile__img-placeholder">
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="1.5" opacity="0.25">
@@ -510,7 +514,7 @@ watch(selectedCategory, (cat) => {
                             </div>
                         </div>
                         <div class="cat-tile__body">
-                            <span class="cat-tile__name">{{ group.category.name }}</span>
+                            <span class="cat-tile__name">{{ catName(group.category) }}</span>
                             <p v-if="group.category.description" class="cat-tile__desc">
                                 {{ group.category.description }}
                             </p>
@@ -530,7 +534,7 @@ watch(selectedCategory, (cat) => {
                 <div class="cd-hero">
                     <div class="cd-hero__body">
                         <div class="cd-hero__top">
-                            <h2 class="cd-hero__title">{{ selectedCategory.category.name }}</h2>
+                            <h2 class="cd-hero__title">{{ catName(selectedCategory.category) }}</h2>
                             <div class="cd-hero__top-actions">
                                 <button v-if="isOwner && !editingDesc" class="cd-hero__edit-btn" @click="startDescEdit">
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"

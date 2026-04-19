@@ -5,7 +5,7 @@ import { EditPen } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
-const { __ } = useTranslations();
+const { __, locale } = useTranslations();
 
 const props = defineProps({
     interests:     { default: null },
@@ -25,6 +25,10 @@ const suggestionText = ref('');
 const suggSuccess = ref(false);
 const suggForm = useForm({ name: '' });
 
+function localName(item) {
+    return locale.value?.current === 'en' && item.name_en ? item.name_en : item.name_ru;
+}
+
 const filteredCategories = computed(() => {
     if (!Array.isArray(props.allCategories)) return [];
     const q = interestSearch.value.trim().toLowerCase();
@@ -34,7 +38,9 @@ const filteredCategories = computed(() => {
             ...cat,
             interests: cat.interests.filter(i =>
                 i.name_ru.toLowerCase().includes(q) ||
-                cat.name_ru.toLowerCase().includes(q)
+                (i.name_en && i.name_en.toLowerCase().includes(q)) ||
+                cat.name_ru.toLowerCase().includes(q) ||
+                (cat.name_en && cat.name_en.toLowerCase().includes(q))
             )
         }))
         .filter(cat => cat.interests.length > 0);
@@ -99,7 +105,7 @@ function submitSuggestion() {
         </div>
 
         <div v-if="interests?.length" class="tags-row">
-            <span v-for="i in interests" :key="i.id" class="tag">{{ i.name_ru }}</span>
+            <span v-for="i in interests" :key="i.id" class="tag">{{ localName(i) }}</span>
         </div>
         <p v-else-if="isOwner" class="empty">{{ __('profile.interests.empty') }}</p>
         <p v-else class="empty">{{ __('profile.interests.not_specified') }}</p>
@@ -123,7 +129,7 @@ function submitSuggestion() {
                         <template v-if="filteredCategories.length">
                             <div v-for="cat in filteredCategories" :key="cat.id" class="cat-block">
                                 <button type="button" class="cat-header" @click="toggleCat(cat.id)">
-                                    <span>{{ cat.name_ru }}</span>
+                                    <span>{{ localName(cat) }}</span>
                                     <span class="cat-count" v-if="cat.interests.some(i => selected.has(i.id))">
                                         ({{ cat.interests.filter(i => selected.has(i.id)).length }})
                                     </span>
@@ -138,7 +144,7 @@ function submitSuggestion() {
                                         :class="{ active: selected.has(i.id) }"
                                         @click="toggleInterest(i.id)"
                                         :disabled="!selected.has(i.id) && selected.size >= 10"
-                                    >{{ i.name_ru }}</button>
+                                    >{{ localName(i) }}</button>
                                 </div>
                             </div>
                         </template>

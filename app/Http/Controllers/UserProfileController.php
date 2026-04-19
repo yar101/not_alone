@@ -61,15 +61,38 @@ class UserProfileController extends Controller
                 : false,
 
             // Deferred group "about" — traits, interests, languages + their catalogs
-            'traits'        => Inertia::defer(fn () => $user->load('traits')->traits->map(fn ($t) => ['id' => $t->id, 'name_ru' => $t->name_ru]), 'about'),
+            'traits'        => Inertia::defer(fn () => $user->load('traits')->traits->map(fn ($t) => [
+                'id'      => $t->id,
+                'name_ru' => $t->getTranslation('name', 'ru'),
+                'name_en' => $t->getTranslation('name', 'en', false) ?: null,
+            ]), 'about'),
             'interests'     => Inertia::defer(fn () => $user->load('interests.category')->interests->map(fn ($i) => [
                 'id'       => $i->id,
-                'name_ru'  => $i->name_ru,
-                'category' => ['id' => $i->category->id, 'name_ru' => $i->category->name_ru],
+                'name_ru'  => $i->getTranslation('name', 'ru'),
+                'name_en'  => $i->getTranslation('name', 'en', false) ?: null,
+                'category' => [
+                    'id'      => $i->category->id,
+                    'name_ru' => $i->category->getTranslation('name', 'ru'),
+                    'name_en' => $i->category->getTranslation('name', 'en', false) ?: null,
+                ],
             ]), 'about'),
             'languages'     => Inertia::defer(fn () => $user->load('languages')->languages->pluck('language_code'), 'about'),
-            'allTraits'     => Inertia::defer(fn () => PersonalityTrait::orderBy('sort_order')->get(['id', 'name_ru']), 'about'),
-            'allCategories' => Inertia::defer(fn () => InterestCategory::with(['interests' => fn ($q) => $q->orderBy('sort_order')])->orderBy('sort_order')->get(), 'about'),
+            'allTraits'     => Inertia::defer(fn () => PersonalityTrait::orderBy('sort_order')->get(['id', 'name'])->map(fn ($t) => [
+                'id'      => $t->id,
+                'name_ru' => $t->getTranslation('name', 'ru'),
+                'name_en' => $t->getTranslation('name', 'en', false) ?: null,
+            ]), 'about'),
+            'allCategories' => Inertia::defer(fn () => InterestCategory::with(['interests' => fn ($q) => $q->orderBy('sort_order')])->orderBy('sort_order')->get()->map(fn ($cat) => [
+                'id'        => $cat->id,
+                'name_ru'   => $cat->getTranslation('name', 'ru'),
+                'name_en'   => $cat->getTranslation('name', 'en', false) ?: null,
+                'sort_order' => $cat->sort_order,
+                'interests' => $cat->interests->map(fn ($i) => [
+                    'id'      => $i->id,
+                    'name_ru' => $i->getTranslation('name', 'ru'),
+                    'name_en' => $i->getTranslation('name', 'en', false) ?: null,
+                ])->values(),
+            ]), 'about'),
 
             // Deferred group "services"
             'services'     => Inertia::defer(function () use ($user) {
@@ -79,7 +102,7 @@ class UserProfileController extends Controller
                 // All active categories
                 $allCategories = ServiceCategory::where('is_active', true)
                     ->orderBy('sort_order')
-                    ->get(['id', 'name', 'description', 'image_path', 'accent_color', 'sort_order']);
+                    ->get(['id', 'name', 'description', 'image_path', 'accent_color', 'sort_order', 'is_active']);
 
                 // Services for this user
                 $query = $user->services()->with(['timeUnit:id,name']);
@@ -101,7 +124,9 @@ class UserProfileController extends Controller
                     return [
                         'category' => [
                             'id'           => $cat->id,
-                            'name'         => $cat->name,
+                            'name'         => $cat->getTranslation('name', 'ru'),
+                            'name_ru'      => $cat->getTranslation('name', 'ru'),
+                            'name_en'      => $cat->getTranslation('name', 'en', false) ?: null,
                             'description'  => $cat->description,
                             'image_url'    => $cat->image_path ? Storage::url($cat->image_path) : null,
                             'accent_color' => $cat->accent_color,
@@ -122,7 +147,14 @@ class UserProfileController extends Controller
                 })->values();
             }, 'services'),
             'serviceCategories' => Inertia::defer(
-                fn () => ServiceCategory::where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'name_suggestions', 'accent_color']),
+                fn () => ServiceCategory::where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'name_suggestions', 'accent_color'])->map(fn ($c) => [
+                    'id'             => $c->id,
+                    'name'           => $c->getTranslation('name', 'ru'),
+                    'name_ru'        => $c->getTranslation('name', 'ru'),
+                    'name_en'        => $c->getTranslation('name', 'en', false) ?: null,
+                    'name_suggestions' => $c->name_suggestions,
+                    'accent_color'   => $c->accent_color,
+                ]),
                 'services'
             ),
             'serviceTimeUnits' => Inertia::defer(

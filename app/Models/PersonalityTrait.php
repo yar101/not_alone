@@ -4,12 +4,17 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Spatie\Translatable\HasTranslations;
 
 class PersonalityTrait extends Model
 {
+    use HasTranslations;
+
     protected $table = 'traits';
 
-    protected $fillable = ['name_ru', 'sort_order'];
+    public array $translatable = ['name'];
+
+    protected $fillable = ['name', 'sort_order'];
 
     public function users(): BelongsToMany
     {

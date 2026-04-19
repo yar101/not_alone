@@ -196,7 +196,8 @@ const catImagePreview = ref(null);
 const newSuggestion   = ref('');
 
 const catForm = useForm({
-    name:             '',
+    name_ru:          '',
+    name_en:          '',
     description:      '',
     name_suggestions: [],
     accent_color:     '#a0a0ff',
@@ -220,7 +221,8 @@ function openCatEdit(cat) {
     catEditingId.value    = cat.id;
     catImagePreview.value = cat.image_path ? `/storage/${cat.image_path}` : null;
     newSuggestion.value   = '';
-    catForm.name             = cat.name;
+    catForm.name_ru          = cat.name_ru ?? '';
+    catForm.name_en          = cat.name_en ?? '';
     catForm.description      = cat.description ?? '';
     catForm.name_suggestions = cat.name_suggestions ?? [];
     catForm.accent_color     = cat.accent_color ?? '#a0a0ff';
@@ -472,7 +474,7 @@ function destroyLimit(id) {
                     <tbody>
                         <tr v-for="cat in categories" :key="cat.id">
                             <td>{{ cat.sort_order }}</td>
-                            <td>{{ cat.name }}</td>
+                            <td>{{ cat.name_ru }}</td>
                             <td class="td-desc">{{ cat.description ? cat.description.slice(0, 60) + (cat.description.length > 60 ? '…' : '') : '—' }}</td>
                             <td class="td-suggestions">
                                 <span v-if="cat.name_suggestions && cat.name_suggestions.length">
@@ -508,9 +510,14 @@ function destroyLimit(id) {
                         </div>
                         <form @submit.prevent="submitCat" class="modal__body">
                             <div class="field">
-                                <label>Название</label>
-                                <input v-model="catForm.name" class="input" :class="{ 'input--err': catForm.errors.name }" />
-                                <p v-if="catForm.errors.name" class="err">{{ catForm.errors.name }}</p>
+                                <label>Название (RU)</label>
+                                <input v-model="catForm.name_ru" class="input" :class="{ 'input--err': catForm.errors.name_ru }" />
+                                <p v-if="catForm.errors.name_ru" class="err">{{ catForm.errors.name_ru }}</p>
+                            </div>
+                            <div class="field">
+                                <label>Название (EN)</label>
+                                <input v-model="catForm.name_en" class="input" :class="{ 'input--err': catForm.errors.name_en }" placeholder="Casual Chat" />
+                                <p v-if="catForm.errors.name_en" class="err">{{ catForm.errors.name_en }}</p>
                             </div>
                             <div class="field">
                                 <label>Описание (глобальное)</label>
@@ -582,9 +589,9 @@ function destroyLimit(id) {
                                         </div>
                                         <div class="sort-card__img-wrap">
                                             <img v-if="cat.image_path" :src="`/storage/${cat.image_path}`" class="sort-card__img" alt="" />
-                                            <div v-else class="sort-card__no-img">{{ cat.name.slice(0, 2) }}</div>
+                                            <div v-else class="sort-card__no-img">{{ (cat.name_ru ?? '').slice(0, 2) }}</div>
                                         </div>
-                                        <div class="sort-card__name">{{ cat.name }}</div>
+                                        <div class="sort-card__name">{{ cat.name_ru }}</div>
                                     </div>
                                 </template>
                             </draggable>
@@ -776,7 +783,7 @@ function destroyLimit(id) {
                 >
                     <option :value="null">Все категории</option>
                     <option v-for="cat in moderation_categories" :key="cat.id" :value="cat.id">
-                        {{ cat.name }}
+                        {{ cat.name_ru ?? cat.name }}
                     </option>
                 </select>
             </div>

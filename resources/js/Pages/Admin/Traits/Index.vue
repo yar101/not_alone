@@ -16,6 +16,7 @@ const editingId = ref(null);
 
 const form = useForm({
     name_ru:    '',
+    name_en:    '',
     sort_order: 0,
 });
 
@@ -28,6 +29,7 @@ function openAdd() {
 function openEdit(trait) {
     editingId.value    = trait.id;
     form.name_ru       = trait.name_ru;
+    form.name_en       = trait.name_en ?? '';
     form.sort_order    = trait.sort_order;
     showForm.value     = true;
 }
@@ -105,9 +107,14 @@ function destroy(id) {
                     </div>
                     <form @submit.prevent="submit" class="modal__body">
                         <div class="field">
-                            <label>Название</label>
+                            <label>Название (RU)</label>
                             <input v-model="form.name_ru" class="input" :class="{ 'input--err': form.errors.name_ru }" placeholder="Добрый" />
                             <p v-if="form.errors.name_ru" class="err">{{ form.errors.name_ru }}</p>
+                        </div>
+                        <div class="field">
+                            <label>Название (EN)</label>
+                            <input v-model="form.name_en" class="input" :class="{ 'input--err': form.errors.name_en }" placeholder="Kind" />
+                            <p v-if="form.errors.name_en" class="err">{{ form.errors.name_en }}</p>
                         </div>
                         <div class="field">
                             <label>Порядок сортировки</label>

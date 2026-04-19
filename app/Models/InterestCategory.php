@@ -4,10 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Translatable\HasTranslations;
 
 class InterestCategory extends Model
 {
-    protected $fillable = ['name_ru', 'sort_order'];
+    use HasTranslations;
+
+    public array $translatable = ['name'];
+
+    protected $fillable = ['name', 'sort_order'];
 
     public function interests(): HasMany
     {

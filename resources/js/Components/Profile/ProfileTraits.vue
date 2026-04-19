@@ -5,7 +5,7 @@ import { EditPen } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
-const { __ } = useTranslations();
+const { __, locale } = useTranslations();
 
 const props = defineProps({
     traits:    { default: null },
@@ -31,11 +31,19 @@ function applyGender(name, gender) {
     return name;
 }
 
+function displayTrait(t) {
+    if (locale.value?.current === 'en' && t.name_en) return t.name_en;
+    return applyGender(t.name_ru, props.gender);
+}
+
 const filteredTraits = computed(() => {
     if (!Array.isArray(props.allTraits)) return [];
     if (!traitSearch.value.trim()) return props.allTraits;
     const q = traitSearch.value.toLowerCase();
-    return props.allTraits.filter(t => t.name_ru.toLowerCase().includes(q));
+    return props.allTraits.filter(t =>
+        t.name_ru.toLowerCase().includes(q) ||
+        (t.name_en && t.name_en.toLowerCase().includes(q))
+    ); // search both langs so user can type in either
 });
 
 function toggleTrait(id) {
@@ -86,7 +94,7 @@ function submitSuggestion() {
 
         <div v-if="traits?.length" class="tags-row">
             <span v-for="t in traits" :key="t.id" class="tag">
-                {{ applyGender(t.name_ru, gender) }}
+                {{ displayTrait(t) }}
             </span>
         </div>
         <p v-else-if="isOwner" class="empty">{{ __('profile.traits.empty') }}</p>
@@ -117,7 +125,7 @@ function submitSuggestion() {
                             :class="{ active: selected.has(t.id) }"
                             @click="toggleTrait(t.id)"
                             :disabled="!selected.has(t.id) && selected.size >= 10"
-                        >{{ applyGender(t.name_ru, gender) }}</button>
+                        >{{ displayTrait(t) }}</button>
                     </div>
                     <p v-if="filteredTraits.length === 0" class="no-results">{{ __('profile.traits.not_found') }}</p>
                     <button class="save-btn" :disabled="form.processing" @click="submit">

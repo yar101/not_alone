@@ -6,7 +6,11 @@ import { Head } from '@inertiajs/vue3';
 import IdolBadge from '@/Components/IdolBadge.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
-const { __, transChoice } = useTranslations();
+const { __, transChoice, locale } = useTranslations();
+
+function localName(item) {
+    return locale.value?.current === 'en' && item?.name_en ? item.name_en : (item?.name_ru ?? item?.name ?? '');
+}
 
 
 const props = defineProps({
@@ -121,7 +125,7 @@ const sectionSearch = ref({
 });
 
 const filteredTraits = computed(() =>
-    props.traits.filter(t => t.name_ru.toLowerCase().includes(sectionSearch.value.traits.toLowerCase()))
+    props.traits.filter(t => localName(t).toLowerCase().includes(sectionSearch.value.traits.toLowerCase()))
 );
 
 const filteredLanguages = computed(() =>
@@ -129,12 +133,12 @@ const filteredLanguages = computed(() =>
 );
 
 const filteredServiceCategories = computed(() =>
-    props.serviceCategories.filter(c => c.name.toLowerCase().includes((sectionSearch.value.service_categories || '').toLowerCase()))
+    props.serviceCategories.filter(c => localName(c).toLowerCase().includes((sectionSearch.value.service_categories || '').toLowerCase()))
 );
 
 function filteredInterests(cat) {
     const q = (sectionSearch.value[`interest_cat_${cat.id}`] || '').toLowerCase();
-    return cat.interests.filter(i => i.name_ru.toLowerCase().includes(q));
+    return cat.interests.filter(i => localName(i).toLowerCase().includes(q));
 }
 
 // ── Active chips ─────────────────────────────────────────────
@@ -152,12 +156,12 @@ const activeChips = computed(() => {
         chips.push({ label: __('search.active.rating', { from: f.value.rating_from || '…', to: f.value.rating_to || '…' }), key: 'rating' });
     f.value.traits.forEach(id => {
         const t = props.traits.find(x => x.id === id);
-        if (t) chips.push({ label: t.name_ru, key: 'traits', value: id });
+        if (t) chips.push({ label: localName(t), key: 'traits', value: id });
     });
     f.value.interests.forEach(id => {
         for (const cat of props.interestCategories) {
             const i = cat.interests.find(x => x.id === id);
-            if (i) { chips.push({ label: i.name_ru, key: 'interests', value: id }); break; }
+            if (i) { chips.push({ label: localName(i), key: 'interests', value: id }); break; }
         }
     });
     f.value.languages.forEach(code => {
@@ -168,7 +172,7 @@ const activeChips = computed(() => {
         chips.push({ label: f.value.timezone, key: 'timezone' });
     f.value.service_categories.forEach(id => {
         const c = props.serviceCategories.find(x => x.id === id);
-        if (c) chips.push({ label: c.name, key: 'service_categories', value: id });
+        if (c) chips.push({ label: localName(c), key: 'service_categories', value: id });
     });
     return chips;
 });
@@ -379,7 +383,7 @@ function initial(name) {
                         <div v-if="openSections.has('traits')" class="checkbox-list">
                             <label v-for="trait in filteredTraits" :key="trait.id" class="checkbox-item">
                                 <input type="checkbox" :value="trait.id" v-model="f.traits" class="checkbox-input" />
-                                <span class="checkbox-label">{{ trait.name_ru }}</span>
+                                <span class="checkbox-label">{{ localName(trait) }}</span>
                             </label>
                         </div>
                     </div>
@@ -389,7 +393,7 @@ function initial(name) {
                         <label class="filter-label">{{ __('search.filters.interests') }}</label>
                         <div v-for="cat in interestCategories" :key="cat.id" class="interest-cat">
                             <div class="filter-section-header" @click="toggleSection(`interest_cat_${cat.id}`)">
-                                <div class="interest-cat__name">{{ cat.name_ru }}</div>
+                                <div class="interest-cat__name">{{ localName(cat) }}</div>
                                 <span v-if="!openSections.has(`interest_cat_${cat.id}`) && interestCountForCat(cat)"
                                     class="section-badge">{{ interestCountForCat(cat) }}</span>
                                 <svg class="section-chevron"
@@ -406,7 +410,7 @@ function initial(name) {
                                     class="checkbox-item">
                                     <input type="checkbox" :value="interest.id" v-model="f.interests"
                                         class="checkbox-input" />
-                                    <span class="checkbox-label">{{ interest.name_ru }}</span>
+                                    <span class="checkbox-label">{{ localName(interest) }}</span>
                                 </label>
                             </div>
                         </div>
@@ -462,7 +466,7 @@ function initial(name) {
                             <label v-for="cat in filteredServiceCategories" :key="cat.id" class="checkbox-item">
                                 <input type="checkbox" :value="cat.id" v-model="f.service_categories"
                                     class="checkbox-input" />
-                                <span class="checkbox-label">{{ cat.name }}</span>
+                                <span class="checkbox-label">{{ localName(cat) }}</span>
                             </label>
                         </div>
                     </div>
