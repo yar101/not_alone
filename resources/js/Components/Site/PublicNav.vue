@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { useTranslations } from '@/composables/useTranslations';
 
@@ -25,8 +25,6 @@ const tabs = computed(() => [
 ]);
 
 const visualActive = ref(props.activePage);
-const tabEls = ref([]);
-const indicatorEl = ref(null);
 let navigating = false;
 
 function getHref(tab) {
@@ -35,55 +33,27 @@ function getHref(tab) {
     if (tab.key === 'news') return route('news');
 }
 
-function moveIndicator(key, animate) {
-    const idx = tabs.value.findIndex(t => t.key === key);
-    const el = tabEls.value[idx];
-    const ind = indicatorEl.value;
-    if (!el || !ind) return;
-
-    const parentRect = el.parentElement.getBoundingClientRect();
-    const elRect = el.getBoundingClientRect();
-    const border = parseFloat(getComputedStyle(el.parentElement).borderLeftWidth) || 0;
-    const x = elRect.left - parentRect.left - border;
-    const w = elRect.width;
-
-    if (!animate) {
-        ind.style.transition = 'none';
-        ind.style.setProperty('--ind-x', `${x}px`);
-        ind.style.setProperty('--ind-w', `${w}px`);
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-            ind.style.transition = '';
-        }));
-        return;
-    }
-    ind.style.setProperty('--ind-x', `${x}px`);
-    ind.style.setProperty('--ind-w', `${w}px`);
-}
-
-onMounted(() => {
-    nextTick(() => moveIndicator(props.activePage, false));
-});
-
 function onTabClick(tab) {
     if (tab.key === visualActive.value || navigating) return;
     navigating = true;
     visualActive.value = tab.key;
-    moveIndicator(tab.key, true);
 
     setTimeout(() => {
         router.visit(getHref(tab));
-    }, 300);
+    }, 200);
 }
 </script>
 
 <template>
     <div class="pub-nav">
         <nav class="pub-tabs">
-            <!-- Скользящий индикатор -->
-            <span ref="indicatorEl" class="pub-indicator" aria-hidden="true" />
-
-            <button v-for="(tab, i) in tabs" :key="tab.key" :ref="el => tabEls[i] = el" class="pub-tab"
-                :class="{ 'pub-tab--active': visualActive === tab.key }" @click="onTabClick(tab)">
+            <button
+                v-for="tab in tabs"
+                :key="tab.key"
+                class="pub-tab"
+                :class="{ 'pub-tab--active': visualActive === tab.key }"
+                @click="onTabClick(tab)"
+            >
                 <span class="pub-tab__icon" v-html="tab.icon" />
                 {{ tab.label }}
             </button>
@@ -105,7 +75,6 @@ function onTabClick(tab) {
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
     padding: 0.3rem;
-    position: relative;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     animation: pub-tabs-appear 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
@@ -117,7 +86,6 @@ function onTabClick(tab) {
         transform: translateY(-6px) scale(0.97);
         filter: blur(4px);
     }
-
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
@@ -125,60 +93,39 @@ function onTabClick(tab) {
     }
 }
 
-/* Скользящий индикатор */
-.pub-indicator {
-    position: absolute;
-    top: 0.3rem;
-    bottom: 0.3rem;
-    left: 0;
-    border-radius: 7px;
-    background: rgba(160, 160, 255, 0.15);
-    border: 1px solid rgba(160, 160, 255, 0.22);
-    pointer-events: none;
-    z-index: 0;
-    width: var(--ind-w, 0px);
-    transform: translateX(var(--ind-x, 0px));
-    transition: transform 0.28s cubic-bezier(0.45, 0, 0.55, 1),
-        width 0.28s cubic-bezier(0.45, 0, 0.55, 1);
-}
-
-.pub-indicator.no-transition {
-    transition: none;
-}
-
 .pub-tab {
-    flex: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.45rem;
     padding: 0.45rem 1rem;
     border-radius: 7px;
-    border: none;
+    border: 1px solid transparent;
     background: transparent;
     color: rgba(255, 255, 255, 0.4);
     font-family: "Figtree", sans-serif;
     font-size: 0.85rem;
     cursor: pointer;
-    text-decoration: none;
-    transition: color 0.22s;
     white-space: nowrap;
-    position: relative;
-    z-index: 1;
+    transition: color 0.18s, background 0.18s, border-color 0.18s;
 }
 
 .pub-tab:hover {
     color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.08);
 }
 
 .pub-tab--active {
     color: rgba(255, 255, 255, 0.92);
+    background: rgba(160, 160, 255, 0.15);
+    border-color: rgba(160, 160, 255, 0.3);
 }
 
 .pub-tab__icon {
     flex-shrink: 0;
     opacity: 0.5;
-    transition: opacity 0.22s, color 0.22s;
+    transition: opacity 0.18s;
     display: flex;
     align-items: center;
 }

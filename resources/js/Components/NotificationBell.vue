@@ -50,7 +50,7 @@ async function fetchAll() {
     try {
         await loadWindow(null);
         // Тихо догружаем под скелетоном, не трогая loadingMore
-        while (filteredItems.value.length === 0 && hasMore.value) {
+        while (filteredItems.value.length === 0 && hasMore.value && beforeCursor.value !== null) {
             await loadWindow(beforeCursor.value);
         }
     } finally {
@@ -136,7 +136,7 @@ const filteredItems = computed(() => {
 
 // Подгружаем следующие окна, пока в текущем фильтре нет элементов
 async function autoFetchIfEmpty() {
-    while (filteredItems.value.length === 0 && hasMore.value && !loadingMore.value) {
+    while (filteredItems.value.length === 0 && hasMore.value && !loadingMore.value && beforeCursor.value !== null) {
         await fetchMore();
     }
 }
