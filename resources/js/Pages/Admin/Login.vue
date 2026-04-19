@@ -57,7 +57,7 @@ function submit() {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Figtree', sans-serif;
+    font-family: 'Rubik', sans-serif;
 }
 
 .login-card {

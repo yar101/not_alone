@@ -75,7 +75,7 @@ const verificationLinkSent = computed(
     align-items: center;
     justify-content: center;
     padding: 2rem 1.5rem;
-    font-family: 'Figtree', sans-serif;
+    font-family: 'Rubik', sans-serif;
     box-sizing: border-box;
 }
 

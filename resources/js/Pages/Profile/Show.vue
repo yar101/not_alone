@@ -520,7 +520,7 @@ onMounted(async () => {
     color: rgba(255, 255, 255, 0.9) !important;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8) !important;
     border-radius: 3px !important;
-    font-family: 'Figtree', sans-serif !important;
+    font-family: 'Rubik', sans-serif !important;
 }
 .driver-popover-title {
     color: #ffffff !important;
@@ -629,7 +629,7 @@ onMounted(async () => {
     overflow: hidden;
     padding: 0 1.5rem;
     box-sizing: border-box;
-    font-family: 'Figtree', sans-serif;
+    font-family: 'Rubik', sans-serif;
 }
 
 .profile-container {
@@ -1119,7 +1119,7 @@ onMounted(async () => {
     font-weight: 600;
     color: #fff;
     margin: 0 0 0.25rem;
-    font-family: 'Figtree', sans-serif;
+    font-family: 'Rubik', sans-serif;
 }
 .report-field { display: flex; flex-direction: column; gap: 0.4rem; }
 .report-label {
@@ -1135,7 +1135,7 @@ onMounted(async () => {
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.03);
     color: rgba(255, 255, 255, 0.45);
-    font-family: 'Figtree', sans-serif;
+    font-family: 'Rubik', sans-serif;
     font-size: 0.82rem;
     cursor: pointer;
     transition: all 0.15s;
@@ -1148,7 +1148,7 @@ onMounted(async () => {
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
     color: rgba(255, 255, 255, 0.85);
-    font-family: 'Figtree', sans-serif;
+    font-family: 'Rubik', sans-serif;
     font-size: 0.9rem;
     outline: none;
     resize: vertical;
@@ -1168,7 +1168,7 @@ onMounted(async () => {
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: transparent;
     color: rgba(255, 255, 255, 0.35);
-    font-family: 'Figtree', sans-serif;
+    font-family: 'Rubik', sans-serif;
     font-size: 0.85rem;
     cursor: pointer;
     border-radius: 2px;
@@ -1180,7 +1180,7 @@ onMounted(async () => {
     border: 1px solid rgba(239, 68, 68, 0.4);
     background: rgba(239, 68, 68, 0.08);
     color: rgba(255, 255, 255, 0.88);
-    font-family: 'Figtree', sans-serif;
+    font-family: 'Rubik', sans-serif;
     font-size: 0.85rem;
     cursor: pointer;
     border-radius: 2px;
@@ -1202,7 +1202,7 @@ onMounted(async () => {
     border: 1px solid rgba(74, 222, 128, 0.3);
     background: rgba(74, 222, 128, 0.06);
     color: rgba(74, 222, 128, 0.8);
-    font-family: 'Figtree', sans-serif;
+    font-family: 'Rubik', sans-serif;
     font-size: 0.85rem;
     cursor: pointer;
     border-radius: 2px;

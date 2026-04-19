@@ -373,7 +373,7 @@ onUnmounted(() => {
 .user-name {
     font-size: 0.875rem;
     color: rgba(255, 255, 255, 0.65);
-    font-family: 'Figtree', sans-serif;
+    font-family: 'Rubik', sans-serif;
     white-space: nowrap;
     display: inline-block;
     transition: color 0.18s;

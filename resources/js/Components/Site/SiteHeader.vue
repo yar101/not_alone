@@ -84,7 +84,7 @@ a.site-header__logo { cursor: pointer; }
     display: flex; align-items: center; gap: 0.5rem;
     color: rgba(255,255,255,0.5); font-size: 1rem;
     text-decoration: none; transition: color 0.2s;
-    font-family: "Figtree", sans-serif;
+    font-family: 'Rubik', sans-serif;
 }
 .site-header__contact:hover { color: rgba(255,255,255,0.85); }
 

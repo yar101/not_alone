@@ -414,7 +414,7 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     align-items: center;
     justify-content: center;
     padding: 2rem 1rem;
-    font-family: 'Figtree', sans-serif;
+    font-family: 'Rubik', sans-serif;
     gap: 1rem;
 }
 

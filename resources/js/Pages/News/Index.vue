@@ -248,7 +248,7 @@ onUnmounted(() => {
 .ni-search__input {
     flex: 1; background: none; border: none;
     outline: none !important; box-shadow: none !important;
-    color: rgba(255,255,255,0.82); font-family: "Figtree", sans-serif; font-size: 0.97rem;
+    color: rgba(255,255,255,0.82); font-family: 'Rubik', sans-serif; font-size: 0.97rem;
 }
 .ni-search__input:focus,
 .ni-search__input:focus-visible { outline: none !important; box-shadow: none !important; }
@@ -269,7 +269,7 @@ onUnmounted(() => {
     padding: 0.3rem 0.75rem; border-radius: 3px;
     border: 1px solid rgba(255,255,255,0.1);
     background: transparent; cursor: pointer;
-    font-family: "Figtree", sans-serif; font-size: 0.78rem;
+    font-family: 'Rubik', sans-serif; font-size: 0.78rem;
     color: rgba(255,255,255,0.4);
     transition: color 0.2s, border-color 0.2s, background 0.2s;
     white-space: nowrap; flex-shrink: 0;
@@ -336,7 +336,7 @@ onUnmounted(() => {
     border: 1px solid rgba(190,145,255,0.25);
     border-bottom: none;
     color: rgba(190,145,255,0.6);
-    font-family: "Figtree", sans-serif;
+    font-family: 'Rubik', sans-serif;
     font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
     align-self: flex-end;
     margin-bottom: -1px;
@@ -358,7 +358,7 @@ onUnmounted(() => {
     display: flex; align-items: center; justify-content: space-between;
 }
 .ni-card__date {
-    font-family: "Figtree", sans-serif;
+    font-family: 'Rubik', sans-serif;
     font-size: 0.82rem; color: rgba(255,255,255,0.28); letter-spacing: 0.02em;
 }
 .ni-card__title {

@@ -160,7 +160,7 @@ onUnmounted(() => heroObserver?.disconnect());
 /* ── Back ────────────────────────────────────────────────────── */
 .sh-back {
     display: inline-flex; align-items: center; gap: 0.55rem;
-    font-family: "Figtree", sans-serif;
+    font-family: 'Rubik', sans-serif;
     font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase;
     color: rgba(255,255,255,0.3); text-decoration: none;
     margin-bottom: 1.5rem;
@@ -184,7 +184,7 @@ onUnmounted(() => heroObserver?.disconnect());
     border-radius: 4px;
     color: rgba(190,145,255,0.75);
     text-decoration: none;
-    font-family: "Figtree", sans-serif;
+    font-family: 'Rubik', sans-serif;
     font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase;
     z-index: 100;
     transition: color 0.18s, border-color 0.18s, background 0.18s, box-shadow 0.18s;
@@ -251,7 +251,7 @@ onUnmounted(() => heroObserver?.disconnect());
     font-size: 0.65rem; color: rgba(190,145,255,0.45); line-height: 1;
 }
 .sh-meta__date {
-    font-family: "Figtree", sans-serif;
+    font-family: 'Rubik', sans-serif;
     font-size: 0.82rem; color: rgba(255,255,255,0.42);
     letter-spacing: 0.1em; text-transform: uppercase;
 }

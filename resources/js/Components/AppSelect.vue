@@ -185,7 +185,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onOutsideClick));
 .app-select-opt {
     padding: 0.5rem 0.75rem;
     font-size: 0.88rem;
-    font-family: 'Figtree', sans-serif;
+    font-family: 'Rubik', sans-serif;
     color: rgba(255, 255, 255, 0.65);
     cursor: pointer;
     transition: background 0.1s, color 0.1s;

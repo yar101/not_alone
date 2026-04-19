@@ -347,7 +347,7 @@ function isActive(routeName) {
     background: #07070f;
     display: flex;
     overflow: hidden;
-    font-family: 'Figtree', sans-serif;
+    font-family: 'Rubik', sans-serif;
 }
 
 /* Sidebar */

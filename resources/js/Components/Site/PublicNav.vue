@@ -103,7 +103,7 @@ function onTabClick(tab) {
     border: 1px solid transparent;
     background: transparent;
     color: rgba(255, 255, 255, 0.4);
-    font-family: "Figtree", sans-serif;
+    font-family: 'Rubik', sans-serif;
     font-size: 0.85rem;
     cursor: pointer;
     white-space: nowrap;

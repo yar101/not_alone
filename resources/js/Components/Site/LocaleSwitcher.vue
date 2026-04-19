@@ -99,7 +99,7 @@ function init() {
     border: none;
     background: transparent;
     color: rgba(255, 255, 255, 0.4);
-    font-family: "Figtree", sans-serif;
+    font-family: 'Rubik', sans-serif;
     font-size: 0.8rem;
     font-weight: 500;
     cursor: pointer;

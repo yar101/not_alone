@@ -289,7 +289,7 @@ function deleteAvatar() {
     flex-direction: column;
     align-items: center;
     padding: 0.75rem 1rem 1.5rem;
-    font-family: 'Figtree', sans-serif;
+    font-family: 'Rubik', sans-serif;
 }
 
 /* Кнопки — абсолютно в правом верхнем углу */
@@ -563,7 +563,7 @@ function deleteAvatar() {
     font-weight: 600;
     color: #fff;
     margin: 0 0 1.25rem;
-    font-family: 'Figtree', sans-serif;
+    font-family: 'Rubik', sans-serif;
 }
 
 .edit-field {

@@ -71,7 +71,7 @@ const sortedItems = computed(() => [
     background: linear-gradient(135deg, rgba(160, 160, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
     border: 1px solid rgba(160, 160, 255, 0.18);
     border-radius: 3px;
-    font-family: 'Figtree', sans-serif;
+    font-family: 'Rubik', sans-serif;
     position: relative;
     overflow: hidden;
 }
