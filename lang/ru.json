@@ -618,6 +618,24 @@
     "auth.month.11": "Ноябрь",
     "auth.month.12": "Декабрь",
 
+    "auth.forgot": "Забыли пароль?",
+    "auth.forgot.title": "Забыли пароль",
+    "auth.forgot.hint": "Введите email-адрес — мы отправим ссылку для сброса пароля.",
+    "auth.forgot.submit": "Отправить ссылку",
+    "auth.forgot.sending": "Отправка…",
+    "auth.forgot.sent": "Ссылка для сброса пароля отправлена на ваш email.",
+
+    "auth.reset.title": "Сброс пароля",
+    "auth.reset.new_password": "Новый пароль",
+    "auth.reset.confirm_password": "Подтвердите пароль",
+    "auth.reset.submit": "Сбросить пароль",
+    "auth.reset.sending": "Сброс…",
+
+    "auth.confirm.title": "Подтвердите пароль",
+    "auth.confirm.hint": "Это защищённый раздел приложения. Подтвердите пароль для продолжения.",
+    "auth.confirm.submit": "Подтвердить",
+    "auth.confirm.sending": "Подтверждение…",
+
     "(and :count more error)": "(и ещё :count ошибка)",
     "(and :count more errors)": "(и ещё :count ошибка)|(и ещё :count ошибки)|(и ещё :count ошибок)",
     "A decryption key is required.": "Ключ дешифровки обязателен.",

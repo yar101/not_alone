@@ -158,6 +158,10 @@ function submitRegister() {
                                 </Transition>
                             </div>
 
+                            <div class="auth-forgot-wrap">
+                                <a :href="route('password.request')" class="auth-forgot-link">{{ __('auth.forgot') }}</a>
+                            </div>
+
                             <div class="auth-remember">
                                 <label class="auth-remember-label">
                                     <input v-model="loginForm.remember" type="checkbox" class="auth-checkbox-native" />
@@ -685,4 +689,7 @@ function submitRegister() {
     opacity: 0;
     transform: translateY(-4px);
 }
+.auth-forgot-wrap { display: flex; justify-content: flex-end; margin-top: -0.25rem; }
+.auth-forgot-link { font-size: 0.78rem; color: rgba(255,255,255,0.3); text-decoration: none; transition: color 0.15s; }
+.auth-forgot-link:hover { color: rgba(160,160,255,0.7); }
 </style>

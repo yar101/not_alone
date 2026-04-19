@@ -616,5 +616,23 @@
     "auth.month.9": "September",
     "auth.month.10": "October",
     "auth.month.11": "November",
-    "auth.month.12": "December"
+    "auth.month.12": "December",
+
+    "auth.forgot": "Forgot password?",
+    "auth.forgot.title": "Forgot password",
+    "auth.forgot.hint": "Enter your email address and we'll send you a password reset link.",
+    "auth.forgot.submit": "Send reset link",
+    "auth.forgot.sending": "Sending…",
+    "auth.forgot.sent": "A reset link has been sent to your email address.",
+
+    "auth.reset.title": "Reset password",
+    "auth.reset.new_password": "New password",
+    "auth.reset.confirm_password": "Confirm password",
+    "auth.reset.submit": "Reset password",
+    "auth.reset.sending": "Resetting…",
+
+    "auth.confirm.title": "Confirm password",
+    "auth.confirm.hint": "This is a secure area of the application. Please confirm your password before continuing.",
+    "auth.confirm.submit": "Confirm",
+    "auth.confirm.sending": "Confirming…"
 }

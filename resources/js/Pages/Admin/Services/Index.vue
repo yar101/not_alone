@@ -322,7 +322,8 @@ const showUnitForm  = ref(false);
 const unitEditingId = ref(null);
 
 const unitForm = useForm({
-    name:       '',
+    name_ru:    '',
+    name_en:    '',
     sort_order: 0,
     is_active:  true,
 });
@@ -336,7 +337,8 @@ function openUnitAdd() {
 
 function openUnitEdit(unit) {
     unitEditingId.value = unit.id;
-    unitForm.name       = unit.name;
+    unitForm.name_ru    = unit.name_ru ?? '';
+    unitForm.name_en    = unit.name_en ?? '';
     unitForm.sort_order = unit.sort_order;
     unitForm.is_active  = unit.is_active;
     showUnitForm.value  = true;
@@ -634,7 +636,7 @@ function destroyLimit(id) {
                     <tbody>
                         <tr v-for="unit in timeUnits" :key="unit.id">
                             <td>{{ unit.sort_order }}</td>
-                            <td>{{ unit.name }}</td>
+                            <td>{{ unit.name_ru }}<span v-if="unit.name_en" style="color:#888;font-size:0.82em"> / {{ unit.name_en }}</span></td>
                             <td><span :class="['badge', unit.is_active ? 'badge--on' : 'badge--off']">{{ unit.is_active ? 'Да' : 'Нет' }}</span></td>
                             <td>
                                 <div class="actions">
@@ -659,9 +661,14 @@ function destroyLimit(id) {
                         </div>
                         <form @submit.prevent="submitUnit" class="modal__body">
                             <div class="field">
-                                <label>Название</label>
-                                <input v-model="unitForm.name" class="input" :class="{ 'input--err': unitForm.errors.name }" placeholder="15 минут" />
-                                <p v-if="unitForm.errors.name" class="err">{{ unitForm.errors.name }}</p>
+                                <label>Название (RU)</label>
+                                <input v-model="unitForm.name_ru" class="input" :class="{ 'input--err': unitForm.errors.name_ru }" placeholder="15 минут" />
+                                <p v-if="unitForm.errors.name_ru" class="err">{{ unitForm.errors.name_ru }}</p>
+                            </div>
+                            <div class="field">
+                                <label>Название (EN)</label>
+                                <input v-model="unitForm.name_en" class="input" :class="{ 'input--err': unitForm.errors.name_en }" placeholder="15 minutes" />
+                                <p v-if="unitForm.errors.name_en" class="err">{{ unitForm.errors.name_en }}</p>
                             </div>
                             <div class="field">
                                 <label>Порядок сортировки</label>
@@ -704,7 +711,7 @@ function destroyLimit(id) {
                     </thead>
                     <tbody>
                         <tr v-for="limit in limits" :key="limit.id">
-                            <td>{{ limit.time_unit?.name ?? '—' }}</td>
+                            <td>{{ limit.time_unit?.name_ru ?? '—' }}</td>
                             <td>{{ limit.max_price.toLocaleString('ru') }} ₽</td>
                             <td>
                                 <div class="actions">
@@ -732,7 +739,7 @@ function destroyLimit(id) {
                                 <label>Единица времени</label>
                                 <AppSelect
                                     v-model="limitForm.time_unit_id"
-                                    :options="timeUnits.map(u => ({ value: u.id, label: u.name }))"
+                                    :options="timeUnits.map(u => ({ value: u.id, label: u.name_ru }))"
                                     placeholder="Выберите..."
                                     :error="!!limitForm.errors.time_unit_id"
                                 />
