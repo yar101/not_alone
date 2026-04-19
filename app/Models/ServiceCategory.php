@@ -10,7 +10,7 @@ class ServiceCategory extends Model
 {
     use HasTranslations;
 
-    public array $translatable = ['name'];
+    public array $translatable = ['name', 'description'];
 
     protected $fillable = ['name', 'description', 'name_suggestions', 'image_path', 'accent_color', 'sort_order', 'is_active'];
 

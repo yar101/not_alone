@@ -198,7 +198,8 @@ const newSuggestion   = ref('');
 const catForm = useForm({
     name_ru:          '',
     name_en:          '',
-    description:      '',
+    description_ru:   '',
+    description_en:   '',
     name_suggestions: [],
     accent_color:     '#a0a0ff',
     sort_order:       0,
@@ -223,7 +224,8 @@ function openCatEdit(cat) {
     newSuggestion.value   = '';
     catForm.name_ru          = cat.name_ru ?? '';
     catForm.name_en          = cat.name_en ?? '';
-    catForm.description      = cat.description ?? '';
+    catForm.description_ru   = cat.description_ru ?? '';
+    catForm.description_en   = cat.description_en ?? '';
     catForm.name_suggestions = cat.name_suggestions ?? [];
     catForm.accent_color     = cat.accent_color ?? '#a0a0ff';
     catForm.sort_order       = cat.sort_order;
@@ -475,7 +477,7 @@ function destroyLimit(id) {
                         <tr v-for="cat in categories" :key="cat.id">
                             <td>{{ cat.sort_order }}</td>
                             <td>{{ cat.name_ru }}</td>
-                            <td class="td-desc">{{ cat.description ? cat.description.slice(0, 60) + (cat.description.length > 60 ? '…' : '') : '—' }}</td>
+                            <td class="td-desc">{{ cat.description_ru ? cat.description_ru.slice(0, 60) + (cat.description_ru.length > 60 ? '…' : '') : '—' }}</td>
                             <td class="td-suggestions">
                                 <span v-if="cat.name_suggestions && cat.name_suggestions.length">
                                     {{ cat.name_suggestions.slice(0, 2).join(', ') }}{{ cat.name_suggestions.length > 2 ? ` +${cat.name_suggestions.length - 2}` : '' }}
@@ -520,8 +522,12 @@ function destroyLimit(id) {
                                 <p v-if="catForm.errors.name_en" class="err">{{ catForm.errors.name_en }}</p>
                             </div>
                             <div class="field">
-                                <label>Описание (глобальное)</label>
-                                <textarea v-model="catForm.description" class="input input--textarea" rows="3" maxlength="1000" placeholder="Описание категории для профиля айдола" />
+                                <label>Описание (RU)</label>
+                                <textarea v-model="catForm.description_ru" class="input input--textarea" rows="3" maxlength="1000" placeholder="Описание категории для профиля айдола" />
+                            </div>
+                            <div class="field">
+                                <label>Описание (EN)</label>
+                                <textarea v-model="catForm.description_en" class="input input--textarea" rows="3" maxlength="1000" placeholder="Description for idol profile" />
                             </div>
                             <div class="field">
                                 <label>Акцентный цвет</label>

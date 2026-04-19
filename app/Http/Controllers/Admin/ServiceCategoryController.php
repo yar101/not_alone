@@ -17,7 +17,12 @@ class ServiceCategoryController extends Controller
         return Inertia::render('Admin/Services/Index', [
             'categories' => ServiceCategory::orderBy('sort_order')->get()->map(fn ($c) => array_merge(
                 $c->toArray(),
-                ['name_ru' => $c->getTranslation('name', 'ru'), 'name_en' => $c->getTranslation('name', 'en', false) ?: '']
+                [
+                    'name_ru'        => $c->getTranslation('name', 'ru'),
+                    'name_en'        => $c->getTranslation('name', 'en', false) ?: '',
+                    'description_ru' => $c->getTranslation('description', 'ru', false) ?: '',
+                    'description_en' => $c->getTranslation('description', 'en', false) ?: '',
+                ]
             )),
             'active_tab' => 'categories',
         ]);
@@ -28,7 +33,8 @@ class ServiceCategoryController extends Controller
         $data = $request->validate([
             'name_ru'            => ['required', 'string', 'max:100'],
             'name_en'            => ['nullable', 'string', 'max:100'],
-            'description'        => ['nullable', 'string', 'max:1000'],
+            'description_ru'     => ['nullable', 'string', 'max:1000'],
+            'description_en'     => ['nullable', 'string', 'max:1000'],
             'name_suggestions'   => ['nullable', 'array'],
             'name_suggestions.*' => ['string', 'max:120'],
             'accent_color'       => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
@@ -37,7 +43,8 @@ class ServiceCategoryController extends Controller
 
         $data['sort_order'] = (ServiceCategory::max('sort_order') ?? -1) + 1;
         $data['name'] = array_filter(['ru' => $data['name_ru'], 'en' => $data['name_en'] ?? null]);
-        unset($data['name_ru'], $data['name_en']);
+        $data['description'] = array_filter(['ru' => $data['description_ru'] ?? null, 'en' => $data['description_en'] ?? null]) ?: null;
+        unset($data['name_ru'], $data['name_en'], $data['description_ru'], $data['description_en']);
 
         ServiceCategory::create($data);
 
@@ -60,7 +67,8 @@ class ServiceCategoryController extends Controller
         $data = $request->validate([
             'name_ru'            => ['sometimes', 'string', 'max:100'],
             'name_en'            => ['nullable', 'string', 'max:100'],
-            'description'        => ['nullable', 'string', 'max:1000'],
+            'description_ru'     => ['nullable', 'string', 'max:1000'],
+            'description_en'     => ['nullable', 'string', 'max:1000'],
             'name_suggestions'   => ['nullable', 'array'],
             'name_suggestions.*' => ['string', 'max:120'],
             'accent_color'       => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
@@ -75,10 +83,20 @@ class ServiceCategoryController extends Controller
             if (!empty($data['name_en'])) {
                 $category->setTranslation('name', 'en', $data['name_en']);
             }
-            $category->save();
             unset($data['name_ru'], $data['name_en']);
         }
 
+        if (array_key_exists('description_ru', $data) || array_key_exists('description_en', $data)) {
+            if (!empty($data['description_ru'])) {
+                $category->setTranslation('description', 'ru', $data['description_ru']);
+            }
+            if (!empty($data['description_en'])) {
+                $category->setTranslation('description', 'en', $data['description_en']);
+            }
+            unset($data['description_ru'], $data['description_en']);
+        }
+
+        $category->save();
         $category->update($data);
 
         if ($request->boolean('remove_image') && !$request->hasFile('image')) {

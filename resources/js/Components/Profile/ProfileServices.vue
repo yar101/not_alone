@@ -12,6 +12,12 @@ function catName(cat) {
     return locale.value?.current === 'en' && cat?.name_en ? cat.name_en : (cat?.name_ru ?? cat?.name ?? '');
 }
 
+function catDesc(cat) {
+    return locale.value?.current === 'en' && cat?.description_en
+        ? cat.description_en
+        : (cat?.description_ru ?? null);
+}
+
 const page = usePage();
 const showPendingModal = ref(false);
 
@@ -486,8 +492,8 @@ watch(selectedCategory, (cat) => {
                         </div>
                         <div class="cat-tile__body">
                             <span class="cat-tile__name">{{ catName(group.category) }}</span>
-                            <p v-if="group.category.description" class="cat-tile__desc">
-                                {{ group.category.description }}
+                            <p v-if="catDesc(group.category)" class="cat-tile__desc">
+                                {{ catDesc(group.category) }}
                             </p>
                             <div class="cat-tile__footer">
                                 <span class="cat-tile__count">
@@ -515,8 +521,8 @@ watch(selectedCategory, (cat) => {
                         </div>
                         <div class="cat-tile__body">
                             <span class="cat-tile__name">{{ catName(group.category) }}</span>
-                            <p v-if="group.category.description" class="cat-tile__desc">
-                                {{ group.category.description }}
+                            <p v-if="catDesc(group.category)" class="cat-tile__desc">
+                                {{ catDesc(group.category) }}
                             </p>
                             <div class="cat-tile__footer">
                                 <span class="cat-tile__count cat-tile__count--empty">{{ transChoice('order.service_count', 0, { count: 0 }) }}</span>
