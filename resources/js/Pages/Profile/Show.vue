@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, inject, provide, reactive, nextTick, watch } from 'vue';
+import { ref, onMounted, computed, inject, provide, reactive, watch } from 'vue';
 import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3';
 import { useTranslations } from '@/composables/useTranslations.js';
 import SiteModal from '@/Components/Site/SiteModal.vue';
@@ -81,30 +81,10 @@ const tab = ref(initialTab);
 const serviceNav = reactive({ inCategory: false, accent: '#a0a0ff', onBack: null });
 provide('serviceNav', serviceNav);
 
-const tabsEl = ref(null);
-const sliderStyle = ref({ left: '0px', width: '0px', opacity: '0' });
-
-function updateSlider() {
-    nextTick(() => {
-        const container = tabsEl.value;
-        if (!container) return;
-        const activeBtn = container.querySelector('.tab-btn.active');
-        if (!activeBtn) return;
-        const cRect = container.getBoundingClientRect();
-        const bRect = activeBtn.getBoundingClientRect();
-        sliderStyle.value = {
-            left: (bRect.left - cRect.left + container.scrollLeft) + 'px',
-            width: bRect.width + 'px',
-            opacity: '1',
-        };
-    });
-}
-
 function switchTab(name) {
     tab.value = name;
     history.replaceState(null, '', '#' + name);
     sessionStorage.setItem(`profile_tab_${props.profileUser.id}`, name);
-    updateSlider();
 }
 
 // ── Report modal ──────────────────────────────────────────
@@ -143,8 +123,6 @@ function submitReport() {
 
 // ── driver.js Tour ─────────────────────────────────────────
 const TOUR_KEY = 'profile_tour_done';
-
-onMounted(() => { updateSlider(); });
 
 onMounted(async () => {
     if (!props.isOwner) return;
@@ -293,8 +271,7 @@ onMounted(async () => {
 
                 <!-- Right main: tabs + scrollable tab content -->
                 <div class="profile-main" :class="{ 'profile-main--banned': profileUser.is_banned && !isOwner }">
-                    <div class="profile-tabs page-block" ref="tabsEl">
-                        <div class="tab-slider" :style="sliderStyle" />
+                    <div class="profile-tabs page-block">
                         <button
                             class="tab-btn"
                             :class="{ active: tab === 'about' }"
@@ -822,21 +799,6 @@ onMounted(async () => {
     flex-shrink: 0;
 }
 
-.tab-slider {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    height: calc(100% - 0.5rem);
-    border-radius: 6px;
-    background: linear-gradient(160deg, rgba(160, 160, 255, 0.18) 0%, rgba(100, 100, 220, 0.10) 100%);
-    border: 1px solid rgba(160, 160, 255, 0.15);
-    box-shadow:
-        inset 0 1px 0 rgba(160, 160, 255, 0.40),
-        0 2px 12px rgba(120, 120, 255, 0.12);
-    pointer-events: none;
-    transition: left 0.28s cubic-bezier(0.4, 0, 0.2, 1), width 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.18s ease;
-}
-
 .tab-btn {
     padding: 0.55rem 0.85rem;
     border: none;
@@ -852,14 +814,17 @@ onMounted(async () => {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    transition: color 0.18s ease;
+    transition: color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
     white-space: nowrap;
     flex-shrink: 0;
-    position: relative;
-    z-index: 1;
 }
 .tab-btn.active {
     color: rgba(200, 200, 255, 1);
+    background: linear-gradient(160deg, rgba(160, 160, 255, 0.18) 0%, rgba(100, 100, 220, 0.10) 100%);
+    border: 1px solid rgba(160, 160, 255, 0.15);
+    box-shadow:
+        inset 0 1px 0 rgba(160, 160, 255, 0.40),
+        0 2px 12px rgba(120, 120, 255, 0.12);
 }
 .tab-btn:hover:not(.active) {
     background: rgba(255,255,255,0.04);
