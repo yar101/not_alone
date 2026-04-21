@@ -498,7 +498,14 @@
     "profile.interests.sent": "Предложение отправлено!",
     "profile.interests.back": "← Назад",
 
-    "profile.content.become.tagline": "Дай фанатам эксклюзив",
+    "profile.services.become.eyebrow": "Услуги",
+    "profile.services.become.title": "Начни получать заказы<br>на то, что умеешь",
+    "profile.services.become.tag1": "Чаты, звонки, коллаборации",
+    "profile.services.become.tag2": "Сам назначаешь цену",
+    "profile.services.become.apply": "Подать заявку",
+
+    "profile.content.become.eyebrow": "Контент",
+    "profile.content.become.tagline": "Продавай контент напрямую своим фанатам",
     "profile.content.feature.packs": "Эксклюзивные паки",
     "profile.content.feature.paid": "Платный доступ",
     "profile.content.apply": "Подать заявку",

@@ -439,7 +439,7 @@ const ownerSortOptions = computed(() => [
                 <div class="pc-idol-cta-block">
                     <div class="pc-idol-cta-content">
                         <div class="pc-idol-cta-left">
-                            <span class="pc-idol-cta-eyebrow">{{ __('nav.content') }}</span>
+                            <span class="pc-idol-cta-eyebrow">{{ __('profile.content.become.eyebrow') }}</span>
                             <p class="pc-idol-cta-title">{{ __('profile.content.become.tagline') }}</p>
                             <div class="pc-idol-cta-tags">
                                 <span class="pc-idol-cta-tag">{{ __('profile.content.feature.packs') }}</span>

@@ -393,14 +393,14 @@ onMounted(async () => {
                             <div class="anim-block idol-cta-block">
                                 <div class="idol-cta-content">
                                     <div class="idol-cta-left">
-                                        <span class="idol-cta-eyebrow">Раздел айдолов</span>
-                                        <p class="idol-cta-title">Твои таланты<br>работают на тебя</p>
+                                        <span class="idol-cta-eyebrow">{{ __('profile.services.become.eyebrow') }}</span>
+                                        <p class="idol-cta-title" v-html="__('profile.services.become.title')"></p>
                                         <div class="idol-cta-tags">
-                                            <span class="idol-cta-tag">Предлагай услуги</span>
-                                            <span class="idol-cta-tag">Монетизируй аудиторию</span>
+                                            <span class="idol-cta-tag">{{ __('profile.services.become.tag1') }}</span>
+                                            <span class="idol-cta-tag">{{ __('profile.services.become.tag2') }}</span>
                                         </div>
                                     </div>
-                                    <Link href="/idol/apply" class="idol-cta-btn">Подать заявку</Link>
+                                    <Link href="/idol/apply" class="idol-cta-btn">{{ __('profile.services.become.apply') }}</Link>
                                 </div>
                             </div>
                         </template>

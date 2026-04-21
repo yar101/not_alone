@@ -498,7 +498,14 @@
     "profile.interests.sent": "Suggestion submitted!",
     "profile.interests.back": "← Back",
 
-    "profile.content.become.tagline": "Give fans exclusives",
+    "profile.services.become.eyebrow": "Services",
+    "profile.services.become.title": "Start getting paid<br>for what you do best",
+    "profile.services.become.tag1": "Chats, calls, collabs",
+    "profile.services.become.tag2": "You set the price",
+    "profile.services.become.apply": "Apply",
+
+    "profile.content.become.eyebrow": "Content",
+    "profile.content.become.tagline": "Sell exclusive content directly to your fans",
     "profile.content.feature.packs": "Exclusive packs",
     "profile.content.feature.paid": "Paid access",
     "profile.content.apply": "Apply",
