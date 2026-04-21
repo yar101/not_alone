@@ -28,11 +28,11 @@ onMounted(() => {
     else if (props.phase === 'quiz') {
         step.value = 2;
         if (props.session) {
-            quizSessionId.value     = props.session.id;
+            quizSessionId.value = props.session.id;
             quizAttemptNumber.value = props.session.attempt_number;
-            quizErrors.value        = props.session.errors_count;
-            quizQuestions.value     = props.session.all_questions;
-            quizCurrentStage.value  = props.session.current_stage;
+            quizErrors.value = props.session.errors_count;
+            quizQuestions.value = props.session.all_questions;
+            quizCurrentStage.value = props.session.current_stage;
         }
     }
     // else step.value = 1 (default: memo)
@@ -195,8 +195,9 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 <template>
     <div class="apply-wrap">
         <button class="back-btn" @click="history.back()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="15 18 9 12 15 6"/>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6" />
             </svg>
             Назад
         </button>
@@ -210,28 +211,36 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 
                 <div class="memo-block">
                     <div class="memo-item">
-                        <el-icon class="memo-icon"><Camera /></el-icon>
+                        <el-icon class="memo-icon">
+                            <Camera />
+                        </el-icon>
                         <div>
                             <strong>Реальное фото</strong>
                             <p>Ваше лицо должно быть хорошо видно на фотографии</p>
                         </div>
                     </div>
                     <div class="memo-item">
-                        <el-icon class="memo-icon"><CircleCheck /></el-icon>
+                        <el-icon class="memo-icon">
+                            <CircleCheck />
+                        </el-icon>
                         <div>
                             <strong>Тест из 10 вопросов</strong>
                             <p>Допускается не более 2 ошибок. Есть 2 попытки, потом кулдаун 24ч</p>
                         </div>
                     </div>
                     <div class="memo-item">
-                        <el-icon class="memo-icon"><Clock /></el-icon>
+                        <el-icon class="memo-icon">
+                            <Clock />
+                        </el-icon>
                         <div>
                             <strong>Проверка администратором</strong>
                             <p>После подачи заявки наша команда проверит её в течение нескольких дней</p>
                         </div>
                     </div>
                     <div class="memo-item">
-                        <el-icon class="memo-icon"><InfoFilled /></el-icon>
+                        <el-icon class="memo-icon">
+                            <InfoFilled />
+                        </el-icon>
                         <div>
                             <strong>Ответственность</strong>
                             <p>Айдол должен соблюдать правила платформы и уважать участников</p>
@@ -259,8 +268,11 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
                         'quiz-errors-badge--one': quizErrors === 1,
                         'quiz-errors-badge--two': quizErrors >= 2,
                     }">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
                         </svg>
                         {{ quizErrors }} / 2
                     </div>
@@ -268,21 +280,19 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 
                 <!-- Segmented progress -->
                 <div class="quiz-segments">
-                    <div
-                        v-for="n in 10"
-                        :key="n"
-                        class="quiz-segment"
-                        :class="{
-                            'quiz-segment--done': n < quizCurrentStage,
-                            'quiz-segment--active': n === quizCurrentStage,
-                        }"
-                    ></div>
+                    <div v-for="n in 10" :key="n" class="quiz-segment" :class="{
+                        'quiz-segment--done': n < quizCurrentStage,
+                        'quiz-segment--active': n === quizCurrentStage,
+                    }"></div>
                 </div>
 
                 <!-- Warning -->
                 <div v-if="quizErrors >= 2" class="quiz-warning">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
                     </svg>
                     Следующая ошибка завершит тест
                 </div>
@@ -292,23 +302,25 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
                     <p class="question-text">{{ currentQuestion.question }}</p>
 
                     <div class="options-list">
-                        <button
-                            v-for="(opt, i) in currentQuestion.options"
-                            :key="i"
-                            class="option-row"
-                            :class="{
-                                'option-row--selected': selectedAnswer === i && !showAnswerFeedback,
-                                'option-row--correct': showAnswerFeedback && i === lastCorrectIndex,
-                                'option-row--wrong': showAnswerFeedback && selectedAnswer === i && !lastAnswerCorrect && i !== lastCorrectIndex,
-                                'option-row--muted': showAnswerFeedback && i !== lastCorrectIndex && i !== selectedAnswer,
-                            }"
-                            @click="submitAnswer(i)"
-                            :disabled="quizSubmitting || showAnswerFeedback"
-                        >
+                        <button v-for="(opt, i) in currentQuestion.options" :key="i" class="option-row" :class="{
+                            'option-row--selected': selectedAnswer === i && !showAnswerFeedback,
+                            'option-row--correct': showAnswerFeedback && i === lastCorrectIndex,
+                            'option-row--wrong': showAnswerFeedback && selectedAnswer === i && !lastAnswerCorrect && i !== lastCorrectIndex,
+                            'option-row--muted': showAnswerFeedback && i !== lastCorrectIndex && i !== selectedAnswer,
+                        }" @click="submitAnswer(i)" :disabled="quizSubmitting || showAnswerFeedback">
                             <span class="option-badge">{{ String.fromCharCode(65 + i) }}</span>
                             <span class="option-text">{{ opt }}</span>
-                            <svg v-if="showAnswerFeedback && i === lastCorrectIndex" class="option-icon option-icon--correct" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                            <svg v-else-if="showAnswerFeedback && selectedAnswer === i && !lastAnswerCorrect" class="option-icon option-icon--wrong" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            <svg v-if="showAnswerFeedback && i === lastCorrectIndex"
+                                class="option-icon option-icon--correct" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            <svg v-else-if="showAnswerFeedback && selectedAnswer === i && !lastAnswerCorrect"
+                                class="option-icon option-icon--wrong" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
                         </button>
                     </div>
                 </div>
@@ -318,7 +330,9 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
             <div v-else-if="step === 3" class="step-content">
                 <!-- Passed -->
                 <template v-if="quizSessionStatus === 'passed' || phase === 'photo'">
-                    <el-icon class="step-icon"><Trophy /></el-icon>
+                    <el-icon class="step-icon">
+                        <Trophy />
+                    </el-icon>
                     <h2 class="step-title">Тест пройден!</h2>
                     <p class="step-sub">Отлично! Теперь загрузите своё фото для заявки.</p>
                     <button @click="step = 4" class="btn-primary">Загрузить фото</button>
@@ -326,7 +340,9 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 
                 <!-- Failed once -->
                 <template v-else-if="quizSessionStatus === 'failed' && quizAttemptNumber < 2">
-                    <el-icon class="step-icon"><Remove /></el-icon>
+                    <el-icon class="step-icon">
+                        <Remove />
+                    </el-icon>
                     <h2 class="step-title">Не прошли с первого раза</h2>
                     <p class="step-sub">Ошибок: {{ quizErrors }}. У вас есть второй шанс — без кулдауна.</p>
                     <button @click="startQuiz" class="btn-primary" :disabled="quizStarting">
@@ -335,8 +351,11 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
                 </template>
 
                 <!-- Failed twice → cooldown -->
-                <template v-else-if="(quizSessionStatus === 'failed' && quizAttemptNumber >= 2) || phase === 'cooldown'">
-                    <el-icon class="step-icon"><Clock /></el-icon>
+                <template
+                    v-else-if="(quizSessionStatus === 'failed' && quizAttemptNumber >= 2) || phase === 'cooldown'">
+                    <el-icon class="step-icon">
+                        <Clock />
+                    </el-icon>
                     <h2 class="step-title">Кулдаун активен</h2>
                     <p class="step-sub">Вы использовали обе попытки. Попробуйте снова через:</p>
                     <div class="cooldown-timer">{{ cooldownRemaining || '...' }}</div>
@@ -345,20 +364,20 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 
             <!-- ─── Step 4: Photo ────────────────────────────── -->
             <div v-else-if="step === 4" class="step-content">
-                <el-icon class="step-icon"><Camera /></el-icon>
+                <el-icon class="step-icon">
+                    <Camera />
+                </el-icon>
                 <h2 class="step-title">Фото для заявки</h2>
-                <p class="step-sub">Ваше лицо должно быть хорошо видно. Принимаются форматы JPEG, PNG, WebP (до 5 МБ).</p>
+                <p class="step-sub">Ваше лицо должно быть хорошо видно. Принимаются форматы JPEG, PNG, WebP (до 5 МБ).
+                </p>
 
-                <div
-                    class="dropzone"
-                    :class="{ 'dropzone--has-file': photoPreview }"
-                    @dragover.prevent
-                    @drop="onDrop"
-                    @click="$refs.fileInput.click()"
-                >
+                <div class="dropzone" :class="{ 'dropzone--has-file': photoPreview }" @dragover.prevent @drop="onDrop"
+                    @click="$refs.fileInput.click()">
                     <img v-if="photoPreview" :src="photoPreview" class="photo-preview" alt="Preview" />
                     <template v-else>
-                        <el-icon class="dropzone-icon"><Upload /></el-icon>
+                        <el-icon class="dropzone-icon">
+                            <Upload />
+                        </el-icon>
                         <p class="dropzone-text">Перетащите фото или нажмите для выбора</p>
                     </template>
                 </div>
@@ -366,11 +385,7 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 
                 <p v-if="photoForm.errors.face_photo" class="error-msg">{{ photoForm.errors.face_photo }}</p>
 
-                <button
-                    @click="submitPhoto"
-                    class="btn-primary"
-                    :disabled="!photoPreview || photoForm.processing"
-                >
+                <button @click="submitPhoto" class="btn-primary" :disabled="!photoPreview || photoForm.processing">
                     {{ photoForm.processing ? 'Отправка...' : 'Подать заявку' }}
                 </button>
             </div>
@@ -379,19 +394,26 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
             <div v-else-if="step === 5" class="step-content">
                 <!-- Done / Pending -->
                 <template v-if="phase === 'pending' || phase === 'none'">
-                    <el-icon class="step-icon"><Message /></el-icon>
+                    <el-icon class="step-icon">
+                        <Message />
+                    </el-icon>
                     <h2 class="step-title">Заявка принята!</h2>
-                    <p class="step-sub">Мы рассмотрим её в ближайшее время. Уведомление придёт на почту и в колокольчик.</p>
+                    <p class="step-sub">Мы рассмотрим её в ближайшее время. Уведомление придёт на почту и в колокольчик.
+                    </p>
                 </template>
                 <!-- Approved -->
                 <template v-else-if="phase === 'approved'">
-                    <el-icon class="step-icon"><StarFilled /></el-icon>
+                    <el-icon class="step-icon">
+                        <StarFilled />
+                    </el-icon>
                     <h2 class="step-title">Вы Айдол!</h2>
                     <p class="step-sub">Ваш статус подтверждён. Спасибо за то, что вдохновляете других!</p>
                 </template>
                 <!-- Rejected -->
                 <template v-else-if="phase === 'rejected'">
-                    <el-icon class="step-icon"><CircleClose /></el-icon>
+                    <el-icon class="step-icon">
+                        <CircleClose />
+                    </el-icon>
                     <h2 class="step-title">Заявка отклонена</h2>
                     <p class="step-sub">К сожалению, ваша заявка была отклонена.</p>
                     <div v-if="rejection_reason" class="rejection-reason">
@@ -434,10 +456,15 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     margin-left: calc((100% - 560px) / 2);
     transition: color 0.15s;
 }
-.back-btn:hover { color: rgba(255, 255, 255, 0.75); }
+
+.back-btn:hover {
+    color: rgba(255, 255, 255, 0.75);
+}
 
 @media (max-width: 600px) {
-    .back-btn { margin-left: 0; }
+    .back-btn {
+        margin-left: 0;
+    }
 }
 
 .apply-card {
@@ -446,7 +473,7 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     background: #0a0a0f;
     border: 1px solid rgba(160, 160, 255, 0.18);
     border-radius: 4px;
-    box-shadow: 0 0 0 1px rgba(0,0,0,0.6), 0 16px 48px rgba(0,0,0,0.6);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 16px 48px rgba(0, 0, 0, 0.6);
 }
 
 /* ── Generic step wrapper ─────────────────────────────── */
@@ -466,9 +493,27 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     text-transform: uppercase;
     color: #a0a0ff;
 }
-.step-icon { font-size: 2.75rem; display: flex; justify-content: center; }
-.step-title { font-size: 1.55rem; color: #fff; margin: 0; font-weight: 700; }
-.step-sub { color: rgba(255,255,255,0.45); font-size: 0.88rem; margin: 0; line-height: 1.65; max-width: 400px; }
+
+.step-icon {
+    font-size: 2.75rem;
+    display: flex;
+    justify-content: center;
+}
+
+.step-title {
+    font-size: 1.55rem;
+    color: #fff;
+    margin: 0;
+    font-weight: 700;
+}
+
+.step-sub {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.88rem;
+    margin: 0;
+    line-height: 1.65;
+    max-width: 400px;
+}
 
 /* ── Memo ─────────────────────────────────────────────── */
 .memo-block {
@@ -478,18 +523,37 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     gap: 0.5rem;
     text-align: left;
 }
+
 .memo-item {
     display: flex;
     align-items: flex-start;
     gap: 0.8rem;
     padding: 0.75rem 0.85rem;
-    background: rgba(255,255,255,0.025);
-    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 3px;
 }
-.memo-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 0.05rem; }
-.memo-item strong { display: block; color: rgba(255,255,255,0.88); font-size: 0.85rem; margin-bottom: 0.15rem; font-weight: 600; }
-.memo-item p { margin: 0; font-size: 0.78rem; color: rgba(255,255,255,0.38); line-height: 1.45; }
+
+.memo-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    margin-top: 0.05rem;
+}
+
+.memo-item strong {
+    display: block;
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 0.85rem;
+    margin-bottom: 0.15rem;
+    font-weight: 600;
+}
+
+.memo-item p {
+    margin: 0;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.38);
+    line-height: 1.45;
+}
 
 /* ── Buttons ──────────────────────────────────────────── */
 .btn-primary {
@@ -506,8 +570,17 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     transition: opacity 0.15s, transform 0.1s;
     min-width: 160px;
 }
-.btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
-.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+.btn-primary:hover {
+    opacity: 0.88;
+    transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    transform: none;
+}
 
 .btn-secondary {
     padding: 0.6rem 1.4rem;
@@ -520,7 +593,11 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s;
 }
-.btn-secondary:hover { background: rgba(160, 160, 255, 0.07); border-color: rgba(160, 160, 255, 0.65); }
+
+.btn-secondary:hover {
+    background: rgba(160, 160, 255, 0.07);
+    border-color: rgba(160, 160, 255, 0.65);
+}
 
 /* ── Quiz wrapper ─────────────────────────────────────── */
 .quiz-wrap {
@@ -535,7 +612,7 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     align-items: center;
     justify-content: space-between;
     padding: 1rem 1.5rem 0.85rem;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .quiz-stage-label {
@@ -543,6 +620,7 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     align-items: baseline;
     gap: 0.2rem;
 }
+
 .quiz-stage-num {
     font-size: 1.5rem;
     font-weight: 700;
@@ -550,14 +628,16 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     line-height: 1;
     font-variant-numeric: tabular-nums;
 }
+
 .quiz-stage-sep {
     font-size: 0.9rem;
-    color: rgba(255,255,255,0.2);
+    color: rgba(255, 255, 255, 0.2);
     margin: 0 0.05rem;
 }
+
 .quiz-stage-total {
     font-size: 0.9rem;
-    color: rgba(255,255,255,0.35);
+    color: rgba(255, 255, 255, 0.35);
     font-variant-numeric: tabular-nums;
 }
 
@@ -573,22 +653,29 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     border: 1px solid;
     transition: color 0.2s, background 0.2s, border-color 0.2s;
 }
-.quiz-errors-badge svg { width: 0.85rem; height: 0.85rem; flex-shrink: 0; }
+
+.quiz-errors-badge svg {
+    width: 0.85rem;
+    height: 0.85rem;
+    flex-shrink: 0;
+}
 
 .quiz-errors-badge--zero {
-    color: rgba(255,255,255,0.3);
-    background: rgba(255,255,255,0.03);
-    border-color: rgba(255,255,255,0.07);
+    color: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.07);
 }
+
 .quiz-errors-badge--one {
     color: #fbb740;
-    background: rgba(251,183,64,0.07);
-    border-color: rgba(251,183,64,0.25);
+    background: rgba(251, 183, 64, 0.07);
+    border-color: rgba(251, 183, 64, 0.25);
 }
+
 .quiz-errors-badge--two {
     color: #ff6b6b;
-    background: rgba(255,80,80,0.08);
-    border-color: rgba(255,80,80,0.3);
+    background: rgba(255, 80, 80, 0.08);
+    border-color: rgba(255, 80, 80, 0.3);
 }
 
 /* ── Segmented progress ───────────────────────────────── */
@@ -596,17 +683,24 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     display: flex;
     gap: 3px;
     padding: 0.75rem 1.5rem;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
+
 .quiz-segment {
     flex: 1;
     height: 3px;
     border-radius: 0;
-    background: rgba(255,255,255,0.08);
+    background: rgba(255, 255, 255, 0.08);
     transition: background 0.25s ease;
 }
-.quiz-segment--done { background: rgba(160, 160, 255, 0.55); }
-.quiz-segment--active { background: #a0a0ff; }
+
+.quiz-segment--done {
+    background: rgba(160, 160, 255, 0.55);
+}
+
+.quiz-segment--active {
+    background: #a0a0ff;
+}
 
 /* ── Warning ──────────────────────────────────────────── */
 .quiz-warning {
@@ -621,15 +715,21 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     letter-spacing: 0.02em;
     color: #ff6b6b;
 }
-.quiz-warning svg { width: 0.9rem; height: 0.9rem; flex-shrink: 0; }
+
+.quiz-warning svg {
+    width: 0.9rem;
+    height: 0.9rem;
+    flex-shrink: 0;
+}
 
 /* ── Question ─────────────────────────────────────────── */
 .question-block {
     padding: 1.5rem 1.5rem 1.75rem;
 }
+
 .question-text {
     font-size: 1rem;
-    color: rgba(255,255,255,0.92);
+    color: rgba(255, 255, 255, 0.92);
     margin: 0 0 1.25rem;
     line-height: 1.6;
     font-weight: 500;
@@ -648,10 +748,10 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     gap: 0.75rem;
     width: 100%;
     padding: 0.75rem 0.85rem;
-    background: rgba(255,255,255,0.025);
-    border: 1px solid rgba(255,255,255,0.07);
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.07);
     border-radius: 3px;
-    color: rgba(255,255,255,0.65);
+    color: rgba(255, 255, 255, 0.65);
     font-size: 0.88rem;
     font-family: inherit;
     text-align: left;
@@ -659,29 +759,38 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     transition: background 0.12s, border-color 0.12s, color 0.12s;
     line-height: 1.45;
 }
+
 .option-row:hover:not(:disabled) {
     background: rgba(160, 160, 255, 0.07);
     border-color: rgba(160, 160, 255, 0.28);
-    color: rgba(255,255,255,0.92);
+    color: rgba(255, 255, 255, 0.92);
 }
-.option-row:disabled { cursor: default; }
+
+.option-row:disabled {
+    cursor: default;
+}
 
 .option-row--selected {
     background: rgba(160, 160, 255, 0.1) !important;
     border-color: rgba(160, 160, 255, 0.5) !important;
     color: #fff !important;
 }
+
 .option-row--correct {
     background: rgba(74, 222, 128, 0.08) !important;
     border-color: rgba(74, 222, 128, 0.4) !important;
     color: #4ade80 !important;
 }
+
 .option-row--wrong {
     background: rgba(255, 80, 80, 0.08) !important;
     border-color: rgba(255, 80, 80, 0.35) !important;
     color: #ff6b6b !important;
 }
-.option-row--muted { opacity: 0.28; }
+
+.option-row--muted {
+    opacity: 0.28;
+}
 
 .option-badge {
     display: inline-flex;
@@ -691,31 +800,36 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     width: 1.5rem;
     height: 1.5rem;
     border-radius: 3px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.04em;
-    color: rgba(255,255,255,0.4);
+    color: rgba(255, 255, 255, 0.4);
     transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
+
 .option-row--selected .option-badge {
     background: rgba(160, 160, 255, 0.2);
     border-color: rgba(160, 160, 255, 0.5);
     color: #a0a0ff;
 }
+
 .option-row--correct .option-badge {
     background: rgba(74, 222, 128, 0.15);
     border-color: rgba(74, 222, 128, 0.4);
     color: #4ade80;
 }
+
 .option-row--wrong .option-badge {
     background: rgba(255, 80, 80, 0.12);
     border-color: rgba(255, 80, 80, 0.35);
     color: #ff6b6b;
 }
 
-.option-text { flex: 1; }
+.option-text {
+    flex: 1;
+}
 
 .option-icon {
     flex-shrink: 0;
@@ -723,8 +837,14 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     height: 1rem;
     margin-left: auto;
 }
-.option-icon--correct { color: #4ade80; }
-.option-icon--wrong   { color: #ff6b6b; }
+
+.option-icon--correct {
+    color: #4ade80;
+}
+
+.option-icon--wrong {
+    color: #ff6b6b;
+}
 
 /* ── Cooldown ─────────────────────────────────────────── */
 .cooldown-timer {
@@ -751,13 +871,38 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     padding: 1rem;
     box-sizing: border-box;
 }
-.dropzone:hover { border-color: rgba(160, 160, 255, 0.55); background: rgba(160, 160, 255, 0.04); }
-.dropzone--has-file { border-style: solid; border-color: rgba(160, 160, 255, 0.4); }
-.dropzone-icon { font-size: 1.75rem; }
-.dropzone-text { font-size: 0.82rem; color: rgba(255,255,255,0.35); }
-.photo-preview { max-width: 100%; max-height: 240px; border-radius: 2px; object-fit: cover; }
 
-.error-msg { font-size: 0.8rem; color: #ff6b6b; margin: 0; }
+.dropzone:hover {
+    border-color: rgba(160, 160, 255, 0.55);
+    background: rgba(160, 160, 255, 0.04);
+}
+
+.dropzone--has-file {
+    border-style: solid;
+    border-color: rgba(160, 160, 255, 0.4);
+}
+
+.dropzone-icon {
+    font-size: 1.75rem;
+}
+
+.dropzone-text {
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.photo-preview {
+    max-width: 100%;
+    max-height: 240px;
+    border-radius: 2px;
+    object-fit: cover;
+}
+
+.error-msg {
+    font-size: 0.8rem;
+    color: #ff6b6b;
+    margin: 0;
+}
 
 /* ── Rejection reason ─────────────────────────────────── */
 .rejection-reason {
@@ -766,7 +911,7 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     border-radius: 3px;
     padding: 0.75rem 1rem;
     font-size: 0.84rem;
-    color: rgba(255,255,255,0.55);
+    color: rgba(255, 255, 255, 0.55);
     text-align: left;
     max-width: 400px;
     line-height: 1.55;
