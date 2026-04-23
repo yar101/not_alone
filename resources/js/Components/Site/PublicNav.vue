@@ -47,13 +47,8 @@ function onTabClick(tab) {
 <template>
     <div class="pub-nav">
         <nav class="pub-tabs">
-            <button
-                v-for="tab in tabs"
-                :key="tab.key"
-                class="pub-tab"
-                :class="{ 'pub-tab--active': visualActive === tab.key }"
-                @click="onTabClick(tab)"
-            >
+            <button v-for="tab in tabs" :key="tab.key" class="pub-tab"
+                :class="{ 'pub-tab--active': visualActive === tab.key }" @click="onTabClick(tab)">
                 <span class="pub-tab__icon" v-html="tab.icon" />
                 {{ tab.label }}
             </button>
@@ -86,6 +81,7 @@ function onTabClick(tab) {
         transform: translateY(-6px) scale(0.97);
         filter: blur(4px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
@@ -104,7 +100,7 @@ function onTabClick(tab) {
     background: transparent;
     color: rgba(255, 255, 255, 0.4);
     font-family: 'Rubik', sans-serif;
-    font-size: 0.85rem;
+    font-size: 1rem;
     cursor: pointer;
     white-space: nowrap;
     transition: color 0.18s, background 0.18s, border-color 0.18s;
