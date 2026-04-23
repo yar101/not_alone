@@ -9,8 +9,14 @@
     --color-base-2: #64d2ff;
 }
 
+html {
+    background-color: #0e0e1a;
+}
+
 body {
     font-family: 'Rubik', ui-sans-serif, system-ui, sans-serif;
+    background-color: #0e0e1a;
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* Масштабирование на широких мониторах (2K и выше) */

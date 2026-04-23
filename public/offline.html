@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0e0e1a">
+  <title>Нет соединения — NoAlone</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      background: #0e0e1a;
+      color: rgba(255,255,255,0.82);
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .wrap {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      padding: 2rem;
+      text-align: center;
+    }
+    .icon {
+      font-size: 3rem;
+      line-height: 1;
+      opacity: 0.5;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+    p {
+      font-size: 0.95rem;
+      color: rgba(255,255,255,0.45);
+      max-width: 280px;
+      line-height: 1.5;
+    }
+    button {
+      margin-top: 0.5rem;
+      padding: 0.6rem 1.6rem;
+      background: rgba(160,160,255,0.12);
+      border: 1px solid rgba(160,160,255,0.3);
+      border-radius: 8px;
+      color: rgba(200,200,255,0.9);
+      font-size: 0.9rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    button:hover {
+      background: rgba(160,160,255,0.2);
+      border-color: rgba(160,160,255,0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="icon">⚡</p>
+    <h1>Нет соединения</h1>
+    <p>Проверьте подключение к интернету и попробуйте ещё раз</p>
+    <button onclick="location.reload()">Обновить</button>
+  </div>
+</body>
+</html>

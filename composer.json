@@ -71,6 +71,10 @@
             "@php artisan ide-helper:generate",
             "@php artisan ide-helper:models --nowrite",
             "@php artisan ide-helper:meta"
+        ],
+        "pwa-lan": [
+            "Composer\\Config::disableProcessTimeout",
+            "bash pwa-lan.sh"
         ]
     },
     "extra": {
