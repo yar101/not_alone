@@ -3,18 +3,21 @@
 namespace App\Notifications;
 
 use App\Models\AdminBroadcast;
+use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushChannel;
 
 class AdminBroadcastNotification extends Notification
 {
     use Queueable;
+    use SendsWebPush;
 
     public function __construct(private AdminBroadcast $broadcast) {}
 
     public function via($notifiable): array
     {
-        return ['database'];
+        return ['database', WebPushChannel::class];
     }
 
     public function toDatabase($notifiable): array
@@ -25,5 +28,10 @@ class AdminBroadcastNotification extends Notification
             'title'        => $this->broadcast->title,
             'message'      => $this->broadcast->body,
         ];
+    }
+
+    protected function webPushBody(): string
+    {
+        return __('push.admin_broadcast', ['message' => $this->broadcast->body]);
     }
 }

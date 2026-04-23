@@ -43,29 +43,15 @@ export default defineConfig({
             resolvers: [ElementPlusResolver()],
         }),
         VitePWA({
+            strategies: 'injectManifest',
+            srcDir: 'resources/js',
+            filename: 'sw.js',
             registerType: 'autoUpdate',
             injectRegister: null,
-            workbox: {
-                navigateFallback: null,
+            injectManifest: {
                 globPatterns: ['**/*.{js,css,woff2,ico,png,svg}'],
                 additionalManifestEntries: [
                     { url: '/offline.html', revision: null },
-                ],
-                runtimeCaching: [
-                    {
-                        urlPattern: ({ request }) => request.mode === 'navigate',
-                        handler: 'NetworkFirst',
-                        options: {
-                            cacheName: 'pages-cache',
-                            networkTimeoutSeconds: 3,
-                            plugins: [
-                                {
-                                    handlerDidError: async () =>
-                                        caches.match('/offline.html'),
-                                },
-                            ],
-                        },
-                    },
                 ],
             },
             manifest: {

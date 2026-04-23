@@ -9,6 +9,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ServiceController;
 
+use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\AboutController;
 use App\Http\Controllers\ContentPackController;
 use App\Http\Controllers\ContentPackPurchaseController;
@@ -140,6 +141,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // Reports
 Route::middleware(['auth', 'not_banned'])->group(function () {
     Route::post('/reports', [ReportController::class, 'store'])->name('reports.store');
+});
+
+// Push subscriptions
+Route::middleware('auth')->group(function () {
+    Route::post('/push/subscribe',   [PushSubscriptionController::class, 'store'])->name('push.subscribe');
+    Route::delete('/push/subscribe', [PushSubscriptionController::class, 'destroy'])->name('push.unsubscribe');
 });
 
 // Notification routes

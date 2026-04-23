@@ -11,10 +11,13 @@ import {
 } from '@element-plus/icons-vue';
 
 import { useTranslations } from '@/composables/useTranslations';
+import { usePushNotifications } from '@/composables/usePushNotifications';
 
 const page = usePage();
 const { __, locale } = useTranslations();
 const open = ref(false);
+const { isSupported, subscribe, syncSubscription } = usePushNotifications();
+const pushPermission = ref(typeof Notification !== 'undefined' ? Notification.permission : 'unsupported');
 
 const allItems = ref([]);
 const loading = ref(false);
@@ -310,8 +313,19 @@ function orderMessage(item) {
     return '';
 }
 
+async function requestPush() {
+    const granted = await subscribe();
+    if (granted) pushPermission.value = 'granted';
+}
+
 onMounted(() => {
     document.addEventListener('click', closeOnOutside);
+
+    if (isSupported() && page.props.auth?.user) {
+        if (Notification.permission === 'granted') {
+            syncSubscription();
+        }
+    }
 
     // Инициализируем курсор, чтобы не показывать попапы для уже существующих уведомлений
     axios.get(route('notifications.combined'))
@@ -383,6 +397,15 @@ onUnmounted(() => {
                             <span v-if="orderUnread > 0" class="notif-filter-dot"></span>
                         </button>
                     </div>
+                </div>
+
+                <!-- Push permission banner -->
+                <div v-if="isSupported() && pushPermission === 'default' && page.props.auth?.user" class="push-banner">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.7">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    <span class="push-banner__text">{{ __('notification.push_prompt') }}</span>
+                    <button class="push-banner__btn" @click.stop="requestPush">{{ __('notification.push_allow') }}</button>
                 </div>
 
                 <!-- Skeleton loader -->
@@ -848,6 +871,40 @@ onUnmounted(() => {
     font-size: 0.86rem;
     color: rgba(255, 255, 255, 0.25);
     margin: 0;
+}
+
+/* ── Push banner ── */
+.push-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.65rem 1.25rem;
+    background: rgba(160, 160, 255, 0.06);
+    border-bottom: 1px solid rgba(160, 160, 255, 0.12);
+    font-size: 0.84rem;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.push-banner__text {
+    flex: 1;
+    line-height: 1.35;
+}
+
+.push-banner__btn {
+    flex-shrink: 0;
+    padding: 0.25rem 0.7rem;
+    border-radius: 5px;
+    background: rgba(160, 160, 255, 0.18);
+    border: 1px solid rgba(160, 160, 255, 0.3);
+    color: rgba(160, 160, 255, 0.95);
+    font-size: 0.82rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.push-banner__btn:hover {
+    background: rgba(160, 160, 255, 0.28);
 }
 
 /* ── Skeleton loader ── */

@@ -80,6 +80,7 @@ class HandleInertiaRequests extends Middleware
                 'available'    => config('app.available_locales'),
                 'translations' => $this->getTranslations(),
             ],
+            'vapid_public_key' => config('webpush.vapid.public_key'),
         ];
     }
 

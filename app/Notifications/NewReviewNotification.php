@@ -3,12 +3,15 @@
 namespace App\Notifications;
 
 use App\Models\Review;
+use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushChannel;
 
 class NewReviewNotification extends Notification
 {
     use Queueable;
+    use SendsWebPush;
 
     public function __construct(
         public readonly Review $review,
@@ -16,7 +19,7 @@ class NewReviewNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', WebPushChannel::class];
     }
 
     public function toDatabase(object $notifiable): array
@@ -32,5 +35,11 @@ class NewReviewNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return $this->toDatabase($notifiable);
+    }
+
+    protected function webPushBody(): string
+    {
+        $stars = str_repeat('★', $this->review->rating) . str_repeat('☆', 5 - $this->review->rating);
+        return __('push.new_review', ['stars' => $stars]);
     }
 }
