@@ -469,12 +469,15 @@
     "profile.header.delete_avatar": "Удалить фото",
 
     "profile.voice.err.mic": "Не удалось получить доступ к микрофону",
+    "profile.voice.err.mic_denied": "Доступ к микрофону запрещён. Разрешите его в настройках браузера и перезагрузите страницу.",
+    "profile.voice.err.mic_unavailable": "Микрофон не обнаружен или API недоступно в этом браузере.",
     "profile.voice.confirm.del": "Удалить аудио?",
     "profile.voice.pause": "Пауза",
     "profile.voice.play": "Играть",
     "profile.voice.stop": "Стоп",
     "profile.voice.empty": "Аудио отсутствует",
     "profile.voice.record": "Записать аудио",
+    "profile.voice.uploading": "Сохранение…",
 
     "profile.traits.title": "Характер",
     "profile.traits.empty": "Добавь свои черты характера",

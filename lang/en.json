@@ -469,12 +469,15 @@
     "profile.header.delete_avatar": "Delete photo",
 
     "profile.voice.err.mic": "Could not access microphone",
+    "profile.voice.err.mic_denied": "Microphone access is denied. Enable it in your browser settings and reload the page.",
+    "profile.voice.err.mic_unavailable": "No microphone found or the API is not available in this browser.",
     "profile.voice.confirm.del": "Delete audio?",
     "profile.voice.pause": "Pause",
     "profile.voice.play": "Play",
     "profile.voice.stop": "Stop",
     "profile.voice.empty": "No audio recorded",
     "profile.voice.record": "Record audio",
+    "profile.voice.uploading": "Saving…",
 
     "profile.traits.title": "Character",
     "profile.traits.empty": "Add your character traits",

@@ -4,7 +4,7 @@ import { useForm, router, usePage } from '@inertiajs/vue3';
 import AppSelect from '@/Components/AppSelect.vue';
 import CreateButton from '@/Components/CreateButton.vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
-import { useTranslations } from '@/composables/useTranslations';
+import { useTranslations, localeLoading } from '@/composables/useTranslations';
 
 const { __, transChoice, locale } = useTranslations();
 
@@ -264,10 +264,12 @@ function closeForm() {
 
 function submitForm() {
     if (editingId.value) {
+        localeLoading.value = true;
         form.patch(route('profile.services.update', editingId.value), {
             preserveScroll: true,
             preserveState: true,
             onSuccess() { closeForm(); resyncSelectedCategory(); },
+            onFinish: () => { localeLoading.value = false; },
         });
     } else {
         form.post(route('profile.services.store'), {
@@ -309,10 +311,12 @@ function askDeleteService(id) {
 function confirmDeleteService() {
     const id = deleteConfirmId.value;
     deleteConfirmId.value = null;
+    localeLoading.value = true;
     router.delete(route('profile.services.destroy', id), {
         preserveScroll: true,
         preserveState: true,
         onSuccess: resyncSelectedCategory,
+        onFinish: () => { localeLoading.value = false; },
     });
 }
 
@@ -321,12 +325,14 @@ function cancelDeleteService() {
 }
 
 function toggleActive(item) {
+    localeLoading.value = true;
     router.patch(route('profile.services.update', item.id), {
         is_active: !item.is_active,
     }, {
         preserveScroll: true,
         preserveState: true,
         onSuccess: resyncSelectedCategory,
+        onFinish: () => { localeLoading.value = false; },
     });
 }
 
@@ -735,12 +741,14 @@ watch(selectedCategory, (cat) => {
                                             <span>{{ __('profile.services.in_cart') }}</span>
                                         </template>
                                         <template v-else>
-                                            <span>{{ __('profile.services.to_cart') }}</span>
                                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
-                                                stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                                 stroke-linejoin="round">
-                                                <path d="M5 12h14M12 5l7 7-7 7" />
+                                                <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+                                                <line x1="3" y1="6" x2="21" y2="6"/>
+                                                <path d="M16 10a4 4 0 01-8 0"/>
                                             </svg>
+                                            <span>{{ __('profile.services.to_cart') }}</span>
                                         </template>
                                     </button>
                                     <div v-if="isOwner" class="svc-menu">

@@ -637,6 +637,12 @@ function formatDate(iso) {
 .pr-card--disputable {
     cursor: default;
 }
+
+@media (max-width: 600px) {
+    .pr-card--disputable {
+        padding-top: 2.25rem;
+    }
+}
 .pr-card__dispute-overlay {
     position: absolute;
     top: 0;
@@ -656,6 +662,7 @@ function formatDate(iso) {
     background: rgba(220,60,60,0.07);
     border: 1px solid rgba(220,60,60,0.35);
     border-top: none;
+    border-bottom: none;
     border-radius: 0 0 7px 7px;
     color: rgba(255,120,120,0.88);
     font-size: 0.84rem;

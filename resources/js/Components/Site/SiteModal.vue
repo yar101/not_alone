@@ -189,7 +189,9 @@ onUnmounted(() => {
         left: 0;
         right: 0;
         bottom: 0;
-        width: 100%;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: unset !important;
         height: 88svh;
         max-height: 88svh;
         transform: none;
