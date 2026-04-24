@@ -66,6 +66,9 @@ const orderStatusFilter = ref('all'); // 'all' | 'pending' | 'accepted' | 'cance
 const orderSearch       = ref('');
 const orderFiltersOpen  = ref(false);
 
+const isMobile = ref(false);
+function checkMobile() { isMobile.value = window.innerWidth < 768; }
+
 
 const subtabOrders = computed(() => {
     if (!authUser.value?.is_idol) return orders.value;
@@ -198,6 +201,8 @@ let nowTimer = null;
 onMounted(() => {
     nowTimer = setInterval(() => { nowTick.value = Date.now(); }, 1000);
     subscribeUserEcho();
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
 });
 
 const blockedUntilLabel = computed(() => {
@@ -747,7 +752,14 @@ onUnmounted(() => {
     leaveOrdersEcho();
     leaveUserEcho();
     clearInterval(nowTimer);
+    window.removeEventListener('resize', checkMobile);
 });
+
+function backToList() {
+    leaveEcho();
+    activeConversation.value = null;
+    activeOrderData.value = null;
+}
 
 // ── Orders helpers ────────────────────────────────────────
 async function fetchOrders() {
@@ -855,7 +867,7 @@ function formatDate(iso) {
             <div v-if="isOpen" class="chat-panel">
 
                 <!-- ── Sidebar: список диалогов ───────────── -->
-                <div class="chat-sidebar">
+                <div class="chat-sidebar" :class="{ 'chat-sidebar--mobile-hidden': isMobile && activeConversation }">
                     <div class="chat-sidebar__header">
                         <span class="chat-sidebar__title">{{ __('chat.title') }}</span>
                         <button class="chat-icon-btn" @click="close">
@@ -1029,7 +1041,7 @@ function formatDate(iso) {
                 </div>
 
                 <!-- ── Main: переписка ────────────────────── -->
-                <div class="chat-main">
+                <div class="chat-main" :class="{ 'chat-main--mobile-hidden': isMobile && !activeConversation }">
                     <!-- Пусто — нет выбранного диалога -->
                     <div v-if="!activeConversation" class="chat-main__empty">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.2">
@@ -1041,6 +1053,11 @@ function formatDate(iso) {
                     <template v-else>
                         <!-- Шапка диалога -->
                         <div class="chat-main__header">
+                            <button v-if="isMobile" class="chat-main__back-btn" @click="backToList">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="15 18 9 12 15 6"/>
+                                </svg>
+                            </button>
                             <div
                                 class="chat-conv-avatar chat-conv-avatar--sm"
                                 :class="{ 'chat-conv-avatar--clickable': !isSupport }"
@@ -3905,5 +3922,34 @@ function formatDate(iso) {
     border-radius: 6px;
     object-fit: cover;
     cursor: pointer;
+}
+
+/* ── Mobile responsive ────────────────────────────────── */
+.chat-main__back-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    margin-right: 0.25rem;
+    transition: color 0.15s, background 0.15s;
+}
+.chat-main__back-btn:hover {
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(110, 110, 210, 0.12);
+}
+
+@media (max-width: 767px) {
+    .chat-sidebar { width: 100%; }
+    .chat-sidebar--mobile-hidden { display: none; }
+    .chat-main--mobile-hidden { display: none; }
+    .chat-main { width: 100%; }
+    .chat-main__back-btn { display: flex; }
 }
 </style>

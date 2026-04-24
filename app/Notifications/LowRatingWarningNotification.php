@@ -33,6 +33,11 @@ class LowRatingWarningNotification extends Notification
         return $this->toDatabase($notifiable);
     }
 
+    protected function webPushTitle(): string
+    {
+        return __('push.title.low_rating_warning');
+    }
+
     protected function webPushBody(): string
     {
         return __('push.low_rating_warning', ['threshold' => $this->threshold]);

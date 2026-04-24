@@ -674,5 +674,25 @@
     "push.admin_rating": "Admin changed your rating by :delta. Current rating: :rating.",
     "push.review_dispute_approved": "Your review dispute was approved — the review is now hidden.",
     "push.review_dispute_rejected": "Your review dispute was rejected.",
-    "push.test": ":message"
+    "push.test": ":message",
+
+    "push.title.order_created": "New Order",
+    "push.title.order_accepted": "Order Accepted",
+    "push.title.order_paid": "Order Paid",
+    "push.title.order_cancelled": "Order Cancelled",
+    "push.title.order_completed": "Order Completed",
+    "push.title.new_review": "New Review",
+    "push.title.content_pack_approved": "Pack Approved",
+    "push.title.content_pack_rejected": "Pack Rejected",
+    "push.title.content_pack_remarks": "Pack Remarks",
+    "push.title.content_pack_change_approved": "Changes Approved",
+    "push.title.content_pack_change_rejected": "Changes Rejected",
+    "push.title.content_pack_change_remarks": "Change Remarks",
+    "push.title.idol_approved": "Application Approved",
+    "push.title.idol_rejected": "Application Rejected",
+    "push.title.low_rating_warning": "Rating Warning",
+    "push.title.admin_rating": "Rating Update",
+    "push.title.review_dispute_approved": "Dispute Approved",
+    "push.title.review_dispute_rejected": "Dispute Rejected",
+    "push.title.test": "Test Notification"
 }

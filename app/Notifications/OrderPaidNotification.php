@@ -36,6 +36,11 @@ class OrderPaidNotification extends Notification
         return $this->toDatabase($notifiable);
     }
 
+    protected function webPushTitle(): string
+    {
+        return __('push.title.order_paid');
+    }
+
     protected function webPushBody(): string
     {
         return __('push.order_paid', ['name' => $this->order->customer->name]);

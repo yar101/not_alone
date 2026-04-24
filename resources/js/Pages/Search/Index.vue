@@ -105,6 +105,8 @@ function resetFilters() {
     router.get(route('users.search'), {}, { preserveState: false, replace: true });
 }
 
+const mobileFiltersOpen = ref(false);
+
 function toggleSortDir() {
     f.value.sort_dir = f.value.sort_dir === 'desc' ? 'asc' : 'desc';
 }
@@ -237,6 +239,13 @@ function initial(name) {
                         </button>
                     </div>
                     <div class="found-count">{{ __('search.found', { count: users.total }) }}</div>
+                    <button class="mobile-filters-toggle" @click="mobileFiltersOpen = !mobileFiltersOpen">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/>
+                        </svg>
+                        {{ __('search.filters.title') }}
+                        <span v-if="isDirty" class="mobile-filters-dot"></span>
+                    </button>
                 </div>
 
                 <!-- Cards -->
@@ -292,7 +301,7 @@ function initial(name) {
             </div>
 
             <!-- Sidebar (right) -->
-            <aside class="search-sidebar">
+            <aside class="search-sidebar" :class="{ 'search-sidebar--mobile-open': mobileFiltersOpen }">
                 <div class="sidebar-inner">
                     <h2 class="sidebar-title">{{ __('search.filters.title') }}</h2>
 
@@ -498,6 +507,8 @@ function initial(name) {
 /* ── Sidebar ─────────────────────────────────────────────── */
 .search-sidebar {
     width: 25%;
+    max-width: 300px;
+    min-width: 220px;
     flex-shrink: 0;
     border-left: 1px solid rgba(110, 110, 210, 0.12);
     height: 100%;
@@ -1271,7 +1282,36 @@ function initial(name) {
 }
 
 /* ── Mobile ──────────────────────────────────────────────── */
+.mobile-filters-toggle {
+    display: none;
+    align-items: center;
+    gap: 0.4rem;
+    position: relative;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid rgba(110, 110, 210, 0.3);
+    border-radius: 6px;
+    background: rgba(110, 110, 210, 0.08);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.82rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+.mobile-filters-toggle:hover {
+    border-color: rgba(110, 110, 210, 0.55);
+    background: rgba(110, 110, 210, 0.14);
+}
+.mobile-filters-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #be91ff;
+    flex-shrink: 0;
+}
+
 @media (max-width: 768px) {
+    .mobile-filters-toggle { display: flex; }
+
     .search-page {
         flex-direction: column;
         height: auto;
@@ -1280,10 +1320,19 @@ function initial(name) {
 
     .search-sidebar {
         width: 100%;
+        max-width: 100%;
+        min-width: 0;
         height: auto;
+        max-height: 0;
+        overflow: hidden;
         border-left: none;
-        border-top: 1px solid rgba(110, 110, 210, 0.12);
+        border-top: none;
         order: 2;
+        transition: max-height 0.3s ease, border-top 0.3s;
+    }
+    .search-sidebar--mobile-open {
+        max-height: 2000px;
+        border-top: 1px solid rgba(110, 110, 210, 0.12);
     }
 
     .sidebar-inner {

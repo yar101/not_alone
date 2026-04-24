@@ -122,9 +122,6 @@ onUnmounted(() => {
                     <!-- Ambient orbs -->
                     <div class="site-modal-ambient" :class="variant === 'pink' ? 'ambient-pink' : 'ambient-cyan'" />
 
-                    <!-- Mobile drag handle -->
-                    <div class="site-modal-handle" />
-
                     <!-- Close button -->
                     <button
                         v-if="closeable && !hideCloseBtn"
@@ -290,24 +287,6 @@ onUnmounted(() => {
     to   { transform: translate(-20px, -25px) scale(1.08); }
 }
 
-/* ── Handle ────────────────────────────────────────── */
-.site-modal-handle {
-    display: none;
-    position: relative;
-    z-index: 2;
-}
-
-@media (max-width: 768px) {
-    .site-modal-handle {
-        display: block;
-        width: 36px;
-        height: 4px;
-        background: rgba(255, 255, 255, 0.15);
-        border-radius: 3px;
-        margin: 0.65rem auto 0;
-        flex-shrink: 0;
-    }
-}
 
 /* ── Close button ──────────────────────────────────── */
 .site-modal-close {

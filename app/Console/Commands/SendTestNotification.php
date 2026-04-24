@@ -25,7 +25,7 @@ class SendTestNotification extends Command
             return self::FAILURE;
         }
 
-        $message = $this->option('message') ?? 'Тестовое уведомление';
+        $message = $this->option('message') ?? 'Push-уведомления работают корректно!';
 
         $user->notify(new TestNotification($message));
         event(new NewNotification('private', $user->id));

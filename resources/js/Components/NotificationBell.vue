@@ -546,7 +546,7 @@ onUnmounted(() => {
     position: absolute;
     top: calc(100% + 24px);
     right: 0;
-    width: 500px;
+    width: min(500px, calc(100vw - 1rem));
     background: #0f0f1d;
     border: 1px solid rgba(160, 160, 255, 0.18);
     border-radius: 6px;
@@ -707,8 +707,8 @@ onUnmounted(() => {
 
 /* ── Icon ── */
 .notif-icon-wrap {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
     border-radius: 5px;
     display: flex;
     align-items: center;
@@ -718,7 +718,7 @@ onUnmounted(() => {
 }
 
 .notif-icon-wrap .el-icon {
-    font-size: 1.15rem;
+    font-size: 0.95rem;
 }
 
 .icon--success {
@@ -809,9 +809,9 @@ onUnmounted(() => {
     min-width: 0;
     margin: 0;
     padding: 0;
-    font-size: 0.8rem;
-    font-weight: 400;
-    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.92);
 }
 
 .notif-footer-row {
@@ -1095,5 +1095,20 @@ onUnmounted(() => {
 .badge-pop-enter-from {
     transform: scale(0);
     opacity: 0;
+}
+
+@media (max-width: 540px) {
+    .notif-dropdown {
+        position: fixed;
+        top: 60px;
+        left: 0.5rem;
+        right: 0.5rem;
+        width: auto;
+        max-height: calc(100vh - 80px);
+        overflow-y: auto;
+    }
+    .notif-list {
+        max-height: calc(100vh - 180px);
+    }
 }
 </style>

@@ -591,4 +591,12 @@ function deletePost() {
     opacity: 0.5;
     cursor: not-allowed;
 }
+
+@media (max-width: 600px) {
+    .posts-feed,
+    .posts-skeleton-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
 </style>

@@ -2,6 +2,7 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 import { useTranslations } from '@/composables/useTranslations';
+import { RefreshLeft, Promotion } from '@element-plus/icons-vue';
 
 const { __ } = useTranslations();
 import SiteModal from '@/Components/Site/SiteModal.vue';
@@ -235,7 +236,10 @@ async function deleteComment(commentId, parentId) {
                                     <p class="detail__cmt-body">{{ cmt.body }}</p>
                                     <div class="detail__cmt-acts">
                                         <span class="detail__cmt-time">{{ cmt.created_at }}</span>
-                                        <button v-if="authUser" class="detail__cmt-btn detail__cmt-btn--reply" @click="startReply(cmt)">{{ __('post.detail.reply') }}</button>
+                                        <button v-if="authUser" class="detail__cmt-btn detail__cmt-btn--reply" @click="startReply(cmt)">
+                                            <el-icon style="vertical-align: middle;"><RefreshLeft /></el-icon>
+                                            {{ __('post.detail.reply') }}
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -282,7 +286,7 @@ async function deleteComment(commentId, parentId) {
                 <div class="detail__input-area">
                     <template v-if="authUser">
                         <div v-if="replyToId" class="detail__reply-hint">
-                            <span>↩ {{ replyToName }}</span>
+                            <span><el-icon style="vertical-align: middle; margin-right: 0.2em;"><RefreshLeft /></el-icon>{{ replyToName }}</span>
                             <button class="detail__reply-cancel" @click="cancelReply">✕</button>
                         </div>
                         <div class="detail__input-row">
@@ -296,7 +300,8 @@ async function deleteComment(commentId, parentId) {
                             />
                             <span class="detail__char" :class="{ 'detail__char--warn': newBody.length > 150 }">{{ newBody.length }}/177</span>
                             <button class="detail__send-btn" :disabled="!newBody.trim() || submitting" @click="submitComment">
-                                Enter
+                                <el-icon class="detail__send-icon"><Promotion /></el-icon>
+                                <span class="detail__send-label">Enter</span>
                             </button>
                         </div>
                         <div v-if="cmtError" class="detail__err">{{ cmtError }}</div>
@@ -715,7 +720,7 @@ async function deleteComment(commentId, parentId) {
 .detail__input-area {
     flex-shrink: 0;
     border-top: 1px solid rgba(255, 255, 255, 0.055);
-    padding: 0.65rem 1rem;
+    padding: 0.65rem 1rem 1.1rem;
     background: rgba(255, 255, 255, 0.012);
 }
 .detail__reply-hint {
@@ -746,7 +751,7 @@ async function deleteComment(commentId, parentId) {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 6px;
-    padding: 0.65rem 5.5rem 1.8rem 0.75rem;
+    padding: 0.65rem 5.5rem 2.4rem 0.75rem;
     color: rgba(255, 255, 255, 0.95);
     font-family: inherit;
     font-size: 0.95rem;
@@ -763,7 +768,7 @@ async function deleteComment(commentId, parentId) {
 .detail__send-btn {
     position: absolute;
     right: 0.5rem;
-    bottom: 0.5rem;
+    bottom: 0.65rem;
     padding: 0.28rem 0.6rem;
     background: rgba(160, 160, 255, 0.18);
     border: 1px solid rgba(160, 160, 255, 0.45);
@@ -777,6 +782,12 @@ async function deleteComment(commentId, parentId) {
     cursor: pointer;
     transition: background 0.15s, color 0.15s, border-color 0.15s;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.detail__send-icon {
+    font-size: 1rem;
 }
 .detail__send-btn:hover:not(:disabled) {
     background: rgba(160, 160, 255, 0.3);
@@ -814,6 +825,15 @@ async function deleteComment(commentId, parentId) {
     }
     .detail__right {
         min-height: 0;
+    }
+    .detail__send-label {
+        display: none;
+    }
+    .detail__send-icon {
+        font-size: 1.3rem;
+    }
+    .detail__send-btn {
+        padding: 0.35rem 0.5rem;
     }
 }
 </style>

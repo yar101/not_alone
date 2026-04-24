@@ -35,6 +35,11 @@ class OrderCancelledNotification extends Notification
         return $this->toDatabase($notifiable);
     }
 
+    protected function webPushTitle(): string
+    {
+        return __('push.title.order_cancelled');
+    }
+
     protected function webPushBody(): string
     {
         return __('push.order_cancelled');

@@ -1083,6 +1083,11 @@ const ownerSortOptions = computed(() => [
         grid-template-columns: repeat(2, 1fr);
     }
 }
+@media (max-width: 380px) {
+    .pc-grid {
+        grid-template-columns: 1fr;
+    }
+}
 
 /* ── Skeleton ────────────────────────────────────────────── */
 @keyframes shimmer {

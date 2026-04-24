@@ -34,6 +34,11 @@ class ContentPackRejectedNotification extends Notification
         return $this->toDatabase($notifiable);
     }
 
+    protected function webPushTitle(): string
+    {
+        return __('push.title.content_pack_rejected');
+    }
+
     protected function webPushBody(): string
     {
         return __('push.content_pack_rejected', ['title' => $this->pack->title]);

@@ -362,4 +362,9 @@ function submitStatus() {
 .btn-cancel { padding: 0.45rem 0.9rem; border: 1px solid rgba(255,255,255,0.12); border-radius: 3px; background: transparent; color: rgba(255,255,255,0.4); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
 .btn-submit { padding: 0.45rem 1rem; border: 1px solid rgba(190,145,255,0.45); border-radius: 3px; background: rgba(190,145,255,0.1); color: rgba(255,255,255,0.9); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
 .btn-submit:disabled { opacity: 0.5; cursor: default; }
+
+@media (max-width: 600px) {
+    .filter-select,
+    .filter-date { width: 100%; }
+}
 </style>

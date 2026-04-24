@@ -34,6 +34,11 @@ class ContentPackRemarksNotification extends Notification
         return $this->toDatabase($notifiable);
     }
 
+    protected function webPushTitle(): string
+    {
+        return __('push.title.content_pack_remarks');
+    }
+
     protected function webPushBody(): string
     {
         return __('push.content_pack_remarks', ['title' => $this->pack->title]);
