@@ -52,8 +52,8 @@ const localServices = ref(null);
 const cart = inject('cart', null);
 const openAuth = inject('openAuth', null);
 const cartConflictModal = ref(false);
-const pendingCartItem   = ref(null);
-const blockError        = ref(false);
+const pendingCartItem = ref(null);
+const blockError = ref(false);
 let blockErrorTimer = null;
 
 function showBlockError() {
@@ -85,15 +85,15 @@ function doAddToCart(item) {
     if (!cart) return;
     const c = cart.value.services;
     if (isInCart(item.id)) return;
-    c.idol_id     = props.profileUser?.id;
-    c.idol_name   = props.profileUser?.name ?? '';
+    c.idol_id = props.profileUser?.id;
+    c.idol_name = props.profileUser?.name ?? '';
     c.idol_avatar = props.profileUser?.avatar_url ?? null;
     c.items.push({
         service_id: item.id,
-        name:       localServiceName(item),
-        price:      item.price,
-        time_unit:  localUnitName(item.time_unit) || null,
-        quantity:   1,
+        name: localServiceName(item),
+        price: item.price,
+        time_unit: localUnitName(item.time_unit) || null,
+        quantity: 1,
     });
 }
 
@@ -439,7 +439,7 @@ const formAccentColor = computed(() => {
 
 const formValid = computed(() =>
     ((showNameRu.value && form.name_ru.trim().length > 0) ||
-     (showNameEn.value && form.name_en.trim().length > 0)) &&
+        (showNameEn.value && form.name_en.trim().length > 0)) &&
     form.category_id !== null &&
     Number(form.price) > 0 &&
     form.time_unit_id !== null
@@ -522,7 +522,8 @@ watch(selectedCategory, (cat) => {
             <div v-if="!selectedCategory" key="list">
                 <div class="svc-list-header">
                     <h2 class="svc-list-header__title">{{ __('profile.services.categories_label') }}</h2>
-                    <CreateButton v-if="isOwner && isIdol" @click="openAdd">{{ __('profile.services.new_btn') }}</CreateButton>
+                    <CreateButton v-if="isOwner && isIdol" @click="openAdd">{{ __('profile.services.new_btn') }}
+                    </CreateButton>
                 </div>
 
                 <!-- Category cards -->
@@ -549,7 +550,11 @@ watch(selectedCategory, (cat) => {
                             </p>
                             <div class="cat-tile__footer">
                                 <span class="cat-tile__count">
-                                    {{ transChoice('order.service_count', group.items.length, { count: group.items.length }) }}</span>
+                                    {{ transChoice('order.service_count', group.items.length, {
+                                        count:
+                                            group.items.length
+                                    })
+                                    }}</span>
                             </div>
                         </div>
                     </button>
@@ -577,7 +582,10 @@ watch(selectedCategory, (cat) => {
                                 {{ catDesc(group.category) }}
                             </p>
                             <div class="cat-tile__footer">
-                                <span class="cat-tile__count cat-tile__count--empty">{{ transChoice('order.service_count', 0, { count: 0 }) }}</span>
+                                <span class="cat-tile__count cat-tile__count--empty">{{
+                                    transChoice('order.service_count', 0, {
+                                        count: 0
+                                    }) }}</span>
                             </div>
                         </div>
                     </button>
@@ -602,7 +610,9 @@ watch(selectedCategory, (cat) => {
                                     </svg>
                                     {{ __('profile.services.desc_edit') }}
                                 </button>
-                                <CreateButton v-if="isOwner && isIdol" @click="openAdd">{{ __('profile.services.new_btn') }}</CreateButton>
+                                <CreateButton v-if="isOwner && isIdol" @click="openAdd">{{
+                                    __('profile.services.new_btn') }}
+                                </CreateButton>
                             </div>
                         </div>
 
@@ -619,7 +629,8 @@ watch(selectedCategory, (cat) => {
                                 <textarea v-model="descDraft" class="cd-hero__textarea" rows="3" maxlength="1000"
                                     :placeholder="__('profile.services.desc_edit_ph')" />
                                 <div class="cd-hero__actions">
-                                    <button class="svc-btn-cancel" @click="cancelDescEdit">{{ __('common.cancel') }}</button>
+                                    <button class="svc-btn-cancel" @click="cancelDescEdit">{{ __('common.cancel')
+                                    }}</button>
                                     <button class="svc-btn-submit" @click="saveDesc">{{ __('common.save') }}</button>
                                 </div>
                             </div>
@@ -681,19 +692,23 @@ watch(selectedCategory, (cat) => {
 
                                 <!-- Actions column -->
                                 <div class="svc-card__actions">
-                                    <button
-                                        v-if="!isOwner && cart"
-                                        class="svc-buy-btn"
-                                        :class="{ 'svc-buy-btn--in-cart': isInCart(item.id) }"
-                                        @click="addToCart(item)"
-                                    >
+                                    <button v-if="!isOwner && cart" class="svc-buy-btn"
+                                        :class="{ 'svc-buy-btn--in-cart': isInCart(item.id) }" @click="addToCart(item)">
                                         <template v-if="isInCart(item.id)">
-                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                                stroke-linejoin="round">
+                                                <polyline points="20 6 9 17 4 12" />
+                                            </svg>
                                             <span>{{ __('profile.services.in_cart') }}</span>
                                         </template>
                                         <template v-else>
                                             <span>{{ __('profile.services.to_cart') }}</span>
-                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                                stroke-linejoin="round">
+                                                <path d="M5 12h14M12 5l7 7-7 7" />
+                                            </svg>
                                         </template>
                                     </button>
                                     <div v-if="isOwner" class="svc-menu">
@@ -714,7 +729,8 @@ watch(selectedCategory, (cat) => {
                                                             <line v-if="item.is_active" x1="4.93" y1="4.93" x2="19.07"
                                                                 y2="19.07" />
                                                         </svg>
-                                                        {{ item.is_active ? __('common.disable') : __('common.enable') }}
+                                                        {{ item.is_active ? __('common.disable') : __('common.enable')
+                                                        }}
                                                     </button>
                                                     <button class="svc-menu__item" @click="openEdit(item); closeMenu()">
                                                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
@@ -805,7 +821,9 @@ watch(selectedCategory, (cat) => {
                 <p class="svc-pending-text">{{ __('profile.services.cart_conflict.body') }}</p>
                 <div class="sf-actions">
                     <button class="sf-btn-cancel" @click="cancelCartReplace">{{ __('common.cancel') }}</button>
-                    <button class="sf-btn-submit" @click="confirmCartReplace">{{ __('profile.services.cart_conflict.confirm') }}</button>
+                    <button class="sf-btn-submit" @click="confirmCartReplace">{{
+                        __('profile.services.cart_conflict.confirm')
+                    }}</button>
                 </div>
             </div>
         </SiteModal>
@@ -827,8 +845,10 @@ watch(selectedCategory, (cat) => {
                 <div class="sf-title">{{ __('profile.services.delete_confirm.title') }}</div>
                 <p class="svc-pending-text">{{ __('profile.services.delete_confirm.body') }}</p>
                 <div class="sf-actions">
-                    <button type="button" class="svc-btn-cancel" @click="cancelDeleteService">{{ __('common.cancel') }}</button>
-                    <button type="button" class="sf-btn-danger" @click="confirmDeleteService">{{ __('common.delete') }}</button>
+                    <button type="button" class="svc-btn-cancel" @click="cancelDeleteService">{{ __('common.cancel')
+                    }}</button>
+                    <button type="button" class="sf-btn-danger" @click="confirmDeleteService">{{ __('common.delete')
+                    }}</button>
                 </div>
             </div>
         </SiteModal>
@@ -841,82 +861,85 @@ watch(selectedCategory, (cat) => {
                         <div class="sf-title">{{ __('common.leave_confirm') }}</div>
                         <p class="svc-pending-text">{{ __('common.leave_body') }}</p>
                         <div class="sf-actions">
-                            <button type="button" class="svc-btn-cancel"
-                                @click="showCancelConfirm = false">{{ __('common.stay') }}</button>
-                            <button type="button" class="sf-btn-danger" @click="confirmCancelForm">{{ __('common.leave') }}</button>
+                            <button type="button" class="svc-btn-cancel" @click="showCancelConfirm = false">{{
+                                __('common.stay')
+                            }}</button>
+                            <button type="button" class="sf-btn-danger" @click="confirmCancelForm">{{ __('common.leave')
+                            }}</button>
                         </div>
                     </div>
                     <div v-else key="form" class="sf-screen">
-                        <div class="sf-title">{{ editingId ? __('profile.services.form.edit_title') : __('profile.services.form.new_title') }}</div>
+                        <div class="sf-title">{{ editingId ? __('profile.services.form.edit_title') :
+                            __('profile.services.form.new_title') }}</div>
                         <form @submit.prevent="submitForm" class="sf-form">
 
                             <div class="sf-field">
                                 <label class="sf-label">{{ __('profile.services.form.category') }}</label>
                                 <AppSelect v-model="form.category_id"
                                     :options="(serviceCategories ?? []).map(c => ({ value: c.id, label: c.name }))"
-                                    :placeholder="__('profile.services.form.category_ph')" :error="!!form.errors.category_id"
-                                    :disabled="!editingId && !!selectedCategory" />
+                                    :placeholder="__('profile.services.form.category_ph')"
+                                    :error="!!form.errors.category_id" :disabled="!editingId && !!selectedCategory" />
                                 <p v-if="form.errors.category_id" class="sf-err">{{ form.errors.category_id }}</p>
                             </div>
 
                             <Transition name="sf-name-fade">
-                            <div v-if="showNameRu" class="sf-field">
-                                <div class="sf-label-row">
-                                    <label class="sf-label">{{ __('profile.services.form.name_ru') }}</label>
-                                    <button v-if="showNameRu && showNameEn" type="button"
-                                        class="sf-name-remove" @click="removeNameRu" aria-label="Remove RU">×</button>
+                                <div v-if="showNameRu" class="sf-field">
+                                    <div class="sf-label-row">
+                                        <label class="sf-label">{{ __('profile.services.form.name_ru') }}</label>
+                                        <button v-if="showNameRu && showNameEn" type="button" class="sf-name-remove"
+                                            @click="removeNameRu" aria-label="Remove RU">×</button>
+                                    </div>
+                                    <div class="sf-input-wrap">
+                                        <input v-model="form.name_ru" class="sf-input"
+                                            :class="{ 'sf-input--err': form.errors.name_ru }"
+                                            :placeholder="namePlaceholderRu" maxlength="45" />
+                                        <span class="sf-char-count"
+                                            :class="{ 'sf-char-count--warn': form.name_ru.length >= 38 }">
+                                            {{ form.name_ru.length }}/45
+                                        </span>
+                                    </div>
+                                    <div v-if="formSuggestionsRu.length" class="svc-suggestions">
+                                        <button v-for="s in formSuggestionsRu" :key="s" type="button" class="svc-chip"
+                                            :class="{ 'svc-chip--active': form.name_ru === s, 'svc-chip--pop': animatingChip === s }"
+                                            @click="selectChip(s, 'ru')">{{ s }}</button>
+                                    </div>
+                                    <p v-if="form.errors.name_ru" class="sf-err">{{ form.errors.name_ru }}</p>
                                 </div>
-                                <div class="sf-input-wrap">
-                                    <input v-model="form.name_ru" class="sf-input"
-                                        :class="{ 'sf-input--err': form.errors.name_ru }"
-                                        :placeholder="namePlaceholderRu" maxlength="45" />
-                                    <span class="sf-char-count"
-                                        :class="{ 'sf-char-count--warn': form.name_ru.length >= 38 }">
-                                        {{ form.name_ru.length }}/45
-                                    </span>
-                                </div>
-                                <div v-if="formSuggestionsRu.length" class="svc-suggestions">
-                                    <button v-for="s in formSuggestionsRu" :key="s" type="button" class="svc-chip"
-                                        :class="{ 'svc-chip--active': form.name_ru === s, 'svc-chip--pop': animatingChip === s }"
-                                        @click="selectChip(s, 'ru')">{{ s }}</button>
-                                </div>
-                                <p v-if="form.errors.name_ru" class="sf-err">{{ form.errors.name_ru }}</p>
-                            </div>
                             </Transition>
 
-                            <button v-if="showNameRu && !showNameEn" type="button"
-                                class="sf-add-lang" @click="addSecondary">
+                            <button v-if="showNameRu && !showNameEn" type="button" class="sf-add-lang"
+                                @click="addSecondary">
                                 + {{ __('profile.services.form.add_en') }}
                             </button>
-                            <button v-if="showNameEn && !showNameRu" type="button"
-                                class="sf-add-lang" @click="addSecondary">
+                            <button v-if="showNameEn && !showNameRu" type="button" class="sf-add-lang"
+                                @click="addSecondary">
                                 + {{ __('profile.services.form.add_ru') }}
                             </button>
 
                             <Transition name="sf-name-fade">
-                            <div v-if="showNameEn" class="sf-field">
-                                <div class="sf-label-row">
-                                    <label class="sf-label">{{ __('profile.services.form.name_en') }}</label>
-                                    <button v-if="showNameRu && showNameEn" type="button"
-                                        class="sf-name-remove" @click="removeNameEn" aria-label="Remove EN">×</button>
+                                <div v-if="showNameEn" class="sf-field">
+                                    <div class="sf-label-row">
+                                        <label class="sf-label">{{ __('profile.services.form.name_en') }}</label>
+                                        <button v-if="showNameRu && showNameEn" type="button" class="sf-name-remove"
+                                            @click="removeNameEn" aria-label="Remove EN">×</button>
+                                    </div>
+                                    <div class="sf-input-wrap">
+                                        <input v-model="form.name_en" class="sf-input"
+                                            :class="{ 'sf-input--err': form.errors.name_en }"
+                                            :placeholder="namePlaceholderEn" maxlength="45"
+                                            @input="form.name_en = form.name_en.replace(/[\u0400-\u04FF\u0500-\u052F]/g, '')" />
+                                        <span class="sf-char-count"
+                                            :class="{ 'sf-char-count--warn': form.name_en.length >= 38 }">
+                                            {{ form.name_en.length }}/45
+                                        </span>
+                                    </div>
+                                    <div v-if="formSuggestionsEn.length" class="svc-suggestions">
+                                        <button v-for="s in formSuggestionsEn" :key="s" type="button" class="svc-chip"
+                                            :class="{ 'svc-chip--active': form.name_en === s, 'svc-chip--pop': animatingChip === s }"
+                                            @click="selectChip(s, 'en')">{{ s }}</button>
+                                    </div>
+                                    <p v-if="form.errors.name_en" class="sf-err">{{ form.errors.name_en }}</p>
                                 </div>
-                                <div class="sf-input-wrap">
-                                    <input v-model="form.name_en" class="sf-input"
-                                        :class="{ 'sf-input--err': form.errors.name_en }"
-                                        :placeholder="namePlaceholderEn" maxlength="45"
-                                        @input="form.name_en = form.name_en.replace(/[\u0400-\u04FF\u0500-\u052F]/g, '')" />
-                                    <span class="sf-char-count"
-                                        :class="{ 'sf-char-count--warn': form.name_en.length >= 38 }">
-                                        {{ form.name_en.length }}/45
-                                    </span>
-                                </div>
-                                <div v-if="formSuggestionsEn.length" class="svc-suggestions">
-                                    <button v-for="s in formSuggestionsEn" :key="s" type="button" class="svc-chip"
-                                        :class="{ 'svc-chip--active': form.name_en === s, 'svc-chip--pop': animatingChip === s }"
-                                        @click="selectChip(s, 'en')">{{ s }}</button>
-                                </div>
-                                <p v-if="form.errors.name_en" class="sf-err">{{ form.errors.name_en }}</p>
-                            </div>
                             </Transition>
 
                             <div class="sf-row">
@@ -935,13 +958,16 @@ watch(selectedCategory, (cat) => {
                                     <label class="sf-label">{{ __('profile.services.form.unit') }}</label>
                                     <AppSelect v-model="form.time_unit_id"
                                         :options="(serviceTimeUnits ?? []).map(u => ({ value: u.id, label: localUnitName(u) }))"
-                                        :placeholder="__('profile.services.form.unit_ph')" :error="!!form.errors.time_unit_id" />
+                                        :placeholder="__('profile.services.form.unit_ph')"
+                                        :error="!!form.errors.time_unit_id" />
                                     <p v-if="form.errors.time_unit_id" class="sf-err">{{ form.errors.time_unit_id }}</p>
                                 </div>
                             </div>
 
                             <div class="sf-actions">
-                                <button type="button" class="svc-btn-cancel" @click="tryCloseForm">{{ __('common.cancel') }}</button>
+                                <button type="button" class="svc-btn-cancel" @click="tryCloseForm">{{
+                                    __('common.cancel')
+                                }}</button>
                                 <button type="submit" class="sf-btn-submit" :disabled="!formValid || form.processing">
                                     {{ editingId ? __('common.save') : __('common.add') }}
                                 </button>
@@ -1074,6 +1100,15 @@ watch(selectedCategory, (cat) => {
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.28);
 }
 
+.cat-tile::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, transparent 5%, color-mix(in srgb, var(--cat-accent) 4%, transparent));
+    pointer-events: none;
+    z-index: 1;
+}
+
 .cat-tile:hover {
     background:
         linear-gradient(to right, transparent, color-mix(in srgb, var(--cat-accent) 90%, white), rgba(255, 255, 255, 0.28), transparent) 0 0 / 100% 1px no-repeat,
@@ -1109,6 +1144,39 @@ watch(selectedCategory, (cat) => {
     width: 100%;
     height: 100%;
 }
+
+@media (max-width: 600px) {
+    .cat-tile {
+        flex-direction: column;
+    }
+
+    .cat-tile__img-wrap {
+        width: 100%;
+        height: 110px;
+        order: 0;
+        overflow: hidden;
+        background: linear-gradient(135deg, color-mix(in srgb, var(--cat-accent) 12%, transparent), transparent);
+    }
+
+    .cat-tile__img {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        transform: none;
+        object-fit: cover;
+        object-position: center 30%;
+    }
+
+    .cat-tile__img-placeholder {
+        height: 100%;
+    }
+
+    .cat-tile__body {
+        order: 1;
+    }
+}
+
 
 .cat-tile__body {
     padding: 0.6rem 0.9rem;
@@ -1224,7 +1292,7 @@ watch(selectedCategory, (cat) => {
     white-space: nowrap;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
     box-shadow: inset 0 1px 0 color-mix(in srgb, var(--cat-accent) 25%, transparent),
-                inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+        inset 0 -1px 0 rgba(0, 0, 0, 0.18);
 }
 
 .cd-hero__edit-btn:hover {
@@ -1864,17 +1932,25 @@ watch(selectedCategory, (cat) => {
 .svc-buy-btn:hover svg {
     transform: translateX(2px);
 }
+
 .svc-buy-btn--in-cart {
-    background: rgba(100,200,130,0.08);
-    border-color: rgba(100,200,130,0.3);
-    color: rgba(140,255,180,0.85);
+    background: rgba(100, 200, 130, 0.08);
+    border-color: rgba(100, 200, 130, 0.3);
+    color: rgba(140, 255, 180, 0.85);
 }
+
 .svc-buy-btn--in-cart:hover {
-    background: rgba(100,200,130,0.12);
+    background: rgba(100, 200, 130, 0.12);
     box-shadow: none;
 }
-.svc-buy-btn--in-cart svg { stroke: rgba(140,255,180,0.85); }
-.svc-buy-btn--in-cart:hover svg { transform: none; }
+
+.svc-buy-btn--in-cart svg {
+    stroke: rgba(140, 255, 180, 0.85);
+}
+
+.svc-buy-btn--in-cart:hover svg {
+    transform: none;
+}
 
 /* ── 3-dot menu ───────────────────────────────────────────── */
 .svc-menu {
@@ -2270,32 +2346,59 @@ watch(selectedCategory, (cat) => {
     font-size: 0.95rem;
 }
 
-.sf-name-fade-enter-active, .sf-name-fade-leave-active { transition: opacity 0.18s ease; }
-.sf-name-fade-enter-from, .sf-name-fade-leave-to { opacity: 0; }
+.sf-name-fade-enter-active,
+.sf-name-fade-leave-active {
+    transition: opacity 0.18s ease;
+}
 
-.sf-label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem; }
-.sf-label-row .sf-label { margin-bottom: 0; }
+.sf-name-fade-enter-from,
+.sf-name-fade-leave-to {
+    opacity: 0;
+}
+
+.sf-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.3rem;
+}
+
+.sf-label-row .sf-label {
+    margin-bottom: 0;
+}
 
 .sf-name-remove {
-    background: none; border: none; padding: 0 0.1rem;
-    color: rgba(255,255,255,0.2); cursor: pointer; font-size: 1.35rem; line-height: 1;
-    transition: color 0.15s; flex-shrink: 0;
+    background: none;
+    border: none;
+    padding: 0 0.1rem;
+    color: rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    font-size: 1.35rem;
+    line-height: 1;
+    transition: color 0.15s;
+    flex-shrink: 0;
 }
-.sf-name-remove:hover { color: rgba(239,68,68,0.7); }
+
+.sf-name-remove:hover {
+    color: rgba(239, 68, 68, 0.7);
+}
 
 .sf-add-lang {
-    display: block; width: 100%;
+    display: block;
+    width: 100%;
     padding: 0.55rem 1rem;
     margin-top: 0.1rem;
     background: color-mix(in srgb, var(--cat-accent, #a0a0ff) 8%, transparent);
     border: 1px dashed color-mix(in srgb, var(--cat-accent, #a0a0ff) 35%, transparent);
     border-radius: 8px;
-    font-size: 0.9rem; font-family: inherit;
+    font-size: 0.9rem;
+    font-family: inherit;
     color: color-mix(in srgb, var(--cat-accent, #a0a0ff) 65%, white);
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
     text-align: center;
 }
+
 .sf-add-lang:hover {
     background: color-mix(in srgb, var(--cat-accent, #a0a0ff) 15%, transparent);
     border-color: color-mix(in srgb, var(--cat-accent, #a0a0ff) 60%, transparent);
@@ -2469,16 +2572,20 @@ watch(selectedCategory, (cat) => {
 
 .sf-btn-cancel {
     padding: 0.65rem 1.4rem;
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 3px;
     background: transparent;
-    color: rgba(255,255,255,0.5);
+    color: rgba(255, 255, 255, 0.5);
     font-family: inherit;
     font-size: 0.88rem;
     cursor: pointer;
     transition: color 0.18s, border-color 0.18s;
 }
-.sf-btn-cancel:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.2); }
+
+.sf-btn-cancel:hover {
+    color: rgba(255, 255, 255, 0.8);
+    border-color: rgba(255, 255, 255, 0.2);
+}
 
 .svc-block-error {
     position: sticky;
@@ -2493,8 +2600,17 @@ watch(selectedCategory, (cat) => {
     font-size: 0.9rem;
     text-align: center;
 }
-.block-err-enter-active, .block-err-leave-active { transition: opacity 0.25s, transform 0.25s; }
-.block-err-enter-from, .block-err-leave-to { opacity: 0; transform: translateY(-6px); }
+
+.block-err-enter-active,
+.block-err-leave-active {
+    transition: opacity 0.25s, transform 0.25s;
+}
+
+.block-err-enter-from,
+.block-err-leave-to {
+    opacity: 0;
+    transform: translateY(-6px);
+}
 </style>
 
 <style>
@@ -2502,10 +2618,10 @@ watch(selectedCategory, (cat) => {
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
-    background: rgba(160,160,255,0.08);
-    border: 1px solid rgba(160,160,255,0.28);
+    background: rgba(160, 160, 255, 0.08);
+    border: 1px solid rgba(160, 160, 255, 0.28);
     border-radius: 5px;
-    color: rgba(180,180,255,0.85);
+    color: rgba(180, 180, 255, 0.85);
     font-family: inherit;
     font-size: 0.88rem;
     cursor: pointer;
@@ -2514,8 +2630,8 @@ watch(selectedCategory, (cat) => {
 }
 
 .cd-back:hover {
-    background: rgba(160,160,255,0.16);
-    border-color: rgba(160,160,255,0.5);
+    background: rgba(160, 160, 255, 0.16);
+    border-color: rgba(160, 160, 255, 0.5);
     color: var(--color-base-1);
 }
 </style>
