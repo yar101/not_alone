@@ -2022,7 +2022,7 @@ function formatDate(iso) {
 
 .chat-main__header {
     display: flex;
-    align-items: center;
+    align-items: start;
     gap: 0.75rem;
     padding: 0.85rem 1.1rem;
     border-bottom: none;
@@ -2033,6 +2033,8 @@ function formatDate(iso) {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    flex: 1;
+    min-width: 0;
 }
 .chat-main__name-row {
     display: flex;
