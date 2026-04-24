@@ -5,7 +5,15 @@ import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppCheckbox from '@/Components/AppCheckbox.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
-const { __ } = useTranslations();
+const { __, locale } = useTranslations();
+
+const tName = (item) => locale.value?.current === 'en' && item?.name_en ? item.name_en : (item?.name_ru ?? '');
+const tCat  = (cat)  => locale.value?.current === 'en' && cat?.name_en  ? cat.name_en  : (cat?.name_ru  ?? '');
+const tUnit = (svc)  => {
+    const ru = svc?.time_unit_ru ?? null;
+    const en = svc?.time_unit_en ?? null;
+    return locale.value?.current === 'en' && en ? en : ru;
+};
 
 const props = defineProps({
     modelValue:     { type: Boolean, default: false },
@@ -50,7 +58,12 @@ function toggleService(svc, categoryName) {
     if (idx !== -1) {
         selectedServices.value.splice(idx, 1);
     } else if (!limitReached.value) {
-        selectedServices.value.push({ ...svc, category_name: categoryName });
+        selectedServices.value.push({
+            ...svc,
+            name:          tName(svc),
+            time_unit:     tUnit(svc),
+            category_name: categoryName,
+        });
     }
 }
 
@@ -132,9 +145,9 @@ watch(() => props.modelValue, (val) => {
                             :class="{ 'sof-cat--active': activeCategory === cat.category.id }"
                             @click="activeCategory = cat.category.id"
                         >
-                            <span>{{ cat.category.name }}</span>
+                            <span>{{ tCat(cat.category) }}</span>
                             <span
-                                v-if="selectedServices.some(s => s.category_name === cat.category.name)"
+                                v-if="selectedServices.some(s => s.category_name === tCat(cat.category))"
                                 class="sof-cat__dot"
                             />
                         </button>
@@ -165,14 +178,14 @@ watch(() => props.modelValue, (val) => {
                             'sof-svc--checked':  isSelected(svc.id),
                             'sof-svc--disabled': !isSelected(svc.id) && limitReached,
                         }"
-                        @click.prevent="toggleService(svc, categories.find(c => c.category.id === activeCategory)?.category.name)"
+                        @click.prevent="toggleService(svc, tCat(categories.find(c => c.category.id === activeCategory)?.category))"
                     >
                         <AppCheckbox
                             :checked="isSelected(svc.id)"
                             :disabled="!isSelected(svc.id) && limitReached"
                         />
-                        <span class="sof-svc__name">{{ svc.name }}</span>
-                        <span class="sof-svc__price">{{ fmtPrice(svc.price) }}<template v-if="svc.time_unit">&thinsp;/&thinsp;{{ svc.time_unit }}</template></span>
+                        <span class="sof-svc__name">{{ tName(svc) }}</span>
+                        <span class="sof-svc__price">{{ fmtPrice(svc.price) }}<template v-if="tUnit(svc)">&thinsp;/&thinsp;{{ tUnit(svc) }}</template></span>
                     </label>
                 </div>
             </div>
@@ -329,7 +342,7 @@ watch(() => props.modelValue, (val) => {
 .sof-svc--checked { background: rgba(100,200,255,0.08); }
 .sof-svc--disabled { opacity: 0.38; cursor: not-allowed; }
 
-.sof-svc__name { flex: 1; min-width: 0; font-size: 1.1rem; color: rgba(255,255,255,0.85); white-space: nowrap; }
+.sof-svc__name { flex: 1 1 auto; min-width: 0; font-size: 1.1rem; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sof-svc__price {
     flex-shrink: 0;
     font-size: 1rem;
@@ -404,4 +417,51 @@ watch(() => props.modelValue, (val) => {
 .sof-fade-leave-active { transition: opacity 0.2s ease; }
 .sof-fade-enter-from,
 .sof-fade-leave-to { opacity: 0; }
+
+/* ── Mobile ──────────────────────────────────────── */
+@media (max-width: 768px) {
+    .sof-picker {
+        flex-direction: column;
+    }
+
+    .sof-cats-wrap {
+        width: 100%;
+        max-width: 100%;
+        border-right: none;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .sof-cats {
+        display: flex;
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        max-height: none;
+        scrollbar-width: none;
+        white-space: nowrap;
+        padding-bottom: 2px;
+    }
+
+    .sof-cats::-webkit-scrollbar { display: none; }
+
+    .sof-cat {
+        flex-shrink: 0;
+        width: auto;
+        padding: 0.55rem 0.9rem;
+        font-size: 0.9rem;
+        border-bottom: 2px solid transparent;
+    }
+
+    .sof-cat--active {
+        border-bottom-color: rgba(100,200,255,0.7);
+    }
+
+    .sof-cats-fade { display: none; }
+
+    .sof-services {
+        max-height: 240px;
+    }
+
+    .sof-svc__name { font-size: 1rem; }
+}
 </style>

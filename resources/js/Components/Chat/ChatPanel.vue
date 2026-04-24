@@ -747,13 +747,27 @@ watch(() => page.url, (newUrl, oldUrl) => {
     if (stripQuery(newUrl) !== stripQuery(oldUrl)) isOpen.value = false;
 });
 
+function setScrollLock(locked) {
+    if (locked) {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        document.documentElement.classList.add('chat-scroll-locked');
+    } else {
+        document.documentElement.classList.remove('chat-scroll-locked');
+    }
+}
+
 onUnmounted(() => {
     leaveEcho();
     leaveOrdersEcho();
     leaveUserEcho();
     clearInterval(nowTimer);
     window.removeEventListener('resize', checkMobile);
+    setScrollLock(false);
 });
+
+watch([isMobile, isOpen], ([mobile, open]) => {
+    setScrollLock(mobile && open);
+}, { immediate: true });
 
 function backToList() {
     leaveEcho();
@@ -1097,7 +1111,6 @@ function formatDate(iso) {
                                 :class="{ 'chat-lock-btn--active': activeBlock?.active && activeBlock?.i_am_blocker }"
                                 :title="activeBlock?.active ? __('chat.blocked') : __('chat.block.action')"
                                 @click="blockModal = true"
-                                style="margin-left: auto;"
                             >
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -1454,7 +1467,7 @@ function formatDate(iso) {
                                 >{{ __('chat.btn.cancel') }}</button>
                                 <!-- Предложить услугу — рядом с кнопками заказа -->
                                 <button
-                                    v-if="authUser?.is_idol && activeOrderData.status === 'pending'"
+                                    v-if="authUser?.is_idol && !activeOrderData.is_customer && activeOrderData.status === 'pending'"
                                     class="chat-order-btn chat-order-btn--offer"
                                     @click="showOfferModal = true"
                                 >{{ __('chat.btn.offer') }}</button>
@@ -1695,6 +1708,7 @@ function formatDate(iso) {
     background: linear-gradient(160deg, #0f0f22 0%, #0a0a16 100%);
     border-left: 1px solid rgba(110, 110, 210, 0.22);
     box-shadow: -8px 0 64px rgba(0, 0, 0, 0.7), -1px 0 0 rgba(160, 100, 255, 0.06);
+    overscroll-behavior: contain;
 }
 
 @media (min-width: 1440px) {
@@ -2022,7 +2036,7 @@ function formatDate(iso) {
 }
 .chat-main__name-row {
     display: flex;
-    align-items: center;
+    align-items: start;
     gap: 0.5rem;
 }
 .chat-main__name {
@@ -2307,7 +2321,7 @@ function formatDate(iso) {
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 6px;
-    padding: 0.65rem 3.5rem 2.25rem 0.85rem;
+    padding: 0.65rem 5.25rem 0.65rem 0.85rem;
     color: rgba(255, 255, 255, 0.95);
     font-size: 0.95rem;
     resize: none;
@@ -2326,8 +2340,8 @@ function formatDate(iso) {
 
 .chat-char-count {
     position: absolute;
-    left: 0.75rem;
-    bottom: 0.55rem;
+    right: 0.75rem;
+    top: 0.5rem;
     font-size: 0.7rem;
     color: rgba(255, 255, 255, 0.2);
     font-variant-numeric: tabular-nums;
@@ -2377,7 +2391,7 @@ function formatDate(iso) {
     height: 36px;
     border: 1px solid rgba(220, 60, 60, 0.25);
     background: rgba(220, 60, 60, 0.08);
-    border-radius: 8px;
+    border-radius: 3px;
     color: rgba(220, 60, 60, 0.65);
     cursor: pointer;
     transition: color 0.15s, background 0.15s, border-color 0.15s;
@@ -3951,5 +3965,7 @@ function formatDate(iso) {
     .chat-main--mobile-hidden { display: none; }
     .chat-main { width: 100%; }
     .chat-main__back-btn { display: flex; }
+
+    .chat-main__header { align-items: flex-start; }
 }
 </style>

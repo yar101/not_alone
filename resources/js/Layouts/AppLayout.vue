@@ -226,7 +226,7 @@ onUnmounted(() => {
                 </Link>
 
                 <CartIcon v-if="user" :cart="cart" @click="cartOpen = !cartOpen" />
-                <ChatButton v-if="user" @click="chatOpen = !chatOpen" />
+                <ChatButton v-if="user" :active="chatOpen" @click="chatOpen = !chatOpen" />
                 <NotificationBell v-if="user" />
 
                 <template v-if="user">
@@ -507,15 +507,21 @@ onUnmounted(() => {
     width: 36px;
     height: 36px;
     border-radius: 8px;
-    color: rgba(255, 255, 255, 0.5);
+    border: 1px solid transparent;
+    color: rgba(255, 255, 255, 0.45);
     text-decoration: none;
-    transition: color 0.18s, background 0.18s;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
     flex-shrink: 0;
 }
-.mobile-search-btn:hover,
+.mobile-search-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+}
 .mobile-search-btn--active {
-    color: #be91ff;
-    background: rgba(110, 110, 210, 0.08);
+    background: rgba(160, 160, 255, 0.1);
+    border-color: rgba(160, 160, 255, 0.3);
+    color: var(--color-base-1);
 }
 
 /* ── Tablet (640–899px) ──────────────────────────────────── */
