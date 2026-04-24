@@ -147,6 +147,7 @@
     "reviews.dispute.pending": "Under review",
     "reviews.dispute.rejected": "Previous report rejected —",
     "reviews.dispute.retry": "dispute again",
+    "reviews.load_more": "Load more",
     "reviews.backtop": "Top",
     "reviews.dispute.sent": "Report submitted. We'll review it shortly.",
     "reviews.dispute.title": "Dispute review",

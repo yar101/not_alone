@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 import UserAvatar from '@/Components/UserAvatar.vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
@@ -23,9 +23,7 @@ const loadingMore   = ref(false);
 const hasMore       = ref(false);
 const page          = ref(1);
 const sort          = ref('latest');
-const sentinel      = ref(null);
 const showBackTop   = ref(false);
-let observer        = null;
 let scrollContainer = null;
 
 // ── Dispute modal ─────────────────────────────────────────────
@@ -88,8 +86,6 @@ async function fetchPage(p = 1) {
 async function setSort(value) {
     if (sort.value === value) return;
     sort.value = value;
-    observer?.disconnect();
-    observer = null;
     page.value = 1;
     reviews.value = [];
     loadingList.value = true;
@@ -99,8 +95,19 @@ async function setSort(value) {
         hasMore.value = data.has_more;
     } finally {
         loadingList.value = false;
-        await nextTick();
-        setupObserver();
+    }
+}
+
+async function loadMore() {
+    if (loadingMore.value || !hasMore.value) return;
+    loadingMore.value = true;
+    try {
+        page.value++;
+        const data = await fetchPage(page.value);
+        reviews.value.push(...data.reviews);
+        hasMore.value = data.has_more;
+    } finally {
+        loadingMore.value = false;
     }
 }
 
@@ -109,17 +116,15 @@ onMounted(async () => {
         const data = await fetchPage(1);
         reviews.value       = data.reviews;
         total.value         = data.total;
-hasMore.value       = data.has_more;
+        hasMore.value       = data.has_more;
         epithetCounts.value = data.epithet_counts ?? [];
     } finally {
         loading.value = false;
-        await nextTick();
-        setupObserver();
+        setupScrollContainer();
     }
 });
 
 onUnmounted(() => {
-    observer?.disconnect();
     scrollContainer?.removeEventListener('scroll', onScroll);
 });
 
@@ -140,26 +145,13 @@ function getScrollParent(el) {
     return null;
 }
 
-function setupObserver() {
-    if (!sentinel.value) return;
-    const root = getScrollParent(sentinel.value);
+function setupScrollContainer() {
+    const el = document.querySelector('.pr-wrap');
+    const root = el ? getScrollParent(el) : null;
     if (root && !scrollContainer) {
         scrollContainer = root;
         scrollContainer.addEventListener('scroll', onScroll, { passive: true });
     }
-    observer = new IntersectionObserver(async ([entry]) => {
-        if (!entry.isIntersecting || loadingMore.value || !hasMore.value) return;
-        loadingMore.value = true;
-        try {
-            page.value++;
-            const data = await fetchPage(page.value);
-            reviews.value.push(...data.reviews);
-            hasMore.value = data.has_more;
-        } finally {
-            loadingMore.value = false;
-        }
-    }, { root, rootMargin: '120px' });
-    observer.observe(sentinel.value);
 }
 
 function formatDate(iso) {
@@ -327,10 +319,15 @@ function formatDate(iso) {
                     </div>
                 </div>
 
-                <!-- Sentinel for IntersectionObserver -->
-                <template v-if="!loadingList">
-                    <div ref="sentinel" class="pr-sentinel"></div>
-                    <div v-if="loadingMore" class="pr-loading-more">{{ __('common.loading') }}</div>
+                <!-- Load more -->
+                <template v-if="!loadingList && hasMore">
+                    <button class="pr-load-more" :disabled="loadingMore" @click="loadMore">
+                        <svg v-if="loadingMore" class="pr-load-more__spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14">
+                            <circle cx="12" cy="12" r="9" stroke-width="2.5" stroke-opacity="0.25" />
+                            <path d="M12 3a9 9 0 0 1 9 9" stroke-width="2.5" stroke-linecap="round" />
+                        </svg>
+                        {{ __('reviews.load_more') }}
+                    </button>
                 </template>
             </div>
         </template>
@@ -901,12 +898,38 @@ function formatDate(iso) {
 .pr-backtop-leave-active { transition: opacity 0.15s ease, transform 0.15s ease; }
 .pr-backtop-enter-from, .pr-backtop-leave-to { opacity: 0; transform: translateY(8px); }
 
-/* Sentinel & loader */
-.pr-sentinel { height: 1px; }
-.pr-loading-more {
-    text-align: center;
-    font-size: 0.8rem;
-    color: rgba(255,255,255,0.25);
-    padding: 0.5rem 0;
+/* Load more button */
+.pr-load-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    width: 100%;
+    padding: 0.65rem 1rem;
+    background: rgba(160, 160, 255, 0.06);
+    border: 1px solid rgba(160, 160, 255, 0.18);
+    border-radius: 6px;
+    color: rgba(200, 200, 255, 0.75);
+    font-size: 0.88rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.pr-load-more:hover:not(:disabled) {
+    background: rgba(160, 160, 255, 0.12);
+    border-color: rgba(160, 160, 255, 0.35);
+    color: rgba(200, 200, 255, 0.95);
+}
+.pr-load-more:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+.pr-load-more__spinner {
+    animation: pr-spin 0.75s linear infinite;
+    flex-shrink: 0;
+}
+@keyframes pr-spin {
+    to { transform: rotate(360deg); }
 }
 </style>

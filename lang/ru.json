@@ -147,6 +147,7 @@
     "reviews.dispute.pending": "На рассмотрении",
     "reviews.dispute.rejected": "Предыдущая жалоба отклонена —",
     "reviews.dispute.retry": "оспорить повторно",
+    "reviews.load_more": "Загрузить ещё",
     "reviews.backtop": "Наверх",
     "reviews.dispute.sent": "Жалоба отправлена. Мы рассмотрим её в ближайшее время.",
     "reviews.dispute.title": "Оспорить отзыв",
