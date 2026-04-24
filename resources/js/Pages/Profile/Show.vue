@@ -324,6 +324,18 @@ onMounted(async () => {
                             {{ __('profile.tabs.back_to_categories') }}
                         </button>
                     </div>
+
+                    <button v-if="serviceNav.inCategory"
+                            class="cd-back-mobile"
+                            :style="{ '--cat-accent': serviceNav.accent }"
+                            @click="serviceNav.onBack?.()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 18l-6-6 6-6" />
+                        </svg>
+                        {{ __('profile.tabs.back_to_categories') }}
+                    </button>
+
                 <div class="tab-content-wrap page-block">
                 <Transition name="tab-fade" mode="out-in">
 
@@ -802,6 +814,31 @@ onMounted(async () => {
 .cd-back {
     margin-left: auto;
     flex-shrink: 0;
+}
+
+.cd-back-mobile {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .cd-back { display: none; }
+    .cd-back-mobile {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        margin-bottom: 0.5rem;
+        background: color-mix(in srgb, var(--cat-accent, #a0a0ff) 8%, transparent);
+        border: 1px solid color-mix(in srgb, var(--cat-accent, #a0a0ff) 25%, transparent);
+        border-radius: 6px;
+        color: color-mix(in srgb, var(--cat-accent, #a0a0ff) 80%, white);
+        font-size: 0.85rem;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s;
+    }
 }
 
 .tab-btn {

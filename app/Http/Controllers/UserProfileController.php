@@ -255,7 +255,7 @@ class UserProfileController extends Controller
     public function categoryIdols(User $user, ServiceCategory $category, Request $request): JsonResponse
     {
         $page    = max(1, (int) $request->get('page', 1));
-        $perPage = 4;
+        $perPage = min(8, max(1, (int) $request->get('per_page', 4)));
 
         $idols = Service::where('is_active', true)
             ->where('status', 'approved')

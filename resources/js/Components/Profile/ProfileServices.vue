@@ -170,6 +170,7 @@ function navigateToIdolInCategory(idol) {
 // ── Inline description edit ─────────────────────────────────────
 const editingDesc = ref(false);
 const descDraft = ref('');
+const descSaving = ref(false);
 
 function startDescEdit() {
     descDraft.value = selectedCategory.value?.idol_description ?? '';
@@ -182,7 +183,8 @@ function cancelDescEdit() {
 
 function saveDesc() {
     const catId = selectedCategory.value?.category?.id;
-    if (!catId) return;
+    if (!catId || descSaving.value) return;
+    descSaving.value = true;
     router.patch(
         route('profile.services.category.description', catId),
         { description: descDraft.value },
@@ -194,6 +196,9 @@ function saveDesc() {
                     selectedCategory.value.idol_description = descDraft.value;
                 }
                 editingDesc.value = false;
+            },
+            onFinish() {
+                descSaving.value = false;
             },
         }
     );
@@ -446,6 +451,11 @@ const formValid = computed(() =>
 );
 
 // ── Carousel ─────────────────────────────────────────────────
+const isMobile = ref(window.innerWidth <= 600);
+function onResizeCarousel() { isMobile.value = window.innerWidth <= 600; }
+onMounted(() => window.addEventListener('resize', onResizeCarousel));
+onUnmounted(() => window.removeEventListener('resize', onResizeCarousel));
+
 const carouselPage = ref(1);
 const carouselIdols = ref([]);
 const carouselTotal = ref(0);
@@ -456,12 +466,13 @@ const carouselDir = ref('next'); // 'next' | 'prev'
 
 async function loadCarousel(page = 1) {
     carouselLoading.value = true;
+    const perPage = isMobile.value ? 2 : 4;
     try {
         const res = await fetch(
             route('profile.category-idols', {
                 user: props.profileUser?.id,
                 category: selectedCategory.value.category.id,
-            }) + `?page=${page}`
+            }) + `?page=${page}&per_page=${perPage}`
         );
         const data = await res.json();
         carouselPage.value = page;
@@ -631,11 +642,32 @@ watch(selectedCategory, (cat) => {
                                 <div class="cd-hero__actions">
                                     <button class="svc-btn-cancel" @click="cancelDescEdit">{{ __('common.cancel')
                                     }}</button>
-                                    <button class="svc-btn-submit" @click="saveDesc">{{ __('common.save') }}</button>
+                                    <button class="svc-btn-submit" :class="{ 'svc-btn-submit--saving': descSaving }" :disabled="descSaving" @click="saveDesc">
+                                        <svg v-if="descSaving" class="svc-btn-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" width="13" height="13">
+                                            <circle cx="12" cy="12" r="9" stroke-width="2.5" stroke-opacity="0.25" />
+                                            <path d="M12 3a9 9 0 0 1 9 9" stroke-width="2.5" stroke-linecap="round" />
+                                        </svg>
+                                        {{ __('common.save') }}
+                                    </button>
                                 </div>
                             </div>
                         </Transition>
                     </div>
+                </div>
+
+                <!-- Owner action buttons (mobile only — outside hero) -->
+                <div v-if="isOwner" class="cd-owner-actions">
+                    <button v-if="!editingDesc" class="cd-hero__edit-btn" @click="startDescEdit">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                        {{ __('profile.services.desc_edit') }}
+                    </button>
+                    <CreateButton v-if="isIdol" @click="openAdd">{{
+                        __('profile.services.new_btn') }}
+                    </CreateButton>
                 </div>
 
                 <!-- Services section -->
@@ -782,7 +814,7 @@ watch(selectedCategory, (cat) => {
                             <!-- Layer 1: skeletons — always in DOM, provide stable height -->
                             <div class="cd-carousel__skeletons"
                                 :class="{ 'cd-carousel__skeletons--hidden': !carouselLoading && carouselReady }">
-                                <div v-for="n in 4" :key="n" class="cd-carousel__idol cd-carousel__idol--skel"></div>
+                                <div v-for="n in (isMobile ? 2 : 4)" :key="n" class="cd-carousel__idol cd-carousel__idol--skel"></div>
                             </div>
                             <!-- Layer 2: real cards — absolute on top, only when loaded -->
                             <Transition :name="carouselDir === 'next' ? 'carousel-next' : 'carousel-prev'"
@@ -1235,6 +1267,36 @@ watch(selectedCategory, (cat) => {
     padding: 0 1rem;
 }
 
+.cd-owner-actions {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .cd-owner-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+
+    .cd-owner-actions .cd-hero__edit-btn {
+        flex: 1;
+        justify-content: center;
+    }
+
+
+    .cd-detail {
+        padding: 0 0.75rem;
+    }
+
+    .cd-hero__title {
+        font-size: 1.25rem;
+    }
+
+    .cd-section {
+        gap: 0.75rem;
+    }
+}
+
 
 
 /* ── Hero card ────────────────────────────────────────────── */
@@ -1306,6 +1368,10 @@ watch(selectedCategory, (cat) => {
     align-items: center;
     gap: 0.5rem;
     flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+    .cd-hero__top-actions { display: none; }
 }
 
 .cd-hero__desc {
@@ -1661,6 +1727,10 @@ watch(selectedCategory, (cat) => {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0.85rem;
+}
+
+@media (max-width: 600px) {
+    .svc-list { grid-template-columns: 1fr; }
 }
 
 .svc-card {
@@ -2112,9 +2182,26 @@ watch(selectedCategory, (cat) => {
     transition: box-shadow 0.15s, border-color 0.15s;
 }
 
-.svc-btn-submit:hover {
+.svc-btn-submit:hover:not(:disabled) {
     border-color: rgba(160, 160, 255, 0.7);
     box-shadow: 0 0 12px rgba(110, 110, 210, 0.25);
+}
+
+.svc-btn-submit--saving {
+    opacity: 0.7;
+    cursor: default;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.svc-btn-spinner {
+    animation: spin 0.75s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
 
 .svc-btn-danger {
