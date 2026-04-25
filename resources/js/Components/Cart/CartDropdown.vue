@@ -63,11 +63,16 @@ watch(isOpen, (val, oldVal) => {
     if (val) {
         history.pushState({ cart: true }, '');
         cartPushed = true;
+        document.documentElement.classList.add('chat-scroll-locked');
     }
     if (!val && oldVal && cartPushed) {
         cartPushed = false;
         cartIgnoreTill = Date.now() + 500;
         history.go(-1);
+        document.documentElement.classList.remove('chat-scroll-locked');
+    }
+    if (!val && !cartPushed) {
+        document.documentElement.classList.remove('chat-scroll-locked');
     }
 });
 
@@ -75,6 +80,7 @@ onMounted(() => window.addEventListener('popstate', onCartPopstate));
 onUnmounted(() => {
     window.removeEventListener('popstate', onCartPopstate);
     if (cartPushed) { cartPushed = false; history.go(-1); }
+    document.documentElement.classList.remove('chat-scroll-locked');
 });
 
 function close() { isOpen.value = false; }
