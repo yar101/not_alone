@@ -130,7 +130,10 @@ function isClickable(item) {
 }
 
 function closeOnOutside(e) {
-    if (!e.target.closest('.notif-bell')) open.value = false;
+    // .site-modal-root — teleported modal content, not inside .notif-bell in DOM
+    if (!e.target.closest('.notif-bell') && !e.target.closest('.site-modal-root')) {
+        open.value = false;
+    }
 }
 
 const activeFilter = ref('all');
