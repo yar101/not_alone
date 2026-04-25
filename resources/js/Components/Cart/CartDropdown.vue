@@ -293,7 +293,7 @@ async function purchaseContent() {
 /* ── Panel ────────────────────────────────────────────── */
 .rc-panel {
     position: fixed;
-    top: 0;
+    top: 60px;
     right: 0;
     bottom: 0;
     width: 480px;
@@ -737,5 +737,9 @@ async function purchaseContent() {
 .rc-submit:disabled {
     opacity: 0.25;
     cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+    .rc-panel { top: 68px; }
 }
 </style>
