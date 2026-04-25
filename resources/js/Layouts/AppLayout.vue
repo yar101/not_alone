@@ -225,7 +225,7 @@ onUnmounted(() => {
                     </svg>
                 </Link>
 
-                <CartIcon v-if="user" :cart="cart" @click="cartOpen = !cartOpen" />
+                <CartIcon v-if="user" :cart="cart" :active="cartOpen" @click="cartOpen = !cartOpen" />
                 <ChatButton v-if="user" :active="chatOpen" @click="chatOpen = !chatOpen" />
                 <NotificationBell v-if="user" />
 
