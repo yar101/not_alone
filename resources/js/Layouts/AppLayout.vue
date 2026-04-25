@@ -531,13 +531,65 @@ onUnmounted(() => {
     .app-header { padding: 0 1.25rem; }
 }
 
+/* ── Mobile header upgrade (≤768px) ─────────────────────── */
+@media (max-width: 768px) {
+    .app-header {
+        height: 68px;
+        padding: 0 1rem;
+        border-bottom-color: transparent;
+    }
+    /* Gradient light bar replacing solid border */
+    .app-header::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(110, 110, 210, 0.55) 25%,
+            rgba(100, 210, 255, 0.35) 65%,
+            transparent 100%
+        );
+        pointer-events: none;
+    }
+    .app-logo { font-size: 1.5rem; }
+    /* Frosted glass icon containers */
+    .mobile-search-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.55);
+    }
+    .mobile-search-btn--active {
+        background: rgba(160, 160, 255, 0.12);
+        border-color: rgba(160, 160, 255, 0.28);
+        color: var(--color-base-1);
+    }
+}
+
 /* ── Mobile (< 640px) ────────────────────────────────────── */
 @media (max-width: 639px) {
-    .app-header { padding: 0 0.75rem; }
-    .header-right { gap: 0.25rem; }
+    .app-header { padding: 0 0.875rem; }
+    .header-right { gap: 0.5rem; }
     .user-name-clip { display: none; }
-    .user-chip { padding: 0.25rem; }
+    .user-chip { padding: 3px; }
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-width: 2px;
+        box-shadow: 0 0 14px rgba(110, 110, 210, 0.35);
+    }
     .guest-btn--fill { display: none; }
     .guest-btn--outline { font-size: 0.75rem; padding: 0.28rem 0.7rem; }
+}
+
+/* ── Very small screens (≤480px) ────────────────────────── */
+@media (max-width: 480px) {
+    .become-idol-btn { display: none; }
 }
 </style>

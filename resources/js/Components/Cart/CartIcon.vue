@@ -53,6 +53,21 @@ const count = computed(() => {
     color: #a0a0ff;
     border-color: rgba(160,160,255,0.22);
 }
+@media (max-width: 768px) {
+    .cart-icon-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.55);
+    }
+    .cart-icon-btn--active {
+        background: rgba(160, 160, 255, 0.12);
+        border-color: rgba(160, 160, 255, 0.28);
+        color: #a0a0ff;
+    }
+}
 .cart-icon-badge {
     position: absolute;
     top: 2px;

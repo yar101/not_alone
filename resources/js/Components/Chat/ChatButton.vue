@@ -46,6 +46,21 @@ const unreadMessages = computed(() => page.props.unread_messages_count ?? 0);
     border-color: rgba(160, 160, 255, 0.3);
     color: var(--color-base-1);
 }
+@media (max-width: 768px) {
+    .chat-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.55);
+    }
+    .chat-btn--active {
+        background: rgba(160, 160, 255, 0.12);
+        border-color: rgba(160, 160, 255, 0.28);
+        color: var(--color-base-1);
+    }
+}
 .chat-btn__badge {
     position: absolute;
     top: 4px;
