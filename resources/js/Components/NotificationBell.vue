@@ -199,13 +199,20 @@ function notifPopupTitle(item) {
     }[item.type] ?? __('notification.type.default');
 }
 
+const mobileNotifQueue = [];
+const MOBILE_MAX_NOTIFS = 2;
+
 function showNotifPopup(item) {
     const iconComp = itemIconComponent(item);
     const iconClass = itemIconClass(item);
     const title = notifPopupTitle(item);
     const message = item._cat === 'order' ? orderMessage(item) : (item.message ?? '');
 
-    ElNotification({
+    if (isMobile.value && mobileNotifQueue.length >= MOBILE_MAX_NOTIFS) {
+        mobileNotifQueue.shift()?.close();
+    }
+
+    const instance = ElNotification({
         duration: 5000,
         position: 'top-right',
         offset: 70,
@@ -220,7 +227,13 @@ function showNotifPopup(item) {
                 ...(message ? [h('p', { class: 'app-notif__msg' }, message)] : []),
             ]),
         ]),
+        onClose: () => {
+            const idx = mobileNotifQueue.indexOf(instance);
+            if (idx !== -1) mobileNotifQueue.splice(idx, 1);
+        },
     });
+
+    if (isMobile.value) mobileNotifQueue.push(instance);
 }
 
 async function handleNewNotification() {
@@ -229,7 +242,7 @@ async function handleNewNotification() {
         if (data.items.length > 0) {
             if (latestKnownAt.value) {
                 const fresh = data.items.filter(n => n.created_at > latestKnownAt.value);
-                fresh.slice(0, 3).forEach(showNotifPopup);
+                fresh.slice(0, isMobile.value ? 2 : 3).forEach(showNotifPopup);
             }
             latestKnownAt.value = data.items[0].created_at;
         }
