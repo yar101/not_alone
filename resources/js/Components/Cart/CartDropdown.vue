@@ -63,6 +63,7 @@ watch(isOpen, (val, oldVal) => {
     if (val) {
         history.pushState({ cart: true }, '');
         cartPushed = true;
+        window.scrollTo({ top: 0, behavior: 'instant' });
         document.documentElement.classList.add('chat-scroll-locked');
     }
     if (!val && oldVal && cartPushed) {
