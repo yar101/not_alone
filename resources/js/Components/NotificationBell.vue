@@ -620,10 +620,12 @@ onUnmounted(() => {
     transition: all 0.15s;
 }
 
-.bell-btn:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.8);
+@media (hover: hover) {
+    .bell-btn:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.8);
+    }
 }
 
 .bell-btn--active {

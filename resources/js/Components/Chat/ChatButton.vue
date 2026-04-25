@@ -34,10 +34,12 @@ const unreadMessages = computed(() => page.props.unread_messages_count ?? 0);
     color: rgba(255, 255, 255, 0.45);
     transition: color 0.15s, background 0.15s, border-color 0.15s;
 }
-.chat-btn:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.8);
+@media (hover: hover) {
+    .chat-btn:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.8);
+    }
 }
 .chat-btn--active {
     background: rgba(160, 160, 255, 0.1);

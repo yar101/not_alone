@@ -43,9 +43,11 @@ const count = computed(() => {
     cursor: pointer;
     transition: color 0.18s, background 0.18s, border-color 0.18s;
 }
-.cart-icon-btn:hover {
-    color: rgba(255,255,255,0.8);
-    background: rgba(110,110,210,0.08);
+@media (hover: hover) {
+    .cart-icon-btn:hover {
+        color: rgba(255,255,255,0.8);
+        background: rgba(110,110,210,0.08);
+    }
 }
 .cart-icon-btn--active {
     color: #a0a0ff;
