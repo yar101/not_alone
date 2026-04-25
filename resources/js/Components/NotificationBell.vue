@@ -359,6 +359,8 @@ onUnmounted(() => {
         window.Echo.leaveChannel(`private-App.Models.User.${userId}`);
     }
 });
+
+defineExpose({ toggleDropdown });
 </script>
 
 <template>
