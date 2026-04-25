@@ -17,57 +17,80 @@ class ConversationController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $user     = $request->user();
+        $search   = trim($request->input('search', ''));
+        $cursorAt = $request->input('cursor_at');
+        $cursorId = (int) $request->input('cursor_id', 0);
+        $perPage  = 10;
 
-        $conversations = Conversation::whereNull('order_id')
+        $query = Conversation::whereNull('order_id')
             ->whereHas('participants', fn($q) => $q->where('user_id', $user->id))
-            ->with([
-                'participants.user',
-                'lastMessage.sender',
-            ])
-            ->get()
-            ->map(function (Conversation $conversation) use ($user) {
-                $other = $conversation->participants
-                    ->firstWhere('user_id', '!=', $user->id)?->user;
+            ->with(['participants.user', 'lastMessage.sender'])
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id');
 
-                $participantMe = $conversation->participants
-                    ->firstWhere('user_id', $user->id);
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+            $query->where(function ($q) use ($user, $like) {
+                $q->where('is_support', true)
+                  ->orWhereHas('participants', function ($pq) use ($user, $like) {
+                      $pq->where('user_id', '!=', $user->id)
+                         ->whereHas('user', fn($uq) => $uq->whereRaw('LOWER(name) LIKE LOWER(?)', [$like]));
+                  });
+            });
+        }
 
-                $unread = 0;
-                if ($participantMe) {
-                    $query = $conversation->messages()->where(function ($q) use ($user) {
-                        $q->where('sender_id', '!=', $user->id)->orWhereNull('sender_id');
-                    });
-                    if ($participantMe->last_read_at) {
-                        $query->where('created_at', '>', $participantMe->last_read_at);
-                    }
-                    $unread = $query->count();
+        if ($cursorAt && $cursorId) {
+            $query->where(function ($q) use ($cursorAt, $cursorId) {
+                $q->where('updated_at', '<', $cursorAt)
+                  ->orWhere(fn($q) => $q->where('updated_at', $cursorAt)->where('id', '<', $cursorId));
+            });
+        }
+
+        $items   = $query->limit($perPage + 1)->get();
+        $hasMore = $items->count() > $perPage;
+        if ($hasMore) $items = $items->take($perPage);
+
+        $conversations = $items->map(function (Conversation $conversation) use ($user) {
+            $other = $conversation->participants
+                ->firstWhere('user_id', '!=', $user->id)?->user;
+
+            $participantMe = $conversation->participants
+                ->firstWhere('user_id', $user->id);
+
+            $unread = 0;
+            if ($participantMe) {
+                $query = $conversation->messages()->where(function ($q) use ($user) {
+                    $q->where('sender_id', '!=', $user->id)->orWhereNull('sender_id');
+                });
+                if ($participantMe->last_read_at) {
+                    $query->where('created_at', '>', $participantMe->last_read_at);
                 }
+                $unread = $query->count();
+            }
 
-                return [
-                    'id'           => $conversation->id,
-                    'is_support'   => (bool) $conversation->is_support,
-                    'closed_at'    => $conversation->closed_at?->toISOString(),
-                    'other_user'   => $other ? [
-                        'id'         => $other->id,
-                        'name'       => $other->name,
-                        'avatar_url' => $other->avatar_url,
-                        'is_idol'    => $other->is_idol,
-                    ] : null,
-                    'last_message' => $conversation->lastMessage ? [
-                        'body'       => $conversation->lastMessage->type === 'image' ? '[фото]' : $conversation->lastMessage->body,
-                        'sender_id'  => $conversation->lastMessage->sender_id,
-                        'created_at' => $conversation->lastMessage->created_at?->toISOString(),
-                    ] : null,
-                    'unread_count' => $unread,
-                    'updated_at'   => $conversation->updated_at?->toISOString(),
-                    'block'        => $this->blockStatus($conversation, $user),
-                ];
-            })
-            ->sortByDesc('updated_at')
-            ->values();
+            return [
+                'id'           => $conversation->id,
+                'is_support'   => (bool) $conversation->is_support,
+                'closed_at'    => $conversation->closed_at?->toISOString(),
+                'other_user'   => $other ? [
+                    'id'         => $other->id,
+                    'name'       => $other->name,
+                    'avatar_url' => $other->avatar_url,
+                    'is_idol'    => $other->is_idol,
+                ] : null,
+                'last_message' => $conversation->lastMessage ? [
+                    'body'       => $conversation->lastMessage->type === 'image' ? '[фото]' : $conversation->lastMessage->body,
+                    'sender_id'  => $conversation->lastMessage->sender_id,
+                    'created_at' => $conversation->lastMessage->created_at?->toISOString(),
+                ] : null,
+                'unread_count' => $unread,
+                'updated_at'   => $conversation->updated_at?->toISOString(),
+                'block'        => $this->blockStatus($conversation, $user),
+            ];
+        })->values();
 
-        return response()->json(['conversations' => $conversations]);
+        return response()->json(['conversations' => $conversations, 'has_more' => $hasMore]);
     }
 
     public function show(Request $request, Conversation $conversation): JsonResponse

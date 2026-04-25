@@ -34,6 +34,10 @@ const props = defineProps({
         type: String,
         default: null,
     },
+    fill: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const emit = defineEmits(['close']);
@@ -155,7 +159,7 @@ onUnmounted(() => {
                     </button>
 
                     <!-- Content -->
-                    <div class="site-modal-body">
+                    <div class="site-modal-body" :class="{ 'site-modal-body--fill': fill }">
                         <slot />
                     </div>
                 </div>
@@ -355,6 +359,14 @@ onUnmounted(() => {
     z-index: 1;
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+    min-height: 0;
+}
+
+.site-modal-body--fill {
+    overflow: hidden;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 @media (max-width: 768px) {

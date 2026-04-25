@@ -31,6 +31,9 @@ const newMessage      = ref('');
 const isTyping        = ref(false);
 const typingTimer     = ref(null);
 const loadingConvs    = ref(false);
+const loadingMoreConvs = ref(false);
+const convsHasMore     = ref(false);
+const convsCursor      = ref(null);
 const loadingMsgs     = ref(false);
 const coverMessages   = ref(false);
 const sending         = ref(false);
@@ -57,25 +60,24 @@ const confirmAddLoading    = ref(false);
 
 // ── Orders tab ────────────────────────────────────────────
 const activeTab      = ref('messages'); // 'messages' | 'orders'
-const orders         = ref([]);
-const loadingOrders  = ref(false);
+const orders             = ref([]);
+const loadingOrders      = ref(false);
+const loadingMoreOrders  = ref(false);
+const ordersHasMore      = ref(false);
+const ordersCursor       = ref(null); // id последнего загруженного заказа
 const activeOrderData = ref(null); // order data for the current open conversation
 const ordersSubTab   = ref('mine'); // 'mine' | 'incoming' — only used when authUser is idol
 
 const orderStatusFilter = ref('all'); // 'all' | 'pending' | 'accepted' | 'cancelled'
 const orderSearch       = ref('');
 const orderFiltersOpen  = ref(false);
+const orderCounts       = ref({ all: 0, pending: 0, accepted: 0, paid: 0, completed: 0, cancelled: 0, refunded: 0, disputed: 0 });
 
 const isMobile = ref(false);
 function checkMobile() { isMobile.value = window.innerWidth < 768; }
 
 
-const subtabOrders = computed(() => {
-    if (!authUser.value?.is_idol) return orders.value;
-    return ordersSubTab.value === 'mine'
-        ? orders.value.filter(o => o.is_customer)
-        : orders.value.filter(o => !o.is_customer);
-});
+const subtabOrders = computed(() => orders.value);
 
 const pendingOrderUnread = ref(false);
 const ordersHaveUnread = computed(() => pendingOrderUnread.value || orders.value.some(o => (o.unread_count ?? 0) > 0));
@@ -92,27 +94,7 @@ const orderStatusLabels = computed(() => ({
     disputed:  __('order.status.disputed'),
 }));
 
-const orderStatusCounts = computed(() => ({
-    all:       subtabOrders.value.length,
-    pending:   subtabOrders.value.filter(o => o.status === 'pending').length,
-    accepted:  subtabOrders.value.filter(o => o.status === 'accepted').length,
-    cancelled: subtabOrders.value.filter(o => o.status === 'cancelled').length,
-}));
-
-const visibleOrders = computed(() => {
-    let list = subtabOrders.value;
-    if (orderStatusFilter.value !== 'all') {
-        list = list.filter(o => o.status === orderStatusFilter.value);
-    }
-    if (orderSearch.value.trim()) {
-        const q = orderSearch.value.trim().toLowerCase();
-        list = list.filter(o => {
-            const partner = o.is_customer ? o.idol : o.customer;
-            return partner.name.toLowerCase().includes(q);
-        });
-    }
-    return list;
-});
+const visibleOrders = computed(() => subtabOrders.value);
 
 // ── Pay / complete / timer ────────────────────────────────
 const orderTimerLabel = computed(() => {
@@ -265,23 +247,39 @@ function close() {
 }
 
 // ── Fetch conversation list ──────────────────────────────
-async function fetchConversations() {
-    loadingConvs.value = true;
+async function fetchConversations(reset = true) {
+    if (reset) {
+        loadingConvs.value = true;
+        conversations.value = [];
+        convsCursor.value = null;
+        convsHasMore.value = false;
+    } else {
+        if (loadingMoreConvs.value || !convsHasMore.value) return;
+        loadingMoreConvs.value = true;
+    }
     try {
-        const res = await axios.get(route('conversations.index'));
-        conversations.value = res.data.conversations;
+        const params = {};
+        if (searchQuery.value.trim()) params.search = searchQuery.value.trim();
+        if (convsCursor.value) {
+            params.cursor_at = convsCursor.value.at;
+            params.cursor_id = convsCursor.value.id;
+        }
+        const res = await axios.get(route('conversations.index'), { params });
+        const fresh = res.data.conversations ?? [];
+        conversations.value = reset ? fresh : [...conversations.value, ...fresh];
+        convsHasMore.value = res.data.has_more ?? false;
+        if (fresh.length > 0) {
+            const last = fresh[fresh.length - 1];
+            convsCursor.value = { at: last.updated_at, id: last.id };
+        }
     } finally {
         loadingConvs.value = false;
+        loadingMoreConvs.value = false;
     }
 }
 
-// ── Filtered conversations (search) ─────────────────────
-const filteredConversations = computed(() =>
-    conversations.value.filter(c => {
-        if (c.is_support) return 'поддержка no alone'.includes(searchQuery.value.toLowerCase());
-        return c.other_user?.name?.toLowerCase().includes(searchQuery.value.toLowerCase());
-    })
-);
+// ── Filtered conversations (server handles search) ───────
+const filteredConversations = computed(() => conversations.value);
 
 // ── Open a conversation ──────────────────────────────────
 async function openConversation(conv) {
@@ -749,6 +747,7 @@ function isMessageRead(msg) {
 // ── Watch panel open ─────────────────────────────────────
 watch(isOpen, (val, oldVal) => {
     if (val) {
+        cpIgnoreTill = Date.now() + 500;
         pushCp('list');
         fetchConversations();
         if (activeTab.value === 'orders') fetchOrders();
@@ -761,6 +760,8 @@ watch(isOpen, (val, oldVal) => {
         activeConversation.value = null;
         activeOrderData.value = null;
         searchQuery.value = '';
+        convsCursor.value = null;
+        convsHasMore.value = false;
         orderSearch.value = '';
         orderStatusFilter.value = 'all';
         orderFiltersOpen.value = false;
@@ -781,7 +782,14 @@ watch(ordersSubTab, () => {
     orderStatusFilter.value = 'all';
     orderSearch.value = '';
     orderFiltersOpen.value = false;
+    if (!_skipSubTabFetch) fetchOrders(true);
+    _skipSubTabFetch = false;
 });
+
+function doOrderSearch()  { fetchOrders(true); }
+function clearOrderSearch() { orderSearch.value = ''; fetchOrders(true); }
+function doConvSearch()   { fetchConversations(true); }
+function clearConvSearch() { searchQuery.value = ''; fetchConversations(true); }
 
 // ── Close on navigation (ignore reloads on same URL) ─────
 watch(() => page.url, (newUrl, oldUrl) => {
@@ -820,14 +828,43 @@ function backToList() {
 }
 
 // ── Orders helpers ────────────────────────────────────────
-async function fetchOrders() {
-    loadingOrders.value = true;
+let _skipSubTabFetch = false;
+
+function applyStatusFilter(key) {
+    orderStatusFilter.value = key;
+    fetchOrders(true);
+}
+
+async function fetchOrders(reset = true) {
+    if (reset) {
+        loadingOrders.value = true;
+        orders.value = [];
+        ordersCursor.value = null;
+        ordersHasMore.value = false;
+    } else {
+        if (loadingMoreOrders.value || !ordersHasMore.value) return;
+        loadingMoreOrders.value = true;
+    }
     try {
-        const res = await axios.get(route('orders.index'));
-        orders.value = res.data.orders;
+        const params = {};
+        if (ordersCursor.value) params.cursor = ordersCursor.value;
+        if (orderStatusFilter.value !== 'all') params.status = orderStatusFilter.value;
+        if (orderSearch.value.trim()) params.search = orderSearch.value.trim();
+        if (authUser.value?.is_idol) {
+            params.role = ordersSubTab.value === 'mine' ? 'customer' : 'idol';
+        } else {
+            params.role = 'customer';
+        }
+        const res = await axios.get(route('orders.index'), { params });
+        const fresh = res.data.orders ?? [];
+        orders.value = reset ? fresh : [...orders.value, ...fresh];
+        ordersHasMore.value = res.data.has_more ?? false;
+        if (fresh.length > 0) ordersCursor.value = fresh[fresh.length - 1].id;
+        if (res.data.counts) orderCounts.value = res.data.counts;
         pendingOrderUnread.value = false;
     } finally {
         loadingOrders.value = false;
+        loadingMoreOrders.value = false;
     }
 }
 
@@ -890,13 +927,25 @@ async function submitCancelOrder() {
 async function openOrder(orderId) {
     isOpen.value = true;
     activeTab.value = 'orders';
+    orderStatusFilter.value = 'all';
     await fetchOrders();
     const order = orders.value.find(o => o.id === orderId);
+    _skipSubTabFetch = true;
     ordersSubTab.value = order?.is_customer === false ? 'incoming' : 'mine';
     if (order) await openOrderConversation(order);
 }
 
-defineExpose({ startWith, openOrder });
+function silentClose() {
+    if (cpDepth > 0) {
+        cpIgnoreTill = Date.now() + 500;
+        history.replaceState(null, '');
+        if (cpDepth > 1) history.go(-(cpDepth - 1));
+        cpDepth = 0;
+    }
+    isOpen.value = false;
+}
+
+defineExpose({ startWith, openOrder, silentClose });
 
 // ── Helpers ──────────────────────────────────────────────
 function formatTime(iso) {
@@ -946,18 +995,36 @@ function formatDate(iso) {
 
                     <!-- Поиск по диалогам (только для сообщений) -->
                     <div v-if="activeTab === 'messages'" class="chat-sidebar__search">
-                        <input
-                            v-model="searchQuery"
-                            type="text"
-                            class="chat-search-input"
-                            :placeholder="__('chat.search')"
-                        />
+                        <div class="search-row">
+                            <input
+                                v-model="searchQuery"
+                                type="text"
+                                class="chat-search-input"
+                                :placeholder="__('chat.search')"
+                                @keyup.enter="doConvSearch"
+                            />
+                            <button v-if="searchQuery.trim()" class="search-clear-btn" @click="clearConvSearch" title="Сбросить">
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                            </button>
+                            <button class="search-go-btn" @click="doConvSearch" title="Найти">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="chat-sidebar__list">
                         <!-- ── Сообщения ── -->
                         <template v-if="activeTab === 'messages'">
-                            <div v-if="loadingConvs" class="chat-empty">{{ __('common.loading') }}</div>
+                            <template v-if="loadingConvs">
+                                <div v-for="n in 6" :key="n" class="conv-skel">
+                                    <div class="conv-skel__avatar skel-pulse"></div>
+                                    <div class="conv-skel__info">
+                                        <div class="conv-skel__name skel-pulse" :style="{ width: [52,45,60,38,55,48][n-1]+'%' }"></div>
+                                        <div class="conv-skel__preview skel-pulse" :style="{ width: [75,85,65,90,70,80][n-1]+'%' }"></div>
+                                    </div>
+                                    <div class="conv-skel__time skel-pulse"></div>
+                                </div>
+                            </template>
                             <template v-else-if="conversations.length === 0">
                                 <div class="chat-no-convs">
                                     <p>{{ $page.props.is_idol ? __('chat.empty.dialogs') : __('chat.empty.dialogs.sub') }}</p>
@@ -993,69 +1060,109 @@ function formatDate(iso) {
                                         <span v-if="conv.unread_count > 0" class="chat-conv-badge">{{ conv.unread_count }}</span>
                                     </div>
                                 </button>
+                                <!-- Load more conversations -->
+                                <div v-if="convsHasMore || loadingMoreConvs" class="orders-load-more">
+                                    <button class="orders-load-more-btn" :disabled="loadingMoreConvs" @click="fetchConversations(false)">
+                                        <span v-if="!loadingMoreConvs">{{ __('notification.load_more') }}</span>
+                                        <span v-else class="orders-load-dots">
+                                            <span class="orders-load-dot"></span>
+                                            <span class="orders-load-dot"></span>
+                                            <span class="orders-load-dot"></span>
+                                        </span>
+                                    </button>
+                                </div>
                             </template>
                         </template>
 
                         <!-- ── Заказы ── -->
                         <template v-else-if="activeTab === 'orders'">
-                            <div v-if="loadingOrders" class="chat-empty">{{ __('common.loading') }}</div>
-                            <template v-else>
-                                <!-- Саб-табы только для айдолов -->
-                                <div v-if="authUser?.is_idol" class="chat-order-subtabs">
-                                    <button
-                                        class="chat-order-subtab"
-                                        :class="{ 'chat-order-subtab--active': ordersSubTab === 'mine' }"
-                                        @click="ordersSubTab = 'mine'"
-                                    >{{ __('order.my') }} <span v-if="mineHaveUnread" class="chat-tab__dot"></span></button>
-                                    <button
-                                        class="chat-order-subtab"
-                                        :class="{ 'chat-order-subtab--active': ordersSubTab === 'incoming' }"
-                                        @click="ordersSubTab = 'incoming'"
-                                    >{{ __('order.incoming') }} <span v-if="incomingHaveUnread" class="chat-tab__dot"></span></button>
-                                </div>
+                            <!-- Саб-табы только для айдолов — всегда видны -->
+                            <div v-if="authUser?.is_idol" class="chat-order-subtabs">
+                                <button
+                                    class="chat-order-subtab"
+                                    :class="{ 'chat-order-subtab--active': ordersSubTab === 'mine' }"
+                                    @click="ordersSubTab = 'mine'"
+                                >{{ __('order.my') }} <span v-if="mineHaveUnread" class="chat-tab__dot"></span></button>
+                                <button
+                                    class="chat-order-subtab"
+                                    :class="{ 'chat-order-subtab--active': ordersSubTab === 'incoming' }"
+                                    @click="ordersSubTab = 'incoming'"
+                                >{{ __('order.incoming') }} <span v-if="incomingHaveUnread" class="chat-tab__dot"></span></button>
+                            </div>
 
-                                <!-- ── Фильтры заказов ──────────────────── -->
-                                <div class="order-filters">
+                            <!-- ── Фильтры заказов — всегда видны ──────── -->
+                            <div class="order-filters">
+                                <div class="search-row">
                                     <input
                                         v-model="orderSearch"
                                         type="text"
-                                        class="chat-search-input order-filters__search-input"
+                                        class="chat-search-input"
                                         :placeholder="__('chat.search.name')"
+                                        @keyup.enter="doOrderSearch"
                                     />
-                                    <button
-                                        class="order-filters__toggle"
-                                        :class="{ 'order-filters__toggle--open': orderFiltersOpen }"
-                                        @click="orderFiltersOpen = !orderFiltersOpen"
-                                    >
-                                        {{ __('chat.orders.filters') }}
-                                        <svg class="order-filters__arrow" width="10" height="10" viewBox="0 0 10 10" fill="none">
-                                            <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                        </svg>
+                                    <button v-if="orderSearch.trim()" class="search-clear-btn" @click="clearOrderSearch" title="Сбросить">
+                                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
                                     </button>
-                                    <Transition name="of-expand">
-                                        <div v-if="orderFiltersOpen" class="order-filters__pills">
-                                            <button
-                                                v-for="pill in [
-                                                    { key: 'all',       label: __('chat.orders.filter.all') },
-                                                    { key: 'pending',   label: __('chat.orders.filter.pending') },
-                                                    { key: 'accepted',  label: __('chat.orders.filter.accepted') },
-                                                    { key: 'cancelled', label: __('chat.orders.filter.cancelled') },
-                                                ]"
-                                                :key="pill.key"
-                                                class="order-filter-pill"
-                                                :class="{
-                                                    'order-filter-pill--active': orderStatusFilter === pill.key,
-                                                    [`order-filter-pill--${pill.key}`]: pill.key !== 'all',
-                                                }"
-                                                @click="orderStatusFilter = pill.key"
-                                            >
-                                                {{ pill.label }}
-                                                <span class="order-filter-pill__count">{{ orderStatusCounts[pill.key] }}</span>
-                                            </button>
-                                        </div>
-                                    </Transition>
+                                    <button class="search-go-btn" @click="doOrderSearch" title="Найти">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                    </button>
                                 </div>
+                                <button
+                                    class="order-filters__toggle"
+                                    :class="{ 'order-filters__toggle--open': orderFiltersOpen }"
+                                    @click="orderFiltersOpen = !orderFiltersOpen"
+                                >
+                                    {{ __('chat.orders.filters') }}
+                                    <svg class="order-filters__arrow" width="10" height="10" viewBox="0 0 10 10" fill="none">
+                                        <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </button>
+                                <Transition name="of-expand">
+                                    <div v-if="orderFiltersOpen" class="order-filters__pills">
+                                        <button
+                                            v-for="pill in [
+                                                { key: 'all',       label: __('chat.orders.filter.all') },
+                                                { key: 'pending',   label: __('chat.orders.filter.pending') },
+                                                { key: 'accepted',  label: __('chat.orders.filter.accepted') },
+                                                { key: 'paid',      label: __('chat.orders.filter.paid') },
+                                                { key: 'completed', label: __('chat.orders.filter.completed') },
+                                                { key: 'cancelled', label: __('chat.orders.filter.cancelled') },
+                                            ]"
+                                            :key="pill.key"
+                                            class="order-filter-pill"
+                                            :class="{
+                                                'order-filter-pill--active': orderStatusFilter === pill.key,
+                                                'order-filter-pill--empty': (orderCounts[pill.key] ?? 0) === 0 && orderStatusFilter !== pill.key,
+                                                [`order-filter-pill--${pill.key}`]: pill.key !== 'all',
+                                            }"
+                                            @click="applyStatusFilter(pill.key)"
+                                        >
+                                            {{ pill.label }}
+                                            <span class="order-filter-pill__count">{{ orderCounts[pill.key] ?? 0 }}</span>
+                                        </button>
+                                    </div>
+                                </Transition>
+                            </div>
 
+                            <!-- Список — скелетон или данные -->
+                            <template v-if="loadingOrders">
+                                <div v-for="n in 4" :key="n" class="order-skel">
+                                    <div class="order-skel__head">
+                                        <div class="order-skel__avatar skel-pulse"></div>
+                                        <div class="order-skel__lines">
+                                            <div class="order-skel__name skel-pulse" :style="{ width: [55,42,60,48][n-1]+'%' }"></div>
+                                            <div class="order-skel__date skel-pulse" :style="{ width: [28,35,25,32][n-1]+'%' }"></div>
+                                        </div>
+                                        <div class="order-skel__badge skel-pulse"></div>
+                                    </div>
+                                    <div class="order-skel__sep"></div>
+                                    <div class="order-skel__foot">
+                                        <div class="order-skel__count skel-pulse"></div>
+                                        <div class="order-skel__total skel-pulse"></div>
+                                    </div>
+                                </div>
+                            </template>
+                            <template v-else>
                                 <template v-if="visibleOrders.length === 0">
                                     <div class="chat-no-convs"><p>{{ __('chat.orders.empty') }}</p></div>
                                 </template>
@@ -1093,6 +1200,18 @@ function formatDate(iso) {
                                     </div>
                                 </button>
                                 </template><!-- /visibleOrders -->
+
+                                <!-- Load more -->
+                                <div v-if="ordersHasMore || loadingMoreOrders" class="orders-load-more">
+                                    <button class="orders-load-more-btn" :disabled="loadingMoreOrders" @click="fetchOrders(false)">
+                                        <span v-if="!loadingMoreOrders">{{ __('notification.load_more') }}</span>
+                                        <span v-else class="orders-load-dots">
+                                            <span class="orders-load-dot"></span>
+                                            <span class="orders-load-dot"></span>
+                                            <span class="orders-load-dot"></span>
+                                        </span>
+                                    </button>
+                                </div>
                             </template><!-- /v-else (not loading) -->
                         </template><!-- /orders tab -->
                     </div>
@@ -3285,6 +3404,16 @@ function formatDate(iso) {
     border-color: rgba(0,180,100,0.4);
     background: rgba(0,180,100,0.12);
 }
+.order-filter-pill--paid.order-filter-pill--active {
+    color: rgba(96,165,250,0.95);
+    border-color: rgba(59,130,246,0.4);
+    background: rgba(59,130,246,0.12);
+}
+.order-filter-pill--completed.order-filter-pill--active {
+    color: rgba(80,240,160,0.9);
+    border-color: rgba(0,180,100,0.4);
+    background: rgba(0,180,100,0.12);
+}
 .order-filter-pill--cancelled.order-filter-pill--active {
     color: rgba(255,130,130,0.85);
     border-color: rgba(180,50,50,0.4);
@@ -3298,6 +3427,59 @@ function formatDate(iso) {
     text-align: center;
 }
 .order-filter-pill--active .order-filter-pill__count { opacity: 0.85; }
+.order-filter-pill--empty {
+    opacity: 0.35;
+    pointer-events: none;
+}
+
+/* ── Orders load more ───────────────────────────────────── */
+.orders-load-more {
+    display: flex;
+    justify-content: center;
+    padding: 0.75rem 1rem;
+}
+
+.orders-load-more-btn {
+    position: relative;
+    width: 100%;
+    padding: 0.55rem 1rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.35);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.orders-load-more-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.6);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.orders-load-more-btn:disabled { cursor: default; }
+
+.orders-load-dots {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.orders-load-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(160, 160, 255, 0.5);
+    animation: notif-bounce 1s ease-in-out infinite;
+}
+.orders-load-dot:nth-child(2) { animation-delay: 0.15s; }
+.orders-load-dot:nth-child(3) { animation-delay: 0.30s; }
 
 /* ── Order badge in sidebar ─────────────────────────────── */
 .chat-order-status-row { margin-top: 0.15rem; }
@@ -4014,4 +4196,106 @@ function formatDate(iso) {
 
     .chat-main__header { align-items: flex-start; }
 }
+
+/* ── Search row (messages & orders) ──────────────────────── */
+.search-row {
+    display: flex;
+    gap: 0.35rem;
+    align-items: center;
+}
+.search-row .chat-search-input { flex: 1; min-width: 0; }
+.search-go-btn,
+.search-clear-btn {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    font-family: inherit;
+}
+.search-go-btn:hover {
+    background: rgba(160,160,255,0.12);
+    border-color: rgba(160,160,255,0.3);
+    color: var(--color-base-1);
+}
+.search-clear-btn:hover {
+    background: rgba(255,80,80,0.08);
+    border-color: rgba(255,100,100,0.25);
+    color: rgba(255,130,130,0.85);
+}
+
+/* ── Skeleton — shared shimmer ────────────────────────────── */
+.skel-pulse {
+    background: rgba(255,255,255,0.055);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+}
+.skel-pulse::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.07) 50%, transparent 100%);
+    transform: translateX(-100%);
+    animation: skel-slide 1.5s ease-in-out infinite;
+    will-change: transform;
+}
+
+/* ── Order skeleton ───────────────────────────────────────── */
+.order-skel {
+    width: calc(100% - 1.25rem);
+    margin: 0.75rem auto;
+    border-radius: 7px;
+    background: rgba(255,255,255,0.022);
+    box-shadow: inset 0 0 0 1px rgba(110,110,210,0.08);
+    padding: 0.7rem 0.85rem 0.65rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.order-skel__head {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+.order-skel__avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.order-skel__lines {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+.order-skel__name  { height: 12px; }
+.order-skel__date  { height: 10px; }
+.order-skel__badge { height: 20px; width: 62px; border-radius: 4px; flex-shrink: 0; }
+.order-skel__sep   { height: 1px; background: rgba(255,255,255,0.045); }
+.order-skel__foot  { display: flex; justify-content: space-between; }
+.order-skel__count { height: 11px; width: 38%; }
+.order-skel__total { height: 11px; width: 26%; }
+
+/* ── Conversation skeleton ────────────────────────────────── */
+.conv-skel {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.72rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.035);
+}
+.conv-skel__avatar  { width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; }
+.conv-skel__info    { flex: 1; display: flex; flex-direction: column; gap: 0.32rem; min-width: 0; }
+.conv-skel__name    { height: 12px; }
+.conv-skel__preview { height: 10px; }
+.conv-skel__time    { height: 10px; width: 30px; flex-shrink: 0; }
 </style>

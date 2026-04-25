@@ -13,10 +13,16 @@ html {
     background-color: #0e0e1a;
 }
 
-html.chat-scroll-locked,
+html.chat-scroll-locked {
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+
 html.chat-scroll-locked body {
     overflow: hidden;
     overscroll-behavior: none;
+    position: fixed;
+    width: 100%;
 }
 
 body {

@@ -29,8 +29,21 @@ const authModalTab  = ref('login');
 const chatOpen   = ref(false);
 const chatPanel  = ref(null);
 const cartOpen      = ref(false);
+const cartDropdown  = ref(null);
 const cartInitialTab = ref('services');
 const sidebarOpen = ref(false);
+
+function onCartClick() {
+    if (cartOpen.value) { cartOpen.value = false; return; }
+    if (chatOpen.value) chatPanel.value?.silentClose?.();
+    cartOpen.value = true;
+}
+
+function onChatClick() {
+    if (chatOpen.value) { chatOpen.value = false; return; }
+    if (cartOpen.value) cartDropdown.value?.silentClose?.();
+    chatOpen.value = true;
+}
 
 // ── Cart state (localStorage) ─────────────────────────────
 const CART_KEY = computed(() => user.value ? `cart_${user.value.id}` : null);
@@ -225,8 +238,8 @@ onUnmounted(() => {
                     </svg>
                 </Link>
 
-                <CartIcon v-if="user" :cart="cart" :active="cartOpen" @click="cartOpen = !cartOpen" />
-                <ChatButton v-if="user" :active="chatOpen" @click="chatOpen = !chatOpen" />
+                <CartIcon v-if="user" :cart="cart" :active="cartOpen" @click="onCartClick" />
+                <ChatButton v-if="user" :active="chatOpen" @click="onChatClick" />
                 <NotificationBell v-if="user" />
 
                 <template v-if="user">
@@ -259,6 +272,7 @@ onUnmounted(() => {
         <AuthModal :show="showAuthModal" :initial-tab="authModalTab" @close="showAuthModal = false" />
         <CartDropdown
             v-if="user"
+            ref="cartDropdown"
             v-model="cartOpen"
             :cart="cart"
             :initial-tab="cartInitialTab"
@@ -329,9 +343,11 @@ onUnmounted(() => {
     border: 1px solid transparent;
     transition: background 0.18s, border-color 0.18s;
 }
-.user-chip:hover {
-    background: rgba(110, 110, 210, 0.08);
-    border-color: rgba(110, 110, 210, 0.22);
+@media (hover: hover) {
+    .user-chip:hover {
+        background: rgba(110, 110, 210, 0.08);
+        border-color: rgba(110, 110, 210, 0.22);
+    }
 }
 
 /* ── Avatar ──────────────────────────────────────────────── */
@@ -378,7 +394,9 @@ onUnmounted(() => {
     display: inline-block;
     transition: color 0.18s;
 }
-.user-chip:hover .user-name { color: rgba(255, 255, 255, 0.9); }
+@media (hover: hover) {
+    .user-chip:hover .user-name { color: rgba(255, 255, 255, 0.9); }
+}
 
 
 /* ── Main ────────────────────────────────────────────────── */

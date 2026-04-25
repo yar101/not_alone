@@ -90,7 +90,7 @@ function toggleDropdown() {
     open.value = !open.value;
     if (open.value) {
         fetchAll();
-        autoReadTimer = setTimeout(markAllRead, 1500);
+        autoReadTimer = setTimeout(markAllRead, 900);
     } else {
         clearTimeout(autoReadTimer);
     }
@@ -199,12 +199,6 @@ function notifPopupTitle(item) {
     }[item.type] ?? __('notification.type.default');
 }
 
-// Активные (видимые) попапы на мобиле
-const mobileActive = [];
-// Ожидающие показа
-const mobilePending = [];
-const MOBILE_MAX_NOTIFS = 2;
-
 function renderNotif(item) {
     const iconComp = itemIconComponent(item);
     const iconClass = itemIconClass(item);
@@ -213,9 +207,10 @@ function renderNotif(item) {
     return { iconComp, iconClass, title, message };
 }
 
-function showMobileNotif(item) {
+function showNotifPopup(item) {
+    if (isMobile.value) return;
     const { iconComp, iconClass, title, message } = renderNotif(item);
-    const instance = ElNotification({
+    ElNotification({
         duration: 5000,
         position: 'top-right',
         offset: 70,
@@ -230,46 +225,7 @@ function showMobileNotif(item) {
                 ...(message ? [h('p', { class: 'app-notif__msg' }, message)] : []),
             ]),
         ]),
-        onClose: () => {
-            const idx = mobileActive.indexOf(instance);
-            if (idx !== -1) mobileActive.splice(idx, 1);
-            // Показываем следующий из очереди если есть
-            if (mobilePending.length > 0) {
-                showMobileNotif(mobilePending.shift());
-            }
-        },
     });
-    mobileActive.push(instance);
-}
-
-function showNotifPopup(item) {
-    if (!isMobile.value) {
-        // Десктоп — без ограничений
-        const { iconComp, iconClass, title, message } = renderNotif(item);
-        ElNotification({
-            duration: 5000,
-            position: 'top-right',
-            offset: 70,
-            customClass: 'app-notif',
-            showClose: true,
-            message: h('div', { class: 'app-notif__body' }, [
-                h('div', { class: `app-notif__icon ${iconClass}` }, [
-                    h(ElIcon, null, { default: () => h(iconComp) }),
-                ]),
-                h('div', { class: 'app-notif__text' }, [
-                    h('p', { class: 'app-notif__title' }, title),
-                    ...(message ? [h('p', { class: 'app-notif__msg' }, message)] : []),
-                ]),
-            ]),
-        });
-        return;
-    }
-    // Мобиль — очередь
-    if (mobileActive.length < MOBILE_MAX_NOTIFS) {
-        showMobileNotif(item);
-    } else {
-        mobilePending.push(item);
-    }
 }
 
 async function handleNewNotification() {
@@ -549,106 +505,110 @@ defineExpose({ toggleDropdown });
         </Transition>
 
         <!-- Mobile: modal -->
-        <SiteModal v-if="isMobile" :show="open" variant="pink" compact @close="open = false">
-            <div class="notif-panel-header">
-                <span class="notif-panel-title">{{ __('notification.title') }}</span>
-                <div class="notif-filters">
-                    <button class="notif-filter-btn" :class="{ 'notif-filter-btn--active': activeFilter === 'all' }"
-                        @click="activeFilter = 'all'">
-                        {{ __('notification.tab.all') }}
-                        <span v-if="totalUnread > 0" class="notif-filter-dot"></span>
-                    </button>
-                    <button class="notif-filter-btn"
-                        :class="{ 'notif-filter-btn--active': activeFilter === 'service' }"
-                        @click="activeFilter = 'service'">
-                        {{ __('notification.tab.service') }}
-                        <span v-if="serviceUnread > 0" class="notif-filter-dot"></span>
-                    </button>
-                    <button class="notif-filter-btn"
-                        :class="{ 'notif-filter-btn--active': activeFilter === 'order' }"
-                        @click="activeFilter = 'order'">
-                        {{ __('notification.tab.orders') }}
-                        <span v-if="orderUnread > 0" class="notif-filter-dot"></span>
-                    </button>
-                </div>
-            </div>
-
-            <div v-if="isSupported() && pushPermission === 'default' && page.props.auth?.user" class="push-banner">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.7">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-                <span class="push-banner__text">{{ __('notification.push_prompt') }}</span>
-                <button class="push-banner__btn" @click.stop="requestPush">{{ __('notification.push_allow') }}</button>
-            </div>
-
-            <div v-if="loading" class="notif-skeleton-list">
-                <div v-for="i in 4" :key="i" class="notif-skeleton-item">
-                    <div class="sk-icon"></div>
-                    <div class="sk-lines">
-                        <div class="sk-line sk-line--title"></div>
-                        <div class="sk-line sk-line--body"></div>
-                        <div class="sk-line sk-line--time"></div>
+        <SiteModal v-if="isMobile" :show="open" variant="pink" compact fill @close="open = false">
+            <div class="notif-fill-wrap">
+                <div class="notif-panel-header">
+                    <span class="notif-panel-title">{{ __('notification.title') }}</span>
+                    <div class="notif-filters">
+                        <button class="notif-filter-btn" :class="{ 'notif-filter-btn--active': activeFilter === 'all' }"
+                            @click="activeFilter = 'all'">
+                            {{ __('notification.tab.all') }}
+                            <span v-if="totalUnread > 0" class="notif-filter-dot"></span>
+                        </button>
+                        <button class="notif-filter-btn"
+                            :class="{ 'notif-filter-btn--active': activeFilter === 'service' }"
+                            @click="activeFilter = 'service'">
+                            {{ __('notification.tab.service') }}
+                            <span v-if="serviceUnread > 0" class="notif-filter-dot"></span>
+                        </button>
+                        <button class="notif-filter-btn"
+                            :class="{ 'notif-filter-btn--active': activeFilter === 'order' }"
+                            @click="activeFilter = 'order'">
+                            {{ __('notification.tab.orders') }}
+                            <span v-if="orderUnread > 0" class="notif-filter-dot"></span>
+                        </button>
                     </div>
                 </div>
-            </div>
 
-            <template v-else>
-                <div v-if="allItems.length === 0" class="notif-empty">
-                    <div class="empty-icon">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.3">
-                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                        </svg>
-                    </div>
-                    <p class="empty-text">{{ __('notification.empty') }}</p>
+                <div v-if="isSupported() && pushPermission === 'default' && page.props.auth?.user" class="push-banner">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.7">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    <span class="push-banner__text">{{ __('notification.push_prompt') }}</span>
+                    <button class="push-banner__btn" @click.stop="requestPush">{{ __('notification.push_allow') }}</button>
                 </div>
 
-                <div v-else class="notif-list">
-                    <div v-for="item in filteredItems" :key="item.id" class="notif-item" :class="{
-                        'notif-item--unread': !item.read_at,
-                        'notif-item--clickable': isClickable(item),
-                    }" @click="handleItemClick(item)">
-                        <div class="notif-content">
-                            <div class="notif-header">
-                                <div class="notif-icon-wrap" :class="itemIconClass(item)">
-                                    <el-icon><component :is="itemIconComponent(item)" /></el-icon>
-                                </div>
-                                <p v-if="item.title" class="notif-service-title">{{ item.title }}</p>
-                                <p v-else class="notif-msg notif-msg--headline">
-                                    <template v-if="item._cat === 'order'">{{ orderMessage(item) }}</template>
-                                    <template v-else>{{ item.message }}</template>
-                                </p>
-                                <span class="notif-cat-tag" :class="`cat--${item._cat}`">
-                                    {{ item._cat === 'personal' ? __('notification.tag.personal') : item._cat === 'service' ? __('notification.tag.service') : __('notification.tag.order') }}
-                                </span>
-                            </div>
-                            <p v-if="item.title" class="notif-msg notif-msg--sub">
-                                <template v-if="item._cat === 'order'">{{ orderMessage(item) }}</template>
-                                <template v-else>{{ item.message }}</template>
-                            </p>
-                            <p v-if="item.reason" class="notif-reason">
-                                <span class="notif-reason--sub">{{ __('notification.reason') }}</span> {{ item.reason }}
-                            </p>
-                            <div class="notif-footer-row">
-                                <span class="notif-time">{{ relativeTime(item.created_at) }}</span>
+                <div class="notif-fill-scroll">
+                    <div v-if="loading" class="notif-skeleton-list">
+                        <div v-for="i in 4" :key="i" class="notif-skeleton-item">
+                            <div class="sk-icon"></div>
+                            <div class="sk-lines">
+                                <div class="sk-line sk-line--title"></div>
+                                <div class="sk-line sk-line--body"></div>
+                                <div class="sk-line sk-line--time"></div>
                             </div>
                         </div>
                     </div>
 
-                    <div v-if="hasMore || loadingMore" class="notif-load-more-wrap">
-                        <button class="notif-load-more-btn" :disabled="loadingMore" @click="fetchMore">
-                            <span class="notif-load-more-text"
-                                :style="{ visibility: loadingMore ? 'hidden' : 'visible' }">{{ __('notification.load_more') }}</span>
-                            <span v-if="loadingMore" class="notif-load-more-dots">
-                                <span class="notif-load-dot"></span>
-                                <span class="notif-load-dot"></span>
-                                <span class="notif-load-dot"></span>
-                            </span>
-                        </button>
-                    </div>
+                    <template v-else>
+                        <div v-if="allItems.length === 0" class="notif-empty">
+                            <div class="empty-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.3">
+                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                                </svg>
+                            </div>
+                            <p class="empty-text">{{ __('notification.empty') }}</p>
+                        </div>
+
+                        <template v-else>
+                            <div v-for="item in filteredItems" :key="item.id" class="notif-item" :class="{
+                                'notif-item--unread': !item.read_at,
+                                'notif-item--clickable': isClickable(item),
+                            }" @click="handleItemClick(item)">
+                                <div class="notif-content">
+                                    <div class="notif-header">
+                                        <div class="notif-icon-wrap" :class="itemIconClass(item)">
+                                            <el-icon><component :is="itemIconComponent(item)" /></el-icon>
+                                        </div>
+                                        <p v-if="item.title" class="notif-service-title">{{ item.title }}</p>
+                                        <p v-else class="notif-msg notif-msg--headline">
+                                            <template v-if="item._cat === 'order'">{{ orderMessage(item) }}</template>
+                                            <template v-else>{{ item.message }}</template>
+                                        </p>
+                                        <span class="notif-cat-tag" :class="`cat--${item._cat}`">
+                                            {{ item._cat === 'personal' ? __('notification.tag.personal') : item._cat === 'service' ? __('notification.tag.service') : __('notification.tag.order') }}
+                                        </span>
+                                    </div>
+                                    <p v-if="item.title" class="notif-msg notif-msg--sub">
+                                        <template v-if="item._cat === 'order'">{{ orderMessage(item) }}</template>
+                                        <template v-else>{{ item.message }}</template>
+                                    </p>
+                                    <p v-if="item.reason" class="notif-reason">
+                                        <span class="notif-reason--sub">{{ __('notification.reason') }}</span> {{ item.reason }}
+                                    </p>
+                                    <div class="notif-footer-row">
+                                        <span class="notif-time">{{ relativeTime(item.created_at) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-if="hasMore || loadingMore" class="notif-load-more-wrap">
+                                <button class="notif-load-more-btn" :disabled="loadingMore" @click="fetchMore">
+                                    <span class="notif-load-more-text"
+                                        :style="{ visibility: loadingMore ? 'hidden' : 'visible' }">{{ __('notification.load_more') }}</span>
+                                    <span v-if="loadingMore" class="notif-load-more-dots">
+                                        <span class="notif-load-dot"></span>
+                                        <span class="notif-load-dot"></span>
+                                        <span class="notif-load-dot"></span>
+                                    </span>
+                                </button>
+                            </div>
+                        </template>
+                    </template>
                 </div>
-            </template>
+            </div>
         </SiteModal>
     </div>
 </template>
@@ -798,19 +758,23 @@ defineExpose({ toggleDropdown });
     background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.22) 50%, transparent 100%);
 }
 
-.notif-filter-btn:hover {
-    color: rgba(255, 255, 255, 0.7);
-    background: rgba(255, 255, 255, 0.07);
+@media (hover: hover) {
+    .notif-filter-btn:hover {
+        color: rgba(255, 255, 255, 0.7);
+        background: rgba(255, 255, 255, 0.07);
+    }
 }
 
 .notif-filter-btn--active {
-    background: rgba(160, 160, 255, 0.15);
-    border-color: rgba(160, 160, 255, 0.3);
-    color: rgba(160, 160, 255, 0.95);
+    background: rgba(160, 160, 255, 0.22);
+    border-color: rgba(160, 160, 255, 0.55);
+    color: var(--color-base-1);
+    font-weight: 600;
+    box-shadow: inset 0 1px 0 rgba(160, 160, 255, 0.25);
 }
 
 .notif-filter-btn--active::after {
-    background: linear-gradient(90deg, transparent 0%, rgba(160, 160, 255, 0.55) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(160, 160, 255, 0.8) 50%, transparent 100%);
 }
 
 .notif-filter-dot {
@@ -1291,5 +1255,31 @@ defineExpose({ toggleDropdown });
     .notif-list {
         max-height: calc(100vh - 180px);
     }
+}
+
+/* ── Mobile fill layout ── */
+.notif-fill-wrap {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.notif-fill-wrap > .notif-panel-header {
+    flex-shrink: 0;
+    padding: 1rem 1.25rem 0.75rem;
+    padding-top: 2.5rem;
+}
+
+.notif-fill-wrap > .push-banner {
+    flex-shrink: 0;
+}
+
+.notif-fill-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(160, 160, 255, 0.3) transparent;
 }
 </style>

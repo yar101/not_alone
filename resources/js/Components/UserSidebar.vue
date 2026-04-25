@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AvatarUploader from '@/Components/AvatarUploader.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
@@ -19,9 +19,37 @@ function close() { emit('update:modelValue', false); }
 const showHelp = ref(false);
 function openHelp() { showHelp.value = true; }
 
+// ── History API (back gesture) ───────────────────────────
+let usbPushed = false;
+
+const onPopstate = (e) => {
+    if (!usbPushed) return;
+    if (e.state?.usb !== true) {
+        usbPushed = false;
+        emit('update:modelValue', false);
+    }
+};
+
+watch(() => props.modelValue, (val, oldVal) => {
+    if (val) {
+        history.pushState({ usb: true }, '');
+        usbPushed = true;
+    }
+    if (!val && oldVal && usbPushed) {
+        usbPushed = false;
+        history.go(-1);
+    }
+});
+
 function onKey(e) { if (e.key === 'Escape') close(); }
-onMounted(() => document.addEventListener('keydown', onKey));
-onUnmounted(() => document.removeEventListener('keydown', onKey));
+onMounted(() => {
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('popstate', onPopstate);
+});
+onUnmounted(() => {
+    document.removeEventListener('keydown', onKey);
+    window.removeEventListener('popstate', onPopstate);
+});
 
 const agePR = new Intl.PluralRules('ru');
 const ageForms = { one: 'год', few: 'года', many: 'лет', other: 'лет' };

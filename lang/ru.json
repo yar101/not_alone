@@ -345,6 +345,8 @@
     "chat.orders.filter.all": "Все",
     "chat.orders.filter.pending": "Ожидает",
     "chat.orders.filter.accepted": "Принят",
+    "chat.orders.filter.paid": "Оплачен",
+    "chat.orders.filter.completed": "Выполнен",
     "chat.orders.filter.cancelled": "Отменён",
     "chat.orders.empty": "Нет заказов",
     "chat.empty.select": "Выберите диалог",

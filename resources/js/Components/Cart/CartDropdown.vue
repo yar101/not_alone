@@ -63,6 +63,7 @@ watch(isOpen, (val, oldVal) => {
     if (val) {
         history.pushState({ cart: true }, '');
         cartPushed = true;
+        cartIgnoreTill = Date.now() + 500;
         window.scrollTo({ top: 0, behavior: 'instant' });
         document.documentElement.classList.add('chat-scroll-locked');
     }
@@ -85,6 +86,13 @@ onUnmounted(() => {
 });
 
 function close() { isOpen.value = false; }
+
+function silentClose() {
+    if (cartPushed) { cartPushed = false; history.replaceState(null, ''); }
+    isOpen.value = false;
+}
+
+defineExpose({ silentClose });
 
 async function createOrder() {
     const sc = props.cart.services;
