@@ -31,7 +31,6 @@ const chatPanel  = ref(null);
 const cartOpen      = ref(false);
 const cartInitialTab = ref('services');
 const sidebarOpen = ref(false);
-const notifBellRef = ref(null);
 
 // ── Cart state (localStorage) ─────────────────────────────
 const CART_KEY = computed(() => user.value ? `cart_${user.value.id}` : null);
@@ -129,16 +128,6 @@ function addToCart(service, idol) {
     }
 }
 
-const cartItemCount = computed(() =>
-    cart.value.services.items.length + cart.value.content.items.length
-);
-const chatUnread = computed(() => page.props.unread_messages_count ?? 0);
-const notifUnread = computed(() =>
-    (page.props.notifications_unread ?? 0) +
-    (page.props.service_unread ?? 0) +
-    (page.props.order_notifications_unread ?? 0)
-);
-
 provide('openAuth', openAuth);
 provide('openChatWith', openChatWith);
 provide('openOrder', openOrder);
@@ -222,44 +211,41 @@ onUnmounted(() => {
                     class="become-idol-btn"
                 >{{ __('layout.become_idol') }}</Link>
 
-                <div class="header-icon-group">
-                    <!-- Иконка поиска — только на мобиле вместо nav -->
-                    <Link
-                        v-if="user"
-                        :href="route('users.search')"
-                        class="mobile-search-btn"
-                        :class="{ 'mobile-search-btn--active': $page.url.startsWith('/search') }"
-                        :aria-label="__('common.search')"
-                    >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="11" cy="11" r="8"/>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                        </svg>
-                    </Link>
+                <!-- Иконка поиска — только на мобиле вместо nav -->
+                <Link
+                    v-if="user"
+                    :href="route('users.search')"
+                    class="mobile-search-btn"
+                    :class="{ 'mobile-search-btn--active': $page.url.startsWith('/search') }"
+                    :aria-label="__('common.search')"
+                >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                </Link>
 
-                    <CartIcon v-if="user" :cart="cart" @click="cartOpen = !cartOpen" />
-                    <ChatButton v-if="user" :active="chatOpen" @click="chatOpen = !chatOpen" />
-                    <NotificationBell v-if="user" ref="notifBellRef" />
+                <CartIcon v-if="user" :cart="cart" @click="cartOpen = !cartOpen" />
+                <ChatButton v-if="user" :active="chatOpen" @click="chatOpen = !chatOpen" />
+                <NotificationBell v-if="user" />
 
-                    <template v-if="user">
-                        <button @click="sidebarOpen = true" class="user-chip">
-                            <div class="user-avatar">
-                                <img
-                                    v-if="user.avatar_url"
-                                    :src="user.avatar_url"
-                                    class="user-avatar__img"
-                                    :alt="__('common.avatar')"
-                                />
-                                <span v-else class="user-avatar__initials">{{ initials }}</span>
-                            </div>
-                            <span class="user-name-clip">
-                                <span class="user-name">{{ user.name }}</span>
-                            </span>
-                        </button>
-                    </template>
-                </div>
-
-                <template v-if="!user">
+                <template v-if="user">
+                    <button @click="sidebarOpen = true" class="user-chip">
+                        <div class="user-avatar">
+                            <img
+                                v-if="user.avatar_url"
+                                :src="user.avatar_url"
+                                class="user-avatar__img"
+                                :alt="__('common.avatar')"
+                            />
+                            <span v-else class="user-avatar__initials">{{ initials }}</span>
+                        </div>
+                        <span class="user-name-clip">
+                            <span class="user-name">{{ user.name }}</span>
+                        </span>
+                    </button>
+                </template>
+                <template v-else>
                     <button @click="openAuth('login')" class="guest-btn guest-btn--outline">{{ __('common.login') }}</button>
                     <button @click="openAuth('register')" class="guest-btn guest-btn--fill">{{ __('common.register') }}</button>
                 </template>
@@ -269,87 +255,6 @@ onUnmounted(() => {
         <main class="app-main">
             <slot />
         </main>
-
-        <!-- ── Mobile bottom navigation ──────────────────────── -->
-        <nav v-if="user" class="bottom-nav">
-            <!-- Search -->
-            <Link
-                :href="route('users.search')"
-                class="bottom-nav__item"
-                :class="{ 'bottom-nav__item--active': $page.url.startsWith('/search') }"
-            >
-                <span class="bottom-nav__icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="11" cy="11" r="8"/>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                    </svg>
-                </span>
-                <span class="bottom-nav__label">{{ __('common.search') }}</span>
-            </Link>
-
-            <!-- Cart -->
-            <button
-                class="bottom-nav__item"
-                :class="{ 'bottom-nav__item--active': cartOpen }"
-                @click="cartOpen = !cartOpen"
-            >
-                <span class="bottom-nav__icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-                    </svg>
-                    <span v-if="cartItemCount > 0" class="bottom-nav__badge">{{ cartItemCount > 9 ? '9+' : cartItemCount }}</span>
-                </span>
-                <span class="bottom-nav__label">{{ __('layout.nav_cart') }}</span>
-            </button>
-
-            <!-- Chat -->
-            <button
-                class="bottom-nav__item"
-                :class="{ 'bottom-nav__item--active': chatOpen }"
-                @click="chatOpen = !chatOpen"
-            >
-                <span class="bottom-nav__icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
-                    <span v-if="chatUnread > 0" class="bottom-nav__dot"></span>
-                </span>
-                <span class="bottom-nav__label">{{ __('chat.messages') }}</span>
-            </button>
-
-            <!-- Notifications -->
-            <button
-                class="bottom-nav__item"
-                @click="notifBellRef?.toggleDropdown()"
-            >
-                <span class="bottom-nav__icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                    </svg>
-                    <span v-if="notifUnread > 0" class="bottom-nav__dot"></span>
-                </span>
-                <span class="bottom-nav__label">{{ __('notification.title') }}</span>
-            </button>
-
-            <!-- Profile -->
-            <button
-                class="bottom-nav__item"
-                @click="sidebarOpen = true"
-            >
-                <span class="bottom-nav__icon bottom-nav__icon--avatar">
-                    <img
-                        v-if="user.avatar_url"
-                        :src="user.avatar_url"
-                        class="bottom-nav__avatar-img"
-                        :alt="__('common.avatar')"
-                    />
-                    <span v-else class="bottom-nav__avatar-initials">{{ initials }}</span>
-                </span>
-                <span class="bottom-nav__label">{{ __('layout.nav_profile') }}</span>
-            </button>
-        </nav>
 
         <AuthModal :show="showAuthModal" :initial-tab="authModalTab" @close="showAuthModal = false" />
         <CartDropdown
@@ -594,13 +499,6 @@ onUnmounted(() => {
     color: #be91ff;
 }
 
-/* ── Header icon group ───────────────────────────────────── */
-.header-icon-group {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
 /* ── Mobile search button (hidden on desktop) ────────────── */
 .mobile-search-btn {
     display: none;
@@ -637,167 +535,9 @@ onUnmounted(() => {
 @media (max-width: 639px) {
     .app-header { padding: 0 0.75rem; }
     .header-right { gap: 0.25rem; }
+    .user-name-clip { display: none; }
+    .user-chip { padding: 0.25rem; }
     .guest-btn--fill { display: none; }
     .guest-btn--outline { font-size: 0.75rem; padding: 0.28rem 0.7rem; }
-}
-
-/* ── Bottom navigation — floating island ─────────────────── */
-.bottom-nav {
-    display: none;
-    position: fixed;
-    bottom: max(1rem, calc(0.75rem + env(safe-area-inset-bottom)));
-    left: 50%;
-    transform: translateX(-50%);
-    width: calc(100% - 3rem);
-    max-width: 390px;
-    height: 62px;
-    background: linear-gradient(
-        150deg,
-        rgba(18, 15, 36, 0.96) 0%,
-        rgba(9, 8, 22, 0.98) 100%
-    );
-    backdrop-filter: blur(32px) saturate(1.6);
-    -webkit-backdrop-filter: blur(32px) saturate(1.6);
-    border: 1px solid rgba(160, 160, 255, 0.13);
-    border-radius: 26px;
-    box-shadow:
-        0 0 0 1px rgba(100, 210, 255, 0.04),
-        0 16px 56px rgba(0, 0, 0, 0.7),
-        0 4px 16px rgba(0, 0, 0, 0.45),
-        inset 0 1px 0 rgba(255, 255, 255, 0.07),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.25);
-    z-index: 1100;
-    align-items: center;
-    padding: 0 8px;
-}
-
-.bottom-nav__item {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    padding: 0 2px;
-    height: 100%;
-    color: rgba(255, 255, 255, 0.26);
-    cursor: pointer;
-    position: relative;
-    text-decoration: none;
-    border: none;
-    background: none;
-    transition: color 0.2s ease;
-    -webkit-tap-highlight-color: transparent;
-    z-index: 1;
-}
-
-.bottom-nav__item--active {
-    color: var(--color-base-1);
-}
-
-/* Светящаяся капсула за активным табом */
-.bottom-nav__item--active::after {
-    content: '';
-    position: absolute;
-    inset: 7px 3px;
-    border-radius: 16px;
-    background: linear-gradient(
-        150deg,
-        rgba(160, 160, 255, 0.13) 0%,
-        rgba(100, 210, 255, 0.06) 100%
-    );
-    border: 1px solid rgba(160, 160, 255, 0.18);
-    box-shadow:
-        0 0 18px rgba(160, 160, 255, 0.14),
-        inset 0 1px 0 rgba(255, 255, 255, 0.09);
-    z-index: -1;
-}
-
-.bottom-nav__icon {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    flex-shrink: 0;
-}
-
-/* Avatar */
-.bottom-nav__icon--avatar {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 1.5px solid rgba(160, 160, 255, 0.22);
-    background: rgba(160, 160, 255, 0.08);
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.bottom-nav__item--active .bottom-nav__icon--avatar {
-    border-color: var(--color-base-1);
-    box-shadow: 0 0 10px rgba(160, 160, 255, 0.35);
-}
-
-.bottom-nav__avatar-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.bottom-nav__avatar-initials {
-    font-size: 0.68rem;
-    font-weight: 600;
-    color: var(--color-base-1);
-    line-height: 1;
-}
-
-.bottom-nav__label {
-    font-size: 0.54rem;
-    font-family: 'Rubik', sans-serif;
-    letter-spacing: 0.055em;
-    font-weight: 600;
-    text-transform: uppercase;
-    line-height: 1;
-}
-
-/* Числовой badge (корзина) */
-.bottom-nav__badge {
-    position: absolute;
-    top: -4px;
-    right: -7px;
-    min-width: 15px;
-    height: 15px;
-    border-radius: 8px;
-    background: #e0558f;
-    color: white;
-    font-size: 0.54rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 3px;
-    pointer-events: none;
-    font-family: 'Rubik', sans-serif;
-    box-shadow: 0 0 8px rgba(224, 85, 143, 0.5);
-}
-
-/* Точечный badge (чат, уведомления) */
-.bottom-nav__dot {
-    position: absolute;
-    top: -2px;
-    right: -2px;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #e0558f;
-    pointer-events: none;
-    box-shadow: 0 0 7px rgba(224, 85, 143, 0.65);
-}
-
-@media (max-width: 768px) {
-    .bottom-nav { display: flex; }
-    .header-icon-group { display: none; }
-    .app-main { padding-bottom: calc(62px + 2rem + env(safe-area-inset-bottom)); }
 }
 </style>

@@ -28,8 +28,6 @@
 
     "layout.become_idol": "Become an Idol",
     "layout.banned_error": "Cannot interact with a banned user",
-    "layout.nav_cart": "Cart",
-    "layout.nav_profile": "Profile",
 
     "upload.drop": "Release to upload",
     "upload.hint": "Drag or paste from clipboard",
