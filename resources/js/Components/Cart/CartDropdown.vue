@@ -97,6 +97,9 @@ async function createOrder() {
             services: sc.items.map(i => ({ id: i.service_id, quantity: i.quantity || 1 })),
         });
         emit('clear-services');
+        // Заменяем запись корзины в истории нейтральной, чтобы history.go(-1)
+        // не триггернулся и не закрыл чат, который откроется следом
+        if (cartPushed) { cartPushed = false; history.replaceState(null, ''); }
         isOpen.value = false;
         if (openOrder) openOrder(res.data.order_id);
         router.reload({ only: ['order_notifications_unread'] });
