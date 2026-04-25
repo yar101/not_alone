@@ -199,19 +199,22 @@ function notifPopupTitle(item) {
     }[item.type] ?? __('notification.type.default');
 }
 
-const mobileNotifQueue = [];
+// Активные (видимые) попапы на мобиле
+const mobileActive = [];
+// Ожидающие показа
+const mobilePending = [];
 const MOBILE_MAX_NOTIFS = 2;
 
-function showNotifPopup(item) {
+function renderNotif(item) {
     const iconComp = itemIconComponent(item);
     const iconClass = itemIconClass(item);
     const title = notifPopupTitle(item);
     const message = item._cat === 'order' ? orderMessage(item) : (item.message ?? '');
+    return { iconComp, iconClass, title, message };
+}
 
-    if (isMobile.value && mobileNotifQueue.length >= MOBILE_MAX_NOTIFS) {
-        mobileNotifQueue.shift()?.close();
-    }
-
+function showMobileNotif(item) {
+    const { iconComp, iconClass, title, message } = renderNotif(item);
     const instance = ElNotification({
         duration: 5000,
         position: 'top-right',
@@ -228,12 +231,45 @@ function showNotifPopup(item) {
             ]),
         ]),
         onClose: () => {
-            const idx = mobileNotifQueue.indexOf(instance);
-            if (idx !== -1) mobileNotifQueue.splice(idx, 1);
+            const idx = mobileActive.indexOf(instance);
+            if (idx !== -1) mobileActive.splice(idx, 1);
+            // Показываем следующий из очереди если есть
+            if (mobilePending.length > 0) {
+                showMobileNotif(mobilePending.shift());
+            }
         },
     });
+    mobileActive.push(instance);
+}
 
-    if (isMobile.value) mobileNotifQueue.push(instance);
+function showNotifPopup(item) {
+    if (!isMobile.value) {
+        // Десктоп — без ограничений
+        const { iconComp, iconClass, title, message } = renderNotif(item);
+        ElNotification({
+            duration: 5000,
+            position: 'top-right',
+            offset: 70,
+            customClass: 'app-notif',
+            showClose: true,
+            message: h('div', { class: 'app-notif__body' }, [
+                h('div', { class: `app-notif__icon ${iconClass}` }, [
+                    h(ElIcon, null, { default: () => h(iconComp) }),
+                ]),
+                h('div', { class: 'app-notif__text' }, [
+                    h('p', { class: 'app-notif__title' }, title),
+                    ...(message ? [h('p', { class: 'app-notif__msg' }, message)] : []),
+                ]),
+            ]),
+        });
+        return;
+    }
+    // Мобиль — очередь
+    if (mobileActive.length < MOBILE_MAX_NOTIFS) {
+        showMobileNotif(item);
+    } else {
+        mobilePending.push(item);
+    }
 }
 
 async function handleNewNotification() {
@@ -242,7 +278,7 @@ async function handleNewNotification() {
         if (data.items.length > 0) {
             if (latestKnownAt.value) {
                 const fresh = data.items.filter(n => n.created_at > latestKnownAt.value);
-                fresh.slice(0, isMobile.value ? 2 : 3).forEach(showNotifPopup);
+                fresh.slice(0, 3).forEach(showNotifPopup);
             }
             latestKnownAt.value = data.items[0].created_at;
         }
