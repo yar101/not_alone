@@ -203,6 +203,7 @@ onMounted(() => {
     subscribeUserEcho();
     checkMobile();
     window.addEventListener('resize', checkMobile);
+    window.addEventListener('popstate', onCpPopstate);
 });
 
 const blockedUntilLabel = computed(() => {
@@ -224,6 +225,39 @@ const blockedUntilLabel = computed(() => {
 let echoChannel = null;
 let ordersEchoChannel = null;
 let userEchoChannel = null;
+
+// ── Back-gesture (History API) ───────────────────────────
+let cpDepth     = 0;   // how many cp states we pushed
+let cpIgnoreTill = 0;  // timestamp until which to ignore popstate
+
+function pushCp(state) {
+    history.pushState({ cp: state }, '');
+    cpDepth++;
+}
+
+function pruneCp(n = cpDepth) {
+    n = Math.min(n, cpDepth);
+    if (n <= 0) return;
+    cpIgnoreTill = Date.now() + 500;
+    history.go(-n);
+    cpDepth -= n;
+}
+
+function onCpPopstate(e) {
+    if (Date.now() < cpIgnoreTill || !isOpen.value) return;
+
+    if (e.state?.cp === 'list') {
+        // Back from conv → list
+        cpDepth = Math.max(0, cpDepth - 1);
+        leaveEcho();
+        activeConversation.value = null;
+        activeOrderData.value    = null;
+    } else if (!e.state?.cp && cpDepth > 0) {
+        // Back past panel → close
+        cpDepth = 0;
+        isOpen.value = false;
+    }
+}
 
 // ── Close panel ──────────────────────────────────────────
 function close() {
@@ -713,13 +747,15 @@ function isMessageRead(msg) {
 }
 
 // ── Watch panel open ─────────────────────────────────────
-watch(isOpen, (val) => {
+watch(isOpen, (val, oldVal) => {
     if (val) {
+        pushCp('list');
         fetchConversations();
         if (activeTab.value === 'orders') fetchOrders();
         subscribeOrdersEcho();
     }
-    if (!val) {
+    if (!val && oldVal) {
+        pruneCp();
         leaveEcho();
         leaveOrdersEcho();
         activeConversation.value = null;
@@ -729,6 +765,12 @@ watch(isOpen, (val) => {
         orderStatusFilter.value = 'all';
         orderFiltersOpen.value = false;
     }
+});
+
+watch(activeConversation, (conv, oldConv) => {
+    if (!isMobile.value) return;
+    if (conv  && !oldConv && cpDepth === 1) pushCp('conv');
+    if (!conv &&  oldConv && cpDepth === 2) pruneCp(1);
 });
 
 watch(activeTab, (tab) => {
@@ -762,6 +804,8 @@ onUnmounted(() => {
     leaveUserEcho();
     clearInterval(nowTimer);
     window.removeEventListener('resize', checkMobile);
+    window.removeEventListener('popstate', onCpPopstate);
+    pruneCp();
     setScrollLock(false);
 });
 

@@ -40,15 +40,30 @@ const emit = defineEmits(['close']);
 const showSlot = ref(false);
 const localShow = ref(false);
 
+// ── Back-gesture (History API) ───────────────────────────
+let smPushed = false;
+
+const onSmPopstate = (e) => {
+    if (!smPushed) return;
+    // Any popstate while our state is on top means user went back past it
+    if (e.state?.modal !== 'sm') {
+        smPushed = false;
+        emit('close');
+    }
+};
+
 watch(
     () => props.show,
     async () => {
         if (props.show) {
+            history.pushState({ modal: 'sm' }, '');
+            smPushed = true;
             document.body.style.overflow = 'hidden';
             showSlot.value = true;
             await nextTick();
             localShow.value = true;
         } else {
+            smPushed = false;
             localShow.value = false;
             document.body.style.overflow = '';
             setTimeout(() => {
@@ -74,10 +89,14 @@ const closeOnEscape = (e) => {
     }
 };
 
-onMounted(() => document.addEventListener('keydown', closeOnEscape));
+onMounted(() => {
+    document.addEventListener('keydown', closeOnEscape);
+    window.addEventListener('popstate', onSmPopstate);
+});
 
 onUnmounted(() => {
     document.removeEventListener('keydown', closeOnEscape);
+    window.removeEventListener('popstate', onSmPopstate);
     document.body.style.overflow = '';
 });
 </script>
