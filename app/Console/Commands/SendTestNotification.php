@@ -9,12 +9,12 @@ use Illuminate\Console\Command;
 
 class SendTestNotification extends Command
 {
-    protected $signature = 'notify:test {user : ID или email пользователя} {--message= : Текст уведомления}';
-    protected $description = 'Отправить тестовое уведомление пользователю';
+    protected $signature = 'notify:test';
+    protected $description = 'Отправить тестовые уведомления пользователю (интерактивный режим)';
 
     public function handle(): int
     {
-        $input = $this->argument('user');
+        $input = $this->ask('ID или email пользователя');
 
         $user = filter_var($input, FILTER_VALIDATE_INT)
             ? User::find((int) $input)
@@ -25,12 +25,25 @@ class SendTestNotification extends Command
             return self::FAILURE;
         }
 
-        $message = $this->option('message') ?? 'Push-уведомления работают корректно!';
+        $this->line("Пользователь: <info>{$user->name}</info> (id={$user->id})");
 
-        $user->notify(new TestNotification($message));
-        event(new NewNotification('private', $user->id));
+        $message = $this->ask('Текст уведомления', 'Push-уведомления работают корректно!');
 
-        $this->info("Уведомление отправлено пользователю {$user->name} (id={$user->id}).");
+        $count = (int) $this->ask('Сколько уведомлений отправить?', '1');
+        if ($count < 1) $count = 1;
+
+        if (!$this->confirm("Отправить {$count} уведомл. пользователю {$user->name}?", true)) {
+            $this->line('Отменено.');
+            return self::SUCCESS;
+        }
+
+        for ($i = 0; $i < $count; $i++) {
+            $text = $count > 1 ? "{$message} (#{$i + 1})" : $message;
+            $user->notify(new TestNotification($text));
+            event(new NewNotification('private', $user->id));
+        }
+
+        $this->info("Отправлено {$count} уведомл. → {$user->name} (id={$user->id}).");
         return self::SUCCESS;
     }
 }
