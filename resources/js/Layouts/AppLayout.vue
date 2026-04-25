@@ -641,24 +641,34 @@ onUnmounted(() => {
     .guest-btn--outline { font-size: 0.75rem; padding: 0.28rem 0.7rem; }
 }
 
-/* ── Bottom navigation ───────────────────────────────────── */
+/* ── Bottom navigation — floating island ─────────────────── */
 .bottom-nav {
     display: none;
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: calc(60px + env(safe-area-inset-bottom));
-    padding-bottom: env(safe-area-inset-bottom);
-    background: rgba(8, 7, 16, 0.96);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border-top: 1px solid rgba(110, 110, 210, 0.18);
+    bottom: max(1rem, calc(0.75rem + env(safe-area-inset-bottom)));
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 3rem);
+    max-width: 390px;
+    height: 62px;
+    background: linear-gradient(
+        150deg,
+        rgba(18, 15, 36, 0.96) 0%,
+        rgba(9, 8, 22, 0.98) 100%
+    );
+    backdrop-filter: blur(32px) saturate(1.6);
+    -webkit-backdrop-filter: blur(32px) saturate(1.6);
+    border: 1px solid rgba(160, 160, 255, 0.13);
+    border-radius: 26px;
     box-shadow:
-        0 -1px 0 rgba(110, 110, 210, 0.08),
-        0 -8px 32px rgba(0, 0, 0, 0.45);
+        0 0 0 1px rgba(100, 210, 255, 0.04),
+        0 16px 56px rgba(0, 0, 0, 0.7),
+        0 4px 16px rgba(0, 0, 0, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.07),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.25);
     z-index: 1100;
-    align-items: stretch;
+    align-items: center;
+    padding: 0 8px;
 }
 
 .bottom-nav__item {
@@ -667,34 +677,40 @@ onUnmounted(() => {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
-    padding: 8px 4px;
-    color: rgba(255, 255, 255, 0.32);
+    gap: 4px;
+    padding: 0 2px;
+    height: 100%;
+    color: rgba(255, 255, 255, 0.26);
     cursor: pointer;
     position: relative;
     text-decoration: none;
     border: none;
     background: none;
-    transition: color 0.15s;
+    transition: color 0.2s ease;
     -webkit-tap-highlight-color: transparent;
+    z-index: 1;
 }
 
 .bottom-nav__item--active {
-    color: #be91ff;
+    color: var(--color-base-1);
 }
 
-/* Светящаяся линия-индикатор сверху активного таба */
-.bottom-nav__item--active::before {
+/* Светящаяся капсула за активным табом */
+.bottom-nav__item--active::after {
     content: '';
     position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 32px;
-    height: 2px;
-    background: linear-gradient(90deg, #7070d8, #be91ff);
-    border-radius: 0 0 3px 3px;
-    box-shadow: 0 0 10px rgba(110, 110, 210, 0.8);
+    inset: 7px 3px;
+    border-radius: 16px;
+    background: linear-gradient(
+        150deg,
+        rgba(160, 160, 255, 0.13) 0%,
+        rgba(100, 210, 255, 0.06) 100%
+    );
+    border: 1px solid rgba(160, 160, 255, 0.18);
+    box-shadow:
+        0 0 18px rgba(160, 160, 255, 0.14),
+        inset 0 1px 0 rgba(255, 255, 255, 0.09);
+    z-index: -1;
 }
 
 .bottom-nav__icon {
@@ -702,19 +718,25 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 26px;
-    height: 26px;
+    width: 24px;
+    height: 24px;
     flex-shrink: 0;
 }
 
-/* Avatar container */
+/* Avatar */
 .bottom-nav__icon--avatar {
     width: 26px;
     height: 26px;
     border-radius: 50%;
     overflow: hidden;
-    border: 1.5px solid rgba(110, 110, 210, 0.4);
-    background: rgba(110, 110, 210, 0.15);
+    border: 1.5px solid rgba(160, 160, 255, 0.22);
+    background: rgba(160, 160, 255, 0.08);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.bottom-nav__item--active .bottom-nav__icon--avatar {
+    border-color: var(--color-base-1);
+    box-shadow: 0 0 10px rgba(160, 160, 255, 0.35);
 }
 
 .bottom-nav__avatar-img {
@@ -724,32 +746,32 @@ onUnmounted(() => {
 }
 
 .bottom-nav__avatar-initials {
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     font-weight: 600;
-    color: #7070d8;
+    color: var(--color-base-1);
     line-height: 1;
 }
 
 .bottom-nav__label {
-    font-size: 0.58rem;
+    font-size: 0.54rem;
     font-family: 'Rubik', sans-serif;
-    letter-spacing: 0.04em;
-    font-weight: 500;
+    letter-spacing: 0.055em;
+    font-weight: 600;
     text-transform: uppercase;
     line-height: 1;
 }
 
-/* Числовой badge (для корзины) */
+/* Числовой badge (корзина) */
 .bottom-nav__badge {
     position: absolute;
-    top: -3px;
-    right: -6px;
+    top: -4px;
+    right: -7px;
     min-width: 15px;
     height: 15px;
     border-radius: 8px;
     background: #e0558f;
     color: white;
-    font-size: 0.55rem;
+    font-size: 0.54rem;
     font-weight: 700;
     display: flex;
     align-items: center;
@@ -757,23 +779,25 @@ onUnmounted(() => {
     padding: 0 3px;
     pointer-events: none;
     font-family: 'Rubik', sans-serif;
+    box-shadow: 0 0 8px rgba(224, 85, 143, 0.5);
 }
 
-/* Точечный badge (для чата и уведомлений) */
+/* Точечный badge (чат, уведомления) */
 .bottom-nav__dot {
     position: absolute;
-    top: -1px;
+    top: -2px;
     right: -2px;
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: #e0558f;
     pointer-events: none;
+    box-shadow: 0 0 7px rgba(224, 85, 143, 0.65);
 }
 
 @media (max-width: 768px) {
     .bottom-nav { display: flex; }
     .header-icon-group { display: none; }
-    .app-main { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+    .app-main { padding-bottom: calc(62px + 2rem + env(safe-area-inset-bottom)); }
 }
 </style>

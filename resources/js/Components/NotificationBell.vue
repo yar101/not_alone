@@ -91,8 +91,11 @@ function toggleDropdown() {
     if (open.value) {
         fetchAll();
         autoReadTimer = setTimeout(markAllRead, 1500);
+        // Вешаем listener с задержкой, чтобы текущий клик не закрыл сразу
+        setTimeout(() => document.addEventListener('click', closeOnOutside), 50);
     } else {
         clearTimeout(autoReadTimer);
+        document.removeEventListener('click', closeOnOutside);
     }
 }
 
@@ -323,7 +326,6 @@ async function requestPush() {
 
 onMounted(() => {
     window.addEventListener('resize', onResize);
-    document.addEventListener('click', closeOnOutside);
 
     if (isSupported() && page.props.auth?.user) {
         if (Notification.permission === 'granted') {
