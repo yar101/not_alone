@@ -81,6 +81,7 @@ const tab = ref(initialTab);
 const serviceNav = reactive({ inCategory: false, accent: '#a0a0ff', onBack: null });
 provide('serviceNav', serviceNav);
 
+
 function switchTab(name) {
     tab.value = name;
     history.replaceState(null, '', '#' + name);
@@ -203,6 +204,7 @@ onMounted(async () => {
 
     driverObj.drive();
 });
+
 </script>
 
 <template>
@@ -1327,7 +1329,17 @@ onMounted(async () => {
         height: auto;
         min-height: 40vh;
     }
+    .tab-content-wrap {
+        overflow: visible;
+        min-height: unset;
+    }
+    .tab-panel {
+        height: auto;
+        overflow: visible;
+        padding-bottom: 3rem;
+    }
 }
+
 
 @media (max-width: 700px) {
     .about-top-grid {
