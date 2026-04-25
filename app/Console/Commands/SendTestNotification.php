@@ -38,7 +38,8 @@ class SendTestNotification extends Command
         }
 
         for ($i = 0; $i < $count; $i++) {
-            $text = $count > 1 ? "{$message} (#{$i + 1})" : $message;
+            $num  = $i + 1;
+            $text = $count > 1 ? "{$message} (#{$num})" : $message;
             $user->notify(new TestNotification($text));
             event(new NewNotification('private', $user->id));
         }
