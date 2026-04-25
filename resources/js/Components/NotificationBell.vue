@@ -3,6 +3,7 @@ import { ref, computed, watch, inject, onMounted, onUnmounted, h } from 'vue';
 import { usePage, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { ElNotification, ElIcon } from 'element-plus';
+import SiteModal from '@/Components/Site/SiteModal.vue';
 import {
     Promotion, Trophy, CircleClose,
     DocumentAdd, CircleCheckFilled, CircleCloseFilled,
@@ -16,6 +17,8 @@ import { usePushNotifications } from '@/composables/usePushNotifications';
 const page = usePage();
 const { __, locale } = useTranslations();
 const open = ref(false);
+const isMobile = ref(window.innerWidth < 768);
+const onResize = () => { isMobile.value = window.innerWidth < 768; };
 const { isSupported, subscribe, syncSubscription } = usePushNotifications();
 const pushPermission = ref(typeof Notification !== 'undefined' ? Notification.permission : 'unsupported');
 
@@ -319,6 +322,7 @@ async function requestPush() {
 }
 
 onMounted(() => {
+    window.addEventListener('resize', onResize);
     document.addEventListener('click', closeOnOutside);
 
     if (isSupported() && page.props.auth?.user) {
@@ -347,6 +351,7 @@ onMounted(() => {
 
 onUnmounted(() => {
     clearTimeout(autoReadTimer);
+    window.removeEventListener('resize', onResize);
     document.removeEventListener('click', closeOnOutside);
     window.Echo.leaveChannel('notifications.global');
     const userId = page.props.auth?.user?.id;
@@ -359,7 +364,8 @@ onUnmounted(() => {
 <template>
     <div class="notif-bell">
         <!-- Bell button -->
-        <button class="bell-btn" @click.stop="toggleDropdown" :class="{ 'bell-btn--active': open }">
+        <button class="bell-btn" @click.stop="toggleDropdown" :class="{ 'bell-btn--active': open }"
+            :aria-label="__('notification.title')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
                 stroke-linecap="round" stroke-linejoin="round">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -372,8 +378,9 @@ onUnmounted(() => {
             </Transition>
         </button>
 
+        <!-- Desktop: dropdown -->
         <Transition name="dropdown">
-            <div v-if="open" class="notif-dropdown">
+            <div v-if="open && !isMobile" class="notif-dropdown">
 
                 <!-- Header -->
                 <div class="notif-panel-header">
@@ -486,6 +493,109 @@ onUnmounted(() => {
 
             </div>
         </Transition>
+
+        <!-- Mobile: modal -->
+        <SiteModal v-if="isMobile" :show="open" variant="pink" compact @close="open = false">
+            <div class="notif-panel-header">
+                <span class="notif-panel-title">{{ __('notification.title') }}</span>
+                <div class="notif-filters">
+                    <button class="notif-filter-btn" :class="{ 'notif-filter-btn--active': activeFilter === 'all' }"
+                        @click="activeFilter = 'all'">
+                        {{ __('notification.tab.all') }}
+                        <span v-if="totalUnread > 0" class="notif-filter-dot"></span>
+                    </button>
+                    <button class="notif-filter-btn"
+                        :class="{ 'notif-filter-btn--active': activeFilter === 'service' }"
+                        @click="activeFilter = 'service'">
+                        {{ __('notification.tab.service') }}
+                        <span v-if="serviceUnread > 0" class="notif-filter-dot"></span>
+                    </button>
+                    <button class="notif-filter-btn"
+                        :class="{ 'notif-filter-btn--active': activeFilter === 'order' }"
+                        @click="activeFilter = 'order'">
+                        {{ __('notification.tab.orders') }}
+                        <span v-if="orderUnread > 0" class="notif-filter-dot"></span>
+                    </button>
+                </div>
+            </div>
+
+            <div v-if="isSupported() && pushPermission === 'default' && page.props.auth?.user" class="push-banner">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.7">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                <span class="push-banner__text">{{ __('notification.push_prompt') }}</span>
+                <button class="push-banner__btn" @click.stop="requestPush">{{ __('notification.push_allow') }}</button>
+            </div>
+
+            <div v-if="loading" class="notif-skeleton-list">
+                <div v-for="i in 4" :key="i" class="notif-skeleton-item">
+                    <div class="sk-icon"></div>
+                    <div class="sk-lines">
+                        <div class="sk-line sk-line--title"></div>
+                        <div class="sk-line sk-line--body"></div>
+                        <div class="sk-line sk-line--time"></div>
+                    </div>
+                </div>
+            </div>
+
+            <template v-else>
+                <div v-if="allItems.length === 0" class="notif-empty">
+                    <div class="empty-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.3">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                        </svg>
+                    </div>
+                    <p class="empty-text">{{ __('notification.empty') }}</p>
+                </div>
+
+                <div v-else class="notif-list">
+                    <div v-for="item in filteredItems" :key="item.id" class="notif-item" :class="{
+                        'notif-item--unread': !item.read_at,
+                        'notif-item--clickable': isClickable(item),
+                    }" @click="handleItemClick(item)">
+                        <div class="notif-content">
+                            <div class="notif-header">
+                                <div class="notif-icon-wrap" :class="itemIconClass(item)">
+                                    <el-icon><component :is="itemIconComponent(item)" /></el-icon>
+                                </div>
+                                <p v-if="item.title" class="notif-service-title">{{ item.title }}</p>
+                                <p v-else class="notif-msg notif-msg--headline">
+                                    <template v-if="item._cat === 'order'">{{ orderMessage(item) }}</template>
+                                    <template v-else>{{ item.message }}</template>
+                                </p>
+                                <span class="notif-cat-tag" :class="`cat--${item._cat}`">
+                                    {{ item._cat === 'personal' ? __('notification.tag.personal') : item._cat === 'service' ? __('notification.tag.service') : __('notification.tag.order') }}
+                                </span>
+                            </div>
+                            <p v-if="item.title" class="notif-msg notif-msg--sub">
+                                <template v-if="item._cat === 'order'">{{ orderMessage(item) }}</template>
+                                <template v-else>{{ item.message }}</template>
+                            </p>
+                            <p v-if="item.reason" class="notif-reason">
+                                <span class="notif-reason--sub">{{ __('notification.reason') }}</span> {{ item.reason }}
+                            </p>
+                            <div class="notif-footer-row">
+                                <span class="notif-time">{{ relativeTime(item.created_at) }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="hasMore || loadingMore" class="notif-load-more-wrap">
+                        <button class="notif-load-more-btn" :disabled="loadingMore" @click="fetchMore">
+                            <span class="notif-load-more-text"
+                                :style="{ visibility: loadingMore ? 'hidden' : 'visible' }">{{ __('notification.load_more') }}</span>
+                            <span v-if="loadingMore" class="notif-load-more-dots">
+                                <span class="notif-load-dot"></span>
+                                <span class="notif-load-dot"></span>
+                                <span class="notif-load-dot"></span>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </template>
+        </SiteModal>
     </div>
 </template>
 

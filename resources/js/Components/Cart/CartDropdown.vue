@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, inject } from 'vue';
+import { ref, computed, watch, inject, onMounted, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useTranslations } from '@/composables/useTranslations';
@@ -46,6 +46,36 @@ const servicesTotal = computed(() =>
 const contentTotal = computed(() =>
     contentItems.value.reduce((sum, item) => sum + (item.price || 0), 0)
 );
+
+// ── Back-gesture ─────────────────────────────────────────
+let cartPushed  = false;
+let cartIgnoreTill = 0;
+
+const onCartPopstate = (e) => {
+    if (Date.now() < cartIgnoreTill) return;
+    if (cartPushed && !e.state?.cart) {
+        cartPushed = false;
+        isOpen.value = false;
+    }
+};
+
+watch(isOpen, (val, oldVal) => {
+    if (val) {
+        history.pushState({ cart: true }, '');
+        cartPushed = true;
+    }
+    if (!val && oldVal && cartPushed) {
+        cartPushed = false;
+        cartIgnoreTill = Date.now() + 500;
+        history.go(-1);
+    }
+});
+
+onMounted(() => window.addEventListener('popstate', onCartPopstate));
+onUnmounted(() => {
+    window.removeEventListener('popstate', onCartPopstate);
+    if (cartPushed) { cartPushed = false; history.go(-1); }
+});
 
 function close() { isOpen.value = false; }
 
