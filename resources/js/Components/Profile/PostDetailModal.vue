@@ -1,8 +1,8 @@
 <script setup>
-import { ref, reactive, watch, onMounted, onUnmounted } from 'vue';
+import { ref, reactive, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import axios from 'axios';
 import { useTranslations } from '@/composables/useTranslations';
-import { RefreshLeft, Promotion } from '@element-plus/icons-vue';
+import { RefreshLeft, Promotion, ChatLineSquare } from '@element-plus/icons-vue';
 
 const { __ } = useTranslations();
 import SiteModal from '@/Components/Site/SiteModal.vue';
@@ -18,8 +18,10 @@ const props = defineProps({
 const emit = defineEmits(['close', 'liked', 'delete', 'comment-added']);
 
 // ── Comments ───────────────────────────────────────────────
-const comments   = ref([]);
-const loadingCmt = ref(false);
+const comments    = ref([]);
+const loadingCmt  = ref(false);
+const cmtsList    = ref(null);
+const scrollZone  = ref(null);
 
 // ── Replies lazy-load ──────────────────────────────────────
 const expandedReplies      = reactive(new Set());
@@ -39,6 +41,7 @@ function replyWord(n) {
 async function loadReplies(commentId, page = 1) {
     if (commentRepliesLoading.has(commentId)) return;
     commentRepliesLoading.add(commentId);
+    expandedReplies.add(commentId); // показать блок сразу, чтобы скелетон был виден
     try {
         const { data } = await axios.get(route('comments.replies', commentId), { params: { page } });
         if (page === 1) {
@@ -48,7 +51,6 @@ async function loadReplies(commentId, page = 1) {
         }
         commentRepliesPage[commentId] = page;
         commentRepliesMore[commentId] = data.has_more;
-        expandedReplies.add(commentId);
     } finally {
         commentRepliesLoading.delete(commentId);
     }
@@ -77,7 +79,7 @@ async function loadComments() {
     }
 }
 
-watch(() => props.post, (val) => {
+watch(() => props.post?.id, (val) => {
     if (val) {
         comments.value = [];
         loadComments();
@@ -85,7 +87,8 @@ watch(() => props.post, (val) => {
 });
 
 // ── Like ───────────────────────────────────────────────────
-const showAuthModal = ref(false);
+const showAuthModal  = ref(false);
+const likeAnimating  = ref(false);
 
 async function toggleLike() {
     if (!props.authUser) {
@@ -93,6 +96,8 @@ async function toggleLike() {
         return;
     }
     if (!props.post) return;
+    likeAnimating.value = true;
+    setTimeout(() => { likeAnimating.value = false; }, 400);
     try {
         const { data } = await axios.post(route('posts.like', props.post.id));
         emit('liked', { postId: props.post.id, liked: data.liked, likesCount: data.likes_count });
@@ -134,7 +139,6 @@ async function submitComment() {
             const parent = comments.value.find(c => c.id === replyToId.value);
             if (parent) {
                 parent.replies_count++;
-                // If replies are already expanded/loaded, append the new reply
                 if (commentReplies[parent.id]) {
                     commentReplies[parent.id].push(data);
                     expandedReplies.add(parent.id);
@@ -148,6 +152,14 @@ async function submitComment() {
         newBody.value     = '';
         replyToId.value   = null;
         replyToName.value = '';
+
+        await nextTick();
+        // Desktop: cmtsList scrolls; mobile: scrollZone scrolls
+        for (const el of [cmtsList.value, scrollZone.value]) {
+            if (el && el.scrollHeight > el.clientHeight) {
+                el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+            }
+        }
     } catch (e) {
         cmtError.value = e.response?.data?.message ?? __('post.detail.error');
     } finally {
@@ -203,7 +215,7 @@ async function deleteComment(commentId, parentId) {
         <div v-if="post" class="detail">
 
             <!-- Scrollable zone: left + right columns (transparent to desktop grid) -->
-            <div class="detail__scroll">
+            <div ref="scrollZone" class="detail__scroll">
 
                 <!-- ── Left: photo + body + footer ── -->
                 <div class="detail__left">
@@ -231,10 +243,11 @@ async function deleteComment(commentId, parentId) {
                                 :disabled="!authUser"
                                 @click="toggleLike"
                             >
-                                <svg width="13" height="13" viewBox="0 0 24 24"
+                                <svg width="18" height="18" viewBox="0 0 24 24"
                                     :fill="post.liked_by_me ? 'currentColor' : 'none'"
                                     stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round">
+                                    stroke-linecap="round" stroke-linejoin="round"
+                                    :class="{ 'like-pop': likeAnimating }">
                                     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                                 </svg>
                                 {{ post.likes_count }}
@@ -253,13 +266,23 @@ async function deleteComment(commentId, parentId) {
                 <div class="detail__right">
 
                     <div class="detail__cmts-header">
-                        <span class="detail__cmts-label">{{ __('post.detail.comments') }}</span>
+                        <span class="detail__cmts-label">
+                            <el-icon class="detail__cmts-icon"><ChatLineSquare /></el-icon>
+                            {{ __('post.detail.comments') }}
+                        </span>
                         <span class="detail__cmts-count">{{ comments.length }}</span>
                     </div>
 
-                    <div class="detail__cmts-list">
-                        <div v-if="loadingCmt" class="detail__cmts-state">
-                            <span class="detail__cmts-dot" /><span class="detail__cmts-dot" /><span class="detail__cmts-dot" />
+                    <div ref="cmtsList" class="detail__cmts-list">
+                        <div v-if="loadingCmt" class="detail__cmts-skel-list">
+                            <div v-for="i in 4" :key="i" class="detail__cmts-skel" :style="{ animationDelay: (i - 1) * 0.07 + 's' }">
+                                <div class="detail__cmts-skel__avatar" />
+                                <div class="detail__cmts-skel__lines">
+                                    <div class="detail__cmts-skel__line detail__cmts-skel__line--name" />
+                                    <div class="detail__cmts-skel__line detail__cmts-skel__line--body" />
+                                    <div class="detail__cmts-skel__line detail__cmts-skel__line--body2" />
+                                </div>
+                            </div>
                         </div>
                         <div v-else-if="comments.length === 0" class="detail__cmts-state detail__cmts-state--empty">
                             {{ __('post.detail.empty') }}
@@ -343,7 +366,6 @@ async function deleteComment(commentId, parentId) {
                                         :class="{ 'detail__replies-toggle--open': expandedReplies.has(cmt.id) }"
                                         @click="toggleReplies(cmt.id)"
                                     >
-                                        <span class="detail__replies-toggle-line" />
                                         <span class="detail__replies-toggle-label">
                                             {{ cmt.replies_count }} {{ replyWord(cmt.replies_count) }}
                                         </span>
@@ -441,7 +463,7 @@ async function deleteComment(commentId, parentId) {
                             v-model="newBody"
                             class="detail__textarea"
                             :placeholder="replyToId ? __('post.detail.placeholder.reply') : __('post.detail.placeholder.comment')"
-                            rows="2"
+                            rows="3"
                             maxlength="177"
                             @keydown.enter.exact.prevent="submitComment"
                         />
@@ -594,25 +616,40 @@ async function deleteComment(commentId, parentId) {
     display: flex;
     align-items: center;
     gap: 0.35rem;
-    padding: 0.35rem 0.75rem;
+    padding: 0.3rem 0.65rem;
     background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    border: none;
     border-radius: 5px;
-    color: rgba(255, 255, 255, 0.65);
+    color: rgba(255, 255, 255, 0.55);
     font-size: 0.9rem;
     font-family: inherit;
     cursor: pointer;
-    transition: color 0.15s, border-color 0.15s;
+    transition: color 0.15s, background 0.15s;
 }
-.detail__like-btn:hover:not(:disabled) {
-    color: rgba(224, 24, 108, 0.9);
-    border-color: rgba(224, 24, 108, 0.4);
+@media (hover: hover) {
+    .detail__like-btn:hover:not(:disabled) {
+        color: rgba(224, 24, 108, 0.9);
+        background: rgba(224, 24, 108, 0.07);
+    }
 }
 .detail__like-btn--active {
     color: rgba(224, 24, 108, 1);
-    border-color: rgba(224, 24, 108, 0.45);
+}
+.detail__like-btn--active:hover {
+    color: rgba(224, 24, 108, 1);
+    background: rgba(224, 24, 108, 0.07);
 }
 .detail__like-btn:disabled { opacity: 0.45; cursor: default; }
+
+@keyframes like-pop {
+    0%   { transform: scale(1); }
+    30%  { transform: scale(1.45); }
+    60%  { transform: scale(0.88); }
+    100% { transform: scale(1); }
+}
+.like-pop {
+    animation: like-pop 0.38s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
 
 .detail__del-btn {
     display: flex;
@@ -654,15 +691,23 @@ async function deleteComment(commentId, parentId) {
 }
 
 .detail__cmts-label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
     font-size: 0.8rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: rgba(255, 255, 255, 0.7);
 }
 
+.detail__cmts-icon {
+    font-size: 1rem;
+    opacity: 0.7;
+}
+
 .detail__cmts-count {
     font-size: 0.8rem;
-    color: rgba(160, 160, 255, 0.75);
+    color: rgba(255, 255, 255, 0.55);
 }
 
 /* Scrollable comments list */
@@ -680,30 +725,48 @@ async function deleteComment(commentId, parentId) {
 .detail__cmts-list::-webkit-scrollbar { width: 3px; }
 .detail__cmts-list::-webkit-scrollbar-thumb { background: rgba(160, 160, 255, 0.18); border-radius: 3px; }
 
-/* Loading dots */
-.detail__cmts-state {
-    display: flex;
-    justify-content: center;
-    gap: 0.3rem;
-    padding: 1.5rem 0;
-}
+/* Empty state */
 .detail__cmts-state--empty {
     font-size: 0.8rem;
     color: rgba(255, 255, 255, 0.18);
     text-align: center;
+    padding: 1.5rem 0;
 }
-.detail__cmts-dot {
-    width: 5px; height: 5px;
-    background: rgba(160, 160, 255, 0.35);
+
+/* Comment skeleton */
+.detail__cmts-skel-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.4rem;
+}
+.detail__cmts-skel {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    animation: reply-shimmer 1.4s ease-in-out infinite;
+}
+.detail__cmts-skel__avatar {
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
-    animation: dot-pulse 1.2s infinite ease-in-out both;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.06);
 }
-.detail__cmts-dot:nth-child(2) { animation-delay: 0.16s; }
-.detail__cmts-dot:nth-child(3) { animation-delay: 0.32s; }
-@keyframes dot-pulse {
-    0%, 80%, 100% { transform: scale(0.5); opacity: 0.4; }
-    40%            { transform: scale(1);   opacity: 1; }
+.detail__cmts-skel__lines {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 3px;
 }
+.detail__cmts-skel__line {
+    height: 10px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.06);
+}
+.detail__cmts-skel__line--name  { width: 90px; }
+.detail__cmts-skel__line--body  { width: 80%; animation-delay: 0.05s; }
+.detail__cmts-skel__line--body2 { width: 55%; animation-delay: 0.1s; }
 
 /* Comment items */
 .detail__cmts-list > div + div {
@@ -879,37 +942,35 @@ async function deleteComment(commentId, parentId) {
 .detail__replies-toggle-wrap {
     margin-left: 1.6rem;
     margin-top: 0.3rem;
+    display: flex;
+    justify-content: center;
 }
 .detail__replies-toggle {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     background: none;
     border: none;
-    padding: 3px 0;
+    padding: 4px 2px;
     cursor: pointer;
     color: rgba(160, 160, 255, 0.65);
-    font-size: 0.76rem;
+    font-size: 0.82rem;
     font-weight: 500;
     font-family: inherit;
     letter-spacing: 0.02em;
     transition: color 0.15s;
 }
-.detail__replies-toggle:hover,
+@media (hover: hover) {
+    .detail__replies-toggle:hover {
+        color: rgba(180, 180, 255, 0.95);
+    }
+}
 .detail__replies-toggle--open {
     color: rgba(180, 180, 255, 0.95);
 }
-.detail__replies-toggle-line {
-    display: block;
-    width: 16px;
-    height: 1px;
-    background: currentColor;
-    opacity: 0.5;
-    flex-shrink: 0;
-}
 .detail__replies-toggle-chevron {
-    width: 11px;
-    height: 11px;
+    width: 13px;
+    height: 13px;
     flex-shrink: 0;
     transition: transform 0.2s cubic-bezier(0.33, 1, 0.68, 1);
 }
@@ -1027,12 +1088,13 @@ async function deleteComment(commentId, parentId) {
     position: relative;
 }
 .detail__textarea {
+    display: block;
     width: 100%;
     box-sizing: border-box;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 6px;
-    padding: 0.65rem 5.5rem 2.4rem 0.75rem;
+    padding: 0.65rem 5.5rem 0.65rem 0.75rem;
     color: rgba(255, 255, 255, 0.95);
     font-family: inherit;
     font-size: 0.95rem;
@@ -1049,7 +1111,7 @@ async function deleteComment(commentId, parentId) {
 .detail__send-btn {
     position: absolute;
     right: 0.5rem;
-    bottom: 0.65rem;
+    bottom: 0.5rem;
     padding: 0.28rem 0.6rem;
     background: rgba(160, 160, 255, 0.18);
     border: 1px solid rgba(160, 160, 255, 0.45);
@@ -1092,8 +1154,8 @@ async function deleteComment(commentId, parentId) {
 }
 .detail__char {
     position: absolute;
-    bottom: 0.5rem;
-    left: 0.75rem;
+    top: 0.45rem;
+    right: 0.6rem;
     font-size: 0.68rem;
     color: rgba(255, 255, 255, 0.3);
     pointer-events: none;
@@ -1191,7 +1253,7 @@ async function deleteComment(commentId, parentId) {
     /* Send button */
     .detail__send-label { display: none; }
     .detail__send-icon  { font-size: 1.3rem; }
-    .detail__send-btn   { bottom: 0.4rem; padding: 0.35rem 0.5rem; }
+    .detail__send-btn   { bottom: 0.5rem; padding: 0.35rem 0.5rem; }
 }
 </style>
 

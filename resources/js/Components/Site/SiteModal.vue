@@ -22,10 +22,6 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    hideCloseBtn: {
-        type: Boolean,
-        default: false,
-    },
     maxWidth: {
         type: String,
         default: null,
@@ -35,6 +31,10 @@ const props = defineProps({
         default: null,
     },
     fill: {
+        type: Boolean,
+        default: false,
+    },
+    noPadding: {
         type: Boolean,
         default: false,
     },
@@ -145,21 +145,8 @@ onUnmounted(() => {
                     <!-- Ambient orbs -->
                     <div class="site-modal-ambient" :class="variant === 'pink' ? 'ambient-pink' : 'ambient-cyan'" />
 
-                    <!-- Close button -->
-                    <button
-                        v-if="closeable && !hideCloseBtn"
-                        @click="close"
-                        class="site-modal-close"
-                        :class="variant === 'pink' ? 'site-modal-close-pink' : 'site-modal-close-cyan'"
-                        :aria-label="__('common.close')"
-                    >
-                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-
                     <!-- Content -->
-                    <div class="site-modal-body" :class="{ 'site-modal-body--fill': fill }">
+                    <div class="site-modal-body" :class="{ 'site-modal-body--fill': fill, 'site-modal-body--no-padding': noPadding }">
                         <slot />
                     </div>
                 </div>
@@ -313,66 +300,37 @@ onUnmounted(() => {
 }
 
 
-/* ── Close button ──────────────────────────────────── */
-.site-modal-close {
-    position: absolute;
-    top: 0.75rem;
-    right: 0.75rem;
-    width: 36px;
-    height: 36px;
-    border-radius: 6px;
-    border: none;
-    background: transparent;
-    color: rgba(255, 255, 255, 0.28);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.18s ease, background 0.18s ease, transform 0.22s ease;
-    z-index: 10;
-    flex-shrink: 0;
-}
-
-.site-modal-close:hover {
-    color: rgba(255, 255, 255, 0.75);
-    background: rgba(255, 255, 255, 0.06);
-    transform: rotate(90deg);
-}
-
-.site-modal-close-pink:hover {
-    color: rgba(220, 100, 145, 0.9);
-    background: rgba(110, 110, 210, 0.1);
-}
-
-.site-modal-close-cyan:hover {
-    color: rgba(42, 255, 220, 0.8);
-    background: rgba(42, 255, 220, 0.07);
-}
 
 /* ── Body ──────────────────────────────────────────── */
 .site-modal-body {
     flex: 1;
     overflow-y: auto;
-    padding: 2rem;
-    padding-top: 3rem;
     position: relative;
     z-index: 1;
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
     min-height: 0;
+    padding: 2rem;
+    padding-top: 3rem;
 }
 
 .site-modal-body--fill {
     overflow: hidden;
-    padding: 0;
     display: flex;
     flex-direction: column;
+}
+
+.site-modal-body--no-padding {
+    padding: 0;
 }
 
 @media (max-width: 768px) {
     .site-modal-body {
         padding: 1.25rem;
         padding-top: 3rem;
+    }
+    .site-modal-body--no-padding {
+        padding: 0;
     }
 }
 

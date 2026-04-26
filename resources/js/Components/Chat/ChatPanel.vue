@@ -1734,11 +1734,16 @@ function formatDate(iso) {
                                     {{ newMessage.length }}/500
                                 </span>
                                 <button class="chat-send" :disabled="!newMessage.trim() || sending || isChatClosed || (!!activeBlock?.active && !activeBlock?.i_am_blocker)" @click="sendMessage">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <line x1="22" y1="2" x2="11" y2="13"/>
-                                        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                                    </svg>
-                                    Enter
+                                    <template v-if="sending">
+                                        <span class="order-btn-spinner" />
+                                    </template>
+                                    <template v-else>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="22" y1="2" x2="11" y2="13"/>
+                                            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                                        </svg>
+                                        Enter
+                                    </template>
                                 </button>
                             </div>
                         </div>

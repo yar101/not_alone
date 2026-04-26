@@ -670,7 +670,7 @@ const ownerSortOptions = computed(() => [
 
         <!-- Pack detail modal -->
         <SiteModal :show="showDetailModal" @close="closeDetail" compact max-width="560px"
-            variant="pink" hide-close-btn>
+            variant="pink">
             <template v-if="detailPack">
 
                 <!-- ⓪ Top bar: badge (owner) + close button -->

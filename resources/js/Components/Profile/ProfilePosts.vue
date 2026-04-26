@@ -189,7 +189,7 @@ function deletePost() {
             <!-- Feed -->
             <div v-if="posts.length" class="posts-feed">
                 <PostFeedCard v-for="post in posts" :key="post.id" :post="post" :is-owner="isOwner" :auth-user="authUser"
-                    @open-detail="openDetail" @liked="onLiked" @delete="confirmDelete" />
+                    @open-detail="openDetail" @liked="onLiked" />
             </div>
 
             <!-- Empty state -->
@@ -215,8 +215,11 @@ function deletePost() {
         <!-- Delete confirmation modal -->
         <SiteModal :show="confirmDeleteId !== null" variant="pink" :compact="true" @close="confirmDeleteId = null">
             <div class="confirm-delete">
-                <p class="confirm-delete__text">{{ __('post.delete.title') }}</p>
-                <div class="confirm-delete__actions">
+                <div class="confirm-delete__rule confirm-delete__rule--red"></div>
+                <h2 class="confirm-delete__title">{{ __('post.delete.title') }}</h2>
+                <div class="confirm-delete__rule confirm-delete__rule--red"></div>
+                <div class="confirm-delete__perf"><span class="confirm-delete__perf-line"></span></div>
+                <div class="confirm-delete__footer">
                     <button class="confirm-delete__cancel" @click="confirmDeleteId = null">{{ __('common.cancel') }}</button>
                     <button class="confirm-delete__confirm" @click="deletePost">{{ __('common.delete') }}</button>
                 </div>
@@ -247,7 +250,10 @@ function deletePost() {
                 <div v-if="form.errors.photo" class="photo-error">{{ form.errors.photo }}</div>
 
                 <button class="save-btn" :disabled="form.processing || !form.body.trim()"
-                    @click="submitPost">{{ __('common.publish') }}</button>
+                    @click="submitPost">
+                    <span v-if="form.processing" class="save-btn__spinner" />
+                    <template v-else>{{ __('common.publish') }}</template>
+                </button>
             </div>
         </SiteModal>
     </div>
@@ -408,58 +414,96 @@ function deletePost() {
 
 /* Delete confirmation */
 .confirm-delete {
+    font-family: 'Courier New', Courier, monospace;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
-    padding: 0.25rem 0;
+    gap: 0;
+    padding: 1.5rem 1.5rem 1.25rem;
 }
 
-.confirm-delete__text {
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.75);
-    margin: 0;
-    line-height: 1.5;
+.confirm-delete__rule {
+    width: 100%;
+    height: 0;
+    border: none;
+    border-top: 2px double rgba(100, 210, 255, 0.3);
+    margin: 0.5rem 0;
+}
+.confirm-delete__rule--red {
+    border-color: rgba(220, 80, 80, 0.45);
 }
 
-.confirm-delete__actions {
+.confirm-delete__title {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: rgba(255, 120, 120, 0.9);
+    text-align: center;
+    margin: 0.3rem 0;
+}
+
+.confirm-delete__perf {
+    position: relative;
     display: flex;
-    gap: 0.6rem;
-    justify-content: flex-end;
+    align-items: center;
+    margin: 0.85rem 0 0.25rem;
+}
+.confirm-delete__perf::before,
+.confirm-delete__perf::after {
+    content: '◆';
+    font-size: 0.45rem;
+    color: rgba(220, 80, 80, 0.4);
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+}
+.confirm-delete__perf::before { left: -5px; }
+.confirm-delete__perf::after  { right: -5px; }
+.confirm-delete__perf-line {
+    display: block;
+    width: 100%;
+    border-top: 1px dashed rgba(220, 80, 80, 0.25);
+}
+
+.confirm-delete__footer {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
 }
 
 .confirm-delete__cancel {
-    padding: 0.45rem 1rem;
+    flex: 1;
+    padding: 0.5rem 1rem;
     background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 4px;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 0.85rem;
-    font-family: inherit;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    color: rgba(210, 240, 255, 0.45);
+    font-size: 0.78rem;
+    font-family: 'Courier New', Courier, monospace;
+    letter-spacing: 0.08em;
     cursor: pointer;
     transition: border-color 0.15s, color 0.15s;
 }
-
 .confirm-delete__cancel:hover {
-    border-color: rgba(255, 255, 255, 0.25);
-    color: rgba(255, 255, 255, 0.8);
+    border-color: rgba(255, 255, 255, 0.22);
+    color: rgba(210, 240, 255, 0.8);
 }
 
 .confirm-delete__confirm {
-    padding: 0.45rem 1rem;
-    background: rgba(180, 30, 60, 0.25);
-    border: 1px solid rgba(210, 50, 80, 0.4);
-    border-radius: 4px;
-    color: rgba(255, 140, 155, 0.95);
-    font-size: 0.85rem;
-    font-family: inherit;
+    flex: 1;
+    padding: 0.5rem 1rem;
+    background: rgba(180, 30, 60, 0.2);
+    border: 1px solid rgba(210, 50, 80, 0.45);
+    border-radius: 3px;
+    color: rgba(255, 120, 130, 0.9);
+    font-size: 0.78rem;
+    font-family: 'Courier New', Courier, monospace;
+    letter-spacing: 0.08em;
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    transition: background 0.15s, border-color 0.15s;
 }
-
 .confirm-delete__confirm:hover {
-    background: rgba(210, 40, 75, 0.4);
+    background: rgba(210, 40, 75, 0.35);
     border-color: rgba(230, 70, 100, 0.65);
-    box-shadow: 0 0 10px rgba(210, 40, 75, 0.25);
 }
 
 /* Create form */
@@ -590,6 +634,20 @@ function deletePost() {
 .save-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+@keyframes save-spin {
+    to { transform: rotate(360deg); }
+}
+.save-btn__spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: save-spin 0.6s linear infinite;
+    opacity: 0.75;
+    vertical-align: middle;
 }
 
 @media (max-width: 600px) {
