@@ -66,7 +66,14 @@ const titleDraft = ref('');
 const titleUpdating = ref(false);
 
 // ── Edit dropdown menu ────────────────────────────────────
-const showEditMenu = ref(false);
+const showEditMenu  = ref(false);
+const editMenuRef   = ref(null);
+
+function onDocClick(e) {
+    if (showEditMenu.value && editMenuRef.value && !editMenuRef.value.contains(e.target)) {
+        showEditMenu.value = false;
+    }
+}
 
 // ── Price editing (owner, published packs) ────────────────
 const editingPrice = ref(false);
@@ -300,6 +307,7 @@ function setupObserver() {
 let packNotifyChannel = null;
 
 onMounted(() => {
+    document.addEventListener('click', onDocClick, true);
     setupObserver();
     // Re-entering the tab: localPacks already has stale data from Inertia cache → refresh
     if (localPacks.value !== null) {
@@ -312,6 +320,7 @@ onMounted(() => {
     }
 });
 onUnmounted(() => {
+    document.removeEventListener('click', onDocClick, true);
     observer?.disconnect();
     if (packNotifyChannel && props.profileUser?.id) {
         packNotifyChannel.stopListening('.new-notification');
@@ -672,6 +681,7 @@ const ownerSortOptions = computed(() => [
         <SiteModal :show="showDetailModal" @close="closeDetail" compact max-width="560px"
             variant="pink">
             <template v-if="detailPack">
+            <div class="pcd-wrap">
 
                 <!-- ⓪ Top bar: badge (owner) + close button -->
                 <div class="pcd-topbar">
@@ -793,6 +803,10 @@ const ownerSortOptions = computed(() => [
                         </template>
                     </div>
 
+                </div><!-- /pcd-body -->
+
+                <!-- Fixed footer: meta + actions + edit dropdown -->
+                <div class="pcd-footer">
                     <!-- Meta row: photos + price (price editable) -->
                     <div class="pcd-meta-row">
                         <span class="pcd-meta-count">
@@ -891,10 +905,9 @@ const ownerSortOptions = computed(() => [
                         </template>
                     </div>
 
-                    <!-- Bottom action (owner) -->
+                    <!-- Edit dropdown (owner) -->
                     <div v-if="isOwner && (detailPack.status === 'has_remarks' || (detailPack.status === 'published' && !editingTitle && !editingDesc && !editingPrice))"
-                        class="pcd-edit-wrap">
-                        <!-- "Исправить" — для has_remarks и published+change_request_remarks -->
+                        class="pcd-edit-wrap" ref="editMenuRef">
                         <template v-if="detailPack.status === 'has_remarks' || detailPack.pending_change?.status === 'has_remarks'">
                             <button class="pcd-edit-toggle pcd-edit-toggle--danger"
                                 @click="detailPack.status === 'has_remarks' ? openRemarks(detailPack) : openChangeRequestRemarks(detailPack)">
@@ -902,88 +915,85 @@ const ownerSortOptions = computed(() => [
                             </button>
                         </template>
                         <template v-else>
-                        <!-- Backdrop to close menu -->
-                        <div v-if="showEditMenu" class="pcd-edit-backdrop" @click="showEditMenu = false" />
-                        <!-- Menu (opens upward) -->
-                        <Transition name="pcd-menu">
-                            <div v-if="showEditMenu" class="pcd-edit-menu">
-                                <button class="pcd-edit-item"
-                                    @click="showCoverPicker = !showCoverPicker; showEditMenu = false">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path
-                                            d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                                        <circle cx="12" cy="13" r="4" />
-                                    </svg>
-                                    {{ __('profile.content.change_cover') }}
-                                </button>
-                                <button class="pcd-edit-item" @click="startEditTitle(); showEditMenu = false">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                    </svg>
-                                    {{ __('profile.content.change_title') }}
-                                </button>
-                                <button class="pcd-edit-item" @click="startEditDesc(); showEditMenu = false">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <line x1="17" y1="10" x2="3" y2="10" />
-                                        <line x1="21" y1="6" x2="3" y2="6" />
-                                        <line x1="21" y1="14" x2="3" y2="14" />
-                                        <line x1="17" y1="18" x2="3" y2="18" />
-                                    </svg>
-                                    {{ __('profile.content.change_desc') }}
-                                </button>
-                                <button class="pcd-edit-item" @click="startEditPrice()">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <line x1="12" y1="1" x2="12" y2="23" />
-                                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                                    </svg>
-                                    {{ __('profile.content.change_price') }}
-                                </button>
-                                <hr class="pcd-edit-divider" />
-                                <button class="pcd-edit-item" @click="handleToggleVisibility(detailPack)">
-                                    <svg v-if="detailPack.hidden_at" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                        <circle cx="12" cy="12" r="3" />
-                                    </svg>
-                                    <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                                        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                                        <line x1="1" y1="1" x2="23" y2="23" />
-                                    </svg>
-                                    {{ detailPack.hidden_at ? __('profile.content.show_pack') : __('profile.content.hide_pack') }}
-                                </button>
-                                <button class="pcd-edit-item pcd-edit-item--danger" @click="handleDelete(detailPack); closeDetail()">
-                                    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <polyline points="3 6 5 6 21 6" />
-                                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                                        <path d="M10 11v6M14 11v6" />
-                                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                                    </svg>
-                                    {{ __('profile.content.delete_pack') }}
-                                </button>
-                            </div>
-                        </Transition>
-                        <button class="pcd-edit-toggle" @click="showEditMenu = !showEditMenu">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                            </svg>
-                            {{ __('common.edit') }}
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
-                                :style="{ transform: showEditMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }">
-                                <polyline points="18 15 12 9 6 15" />
-                            </svg>
-                        </button>
+                            <Transition name="pcd-menu">
+                                <div v-if="showEditMenu" class="pcd-edit-menu">
+                                    <button class="pcd-edit-item"
+                                        @click="showCoverPicker = !showCoverPicker; showEditMenu = false">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path
+                                                d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                                            <circle cx="12" cy="13" r="4" />
+                                        </svg>
+                                        {{ __('profile.content.change_cover') }}
+                                    </button>
+                                    <button class="pcd-edit-item" @click="startEditTitle(); showEditMenu = false">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                        </svg>
+                                        {{ __('profile.content.change_title') }}
+                                    </button>
+                                    <button class="pcd-edit-item" @click="startEditDesc(); showEditMenu = false">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="17" y1="10" x2="3" y2="10" />
+                                            <line x1="21" y1="6" x2="3" y2="6" />
+                                            <line x1="21" y1="14" x2="3" y2="14" />
+                                            <line x1="17" y1="18" x2="3" y2="18" />
+                                        </svg>
+                                        {{ __('profile.content.change_desc') }}
+                                    </button>
+                                    <button class="pcd-edit-item" @click="startEditPrice()">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <line x1="12" y1="1" x2="12" y2="23" />
+                                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                                        </svg>
+                                        {{ __('profile.content.change_price') }}
+                                    </button>
+                                    <hr class="pcd-edit-divider" />
+                                    <button class="pcd-edit-item" @click="handleToggleVisibility(detailPack)">
+                                        <svg v-if="detailPack.hidden_at" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                            <circle cx="12" cy="12" r="3" />
+                                        </svg>
+                                        <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                                            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                                            <line x1="1" y1="1" x2="23" y2="23" />
+                                        </svg>
+                                        {{ detailPack.hidden_at ? __('profile.content.show_pack') : __('profile.content.hide_pack') }}
+                                    </button>
+                                    <button class="pcd-edit-item pcd-edit-item--danger" @click="handleDelete(detailPack); closeDetail()">
+                                        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="3 6 5 6 21 6" />
+                                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                            <path d="M10 11v6M14 11v6" />
+                                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                                        </svg>
+                                        {{ __('profile.content.delete_pack') }}
+                                    </button>
+                                </div>
+                            </Transition>
+                            <button class="pcd-edit-toggle" @click="showEditMenu = !showEditMenu">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                </svg>
+                                {{ __('common.edit') }}
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                                    :style="{ transform: showEditMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }">
+                                    <polyline points="18 15 12 9 6 15" />
+                                </svg>
+                            </button>
                         </template>
                     </div>
-
-                </div><!-- /pcd-body -->
+                </div><!-- /pcd-footer -->
+            </div><!-- /pcd-wrap -->
             </template>
         </SiteModal>
 
@@ -1535,6 +1545,13 @@ const ownerSortOptions = computed(() => [
 
 /* ── Pack detail modal ───────────────────────────────────── */
 
+/* Outer wrapper — flex column filling full modal height */
+.pcd-wrap {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
 /* Top bar: bleeds to sides, sits where padding-top was */
 .pcd-topbar {
     margin: -3rem -2rem 0;
@@ -1577,13 +1594,13 @@ const ownerSortOptions = computed(() => [
     transform: rotate(90deg);
 }
 
-/* Hero cover — full-bleed, directly below topbar */
+/* Hero cover — full-bleed 4:3, directly below topbar */
 .pcd-hero {
     margin: 0 -2rem;
     position: relative;
     overflow: hidden;
     background: rgba(255, 255, 255, 0.03);
-    min-height: 180px;
+    aspect-ratio: 4 / 3;
 }
 
 @media (max-width: 768px) {
@@ -1598,15 +1615,17 @@ const ownerSortOptions = computed(() => [
 
 .pcd-hero__img {
     width: 100%;
-    height: auto;
+    height: 100%;
+    object-fit: cover;
     display: block;
 }
 
 .pcd-hero__empty {
+    width: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 180px;
     color: rgba(255, 255, 255, 0.12);
 }
 
@@ -1676,12 +1695,13 @@ const ownerSortOptions = computed(() => [
     opacity: 1;
 }
 
-/* Body — padded content below hero */
+/* Body — padded content below hero, grows to push footer down */
 .pcd-body {
     display: flex;
     flex-direction: column;
     gap: 1rem;
     padding-top: 1.1rem;
+    flex: 1;
 }
 
 /* Title */
@@ -1927,10 +1947,33 @@ const ownerSortOptions = computed(() => [
     color: rgba(255, 190, 110, 0.7);
 }
 
+/* Fixed footer */
+.pcd-footer {
+    position: sticky;
+    bottom: -2rem;
+    margin: 0 -2rem -2rem;
+    padding: 0.85rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    background: rgba(6, 5, 12, 0.97);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(110, 90, 200, 0.1);
+    box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.4);
+}
+
+@media (max-width: 768px) {
+    .pcd-footer {
+        bottom: -1.25rem;
+        margin: 0 -1.25rem -1.25rem;
+        padding: 0.85rem 1.25rem;
+    }
+}
+
 /* Edit dropdown */
 .pcd-edit-wrap {
     position: relative;
-    margin-top: -0.5rem;
 }
 
 .pcd-edit-wrap--row {
@@ -1949,12 +1992,6 @@ const ownerSortOptions = computed(() => [
 .pcd-edit-toggle--delete:hover {
     background: rgba(180, 60, 60, 0.16);
     color: rgba(255, 110, 110, 1);
-}
-
-.pcd-edit-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 10;
 }
 
 .pcd-edit-menu {
@@ -2073,8 +2110,7 @@ const ownerSortOptions = computed(() => [
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.65rem 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 0.2rem 0;
 }
 
 .pcd-meta-count {

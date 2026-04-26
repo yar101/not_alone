@@ -102,7 +102,14 @@ async function submit() {
         emit('close');
     } catch (e) {
         if (e.response?.status === 422) {
-            errors.value = e.response.data.errors ?? {};
+            const errs = e.response.data.errors ?? {};
+            const normalized = { ...errs };
+            // Laravel returns photos.0, photos.1 for array file uploads — map to photos
+            if (!normalized.photos) {
+                const photoEntry = Object.entries(errs).find(([k]) => k.startsWith('photos.'));
+                if (photoEntry) normalized.photos = Array.isArray(photoEntry[1]) ? photoEntry[1][0] : photoEntry[1];
+            }
+            errors.value = normalized;
         } else {
             errors.value = { photos: __('pack.error.server') };
         }
@@ -114,6 +121,7 @@ async function submit() {
 
 <template>
     <SiteModal :show="show" variant="cyan" :max-width="'640px'" @close="close">
+        <div class="cpm-outer">
         <div class="cpm-wrap">
             <h2 class="cpm-title">{{ __('pack.create_title') }}</h2>
 
@@ -211,26 +219,35 @@ async function submit() {
                 <p v-if="photos.length" class="cpm-cover-hint">{{ __('pack.cover_hint') }} <span class="req">*</span></p>
             </div>
 
-            <!-- Actions -->
-            <div class="cpm-actions">
-                <button class="cpm-cancel" @click="close" :disabled="submitting">{{ __('common.cancel') }}</button>
-                <button class="cpm-submit" @click="submit" :disabled="submitting">
-                    <svg v-if="submitting" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" class="cpm-spin">
-                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                    </svg>
-                    {{ submitting ? __('pack.submit.loading') : __('pack.submit') }}
-                </button>
-            </div>
         </div>
+
+        <!-- Fixed footer -->
+        <div class="cpm-footer">
+            <button class="cpm-cancel" @click="close" :disabled="submitting">{{ __('common.cancel') }}</button>
+            <button class="cpm-submit" @click="submit" :disabled="submitting">
+                <svg v-if="submitting" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" class="cpm-spin">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+                {{ submitting ? __('pack.submit.loading') : __('pack.submit') }}
+            </button>
+        </div>
+        </div><!-- /cpm-outer -->
     </SiteModal>
 </template>
 
 <style scoped>
+.cpm-outer {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
 .cpm-wrap {
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
     gap: 1.1rem;
+    flex: 1;
 }
 
 .cpm-title {
@@ -376,12 +393,27 @@ async function submit() {
     margin: 0.25rem 0 0;
 }
 
-.cpm-actions {
+.cpm-footer {
+    position: sticky;
+    bottom: -2rem;
+    margin: 0.5rem -2rem -2rem;
+    padding: 0.85rem 2rem;
     display: flex;
     justify-content: flex-end;
     gap: 0.75rem;
-    padding-top: 0.5rem;
-    border-top: 1px solid rgba(255,255,255,0.06);
+    background: rgba(6, 7, 13, 0.97);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-top: 1px solid rgba(100, 210, 255, 0.07);
+    box-shadow: 0 -12px 28px rgba(0, 0, 0, 0.35);
+}
+
+@media (max-width: 768px) {
+    .cpm-footer {
+        bottom: -1.25rem;
+        margin: 0.5rem -1.25rem -1.25rem;
+        padding: 0.85rem 1.25rem;
+    }
 }
 
 .cpm-cancel {
