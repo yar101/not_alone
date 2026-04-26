@@ -1127,6 +1127,8 @@ function formatDate(iso) {
                                                 { key: 'paid',      label: __('chat.orders.filter.paid') },
                                                 { key: 'completed', label: __('chat.orders.filter.completed') },
                                                 { key: 'cancelled', label: __('chat.orders.filter.cancelled') },
+                                                { key: 'refunded',  label: __('chat.orders.filter.refunded') },
+                                                { key: 'disputed',  label: __('chat.orders.filter.disputed') },
                                             ]"
                                             :key="pill.key"
                                             class="order-filter-pill"
@@ -3418,6 +3420,16 @@ function formatDate(iso) {
     color: rgba(255,130,130,0.85);
     border-color: rgba(180,50,50,0.4);
     background: rgba(180,50,50,0.12);
+}
+.order-filter-pill--refunded.order-filter-pill--active {
+    color: rgba(255,170,80,0.9);
+    border-color: rgba(200,100,0,0.4);
+    background: rgba(200,100,0,0.12);
+}
+.order-filter-pill--disputed.order-filter-pill--active {
+    color: rgba(255,100,100,0.9);
+    border-color: rgba(200,30,30,0.45);
+    background: rgba(200,30,30,0.13);
 }
 .order-filter-pill__count {
     font-size: 0.7rem;
