@@ -122,7 +122,7 @@ class ContentPackController extends Controller
         ];
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): JsonResponse
     {
         abort_if(!$request->user()->is_idol, 403);
 
@@ -171,7 +171,7 @@ class ContentPackController extends Controller
             $pack->update(['cover_path' => $coverPath]);
         }
 
-        return back();
+        return response()->json(['id' => $pack->id, 'status' => $pack->status]);
     }
 
     public function update(Request $request, ContentPack $pack): RedirectResponse

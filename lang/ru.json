@@ -106,6 +106,7 @@
     "pack.error.price": "Укажите цену больше 0.",
     "pack.error.no_photos": "Добавьте хотя бы одну фотографию.",
     "pack.error.no_cover": "Выберите обложку пака.",
+    "pack.error.server": "Ошибка при отправке. Проверьте размер файлов и попробуйте снова.",
     "pack.remark.title": "Название",
     "pack.remark.desc": "Описание",
     "pack.remark.price": "Цена",

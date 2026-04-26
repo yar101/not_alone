@@ -106,6 +106,7 @@
     "pack.error.price": "Set a price greater than 0.",
     "pack.error.no_photos": "Add at least one photo.",
     "pack.error.no_cover": "Select a pack cover.",
+    "pack.error.server": "Upload failed. Check file sizes and try again.",
     "pack.remark.title": "Title",
     "pack.remark.desc": "Description",
     "pack.remark.price": "Price",

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive } from 'vue';
-import { router } from '@inertiajs/vue3';
+import axios from 'axios';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
@@ -80,7 +80,7 @@ function removePhoto(index) {
     else if (coverIndex.value > index) coverIndex.value--;
 }
 
-function submit() {
+async function submit() {
     errors.value = {};
     if (!form.title.trim()) { errors.value.title = __('pack.error.title'); return; }
     if (!form.price || Number(form.price) < 1) { errors.value.price = __('pack.error.price'); return; }
@@ -95,20 +95,20 @@ function submit() {
     photos.value.forEach((p) => fd.append('photos[]', p.file));
 
     submitting.value = true;
-    router.post(route('content-packs.store'), fd, {
-        forceFormData: true,
-        preserveScroll: true,
-        onSuccess: () => {
-            resetForm();
-            emit('created');
-            emit('close');
-        },
-        onError: (errs) => {
-            errors.value = errs;
-            submitting.value = false;
-        },
-        onFinish: () => { submitting.value = false; },
-    });
+    try {
+        await axios.post(route('content-packs.store'), fd);
+        resetForm();
+        emit('created');
+        emit('close');
+    } catch (e) {
+        if (e.response?.status === 422) {
+            errors.value = e.response.data.errors ?? {};
+        } else {
+            errors.value = { photos: __('pack.error.server') };
+        }
+    } finally {
+        submitting.value = false;
+    }
 }
 </script>
 
