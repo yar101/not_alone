@@ -389,6 +389,8 @@
     "chat.btn.offer": "✦ ПРЕДЛОЖИТЬ",
     "chat.order.cancelled_label": "// ЗАКАЗ ОТМЕНЁН //",
     "chat.order.done_label": "// ЗАКАЗ ВЫПОЛНЕН //",
+    "chat.order.accept_confirm": "Подтвердите принятие заказа. После принятия заказчик сможет его оплатить.",
+    "chat.order.complete_confirm": "Подтвердите выполнение заказа. Это действие необратимо.",
     "chat.order.dispute_label": "// ОТКРЫТ СПОР — ЧАТ ЗАМОРОЖЕН //",
     "chat.order.annulled_label": "// ЗАКАЗ АННУЛИРОВАН //",
     "chat.attach": "Прикрепить фото",

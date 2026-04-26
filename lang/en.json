@@ -389,6 +389,8 @@
     "chat.btn.offer": "✦ OFFER",
     "chat.order.cancelled_label": "// ORDER CANCELLED //",
     "chat.order.done_label": "// ORDER COMPLETED //",
+    "chat.order.accept_confirm": "Please confirm that you accept this order. The customer will then be able to pay.",
+    "chat.order.complete_confirm": "Please confirm that the order is complete. This action cannot be undone.",
     "chat.order.dispute_label": "// DISPUTE OPEN — CHAT FROZEN //",
     "chat.order.annulled_label": "// ORDER ANNULLED //",
     "chat.attach": "Attach photo",

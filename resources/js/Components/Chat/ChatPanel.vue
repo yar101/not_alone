@@ -121,15 +121,34 @@ const myConfirmation = computed(() => {
 });
 
 async function payOrder() {
-    if (!activeOrderData.value || activeOrderData.value.status !== 'accepted') return;
-    await axios.patch(route('orders.pay', activeOrderData.value.id));
-    // activeOrderData will be updated via broadcast
+    if (!activeOrderData.value || activeOrderData.value.status !== 'accepted' || orderAction.value) return;
+    orderAction.value = 'pay';
+    try {
+        await axios.patch(route('orders.pay', activeOrderData.value.id));
+    } finally {
+        orderAction.value = '';
+    }
 }
 
 async function confirmCompletion() {
-    if (!activeOrderData.value || activeOrderData.value.status !== 'paid') return;
-    await axios.patch(route('orders.confirm-completion', activeOrderData.value.id));
+    if (!activeOrderData.value || activeOrderData.value.status !== 'paid' || orderAction.value) return;
+    orderAction.value = 'complete';
+    try {
+        await axios.patch(route('orders.confirm-completion', activeOrderData.value.id));
+        completeModal.value = false;
+    } finally {
+        orderAction.value = '';
+    }
 }
+
+// ── Order action loading ('accept' | 'pay' | 'complete' | '')
+const orderAction = ref('');
+
+// ── Accept order confirm modal ────────────────────────────
+const acceptModal = ref(false);
+
+// ── Complete order confirm modal ──────────────────────────
+const completeModal = ref(false);
 
 // ── Cancel order modal ────────────────────────────────────
 const cancelModal       = ref(false);
@@ -892,11 +911,17 @@ function cancelledByLabel(orderData) {
 }
 
 async function acceptOrder() {
-    if (!activeOrderData.value || activeOrderData.value.status !== 'pending') return;
-    await axios.patch(route('orders.accept', activeOrderData.value.id));
-    activeOrderData.value = { ...activeOrderData.value, status: 'accepted' };
-    orders.value = orders.value.map(o => o.id === activeOrderData.value.id ? { ...o, status: 'accepted' } : o);
-    router.reload({ only: ['order_notifications_unread'] });
+    if (!activeOrderData.value || activeOrderData.value.status !== 'pending' || orderAction.value) return;
+    orderAction.value = 'accept';
+    try {
+        await axios.patch(route('orders.accept', activeOrderData.value.id));
+        activeOrderData.value = { ...activeOrderData.value, status: 'accepted' };
+        orders.value = orders.value.map(o => o.id === activeOrderData.value.id ? { ...o, status: 'accepted' } : o);
+        acceptModal.value = false;
+        router.reload({ only: ['order_notifications_unread'] });
+    } finally {
+        orderAction.value = '';
+    }
 }
 
 async function submitCancelOrder() {
@@ -1612,22 +1637,28 @@ function formatDate(iso) {
                                 <button
                                     v-if="!activeOrderData.is_customer && activeOrderData.status === 'pending'"
                                     class="chat-order-btn chat-order-btn--accept"
-                                    @click="acceptOrder"
+                                    :disabled="!!orderAction"
+                                    @click="acceptModal = true"
                                 >{{ acceptBtnText.toUpperCase() }}</button>
                                 <button
                                     v-if="activeOrderData.is_customer && activeOrderData.status === 'accepted'"
                                     class="chat-order-btn chat-order-btn--pay"
+                                    :disabled="!!orderAction"
                                     @click="payOrder"
-                                >{{ __('chat.btn.pay_order') }}</button>
+                                >
+                                    <span v-if="orderAction === 'pay'" class="order-btn-spinner" />
+                                    <template v-else>{{ __('chat.btn.pay_order') }}</template>
+                                </button>
                                 <button
                                     v-if="activeOrderData.status === 'paid'"
                                     class="chat-order-btn chat-order-btn--complete"
-                                    :disabled="myConfirmation"
-                                    @click="confirmCompletion"
+                                    :disabled="myConfirmation || !!orderAction"
+                                    @click="completeModal = true"
                                 >{{ myConfirmation ? __('chat.btn.confirmed') : __('chat.btn.order_done') }}</button>
                                 <button
                                     v-if="['pending','accepted'].includes(activeOrderData.status)"
                                     class="chat-order-btn chat-order-btn--cancel"
+                                    :disabled="!!orderAction"
                                     @click="cancelModal = true"
                                 >{{ __('chat.btn.cancel') }}</button>
                                 <!-- Предложить услугу — рядом с кнопками заказа -->
@@ -1807,6 +1838,34 @@ function formatDate(iso) {
             <button class="cm-btn cm-btn--back" @click="confirmAddModal = false">{{ __('order.cancel.back') }}</button>
             <button class="cm-btn cm-btn--confirm-cyan" :disabled="confirmAddLoading" @click="confirmAddToOrder">
                 {{ confirmAddLoading ? __('chat.add_to_order.loading') : __('chat.add_to_order.btn') }}
+            </button>
+        </div>
+    </SiteModal>
+
+    <!-- ── Модалка подтверждения принятия заказа ────────── -->
+    <SiteModal :show="acceptModal" variant="cyan" compact max-width="420px" @close="acceptModal = false">
+        <div class="cm-title cm-title--cyan">{{ acceptBtnText.toUpperCase() }}</div>
+        <div class="cm-body">{{ __('chat.order.accept_confirm') }}</div>
+        <div class="cm-perf"><span class="cm-perf__line cm-perf__line--cyan"></span></div>
+        <div class="cm-footer">
+            <button class="cm-btn cm-btn--back" :disabled="orderAction === 'accept'" @click="acceptModal = false">{{ __('order.cancel.back') }}</button>
+            <button class="cm-btn cm-btn--confirm-cyan" :disabled="orderAction === 'accept'" @click="acceptOrder()">
+                <span v-if="orderAction === 'accept'" class="order-btn-spinner" />
+                <template v-else>{{ __('order.accept') }}</template>
+            </button>
+        </div>
+    </SiteModal>
+
+    <!-- ── Модалка подтверждения выполнения заказа ─────── -->
+    <SiteModal :show="completeModal" variant="cyan" compact max-width="420px" @close="completeModal = false">
+        <div class="cm-title cm-title--green">{{ __('chat.btn.order_done') }}</div>
+        <div class="cm-body">{{ __('chat.order.complete_confirm') }}</div>
+        <div class="cm-perf"><span class="cm-perf__line cm-perf__line--green"></span></div>
+        <div class="cm-footer">
+            <button class="cm-btn cm-btn--back" :disabled="orderAction === 'complete'" @click="completeModal = false">{{ __('order.cancel.back') }}</button>
+            <button class="cm-btn cm-btn--confirm-green" :disabled="orderAction === 'complete'" @click="confirmCompletion()">
+                <span v-if="orderAction === 'complete'" class="order-btn-spinner" />
+                <template v-else>{{ __('chat.btn.order_done') }}</template>
             </button>
         </div>
     </SiteModal>
@@ -2959,8 +3018,17 @@ function formatDate(iso) {
     text-align: center;
     margin: 0.3rem 0;
 }
-.cm-title--cyan { color: rgba(80,230,200,0.9); }
-.cm-perf__line--cyan { border-top-color: rgba(60,200,180,0.3); border-top-style: dashed; }
+.cm-title--cyan  { color: rgba(80,230,200,0.9); }
+.cm-title--green { color: rgba(80,240,160,0.9); }
+.cm-perf__line--cyan  { border-top-color: rgba(60,200,180,0.3);  border-top-style: dashed; }
+.cm-perf__line--green { border-top-color: rgba(60,200,120,0.3);  border-top-style: dashed; }
+.cm-body {
+    font-size: 0.88rem;
+    color: rgba(255,255,255,0.6);
+    text-align: center;
+    margin: 0.5rem 0;
+    line-height: 1.5;
+}
 
 .confirm-add__svc {
     font-size: 1.05rem;
@@ -3104,6 +3172,19 @@ function formatDate(iso) {
     border-color: rgba(60,200,180,0.65);
 }
 .cm-btn--confirm-cyan:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+.cm-btn--confirm-green {
+    background: rgba(60,200,120,0.08);
+    border: 1px solid rgba(60,200,120,0.4);
+    color: rgba(80,240,160,0.9);
+}
+.cm-btn--confirm-green:hover:not(:disabled) {
+    background: rgba(60,200,120,0.18);
+    border-color: rgba(60,200,120,0.65);
+}
+.cm-btn--confirm-green:disabled {
     opacity: 0.3;
     cursor: not-allowed;
 }
@@ -3532,6 +3613,21 @@ function formatDate(iso) {
     flex-wrap: wrap;
     border-top: 1px dashed rgba(100,210,255,0.1);
 }
+@keyframes order-spin {
+    to { transform: rotate(360deg); }
+}
+.order-btn-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: order-spin 0.6s linear infinite;
+    vertical-align: middle;
+    opacity: 0.75;
+}
+
 .chat-order-btn {
     flex: 1;
     min-width: 130px;
