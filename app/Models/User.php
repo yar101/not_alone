@@ -171,11 +171,23 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->unreadConversationCount(orderOnly: true);
     }
 
-    private function unreadConversationCount(?bool $orderOnly = null): int
+    public function unreadMineCount(): int
+    {
+        return $this->unreadConversationCount(orderOnly: true, role: 'customer');
+    }
+
+    public function unreadIncomingCount(): int
+    {
+        return $this->unreadConversationCount(orderOnly: true, role: 'idol');
+    }
+
+    private function unreadConversationCount(?bool $orderOnly = null, ?string $role = null): int
     {
         $participants = $this->conversationParticipants()
-            ->when($orderOnly === true,  fn($q) => $q->whereHas('conversation', fn($c) => $c->whereNotNull('order_id')))
+            ->when($orderOnly === true, fn($q) => $q->whereHas('conversation', fn($c) => $c->whereNotNull('order_id')))
             ->when($orderOnly === false, fn($q) => $q->whereHas('conversation', fn($c) => $c->whereNull('order_id')))
+            ->when($role === 'customer', fn($q) => $q->whereHas('conversation', fn($c) => $c->whereHas('order', fn($o) => $o->where('customer_id', $this->id))))
+            ->when($role === 'idol',     fn($q) => $q->whereHas('conversation', fn($c) => $c->whereHas('order', fn($o) => $o->where('idol_id', $this->id))))
             ->get();
 
         return $participants->sum(function ($participant) {

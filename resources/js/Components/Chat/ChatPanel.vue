@@ -88,8 +88,14 @@ const ordersHaveUnread   = computed(() =>
     (page.props.unread_orders_count ?? 0) > 0 ||
     orders.value.some(o => (o.unread_count ?? 0) > 0)
 );
-const mineHaveUnread     = computed(() => orders.value.filter(o =>  o.is_customer).some(o => (o.unread_count ?? 0) > 0));
-const incomingHaveUnread = computed(() => orders.value.filter(o => !o.is_customer).some(o => (o.unread_count ?? 0) > 0));
+const mineHaveUnread     = computed(() =>
+    (page.props.unread_mine_count ?? 0) > 0 ||
+    orders.value.filter(o =>  o.is_customer).some(o => (o.unread_count ?? 0) > 0)
+);
+const incomingHaveUnread = computed(() =>
+    (page.props.unread_incoming_count ?? 0) > 0 ||
+    orders.value.filter(o => !o.is_customer).some(o => (o.unread_count ?? 0) > 0)
+);
 
 const orderStatusLabels = computed(() => ({
     pending:   __('order.status.pending'),
@@ -337,7 +343,7 @@ async function openConversation(conv) {
         if (local) local.unread_count = 0;
         const order = orders.value.find(o => o.conversation_id === conv.id);
         if (order) order.unread_count = 0;
-        router.reload({ only: ['unread_messages_count', 'unread_direct_count', 'unread_orders_count'] });
+        router.reload({ only: ['unread_messages_count', 'unread_direct_count', 'unread_orders_count', 'unread_mine_count', 'unread_incoming_count'] });
     } finally {
         coverMessages.value = true;
         loadingMsgs.value = false;
