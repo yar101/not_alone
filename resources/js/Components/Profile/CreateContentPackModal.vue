@@ -215,6 +215,9 @@ function submit() {
             <div class="cpm-actions">
                 <button class="cpm-cancel" @click="close" :disabled="submitting">{{ __('common.cancel') }}</button>
                 <button class="cpm-submit" @click="submit" :disabled="submitting">
+                    <svg v-if="submitting" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" class="cpm-spin">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                    </svg>
                     {{ submitting ? __('pack.submit.loading') : __('pack.submit') }}
                 </button>
             </div>
@@ -396,6 +399,9 @@ function submit() {
 .cpm-cancel:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .cpm-submit {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
     padding: 0.5rem 1.25rem;
     border-radius: 7px;
     background: rgba(100,210,255,0.12);
@@ -409,4 +415,8 @@ function submit() {
 }
 .cpm-submit:hover:not(:disabled) { background: rgba(100,210,255,0.2); }
 .cpm-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+@keyframes cpm-spin {
+    to { transform: rotate(360deg); }
+}
+.cpm-spin { animation: cpm-spin 0.8s linear infinite; }
 </style>
