@@ -259,7 +259,7 @@
     "order.status.cancelled": "Cancelled",
     "order.status.refunded": "Refunded",
     "order.status.disputed": "Disputed",
-    "order.my": "My",
+    "order.my": "Outgoing",
     "order.incoming": "Incoming",
     "order.empty": "No orders",
     "order.number": "Order #:id",

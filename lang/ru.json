@@ -259,7 +259,7 @@
     "order.status.cancelled": "Отменён",
     "order.status.refunded": "Аннулирован",
     "order.status.disputed": "Оспаривается",
-    "order.my": "Мои",
+    "order.my": "Исходящие",
     "order.incoming": "Входящие",
     "order.empty": "Заказов нет",
     "order.number": "Заказ #:id",

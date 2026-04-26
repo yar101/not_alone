@@ -3194,28 +3194,40 @@ function formatDate(iso) {
     display: flex;
     border-bottom: 1px solid rgba(160,160,255,0.12);
     flex-shrink: 0;
+    padding: 4px 6px;
+    gap: 2px;
 }
 .chat-tab {
     flex: 1;
-    padding: 0.55rem 0;
+    padding: 0.42rem 0;
     font-size: 0.8rem;
     font-weight: 600;
     letter-spacing: 0.04em;
     color: rgba(255,255,255,0.35);
     background: transparent;
     border: none;
-    border-bottom: 2px solid transparent;
+    border-radius: 4px;
     cursor: pointer;
-    transition: color 0.15s, border-color 0.15s;
+    transition: color 0.15s, background 0.15s;
     font-family: inherit;
+    position: relative;
 }
-.chat-tab:hover { color: rgba(255,255,255,0.65); }
+.chat-tab + .chat-tab::before {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: 18%;
+    height: 64%;
+    width: 1px;
+    background: rgba(160,160,255,0.18);
+    transition: opacity 0.15s;
+}
+.chat-tab--active + .chat-tab::before,
+.chat-tab--active::before { opacity: 0; }
+.chat-tab:hover:not(.chat-tab--active) { color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.04); }
 .chat-tab--active {
     color: var(--color-base-1);
-    border-bottom-color: var(--color-base-1);
-}
-.chat-tab {
-    position: relative;
+    background: rgba(160,160,255,0.1);
 }
 .chat-tab__dot {
     display: inline-block;
