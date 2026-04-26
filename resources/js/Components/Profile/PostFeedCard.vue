@@ -2,6 +2,7 @@
 import { ref, onMounted, nextTick } from 'vue';
 import axios from 'axios';
 import AuthModal from '@/Components/Site/AuthModal.vue';
+import AppAvatar from '@/Components/Common/AppAvatar.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
 const { __ } = useTranslations();
@@ -16,6 +17,8 @@ const emit = defineEmits(['open-detail', 'liked']);
 
 const showAuthModal = ref(false);
 const likeAnimating = ref(false);
+const photoLoaded   = ref(false);
+const photoError    = ref(false);
 
 async function toggleLike() {
     if (!props.authUser) {
@@ -53,17 +56,30 @@ onMounted(async () => {
                 :href="route('profile.show', post.author?.id) + '#about'"
                 @click.stop
             >
-                <div class="feed-card__avatar">
-                    <img v-if="post.author?.avatar_url" :src="post.author.avatar_url" class="feed-card__avatar-img" />
-                    <span v-else class="feed-card__avatar-fb">{{ post.author?.name?.[0] }}</span>
-                </div>
+                <AppAvatar :src="post.author?.avatar_url" :name="post.author?.name ?? ''" size="lg" />
                 <span class="feed-card__author-name">{{ post.author?.name }}</span>
             </a>
             <span class="feed-card__date">{{ post.created_at }}</span>
         </div>
 
         <!-- Photo -->
-        <img v-if="post.photo_url" :src="post.photo_url" class="feed-card__photo" />
+        <div v-if="post.photo_url" class="feed-card__photo-wrap">
+            <div v-if="!photoLoaded && !photoError" class="feed-card__photo-shimmer" />
+            <div v-if="photoError" class="feed-card__photo-error">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                </svg>
+            </div>
+            <img
+                :src="post.photo_url"
+                class="feed-card__photo"
+                :class="{ 'feed-card__photo--loaded': photoLoaded }"
+                @load="photoLoaded = true"
+                @error="photoError = true"
+            />
+        </div>
 
         <!-- Body -->
         <div class="feed-card__body">
@@ -146,35 +162,6 @@ onMounted(async () => {
     opacity: 0.8;
 }
 
-.feed-card__avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    overflow: hidden;
-    flex-shrink: 0;
-}
-
-.feed-card__avatar-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-
-.feed-card__avatar-fb {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: rgba(160, 160, 255, 0.14);
-    color: rgba(160, 160, 255, 0.75);
-    font-size: 0.72rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-transform: uppercase;
-}
-
 .feed-card__author-name {
     font-size: 0.83rem;
     font-weight: 600;
@@ -188,12 +175,49 @@ onMounted(async () => {
 }
 
 /* Photo */
-.feed-card__photo {
+.feed-card__photo-wrap {
+    position: relative;
     width: 100%;
-    display: block;
-    object-fit: cover;
-    max-height: 320px;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.03);
+    flex-shrink: 0;
 }
+.feed-card__photo-shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.03) 25%,
+        rgba(255, 255, 255, 0.09) 50%,
+        rgba(255, 255, 255, 0.03) 75%
+    );
+    background-size: 200% 100%;
+    animation: photo-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes photo-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+.feed-card__photo-error {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.12);
+}
+.feed-card__photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+}
+.feed-card__photo--loaded { opacity: 1; }
 
 /* Body */
 .feed-card__body {

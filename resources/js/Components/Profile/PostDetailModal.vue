@@ -8,6 +8,7 @@ const { __ } = useTranslations();
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import GuestBanner from '@/Components/Profile/GuestBanner.vue';
 import AuthModal from '@/Components/Site/AuthModal.vue';
+import AppAvatar from '@/Components/Common/AppAvatar.vue';
 
 const props = defineProps({
     post:     { default: null },
@@ -81,10 +82,16 @@ async function loadComments() {
 
 watch(() => props.post?.id, (val) => {
     if (val) {
-        comments.value = [];
+        comments.value    = [];
+        photoLoaded.value = false;
+        photoError.value  = false;
         loadComments();
     }
 });
+
+// ── Photo loading state ────────────────────────────────────
+const photoLoaded = ref(false);
+const photoError  = ref(false);
 
 // ── Like ───────────────────────────────────────────────────
 const showAuthModal  = ref(false);
@@ -221,7 +228,22 @@ async function deleteComment(commentId, parentId) {
                 <div class="detail__left">
 
                     <div v-if="post.photo_url" class="detail__photo-wrap">
-                        <img :src="post.photo_url" class="detail__photo" @click="openFullscreen" />
+                        <div v-if="!photoLoaded && !photoError" class="detail__photo-skel" />
+                        <div v-if="photoError" class="detail__photo-error">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                <polyline points="21 15 16 10 5 21"/>
+                            </svg>
+                        </div>
+                        <img
+                            :src="post.photo_url"
+                            class="detail__photo"
+                            :class="{ 'detail__photo--loaded': photoLoaded }"
+                            @load="photoLoaded = true"
+                            @error="photoError = true"
+                            @click="openFullscreen"
+                        />
                         <button class="detail__photo-expand" @click="openFullscreen" :title="__('post.detail.fullscreen')">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
@@ -291,8 +313,7 @@ async function deleteComment(commentId, parentId) {
                             <div v-for="cmt in comments" :key="cmt.id" class="detail__cmt">
                                 <div class="detail__cmt-row">
                                     <a :href="route('profile.show', cmt.user.id) + '#about'" class="detail__cmt-avatar-link">
-                                        <img v-if="cmt.user.avatar_url" :src="cmt.user.avatar_url" class="detail__cmt-avatar" />
-                                        <div v-else class="detail__cmt-avatar detail__cmt-avatar--fb">{{ cmt.user.name[0] }}</div>
+                                        <AppAvatar :src="cmt.user.avatar_url" :name="cmt.user.name" size="md" />
                                     </a>
                                     <div class="detail__cmt-content">
                                         <div class="detail__cmt-meta">
@@ -328,8 +349,7 @@ async function deleteComment(commentId, parentId) {
                                     <div class="detail__cmt detail__cmt--reply">
                                         <div class="detail__cmt-row">
                                             <a :href="route('profile.show', cmt.replies[0].user.id) + '#about'" class="detail__cmt-avatar-link">
-                                                <img v-if="cmt.replies[0].user.avatar_url" :src="cmt.replies[0].user.avatar_url" class="detail__cmt-avatar detail__cmt-avatar--sm" />
-                                                <div v-else class="detail__cmt-avatar detail__cmt-avatar--fb detail__cmt-avatar--sm">{{ cmt.replies[0].user.name[0] }}</div>
+                                                <AppAvatar :src="cmt.replies[0].user.avatar_url" :name="cmt.replies[0].user.name" size="sm" />
                                             </a>
                                             <div class="detail__cmt-content">
                                                 <div class="detail__cmt-meta">
@@ -401,8 +421,7 @@ async function deleteComment(commentId, parentId) {
                                         >
                                             <div class="detail__cmt-row">
                                                 <a :href="route('profile.show', reply.user.id) + '#about'" class="detail__cmt-avatar-link">
-                                                    <img v-if="reply.user.avatar_url" :src="reply.user.avatar_url" class="detail__cmt-avatar detail__cmt-avatar--sm" />
-                                                    <div v-else class="detail__cmt-avatar detail__cmt-avatar--fb detail__cmt-avatar--sm">{{ reply.user.name[0] }}</div>
+                                                    <AppAvatar :src="reply.user.avatar_url" :name="reply.user.name" size="sm" />
                                                 </a>
                                                 <div class="detail__cmt-content">
                                                     <div class="detail__cmt-meta">
@@ -539,16 +558,46 @@ async function deleteComment(commentId, parentId) {
 .detail__photo-wrap {
     position: relative;
     flex-shrink: 0;
-    max-height: 55%;
+    aspect-ratio: 4 / 3;
     overflow: hidden;
+    background: rgba(255, 255, 255, 0.03);
+}
+.detail__photo-skel {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.03) 25%,
+        rgba(255, 255, 255, 0.09) 50%,
+        rgba(255, 255, 255, 0.03) 75%
+    );
+    background-size: 200% 100%;
+    animation: photo-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes photo-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+.detail__photo-error {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.12);
 }
 .detail__photo {
+    position: absolute;
+    inset: 0;
     width: 100%;
-    display: block;
+    height: 100%;
     object-fit: cover;
-    max-height: 55vh;
+    display: block;
+    opacity: 0;
+    transition: opacity 0.35s ease;
     cursor: zoom-in;
 }
+.detail__photo--loaded { opacity: 1; }
 .detail__photo-expand {
     position: absolute;
     bottom: 0.5rem;
@@ -779,27 +828,7 @@ async function deleteComment(commentId, parentId) {
     gap: 0.5rem;
     align-items: flex-start;
 }
-.detail__cmt-avatar {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    object-fit: cover;
-    display: block;
-}
-.detail__cmt-avatar--fb {
-    background: rgba(160, 160, 255, 0.14);
-    color: rgba(160, 160, 255, 0.75);
-    font-size: 0.68rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-transform: uppercase;
-}
-.detail__cmt-avatar--sm {
-    width: 20px;
-    height: 20px;
-}
+
 .detail__cmt-content { flex: 1; min-width: 0; }
 .detail__cmt-meta {
     display: flex;
