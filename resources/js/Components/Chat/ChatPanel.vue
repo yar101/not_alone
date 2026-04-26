@@ -769,7 +769,7 @@ watch(isOpen, (val, oldVal) => {
         cpIgnoreTill = Date.now() + 500;
         pushCp('list');
         fetchConversations();
-        if (activeTab.value === 'orders') fetchOrders();
+        fetchOrders();
         subscribeOrdersEcho();
     }
     if (!val && oldVal) {
@@ -794,7 +794,7 @@ watch(activeConversation, (conv, oldConv) => {
 });
 
 watch(activeTab, (tab) => {
-    if (tab === 'orders') fetchOrders();
+    if (tab === 'orders') fetchOrders(true);
 });
 
 watch(ordersSubTab, () => {
