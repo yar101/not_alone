@@ -3398,7 +3398,7 @@ function formatDate(iso) {
     border-color: rgba(160,160,255,0.3);
     border-top: none;
     color: rgba(200,200,255,0.95);
-    box-shadow: 0 2px 8px rgba(160,160,255,0.18), inset 0 1px 0 rgba(200,200,255,0.3);
+    box-shadow: inset 0 1px 0 rgba(200,200,255,0.25);
 }
 .chat-order-subtab--active:hover {
     background: rgba(160,160,255,0.18);
