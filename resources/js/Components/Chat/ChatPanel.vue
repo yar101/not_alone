@@ -80,8 +80,15 @@ function checkMobile() { isMobile.value = window.innerWidth < 768; }
 const subtabOrders = computed(() => orders.value);
 
 const pendingOrderUnread = ref(false);
-const ordersHaveUnread = computed(() => pendingOrderUnread.value || orders.value.some(o => (o.unread_count ?? 0) > 0));
-const mineHaveUnread = computed(() => orders.value.filter(o => o.is_customer).some(o => (o.unread_count ?? 0) > 0));
+
+// Instant dots from server-shared props — no fetch required
+const messagesHaveUnread = computed(() => (page.props.unread_direct_count ?? 0) > 0);
+const ordersHaveUnread   = computed(() =>
+    pendingOrderUnread.value ||
+    (page.props.unread_orders_count ?? 0) > 0 ||
+    orders.value.some(o => (o.unread_count ?? 0) > 0)
+);
+const mineHaveUnread     = computed(() => orders.value.filter(o =>  o.is_customer).some(o => (o.unread_count ?? 0) > 0));
 const incomingHaveUnread = computed(() => orders.value.filter(o => !o.is_customer).some(o => (o.unread_count ?? 0) > 0));
 
 const orderStatusLabels = computed(() => ({
@@ -330,7 +337,7 @@ async function openConversation(conv) {
         if (local) local.unread_count = 0;
         const order = orders.value.find(o => o.conversation_id === conv.id);
         if (order) order.unread_count = 0;
-        router.reload({ only: ['unread_messages_count'] });
+        router.reload({ only: ['unread_messages_count', 'unread_direct_count', 'unread_orders_count'] });
     } finally {
         coverMessages.value = true;
         loadingMsgs.value = false;
@@ -1011,7 +1018,10 @@ function formatDate(iso) {
 
                     <!-- Табы -->
                     <div class="chat-tabs">
-                        <button class="chat-tab" :class="{ 'chat-tab--active': activeTab === 'messages' }" @click="activeTab = 'messages'">{{ __('chat.messages') }}</button>
+                        <button class="chat-tab" :class="{ 'chat-tab--active': activeTab === 'messages' }" @click="activeTab = 'messages'">
+                            {{ __('chat.messages') }}
+                            <span v-if="messagesHaveUnread" class="chat-tab__dot"></span>
+                        </button>
                         <button class="chat-tab" :class="{ 'chat-tab--active': activeTab === 'orders' }" @click="activeTab = 'orders'">
                             {{ __('chat.tab.orders') }}
                             <span v-if="ordersHaveUnread" class="chat-tab__dot"></span>

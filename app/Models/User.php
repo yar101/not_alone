@@ -158,19 +158,37 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function unreadMessagesCount(): int
     {
-        return $this->conversationParticipants()
-            ->get()
-            ->sum(function ($participant) {
-                $query = Message::where('conversation_id', $participant->conversation_id)
-                    ->where(function ($q) {
-                        $q->whereNull('sender_id')
-                          ->orWhere('sender_id', '!=', $this->id);
-                    });
-                if ($participant->last_read_at) {
-                    $query->where('created_at', '>', $participant->last_read_at);
-                }
-                return $query->count();
-            });
+        return $this->unreadConversationCount();
+    }
+
+    public function unreadDirectCount(): int
+    {
+        return $this->unreadConversationCount(orderOnly: false);
+    }
+
+    public function unreadOrdersCount(): int
+    {
+        return $this->unreadConversationCount(orderOnly: true);
+    }
+
+    private function unreadConversationCount(?bool $orderOnly = null): int
+    {
+        $participants = $this->conversationParticipants()
+            ->when($orderOnly === true,  fn($q) => $q->whereHas('conversation', fn($c) => $c->whereNotNull('order_id')))
+            ->when($orderOnly === false, fn($q) => $q->whereHas('conversation', fn($c) => $c->whereNull('order_id')))
+            ->get();
+
+        return $participants->sum(function ($participant) {
+            $query = Message::where('conversation_id', $participant->conversation_id)
+                ->where(function ($q) {
+                    $q->whereNull('sender_id')
+                      ->orWhere('sender_id', '!=', $this->id);
+                });
+            if ($participant->last_read_at) {
+                $query->where('created_at', '>', $participant->last_read_at);
+            }
+            return $query->count();
+        });
     }
 
     public function sendEmailVerificationNotification(): void

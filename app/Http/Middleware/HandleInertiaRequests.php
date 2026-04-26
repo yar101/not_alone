@@ -65,6 +65,8 @@ class HandleInertiaRequests extends Middleware
                 ? ReviewDispute::where('status', 'pending')->count()
                 : 0,
             'unread_messages_count' => fn() => $user?->unreadMessagesCount() ?? 0,
+            'unread_direct_count'   => fn() => $user?->unreadDirectCount() ?? 0,
+            'unread_orders_count'   => fn() => $user?->unreadOrdersCount() ?? 0,
             'chat_block_reasons' => fn() => $user
                 ? BanReason::forChatBlock()->pluck('label')
                 : [],
