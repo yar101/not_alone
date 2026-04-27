@@ -42,8 +42,15 @@ class ContentPack extends Model
         if ($this->cover_path) {
             return Storage::url($this->cover_path);
         }
-        $first = $this->photos->first();
-        return $first ? $first->url : null;
+        $photo = $this->relationLoaded('coverPhoto')
+            ? $this->coverPhoto
+            : $this->photos->first();
+        return $photo ? $photo->url : null;
+    }
+
+    public function coverPhoto(): HasOne
+    {
+        return $this->hasOne(ContentPackPhoto::class)->ofMany('sort_order', 'min');
     }
 
     public function user(): BelongsTo

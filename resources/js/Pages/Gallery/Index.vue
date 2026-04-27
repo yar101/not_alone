@@ -38,13 +38,33 @@ const sidebarItems = computed(() => {
 });
 
 // ── Sidebar pack sub-list ─────────────────────────────────
-const selectedPackId = ref(null);
-const sidebarPacks   = ref([]);
-const packsLoading   = ref(false);
+const selectedPackId    = ref(null);
+const sidebarPacks      = ref([]);
+const packsLoading      = ref(false);
+const hasMorePacks      = ref(false);
+const nextPacksCursor   = ref(null);
 
-async function loadSidebarPacks() {
-    sidebarPacks.value = [];
+// ── Cache (in-memory, живёт пока открыта вкладка) ─────────
+const packsCache  = {};
+const photosCache = {};
+const photosKey   = () => `${selectedIdolId.value ?? 'all'}:${selectedPackId.value ?? 'all'}`;
+
+async function loadSidebarPacks(append = false) {
     if (selectedIdolId.value === null) return;
+
+    if (!append) {
+        const cached = packsCache[selectedIdolId.value];
+        if (cached) {
+            sidebarPacks.value    = [...cached.packs];
+            hasMorePacks.value    = cached.hasMore;
+            nextPacksCursor.value = cached.nextCursor;
+            return;
+        }
+        sidebarPacks.value    = [];
+        hasMorePacks.value    = false;
+        nextPacksCursor.value = null;
+    }
+
     packsLoading.value = true;
     try {
         const isMine = selectedIdolId.value === 'mine';
@@ -52,9 +72,17 @@ async function loadSidebarPacks() {
             params: {
                 idol_id: (!isMine && selectedIdolId.value) ? selectedIdolId.value : undefined,
                 mine:    isMine ? true : undefined,
+                cursor:  append ? nextPacksCursor.value : undefined,
             },
         });
-        sidebarPacks.value = data;
+        sidebarPacks.value.push(...data.packs);
+        hasMorePacks.value    = data.has_more;
+        nextPacksCursor.value = data.next_cursor;
+        packsCache[selectedIdolId.value] = {
+            packs:      [...sidebarPacks.value],
+            hasMore:    hasMorePacks.value,
+            nextCursor: nextPacksCursor.value,
+        };
     } catch (e) {
         console.error(e);
     } finally {
@@ -93,6 +121,11 @@ async function loadPhotos() {
         photos.value.push(...data.photos);
         nextCursor.value = data.next_cursor;
         hasMore.value    = data.has_more;
+        photosCache[photosKey()] = {
+            photos:     [...photos.value],
+            hasMore:    hasMore.value,
+            nextCursor: nextCursor.value,
+        };
     } catch (e) {
         console.error(e);
     } finally {
@@ -102,17 +135,25 @@ async function loadPhotos() {
 
 function resetAndLoad() {
     lightboxIndex.value = null;
-    photos.value        = [];
-    nextCursor.value    = null;
-    hasMore.value       = true;
     Object.keys(photoLoaded).forEach(k => delete photoLoaded[k]);
+
+    const cached = photosCache[photosKey()];
+    if (cached) {
+        photos.value     = [...cached.photos];
+        nextCursor.value = cached.nextCursor;
+        hasMore.value    = cached.hasMore;
+        return;
+    }
+
+    photos.value     = [];
+    nextCursor.value = null;
+    hasMore.value    = true;
     loadPhotos();
 }
 
 // Когда меняется айдол — сбрасываем пак, загружаем список паков и фотки
 watch(selectedIdolId, () => {
-    sidebarPacks.value   = [];
-    selectedPackId.value = null; // pack-watcher защищён guard'ом val !== null
+    selectedPackId.value = null;
     loadSidebarPacks();
     resetAndLoad();
 });
@@ -368,6 +409,16 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
                                 <span class="gallery-pack-item__count">{{ __('pack.photos', { count: pack.photo_count }) }}</span>
                             </div>
                         </button>
+                        <button
+                            v-if="hasMorePacks && !packsLoading"
+                            class="gallery-pack-more"
+                            @click="loadSidebarPacks(true)"
+                        >
+                            {{ __('gallery.load_more') }}
+                        </button>
+                        <div v-if="packsLoading && sidebarPacks.length" class="gallery-pack-list__loading">
+                            <div class="gallery-loading__spinner--sm" />
+                        </div>
                     </div>
                 </template>
 
@@ -463,7 +514,7 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
                 <!-- Skeleton cards while loading -->
                 <template v-if="loading">
                     <div
-                        v-for="n in 12"
+                        v-for="n in 24"
                         :key="`sk-${n}`"
                         class="gallery-photo gallery-photo--skeleton"
                     >
@@ -713,6 +764,20 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
     color: rgba(255,255,255,0.22);
     line-height: 1.2;
 }
+
+.gallery-pack-more {
+    width: 100%;
+    padding: 0.35rem 0.75rem;
+    background: transparent;
+    border: none;
+    color: rgba(160,160,255,0.5);
+    font-size: 0.82rem;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    transition: color 0.15s;
+}
+.gallery-pack-more:hover { color: rgba(160,160,255,0.9); }
 
 /* ── Main area ───────────────────────────────────────────── */
 .gallery-main {

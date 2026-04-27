@@ -130,35 +130,45 @@ class GalleryController extends Controller
 
     public function packs(Request $request): JsonResponse
     {
-        $userId = auth()->id();
-        $user   = auth()->user();
-        $idolId = $request->input('idol_id');
-        $mine   = $request->boolean('mine');
+        $userId  = auth()->id();
+        $user    = auth()->user();
+        $idolId  = $request->input('idol_id');
+        $mine    = $request->boolean('mine');
+        $cursor  = $request->input('cursor');
+        $perPage = 20;
 
         if ($mine && $user->is_idol) {
-            $packs = ContentPack::where('user_id', $userId)
-                ->with('photos:id,content_pack_id,path,sort_order')
+            $query = ContentPack::where('user_id', $userId)
+                ->with('coverPhoto')
                 ->withCount('photos')
-                ->orderByDesc('id')
-                ->get();
+                ->when($cursor, fn ($q) => $q->where('id', '<', $cursor))
+                ->orderByDesc('id');
         } else {
-            $packs = ContentPack::withTrashed()
+            $query = ContentPack::withTrashed()
                 ->whereHas('purchases', fn ($q) => $q->where('user_id', $userId))
                 ->where('status', 'published')
                 ->when($idolId, fn ($q) => $q->where('user_id', $idolId))
-                ->with('photos:id,content_pack_id,path,sort_order')
+                ->with('coverPhoto')
                 ->withCount('photos')
-                ->orderByDesc('id')
-                ->get();
+                ->when($cursor, fn ($q) => $q->where('id', '<', $cursor))
+                ->orderByDesc('id');
         }
 
-        return response()->json(
-            $packs->map(fn ($p) => [
+        $packs   = $query->limit($perPage + 1)->get();
+        $hasMore = $packs->count() > $perPage;
+        if ($hasMore) {
+            $packs = $packs->take($perPage);
+        }
+
+        return response()->json([
+            'packs'       => $packs->map(fn ($p) => [
                 'id'          => $p->id,
                 'title'       => $p->title,
                 'photo_count' => $p->photos_count,
                 'cover_url'   => $p->cover_url,
-            ])->values()
-        );
+            ])->values(),
+            'next_cursor' => $hasMore ? $packs->last()?->id : null,
+            'has_more'    => $hasMore,
+        ]);
     }
 }
