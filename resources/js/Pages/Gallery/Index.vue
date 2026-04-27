@@ -122,19 +122,7 @@ watch(selectedPackId, () => {
     resetAndLoad();
 });
 
-// ── IntersectionObserver sentinel ─────────────────────────
-const sentinel = ref(null);
-let observer = null;
-
-onMounted(() => {
-    resetAndLoad();
-    observer = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) loadPhotos();
-    }, { rootMargin: '200px' });
-    if (sentinel.value) observer.observe(sentinel.value);
-});
-
-onUnmounted(() => { observer?.disconnect(); });
+onMounted(() => { resetAndLoad(); });
 
 // ── Lightbox ──────────────────────────────────────────────
 const lightboxIndex = ref(null);
@@ -305,6 +293,15 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
                     class="gallery-search"
                     :placeholder="__('gallery.search')"
                 />
+                <button
+                    v-if="searchQuery"
+                    class="gallery-search-clear"
+                    @click="searchQuery = ''"
+                    :aria-label="__('common.close')"
+                    type="button"
+                >
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                </button>
             </div>
 
             <div class="gallery-idol-list">
@@ -475,8 +472,12 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
                 </template>
             </div>
 
-            <!-- Sentinel for infinite scroll -->
-            <div ref="sentinel" class="gallery-sentinel" />
+            <!-- Load more -->
+            <div v-if="hasMore && !loading" class="gallery-load-more">
+                <button class="gallery-load-more__btn" @click="loadPhotos">
+                    {{ __('gallery.load_more') }}
+                </button>
+            </div>
         </main>
 
         <!-- Lightbox -->
@@ -543,10 +544,14 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
     padding: 1rem;
     border-bottom: 1px solid rgba(255,255,255,0.05);
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
 .gallery-search {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     box-sizing: border-box;
     background: rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.1);
@@ -560,6 +565,26 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
 }
 .gallery-search:focus { border-color: rgba(160,160,255,0.3); }
 .gallery-search::placeholder { color: rgba(255,255,255,0.25); }
+
+.gallery-search-clear {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.gallery-search-clear:hover {
+    background: rgba(255,80,80,0.08);
+    border-color: rgba(255,100,100,0.25);
+    color: rgba(255,130,130,0.85);
+}
 
 .gallery-idol-list {
     padding: 0.5rem 0;
@@ -830,7 +855,28 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
     pointer-events: none;
 }
 
-.gallery-sentinel { height: 1px; }
+.gallery-load-more {
+    display: flex;
+    justify-content: center;
+    padding: 1.5rem 1rem;
+}
+
+.gallery-load-more__btn {
+    padding: 0.55rem 1.75rem;
+    background: rgba(160,160,255,0.08);
+    border: 1px solid rgba(160,160,255,0.2);
+    border-radius: 8px;
+    color: rgba(160,160,255,0.85);
+    font-size: 0.9rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.gallery-load-more__btn:hover {
+    background: rgba(160,160,255,0.15);
+    border-color: rgba(160,160,255,0.35);
+    color: rgba(200,200,255,0.95);
+}
 
 /* ── Lightbox ────────────────────────────────────────────── */
 .lb-fade-enter-active, .lb-fade-leave-active { transition: opacity 0.22s; }

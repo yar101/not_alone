@@ -246,6 +246,7 @@
     "gallery.prev": "Предыдущее",
     "gallery.next": "Следующее",
     "gallery.filter.title": "Фильтры",
+    "gallery.load_more": "Загрузить ещё",
 
     "news.pinned": "Закреплено",
     "news.sort.new": "Новые",
