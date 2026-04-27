@@ -4428,12 +4428,35 @@ function formatDate(iso) {
 }
 
 @media (max-width: 767px) {
-    .chat-sidebar { width: 100%; }
-    .chat-sidebar--mobile-hidden { display: none; }
-    .chat-main--mobile-hidden { display: none; }
-    .chat-main { width: 100%; }
-    .chat-main__back-btn { display: flex; }
+    .chat-panel { overflow: hidden; }
 
+    .chat-sidebar {
+        width: 100%;
+        position: absolute;
+        inset: 0;
+        transform: translateX(0);
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .chat-sidebar--mobile-hidden {
+        transform: translateX(-100%);
+        pointer-events: none;
+    }
+
+    .chat-main {
+        width: 100%;
+        position: absolute;
+        inset: 0;
+        transform: translateX(100%);
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .chat-main:not(.chat-main--mobile-hidden) {
+        transform: translateX(0);
+    }
+    .chat-main--mobile-hidden {
+        pointer-events: none;
+    }
+
+    .chat-main__back-btn { display: flex; }
     .chat-main__header { align-items: flex-start; }
 }
 
