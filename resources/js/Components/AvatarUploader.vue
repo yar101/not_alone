@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { useTranslations } from '@/composables/useTranslations';
 import { Camera } from '@element-plus/icons-vue';
@@ -17,6 +17,8 @@ const props = defineProps({
 const { __ } = useTranslations();
 
 const initials = props.user?.name?.charAt(0).toUpperCase() ?? '?';
+const avatarLoaded = ref(false);
+watch(() => props.user?.avatar_url, () => { avatarLoaded.value = false; });
 
 // ── Upload modal ───────────────────────────────────────────
 const avatarModal = ref(false);
@@ -81,7 +83,16 @@ function applyCrop() {
         :class="{ 'au-wrap--editable': editable }"
         @click="openUpload"
     >
-        <img v-if="user.avatar_url" :src="user.avatar_url" class="au-img" alt="" />
+        <template v-if="user.avatar_url">
+            <div v-if="!avatarLoaded" class="au-shimmer" />
+            <img
+                :src="user.avatar_url"
+                class="au-img"
+                :class="{ 'au-img--loaded': avatarLoaded }"
+                alt=""
+                @load="avatarLoaded = true"
+            />
+        </template>
         <span v-else class="au-initials" :style="{ fontSize: size * 0.28 + 'px' }">{{ initials }}</span>
 
         <div v-if="editable" class="au-overlay">
@@ -150,6 +161,24 @@ function applyCrop() {
     height: 100%;
     object-fit: cover;
     border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.35s;
+}
+.au-img--loaded { opacity: 1; }
+.au-shimmer {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: linear-gradient(90deg,
+        rgba(255,255,255,0.04) 25%,
+        rgba(255,255,255,0.1)  50%,
+        rgba(255,255,255,0.04) 75%);
+    background-size: 200% 100%;
+    animation: au-shimmer 1.5s ease-in-out infinite;
+}
+@keyframes au-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
 
 .au-initials {

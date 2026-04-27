@@ -17,6 +17,8 @@ const { __ } = useTranslations();
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 const initials = computed(() => user.value?.name?.charAt(0).toUpperCase() ?? '?');
+const avatarLoaded = ref(false);
+watch(() => user.value?.avatar_url, () => { avatarLoaded.value = false; });
 const profileHref = computed(() =>
     user.value ? route('profile.show', { user: user.value.id }) : '/'
 );
@@ -245,12 +247,16 @@ onUnmounted(() => {
                 <template v-if="user">
                     <button @click="sidebarOpen = true" class="user-chip">
                         <div class="user-avatar">
-                            <img
-                                v-if="user.avatar_url"
-                                :src="user.avatar_url"
-                                class="user-avatar__img"
-                                :alt="__('common.avatar')"
-                            />
+                            <template v-if="user.avatar_url">
+                                <div v-if="!avatarLoaded" class="user-avatar__shimmer" />
+                                <img
+                                    :src="user.avatar_url"
+                                    class="user-avatar__img"
+                                    :class="{ 'user-avatar__img--loaded': avatarLoaded }"
+                                    :alt="__('common.avatar')"
+                                    @load="avatarLoaded = true"
+                                />
+                            </template>
                             <span v-else class="user-avatar__initials">{{ initials }}</span>
                         </div>
                         <span class="user-name-clip">
@@ -352,6 +358,7 @@ onUnmounted(() => {
 
 /* ── Avatar ──────────────────────────────────────────────── */
 .user-avatar {
+    position: relative;
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -369,6 +376,24 @@ onUnmounted(() => {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+.user-avatar__img--loaded { opacity: 1; }
+.user-avatar__shimmer {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: linear-gradient(90deg,
+        rgba(255,255,255,0.04) 25%,
+        rgba(255,255,255,0.1)  50%,
+        rgba(255,255,255,0.04) 75%);
+    background-size: 200% 100%;
+    animation: avatar-shimmer 1.5s ease-in-out infinite;
+}
+@keyframes avatar-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
 
 .user-avatar__initials {

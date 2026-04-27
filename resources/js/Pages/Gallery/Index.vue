@@ -40,6 +40,7 @@ const sidebarItems = computed(() => {
 // ── Sidebar pack sub-list ─────────────────────────────────
 const selectedPackId    = ref(null);
 const sidebarPacks      = ref([]);
+const packCoverLoaded   = reactive({});
 const packsLoading      = ref(false);
 const hasMorePacks      = ref(false);
 const nextPacksCursor   = ref(null);
@@ -401,7 +402,15 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
                             @click="selectPack(pack.id)"
                         >
                             <div class="gallery-pack-item__cover">
-                                <img v-if="pack.cover_url" :src="pack.cover_url" :alt="pack.title" />
+                                <template v-if="pack.cover_url">
+                                    <div v-if="!packCoverLoaded[pack.id]" class="gallery-pack-item__cover-shimmer" />
+                                    <img
+                                        :src="pack.cover_url"
+                                        :alt="pack.title"
+                                        :class="{ 'gallery-pack-item__cover-img--loaded': packCoverLoaded[pack.id] }"
+                                        @load="packCoverLoaded[pack.id] = true"
+                                    />
+                                </template>
                                 <span v-else class="gallery-pack-item__cover-empty" />
                             </div>
                             <div class="gallery-pack-item__info">
@@ -726,6 +735,7 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
 .gallery-pack-item--active { color: rgba(160,160,255,0.9); background: rgba(160,160,255,0.07); }
 
 .gallery-pack-item__cover {
+    position: relative;
     width: 26px;
     height: 26px;
     border-radius: 3px;
@@ -738,6 +748,19 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
     height: 100%;
     object-fit: cover;
     display: block;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+.gallery-pack-item__cover-img--loaded { opacity: 1; }
+.gallery-pack-item__cover-shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+        rgba(255,255,255,0.04) 25%,
+        rgba(255,255,255,0.1)  50%,
+        rgba(255,255,255,0.04) 75%);
+    background-size: 200% 100%;
+    animation: gallery-shimmer 1.5s ease-in-out infinite;
 }
 .gallery-pack-item__cover-empty {
     display: block;
