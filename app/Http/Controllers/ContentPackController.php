@@ -140,7 +140,7 @@ class ContentPackController extends Controller
         ]);
 
         $moderation = $this->moderationSettings();
-        $status     = $moderation['new_packs'] ? 'pending_review' : 'published';
+        $status     = $moderation['new_packs'] ? 'pending_review' : 'approved';
 
         $pack = ContentPack::create([
             'user_id'      => $request->user()->id,
@@ -148,7 +148,7 @@ class ContentPackController extends Controller
             'description'  => $data['description'] ?? null,
             'price'        => $data['price'],
             'status'       => $status,
-            'published_at' => $moderation['new_packs'] ? null : now(),
+            'published_at' => null,
         ]);
 
         $coverIndex = $data['cover_index'] ?? null;
