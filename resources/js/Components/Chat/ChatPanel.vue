@@ -1166,16 +1166,29 @@ function formatDate(iso) {
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                                     </button>
                                 </div>
-                                <button
-                                    class="order-filters__toggle"
-                                    :class="{ 'order-filters__toggle--open': orderFiltersOpen }"
-                                    @click="orderFiltersOpen = !orderFiltersOpen"
-                                >
-                                    {{ __('chat.orders.filters') }}
-                                    <svg class="order-filters__arrow" width="10" height="10" viewBox="0 0 10 10" fill="none">
-                                        <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                </button>
+                                <div class="order-filters__btns-row">
+                                    <button
+                                        class="order-filters__toggle"
+                                        :class="{ 'order-filters__toggle--open': orderFiltersOpen }"
+                                        @click="orderFiltersOpen = !orderFiltersOpen"
+                                    >
+                                        {{ __('chat.orders.filters') }}
+                                        <svg class="order-filters__arrow" width="10" height="10" viewBox="0 0 10 10" fill="none">
+                                            <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </button>
+                                    <button
+                                        class="chat-unread-btn"
+                                        :class="{ 'chat-unread-btn--active': orderUnreadOnly }"
+                                        @click="orderUnreadOnly = !orderUnreadOnly; fetchOrders(true)"
+                                    >
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                            <polyline points="22,6 12,13 2,6"/>
+                                        </svg>
+                                        {{ __('chat.filter.unread_only') }}
+                                    </button>
+                                </div>
                                 <Transition name="of-expand">
                                     <div v-if="orderFiltersOpen" class="order-filters__pills">
                                         <button
@@ -1203,19 +1216,6 @@ function formatDate(iso) {
                                         </button>
                                     </div>
                                 </Transition>
-                            </div>
-                            <div class="chat-unread-toggle">
-                                <button
-                                    class="chat-unread-btn"
-                                    :class="{ 'chat-unread-btn--active': orderUnreadOnly }"
-                                    @click="orderUnreadOnly = !orderUnreadOnly; fetchOrders(true)"
-                                >
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                                        <polyline points="22,6 12,13 2,6"/>
-                                    </svg>
-                                    {{ __('chat.filter.unread_only') }}
-                                </button>
                             </div>
                             </div><!-- /chat-sticky-controls -->
 
@@ -3495,11 +3495,6 @@ function formatDate(iso) {
     font-family: inherit;
     transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-.chat-unread-btn:hover {
-    color: rgba(255,255,255,0.6);
-    border-color: rgba(255,255,255,0.14);
-    background: rgba(255,255,255,0.04);
-}
 .chat-unread-btn--active {
     color: rgba(200,200,255,0.95);
     border-color: rgba(160,160,255,0.4);
@@ -3507,6 +3502,15 @@ function formatDate(iso) {
 }
 
 /* ── Order filters ───────────────────────────────────────── */
+.order-filters__btns-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.order-filters__btns-row .order-filters__toggle {
+    flex: 1;
+}
+
 .order-filters {
     padding: 0.75rem 0.75rem 0.5rem;
     display: flex;
