@@ -188,3 +188,83 @@ routes/
   web.php
   admin.php
 ```
+
+## Продакшн
+
+### Стек
+
+- **Деплой:** Kamal 2 (Docker-образ → VPS по SSH)
+- **Веб-сервер:** nginx + php-fpm в одном контейнере (supervisord)
+- **Прокси / SSL:** kamal-proxy (встроен в Kamal, Let's Encrypt)
+- **БД:** PostgreSQL 17 как Kamal accessory (контейнер на том же VPS)
+- **Очередь / сессии / кеш:** database-драйвер (Redis не нужен на старте)
+- **WebSocket:** Reverb в отдельном контейнере
+- **Docker Registry:** GitHub Container Registry (`ghcr.io/yar101/no-alone`)
+
+### Защита медиафайлов
+
+Фото контент-паков хранятся на **приватном диске** (`storage/app/private`), прямой URL недоступен.
+
+Схема: Laravel выдаёт подписанный URL (TTL 30 мин) → `MediaController` проверяет подпись + покупку → отдаёт заголовок `X-Accel-Redirect` → nginx стримит файл напрямую с диска.
+
+Nginx location: `location /private-media/ { internal; alias /var/www/html/storage/app/private/; }`
+
+### Docker
+
+Один `Dockerfile`, роли разделены через `CONTAINER_ROLE`:
+
+| Роль | Что запускает |
+|---|---|
+| `web` | migrate + config:cache + supervisord (nginx + php-fpm) |
+| `worker` | `php artisan queue:work` |
+| `scheduler` | `php artisan schedule:work` |
+| `reverb` | `php artisan reverb:start` |
+
+Конфиги: `docker/nginx-prod.conf`, `docker/php-fpm-prod.conf`, `docker/supervisord.conf`, `docker/entrypoint.sh`
+
+### Первый деплой
+
+**Требования:**
+- VPS Ubuntu 24.04, SSH-ключ добавлен при создании
+- Домен направлен A-записью на IP VPS
+- GitHub Personal Access Token с `write:packages` → `KAMAL_REGISTRY_PASSWORD`
+- Установлен Kamal: `gem install kamal`
+
+**Заполнить в `.env.production`** (файл локальный, не в git):
+```
+APP_URL=https://домен
+DB_PASSWORD=...          # совпадает с POSTGRES_PASSWORD
+POSTGRES_PASSWORD=...
+KAMAL_REGISTRY_PASSWORD=ghp_...
+MAIL_HOST=...
+MAIL_USERNAME=...
+MAIL_PASSWORD=...
+```
+
+**Команды:**
+```bash
+DEPLOY_HOST=1.2.3.4 APP_DOMAIN=домен kamal setup   # установить Docker на VPS, поднять postgres
+kamal env push                                        # залить секреты на VPS
+DEPLOY_HOST=1.2.3.4 APP_DOMAIN=домен kamal deploy   # собрать образ, задеплоить
+```
+
+**Последующие деплои:**
+```bash
+DEPLOY_HOST=1.2.3.4 APP_DOMAIN=домен kamal deploy
+```
+
+### Storage volume
+
+Приватные файлы живут на VPS в `/var/www/no-alone/storage` (смонтировано в контейнер). При деплое **не пересоздаются** — данные сохраняются между деплоями.
+
+БД живёт в `/var/www/no-alone/postgres`.
+
+Бэкапы этих двух директорий = полный бэкап данных.
+
+### Откат
+
+```bash
+kamal rollback          # откат на предыдущий образ
+kamal app logs          # логи web-контейнера
+kamal app logs -r worker  # логи worker
+```
