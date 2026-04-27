@@ -22,10 +22,6 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
-    hideCloseBtn: {
-        type: Boolean,
-        default: false,
-    },
     maxWidth: {
         type: String,
         default: null,
@@ -34,21 +30,44 @@ const props = defineProps({
         type: String,
         default: null,
     },
+    fill: {
+        type: Boolean,
+        default: false,
+    },
+    noPadding: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const emit = defineEmits(['close']);
 const showSlot = ref(false);
 const localShow = ref(false);
 
+// ── Back-gesture (History API) ───────────────────────────
+let smPushed = false;
+
+const onSmPopstate = (e) => {
+    if (!smPushed) return;
+    // Any popstate while our state is on top means user went back past it
+    if (e.state?.modal !== 'sm') {
+        smPushed = false;
+        emit('close');
+    }
+};
+
 watch(
     () => props.show,
     async () => {
         if (props.show) {
+            history.pushState({ modal: 'sm' }, '');
+            smPushed = true;
             document.body.style.overflow = 'hidden';
             showSlot.value = true;
             await nextTick();
             localShow.value = true;
         } else {
+            smPushed = false;
             localShow.value = false;
             document.body.style.overflow = '';
             setTimeout(() => {
@@ -74,10 +93,14 @@ const closeOnEscape = (e) => {
     }
 };
 
-onMounted(() => document.addEventListener('keydown', closeOnEscape));
+onMounted(() => {
+    document.addEventListener('keydown', closeOnEscape);
+    window.addEventListener('popstate', onSmPopstate);
+});
 
 onUnmounted(() => {
     document.removeEventListener('keydown', closeOnEscape);
+    window.removeEventListener('popstate', onSmPopstate);
     document.body.style.overflow = '';
 });
 </script>
@@ -122,24 +145,8 @@ onUnmounted(() => {
                     <!-- Ambient orbs -->
                     <div class="site-modal-ambient" :class="variant === 'pink' ? 'ambient-pink' : 'ambient-cyan'" />
 
-                    <!-- Mobile drag handle -->
-                    <div class="site-modal-handle" />
-
-                    <!-- Close button -->
-                    <button
-                        v-if="closeable && !hideCloseBtn"
-                        @click="close"
-                        class="site-modal-close"
-                        :class="variant === 'pink' ? 'site-modal-close-pink' : 'site-modal-close-cyan'"
-                        :aria-label="__('common.close')"
-                    >
-                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-
                     <!-- Content -->
-                    <div class="site-modal-body">
+                    <div class="site-modal-body" :class="{ 'site-modal-body--fill': fill, 'site-modal-body--no-padding': noPadding }">
                         <slot />
                     </div>
                 </div>
@@ -192,7 +199,9 @@ onUnmounted(() => {
         left: 0;
         right: 0;
         bottom: 0;
-        width: 100%;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: unset !important;
         height: 88svh;
         max-height: 88svh;
         transform: none;
@@ -290,77 +299,38 @@ onUnmounted(() => {
     to   { transform: translate(-20px, -25px) scale(1.08); }
 }
 
-/* ── Handle ────────────────────────────────────────── */
-.site-modal-handle {
-    display: none;
-    position: relative;
-    z-index: 2;
-}
 
-@media (max-width: 768px) {
-    .site-modal-handle {
-        display: block;
-        width: 36px;
-        height: 4px;
-        background: rgba(255, 255, 255, 0.15);
-        border-radius: 3px;
-        margin: 0.65rem auto 0;
-        flex-shrink: 0;
-    }
-}
-
-/* ── Close button ──────────────────────────────────── */
-.site-modal-close {
-    position: absolute;
-    top: 0.75rem;
-    right: 0.75rem;
-    width: 36px;
-    height: 36px;
-    border-radius: 6px;
-    border: none;
-    background: transparent;
-    color: rgba(255, 255, 255, 0.28);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.18s ease, background 0.18s ease, transform 0.22s ease;
-    z-index: 10;
-    flex-shrink: 0;
-}
-
-.site-modal-close:hover {
-    color: rgba(255, 255, 255, 0.75);
-    background: rgba(255, 255, 255, 0.06);
-    transform: rotate(90deg);
-}
-
-.site-modal-close-pink:hover {
-    color: rgba(220, 100, 145, 0.9);
-    background: rgba(110, 110, 210, 0.1);
-}
-
-.site-modal-close-cyan:hover {
-    color: rgba(42, 255, 220, 0.8);
-    background: rgba(42, 255, 220, 0.07);
-}
 
 /* ── Body ──────────────────────────────────────────── */
 .site-modal-body {
     flex: 1;
     overflow-y: auto;
-    padding: 2rem;
-    padding-top: 3rem;
     position: relative;
     z-index: 1;
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+    min-height: 0;
+    padding: 2rem;
+    padding-top: 3rem;
+}
+
+.site-modal-body--fill {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.site-modal-body--no-padding {
+    padding: 0;
 }
 
 @media (max-width: 768px) {
     .site-modal-body {
         padding: 1.25rem;
         padding-top: 3rem;
+    }
+    .site-modal-body--no-padding {
+        padding: 0;
     }
 }
 

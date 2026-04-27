@@ -4,7 +4,7 @@ import { Head, Link, useForm, usePage, router } from '@inertiajs/vue3';
 import { useTranslations } from '@/composables/useTranslations.js';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { StarFilled, MagicStick } from '@element-plus/icons-vue';
+import { StarFilled, MagicStick, User, Memo, Briefcase, Film } from '@element-plus/icons-vue';
 
 defineOptions({ layout: AppLayout });
 import ProfileHeader from '@/Components/Profile/ProfileHeader.vue';
@@ -80,6 +80,7 @@ const tab = ref(initialTab);
 
 const serviceNav = reactive({ inCategory: false, accent: '#a0a0ff', onBack: null });
 provide('serviceNav', serviceNav);
+
 
 function switchTab(name) {
     tab.value = name;
@@ -203,6 +204,7 @@ onMounted(async () => {
 
     driverObj.drive();
 });
+
 </script>
 
 <template>
@@ -277,28 +279,32 @@ onMounted(async () => {
                             :class="{ active: tab === 'about' }"
                             @click="switchTab('about')"
                         >
-                            {{ __('profile.tabs.about') }}
+                            <el-icon class="tab-icon"><User /></el-icon>
+                            <span class="tab-label">{{ __('profile.tabs.about') }}</span>
                         </button>
                         <button
                             class="tab-btn"
                             :class="{ active: tab === 'posts' }"
                             @click="switchTab('posts')"
                         >
-                            {{ __('profile.tabs.posts') }}
+                            <el-icon class="tab-icon"><Memo /></el-icon>
+                            <span class="tab-label">{{ __('profile.tabs.posts') }}</span>
                         </button>
                         <button
                             class="tab-btn"
                             :class="{ active: tab === 'services' }"
                             @click="switchTab('services')"
                         >
-                            {{ __('profile.tabs.services') }}
+                            <el-icon class="tab-icon"><Briefcase /></el-icon>
+                            <span class="tab-label">{{ __('profile.tabs.services') }}</span>
                         </button>
                         <button
                             class="tab-btn"
                             :class="{ active: tab === 'content' }"
                             @click="switchTab('content')"
                         >
-                            {{ __('profile.tabs.content') }}
+                            <el-icon class="tab-icon"><Film /></el-icon>
+                            <span class="tab-label">{{ __('profile.tabs.content') }}</span>
                         </button>
                         <button
                             v-if="isIdol"
@@ -306,7 +312,8 @@ onMounted(async () => {
                             :class="{ active: tab === 'reviews' }"
                             @click="switchTab('reviews')"
                         >
-                            {{ __('profile.tabs.reviews') }}
+                            <el-icon class="tab-icon"><StarFilled /></el-icon>
+                            <span class="tab-label">{{ __('profile.tabs.reviews') }}</span>
                         </button>
                         <button v-if="serviceNav.inCategory"
                                 class="cd-back"
@@ -319,6 +326,18 @@ onMounted(async () => {
                             {{ __('profile.tabs.back_to_categories') }}
                         </button>
                     </div>
+
+                    <button v-if="serviceNav.inCategory"
+                            class="cd-back-mobile"
+                            :style="{ '--cat-accent': serviceNav.accent }"
+                            @click="serviceNav.onBack?.()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 18l-6-6 6-6" />
+                        </svg>
+                        {{ __('profile.tabs.back_to_categories') }}
+                    </button>
+
                 <div class="tab-content-wrap page-block">
                 <Transition name="tab-fade" mode="out-in">
 
@@ -799,6 +818,31 @@ onMounted(async () => {
     flex-shrink: 0;
 }
 
+.cd-back-mobile {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .cd-back { display: none; }
+    .cd-back-mobile {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        margin-bottom: 0.5rem;
+        background: color-mix(in srgb, var(--cat-accent, #a0a0ff) 8%, transparent);
+        border: 1px solid color-mix(in srgb, var(--cat-accent, #a0a0ff) 25%, transparent);
+        border-radius: 6px;
+        color: color-mix(in srgb, var(--cat-accent, #a0a0ff) 80%, white);
+        font-size: 0.85rem;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s;
+    }
+}
+
 .tab-btn {
     padding: 0.55rem 0.85rem;
     border: none;
@@ -817,6 +861,13 @@ onMounted(async () => {
     transition: color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
     white-space: nowrap;
     flex-shrink: 0;
+}
+.tab-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+.tab-label {
+    transition: max-width 0.2s ease, opacity 0.2s ease;
 }
 .tab-btn.active {
     color: rgba(200, 200, 255, 1);
@@ -1232,6 +1283,29 @@ onMounted(async () => {
 
 
 /* ── Адаптив ──────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+    .profile-sidebar { width: 300px; }
+}
+@media (max-width: 900px) {
+    .profile-sidebar { width: 240px; }
+}
+@media (max-width: 600px) {
+    .profile-tabs {
+        gap: 0.2rem;
+    }
+    .tab-btn {
+        flex: 1;
+        flex-direction: column;
+        gap: 0.2rem;
+        padding: 0.5rem 0.25rem;
+        font-size: 0.62rem;
+        letter-spacing: 0.03em;
+    }
+    .tab-icon {
+        font-size: 1.25rem;
+    }
+}
+
 @media (max-width: 768px) {
     .profile-page {
         height: auto;
@@ -1252,11 +1326,20 @@ onMounted(async () => {
     }
     .profile-main {
         padding-left: 0;
+        height: auto;
+        min-height: 40vh;
     }
-    .profile-main {
-        height: 60vh;
+    .tab-content-wrap {
+        overflow: visible;
+        min-height: unset;
+    }
+    .tab-panel {
+        height: auto;
+        overflow: visible;
+        padding-bottom: 3rem;
     }
 }
+
 
 @media (max-width: 700px) {
     .about-top-grid {

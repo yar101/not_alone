@@ -8,6 +8,11 @@ trait SendsWebPush
 {
     abstract protected function webPushBody(): string;
 
+    protected function webPushTitle(): string
+    {
+        return 'NoAlone';
+    }
+
     protected function webPushUrl(): string
     {
         return '/notifications';
@@ -16,7 +21,7 @@ trait SendsWebPush
     public function toWebPush(object $notifiable, object $notification): WebPushMessage
     {
         return (new WebPushMessage)
-            ->title('NoAlone')
+            ->title($this->webPushTitle())
             ->body($this->webPushBody())
             ->icon('/pwa-192x192.png')
             ->badge('/pwa-64x64.png')

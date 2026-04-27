@@ -37,6 +37,11 @@ class NewReviewNotification extends Notification
         return $this->toDatabase($notifiable);
     }
 
+    protected function webPushTitle(): string
+    {
+        return __('push.title.new_review');
+    }
+
     protected function webPushBody(): string
     {
         $stars = str_repeat('★', $this->review->rating) . str_repeat('☆', 5 - $this->review->rating);

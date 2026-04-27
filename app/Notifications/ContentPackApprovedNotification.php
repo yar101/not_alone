@@ -34,6 +34,11 @@ class ContentPackApprovedNotification extends Notification
         return $this->toDatabase($notifiable);
     }
 
+    protected function webPushTitle(): string
+    {
+        return __('push.title.content_pack_approved');
+    }
+
     protected function webPushBody(): string
     {
         return __('push.content_pack_approved', ['title' => $this->pack->title]);

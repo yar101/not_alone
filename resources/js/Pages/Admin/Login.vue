@@ -61,7 +61,7 @@ function submit() {
 }
 
 .login-card {
-    width: 380px;
+    width: min(380px, calc(100vw - 2rem));
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(155, 110, 232, 0.2);
     border-radius: 16px;

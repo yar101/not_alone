@@ -36,6 +36,11 @@ class IdolApprovedNotification extends Notification
         return $this->toDatabase($notifiable);
     }
 
+    protected function webPushTitle(): string
+    {
+        return __('push.title.idol_approved');
+    }
+
     protected function webPushBody(): string
     {
         return __('push.idol_approved');

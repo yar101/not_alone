@@ -257,6 +257,7 @@ const targetLabel = {
 .table-section {
     background: rgba(255,255,255,0.02);
     border: 1px solid rgba(255,255,255,0.07);
+    overflow-x: auto;
 }
 
 .section-header {
@@ -387,5 +388,8 @@ const targetLabel = {
     .metrics-grid { grid-template-columns: repeat(2, 1fr); }
     .tables-row { grid-template-columns: 1fr; }
     .analytics-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+    .metrics-grid { grid-template-columns: 1fr; }
 }
 </style>

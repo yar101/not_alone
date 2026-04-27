@@ -35,6 +35,11 @@ class OrderCreatedNotification extends Notification
         return $this->toDatabase($notifiable);
     }
 
+    protected function webPushTitle(): string
+    {
+        return __('push.title.order_created');
+    }
+
     protected function webPushBody(): string
     {
         return __('push.order_created', ['name' => $this->order->customer->name]);

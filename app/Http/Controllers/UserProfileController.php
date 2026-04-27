@@ -255,7 +255,7 @@ class UserProfileController extends Controller
     public function categoryIdols(User $user, ServiceCategory $category, Request $request): JsonResponse
     {
         $page    = max(1, (int) $request->get('page', 1));
-        $perPage = 4;
+        $perPage = min(8, max(1, (int) $request->get('per_page', 4)));
 
         $idols = Service::where('is_active', true)
             ->where('status', 'approved')
@@ -510,25 +510,71 @@ class UserProfileController extends Controller
     public function getComments(Request $request, Post $post): JsonResponse
     {
         $comments = $post->comments()
-            ->with(['user:id,name,avatar_path', 'replies.user:id,name,avatar_path'])
+            ->with(['user:id,name,avatar_path'])
+            ->withCount('replies')
             ->orderBy('created_at')
             ->get();
 
+        // For comments with exactly 1 reply, load it inline so it displays without a toggle button
+        $singleIds = $comments->filter(fn ($c) => $c->replies_count === 1)->pluck('id');
+        if ($singleIds->isNotEmpty()) {
+            $singleReplies = PostComment::with('user:id,name,avatar_path')
+                ->whereIn('parent_id', $singleIds)
+                ->orderBy('created_at')
+                ->get()
+                ->groupBy('parent_id');
+
+            $comments->each(function ($comment) use ($singleReplies) {
+                if ($comment->replies_count === 1) {
+                    $comment->setRelation('replies', $singleReplies->get($comment->id, collect()));
+                }
+            });
+        }
+
+        $mapReply = fn (PostComment $r) => [
+            'id'         => $r->id,
+            'body'       => $r->body,
+            'created_at' => $r->created_at->diffForHumans(),
+            'user'       => ['id' => $r->user->id, 'name' => $r->user->name, 'avatar_url' => $r->user->avatar_url],
+        ];
+
         $data = $comments->map(fn (PostComment $c) => [
-            'id'         => $c->id,
-            'body'       => $c->body,
-            'created_at' => $c->created_at->diffForHumans(),
-            'user'       => ['id' => $c->user->id, 'name' => $c->user->name, 'avatar_url' => $c->user->avatar_url],
-            'replies'    => $c->replies->map(fn (PostComment $r) => [
+            'id'            => $c->id,
+            'body'          => $c->body,
+            'created_at'    => $c->created_at->diffForHumans(),
+            'user'          => ['id' => $c->user->id, 'name' => $c->user->name, 'avatar_url' => $c->user->avatar_url],
+            'replies_count' => $c->replies_count,
+            'replies'       => $c->replies_count === 1
+                ? $c->replies->map($mapReply)->values()
+                : [],
+        ]);
+
+        return response()->json($data);
+    }
+
+    public function getReplies(Request $request, PostComment $comment): JsonResponse
+    {
+        abort_if($comment->parent_id !== null, 422, 'Cannot get replies of a reply.');
+
+        $page    = max(1, (int) $request->query('page', 1));
+        $perPage = 50;
+
+        $paginator = PostComment::where('parent_id', $comment->id)
+            ->with('user:id,name,avatar_path')
+            ->orderBy('created_at')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'data'      => $paginator->map(fn (PostComment $r) => [
                 'id'         => $r->id,
                 'body'       => $r->body,
                 'created_at' => $r->created_at->diffForHumans(),
                 'user'       => ['id' => $r->user->id, 'name' => $r->user->name, 'avatar_url' => $r->user->avatar_url],
-                'replies'    => [],
             ])->values(),
+            'total'     => $paginator->total(),
+            'has_more'  => $paginator->hasMorePages(),
+            'next_page' => $paginator->hasMorePages() ? $page + 1 : null,
         ]);
-
-        return response()->json($data);
     }
 
     public function toggleLike(Request $request, Post $post): JsonResponse
@@ -579,11 +625,12 @@ class UserProfileController extends Controller
         $comment->load('user:id,name,avatar_path');
 
         return response()->json([
-            'id'         => $comment->id,
-            'body'       => $comment->body,
-            'created_at' => $comment->created_at->diffForHumans(),
-            'user'       => ['id' => $comment->user->id, 'name' => $comment->user->name, 'avatar_url' => $comment->user->avatar_url],
-            'replies'    => [],
+            'id'            => $comment->id,
+            'body'          => $comment->body,
+            'created_at'    => $comment->created_at->diffForHumans(),
+            'user'          => ['id' => $comment->user->id, 'name' => $comment->user->name, 'avatar_url' => $comment->user->avatar_url],
+            'replies_count' => 0,
+            'replies'       => [],
         ]);
     }
 

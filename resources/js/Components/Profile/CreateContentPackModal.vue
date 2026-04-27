@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive } from 'vue';
-import { router } from '@inertiajs/vue3';
+import axios from 'axios';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
@@ -80,7 +80,7 @@ function removePhoto(index) {
     else if (coverIndex.value > index) coverIndex.value--;
 }
 
-function submit() {
+async function submit() {
     errors.value = {};
     if (!form.title.trim()) { errors.value.title = __('pack.error.title'); return; }
     if (!form.price || Number(form.price) < 1) { errors.value.price = __('pack.error.price'); return; }
@@ -95,25 +95,33 @@ function submit() {
     photos.value.forEach((p) => fd.append('photos[]', p.file));
 
     submitting.value = true;
-    router.post(route('content-packs.store'), fd, {
-        forceFormData: true,
-        preserveScroll: true,
-        onSuccess: () => {
-            resetForm();
-            emit('created');
-            emit('close');
-        },
-        onError: (errs) => {
-            errors.value = errs;
-            submitting.value = false;
-        },
-        onFinish: () => { submitting.value = false; },
-    });
+    try {
+        await axios.post(route('content-packs.store'), fd);
+        resetForm();
+        emit('created');
+        emit('close');
+    } catch (e) {
+        if (e.response?.status === 422) {
+            const errs = e.response.data.errors ?? {};
+            const normalized = { ...errs };
+            // Laravel returns photos.0, photos.1 for array file uploads — map to photos
+            if (!normalized.photos) {
+                const photoEntry = Object.entries(errs).find(([k]) => k.startsWith('photos.'));
+                if (photoEntry) normalized.photos = Array.isArray(photoEntry[1]) ? photoEntry[1][0] : photoEntry[1];
+            }
+            errors.value = normalized;
+        } else {
+            errors.value = { photos: __('pack.error.server') };
+        }
+    } finally {
+        submitting.value = false;
+    }
 }
 </script>
 
 <template>
     <SiteModal :show="show" variant="cyan" :max-width="'640px'" @close="close">
+        <div class="cpm-outer">
         <div class="cpm-wrap">
             <h2 class="cpm-title">{{ __('pack.create_title') }}</h2>
 
@@ -211,23 +219,35 @@ function submit() {
                 <p v-if="photos.length" class="cpm-cover-hint">{{ __('pack.cover_hint') }} <span class="req">*</span></p>
             </div>
 
-            <!-- Actions -->
-            <div class="cpm-actions">
-                <button class="cpm-cancel" @click="close" :disabled="submitting">{{ __('common.cancel') }}</button>
-                <button class="cpm-submit" @click="submit" :disabled="submitting">
-                    {{ submitting ? __('pack.submit.loading') : __('pack.submit') }}
-                </button>
-            </div>
         </div>
+
+        <!-- Fixed footer -->
+        <div class="cpm-footer">
+            <button class="cpm-cancel" @click="close" :disabled="submitting">{{ __('common.cancel') }}</button>
+            <button class="cpm-submit" @click="submit" :disabled="submitting">
+                <svg v-if="submitting" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" class="cpm-spin">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+                {{ submitting ? __('pack.submit.loading') : __('pack.submit') }}
+            </button>
+        </div>
+        </div><!-- /cpm-outer -->
     </SiteModal>
 </template>
 
 <style scoped>
+.cpm-outer {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
 .cpm-wrap {
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
     gap: 1.1rem;
+    flex: 1;
 }
 
 .cpm-title {
@@ -373,12 +393,27 @@ function submit() {
     margin: 0.25rem 0 0;
 }
 
-.cpm-actions {
+.cpm-footer {
+    position: sticky;
+    bottom: -2rem;
+    margin: 0.5rem -2rem -2rem;
+    padding: 0.85rem 2rem;
     display: flex;
     justify-content: flex-end;
     gap: 0.75rem;
-    padding-top: 0.5rem;
-    border-top: 1px solid rgba(255,255,255,0.06);
+    background: rgba(6, 7, 13, 0.97);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-top: 1px solid rgba(100, 210, 255, 0.07);
+    box-shadow: 0 -12px 28px rgba(0, 0, 0, 0.35);
+}
+
+@media (max-width: 768px) {
+    .cpm-footer {
+        bottom: -1.25rem;
+        margin: 0.5rem -1.25rem -1.25rem;
+        padding: 0.85rem 1.25rem;
+    }
 }
 
 .cpm-cancel {
@@ -396,6 +431,9 @@ function submit() {
 .cpm-cancel:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .cpm-submit {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
     padding: 0.5rem 1.25rem;
     border-radius: 7px;
     background: rgba(100,210,255,0.12);
@@ -409,4 +447,8 @@ function submit() {
 }
 .cpm-submit:hover:not(:disabled) { background: rgba(100,210,255,0.2); }
 .cpm-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+@keyframes cpm-spin {
+    to { transform: rotate(360deg); }
+}
+.cpm-spin { animation: cpm-spin 0.8s linear infinite; }
 </style>

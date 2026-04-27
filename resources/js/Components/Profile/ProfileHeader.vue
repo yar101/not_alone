@@ -437,41 +437,21 @@ function deleteAvatar() {
 
 .header-name-scroller {
     width: 100%;
-    overflow: hidden;
     display: flex;
     justify-content: center;
-}
-
-.header-name-scroller.name-overflows {
-    justify-content: flex-start;
-}
-
-.header-name-scroller.name-overflows:hover .header-name {
-    animation: header-name-scroll 3s ease-in-out infinite alternate;
-    animation-delay: 0.3s;
-}
-
-@keyframes header-name-scroll {
-
-    0%,
-    20% {
-        transform: translateX(0);
-    }
-
-    80%,
-    100% {
-        transform: translateX(var(--name-offset, 0px));
-    }
+    container-type: inline-size;
 }
 
 .header-name {
-    font-size: 1.7rem;
+    font-size: clamp(1rem, 8cqi, 1.7rem);
     font-weight: 700;
     margin: 0;
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-word;
+    text-align: center;
     color: #fff;
     letter-spacing: -0.01em;
-    flex-shrink: 0;
+    line-height: 1.2;
 }
 
 .header-meta {

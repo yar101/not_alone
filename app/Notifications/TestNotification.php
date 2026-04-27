@@ -12,7 +12,7 @@ class TestNotification extends Notification
     use Queueable;
     use SendsWebPush;
 
-    public function __construct(public readonly string $message = 'Тестовое уведомление') {}
+    public function __construct(public readonly string $message = 'Push-уведомления работают корректно!') {}
 
     public function via(object $notifiable): array
     {
@@ -25,6 +25,11 @@ class TestNotification extends Notification
             'type'    => 'test',
             'message' => $this->message,
         ];
+    }
+
+    protected function webPushTitle(): string
+    {
+        return __('push.title.test');
     }
 
     protected function webPushBody(): string

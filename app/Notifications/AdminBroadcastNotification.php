@@ -30,6 +30,11 @@ class AdminBroadcastNotification extends Notification
         ];
     }
 
+    protected function webPushTitle(): string
+    {
+        return $this->broadcast->title;
+    }
+
     protected function webPushBody(): string
     {
         return __('push.admin_broadcast', ['message' => $this->broadcast->body]);

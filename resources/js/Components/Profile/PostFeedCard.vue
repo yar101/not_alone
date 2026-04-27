@@ -1,7 +1,8 @@
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import axios from 'axios';
 import AuthModal from '@/Components/Site/AuthModal.vue';
+import AppAvatar from '@/Components/Common/AppAvatar.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
 const { __ } = useTranslations();
@@ -12,10 +13,12 @@ const props = defineProps({
     authUser: { default: null },
 });
 
-const emit = defineEmits(['open-detail', 'liked', 'delete']);
+const emit = defineEmits(['open-detail', 'liked']);
 
 const showAuthModal = ref(false);
 const likeAnimating = ref(false);
+const photoLoaded   = ref(false);
+const photoError    = ref(false);
 
 async function toggleLike() {
     if (!props.authUser) {
@@ -32,36 +35,6 @@ async function toggleLike() {
     }
 }
 
-// ── Dropdown menu (Teleport + fixed, не обрезается скроллом) ──
-const menuOpen = ref(false);
-const menuPos  = ref({ top: 0, left: 0 });
-
-function openMenu(e) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const menuWidth = 140;
-    menuPos.value = {
-        top:  rect.bottom + 6,
-        left: rect.right - menuWidth,
-    };
-    menuOpen.value = true;
-}
-
-function closeMenu() {
-    menuOpen.value = false;
-}
-
-function onDeleteClick() {
-    closeMenu();
-    emit('delete', props.post.id);
-}
-
-function onDocClick(e) {
-    if (menuOpen.value) closeMenu();
-}
-
-onMounted(() => document.addEventListener('click', onDocClick, true));
-onUnmounted(() => document.removeEventListener('click', onDocClick, true));
-
 // ── Text clamp detection ──
 const textEl = ref(null);
 const isClamped = ref(false);
@@ -76,31 +49,37 @@ onMounted(async () => {
 
 <template>
     <div class="feed-card" @click="emit('open-detail', post)">
-        <!-- Header: avatar + name + date + menu -->
+        <!-- Header: avatar + name + date -->
         <div class="feed-card__header">
             <a
                 class="feed-card__header-left"
                 :href="route('profile.show', post.author?.id) + '#about'"
                 @click.stop
             >
-                <div class="feed-card__avatar">
-                    <img v-if="post.author?.avatar_url" :src="post.author.avatar_url" class="feed-card__avatar-img" />
-                    <span v-else class="feed-card__avatar-fb">{{ post.author?.name?.[0] }}</span>
-                </div>
+                <AppAvatar :src="post.author?.avatar_url" :name="post.author?.name ?? ''" size="lg" />
                 <span class="feed-card__author-name">{{ post.author?.name }}</span>
             </a>
-            <div class="feed-card__header-right">
-                <span class="feed-card__date">{{ post.created_at }}</span>
-                <button v-if="isOwner" class="feed-card__menu-btn" @click.stop="openMenu">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>
-                    </svg>
-                </button>
-            </div>
+            <span class="feed-card__date">{{ post.created_at }}</span>
         </div>
 
         <!-- Photo -->
-        <img v-if="post.photo_url" :src="post.photo_url" class="feed-card__photo" />
+        <div v-if="post.photo_url" class="feed-card__photo-wrap">
+            <div v-if="!photoLoaded && !photoError" class="feed-card__photo-shimmer" />
+            <div v-if="photoError" class="feed-card__photo-error">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                </svg>
+            </div>
+            <img
+                :src="post.photo_url"
+                class="feed-card__photo"
+                :class="{ 'feed-card__photo--loaded': photoLoaded }"
+                @load="photoLoaded = true"
+                @error="photoError = true"
+            />
+        </div>
 
         <!-- Body -->
         <div class="feed-card__body">
@@ -139,23 +118,6 @@ onMounted(async () => {
     </div>
 
     <AuthModal :show="showAuthModal" initial-tab="register" @close="showAuthModal = false" />
-
-    <!-- Dropdown — teleported to body, position: fixed, never clipped -->
-    <Teleport to="body">
-        <div
-            v-if="menuOpen"
-            class="feed-card-dropdown"
-            :style="{ top: menuPos.top + 'px', left: menuPos.left + 'px' }"
-            @click.stop
-        >
-            <button class="feed-card-dropdown__item feed-card-dropdown__item--danger" @click="onDeleteClick">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
-                </svg>
-                {{ __('common.delete') }}
-            </button>
-        </div>
-    </Teleport>
 </template>
 
 <style scoped>
@@ -200,41 +162,6 @@ onMounted(async () => {
     opacity: 0.8;
 }
 
-.feed-card__header-right {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.feed-card__avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    overflow: hidden;
-    flex-shrink: 0;
-}
-
-.feed-card__avatar-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-
-.feed-card__avatar-fb {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: rgba(160, 160, 255, 0.14);
-    color: rgba(160, 160, 255, 0.75);
-    font-size: 0.72rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-transform: uppercase;
-}
-
 .feed-card__author-name {
     font-size: 0.83rem;
     font-weight: 600;
@@ -248,12 +175,49 @@ onMounted(async () => {
 }
 
 /* Photo */
-.feed-card__photo {
+.feed-card__photo-wrap {
+    position: relative;
     width: 100%;
-    display: block;
-    object-fit: cover;
-    max-height: 320px;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.03);
+    flex-shrink: 0;
 }
+.feed-card__photo-shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.03) 25%,
+        rgba(255, 255, 255, 0.09) 50%,
+        rgba(255, 255, 255, 0.03) 75%
+    );
+    background-size: 200% 100%;
+    animation: photo-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes photo-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+.feed-card__photo-error {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.12);
+}
+.feed-card__photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+}
+.feed-card__photo--loaded { opacity: 1; }
 
 /* Body */
 .feed-card__body {
@@ -333,62 +297,5 @@ onMounted(async () => {
 .feed-card__action--liked:hover {
     color: rgba(224, 24, 108, 1);
     background: rgba(224, 24, 108, 0.07);
-}
-
-.feed-card__menu-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.2rem 0.3rem;
-    background: transparent;
-    border: none;
-    border-radius: 4px;
-    color: rgba(255, 255, 255, 0.2);
-    cursor: pointer;
-    transition: color 0.15s, background 0.15s;
-}
-.feed-card__menu-btn:hover {
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.55);
-}
-</style>
-
-<!-- Dropdown живёт в body, не scoped -->
-<style>
-.feed-card-dropdown {
-    position: fixed;
-    z-index: 9999;
-    width: 140px;
-    background: rgb(18, 14, 26);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    overflow: hidden;
-    animation: dropdown-in 0.1s ease;
-}
-@keyframes dropdown-in {
-    from { opacity: 0; transform: translateY(-4px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-.feed-card-dropdown__item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    width: 100%;
-    padding: 0.55rem 0.85rem;
-    background: transparent;
-    border: none;
-    font-family: inherit;
-    font-size: 0.82rem;
-    cursor: pointer;
-    transition: background 0.12s;
-    text-align: left;
-}
-.feed-card-dropdown__item--danger {
-    color: rgba(239, 68, 68, 0.75);
-}
-.feed-card-dropdown__item--danger:hover {
-    background: rgba(239, 68, 68, 0.08);
-    color: rgba(239, 68, 68, 1);
 }
 </style>

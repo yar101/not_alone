@@ -3,6 +3,7 @@ import { ref, computed, watch, inject, onMounted, onUnmounted, h } from 'vue';
 import { usePage, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { ElNotification, ElIcon } from 'element-plus';
+import SiteModal from '@/Components/Site/SiteModal.vue';
 import {
     Promotion, Trophy, CircleClose,
     DocumentAdd, CircleCheckFilled, CircleCloseFilled,
@@ -16,6 +17,8 @@ import { usePushNotifications } from '@/composables/usePushNotifications';
 const page = usePage();
 const { __, locale } = useTranslations();
 const open = ref(false);
+const isMobile = ref(window.innerWidth < 768);
+const onResize = () => { isMobile.value = window.innerWidth < 768; };
 const { isSupported, subscribe, syncSubscription } = usePushNotifications();
 const pushPermission = ref(typeof Notification !== 'undefined' ? Notification.permission : 'unsupported');
 
@@ -87,7 +90,7 @@ function toggleDropdown() {
     open.value = !open.value;
     if (open.value) {
         fetchAll();
-        autoReadTimer = setTimeout(markAllRead, 1500);
+        autoReadTimer = setTimeout(markAllRead, 900);
     } else {
         clearTimeout(autoReadTimer);
     }
@@ -127,7 +130,10 @@ function isClickable(item) {
 }
 
 function closeOnOutside(e) {
-    if (!e.target.closest('.notif-bell')) open.value = false;
+    // .site-modal-root — teleported modal content, not inside .notif-bell in DOM
+    if (!e.target.closest('.notif-bell') && !e.target.closest('.site-modal-root')) {
+        open.value = false;
+    }
 }
 
 const activeFilter = ref('all');
@@ -193,12 +199,17 @@ function notifPopupTitle(item) {
     }[item.type] ?? __('notification.type.default');
 }
 
-function showNotifPopup(item) {
+function renderNotif(item) {
     const iconComp = itemIconComponent(item);
     const iconClass = itemIconClass(item);
     const title = notifPopupTitle(item);
     const message = item._cat === 'order' ? orderMessage(item) : (item.message ?? '');
+    return { iconComp, iconClass, title, message };
+}
 
+function showNotifPopup(item) {
+    if (isMobile.value) return;
+    const { iconComp, iconClass, title, message } = renderNotif(item);
     ElNotification({
         duration: 5000,
         position: 'top-right',
@@ -319,6 +330,7 @@ async function requestPush() {
 }
 
 onMounted(() => {
+    window.addEventListener('resize', onResize);
     document.addEventListener('click', closeOnOutside);
 
     if (isSupported() && page.props.auth?.user) {
@@ -347,6 +359,7 @@ onMounted(() => {
 
 onUnmounted(() => {
     clearTimeout(autoReadTimer);
+    window.removeEventListener('resize', onResize);
     document.removeEventListener('click', closeOnOutside);
     window.Echo.leaveChannel('notifications.global');
     const userId = page.props.auth?.user?.id;
@@ -354,12 +367,15 @@ onUnmounted(() => {
         window.Echo.leaveChannel(`private-App.Models.User.${userId}`);
     }
 });
+
+defineExpose({ toggleDropdown });
 </script>
 
 <template>
     <div class="notif-bell">
         <!-- Bell button -->
-        <button class="bell-btn" @click.stop="toggleDropdown" :class="{ 'bell-btn--active': open }">
+        <button class="bell-btn" @click.stop="toggleDropdown" :class="{ 'bell-btn--active': open }"
+            :aria-label="__('notification.title')">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
                 stroke-linecap="round" stroke-linejoin="round">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -372,8 +388,9 @@ onUnmounted(() => {
             </Transition>
         </button>
 
+        <!-- Desktop: dropdown -->
         <Transition name="dropdown">
-            <div v-if="open" class="notif-dropdown">
+            <div v-if="open && !isMobile" class="notif-dropdown">
 
                 <!-- Header -->
                 <div class="notif-panel-header">
@@ -486,6 +503,113 @@ onUnmounted(() => {
 
             </div>
         </Transition>
+
+        <!-- Mobile: modal -->
+        <SiteModal v-if="isMobile" :show="open" variant="pink" compact fill @close="open = false">
+            <div class="notif-fill-wrap">
+                <div class="notif-panel-header">
+                    <span class="notif-panel-title">{{ __('notification.title') }}</span>
+                    <div class="notif-filters">
+                        <button class="notif-filter-btn" :class="{ 'notif-filter-btn--active': activeFilter === 'all' }"
+                            @click="activeFilter = 'all'">
+                            {{ __('notification.tab.all') }}
+                            <span v-if="totalUnread > 0" class="notif-filter-dot"></span>
+                        </button>
+                        <button class="notif-filter-btn"
+                            :class="{ 'notif-filter-btn--active': activeFilter === 'service' }"
+                            @click="activeFilter = 'service'">
+                            {{ __('notification.tab.service') }}
+                            <span v-if="serviceUnread > 0" class="notif-filter-dot"></span>
+                        </button>
+                        <button class="notif-filter-btn"
+                            :class="{ 'notif-filter-btn--active': activeFilter === 'order' }"
+                            @click="activeFilter = 'order'">
+                            {{ __('notification.tab.orders') }}
+                            <span v-if="orderUnread > 0" class="notif-filter-dot"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <div v-if="isSupported() && pushPermission === 'default' && page.props.auth?.user" class="push-banner">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.7">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    <span class="push-banner__text">{{ __('notification.push_prompt') }}</span>
+                    <button class="push-banner__btn" @click.stop="requestPush">{{ __('notification.push_allow') }}</button>
+                </div>
+
+                <div class="notif-fill-scroll">
+                    <div v-if="loading" class="notif-skeleton-list">
+                        <div v-for="i in 4" :key="i" class="notif-skeleton-item">
+                            <div class="sk-icon"></div>
+                            <div class="sk-lines">
+                                <div class="sk-line sk-line--title"></div>
+                                <div class="sk-line sk-line--body"></div>
+                                <div class="sk-line sk-line--time"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <template v-else>
+                        <div v-if="allItems.length === 0" class="notif-empty">
+                            <div class="empty-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.3">
+                                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                                </svg>
+                            </div>
+                            <p class="empty-text">{{ __('notification.empty') }}</p>
+                        </div>
+
+                        <template v-else>
+                            <div v-for="item in filteredItems" :key="item.id" class="notif-item" :class="{
+                                'notif-item--unread': !item.read_at,
+                                'notif-item--clickable': isClickable(item),
+                            }" @click="handleItemClick(item)">
+                                <div class="notif-content">
+                                    <div class="notif-header">
+                                        <div class="notif-icon-wrap" :class="itemIconClass(item)">
+                                            <el-icon><component :is="itemIconComponent(item)" /></el-icon>
+                                        </div>
+                                        <p v-if="item.title" class="notif-service-title">{{ item.title }}</p>
+                                        <p v-else class="notif-msg notif-msg--headline">
+                                            <template v-if="item._cat === 'order'">{{ orderMessage(item) }}</template>
+                                            <template v-else>{{ item.message }}</template>
+                                        </p>
+                                        <span class="notif-cat-tag" :class="`cat--${item._cat}`">
+                                            {{ item._cat === 'personal' ? __('notification.tag.personal') : item._cat === 'service' ? __('notification.tag.service') : __('notification.tag.order') }}
+                                        </span>
+                                    </div>
+                                    <p v-if="item.title" class="notif-msg notif-msg--sub">
+                                        <template v-if="item._cat === 'order'">{{ orderMessage(item) }}</template>
+                                        <template v-else>{{ item.message }}</template>
+                                    </p>
+                                    <p v-if="item.reason" class="notif-reason">
+                                        <span class="notif-reason--sub">{{ __('notification.reason') }}</span> {{ item.reason }}
+                                    </p>
+                                    <div class="notif-footer-row">
+                                        <span class="notif-time">{{ relativeTime(item.created_at) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-if="hasMore || loadingMore" class="notif-load-more-wrap">
+                                <button class="notif-load-more-btn" :disabled="loadingMore" @click="fetchMore">
+                                    <span class="notif-load-more-text"
+                                        :style="{ visibility: loadingMore ? 'hidden' : 'visible' }">{{ __('notification.load_more') }}</span>
+                                    <span v-if="loadingMore" class="notif-load-more-dots">
+                                        <span class="notif-load-dot"></span>
+                                        <span class="notif-load-dot"></span>
+                                        <span class="notif-load-dot"></span>
+                                    </span>
+                                </button>
+                            </div>
+                        </template>
+                    </template>
+                </div>
+            </div>
+        </SiteModal>
     </div>
 </template>
 
@@ -510,16 +634,33 @@ onUnmounted(() => {
     transition: all 0.15s;
 }
 
-.bell-btn:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.8);
+@media (hover: hover) {
+    .bell-btn:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.8);
+    }
 }
 
 .bell-btn--active {
     background: rgba(160, 160, 255, 0.1);
     border-color: rgba(160, 160, 255, 0.3);
     color: var(--color-base-1);
+}
+@media (max-width: 768px) {
+    .bell-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.55);
+    }
+    .bell-btn--active {
+        background: rgba(160, 160, 255, 0.12);
+        border-color: rgba(160, 160, 255, 0.28);
+        color: var(--color-base-1);
+    }
 }
 
 .badge {
@@ -546,7 +687,7 @@ onUnmounted(() => {
     position: absolute;
     top: calc(100% + 24px);
     right: 0;
-    width: 500px;
+    width: min(500px, calc(100vw - 1rem));
     background: #0f0f1d;
     border: 1px solid rgba(160, 160, 255, 0.18);
     border-radius: 6px;
@@ -617,19 +758,23 @@ onUnmounted(() => {
     background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.22) 50%, transparent 100%);
 }
 
-.notif-filter-btn:hover {
-    color: rgba(255, 255, 255, 0.7);
-    background: rgba(255, 255, 255, 0.07);
+@media (hover: hover) {
+    .notif-filter-btn:hover {
+        color: rgba(255, 255, 255, 0.7);
+        background: rgba(255, 255, 255, 0.07);
+    }
 }
 
 .notif-filter-btn--active {
-    background: rgba(160, 160, 255, 0.15);
-    border-color: rgba(160, 160, 255, 0.3);
-    color: rgba(160, 160, 255, 0.95);
+    background: rgba(160, 160, 255, 0.22);
+    border-color: rgba(160, 160, 255, 0.55);
+    color: var(--color-base-1);
+    font-weight: 600;
+    box-shadow: inset 0 1px 0 rgba(160, 160, 255, 0.25);
 }
 
 .notif-filter-btn--active::after {
-    background: linear-gradient(90deg, transparent 0%, rgba(160, 160, 255, 0.55) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(160, 160, 255, 0.8) 50%, transparent 100%);
 }
 
 .notif-filter-dot {
@@ -707,8 +852,8 @@ onUnmounted(() => {
 
 /* ── Icon ── */
 .notif-icon-wrap {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
     border-radius: 5px;
     display: flex;
     align-items: center;
@@ -718,7 +863,7 @@ onUnmounted(() => {
 }
 
 .notif-icon-wrap .el-icon {
-    font-size: 1.15rem;
+    font-size: 0.95rem;
 }
 
 .icon--success {
@@ -809,9 +954,9 @@ onUnmounted(() => {
     min-width: 0;
     margin: 0;
     padding: 0;
-    font-size: 0.8rem;
-    font-weight: 400;
-    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.92);
 }
 
 .notif-footer-row {
@@ -1095,5 +1240,46 @@ onUnmounted(() => {
 .badge-pop-enter-from {
     transform: scale(0);
     opacity: 0;
+}
+
+@media (max-width: 540px) {
+    .notif-dropdown {
+        position: fixed;
+        top: 60px;
+        left: 0.5rem;
+        right: 0.5rem;
+        width: auto;
+        max-height: calc(100vh - 80px);
+        overflow-y: auto;
+    }
+    .notif-list {
+        max-height: calc(100vh - 180px);
+    }
+}
+
+/* ── Mobile fill layout ── */
+.notif-fill-wrap {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.notif-fill-wrap > .notif-panel-header {
+    flex-shrink: 0;
+    padding: 1rem 1.25rem 0.75rem;
+    padding-top: 2.5rem;
+}
+
+.notif-fill-wrap > .push-banner {
+    flex-shrink: 0;
+}
+
+.notif-fill-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(160, 160, 255, 0.3) transparent;
 }
 </style>

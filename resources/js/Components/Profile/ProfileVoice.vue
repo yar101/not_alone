@@ -97,14 +97,15 @@ onUnmounted(() => {
 
 // ── Recording state (объявлено до isDiskSpinning) ───────────
 const recording = ref(false);
+const uploading = ref(false);
 
 // ── Диск: вращение + плавный возврат ───────────────────────
 const diskEl        = ref(null);
 const returnStyle   = ref({});
 let   returnTimeout = null;
 
-// Диск крутится при воспроизведении И при записи
-const isDiskSpinning = computed(() => playing.value || recording.value);
+// Диск крутится при воспроизведении, записи и загрузке
+const isDiskSpinning = computed(() => playing.value || recording.value || uploading.value);
 
 // Читаем текущий угол поворота из CSS-матрицы трансформации
 function getCurrentAngle() {
@@ -171,6 +172,24 @@ const mime = computed(() => {
 });
 
 async function startRecording() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+        alert(__('profile.voice.err.mic_unavailable'));
+        return;
+    }
+
+    // Check if permission is already permanently denied
+    if (navigator.permissions) {
+        try {
+            const status = await navigator.permissions.query({ name: 'microphone' });
+            if (status.state === 'denied') {
+                alert(__('profile.voice.err.mic_denied'));
+                return;
+            }
+        } catch {
+            // permissions API not supported — proceed anyway
+        }
+    }
+
     try {
         if (ws && playing.value) ws.pause();
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -182,8 +201,15 @@ async function startRecording() {
         recording.value = true;
         countdown.value  = MAX_SEC;
         timer = setInterval(() => { if (--countdown.value <= 0) stopRecording(); }, 1000);
-    } catch {
-        alert(__('profile.voice.err.mic'));
+    } catch (err) {
+        console.error('[Voice] getUserMedia error:', err?.name, err?.message);
+        if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
+            alert(__('profile.voice.err.mic_denied'));
+        } else if (err?.name === 'NotFoundError' || err?.name === 'DevicesNotFoundError') {
+            alert(__('profile.voice.err.mic_unavailable'));
+        } else {
+            alert(__('profile.voice.err.mic'));
+        }
     }
 }
 
@@ -200,8 +226,10 @@ function upload() {
     const blob = new Blob(chunks.value, { type: mime.value });
     const fd   = new FormData();
     fd.append('voice', new File([blob], `voice.${ext}`, { type: mime.value }));
+    uploading.value = true;
     router.post(route('profile.update.voice'), fd, {
         preserveState: true, preserveScroll: true, forceFormData: true,
+        onFinish: () => { uploading.value = false; },
     });
 }
 
@@ -264,6 +292,15 @@ function deleteVoice() {
             <span class="rec-dot" />
             <span class="rec-timer">{{ countdown }}{{ __('common.sec') }}</span>
             <button class="stop-btn" @click="stopRecording">{{ __('profile.voice.stop') }}</button>
+        </div>
+
+        <!-- Загрузка после записи -->
+        <div v-else-if="uploading" class="uploading">
+            <svg class="uploading__spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="9" stroke-width="2" stroke-opacity="0.18" />
+                <path d="M12 3a9 9 0 0 1 9 9" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            <span class="uploading__label">{{ __('profile.voice.uploading') }}</span>
         </div>
 
         <!-- Гость: аудио нет -->
@@ -447,4 +484,28 @@ function deleteVoice() {
     transition: color 0.2s;
 }
 .rec-btn:hover .rec-btn-icon { color: #a0a0ff; }
+
+/* ── Uploading ────────────────────────────────────────────── */
+.uploading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid rgba(160,160,255,0.2);
+    border-radius: 3px;
+    background: rgba(160,160,255,0.04);
+    box-sizing: border-box;
+}
+.uploading__spinner {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    color: rgba(160,160,255,0.8);
+    animation: spin360 0.8s linear infinite;
+}
+.uploading__label {
+    font-size: 0.88rem;
+    color: rgba(255,255,255,0.45);
+}
 </style>

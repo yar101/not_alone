@@ -19,6 +19,7 @@ const servicesOpen      = ref(false);
 const traitsOpen        = ref(false);
 const interestsOpen     = ref(false);
 const contentPacksOpen  = ref(false);
+const sidebarOpen       = ref(false);
 
 const component = computed(() => page.component);
 
@@ -51,6 +52,7 @@ watch(component, (val) => {
     if (val?.startsWith('Admin/ContentPacks/')) {
         contentPacksOpen.value = true;
     }
+    sidebarOpen.value = false;
 }, { immediate: true });
 
 function isActive(routeName) {
@@ -60,7 +62,8 @@ function isActive(routeName) {
 
 <template>
     <div class="admin-wrap">
-        <aside class="sidebar">
+        <div v-if="sidebarOpen" class="sidebar-backdrop" @click="sidebarOpen = false"></div>
+        <aside class="sidebar" :class="{ 'sidebar--open': sidebarOpen }">
             <div class="sidebar__logo">
                 <span class="logo-brand">NoAlone</span>
                 <span class="logo-sub">Admin</span>
@@ -334,6 +337,14 @@ function isActive(routeName) {
         </aside>
 
         <div class="content-wrap">
+            <header class="admin-mobile-header">
+                <button class="hamburger-btn" @click="sidebarOpen = !sidebarOpen">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
+                <span class="admin-mobile-title">Admin</span>
+            </header>
             <main class="admin-main">
                 <slot />
             </main>
@@ -557,5 +568,73 @@ function isActive(routeName) {
     width: 100%;
     min-width: 0;
     overflow-y: auto;
+}
+
+/* ── Mobile header ──────────────────────────────────────── */
+.admin-mobile-header {
+    display: none;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(155, 110, 232, 0.15);
+    background: #09090f;
+    flex-shrink: 0;
+}
+.admin-mobile-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.hamburger-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+}
+.hamburger-btn:hover {
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(155, 110, 232, 0.12);
+}
+
+/* ── Mobile responsive ──────────────────────────────────── */
+.sidebar-backdrop {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .admin-wrap { overflow: visible; height: auto; min-height: 100vh; }
+
+    .admin-mobile-header { display: flex; }
+
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        z-index: 1200;
+        transform: translateX(-100%);
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .sidebar--open { transform: translateX(0); }
+
+    .sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1199;
+    }
+
+    .content-wrap { flex-direction: column; }
+    .admin-main { padding: 1rem; overflow-y: visible; }
 }
 </style>

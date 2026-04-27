@@ -38,6 +38,11 @@ class ReviewDisputeRejectedNotification extends Notification
         return $this->toDatabase($notifiable);
     }
 
+    protected function webPushTitle(): string
+    {
+        return __('push.title.review_dispute_rejected');
+    }
+
     protected function webPushBody(): string
     {
         return __('push.review_dispute_rejected');

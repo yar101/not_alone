@@ -1,11 +1,19 @@
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppCheckbox from '@/Components/AppCheckbox.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
-const { __ } = useTranslations();
+const { __, locale } = useTranslations();
+
+const tName = (item) => locale.value?.current === 'en' && item?.name_en ? item.name_en : (item?.name_ru ?? '');
+const tCat  = (cat)  => locale.value?.current === 'en' && cat?.name_en  ? cat.name_en  : (cat?.name_ru  ?? '');
+const tUnit = (svc)  => {
+    const ru = svc?.time_unit_ru ?? null;
+    const en = svc?.time_unit_en ?? null;
+    return locale.value?.current === 'en' && en ? en : ru;
+};
 
 const props = defineProps({
     modelValue:     { type: Boolean, default: false },
@@ -50,7 +58,12 @@ function toggleService(svc, categoryName) {
     if (idx !== -1) {
         selectedServices.value.splice(idx, 1);
     } else if (!limitReached.value) {
-        selectedServices.value.push({ ...svc, category_name: categoryName });
+        selectedServices.value.push({
+            ...svc,
+            name:          tName(svc),
+            time_unit:     tUnit(svc),
+            category_name: categoryName,
+        });
     }
 }
 
@@ -95,6 +108,15 @@ function fmtPrice(p) {
     return (p ?? 0).toLocaleString('ru-RU') + '\u2009₽';
 }
 
+const isMobile = ref(typeof window !== 'undefined' && window.innerWidth <= 768);
+const onResize = () => { isMobile.value = window.innerWidth <= 768; };
+onMounted(() => window.addEventListener('resize', onResize));
+onUnmounted(() => window.removeEventListener('resize', onResize));
+
+function toggleAccordion(catId) {
+    activeCategory.value = activeCategory.value === catId ? null : catId;
+}
+
 watch(() => props.modelValue, (val) => {
     if (val) {
         selectedServices.value = [];
@@ -120,8 +142,8 @@ watch(() => props.modelValue, (val) => {
         </div>
 
         <template v-else>
-            <!-- Picker -->
-            <div class="sof-picker">
+            <!-- Desktop: two-column picker -->
+            <div v-if="!isMobile" class="sof-picker">
                 <!-- Categories -->
                 <div class="sof-cats-wrap">
                     <div class="sof-cats" ref="catsEl" @scroll="onCatsScroll">
@@ -132,9 +154,9 @@ watch(() => props.modelValue, (val) => {
                             :class="{ 'sof-cat--active': activeCategory === cat.category.id }"
                             @click="activeCategory = cat.category.id"
                         >
-                            <span>{{ cat.category.name }}</span>
+                            <span>{{ tCat(cat.category) }}</span>
                             <span
-                                v-if="selectedServices.some(s => s.category_name === cat.category.name)"
+                                v-if="selectedServices.some(s => s.category_name === tCat(cat.category))"
                                 class="sof-cat__dot"
                             />
                         </button>
@@ -165,46 +187,95 @@ watch(() => props.modelValue, (val) => {
                             'sof-svc--checked':  isSelected(svc.id),
                             'sof-svc--disabled': !isSelected(svc.id) && limitReached,
                         }"
-                        @click.prevent="toggleService(svc, categories.find(c => c.category.id === activeCategory)?.category.name)"
+                        @click.prevent="toggleService(svc, tCat(categories.find(c => c.category.id === activeCategory)?.category))"
                     >
                         <AppCheckbox
                             :checked="isSelected(svc.id)"
                             :disabled="!isSelected(svc.id) && limitReached"
                         />
-                        <span class="sof-svc__name">{{ svc.name }}</span>
-                        <span class="sof-svc__price">{{ fmtPrice(svc.price) }}<template v-if="svc.time_unit">&thinsp;/&thinsp;{{ svc.time_unit }}</template></span>
+                        <span class="sof-svc__name">{{ tName(svc) }}</span>
+                        <span class="sof-svc__price">{{ fmtPrice(svc.price) }}<template v-if="tUnit(svc)">&thinsp;/&thinsp;{{ tUnit(svc) }}</template></span>
                     </label>
                 </div>
             </div>
 
-            <!-- Selected islands -->
-            <div v-if="selectedServices.length" class="sof-selected">
-                <span class="sof-selected__label">{{ __('chat.offer.selected', { count: selectedServices.length }) }}</span>
-                <div class="sof-islands">
-                    <div
-                        v-for="s in selectedServices"
-                        :key="s.id"
-                        class="sof-island"
+            <!-- Mobile: accordion -->
+            <div v-else class="sof-accordion">
+                <div
+                    v-for="cat in categories"
+                    :key="cat.category.id"
+                    class="sof-acc-item"
+                >
+                    <button
+                        class="sof-acc-header"
+                        :class="{ 'sof-acc-header--open': activeCategory === cat.category.id }"
+                        @click="toggleAccordion(cat.category.id)"
                     >
-                        <span class="sof-island__name">{{ s.name }}</span>
-                        <span class="sof-island__price">{{ fmtPrice(s.price) }}<template v-if="s.time_unit">&thinsp;/&thinsp;{{ s.time_unit }}</template></span>
-                        <button class="sof-island__remove" @click="removeSelected(s.id)" :aria-label="__('chat.offer.remove')">
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                            </svg>
-                        </button>
+                        <span class="sof-acc-header__title">{{ tCat(cat.category) }}</span>
+                        <span
+                            v-if="selectedServices.some(s => s.category_name === tCat(cat.category))"
+                            class="sof-cat__dot"
+                        />
+                        <svg class="sof-acc-chevron" width="14" height="14" viewBox="0 0 12 12" fill="none">
+                            <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <div
+                        class="sof-acc-body-wrap"
+                        :class="{ 'sof-acc-body-wrap--open': activeCategory === cat.category.id }"
+                    >
+                        <div class="sof-acc-body-inner">
+                            <label
+                                v-for="svc in cat.services"
+                                :key="svc.id"
+                                class="sof-svc"
+                                :class="{
+                                    'sof-svc--checked':  isSelected(svc.id),
+                                    'sof-svc--disabled': !isSelected(svc.id) && limitReached,
+                                }"
+                                @click.prevent="toggleService(svc, tCat(cat.category))"
+                            >
+                                <AppCheckbox
+                                    :checked="isSelected(svc.id)"
+                                    :disabled="!isSelected(svc.id) && limitReached"
+                                />
+                                <span class="sof-svc__name">{{ tName(svc) }}</span>
+                                <span class="sof-svc__price">{{ fmtPrice(svc.price) }}<template v-if="tUnit(svc)">&thinsp;/&thinsp;{{ tUnit(svc) }}</template></span>
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Submit -->
-            <button
-                class="sof-submit"
-                :disabled="!selectedServices.length || sending"
-                @click="submit"
-            >
-                {{ sending ? __('common.sending') : __('chat.offer.send') }}
-            </button>
+            <!-- Footer: selected islands + submit (sticky on mobile) -->
+            <div class="sof-footer">
+                <div v-if="selectedServices.length" class="sof-selected">
+                    <span class="sof-selected__label">{{ __('chat.offer.selected', { count: selectedServices.length }) }}</span>
+                    <div class="sof-islands">
+                        <div
+                            v-for="s in selectedServices"
+                            :key="s.id"
+                            class="sof-island"
+                        >
+                            <span class="sof-island__name">{{ s.name }}</span>
+                            <span class="sof-island__price">{{ fmtPrice(s.price) }}<template v-if="s.time_unit">&thinsp;/&thinsp;{{ s.time_unit }}</template></span>
+                            <button class="sof-island__remove" @click="removeSelected(s.id)" :aria-label="__('chat.offer.remove')">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <button
+                    class="sof-submit"
+                    :disabled="!selectedServices.length || sending"
+                    @click="submit"
+                >
+                    {{ sending ? __('common.sending') : __('chat.offer.send') }}
+                </button>
+            </div>
         </template>
 
     </SiteModal>
@@ -329,7 +400,7 @@ watch(() => props.modelValue, (val) => {
 .sof-svc--checked { background: rgba(100,200,255,0.08); }
 .sof-svc--disabled { opacity: 0.38; cursor: not-allowed; }
 
-.sof-svc__name { flex: 1; min-width: 0; font-size: 1.1rem; color: rgba(255,255,255,0.85); white-space: nowrap; }
+.sof-svc__name { flex: 1 1 auto; min-width: 0; font-size: 1.1rem; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sof-svc__price {
     flex-shrink: 0;
     font-size: 1rem;
@@ -339,7 +410,7 @@ watch(() => props.modelValue, (val) => {
 
 /* ── Selected islands ────────────────────────────────── */
 .sof-selected {
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
 }
 .sof-selected__label {
     display: block;
@@ -404,4 +475,75 @@ watch(() => props.modelValue, (val) => {
 .sof-fade-leave-active { transition: opacity 0.2s ease; }
 .sof-fade-enter-from,
 .sof-fade-leave-to { opacity: 0; }
+
+/* ── Accordion (mobile only) ─────────────────────── */
+.sof-accordion {
+    border: 1px solid rgba(110,110,210,0.15);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.sof-acc-item {
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.sof-acc-item:last-child { border-bottom: none; }
+
+.sof-acc-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1rem;
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.55);
+    font-size: 0.95rem;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.13s, color 0.13s;
+}
+.sof-acc-header:hover { background: rgba(100,200,255,0.05); color: rgba(255,255,255,0.8); }
+.sof-acc-header--open { background: rgba(100,200,255,0.08); color: rgba(130,220,255,0.95); }
+
+.sof-acc-header__title { flex: 1; }
+
+.sof-acc-chevron {
+    flex-shrink: 0;
+    color: rgba(255,255,255,0.3);
+    transition: transform 0.2s ease;
+}
+.sof-acc-header--open .sof-acc-chevron { transform: rotate(180deg); }
+
+.sof-acc-body-wrap {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sof-acc-body-wrap--open {
+    grid-template-rows: 1fr;
+}
+.sof-acc-body-inner {
+    overflow: hidden;
+}
+
+/* ── Footer (selected + submit) ──────────────────── */
+.sof-footer {
+    margin: 1rem -2rem -2rem;
+    padding: 1rem 2rem 1.5rem;
+    background: rgba(7,6,11,0.82);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+@media (max-width: 768px) {
+    .sof-footer {
+        position: sticky;
+        bottom: -1.25rem;
+        margin: 0 -1.25rem -1.25rem;
+        padding: 0.75rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom));
+    }
+}
 </style>

@@ -6,6 +6,7 @@ const { __ } = useTranslations();
 
 const props = defineProps({
     cart: { type: Object, required: true },
+    active: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['click']);
@@ -18,7 +19,7 @@ const count = computed(() => {
 </script>
 
 <template>
-    <button class="cart-icon-btn" :class="{ 'cart-icon-btn--active': count > 0 }" @click="emit('click')" :title="__('cart.icon.title')">
+    <button class="cart-icon-btn" :class="{ 'cart-icon-btn--active': active, 'cart-icon-btn--has-items': count > 0 }" @click="emit('click')" :title="__('cart.icon.title')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
             <line x1="3" y1="6" x2="21" y2="6"/>
@@ -43,13 +44,39 @@ const count = computed(() => {
     cursor: pointer;
     transition: color 0.18s, background 0.18s, border-color 0.18s;
 }
-.cart-icon-btn:hover {
-    color: rgba(255,255,255,0.8);
-    background: rgba(110,110,210,0.08);
+@media (hover: hover) {
+    .cart-icon-btn:hover {
+        color: rgba(255,255,255,0.8);
+        background: rgba(110,110,210,0.08);
+    }
 }
 .cart-icon-btn--active {
-    color: #a0a0ff;
-    border-color: rgba(160,160,255,0.22);
+    color: var(--color-base-2);
+    border-color: rgba(100, 210, 255, 0.28);
+}
+.cart-icon-btn--has-items:not(.cart-icon-btn--active) {
+    color: var(--color-base-1);
+    border-color: rgba(160, 160, 255, 0.22);
+}
+@media (max-width: 768px) {
+    .cart-icon-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.55);
+    }
+    .cart-icon-btn--active {
+        background: rgba(100, 210, 255, 0.1);
+        border-color: rgba(100, 210, 255, 0.3);
+        color: var(--color-base-2);
+    }
+    .cart-icon-btn--has-items:not(.cart-icon-btn--active) {
+        background: rgba(160, 160, 255, 0.12);
+        border-color: rgba(160, 160, 255, 0.28);
+        color: var(--color-base-1);
+    }
 }
 .cart-icon-badge {
     position: absolute;
@@ -58,7 +85,7 @@ const count = computed(() => {
     min-width: 16px;
     height: 16px;
     border-radius: 8px;
-    background: #a0a0ff;
+    background: var(--color-base-2);
     color: #0a0a14;
     font-size: 0.62rem;
     font-weight: 800;

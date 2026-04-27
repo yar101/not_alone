@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, inject } from 'vue';
+import { ref, computed, watch, inject, onMounted, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useTranslations } from '@/composables/useTranslations';
@@ -47,7 +47,52 @@ const contentTotal = computed(() =>
     contentItems.value.reduce((sum, item) => sum + (item.price || 0), 0)
 );
 
+// ── Back-gesture ─────────────────────────────────────────
+let cartPushed  = false;
+let cartIgnoreTill = 0;
+
+const onCartPopstate = (e) => {
+    if (Date.now() < cartIgnoreTill) return;
+    if (cartPushed && !e.state?.cart) {
+        cartPushed = false;
+        isOpen.value = false;
+    }
+};
+
+watch(isOpen, (val, oldVal) => {
+    if (val) {
+        history.pushState({ cart: true }, '');
+        cartPushed = true;
+        cartIgnoreTill = Date.now() + 500;
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        document.documentElement.classList.add('chat-scroll-locked');
+    }
+    if (!val && oldVal && cartPushed) {
+        cartPushed = false;
+        cartIgnoreTill = Date.now() + 500;
+        history.go(-1);
+        document.documentElement.classList.remove('chat-scroll-locked');
+    }
+    if (!val && !cartPushed) {
+        document.documentElement.classList.remove('chat-scroll-locked');
+    }
+});
+
+onMounted(() => window.addEventListener('popstate', onCartPopstate));
+onUnmounted(() => {
+    window.removeEventListener('popstate', onCartPopstate);
+    if (cartPushed) { cartPushed = false; history.go(-1); }
+    document.documentElement.classList.remove('chat-scroll-locked');
+});
+
 function close() { isOpen.value = false; }
+
+function silentClose() {
+    if (cartPushed) { cartPushed = false; history.replaceState(null, ''); }
+    isOpen.value = false;
+}
+
+defineExpose({ silentClose });
 
 async function createOrder() {
     const sc = props.cart.services;
@@ -60,6 +105,9 @@ async function createOrder() {
             services: sc.items.map(i => ({ id: i.service_id, quantity: i.quantity || 1 })),
         });
         emit('clear-services');
+        // Заменяем запись корзины в истории нейтральной, чтобы history.go(-1)
+        // не триггернулся и не закрыл чат, который откроется следом
+        if (cartPushed) { cartPushed = false; history.replaceState(null, ''); }
         isOpen.value = false;
         if (openOrder) openOrder(res.data.order_id);
         router.reload({ only: ['order_notifications_unread'] });
@@ -263,7 +311,7 @@ async function purchaseContent() {
 /* ── Panel ────────────────────────────────────────────── */
 .rc-panel {
     position: fixed;
-    top: 0;
+    top: 60px;
     right: 0;
     bottom: 0;
     width: 480px;
@@ -707,5 +755,9 @@ async function purchaseContent() {
 .rc-submit:disabled {
     opacity: 0.25;
     cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+    .rc-panel { top: 68px; }
 }
 </style>

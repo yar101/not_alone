@@ -273,10 +273,41 @@ class OrderController extends Controller
 
     public function index(Request $request): JsonResponse|InertiaResponse
     {
-        $user = $request->user();
+        $user    = $request->user();
+        $perPage = 10;
+        $cursor  = (int) $request->input('cursor', 0);
+        $status  = $request->input('status');          // конкретный статус или null = все
+        $role    = $request->input('role');             // 'customer' | 'idol' | null
 
-        $orders = Order::where('customer_id', $user->id)
-            ->orWhere('idol_id', $user->id)
+        // Базовый скоуп по роли
+        $scopeByRole = function ($q) use ($user, $role) {
+            if ($role === 'customer') {
+                $q->where('customer_id', $user->id);
+            } elseif ($role === 'idol') {
+                $q->where('idol_id', $user->id);
+            } else {
+                $q->where(fn($q) => $q->where('customer_id', $user->id)
+                                      ->orWhere('idol_id', $user->id));
+            }
+        };
+
+        // Реальное кол-во по каждому статусу из БД (без курсора и фильтра статуса)
+        $rawCounts = Order::where($scopeByRole)
+            ->selectRaw('status, count(*) as cnt')
+            ->groupBy('status')
+            ->pluck('cnt', 'status');
+
+        $allStatuses = ['pending', 'accepted', 'paid', 'completed', 'cancelled', 'refunded', 'disputed'];
+        $counts = ['all' => 0];
+        foreach ($allStatuses as $s) {
+            $counts[$s]    = (int) ($rawCounts[$s] ?? 0);
+            $counts['all'] += $counts[$s];
+        }
+
+        // Пагинированный список
+        $search = trim($request->input('search', ''));
+
+        $query = Order::where($scopeByRole)
             ->with([
                 'customer',
                 'idol',
@@ -287,16 +318,61 @@ class OrderController extends Controller
                     'participants' => fn($q) => $q->where('user_id', $user->id),
                 ]),
             ])
-            ->latest()
-            ->get()
-            ->map(function (Order $order) use ($user) {
-                $formatted                 = $this->service->formatOrder($order, $user->id);
-                $formatted['unread_count'] = $this->getOrderUnreadCount($order, $user->id);
-                return $formatted;
+            ->orderByDesc('id');
+
+        if ($status) {
+            $query->where('status', $status);
+        }
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+            $query->where(function ($q) use ($like, $role, $user) {
+                if ($role === 'customer' || !$role) {
+                    $q->orWhereHas('idol', fn($r) => $r->whereRaw('LOWER(name) LIKE LOWER(?)', [$like]));
+                }
+                if ($role === 'idol' || !$role) {
+                    $q->orWhereHas('customer', fn($r) => $r->whereRaw('LOWER(name) LIKE LOWER(?)', [$like]));
+                }
             });
+        }
+        if ($request->boolean('unread')) {
+            $userId = $user->id;
+            $query->whereHas('conversation', function ($cq) use ($userId) {
+                $cq->whereExists(function ($sub) use ($userId) {
+                    $sub->from('messages as m')
+                        ->join('conversation_participants as cp', function ($j) use ($userId) {
+                            $j->on('cp.conversation_id', '=', 'm.conversation_id')
+                              ->where('cp.user_id', $userId);
+                        })
+                        ->whereColumn('m.conversation_id', 'conversations.id')
+                        ->where(function ($q) use ($userId) {
+                            $q->where('m.sender_id', '!=', $userId)->orWhereNull('m.sender_id');
+                        })
+                        ->where(function ($q) {
+                            $q->whereNull('cp.last_read_at')
+                              ->orWhereColumn('m.created_at', '>', 'cp.last_read_at');
+                        });
+                });
+            });
+        }
+
+        if ($cursor > 0) {
+            $query->where('id', '<', $cursor);
+        }
+
+        $items   = $query->limit($perPage + 1)->get();
+        $hasMore = $items->count() > $perPage;
+        if ($hasMore) {
+            $items = $items->take($perPage);
+        }
+
+        $orders = $items->map(function (Order $order) use ($user) {
+            $formatted                 = $this->service->formatOrder($order, $user->id);
+            $formatted['unread_count'] = $this->getOrderUnreadCount($order, $user->id);
+            return $formatted;
+        });
 
         if ($request->wantsJson()) {
-            return response()->json(['orders' => $orders]);
+            return response()->json(['orders' => $orders, 'has_more' => $hasMore, 'counts' => $counts]);
         }
 
         return Inertia::render('Orders/Index', ['orders' => $orders]);

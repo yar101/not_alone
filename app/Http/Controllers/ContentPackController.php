@@ -122,7 +122,7 @@ class ContentPackController extends Controller
         ];
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): JsonResponse
     {
         abort_if(!$request->user()->is_idol, 403);
 
@@ -140,7 +140,7 @@ class ContentPackController extends Controller
         ]);
 
         $moderation = $this->moderationSettings();
-        $status     = $moderation['new_packs'] ? 'pending_review' : 'published';
+        $status     = $moderation['new_packs'] ? 'pending_review' : 'approved';
 
         $pack = ContentPack::create([
             'user_id'      => $request->user()->id,
@@ -148,7 +148,7 @@ class ContentPackController extends Controller
             'description'  => $data['description'] ?? null,
             'price'        => $data['price'],
             'status'       => $status,
-            'published_at' => $moderation['new_packs'] ? null : now(),
+            'published_at' => null,
         ]);
 
         $coverIndex = $data['cover_index'] ?? null;
@@ -171,7 +171,7 @@ class ContentPackController extends Controller
             $pack->update(['cover_path' => $coverPath]);
         }
 
-        return back();
+        return response()->json(['id' => $pack->id, 'status' => $pack->status]);
     }
 
     public function update(Request $request, ContentPack $pack): RedirectResponse

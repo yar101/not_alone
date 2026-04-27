@@ -46,6 +46,11 @@ class ContentPackChangeApprovedNotification extends Notification
         return $this->toDatabase($notifiable);
     }
 
+    protected function webPushTitle(): string
+    {
+        return __('push.title.content_pack_change_approved');
+    }
+
     protected function webPushBody(): string
     {
         $fieldNames = array_map(fn ($f) => match ($f) {
