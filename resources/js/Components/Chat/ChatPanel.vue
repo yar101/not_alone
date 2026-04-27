@@ -1662,7 +1662,8 @@ function formatDate(iso) {
                         </div><!-- end chat-messages-wrap -->
 
                         <!-- Поле ввода + панель заказа -->
-                        <div class="chat-input-wrap">
+                        <Transition name="chat-input-appear">
+                        <div v-if="!loadingMsgs" class="chat-input-wrap">
 
                             <!-- Баннер: чат закрыт -->
                             <div v-if="isChatClosed" class="chat-closed-banner">
@@ -1795,6 +1796,7 @@ function formatDate(iso) {
                                 </button>
                             </div>
                         </div>
+                        </Transition>
                     </template>
                 </div>
 
@@ -2372,7 +2374,7 @@ function formatDate(iso) {
 .chat-messages {
     flex: 1;
     overflow-y: auto;
-    padding: 1.1rem 1.1rem 0.5rem;
+    padding: 1.1rem 0 0.5rem;
     display: flex;
     flex-direction: column;
     scrollbar-width: thin;
@@ -2438,6 +2440,7 @@ function formatDate(iso) {
     align-items: flex-end;
     gap: 6px;
     justify-content: flex-start;
+    padding: 0 1.1rem;
 }
 .chat-msg--mine {
     justify-content: flex-end;
@@ -2580,9 +2583,13 @@ function formatDate(iso) {
 .msg-enter-from   { opacity: 0; transform: translateY(8px); }
 
 /* ── Input ────────────────────────────────────────────── */
+.chat-input-appear-enter-active { transition: opacity 0.2s ease; }
+.chat-input-appear-enter-from   { opacity: 0; }
+.chat-input-appear-enter-to     { opacity: 1; }
+
 .chat-input-wrap {
     flex-shrink: 0;
-    padding: 0 1.1rem 0.85rem;
+    padding: 0 0 0.85rem;
     background: transparent;
 }
 .chat-input-fade {
@@ -2598,6 +2605,7 @@ function formatDate(iso) {
 .chat-input-inner {
     flex: 1;
     position: relative;
+    padding: 0 1.1rem;
 }
 .chat-input-inner::before {
     content: '';
@@ -2638,7 +2646,7 @@ function formatDate(iso) {
 
 .chat-char-count {
     position: absolute;
-    right: 0.75rem;
+    right: 1.85rem;
     top: 0.5rem;
     font-size: 0.7rem;
     color: rgba(255, 255, 255, 0.2);
@@ -2651,7 +2659,7 @@ function formatDate(iso) {
 }
 .chat-send {
     position: absolute;
-    right: 0.5rem;
+    right: 1.6rem;
     bottom: 0.5rem;
     padding: 0.28rem 0.65rem;
     display: flex;
