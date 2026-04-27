@@ -219,7 +219,7 @@ onMounted(() => {
     subscribeUserEcho();
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    window.addEventListener('popstate', onCpPopstate);
+    window.addEventListener('popstate', onCpPopstate, true);
 });
 
 const blockedUntilLabel = computed(() => {
@@ -263,13 +263,21 @@ function onCpPopstate(e) {
     if (Date.now() < cpIgnoreTill || !isOpen.value) return;
 
     if (e.state?.cp === 'list') {
-        // Back from conv → list
+        // Back from conv → list: consume event so SiteModal doesn't also close
+        e.stopImmediatePropagation();
+        cpDepth = Math.max(0, cpDepth - 1);
+        leaveEcho();
+        activeConversation.value = null;
+        activeOrderData.value    = null;
+    } else if (e.state?.cp === 'conv') {
+        // Same as 'list' — handle any cp state we pushed
+        e.stopImmediatePropagation();
         cpDepth = Math.max(0, cpDepth - 1);
         leaveEcho();
         activeConversation.value = null;
         activeOrderData.value    = null;
     } else if (!e.state?.cp && cpDepth > 0) {
-        // Back past panel → close
+        // Back past panel → close (let SiteModal also handle this)
         cpDepth = 0;
         isOpen.value = false;
     }
@@ -847,7 +855,7 @@ onUnmounted(() => {
     leaveUserEcho();
     clearInterval(nowTimer);
     window.removeEventListener('resize', checkMobile);
-    window.removeEventListener('popstate', onCpPopstate);
+    window.removeEventListener('popstate', onCpPopstate, true);
     pruneCp();
     setScrollLock(false);
 });
