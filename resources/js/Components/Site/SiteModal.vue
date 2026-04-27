@@ -305,6 +305,7 @@ onUnmounted(() => {
 .site-modal-body {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     position: relative;
     z-index: 1;
     scrollbar-width: thin;

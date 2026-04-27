@@ -181,26 +181,32 @@ const activeIndex = computed(() =>
 );
 
 // ── Mobile drill-down navigation ──────────────────────────
-const mobileNav = ref('cats'); // 'cats' | 'content'
-let helpPushed  = false;
+const mobileNav = ref('cats'); // 'cats' | 'questions' | 'answer'
+let helpDepth   = 0;
 
 function setCategory(cat) {
     disputeView.value    = false;
     activeCategory.value = cat;
     activeQuestion.value = null;
     if (mobileNav.value === 'cats') {
-        history.pushState({ modal: 'help-content' }, '');
-        helpPushed      = true;
-        mobileNav.value = 'content';
+        history.pushState({ modal: 'help-questions' }, '');
+        helpDepth++;
+        mobileNav.value = 'questions';
     }
 }
 
 function openQuestion(item) {
     activeQuestion.value = item;
+    if (window.innerWidth <= 767) {
+        history.pushState({ modal: 'help-answer' }, '');
+        helpDepth++;
+        mobileNav.value = 'answer';
+    }
 }
 
 function backToList() {
     activeQuestion.value = null;
+    mobileNav.value      = 'questions';
 }
 
 function backToCategories() {
@@ -239,9 +245,9 @@ async function openDisputeForm() {
     disputeLoading.value  = true;
     disputeView.value     = true;
     if (mobileNav.value === 'cats') {
-        history.pushState({ modal: 'help-content' }, '');
-        helpPushed      = true;
-        mobileNav.value = 'content';
+        history.pushState({ modal: 'help-questions' }, '');
+        helpDepth++;
+        mobileNav.value = 'questions';
     }
     disputeSuccess.value  = false;
     disputeErrors.value   = {};
@@ -277,10 +283,15 @@ function fmtDate(iso) {
 }
 
 const onHelpPopstate = (e) => {
-    if (mobileNav.value === 'content' && helpPushed) {
+    if (helpDepth > 0) {
         e.stopImmediatePropagation();
-        helpPushed = false;
-        backToCategories();
+        helpDepth--;
+        if (mobileNav.value === 'answer') {
+            activeQuestion.value = null;
+            mobileNav.value      = 'questions';
+        } else {
+            backToCategories();
+        }
     }
 };
 
@@ -324,7 +335,7 @@ async function submitDispute() {
         <div class="faq-layout">
 
             <!-- ── Sidebar ── -->
-            <nav class="faq-sidebar" :class="{ 'faq-sidebar--mob-hidden': mobileNav === 'content' }">
+            <nav class="faq-sidebar" :class="{ 'faq-sidebar--mob-hidden': mobileNav !== 'cats' }">
                 <div class="faq-sidebar__label">{{ __('help.sections.label') }}</div>
                 <FaqItem
                     v-for="cat in faqCategories"
@@ -360,11 +371,11 @@ async function submitDispute() {
             <div class="faq-divider" />
 
             <!-- ── Content ── -->
-            <div class="faq-content" :class="{ 'faq-content--mob-visible': mobileNav === 'content' }">
+            <div class="faq-content" :class="{ 'faq-content--mob-visible': mobileNav === 'questions', 'faq-content--mob-left': mobileNav === 'answer' }">
                 <!-- Мобильная шапка «назад» -->
-                <div class="faq-mob-header">
+                <div v-if="!activeQuestion" class="faq-mob-header">
                     <button class="faq-mob-back" @click="backToCategories">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M15 18l-6-6 6-6"/>
                         </svg>
                         {{ __('help.back_to_sections') }}
@@ -448,7 +459,7 @@ async function submitDispute() {
                     </div>
 
                     <!-- FAQ view — список подразделов -->
-                    <div v-else-if="!activeQuestion" :key="`cat-${activeCategory.id}`" class="faq-content-inner">
+                    <div v-else-if="!activeQuestion || mobileNav === 'answer'" :key="`cat-${activeCategory?.id ?? 'list'}`" class="faq-content-inner">
                         <div class="faq-content__header">
                             <span class="faq-content__counter">
                                 {{ String(activeIndex).padStart(2, '0') }} / {{ String(faqCategories.length).padStart(2, '0') }}
@@ -474,7 +485,7 @@ async function submitDispute() {
                     <div v-else :key="`q-${activeQuestion.id}`" class="faq-content-inner">
                         <div class="faq-content__header faq-content__header--with-back">
                             <button class="faq-back-btn" @click="backToList">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M15 18l-6-6 6-6"/>
                                 </svg>
                                 {{ __('help.back') }}
@@ -484,6 +495,24 @@ async function submitDispute() {
                         <div class="faq-answer-body" v-html="activeQuestion.a" />
                     </div>
                 </Transition>
+            </div>
+
+            <!-- ── Mobile answer panel ── -->
+            <div class="faq-answer-mob" :class="{ 'faq-answer-mob--visible': mobileNav === 'answer' }">
+                <div class="faq-mob-header">
+                    <button class="faq-mob-back" @click="backToList">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 18l-6-6 6-6"/>
+                        </svg>
+                        {{ __('help.back') }}
+                    </button>
+                </div>
+                <div v-if="activeQuestion" class="faq-content-inner">
+                    <div class="faq-content__header">
+                        <h3 class="faq-content__title">{{ activeQuestion.q }}</h3>
+                    </div>
+                    <div class="faq-answer-body" v-html="activeQuestion.a" />
+                </div>
             </div>
 
             <!-- ── Mobile footer actions ── -->
@@ -668,6 +697,7 @@ async function submitDispute() {
 
 /* Back button + answer */
 .faq-content__header--with-back {
+    display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
@@ -835,11 +865,16 @@ async function submitDispute() {
         width: 100%;
         z-index: 1;
         overflow-y: auto;
+        overflow-x: hidden;
         transform: translateX(100%);
         transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .faq-content--mob-visible {
         transform: translateX(0);
+    }
+    .faq-content--mob-left {
+        transform: translateX(-100%);
+        pointer-events: none;
     }
 
     .faq-content-inner { padding: 0; }
@@ -863,11 +898,14 @@ async function submitDispute() {
         gap: 0.8rem;
     }
     :deep(.faq-nav-item:last-child) { border-bottom: none; }
+    /* На мобиле нет одновременного показа sidebar + контента — active не нужен */
     :deep(.faq-nav-item--active) {
-        background: linear-gradient(90deg, rgba(110,110,210,0.16) 0%, rgba(110,110,210,0.06) 55%, transparent 100%);
-        box-shadow: inset 3px 0 0 rgba(110,110,210,0.9), inset 5px 0 12px rgba(110,110,210,0.15);
+        background: transparent;
+        box-shadow: none;
+        color: rgba(255,255,255,0.45);
     }
-    :deep(.faq-nav-item:hover:not(.faq-nav-item--active)) {
+    :deep(.faq-nav-item:hover),
+    :deep(.faq-nav-item:active) {
         background: rgba(110,110,210,0.07);
     }
     :deep(.faq-nav-item__icon-wrap) {
@@ -876,9 +914,9 @@ async function submitDispute() {
         background: rgba(255,255,255,0.05);
     }
     :deep(.faq-nav-item--active .faq-nav-item__icon-wrap) {
-        background: rgba(110,110,210,0.2);
-        color: rgba(110,110,210,1);
-        box-shadow: 0 0 10px rgba(110,110,210,0.35), inset 0 0 8px rgba(110,110,210,0.1);
+        background: rgba(255,255,255,0.05);
+        color: rgba(255,255,255,0.4);
+        box-shadow: none;
     }
     :deep(.faq-nav-item__title) { font-size: 0.9rem; }
 
@@ -899,31 +937,80 @@ async function submitDispute() {
 /* hide mobile footer on desktop */
 .faq-footer-actions { display: none; }
 
+/* ── Mobile answer panel ─────────────────────────────────── */
+.faq-answer-mob { display: none; }
+
+@media (max-width: 767px) {
+    .faq-answer-mob {
+        display: block;
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        z-index: 3;
+        overflow-y: auto;
+        overflow-x: hidden;
+        transform: translateX(100%);
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .faq-answer-mob--visible {
+        transform: translateX(0);
+    }
+}
+
 /* ── Mobile back button ──────────────────────────────────── */
 .faq-mob-header { display: none; }
 
 @media (max-width: 767px) {
     .faq-mob-header {
         display: flex;
-        padding-bottom: 0.75rem;
-        border-bottom: 1px solid rgba(255,255,255,0.05);
-        margin-bottom: 0.75rem;
+        padding-bottom: 1rem;
+        margin-bottom: 0.25rem;
         flex-shrink: 0;
     }
     .faq-mob-back {
         display: inline-flex;
         align-items: center;
-        gap: 0.4rem;
-        color: rgba(255,255,255,0.3);
-        font-size: 0.78rem;
-        padding: 0;
-        border: none;
-        background: none;
-        cursor: pointer;
+        gap: 0.55rem;
+        min-height: 44px;
+        padding: 0 1rem;
+        border-radius: 6px;
+        border: 1px solid rgba(110,110,210,0.2);
+        background: rgba(110,110,210,0.07);
+        color: rgba(255,255,255,0.55);
+        font-size: 0.85rem;
         font-family: inherit;
-        transition: color 0.15s;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s, color 0.15s;
     }
-    .faq-mob-back:hover { color: rgba(110,110,210,0.85); }
+    .faq-mob-back:active {
+        background: rgba(110,110,210,0.15);
+        border-color: rgba(110,110,210,0.4);
+        color: rgba(255,255,255,0.85);
+    }
+
+    /* «Назад» внутри ответа */
+    .faq-back-btn {
+        min-height: 44px;
+        padding: 0 1rem;
+        gap: 0.55rem;
+        border-radius: 6px;
+        border: 1px solid rgba(110,110,210,0.2);
+        background: rgba(110,110,210,0.07);
+        color: rgba(255,255,255,0.55);
+        font-size: 0.85rem;
+        transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .faq-back-btn:active {
+        background: rgba(110,110,210,0.15);
+        border-color: rgba(110,110,210,0.4);
+        color: rgba(255,255,255,0.85);
+    }
+
+    .faq-content__header--with-back {
+        gap: 1.1rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+    }
 }
 
 /* ── Dispute form ─────────────────────────── */
