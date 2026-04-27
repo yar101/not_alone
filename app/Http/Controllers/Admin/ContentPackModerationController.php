@@ -143,8 +143,13 @@ class ContentPackModerationController extends Controller
             broadcast(new NewNotification('private', $pack->user->id));
         } elseif ($data['decision'] === 'rejected') {
             foreach ($pack->photos as $photo) {
-                Storage::disk('public')->delete($photo->path);
+                if (Storage::disk('local')->exists($photo->path)) {
+                    Storage::disk('local')->delete($photo->path);
+                } else {
+                    Storage::disk('public')->delete($photo->path);
+                }
             }
+            Storage::disk('local')->deleteDirectory('content-packs/' . $pack->id);
             Storage::disk('public')->deleteDirectory('content-packs/' . $pack->id);
             $pack->photos()->delete();
 

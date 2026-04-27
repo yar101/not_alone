@@ -155,7 +155,7 @@ class ContentPackController extends Controller
         $coverPath  = null;
 
         foreach ($request->file('photos', []) as $index => $file) {
-            $path = $file->store('content-packs/' . $pack->id, 'public');
+            $path = $file->store('content-packs/' . $pack->id, 'local');
             ContentPackPhoto::create([
                 'content_pack_id'   => $pack->id,
                 'path'              => $path,
@@ -225,7 +225,7 @@ class ContentPackController extends Controller
         foreach ($deleteIds as $photoId) {
             $photo = ContentPackPhoto::find($photoId);
             if ($photo && $photo->content_pack_id === $pack->id) {
-                Storage::disk('public')->delete($photo->path);
+                Storage::disk('local')->delete($photo->path);
                 if ($pack->cover_path === $photo->path) {
                     $pack->update(['cover_path' => null]);
                 }
@@ -248,9 +248,9 @@ class ContentPackController extends Controller
                     continue;
                 }
                 // Delete old file
-                Storage::disk('public')->delete($photo->path);
+                Storage::disk('local')->delete($photo->path);
                 // Store new
-                $path = $file->store('content-packs/' . $pack->id, 'public');
+                $path = $file->store('content-packs/' . $pack->id, 'local');
                 $photo->update(['path' => $path, 'original_filename' => $file->getClientOriginalName()]);
             }
         }
@@ -426,9 +426,9 @@ class ContentPackController extends Controller
         // Rejected packs — files already deleted by admin
         if ($pack->status !== 'rejected') {
             foreach ($pack->photos as $photo) {
-                Storage::disk('public')->delete($photo->path);
+                Storage::disk('local')->delete($photo->path);
             }
-            Storage::disk('public')->deleteDirectory('content-packs/' . $pack->id);
+            Storage::disk('local')->deleteDirectory('content-packs/' . $pack->id);
         }
 
         $pack->forceDelete();

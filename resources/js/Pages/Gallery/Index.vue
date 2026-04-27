@@ -46,9 +46,7 @@ const hasMorePacks      = ref(false);
 const nextPacksCursor   = ref(null);
 
 // ── Cache (in-memory, живёт пока открыта вкладка) ─────────
-const packsCache  = {};
-const photosCache = {};
-const photosKey   = () => `${selectedIdolId.value ?? 'all'}:${selectedPackId.value ?? 'all'}`;
+const packsCache = {};
 
 async function loadSidebarPacks(append = false) {
     if (selectedIdolId.value === null) return;
@@ -122,11 +120,6 @@ async function loadPhotos() {
         photos.value.push(...data.photos);
         nextCursor.value = data.next_cursor;
         hasMore.value    = data.has_more;
-        photosCache[photosKey()] = {
-            photos:     [...photos.value],
-            hasMore:    hasMore.value,
-            nextCursor: nextCursor.value,
-        };
     } catch (e) {
         console.error(e);
     } finally {
@@ -137,15 +130,6 @@ async function loadPhotos() {
 function resetAndLoad() {
     lightboxIndex.value = null;
     Object.keys(photoLoaded).forEach(k => delete photoLoaded[k]);
-
-    const cached = photosCache[photosKey()];
-    if (cached) {
-        photos.value     = [...cached.photos];
-        nextCursor.value = cached.nextCursor;
-        hasMore.value    = cached.hasMore;
-        return;
-    }
-
     photos.value     = [];
     nextCursor.value = null;
     hasMore.value    = true;
@@ -514,6 +498,7 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
                         loading="lazy"
                         :class="{ 'gallery-photo__img--loaded': photoLoaded[photo.id] }"
                         @load="photoLoaded[photo.id] = true"
+                        @error="photoLoaded[photo.id] = false"
                     />
                     <div class="gallery-photo__overlay">
                         <span class="gallery-photo__overlay-title">{{ photo.pack_title }}</span>

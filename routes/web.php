@@ -14,6 +14,7 @@ use App\Http\Controllers\AboutController;
 use App\Http\Controllers\ContentPackController;
 use App\Http\Controllers\ContentPackPurchaseController;
 use App\Http\Controllers\GalleryController;
+use App\Http\Controllers\MediaController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\NewsPublicController;
 use App\Http\Controllers\UserProfileController;
@@ -198,5 +199,9 @@ Route::middleware(['auth', 'not_banned'])->group(function () {
 
 Route::get('/reviews/epithets', [ReviewController::class, 'epithets'])->name('reviews.epithets');
 Route::get('/users/{user}/reviews', [ReviewController::class, 'index'])->name('users.reviews');
+
+Route::get('/media/{path}', [MediaController::class, 'serve'])
+    ->where('path', '.+')
+    ->name('media.serve');
 
 require __DIR__.'/auth.php';

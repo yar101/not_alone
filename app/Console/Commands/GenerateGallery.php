@@ -64,13 +64,13 @@ class GenerateGallery extends Command
             ]);
 
             $dir = "content-packs/{$pack->id}";
-            Storage::disk('public')->makeDirectory($dir);
+            Storage::disk('local')->makeDirectory($dir);
 
             for ($ph = 1; $ph <= $photoCount; $ph++) {
                 $bar->setMessage("Пак {$p}/{$packCount}, фото {$ph}/{$photoCount}");
 
                 $filename = "{$dir}/photo_{$ph}.jpg";
-                $fullPath = Storage::disk('public')->path($filename);
+                $fullPath = Storage::disk('local')->path($filename);
 
                 $this->generateImage($fullPath, $idol->id, $pack->id, $ph);
 

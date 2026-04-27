@@ -7,6 +7,7 @@ use App\Models\ContentPackPhoto;
 use App\Models\ContentPackPurchase;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -76,7 +77,7 @@ class GalleryController extends Controller
             return response()->json([
                 'photos' => $photos->map(fn ($ph) => [
                     'id'         => $ph->id,
-                    'url'        => \Illuminate\Support\Facades\Storage::url($ph->path),
+                    'url'        => URL::temporarySignedRoute('media.serve', now()->addMinutes(30), ['path' => $ph->path]),
                     'pack_id'    => $ph->content_pack_id,
                     'pack_title' => $ph->pack_title,
                     'idol_id'    => $ph->idol_id,
@@ -118,7 +119,7 @@ class GalleryController extends Controller
         return response()->json([
             'photos' => $photos->map(fn ($ph) => [
                 'id'         => $ph->id,
-                'url'        => \Illuminate\Support\Facades\Storage::url($ph->path),
+                'url'        => URL::temporarySignedRoute('media.serve', now()->addMinutes(30), ['path' => $ph->path]),
                 'pack_id'    => $ph->content_pack_id,
                 'pack_title' => $ph->pack_title,
                 'idol_id'    => $ph->idol_id,
