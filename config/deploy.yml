@@ -10,19 +10,16 @@ servers:
   worker:
     hosts:
       - <%= ENV['DEPLOY_HOST'] %>
-    cmd: placeholder  # entrypoint читает CONTAINER_ROLE
     env:
       CONTAINER_ROLE: worker
   scheduler:
     hosts:
       - <%= ENV['DEPLOY_HOST'] %>
-    cmd: placeholder
     env:
       CONTAINER_ROLE: scheduler
   reverb:
     hosts:
       - <%= ENV['DEPLOY_HOST'] %>
-    cmd: placeholder
     env:
       CONTAINER_ROLE: reverb
 
