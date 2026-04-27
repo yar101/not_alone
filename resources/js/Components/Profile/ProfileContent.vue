@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, inject, watch, onMounted, onUnmounted } from 'vue';
+import { ref, reactive, computed, inject, watch, onMounted, onUnmounted } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import { Picture, WarnTriangleFilled } from '@element-plus/icons-vue';
@@ -52,6 +52,19 @@ function closeDetail() {
     showEditMenu.value = false;
     detailPack.value = null;
 }
+
+// ── Image shimmer state ───────────────────────────────────
+const coverLoaded  = reactive({});  // pack.id → true
+const coverError   = reactive({});
+const pickerLoaded = reactive({});  // photo.id → true
+const pickerError  = reactive({});
+const heroLoaded   = ref(false);
+const heroError    = ref(false);
+
+watch(() => detailPack.value?.cover_url, () => {
+    heroLoaded.value = false;
+    heroError.value  = false;
+});
 
 // ── Cover fullscreen ──────────────────────────────────────
 const coverFullscreen = ref(false);
@@ -476,8 +489,12 @@ const ownerSortOptions = computed(() => [
                         :class="{ 'pc-card--hidden': pack.hidden_at }"
                         @click="openDetail(pack)">
                         <div class="pc-card__cover">
-                            <img v-if="pack.cover_url" :src="pack.cover_url" :alt="pack.title" loading="lazy" />
-                            <div v-else class="pc-card__cover-placeholder" />
+                            <div v-if="pack.cover_url && !coverLoaded[pack.id] && !coverError[pack.id]" class="pc-cover-shimmer" />
+                            <img v-if="pack.cover_url" :src="pack.cover_url" :alt="pack.title" loading="lazy"
+                                class="pc-cover-img" :class="{ 'pc-cover-img--loaded': coverLoaded[pack.id] }"
+                                :ref="el => { if (el?.complete && el.naturalWidth > 0) coverLoaded[pack.id] = true }"
+                                @load="coverLoaded[pack.id] = true" @error="coverError[pack.id] = true" />
+                            <div v-if="!pack.cover_url || coverError[pack.id]" class="pc-card__cover-placeholder" />
                             <div v-if="pack.hidden_at" class="pc-card__hidden-veil" />
                             <div class="pc-card__photo-badge">
                                 <el-icon :size="18">
@@ -578,8 +595,12 @@ const ownerSortOptions = computed(() => [
                     <div v-for="pack in displayPacks()" :key="pack.id" class="pc-card pc-card--visitor"
                         @click="openDetail(pack)">
                         <div class="pc-card__cover">
-                            <img v-if="pack.cover_url" :src="pack.cover_url" :alt="pack.title" loading="lazy" />
-                            <div v-else class="pc-card__cover-placeholder" />
+                            <div v-if="pack.cover_url && !coverLoaded[pack.id] && !coverError[pack.id]" class="pc-cover-shimmer" />
+                            <img v-if="pack.cover_url" :src="pack.cover_url" :alt="pack.title" loading="lazy"
+                                class="pc-cover-img" :class="{ 'pc-cover-img--loaded': coverLoaded[pack.id] }"
+                                :ref="el => { if (el?.complete && el.naturalWidth > 0) coverLoaded[pack.id] = true }"
+                                @load="coverLoaded[pack.id] = true" @error="coverError[pack.id] = true" />
+                            <div v-if="!pack.cover_url || coverError[pack.id]" class="pc-card__cover-placeholder" />
                             <div class="pc-card__photo-badge">
                                 <el-icon :size="18">
                                     <Picture />
@@ -702,10 +723,13 @@ const ownerSortOptions = computed(() => [
                 </div>
 
                 <!-- ① Cover — full-bleed hero -->
-                <div class="pcd-hero" :class="{ 'pcd-hero--clickable': detailPack.cover_url }"
-                    @click="detailPack.cover_url && (coverFullscreen = true)">
+                <div class="pcd-hero" :class="{ 'pcd-hero--clickable': detailPack.cover_url && heroLoaded }"
+                    @click="detailPack.cover_url && heroLoaded && (coverFullscreen = true)">
+                    <div v-if="detailPack.cover_url && !heroLoaded && !heroError" class="pcd-hero__shimmer" />
                     <img v-if="detailPack.cover_url" :src="detailPack.cover_url" :alt="detailPack.title"
-                        class="pcd-hero__img" />
+                        class="pcd-hero__img" :class="{ 'pcd-hero__img--loaded': heroLoaded }"
+                        :ref="el => { if (el?.complete && el.naturalWidth > 0) heroLoaded = true }"
+                        @load="heroLoaded = true" @error="heroError = true" />
                     <div v-else class="pcd-hero__empty">
                         <el-icon :size="36">
                             <Picture />
@@ -736,7 +760,11 @@ const ownerSortOptions = computed(() => [
                             <button v-for="photo in detailPack.photos" :key="photo.id" class="pcd-picker__item"
                                 :class="{ 'pcd-picker__item--active': detailPack.cover_url === photo.url }"
                                 :disabled="coverUpdating" @click="updateCover(photo)">
-                                <img :src="photo.url" loading="lazy" />
+                                <div v-if="!pickerLoaded[photo.id] && !pickerError[photo.id]" class="pcd-picker__shimmer" />
+                                <img :src="photo.url" loading="lazy"
+                                    :ref="el => { if (el?.complete && el.naturalWidth > 0) pickerLoaded[photo.id] = true }"
+                                    :class="{ 'pcd-picker__img--loaded': pickerLoaded[photo.id] }"
+                                    @load="pickerLoaded[photo.id] = true" @error="pickerError[photo.id] = true" />
                                 <div v-if="detailPack.cover_url === photo.url" class="pcd-picker__check">
                                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                         stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1259,15 +1287,38 @@ const ownerSortOptions = computed(() => [
     color: #fff;
 }
 
-.pc-card__cover img {
+/* Shimmer for pack cover cards */
+@keyframes pc-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.pc-cover-shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+        rgba(255,255,255,0.04) 25%,
+        rgba(255,255,255,0.1) 50%,
+        rgba(255,255,255,0.04) 75%);
+    background-size: 200% 100%;
+    animation: pc-shimmer 1.5s ease-in-out infinite;
+    z-index: 1;
+}
+
+.pc-cover-img {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
-    transition: transform 0.35s ease;
+    opacity: 0;
+    transition: opacity 0.35s ease, transform 0.35s ease;
 }
 
-.pc-card__cover:hover img {
+.pc-cover-img--loaded { opacity: 1; }
+
+.pc-card__cover:hover .pc-cover-img {
     transform: scale(1.07);
 }
 
@@ -1613,12 +1664,27 @@ const ownerSortOptions = computed(() => [
     cursor: zoom-in;
 }
 
+.pcd-hero__shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+        rgba(255,255,255,0.04) 25%,
+        rgba(255,255,255,0.1) 50%,
+        rgba(255,255,255,0.04) 75%);
+    background-size: 200% 100%;
+    animation: pc-shimmer 1.5s ease-in-out infinite;
+}
+
 .pcd-hero__img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
+    opacity: 0;
+    transition: opacity 0.35s ease;
 }
+
+.pcd-hero__img--loaded { opacity: 1; }
 
 .pcd-hero__empty {
     width: 100%;
@@ -2216,12 +2282,28 @@ const ownerSortOptions = computed(() => [
     transition: border-color 0.15s, opacity 0.15s;
 }
 
+.pcd-picker__shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+        rgba(255,255,255,0.04) 25%,
+        rgba(255,255,255,0.1) 50%,
+        rgba(255,255,255,0.04) 75%);
+    background-size: 200% 100%;
+    animation: pc-shimmer 1.5s ease-in-out infinite;
+    border-radius: 4px;
+}
+
 .pcd-picker__item img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
+    opacity: 0;
+    transition: opacity 0.25s ease;
 }
+
+.pcd-picker__item img.pcd-picker__img--loaded { opacity: 1; }
 
 .pcd-picker__item:hover {
     border-color: rgba(255, 255, 255, 0.3);
