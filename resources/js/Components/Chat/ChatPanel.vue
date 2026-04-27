@@ -1034,28 +1034,28 @@ function formatDate(iso) {
                         </button>
                     </div>
 
-                    <!-- Поиск по диалогам (только для сообщений) -->
-                    <div v-if="activeTab === 'messages'" class="chat-sidebar__search">
-                        <div class="search-row">
-                            <input
-                                v-model="searchQuery"
-                                type="text"
-                                class="chat-search-input"
-                                :placeholder="__('chat.search')"
-                                @keyup.enter="doConvSearch"
-                            />
-                            <button v-if="searchQuery.trim()" class="search-clear-btn" @click="clearConvSearch" title="Сбросить">
-                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-                            </button>
-                            <button class="search-go-btn" @click="doConvSearch" title="Найти">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                            </button>
-                        </div>
-                    </div>
-
                     <div class="chat-sidebar__list">
                         <!-- ── Сообщения ── -->
                         <template v-if="activeTab === 'messages'">
+                            <div class="chat-sticky-controls">
+                                <div class="chat-sidebar__search">
+                                    <div class="search-row">
+                                        <input
+                                            v-model="searchQuery"
+                                            type="text"
+                                            class="chat-search-input"
+                                            :placeholder="__('chat.search')"
+                                            @keyup.enter="doConvSearch"
+                                        />
+                                        <button v-if="searchQuery.trim()" class="search-clear-btn" @click="clearConvSearch" title="Сбросить">
+                                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                                        </button>
+                                        <button class="search-go-btn" @click="doConvSearch" title="Найти">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                             <template v-if="loadingConvs">
                                 <div v-for="n in 6" :key="n" class="conv-skel">
                                     <div class="conv-skel__avatar skel-pulse"></div>
@@ -1117,6 +1117,7 @@ function formatDate(iso) {
 
                         <!-- ── Заказы ── -->
                         <template v-else-if="activeTab === 'orders'">
+                            <div class="chat-sticky-controls">
                             <!-- Саб-табы только для айдолов — всегда видны -->
                             <div v-if="authUser?.is_idol" class="chat-order-subtabs">
                                 <button
@@ -1186,6 +1187,7 @@ function formatDate(iso) {
                                     </div>
                                 </Transition>
                             </div>
+                            </div><!-- /chat-sticky-controls -->
 
                             <!-- Список — скелетон или данные -->
                             <template v-if="loadingOrders">
@@ -2007,11 +2009,18 @@ function formatDate(iso) {
     background: rgba(110, 110, 210, 0.1);
 }
 
+/* ── Sticky sidebar controls ──────────────────────────── */
+.chat-sticky-controls {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: #0b0b18;
+    border-bottom: 1px solid rgba(110, 110, 210, 0.1);
+}
+
 /* ── Search ───────────────────────────────────────────── */
 .chat-sidebar__search {
     padding: 0.55rem 0.75rem;
-    border-bottom: 1px solid rgba(110, 110, 210, 0.1);
-    flex-shrink: 0;
 }
 .chat-search-input {
     width: 100%;
@@ -2031,7 +2040,18 @@ function formatDate(iso) {
 .chat-sidebar__list {
     flex: 1;
     overflow-y: auto;
-    padding: 0.35rem 0;
+    padding: 0 0 0.35rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+}
+.chat-sidebar__list::-webkit-scrollbar { width: 3px; }
+.chat-sidebar__list::-webkit-scrollbar-track { background: transparent; }
+.chat-sidebar__list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+}
+.chat-sidebar__list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.15);
 }
 
 .chat-empty {
@@ -3431,8 +3451,6 @@ function formatDate(iso) {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
-    flex-shrink: 0;
-    border-bottom: 1px solid rgba(110,110,210,0.1);
 }
 .order-filters__search-input {
     padding-top: 0.28rem;
