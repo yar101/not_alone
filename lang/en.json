@@ -340,6 +340,7 @@
     "chat.tab.orders": "Orders",
     "chat.search": "Search…",
     "chat.search.name": "Search by name…",
+    "chat.filter.unread_only": "Unread only",
     "chat.empty.dialogs": "No dialogs",
     "chat.empty.dialogs.sub": "You have no messages yet",
     "chat.support": "no alone support",

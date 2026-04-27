@@ -40,6 +40,25 @@ class ConversationController extends Controller
             });
         }
 
+        if ($request->boolean('unread')) {
+            $userId = $user->id;
+            $query->whereExists(function ($sub) use ($userId) {
+                $sub->from('messages as m')
+                    ->join('conversation_participants as cp', function ($j) use ($userId) {
+                        $j->on('cp.conversation_id', '=', 'm.conversation_id')
+                          ->where('cp.user_id', $userId);
+                    })
+                    ->whereColumn('m.conversation_id', 'conversations.id')
+                    ->where(function ($q) use ($userId) {
+                        $q->where('m.sender_id', '!=', $userId)->orWhereNull('m.sender_id');
+                    })
+                    ->where(function ($q) {
+                        $q->whereNull('cp.last_read_at')
+                          ->orWhereColumn('m.created_at', '>', 'cp.last_read_at');
+                    });
+            });
+        }
+
         if ($cursorAt && $cursorId) {
             $query->where(function ($q) use ($cursorAt, $cursorId) {
                 $q->where('updated_at', '<', $cursorAt)

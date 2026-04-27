@@ -72,6 +72,8 @@ const orderStatusFilter = ref('all'); // 'all' | 'pending' | 'accepted' | 'cance
 const orderSearch       = ref('');
 const orderFiltersOpen  = ref(false);
 const orderCounts       = ref({ all: 0, pending: 0, accepted: 0, paid: 0, completed: 0, cancelled: 0, refunded: 0, disputed: 0 });
+const convUnreadOnly    = ref(false);
+const orderUnreadOnly   = ref(false);
 
 const isMobile = ref(false);
 function checkMobile() { isMobile.value = window.innerWidth < 768; }
@@ -292,6 +294,7 @@ async function fetchConversations(reset = true) {
     try {
         const params = {};
         if (searchQuery.value.trim()) params.search = searchQuery.value.trim();
+        if (convUnreadOnly.value) params.unread = 1;
         if (convsCursor.value) {
             params.cursor_at = convsCursor.value.at;
             params.cursor_id = convsCursor.value.id;
@@ -882,6 +885,7 @@ async function fetchOrders(reset = true) {
         if (ordersCursor.value) params.cursor = ordersCursor.value;
         if (orderStatusFilter.value !== 'all') params.status = orderStatusFilter.value;
         if (orderSearch.value.trim()) params.search = orderSearch.value.trim();
+        if (orderUnreadOnly.value) params.unread = 1;
         if (authUser.value?.is_idol) {
             params.role = ordersSubTab.value === 'mine' ? 'customer' : 'idol';
         } else {
@@ -1055,6 +1059,19 @@ function formatDate(iso) {
                                         </button>
                                     </div>
                                 </div>
+                                <div class="chat-unread-toggle">
+                                    <button
+                                        class="chat-unread-btn"
+                                        :class="{ 'chat-unread-btn--active': convUnreadOnly }"
+                                        @click="convUnreadOnly = !convUnreadOnly; fetchConversations(true)"
+                                    >
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                            <polyline points="22,6 12,13 2,6"/>
+                                        </svg>
+                                        {{ __('chat.filter.unread_only') }}
+                                    </button>
+                                </div>
                             </div>
                             <template v-if="loadingConvs">
                                 <div v-for="n in 6" :key="n" class="conv-skel">
@@ -1186,6 +1203,19 @@ function formatDate(iso) {
                                         </button>
                                     </div>
                                 </Transition>
+                            </div>
+                            <div class="chat-unread-toggle">
+                                <button
+                                    class="chat-unread-btn"
+                                    :class="{ 'chat-unread-btn--active': orderUnreadOnly }"
+                                    @click="orderUnreadOnly = !orderUnreadOnly; fetchOrders(true)"
+                                >
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                        <polyline points="22,6 12,13 2,6"/>
+                                    </svg>
+                                    {{ __('chat.filter.unread_only') }}
+                                </button>
                             </div>
                             </div><!-- /chat-sticky-controls -->
 
@@ -2016,6 +2046,7 @@ function formatDate(iso) {
     z-index: 5;
     background: #0b0b18;
     border-bottom: 1px solid rgba(110, 110, 210, 0.1);
+    padding-top: 1px;
 }
 
 /* ── Search ───────────────────────────────────────────── */
@@ -3443,6 +3474,36 @@ function formatDate(iso) {
 }
 .chat-order-subtab--active:hover {
     background: rgba(160,160,255,0.18);
+}
+
+/* ── Unread-only toggle ──────────────────────────────────── */
+.chat-unread-toggle {
+    padding: 0.3rem 0.75rem 0.55rem;
+}
+.chat-unread-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.65rem;
+    font-size: 0.74rem;
+    font-weight: 600;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: transparent;
+    color: rgba(255,255,255,0.32);
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.chat-unread-btn:hover {
+    color: rgba(255,255,255,0.6);
+    border-color: rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.04);
+}
+.chat-unread-btn--active {
+    color: rgba(200,200,255,0.95);
+    border-color: rgba(160,160,255,0.4);
+    background: rgba(160,160,255,0.1);
 }
 
 /* ── Order filters ───────────────────────────────────────── */

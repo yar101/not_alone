@@ -340,6 +340,7 @@
     "chat.tab.orders": "Заказы",
     "chat.search": "Поиск…",
     "chat.search.name": "Поиск по имени…",
+    "chat.filter.unread_only": "Непрочитанные",
     "chat.empty.dialogs": "Нет диалогов",
     "chat.empty.dialogs.sub": "У вас пока нет сообщений",
     "chat.support": "Поддержка no alone",
