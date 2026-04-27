@@ -439,6 +439,7 @@
     "help.dispute.btn": "Dispute order",
     "help.sections.label": "Sections",
     "help.back": "Back",
+    "help.back_to_sections": "Sections",
     "help.fail": "Failed to load orders",
     "help.timer.expiring": "expiring…",
     "help.timer.left": ":time left",

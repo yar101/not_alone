@@ -439,6 +439,7 @@
     "help.dispute.btn": "Оспорить заказ",
     "help.sections.label": "Разделы",
     "help.back": "Назад",
+    "help.back_to_sections": "К разделам",
     "help.fail": "Не удалось загрузить заказы",
     "help.timer.expiring": "истекает…",
     "help.timer.left": "осталось :time",

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, shallowRef, onUnmounted } from 'vue';
+import { computed, ref, shallowRef, onMounted, onUnmounted } from 'vue';
 import { useTranslations } from '@/composables/useTranslations';
 
 const { __, locale } = useTranslations();
@@ -180,10 +180,19 @@ const activeIndex = computed(() =>
     faqCategories.findIndex((c) => c === activeCategory.value) + 1,
 );
 
+// ── Mobile drill-down navigation ──────────────────────────
+const mobileNav = ref('cats'); // 'cats' | 'content'
+let helpPushed  = false;
+
 function setCategory(cat) {
     disputeView.value    = false;
     activeCategory.value = cat;
     activeQuestion.value = null;
+    if (mobileNav.value === 'cats') {
+        history.pushState({ modal: 'help-content' }, '');
+        helpPushed      = true;
+        mobileNav.value = 'content';
+    }
 }
 
 function openQuestion(item) {
@@ -192,6 +201,13 @@ function openQuestion(item) {
 
 function backToList() {
     activeQuestion.value = null;
+}
+
+function backToCategories() {
+    disputeView.value    = false;
+    activeQuestion.value = null;
+    mobileNav.value      = 'cats';
+    if (!activeCategory.value) activeCategory.value = faqCategories[0];
 }
 
 // ── Dispute form ──────────────────────────────────────────
@@ -222,6 +238,11 @@ async function openDisputeForm() {
     activeCategory.value  = null;
     disputeLoading.value  = true;
     disputeView.value     = true;
+    if (mobileNav.value === 'cats') {
+        history.pushState({ modal: 'help-content' }, '');
+        helpPushed      = true;
+        mobileNav.value = 'content';
+    }
     disputeSuccess.value  = false;
     disputeErrors.value   = {};
     disputeReason.value   = '';
@@ -255,7 +276,22 @@ function fmtDate(iso) {
     return new Date(iso).toLocaleString(loc, { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
-onUnmounted(() => { clearInterval(tickInterval); });
+const onHelpPopstate = (e) => {
+    if (mobileNav.value === 'content' && helpPushed) {
+        e.stopImmediatePropagation();
+        helpPushed = false;
+        backToCategories();
+    }
+};
+
+onMounted(() => {
+    window.addEventListener('popstate', onHelpPopstate, true);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('popstate', onHelpPopstate, true);
+    clearInterval(tickInterval);
+});
 
 async function submitDispute() {
     if (!disputeOrderId.value || !disputeReason.value || disputeDetails.value.trim().length < 100) return;
@@ -288,7 +324,7 @@ async function submitDispute() {
         <div class="faq-layout">
 
             <!-- ── Sidebar ── -->
-            <nav class="faq-sidebar">
+            <nav class="faq-sidebar" :class="{ 'faq-sidebar--mob-hidden': mobileNav === 'content' }">
                 <div class="faq-sidebar__label">{{ __('help.sections.label') }}</div>
                 <FaqItem
                     v-for="cat in faqCategories"
@@ -324,7 +360,16 @@ async function submitDispute() {
             <div class="faq-divider" />
 
             <!-- ── Content ── -->
-            <div class="faq-content">
+            <div class="faq-content" :class="{ 'faq-content--mob-visible': mobileNav === 'content' }">
+                <!-- Мобильная шапка «назад» -->
+                <div class="faq-mob-header">
+                    <button class="faq-mob-back" @click="backToCategories">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 18l-6-6 6-6"/>
+                        </svg>
+                        {{ __('help.back_to_sections') }}
+                    </button>
+                </div>
                 <Transition name="panel-fade" mode="out-in">
                     <!-- Dispute form view -->
                     <div v-if="disputeView" key="dispute" class="faq-content-inner">
@@ -447,7 +492,7 @@ async function submitDispute() {
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
-                    Техподдержка
+                    {{ __('help.support.btn') }}
                 </button>
                 <button v-if="showDispute" class="faq-action-btn faq-action-btn--dispute" @click="openDisputeForm">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -455,7 +500,7 @@ async function submitDispute() {
                         <line x1="12" y1="8" x2="12" y2="12"/>
                         <line x1="12" y1="16" x2="12.01" y2="16"/>
                     </svg>
-                    Оспорить заказ
+                    {{ __('help.dispute.btn') }}
                 </button>
             </div>
 
@@ -736,29 +781,66 @@ async function submitDispute() {
 /* ── Mobile ──────────────────────────────────── */
 @media (max-width: 767px) {
     .faq-layout {
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-
-    .faq-sidebar {
-        width: 100%;
         flex-direction: row;
-        flex-shrink: 0;
-        overflow-x: auto;
-        overflow-y: hidden;
-        gap: 0.45rem;
-        padding: 0.15rem 0 0.35rem;
-        background: none;
-        border-radius: 0;
-        scrollbar-width: none;
+        position: relative;
+        overflow: hidden;
+        gap: 0;
     }
 
-    .faq-sidebar::-webkit-scrollbar { display: none; }
-    .faq-sidebar__label { display: none; }
-    .faq-divider { display: none; }
-    .faq-sidebar__actions { display: none; }
+    /* Sidebar панель — список категорий */
+    .faq-sidebar {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        flex-direction: column;
+        overflow-y: auto;
+        overflow-x: hidden;
+        gap: 0;
+        padding: 0 0 0.5rem;
+        background: transparent;
+        border-radius: 0;
+        z-index: 2;
+        transform: translateX(0);
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .faq-sidebar--mob-hidden {
+        transform: translateX(-100%);
+        pointer-events: none;
+    }
 
-    .faq-content { flex: 1; }
+    .faq-sidebar__label {
+        display: block;
+        font-size: 0.65rem;
+        padding: 0.5rem 1.1rem 0.65rem;
+        margin-bottom: 0;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    /* Кнопки внизу панели категорий */
+    .faq-sidebar__actions {
+        display: flex;
+        padding: 0.75rem 1rem;
+        margin-top: auto;
+        flex-direction: column;
+        gap: 0.35rem;
+        border-top: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .faq-divider { display: none; }
+
+    /* Content панель */
+    .faq-content {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        z-index: 1;
+        overflow-y: auto;
+        transform: translateX(100%);
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .faq-content--mob-visible {
+        transform: translateX(0);
+    }
 
     .faq-content-inner { padding: 0; }
 
@@ -767,17 +849,82 @@ async function submitDispute() {
         text-shadow: 0 0 18px rgba(110, 110, 210, 0.3);
     }
 
-    .faq-footer-actions {
-        display: flex;
-        gap: 0.5rem;
-        padding-top: 0.75rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
+    /* Footer actions скрыт — actions живут внизу sidebar */
+    .faq-footer-actions { display: none; }
+
+    /* FaqItem: полноширинные строки вместо pills */
+    :deep(.faq-nav-item) {
+        width: 100%;
+        flex-shrink: 1;
+        border: none;
+        border-radius: 0;
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+        padding: 0.9rem 1.1rem;
+        gap: 0.8rem;
+    }
+    :deep(.faq-nav-item:last-child) { border-bottom: none; }
+    :deep(.faq-nav-item--active) {
+        background: linear-gradient(90deg, rgba(110,110,210,0.16) 0%, rgba(110,110,210,0.06) 55%, transparent 100%);
+        box-shadow: inset 3px 0 0 rgba(110,110,210,0.9), inset 5px 0 12px rgba(110,110,210,0.15);
+    }
+    :deep(.faq-nav-item:hover:not(.faq-nav-item--active)) {
+        background: rgba(110,110,210,0.07);
+    }
+    :deep(.faq-nav-item__icon-wrap) {
+        width: 36px;
+        height: 36px;
+        background: rgba(255,255,255,0.05);
+    }
+    :deep(.faq-nav-item--active .faq-nav-item__icon-wrap) {
+        background: rgba(110,110,210,0.2);
+        color: rgba(110,110,210,1);
+        box-shadow: 0 0 10px rgba(110,110,210,0.35), inset 0 0 8px rgba(110,110,210,0.1);
+    }
+    :deep(.faq-nav-item__title) { font-size: 0.9rem; }
+
+    /* Chevron справа на каждой категории */
+    :deep(.faq-nav-item)::after {
+        content: '';
+        display: block;
+        width: 6px;
+        height: 6px;
+        border-right: 1.5px solid rgba(255,255,255,0.2);
+        border-top: 1.5px solid rgba(255,255,255,0.2);
+        transform: rotate(45deg);
+        margin-left: auto;
         flex-shrink: 0;
     }
 }
 
 /* hide mobile footer on desktop */
 .faq-footer-actions { display: none; }
+
+/* ── Mobile back button ──────────────────────────────────── */
+.faq-mob-header { display: none; }
+
+@media (max-width: 767px) {
+    .faq-mob-header {
+        display: flex;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        margin-bottom: 0.75rem;
+        flex-shrink: 0;
+    }
+    .faq-mob-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: rgba(255,255,255,0.3);
+        font-size: 0.78rem;
+        padding: 0;
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-family: inherit;
+        transition: color 0.15s;
+    }
+    .faq-mob-back:hover { color: rgba(110,110,210,0.85); }
+}
 
 /* ── Dispute form ─────────────────────────── */
 .dispute-loading,

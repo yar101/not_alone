@@ -111,35 +111,4 @@ defineProps({
     .faq-nav-item__title { font-size: 1.05rem; }
 }
 
-/* Mobile pill */
-@media (max-width: 767px) {
-    .faq-nav-item {
-        flex-shrink: 0;
-        width: auto;
-        border-left: none;
-        border-radius: 3px;
-        padding: 0.45rem 0.85rem 0.45rem 0.55rem;
-        border: 1px solid rgba(255, 255, 255, 0.07);
-        gap: 0.45rem;
-    }
-    .faq-nav-item::before { display: none; }
-    .faq-nav-item:hover:not(.faq-nav-item--active) {
-        background: rgba(110, 110, 210, 0.07);
-        border-color: rgba(110, 110, 210, 0.25);
-    }
-    .faq-nav-item--active {
-        background: rgba(110, 110, 210, 0.14);
-        border-color: rgba(110, 110, 210, 0.45);
-    }
-    .faq-nav-item__icon-wrap {
-        width: 22px;
-        height: 22px;
-        background: transparent;
-    }
-    .faq-nav-item--active .faq-nav-item__icon-wrap {
-        background: transparent;
-        box-shadow: none;
-    }
-    .faq-nav-item__title { font-size: 0.8rem; }
-}
 </style>
