@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import axios from 'axios';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import { useTranslations } from '@/composables/useTranslations';
@@ -11,19 +11,25 @@ const props = defineProps({
 });
 const emit = defineEmits(['close', 'created']);
 
-const MAX_FILES    = 50;
-const MAX_SIZE_MB  = 10;
-const ALLOWED_MIME = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const MAX_FILES         = 50;
+const MAX_SIZE_MB       = 10;
+const MAX_TOTAL_SIZE_MB = 50;
+const ALLOWED_MIME      = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
 const form = reactive({
     title:       '',
     description: '',
     price:       '',
 });
-const photos      = ref([]); // [{file, preview, name}]
+const photos      = ref([]); // [{file, preview, name, error}]
 const coverIndex  = ref(null); // index of chosen cover photo
 const errors      = ref({});
 const submitting  = ref(false);
+
+const totalSizeMB = computed(() => {
+    const bytes = photos.value.reduce((sum, p) => sum + (p.file?.size || 0), 0);
+    return bytes / (1024 * 1024);
+});
 
 function close() {
     if (submitting.value) return;
@@ -35,6 +41,7 @@ function resetForm() {
     form.title       = '';
     form.description = '';
     form.price       = '';
+    photos.value.forEach(p => URL.revokeObjectURL(p.preview));
     photos.value     = [];
     coverIndex.value = null;
     errors.value     = {};
@@ -53,23 +60,28 @@ function handleDrop(e) {
 
 function addFiles(files) {
     errors.value.photos = null;
-    const remaining = MAX_FILES - photos.value.length;
-    if (remaining <= 0) {
-        errors.value.photos = __('pack.error.max_photos', { count: MAX_FILES });
-        return;
-    }
-    const toAdd = files.slice(0, remaining);
+    const toAdd = files;
+    
     for (const file of toAdd) {
+        if (photos.value.length >= MAX_FILES) {
+            errors.value.photos = __('pack.error.max_photos', { count: MAX_FILES });
+            break;
+        }
+
+        let fileError = null;
         if (!ALLOWED_MIME.includes(file.type)) {
-            errors.value.photos = __('pack.error.format');
-            continue;
+            fileError = __('pack.error.format');
+        } else if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+            fileError = __('pack.error.file_size', { name: file.name, size: MAX_SIZE_MB });
         }
-        if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-            errors.value.photos = __('pack.error.file_size', { name: file.name, size: MAX_SIZE_MB });
-            continue;
-        }
+
         const preview = URL.createObjectURL(file);
-        photos.value.push({ file, preview, name: file.name });
+        photos.value.push({ 
+            file, 
+            preview, 
+            name: file.name, 
+            error: fileError 
+        });
     }
 }
 
@@ -82,9 +94,23 @@ function removePhoto(index) {
 
 async function submit() {
     errors.value = {};
-    if (!form.title.trim()) { errors.value.title = __('pack.error.title'); return; }
-    if (!form.price || Number(form.price) < 1) { errors.value.price = __('pack.error.price'); return; }
-    if (!photos.value.length) { errors.value.photos = __('pack.error.no_photos'); return; }
+    
+    // Client-side validation
+    if (!form.title.trim()) { errors.value.title = __('pack.error.title'); }
+    if (!form.price || Number(form.price) < 1) { errors.value.price = __('pack.error.price'); }
+    
+    if (!photos.value.length) { 
+        errors.value.photos = __('pack.error.no_photos'); 
+    } else {
+        const hasFileErrors = photos.value.some(p => p.error);
+        if (hasFileErrors) {
+            errors.value.photos = __('pack.error.server'); 
+        } else if (totalSizeMB.value > MAX_TOTAL_SIZE_MB) {
+            errors.value.photos = __('pack.error.server') + ' (' + totalSizeMB.value.toFixed(1) + 'MB / ' + MAX_TOTAL_SIZE_MB + 'MB)';
+        }
+    }
+
+    if (Object.keys(errors.value).length > 0) return;
     if (coverIndex.value === null) { errors.value.photos = __('pack.error.no_cover'); return; }
 
     const fd = new FormData();
@@ -92,6 +118,10 @@ async function submit() {
     fd.append('description', form.description.trim());
     fd.append('price',       form.price);
     fd.append('cover_index', coverIndex.value);
+    
+    // Clear any previous individual file errors before submitting
+    photos.value.forEach(p => p.error = null);
+
     photos.value.forEach((p) => fd.append('photos[]', p.file));
 
     submitting.value = true;
@@ -104,12 +134,24 @@ async function submit() {
         if (e.response?.status === 422) {
             const errs = e.response.data.errors ?? {};
             const normalized = { ...errs };
-            // Laravel returns photos.0, photos.1 for array file uploads — map to photos
+            
+            // Map individual photo errors back to the photos array
+            Object.entries(errs).forEach(([key, messages]) => {
+                if (key.startsWith('photos.')) {
+                    const index = parseInt(key.split('.')[1]);
+                    if (photos.value[index]) {
+                        photos.value[index].error = Array.isArray(messages) ? messages[0] : messages;
+                    }
+                }
+            });
+
             if (!normalized.photos) {
                 const photoEntry = Object.entries(errs).find(([k]) => k.startsWith('photos.'));
                 if (photoEntry) normalized.photos = Array.isArray(photoEntry[1]) ? photoEntry[1][0] : photoEntry[1];
             }
             errors.value = normalized;
+        } else if (e.response?.status === 413) {
+            errors.value = { photos: __('pack.error.server') + ' (Request too large)' };
         } else {
             errors.value = { photos: __('pack.error.server') };
         }
@@ -170,7 +212,12 @@ async function submit() {
             <div class="cpm-field">
                 <label class="cpm-label">
                     {{ __('pack.field.photos') }} <span class="req">*</span>
-                    <span class="cpm-hint">{{ __('pack.field.photos_hint', { max: MAX_FILES, size: MAX_SIZE_MB }) }}</span>
+                    <span class="cpm-hint">
+                        {{ __('pack.field.photos_hint', { max: MAX_FILES, total: MAX_TOTAL_SIZE_MB }) }}
+                        <span v-if="photos.length" class="cpm-total-size" :class="{ 'cpm-total-size--error': totalSizeMB > MAX_TOTAL_SIZE_MB }">
+                            — {{ totalSizeMB.toFixed(1) }} МБ
+                        </span>
+                    </span>
                 </label>
 
                 <!-- Drop zone -->
@@ -207,13 +254,17 @@ async function submit() {
                         v-for="(p, i) in photos"
                         :key="i"
                         class="cpm-thumb"
-                        :class="{ 'cpm-thumb--cover': coverIndex === i }"
+                        :class="{ 
+                            'cpm-thumb--cover': coverIndex === i,
+                            'cpm-thumb--error': p.error
+                        }"
                         @click="coverIndex = coverIndex === i ? null : i"
-                        :title="__('profile.content.select_cover_title')"
+                        :title="p.error || __('profile.content.select_cover_title')"
                     >
                         <img :src="p.preview" :alt="p.name" />
                         <button class="cpm-thumb__del" @click.stop="removePhoto(i)" :title="__('common.delete')">×</button>
                         <div v-if="coverIndex === i" class="cpm-thumb__cover-badge">{{ __('pack.cover_badge') }}</div>
+                        <div v-if="p.error" class="cpm-thumb__error-icon" :title="p.error">!</div>
                     </div>
                 </div>
                 <p v-if="photos.length" class="cpm-cover-hint">{{ __('pack.cover_hint') }} <span class="req">*</span></p>
@@ -278,6 +329,15 @@ async function submit() {
     font-size: 0.78rem;
     color: rgba(255,255,255,0.3);
     font-weight: 400;
+}
+
+.cpm-total-size {
+    margin-left: 0.5rem;
+    color: rgba(255,255,255,0.4);
+}
+.cpm-total-size--error {
+    color: #ff7b7b;
+    font-weight: 600;
 }
 
 .cpm-input {
@@ -351,6 +411,8 @@ async function submit() {
 }
 .cpm-thumb:hover { border-color: rgba(100,210,255,0.4); }
 .cpm-thumb--cover { border-color: #64d2ff; }
+.cpm-thumb--error { border-color: #ff7b7b !important; }
+
 .cpm-thumb img {
     width: 100%;
     height: 100%;
@@ -386,6 +448,22 @@ async function submit() {
     text-align: center;
     padding: 2px 0;
     letter-spacing: 0.02em;
+}
+.cpm-thumb__error-icon {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    background: #ff7b7b;
+    color: #fff;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 4px rgba(0,0,0,0.5);
 }
 .cpm-cover-hint {
     font-size: 0.78rem;

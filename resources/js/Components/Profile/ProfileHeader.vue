@@ -780,7 +780,7 @@ function deleteAvatar() {
     max-width: min(80vw, 640px);
     max-height: 80vh;
     object-fit: contain;
-    border-radius: 50%;
+    border-radius: 8px;
     border: 1px solid rgba(160, 160, 255, 0.4);
     box-shadow: 0 0 60px rgba(160, 160, 255, 0.15);
     cursor: default;

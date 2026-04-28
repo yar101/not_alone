@@ -399,12 +399,56 @@ class UserProfileController extends Controller
     {
         $request->validate(['avatar' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120']]);
         $user = $request->user();
+
         if ($user->avatar_path) {
             Storage::disk('public')->delete($user->avatar_path);
         }
-        $ext  = $request->file('avatar')->getClientOriginalExtension() ?: 'jpg';
-        $path = $request->file('avatar')->storeAs('avatars', "{$user->id}_" . time() . ".{$ext}", 'public');
+
+        $file = $request->file('avatar');
+        $img = imagecreatefromstring(file_get_contents($file->getRealPath()));
+
+        if (!$img) {
+            return back()->withErrors(['avatar' => 'Could not process image.']);
+        }
+
+        $width  = imagesx($img);
+        $height = imagesy($img);
+        $targetSize = 600;
+
+        $newImg = imagecreatetruecolor($targetSize, $targetSize);
+
+        // Preserve transparency or fill with white for JPEGs
+        $white = imagecolorallocate($newImg, 255, 255, 255);
+        imagefill($newImg, 0, 0, $white);
+
+        // Calculate crop to maintain square aspect ratio (center crop)
+        if ($width > $height) {
+            $srcX = (int)(($width - $height) / 2);
+            $srcY = 0;
+            $srcW = $height;
+            $srcH = $height;
+        } else {
+            $srcX = 0;
+            $srcY = (int)(($height - $width) / 2);
+            $srcW = $width;
+            $srcH = $width;
+        }
+
+        imagecopyresampled($newImg, $img, 0, 0, $srcX, $srcY, $targetSize, $targetSize, $srcW, $srcH);
+
+        $path = "avatars/{$user->id}_" . time() . ".jpg";
+        
+        ob_start();
+        imagejpeg($newImg, null, 90);
+        $imageData = ob_get_clean();
+        
+        Storage::disk('public')->put($path, $imageData);
+
+        imagedestroy($img);
+        imagedestroy($newImg);
+
         $user->update(['avatar_path' => $path]);
+
         return back();
     }
 

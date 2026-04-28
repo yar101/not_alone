@@ -119,7 +119,7 @@
     "pack.field.desc": "Description",
     "pack.field.price": "Price, ₽",
     "pack.field.photos": "Photos",
-    "pack.field.photos_hint": "up to :max files, :size MB each",
+    "pack.field.photos_hint": "up to :max files, :total MB total",
     "pack.field.title_placeholder": "Pack title",
     "pack.field.desc_placeholder": "Pack description...",
     "pack.field.price_placeholder": "Price in rubles",
