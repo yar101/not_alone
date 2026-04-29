@@ -16,6 +16,7 @@ class PlatformSettingsController extends Controller
         return Inertia::render('Admin/Settings', [
             'settings' => [
                 'rating_low_threshold'        => PlatformSetting::get('rating_low_threshold', 30),
+                'order_auto_complete_delay'   => (float) PlatformSetting::get('order_auto_complete_delay', 72),
                 'content_pack_price_min'      => (int)  PlatformSetting::get('content_pack_price_min', 100),
                 'content_pack_price_max'      => (int)  PlatformSetting::get('content_pack_price_max', 10000),
                 'moderate_new_packs'          => (bool) (int) PlatformSetting::get('moderate_new_packs', 1),
@@ -37,6 +38,7 @@ class PlatformSettingsController extends Controller
     {
         $data = $request->validate([
             'rating_low_threshold'                      => ['required', 'integer', 'min:0', 'max:100'],
+            'order_auto_complete_delay'                 => ['required', 'numeric', 'min:0.01', 'max:1000'],
             'content_pack_price_min'                    => ['required', 'integer', 'min:1'],
             'content_pack_price_max'                    => ['required', 'integer', 'gt:content_pack_price_min'],
             'moderate_new_packs'                        => ['required', 'boolean'],
@@ -51,6 +53,7 @@ class PlatformSettingsController extends Controller
         ]);
 
         PlatformSetting::set('rating_low_threshold',    $data['rating_low_threshold']);
+        PlatformSetting::set('order_auto_complete_delay', $data['order_auto_complete_delay']);
         PlatformSetting::set('content_pack_price_min', $data['content_pack_price_min']);
         PlatformSetting::set('content_pack_price_max', $data['content_pack_price_max']);
         PlatformSetting::set('moderate_new_packs',     $data['moderate_new_packs'] ? '1' : '0');

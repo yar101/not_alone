@@ -11,8 +11,9 @@ const props = defineProps({
 });
 
 const form = useForm({
-    rating_low_threshold:    props.settings.rating_low_threshold,
-    content_pack_price_min:  props.settings.content_pack_price_min,
+    rating_low_threshold:      props.settings.rating_low_threshold,
+    order_auto_complete_delay: props.settings.order_auto_complete_delay,
+    content_pack_price_min:    props.settings.content_pack_price_min,
     content_pack_price_max:  props.settings.content_pack_price_max,
     moderate_new_packs:      props.settings.moderate_new_packs,
     moderate_existing_packs: props.settings.moderate_existing_packs,
@@ -94,6 +95,33 @@ const previewBase = computed(() =>
         <h1 class="page-title">Настройки платформы</h1>
 
         <form @submit.prevent="save" class="settings-form">
+
+            <!-- ── Раздел: Заказы ── -->
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Заказы</h2>
+                </div>
+
+                <div class="field">
+                    <div class="field-row">
+                        <div class="field-meta">
+                            <label class="field-label">Автозавершение заказа, ч</label>
+                            <p class="field-hint">Через сколько часов после оплаты заказ будет завершен автоматически</p>
+                        </div>
+                        <div class="field-control">
+                            <input
+                                v-model.number="form.order_auto_complete_delay"
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                class="input input--sm"
+                                :class="{ 'input--err': form.errors.order_auto_complete_delay }"
+                            />
+                        </div>
+                    </div>
+                    <p v-if="form.errors.order_auto_complete_delay" class="err">{{ form.errors.order_auto_complete_delay }}</p>
+                </div>
+            </div>
 
             <!-- ── Раздел: Контент-паки ── -->
             <div class="section">

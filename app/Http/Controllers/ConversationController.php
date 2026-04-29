@@ -8,6 +8,7 @@ use App\Events\MessageSent;
 use App\Events\NewMessageReceived;
 use App\Models\ChatBlock;
 use App\Models\Conversation;
+use App\Models\PlatformSetting;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -175,6 +176,7 @@ class ConversationController extends Controller
                     'cancelled_by_name' => $o->cancelledBy?->name,
                     'is_customer'   => $o->customer_id === $user->id,
                     'paid_at'       => $o->paid_at?->toISOString(),
+                    'auto_complete_at' => $o->paid_at ? $o->paid_at->addSeconds((int)((float)PlatformSetting::get('order_auto_complete_delay', 72) * 3600))->toISOString() : null,
                     'completed_at'  => $o->completed_at?->toISOString(),
                     'completion_confirmed_by_idol'     => $o->completion_confirmed_by_idol,
                     'completion_confirmed_by_customer' => $o->completion_confirmed_by_customer,

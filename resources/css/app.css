@@ -53,6 +53,7 @@ body {
     padding: 14px 38px 14px 14px;
     width: min(340px, calc(100vw - 1.5rem));
     backdrop-filter: blur(12px);
+    margin-bottom: 12px;
 }
 
 .app-notif .el-notification__group {

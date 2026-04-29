@@ -116,9 +116,21 @@ const orderTimerLabel = computed(() => {
     if (activeOrderData.value?.status !== 'paid') return '';
     const paidAt = activeOrderData.value?.paid_at;
     if (!paidAt) return '— : — : —';
-    const deadline = new Date(paidAt).getTime() + 72 * 3600 * 1000;
+    
+    let deadline;
+    if (activeOrderData.value.auto_complete_at) {
+        deadline = new Date(activeOrderData.value.auto_complete_at).getTime();
+    } else {
+        // Fallback if field missing (should not happen with new API)
+        deadline = new Date(paidAt).getTime() + 72 * 3600 * 1000;
+    }
+
     const diff = Math.max(0, deadline - nowTick.value);
-    if (diff === 0) return __('chat.completing');
+    if (diff === 0) {
+        // Show "Completing..." only for first 10 seconds after deadline
+        const secondsPast = Math.floor((nowTick.value - deadline) / 1000);
+        return secondsPast < 10 ? __('chat.completing') : '00:00:00';
+    }
     const totalSec = Math.floor(diff / 1000);
     const days = Math.floor(totalSec / 86400);
     const hours = Math.floor((totalSec % 86400) / 3600);
@@ -486,6 +498,7 @@ function subscribeEcho(conversationId) {
                     cancelled_by_name: data.cancelled_by_name ?? activeOrderData.value.cancelled_by_name,
                     cancel_reason: data.cancel_reason ?? activeOrderData.value.cancel_reason,
                     paid_at: data.paid_at ?? activeOrderData.value.paid_at,
+                    auto_complete_at: data.auto_complete_at ?? activeOrderData.value.auto_complete_at,
                     completed_at: data.completed_at ?? activeOrderData.value.completed_at,
                     completion_confirmed_by_idol: data.completion_confirmed_by_idol ?? activeOrderData.value.completion_confirmed_by_idol,
                     completion_confirmed_by_customer: data.completion_confirmed_by_customer ?? activeOrderData.value.completion_confirmed_by_customer,

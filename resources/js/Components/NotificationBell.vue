@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, inject, onMounted, onUnmounted, h } from 'vue';
+import { ref, computed, watch, inject, onMounted, onUnmounted, h, nextTick } from 'vue';
 import { usePage, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { ElNotification, ElIcon } from 'element-plus';
@@ -234,7 +234,10 @@ async function handleNewNotification() {
         if (data.items.length > 0) {
             if (latestKnownAt.value) {
                 const fresh = data.items.filter(n => n.created_at > latestKnownAt.value);
-                fresh.slice(0, 3).forEach(showNotifPopup);
+                for (const item of fresh.slice(0, 3)) {
+                    showNotifPopup(item);
+                    await new Promise(r => setTimeout(r, 50));
+                }
             }
             latestKnownAt.value = data.items[0].created_at;
         }

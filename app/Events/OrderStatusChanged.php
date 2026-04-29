@@ -21,6 +21,7 @@ class OrderStatusChanged implements ShouldBroadcast
         public ?string $cancelReason         = null,
         public ?string $paidAt               = null,
         public ?string $completedAt          = null,
+        public ?string $autoCompleteAt       = null,
         public bool    $confirmedByIdol      = false,
         public bool    $confirmedByCustomer  = false,
     ) {}
@@ -45,6 +46,7 @@ class OrderStatusChanged implements ShouldBroadcast
             'cancel_reason'                    => $this->cancelReason,
             'paid_at'                          => $this->paidAt,
             'completed_at'                     => $this->completedAt,
+            'auto_complete_at'                 => $this->autoCompleteAt,
             'completion_confirmed_by_idol'     => $this->confirmedByIdol,
             'completion_confirmed_by_customer' => $this->confirmedByCustomer,
         ];
