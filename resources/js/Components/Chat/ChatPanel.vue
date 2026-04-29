@@ -245,9 +245,20 @@ let userEchoChannel = null;
 // ── Back-gesture (History API) ───────────────────────────
 let cpDepth = 0;   // how many cp states we pushed
 let cpIgnoreTill = 0;  // timestamp until which to ignore popstate
+let ignoreNextModalPrune = false;
+
+const isAnyModalOpen = computed(() => {
+    return blockModal.value || 
+           cancelModal.value || 
+           confirmAddModal.value || 
+           acceptModal.value || 
+           completeModal.value || 
+           showOfferModal.value || 
+           repeatOrderOpen.value;
+});
 
 function pushCp(state) {
-    history.pushState({ cp: state }, '');
+    history.pushState({ modal: 'sm', cp: state }, '');
     cpDepth++;
 }
 
@@ -262,26 +273,58 @@ function pruneCp(n = cpDepth) {
 function onCpPopstate(e) {
     if (Date.now() < cpIgnoreTill || !isOpen.value) return;
 
-    if (e.state?.cp === 'list') {
-        // Back from conv → list: consume event so SiteModal doesn't also close
-        e.stopImmediatePropagation();
-        cpDepth = Math.max(0, cpDepth - 1);
-        leaveEcho();
-        activeConversation.value = null;
-        activeOrderData.value = null;
-    } else if (e.state?.cp === 'conv') {
-        // Same as 'list' — handle any cp state we pushed
-        e.stopImmediatePropagation();
-        cpDepth = Math.max(0, cpDepth - 1);
-        leaveEcho();
-        activeConversation.value = null;
-        activeOrderData.value = null;
-    } else if (!e.state?.cp && cpDepth > 0) {
-        // Back past panel → close (let SiteModal also handle this)
+    // Landed on a state without our marker -> we went back past chat panel
+    if (!e.state?.cp) {
         cpDepth = 0;
         isOpen.value = false;
+        return;
+    }
+
+    // Every popstate we handle reduces our internal depth
+    cpDepth = Math.max(0, cpDepth - 1);
+    
+    // Stop other listeners (like SiteModal's onSmPopstate) from closing the panel
+    // if we are still within the chat panel's history states.
+    if (e.state?.modal === 'sm') {
+        e.stopImmediatePropagation();
+    }
+
+    // 1. If any modal is open, close it
+    if (isAnyModalOpen.value) {
+        ignoreNextModalPrune = true; // Tell the watcher NOT to call pruneCp
+        blockModal.value = false;
+        cancelModal.value = false;
+        confirmAddModal.value = false;
+        acceptModal.value = false;
+        completeModal.value = false;
+        showOfferModal.value = false;
+        repeatOrderOpen.value = false;
+        return;
+    }
+
+    // 2. Navigation between conv and list
+    if (activeConversation.value || activeOrderData.value) {
+        leaveEcho();
+        activeConversation.value = null;
+        activeOrderData.value = null;
+        return;
     }
 }
+
+// Watch for modal changes to push history state
+watch(isAnyModalOpen, (newVal, oldVal) => {
+    if (newVal && !oldVal && isOpen.value) {
+        pushCp('modal');
+    } else if (!newVal && oldVal) {
+        // If it was a back gesture, onCpPopstate already handled it
+        if (ignoreNextModalPrune) {
+            ignoreNextModalPrune = false;
+            return;
+        }
+        // Manual close: we need to remove the 'modal' state from history
+        pruneCp(1);
+    }
+});
 
 // ── Close panel ──────────────────────────────────────────
 function close() {
@@ -791,7 +834,10 @@ function isMessageRead(msg) {
 watch(isOpen, (val, oldVal) => {
     if (val) {
         cpIgnoreTill = Date.now() + 500;
-        pushCp('list');
+        // Instead of pushCp, we replace the 'sm' state pushed by SiteModal
+        // to avoid having two states for the chat list (sm + list).
+        history.replaceState({ modal: 'sm', cp: 'list' }, '');
+        cpDepth = 1;
         fetchConversations();
         fetchOrders();
         subscribeOrdersEcho();
