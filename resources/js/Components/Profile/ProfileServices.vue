@@ -1745,7 +1745,7 @@ watch(selectedCategory, (cat) => {
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
-    padding: 1rem 1.1rem;
+    padding: 1.5rem 1.1rem;
     background: rgba(255, 255, 255, 0.025);
     border: 1px solid color-mix(in srgb, var(--cat-accent, white) 28%, transparent);
     border-radius: 6px;

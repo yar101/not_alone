@@ -8,6 +8,7 @@ use App\Events\NewMessageReceived;
 use App\Events\NewNotification;
 use App\Events\OrderChanged;
 use App\Events\OrderStatusChanged;
+use App\Jobs\CompleteOrderJob;
 use App\Models\Order;
 use App\Models\OrderDispute;
 use App\Models\User;
@@ -66,6 +67,9 @@ class OrderService
 
         $order->idol->notify(new OrderPaidNotification($order));
         $this->safeBroadcast(new NewNotification('private', $order->idol_id));
+
+        // Auto-complete after 72h
+        CompleteOrderJob::dispatch($order)->delay(now()->addHours(72));
     }
 
     public function cancel(Order $order, User $actor, string $reason): void
@@ -162,6 +166,7 @@ class OrderService
         switch ($to) {
             case OrderStatus::Paid:
                 // Preserve an existing paid_at so we don't reset a running timer
+                $isNewPaid = $order->status !== OrderStatus::Paid;
                 $attrs['paid_at'] = $order->paid_at ?? now();
 
                 if ($order->conversation_id) {
@@ -175,6 +180,10 @@ class OrderService
                 }
                 $order->idol->notify(new OrderPaidNotification($order));
                 $this->safeBroadcast(new NewNotification('private', $order->idol_id));
+
+                if ($isNewPaid) {
+                    CompleteOrderJob::dispatch($order)->delay(now()->addHours(72));
+                }
                 break;
 
             case OrderStatus::Completed:
@@ -234,19 +243,9 @@ class OrderService
 
     // ── Scheduled auto-complete ───────────────────────────────────────────────
 
-    public function autoComplete(): int
+    public function autoCompleteOrder(Order $order): void
     {
-        $count = 0;
-
-        Order::where('status', OrderStatus::Paid)
-            ->where('paid_at', '<=', now()->subHours(72))
-            ->with(['customer', 'idol', 'conversation', 'cancelledBy', 'items.service.timeUnit'])
-            ->each(function (Order $order) use (&$count) {
-                $this->complete($order, 'system', 0, 'Auto-completed after 72h timeout');
-                $count++;
-            });
-
-        return $count;
+        $this->complete($order, 'system', 0, 'Auto-completed after 72h timeout');
     }
 
     // ── Order formatter (used by controllers & command) ───────────────────────
