@@ -77,7 +77,7 @@ class GalleryController extends Controller
             return response()->json([
                 'photos' => $photos->map(fn ($ph) => [
                     'id'         => $ph->id,
-                    'url'        => URL::temporarySignedRoute('media.serve', now()->addMinutes(30), ['path' => $ph->path]),
+                    'url'        => $ph->url,
                     'pack_id'    => $ph->content_pack_id,
                     'pack_title' => $ph->pack_title,
                     'idol_id'    => $ph->idol_id,
@@ -119,7 +119,7 @@ class GalleryController extends Controller
         return response()->json([
             'photos' => $photos->map(fn ($ph) => [
                 'id'         => $ph->id,
-                'url'        => URL::temporarySignedRoute('media.serve', now()->addMinutes(30), ['path' => $ph->path]),
+                'url'        => $ph->url,
                 'pack_id'    => $ph->content_pack_id,
                 'pack_title' => $ph->pack_title,
                 'idol_id'    => $ph->idol_id,

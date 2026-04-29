@@ -736,7 +736,7 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
     opacity: 0;
     transition: opacity 0.3s;
 }
-.gallery-pack-item__cover-img--loaded { opacity: 1; }
+.gallery-pack-item__cover img.gallery-pack-item__cover-img--loaded { opacity: 1; }
 .gallery-pack-item__cover-shimmer {
     position: absolute;
     inset: 0;

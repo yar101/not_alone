@@ -6,6 +6,7 @@ use App\Models\ContentPack;
 use App\Models\ContentPackPurchase;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
 
 class MediaController extends Controller
 {
@@ -15,8 +16,10 @@ class MediaController extends Controller
             abort(403);
         }
 
-        $user = $request->user();
-        if (! $user) {
+        $user = Auth::user();
+        $isAdmin = Auth::guard('admin')->check();
+
+        if (! $user && ! $isAdmin) {
             abort(403);
         }
 
@@ -25,10 +28,16 @@ class MediaController extends Controller
         $packId = (int) $segments[1];
 
         $pack = ContentPack::withTrashed()->findOrFail($packId);
-        $allowed = $pack->user_id === $user->id
-            || ContentPackPurchase::where('user_id', $user->id)
+        
+        $isCover = $pack->cover_path === $path;
+
+        $allowed = $isAdmin
+            || ($user && $pack->user_id === $user->id)
+            || $isCover
+            || ($user && ContentPackPurchase::where('user_id', $user->id)
                 ->where('content_pack_id', $packId)
-                ->exists();
+                ->exists());
+        
         abort_if(! $allowed, 403);
 
         return response('', 200, [

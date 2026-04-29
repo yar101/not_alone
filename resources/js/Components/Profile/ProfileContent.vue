@@ -1316,7 +1316,7 @@ const ownerSortOptions = computed(() => [
     transition: opacity 0.35s ease, transform 0.35s ease;
 }
 
-.pc-cover-img--loaded { opacity: 1; }
+.pc-cover-img.pc-cover-img--loaded { opacity: 1; }
 
 .pc-card__cover:hover .pc-cover-img {
     transform: scale(1.07);

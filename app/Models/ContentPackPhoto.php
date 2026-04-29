@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 class ContentPackPhoto extends Model
 {
@@ -19,7 +20,7 @@ class ContentPackPhoto extends Model
 
     public function getUrlAttribute(): string
     {
-        return Storage::url($this->path);
+        return URL::temporarySignedRoute('media.serve', now()->addMinutes(60), ['path' => $this->path]);
     }
 
     public function contentPack(): BelongsTo

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 class ContentPack extends Model
 {
@@ -39,13 +40,18 @@ class ContentPack extends Model
 
     public function getCoverUrlAttribute(): ?string
     {
-        if ($this->cover_path) {
-            return Storage::url($this->cover_path);
+        $path = $this->cover_path;
+
+        if (!$path) {
+            $photo = $this->relationLoaded('coverPhoto')
+                ? $this->coverPhoto
+                : $this->photos->first();
+            $path = $photo?->path;
         }
-        $photo = $this->relationLoaded('coverPhoto')
-            ? $this->coverPhoto
-            : $this->photos->first();
-        return $photo ? $photo->url : null;
+
+        return $path 
+            ? URL::temporarySignedRoute('media.serve', now()->addMinutes(60), ['path' => $path])
+            : null;
     }
 
     public function coverPhoto(): HasOne
