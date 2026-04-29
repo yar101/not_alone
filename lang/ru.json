@@ -952,6 +952,8 @@
     "push.review_dispute_approved": "Ваша жалоба на отзыв одобрена — отзыв скрыт.",
     "push.review_dispute_rejected": "Ваша жалоба на отзыв отклонена.",
     "push.test": ":message",
+    "push.service_approved": "Ваша услуга «:name» прошла модерацию!",
+    "push.service_rejected": "Ваша услуга «:name» не прошла модерацию.",
 
     "push.title.order_created": "Новый заказ",
     "push.title.order_accepted": "Заказ принят",
@@ -971,5 +973,7 @@
     "push.title.admin_rating": "Изменение рейтинга",
     "push.title.review_dispute_approved": "Жалоба одобрена",
     "push.title.review_dispute_rejected": "Жалоба отклонена",
-    "push.title.test": "Тестовое уведомление"
+    "push.title.test": "Тестовое уведомление",
+    "push.title.service_approved": "Услуга одобрена",
+    "push.title.service_rejected": "Услуга отклонена"
 }

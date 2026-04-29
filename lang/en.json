@@ -690,6 +690,8 @@
     "push.review_dispute_approved": "Your review dispute was approved — the review is now hidden.",
     "push.review_dispute_rejected": "Your review dispute was rejected.",
     "push.test": ":message",
+    "push.service_approved": "Your service \":name\" has been approved!",
+    "push.service_rejected": "Your service \":name\" has been rejected.",
 
     "push.title.order_created": "New Order",
     "push.title.order_accepted": "Order Accepted",
@@ -709,5 +711,7 @@
     "push.title.admin_rating": "Rating Update",
     "push.title.review_dispute_approved": "Dispute Approved",
     "push.title.review_dispute_rejected": "Dispute Rejected",
-    "push.title.test": "Test Notification"
+    "push.title.test": "Test Notification",
+    "push.title.service_approved": "Service Approved",
+    "push.title.service_rejected": "Service Rejected"
 }

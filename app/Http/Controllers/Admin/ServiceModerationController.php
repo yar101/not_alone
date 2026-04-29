@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Service;
 use App\Models\ServiceCategory;
+use App\Notifications\ServiceApprovedNotification;
+use App\Notifications\ServiceRejectedNotification;
 use App\Services\AdminLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -71,6 +73,8 @@ class ServiceModerationController extends Controller
             'moderated_at' => now(),
         ]);
 
+        $service->user?->notify(new ServiceApprovedNotification($service));
+
         AdminLogService::log(auth('admin')->id(), 'approve_service', 'service', $service->id);
 
         return back()->with('success', 'Услуга одобрена.');
@@ -88,6 +92,8 @@ class ServiceModerationController extends Controller
             'moderated_by'     => auth('admin')->id(),
             'moderated_at'     => now(),
         ]);
+
+        $service->user?->notify(new ServiceRejectedNotification($service));
 
         AdminLogService::log(
             auth('admin')->id(),
@@ -111,11 +117,16 @@ class ServiceModerationController extends Controller
             $ids = collect($request->input('ids', []));
         }
 
-        Service::whereIn('id', $ids)->update([
-            'status'       => 'approved',
-            'moderated_by' => $adminId,
-            'moderated_at' => now(),
-        ]);
+        $services = Service::whereIn('id', $ids)->get();
+
+        foreach ($services as $service) {
+            $service->update([
+                'status'       => 'approved',
+                'moderated_by' => $adminId,
+                'moderated_at' => now(),
+            ]);
+            $service->user?->notify(new ServiceApprovedNotification($service));
+        }
 
         AdminLogService::log($adminId, 'bulk_approve_services', 'service', null, ['count' => $ids->count()]);
 
@@ -137,12 +148,17 @@ class ServiceModerationController extends Controller
             $ids = collect($request->input('ids', []));
         }
 
-        Service::whereIn('id', $ids)->update([
-            'status'           => 'rejected',
-            'rejection_reason' => $validated['rejection_reason'],
-            'moderated_by'     => $adminId,
-            'moderated_at'     => now(),
-        ]);
+        $services = Service::whereIn('id', $ids)->get();
+
+        foreach ($services as $service) {
+            $service->update([
+                'status'           => 'rejected',
+                'rejection_reason' => $validated['rejection_reason'],
+                'moderated_by'     => $adminId,
+                'moderated_at'     => now(),
+            ]);
+            $service->user?->notify(new ServiceRejectedNotification($service));
+        }
 
         AdminLogService::log($adminId, 'bulk_reject_services', 'service', null, [
             'count'  => $ids->count(),
