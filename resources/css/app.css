@@ -1,11 +1,11 @@
-@import './fonts.css';
+@import "./fonts.css";
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-    --color-base-1: #a0a0ff;
+    --color-base-1: #ffb2ef;
     --color-base-2: #64d2ff;
 }
 
@@ -26,22 +26,22 @@ html.chat-scroll-locked body {
 }
 
 body {
-    font-family: 'Rubik', ui-sans-serif, system-ui, sans-serif;
+    font-family: "Rubik", ui-sans-serif, system-ui, sans-serif;
     background-color: #0e0e1a;
     padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* Масштабирование на широких мониторах (2K и выше) */
 @media (min-width: 2500px) {
-  html {
-    font-size: 120%;
-  }
+    html {
+        font-size: 120%;
+    }
 }
 
 @media (min-width: 3440px) {
-  html {
-    font-size: 145%;
-  }
+    html {
+        font-size: 145%;
+    }
 }
 
 /* ── App notification popup (ElNotification override) ──────── */
@@ -49,7 +49,10 @@ body {
     background: rgba(11, 11, 24, 0.97);
     border: 1px solid rgba(110, 110, 210, 0.22);
     border-radius: 12px;
-    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.65), 0 1px 0 rgba(160, 100, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    box-shadow:
+        0 8px 40px rgba(0, 0, 0, 0.65),
+        0 1px 0 rgba(160, 100, 255, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.14);
     padding: 14px 38px 14px 14px;
     width: min(340px, calc(100vw - 1.5rem));
     backdrop-filter: blur(12px);
@@ -122,7 +125,9 @@ body {
 /* Warn variant for ban/block notifications */
 .app-notif--warn.el-notification {
     border-color: rgba(251, 191, 36, 0.35);
-    box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.12), 0 8px 32px rgba(0, 0, 0, 0.55);
+    box-shadow:
+        0 0 0 1px rgba(251, 191, 36, 0.12),
+        0 8px 32px rgba(0, 0, 0, 0.55);
 }
 .app-notif--warn .el-notification__content {
     color: rgba(255, 220, 120, 0.9);
@@ -137,10 +142,31 @@ body {
 }
 
 /* Icon color classes (global — used in teleported popup) */
-.icon--success { background: rgba(76, 222, 143, 0.12);  color: #4cde8f; }
-.icon--danger  { background: rgba(239, 68, 68, 0.12);   color: #f87171; }
-.icon--paid    { background: rgba(96, 165, 250, 0.12);  color: #60a5fa; }
-.icon--broadcast { background: rgba(160, 160, 255, 0.12); color: var(--color-base-1); }
-.icon--warning { background: rgba(251, 191, 36, 0.12);  color: #fbbf24; }
-.icon--personal { background: rgba(160, 160, 255, 0.12); color: var(--color-base-1); }
-.icon--default { background: rgba(255, 255, 255, 0.06); color: rgba(255, 255, 255, 0.4); }
+.icon--success {
+    background: rgba(76, 222, 143, 0.12);
+    color: #4cde8f;
+}
+.icon--danger {
+    background: rgba(239, 68, 68, 0.12);
+    color: #f87171;
+}
+.icon--paid {
+    background: rgba(96, 165, 250, 0.12);
+    color: #60a5fa;
+}
+.icon--broadcast {
+    background: rgba(160, 160, 255, 0.12);
+    color: var(--color-base-1);
+}
+.icon--warning {
+    background: rgba(251, 191, 36, 0.12);
+    color: #fbbf24;
+}
+.icon--personal {
+    background: rgba(160, 160, 255, 0.12);
+    color: var(--color-base-1);
+}
+.icon--default {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.4);
+}

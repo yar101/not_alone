@@ -37,7 +37,7 @@ function initWaveSurfer() {
         container:     waveformEl.value,
         url:           props.voiceUrl,
         waveColor:     'rgba(255,255,255,0.22)',
-        progressColor: '#a0a0ff',
+        progressColor: getComputedStyle(document.documentElement).getPropertyValue('--color-base-1').trim() || '#a0a0ff',
         cursorColor:   'transparent',
         barWidth:      2,
         barGap:        2,
@@ -371,8 +371,8 @@ function deleteVoice() {
     transition: border-color 0.15s, color 0.15s;
 }
 .play-btn:hover:not(:disabled) {
-    border-color: #a0a0ff;
-    color: #a0a0ff;
+    border-color: var(--color-base-1);
+    color: var(--color-base-1);
 }
 .play-btn:disabled { opacity: 0.4; cursor: default; }
 
@@ -405,7 +405,7 @@ function deleteVoice() {
     transition: color 0.15s;
 }
 .del-btn svg { width: 16px; height: 16px; stroke-width: 2.5; }
-.del-btn:hover { color: #a0a0ff; }
+.del-btn:hover { color: var(--color-base-1); }
 
 /* ── Запись ───────────────────────────────────────────────── */
 .recording {
@@ -413,7 +413,7 @@ function deleteVoice() {
     align-items: center;
     gap: 0.6rem;
     padding: 0.5rem 0.6rem;
-    border: 1px solid rgba(160,160,255,0.35);
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 65%);
     border-radius: 3px;
     box-sizing: border-box;
 }
@@ -423,7 +423,7 @@ function deleteVoice() {
 }
 .rec-dot {
     width: 7px; height: 7px; border-radius: 50%;
-    background: #a0a0ff;
+    background: var(--color-base-1);
     flex-shrink: 0;
     animation: recBlink 1s ease-in-out infinite;
 }
@@ -462,9 +462,8 @@ function deleteVoice() {
     justify-content: center;
     gap: 0.55rem;
     padding: 0.65rem 0.75rem;
-    border: 1px solid rgba(160,160,255,0.3);
-    border-radius: 3px;
-    background: rgba(160,160,255,0.05);
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 70%);
+    background: color-mix(in srgb, var(--color-base-1), transparent 95%);
     color: rgba(255,255,255,0.55);
     font-size: 0.88rem;
     font-family: inherit;
@@ -473,17 +472,17 @@ function deleteVoice() {
     transition: border-color 0.2s, color 0.2s, background 0.2s;
 }
 .rec-btn:hover {
-    border-color: rgba(160,160,255,0.65);
-    background: rgba(160,160,255,0.1);
+    border-color: color-mix(in srgb, var(--color-base-1), transparent 35%);
+    background: color-mix(in srgb, var(--color-base-1), transparent 90%);
     color: #fff;
 }
 .rec-btn-icon {
     width: 15px; height: 15px;
     flex-shrink: 0;
-    color: rgba(160,160,255,0.7);
+    color: color-mix(in srgb, var(--color-base-1), transparent 30%);
     transition: color 0.2s;
 }
-.rec-btn:hover .rec-btn-icon { color: #a0a0ff; }
+.rec-btn:hover .rec-btn-icon { color: var(--color-base-1); }
 
 /* ── Uploading ────────────────────────────────────────────── */
 .uploading {
@@ -492,16 +491,16 @@ function deleteVoice() {
     justify-content: center;
     gap: 0.6rem;
     padding: 0.65rem 0.75rem;
-    border: 1px solid rgba(160,160,255,0.2);
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 80%);
     border-radius: 3px;
-    background: rgba(160,160,255,0.04);
+    background: color-mix(in srgb, var(--color-base-1), transparent 96%);
     box-sizing: border-box;
 }
 .uploading__spinner {
     width: 15px;
     height: 15px;
     flex-shrink: 0;
-    color: rgba(160,160,255,0.8);
+    color: color-mix(in srgb, var(--color-base-1), transparent 20%);
     animation: spin360 0.8s linear infinite;
 }
 .uploading__label {

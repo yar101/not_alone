@@ -327,15 +327,15 @@ onUnmounted(() => {
     font-family: 'Imbue', serif;
     font-size: 1.35rem;
     font-weight: 400;
-    color: #7070d8;
+    color: color-mix(in srgb, var(--color-base-1), white 15%);
     text-decoration: none;
     letter-spacing: 0.04em;
-    text-shadow: 0 0 24px rgba(110, 110, 210, 0.45);
+    text-shadow: 0 0 24px color-mix(in srgb, var(--color-base-1), transparent 55%);
     transition: text-shadow 0.2s, color 0.2s;
 }
 .app-logo:hover {
-    color: #e0558f;
-    text-shadow: 0 0 32px rgba(110, 110, 210, 0.7);
+    color: color-mix(in srgb, var(--color-base-1), #e0558f 30%);
+    text-shadow: 0 0 32px color-mix(in srgb, var(--color-base-1), transparent 30%);
 }
 
 /* ── User chip ───────────────────────────────────────────── */
@@ -364,9 +364,9 @@ onUnmounted(() => {
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
-    background: rgba(110, 110, 210, 0.15);
-    border: 1.5px solid rgba(110, 110, 210, 0.5);
-    box-shadow: 0 0 10px rgba(110, 110, 210, 0.25);
+    background: color-mix(in srgb, var(--color-base-1), transparent 85%);
+    border: 1.5px solid color-mix(in srgb, var(--color-base-1), transparent 50%);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--color-base-1), transparent 75%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -399,7 +399,7 @@ onUnmounted(() => {
 .user-avatar__initials {
     font-size: 0.9rem;
     font-weight: 600;
-    color: #7070d8;
+    color: color-mix(in srgb, var(--color-base-1), white 15%);
     line-height: 1;
 }
 
@@ -446,9 +446,9 @@ onUnmounted(() => {
     gap: 0.35rem;
     padding: 0.3rem 0.85rem;
     border-radius: 3px;
-    border: 1px solid rgba(160, 160, 255, 0.45);
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 55%);
     position: relative;
-    background-image: linear-gradient(135deg, #be91ff 0%, #7070d8 50%, #6B3FD9 100%);
+    background-image: linear-gradient(135deg, color-mix(in srgb, var(--color-base-1), white 40%) 0%, var(--color-base-1) 50%, color-mix(in srgb, var(--color-base-1), black 20%) 100%);
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -466,12 +466,12 @@ onUnmounted(() => {
     position: absolute;
     inset: 0;
     border-radius: 3px;
-    background: linear-gradient(135deg, rgba(155,110,232,0.18) 0%, rgba(124,45,126,0.12) 100%);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--color-base-1), transparent 82%) 0%, color-mix(in srgb, var(--color-base-1), transparent 88%) 100%);
     z-index: -1;
 }
 .become-idol-btn:hover {
-    border-color: rgba(160, 160, 255, 0.75);
-    box-shadow: 0 0 16px rgba(110, 110, 210, 0.4), 0 2px 8px rgba(0,0,0,0.25);
+    border-color: color-mix(in srgb, var(--color-base-1), transparent 25%);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--color-base-1), transparent 60%), 0 2px 8px rgba(0,0,0,0.25);
     transform: translateY(-1px);
 }
 
@@ -489,25 +489,25 @@ onUnmounted(() => {
     white-space: nowrap;
 }
 .guest-btn--outline {
-    border: 1px solid rgba(110, 110, 210, 0.4);
-    color: rgba(160, 160, 255, 0.85);
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 60%);
+    color: color-mix(in srgb, var(--color-base-1), white 15%);
     background: transparent;
 }
 .guest-btn--outline:hover {
-    border-color: rgba(160, 160, 255, 0.7);
-    color: #be91ff;
-    background: rgba(110, 110, 210, 0.08);
+    border-color: color-mix(in srgb, var(--color-base-1), transparent 30%);
+    color: color-mix(in srgb, var(--color-base-1), white 40%);
+    background: color-mix(in srgb, var(--color-base-1), transparent 92%);
 }
 .guest-btn--fill {
     border: 1px solid transparent;
-    background: linear-gradient(135deg, rgba(155,110,232,0.22) 0%, rgba(107,63,217,0.18) 100%);
-    color: #be91ff;
-    box-shadow: 0 0 12px rgba(110, 110, 210, 0.2);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--color-base-1), transparent 78%) 0%, color-mix(in srgb, var(--color-base-1), black 20%) 100%);
+    color: color-mix(in srgb, var(--color-base-1), white 40%);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--color-base-1), transparent 80%);
 }
 .guest-btn--fill:hover {
-    background: linear-gradient(135deg, rgba(155,110,232,0.35) 0%, rgba(107,63,217,0.28) 100%);
-    box-shadow: 0 0 18px rgba(110, 110, 210, 0.4);
-    color: #d4aaff;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--color-base-1), transparent 65%) 0%, color-mix(in srgb, var(--color-base-1), black 10%) 100%);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--color-base-1), transparent 60%);
+    color: color-mix(in srgb, var(--color-base-1), white 50%);
 }
 
 /* ── Central nav ─────────────────────────────────────────── */

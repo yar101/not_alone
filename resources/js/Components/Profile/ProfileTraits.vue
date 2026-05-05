@@ -177,7 +177,7 @@ function submitSuggestion() {
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #a0a0ff;
+    color: var(--color-base-1);
 }
 
 .edit-btn {
@@ -197,15 +197,15 @@ function submitSuggestion() {
 }
 .block-section:hover .edit-btn {
     opacity: 1;
-    color: rgba(160, 160, 255, 0.8);
-    border-color: rgba(160, 160, 255, 0.35);
-    background: rgba(160, 160, 255, 0.08);
+    color: color-mix(in srgb, var(--color-base-1), transparent 20%);
+    border-color: color-mix(in srgb, var(--color-base-1), transparent 65%);
+    background: color-mix(in srgb, var(--color-base-1), transparent 92%);
 }
 .edit-btn:hover {
-    color: #a0a0ff;
-    border-color: rgba(160, 160, 255, 0.7);
-    background: rgba(160, 160, 255, 0.16);
-    box-shadow: 0 0 8px rgba(160, 160, 255, 0.35);
+    color: var(--color-base-1);
+    border-color: color-mix(in srgb, var(--color-base-1), transparent 30%);
+    background: color-mix(in srgb, var(--color-base-1), transparent 84%);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--color-base-1), transparent 65%);
 }
 
 .tags-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
@@ -238,22 +238,22 @@ function submitSuggestion() {
     box-sizing: border-box; outline: none; transition: border-color 0.15s;
 }
 .search-input::placeholder { color: rgba(255,255,255,0.25); }
-.search-input:focus { border-color: rgba(160,160,255,0.5); }
+.search-input:focus { border-color: color-mix(in srgb, var(--color-base-1), transparent 50%); }
 
 .suggest-btn {
     flex-shrink: 0;
     padding: 0.5rem 0.85rem;
     border-radius: 3px;
-    border: 1px solid rgba(160,160,255,0.3);
-    background: rgba(160,160,255,0.07);
-    color: rgba(160,160,255,0.85);
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 70%);
+    background: color-mix(in srgb, var(--color-base-1), transparent 93%);
+    color: color-mix(in srgb, var(--color-base-1), transparent 15%);
     font-size: 0.85rem;
     cursor: pointer;
     font-family: inherit;
     transition: background 0.15s, border-color 0.15s;
     white-space: nowrap;
 }
-.suggest-btn:hover { background: rgba(160,160,255,0.15); border-color: rgba(160,160,255,0.5); }
+.suggest-btn:hover { background: color-mix(in srgb, var(--color-base-1), transparent 85%); border-color: color-mix(in srgb, var(--color-base-1), transparent 50%); }
 
 .trait-grid { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
 .trait-btn {
@@ -267,16 +267,16 @@ function submitSuggestion() {
     font-family: inherit;
     transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
-.trait-btn.active { border-color: rgba(160,160,255,0.55); background: rgba(160,160,255,0.1); color: #fff; }
+.trait-btn.active { border-color: color-mix(in srgb, var(--color-base-1), transparent 45%); background: color-mix(in srgb, var(--color-base-1), transparent 90%); color: #fff; }
 .trait-btn:disabled:not(.active) { opacity: 0.3; cursor: not-allowed; }
 .no-results { color: rgba(255,255,255,0.3); font-size: 0.9rem; text-align: center; padding: 0.5rem 0 1rem; margin: 0; }
 .save-btn {
     width: 100%; padding: 0.75rem;
-    border-radius: 3px; border: 1px solid rgba(160,160,255,0.4);
-    background: rgba(160,160,255,0.1);
+    border-radius: 3px; border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 60%);
+    background: color-mix(in srgb, var(--color-base-1), transparent 90%);
     color: #fff; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: background 0.15s;
 }
-.save-btn:hover:not(:disabled) { background: rgba(160,160,255,0.2); }
+.save-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--color-base-1), transparent 80%); }
 .save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ── Форма предложения черты ─────────────────────────────── */
@@ -313,7 +313,7 @@ function submitSuggestion() {
     transition: border-color 0.15s;
 }
 .suggestion-textarea::placeholder { color: rgba(255,255,255,0.25); }
-.suggestion-textarea:focus { border-color: rgba(160,160,255,0.4); }
+.suggestion-textarea:focus { border-color: color-mix(in srgb, var(--color-base-1), transparent 60%); }
 
 .suggest-footer {
     display: flex;

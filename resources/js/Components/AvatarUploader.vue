@@ -145,8 +145,8 @@ function applyCrop() {
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
-    background: rgba(110, 110, 210, 0.15);
-    border: 2px solid rgba(120, 100, 230, 0.45);
+    background: color-mix(in srgb, var(--color-base-1), transparent 85%);
+    border: 2px solid color-mix(in srgb, var(--color-base-1), transparent 55%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -183,7 +183,7 @@ function applyCrop() {
 
 .au-initials {
     font-weight: 600;
-    color: #9090e0;
+    color: color-mix(in srgb, var(--color-base-1), white 30%);
     line-height: 1;
     user-select: none;
 }
@@ -270,7 +270,7 @@ function applyCrop() {
     font-weight: 600;
     border: none;
     cursor: pointer;
-    background: linear-gradient(135deg, rgba(155, 110, 232, 0.8), rgba(107, 63, 217, 0.8));
+    background: linear-gradient(135deg, color-mix(in srgb, var(--color-base-1), transparent 20%), color-mix(in srgb, var(--color-base-1), black 20%));
     color: #fff;
     transition: opacity 0.15s;
 }

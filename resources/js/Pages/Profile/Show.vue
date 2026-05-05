@@ -870,12 +870,12 @@ onMounted(async () => {
     transition: max-width 0.2s ease, opacity 0.2s ease;
 }
 .tab-btn.active {
-    color: rgba(200, 200, 255, 1);
-    background: linear-gradient(160deg, rgba(160, 160, 255, 0.18) 0%, rgba(100, 100, 220, 0.10) 100%);
-    border: 1px solid rgba(160, 160, 255, 0.15);
+    color: color-mix(in srgb, var(--color-base-1), white 20%);
+    background: linear-gradient(160deg, color-mix(in srgb, var(--color-base-1), transparent 82%) 0%, color-mix(in srgb, var(--color-base-1), transparent 90%) 100%);
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 85%);
     box-shadow:
-        inset 0 1px 0 rgba(160, 160, 255, 0.40),
-        0 2px 12px rgba(120, 120, 255, 0.12);
+        inset 0 1px 0 color-mix(in srgb, var(--color-base-1), transparent 60%),
+        0 2px 12px color-mix(in srgb, var(--color-base-1), transparent 88%);
 }
 .tab-btn:hover:not(.active) {
     background: rgba(255,255,255,0.04);
@@ -911,7 +911,7 @@ onMounted(async () => {
     padding-bottom: 2rem;
     scrollbar-gutter: stable;
     scrollbar-width: thin;
-    scrollbar-color: rgba(190,145,255,0.25) transparent;
+    scrollbar-color: color-mix(in srgb, var(--color-base-1), transparent 75%) transparent;
 }
 .tab-panel::-webkit-scrollbar { width: 3px; }
 .tab-panel::-webkit-scrollbar-track {
@@ -919,7 +919,7 @@ onMounted(async () => {
     margin-block: 0.5rem;
 }
 .tab-panel::-webkit-scrollbar-thumb {
-    background: rgba(190,145,255,0.28);
+    background: color-mix(in srgb, var(--color-base-1), transparent 72%);
     border-radius: 999px;
 }
 
@@ -995,23 +995,23 @@ onMounted(async () => {
 .idol-cta-block {
     position: relative;
     overflow: hidden;
-    border: 1px solid rgba(160, 160, 255, 0.18);
-    border-top-color: rgba(160, 160, 255, 0.3);
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 82%);
+    border-top-color: color-mix(in srgb, var(--color-base-1), transparent 70%);
     border-radius: 6px;
     background:
         repeating-linear-gradient(
             0deg,
             transparent,
             transparent 23px,
-            rgba(160, 160, 255, 0.025) 24px
+            color-mix(in srgb, var(--color-base-1), transparent 97.5%) 24px
         ),
         linear-gradient(120deg,
-            rgba(160, 160, 255, 0.1) 0%,
-            rgba(100, 100, 200, 0.04) 50%,
+            color-mix(in srgb, var(--color-base-1), transparent 90%) 0%,
+            color-mix(in srgb, var(--color-base-1), transparent 96%) 50%,
             rgba(100, 210, 255, 0.07) 100%
         );
     box-shadow:
-        inset 0 1px 0 rgba(160, 160, 255, 0.12),
+        inset 0 1px 0 color-mix(in srgb, var(--color-base-1), transparent 88%),
         inset 0 -1px 0 rgba(0, 0, 0, 0.22),
         0 6px 32px rgba(0, 0, 0, 0.2);
 }
@@ -1059,10 +1059,7 @@ onMounted(async () => {
 }
 
 .idol-cta-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-top: 0.55rem;
+    display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.55rem;
 }
 
 .idol-cta-tag {
@@ -1071,11 +1068,11 @@ onMounted(async () => {
     letter-spacing: 0.05em;
     color: var(--color-base-1);
     opacity: 0.8;
-    background: rgba(160, 160, 255, 0.08);
-    border: 1px solid rgba(160, 160, 255, 0.2);
+    background: color-mix(in srgb, var(--color-base-1), transparent 92%);
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 80%);
     border-radius: 3px;
     padding: 0.2rem 0.55rem;
-    box-shadow: inset 0 1px 0 rgba(160, 160, 255, 0.08);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-base-1), transparent 92%);
 }
 
 .idol-cta-btn {
@@ -1083,9 +1080,9 @@ onMounted(async () => {
     display: inline-flex;
     align-items: center;
     padding: 0.65rem 1.35rem;
-    border: 1px solid rgba(160, 160, 255, 0.3);
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 70%);
     border-radius: 4px;
-    background: rgba(160, 160, 255, 0.09);
+    background: color-mix(in srgb, var(--color-base-1), transparent 91%);
     color: var(--color-base-1);
     font-size: 0.74rem;
     font-weight: 600;
@@ -1094,18 +1091,18 @@ onMounted(async () => {
     text-decoration: none;
     white-space: nowrap;
     box-shadow:
-        inset 0 1px 0 rgba(160, 160, 255, 0.1),
-        0 2px 12px rgba(160, 160, 255, 0.08);
+        inset 0 1px 0 color-mix(in srgb, var(--color-base-1), transparent 90%),
+        0 2px 12px color-mix(in srgb, var(--color-base-1), transparent 92%);
     transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.15s;
 }
 
 .idol-cta-btn:hover {
-    background: rgba(160, 160, 255, 0.16);
-    border-color: rgba(160, 160, 255, 0.55);
-    color: rgba(200, 200, 255, 1);
+    background: color-mix(in srgb, var(--color-base-1), transparent 84%);
+    border-color: color-mix(in srgb, var(--color-base-1), transparent 45%);
+    color: color-mix(in srgb, var(--color-base-1), white 20%);
     box-shadow:
-        inset 0 1px 0 rgba(160, 160, 255, 0.15),
-        0 0 20px rgba(160, 160, 255, 0.18),
+        inset 0 1px 0 color-mix(in srgb, var(--color-base-1), transparent 85%),
+        0 0 20px color-mix(in srgb, var(--color-base-1), transparent 82%),
         0 4px 18px rgba(0, 0, 0, 0.25);
     transform: translateY(-1px);
 }
@@ -1121,7 +1118,7 @@ onMounted(async () => {
     flex: 1;
     padding: 0.6rem;
     background: transparent;
-    border: 1px solid rgba(160, 160, 255, 0.35);
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 65%);
     border-radius: 6px;
     color: var(--color-base-1);
     font-family: inherit;
@@ -1133,10 +1130,10 @@ onMounted(async () => {
     flex-shrink: 0;
 }
 .sidebar-subscribe-btn:hover {
-    background: rgba(160, 160, 255, 0.1);
-    border-color: rgba(160, 160, 255, 0.55);
-    color: #b8b8ff;
-    box-shadow: 0 0 14px rgba(160, 160, 255, 0.12);
+    background: color-mix(in srgb, var(--color-base-1), transparent 90%);
+    border-color: color-mix(in srgb, var(--color-base-1), transparent 45%);
+    color: color-mix(in srgb, var(--color-base-1), white 10%);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--color-base-1), transparent 88%);
 }
 .sidebar-message-btn {
     display: flex;
@@ -1146,17 +1143,17 @@ onMounted(async () => {
     height: 40px;
     border-radius: 6px;
     background: transparent;
-    border: 1px solid rgba(160, 160, 255, 0.35);
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 65%);
     color: var(--color-base-1);
     cursor: pointer;
     flex-shrink: 0;
     transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
 .sidebar-message-btn:hover {
-    background: rgba(160, 160, 255, 0.1);
-    border-color: rgba(160, 160, 255, 0.55);
-    color: #b8b8ff;
-    box-shadow: 0 0 14px rgba(160, 160, 255, 0.12);
+    background: color-mix(in srgb, var(--color-base-1), transparent 90%);
+    border-color: color-mix(in srgb, var(--color-base-1), transparent 45%);
+    color: color-mix(in srgb, var(--color-base-1), white 10%);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--color-base-1), transparent 88%);
 }
 
 /* ── Report modal content ────────────────────────────────── */
@@ -1177,7 +1174,7 @@ onMounted(async () => {
     font-size: 0.68rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: rgba(160, 160, 255, 0.6);
+    color: color-mix(in srgb, var(--color-base-1), transparent 40%);
 }
 .report-optional { text-transform: none; letter-spacing: 0; opacity: 0.6; }
 .report-reasons { display: flex; flex-wrap: wrap; gap: 0.35rem; }
@@ -1209,7 +1206,7 @@ onMounted(async () => {
     width: 100%;
     border-radius: 2px;
 }
-.report-textarea:focus { border-color: rgba(160, 160, 255, 0.35); }
+.report-textarea:focus { border-color: color-mix(in srgb, var(--color-base-1), transparent 65%); }
 .report-textarea--err { border-color: rgba(239, 68, 68, 0.5); }
 .report-textarea::placeholder { color: rgba(255, 255, 255, 0.18); }
 .report-err { font-size: 0.75rem; color: rgba(239, 68, 68, 0.75); margin: 0; }
