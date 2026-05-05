@@ -9,7 +9,7 @@ class PlatformSettingSeeder extends Seeder
 {
     public function run(): void
     {
-         = [
+        $settings = [
             'order_auto_complete_delay' => '72',
             'rating_low_threshold'      => '30',
             'content_pack_price_min'    => '100',

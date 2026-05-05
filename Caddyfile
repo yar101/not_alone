@@ -2,8 +2,8 @@
     auto_https off
 }
 
-https://192.168.1.62:8443 {
-    tls 192.168.1.62.pem 192.168.1.62-key.pem
+https://192.168.1.100:8443 {
+    tls 192.168.1.100.pem 192.168.1.100-key.pem
 
     # Service Worker scope header
     handle /build/sw.js {
