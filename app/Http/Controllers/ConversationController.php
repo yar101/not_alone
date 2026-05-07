@@ -6,10 +6,12 @@ use App\Enums\OrderStatus;
 use App\Events\MessageRead;
 use App\Events\MessageSent;
 use App\Events\NewMessageReceived;
+use App\Events\NewNotification;
 use App\Models\ChatBlock;
 use App\Models\Conversation;
 use App\Models\PlatformSetting;
 use App\Models\User;
+use App\Notifications\NewMessageNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -305,13 +307,19 @@ class ConversationController extends Controller
         // Notify each recipient via their private user channel (for badge update)
         $conversation->participants()
             ->where('user_id', '!=', $user->id)
-            ->pluck('user_id')
-            ->each(fn($recipientId) => broadcast(new NewMessageReceived(
-                $recipientId,
-                $conversation->id,
-                $msg,
-                $conversation->order_id,
-            )));
+            ->with('user')
+            ->get()
+            ->each(function ($participant) use ($conversation, $msg) {
+                broadcast(new NewMessageReceived(
+                    $participant->user_id,
+                    $conversation->id,
+                    $msg,
+                    $conversation->order_id,
+                ));
+
+                $participant->user->notify(new NewMessageNotification($msg));
+                broadcast(new NewNotification('private', $participant->user_id));
+            });
 
         return response()->json([
             'id'             => $msg->id,
@@ -380,13 +388,17 @@ class ConversationController extends Controller
 
         $conversation->participants()
             ->where('user_id', '!=', $user->id)
-            ->pluck('user_id')
-            ->each(function ($recipientId) use ($conversation) {
+            ->with('user')
+            ->get()
+            ->each(function ($participant) use ($conversation, $msg) {
                 try {
-                    broadcast(new NewMessageReceived($recipientId, $conversation->id, $msg));
+                    broadcast(new NewMessageReceived($participant->user_id, $conversation->id, $msg));
                 } catch (\Throwable $e) {
                     \Log::warning('Broadcast NewMessageReceived failed: ' . $e->getMessage());
                 }
+
+                $participant->user->notify(new NewMessageNotification($msg));
+                broadcast(new NewNotification('private', $participant->user_id));
             });
 
         return response()->json([

@@ -118,6 +118,12 @@ function openOrder(orderId) {
     chatPanel.value?.openOrder(orderId);
 }
 
+function openConversation(conversationId) {
+    cartOpen.value = false;
+    chatOpen.value = true;
+    chatPanel.value?.startConversation(conversationId);
+}
+
 function addToCart(service, idol) {
     const sc = cart.value.services;
     // If cart has items from a different idol — clear and start fresh
@@ -145,6 +151,7 @@ function addToCart(service, idol) {
 
 provide('openAuth', openAuth);
 provide('openChatWith', openChatWith);
+provide('openConversation', openConversation);
 provide('openOrder', openOrder);
 provide('addToCart', addToCart);
 provide('addToContentCart', addToContentCart);

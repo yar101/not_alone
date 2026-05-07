@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Events\MessageSent;
 use App\Events\NewMessageReceived;
+use App\Events\NewNotification;
 use App\Http\Controllers\Controller;
 use App\Models\Conversation;
 use App\Models\ConversationParticipant;
 use App\Models\User;
+use App\Notifications\NewMessageNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -253,12 +255,17 @@ class SupportChatController extends Controller
             \Log::warning('Broadcast failed: ' . $e->getMessage());
         }
 
+        $conversation->loadMissing('participants.user');
+
         foreach ($conversation->participants as $participant) {
             try {
                 broadcast(new NewMessageReceived($participant->user_id, $conversation->id, $msg));
             } catch (\Throwable $e) {
                 \Log::warning('Broadcast NewMessageReceived failed: ' . $e->getMessage());
             }
+
+            $participant->user->notify(new NewMessageNotification($msg));
+            broadcast(new NewNotification('private', $participant->user_id));
         }
     }
 }

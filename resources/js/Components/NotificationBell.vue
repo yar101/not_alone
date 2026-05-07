@@ -8,7 +8,7 @@ import {
     Promotion, Trophy, CircleClose,
     DocumentAdd, CircleCheckFilled, CircleCloseFilled,
     Coin, SuccessFilled, WarningFilled, Rank, Bell,
-    PictureFilled, StarFilled,
+    PictureFilled, StarFilled, ChatDotRound,
 } from '@element-plus/icons-vue';
 
 import { useTranslations } from '@/composables/useTranslations';
@@ -30,6 +30,7 @@ const beforeCursor = ref(null); // ISO string — oldest created_at seen so far
 let autoReadTimer = null;
 
 const openOrder = inject('openOrder', null);
+const openConversation = inject('openConversation', null);
 
 async function loadWindow(before) {
     const params = before ? { before } : {};
@@ -97,6 +98,11 @@ function toggleDropdown() {
 }
 
 function handleItemClick(item) {
+    if (item.type === 'new_message' && item.data?.conversation_id) {
+        open.value = false;
+        openConversation?.(item.data.conversation_id);
+        return;
+    }
     if (item._cat === 'order' && item.order_id) {
         open.value = false;
         openOrder?.(item.order_id);
@@ -119,6 +125,7 @@ function handleItemClick(item) {
 }
 
 function isClickable(item) {
+    if (item.type === 'new_message' && item.data?.conversation_id) return true;
     if (item._cat === 'order' && item.order_id) return true;
     const profileTypes = [
         'idol_approved', 'idol_rejected', 'low_rating_warning',
@@ -194,16 +201,22 @@ function notifPopupTitle(item) {
         low_rating_warning: __('notification.type.low_rating'),
         admin_rating: __('notification.type.admin_rating'),
         review_dispute_approved: __('notification.type.dispute_approved'),
-        review_dispute_rejected: __('notification.type.dispute_rejected'),
+        review_dispute_rejected: __('notification.type.review_dispute_rejected'),
         new_review: __('notification.type.new_review'),
-    }[item.type] ?? __('notification.type.default');
+        new_message: __('notification.type.new_message'),
+        }[item.type] ?? __('notification.type.default');
 }
 
 function renderNotif(item) {
     const iconComp = itemIconComponent(item);
     const iconClass = itemIconClass(item);
     const title = notifPopupTitle(item);
-    const message = item._cat === 'order' ? orderMessage(item) : (item.message ?? '');
+    let message = item._cat === 'order' ? orderMessage(item) : (item.message ?? '');
+
+    if (!message && item.type === 'new_message') {
+        message = __('notification.msg.new_message', { name: item.data?.sender_name || __('nav.user') });
+    }
+
     return { iconComp, iconClass, title, message };
 }
 
@@ -282,6 +295,7 @@ function itemIconComponent(item) {
             content_pack_change_remarks: PictureFilled,
             content_pack_change_rejected: PictureFilled,
             new_review: StarFilled,
+            new_message: ChatDotRound,
         }[item.type] ?? Bell;
     }
     return Bell;
@@ -301,6 +315,7 @@ function itemIconClass(item) {
         if (item.type === 'idol_rejected' || item.type === 'review_dispute_rejected' || item.type === 'content_pack_remarks' || item.type === 'content_pack_change_remarks') return 'icon--warning';
         if (item.type === 'content_pack_rejected' || item.type === 'content_pack_change_rejected') return 'icon--danger';
         if (item.type === 'new_review') return 'icon--success';
+        if (item.type === 'new_message') return 'icon--personal';
         if (item.type === 'low_rating_warning') return 'icon--warning';
         if (item.type === 'admin_rating') return 'icon--paid';
         return 'icon--default';

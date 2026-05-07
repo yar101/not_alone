@@ -113,12 +113,12 @@ class NotificationController extends Controller
                 '_cat'       => $cat,
                 'read_at'    => $n->read_at?->toIso8601String(),
                 'created_at' => $n->created_at->toIso8601String(),
+                'data'       => $n->data,
             ];
 
             if ($cat === 'order') {
                 return array_merge($base, [
                     'order_id' => $n->data['order_id'] ?? null,
-                    'data'     => $n->data,
                 ]);
             }
 

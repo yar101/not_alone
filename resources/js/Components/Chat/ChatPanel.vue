@@ -432,6 +432,17 @@ async function startWith(userId) {
     await openConversation(conv ?? { id: convId, other_user: null, unread_count: 0 });
 }
 
+async function startConversation(convId) {
+    isOpen.value = true;
+    activeTab.value = 'messages';
+    let conv = conversations.value.find(c => c.id === convId);
+    if (!conv) {
+        await fetchConversations();
+        conv = conversations.value.find(c => c.id === convId);
+    }
+    await openConversation(conv ?? { id: convId, other_user: null, unread_count: 0 });
+}
+
 // ── Send message ─────────────────────────────────────────
 async function sendMessage() {
     const body = newMessage.value.trim();
@@ -1054,7 +1065,7 @@ function silentClose() {
     isOpen.value = false;
 }
 
-defineExpose({ startWith, openOrder, silentClose });
+defineExpose({ startWith, startConversation, openOrder, silentClose });
 
 // ── Helpers ──────────────────────────────────────────────
 function formatTime(iso) {
