@@ -553,11 +553,16 @@ class UserProfileController extends Controller
 
     public function getComments(Request $request, Post $post): JsonResponse
     {
-        $comments = $post->comments()
+        $page    = max(1, (int) $request->query('page', 1));
+        $perPage = 15;
+
+        $paginator = $post->comments()
             ->with(['user:id,name,avatar_path'])
             ->withCount('replies')
-            ->orderBy('created_at')
-            ->get();
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        $comments = $paginator->getCollection();
 
         // For comments with exactly 1 reply, load it inline so it displays without a toggle button
         $singleIds = $comments->filter(fn ($c) => $c->replies_count === 1)->pluck('id');
@@ -593,7 +598,11 @@ class UserProfileController extends Controller
                 : [],
         ]);
 
-        return response()->json($data);
+        return response()->json([
+            'data'     => $data,
+            'has_more' => $paginator->hasMorePages(),
+            'total'    => $paginator->total(),
+        ]);
     }
 
     public function getReplies(Request $request, PostComment $comment): JsonResponse

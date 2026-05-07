@@ -601,6 +601,7 @@
     "post.detail.placeholder.comment": "Написать комментарий...",
     "post.detail.placeholder.reply": "Ваш ответ...",
     "post.detail.error": "Ошибка",
+    "post.detail.load_more": "Загрузить ещё",
     "post.read_more": "··· читать далее",
 
     "auth.welcome": "Добро пожаловать",

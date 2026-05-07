@@ -601,6 +601,7 @@
     "post.detail.placeholder.comment": "Write a comment...",
     "post.detail.placeholder.reply": "Your reply...",
     "post.detail.error": "Error",
+    "post.detail.load_more": "Load more",
     "post.read_more": "··· read more",
 
     "auth.welcome": "Welcome back",

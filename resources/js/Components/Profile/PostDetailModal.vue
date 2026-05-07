@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, watch, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, reactive, watch, onMounted, onUnmounted } from "vue";
 import axios from "axios";
 import { useTranslations } from "@/composables/useTranslations";
 import {
@@ -25,8 +25,9 @@ const emit = defineEmits(["close", "liked", "delete", "comment-added"]);
 // ── Comments ───────────────────────────────────────────────
 const comments = ref([]);
 const loadingCmt = ref(false);
-const cmtsList = ref(null);
-const scrollZone = ref(null);
+const commentsPage = ref(1);
+const commentsHasMore = ref(false);
+const commentsTotal = ref(0);
 
 // ── Replies lazy-load ──────────────────────────────────────
 const expandedReplies = reactive(new Set());
@@ -77,14 +78,22 @@ function toggleReplies(commentId) {
     }
 }
 
-async function loadComments() {
-    if (!props.post) return;
+async function loadComments(page = 1) {
+    if (!props.post || loadingCmt.value) return;
     loadingCmt.value = true;
     try {
         const { data } = await axios.get(
             route("posts.comments.index", props.post.id),
+            { params: { page } },
         );
-        comments.value = data;
+        if (page === 1) {
+            comments.value = data.data;
+        } else {
+            comments.value = [...comments.value, ...data.data];
+        }
+        commentsPage.value = page;
+        commentsHasMore.value = data.has_more;
+        commentsTotal.value = data.total;
     } catch (e) {
         console.error(e);
     } finally {
@@ -176,21 +185,14 @@ async function submitComment() {
                 }
             }
         } else {
-            comments.value.push(data);
+            comments.value.unshift(data);
+            commentsTotal.value++;
         }
 
         emit("comment-added", props.post.id);
         newBody.value = "";
         replyToId.value = null;
         replyToName.value = "";
-
-        await nextTick();
-        // Desktop: cmtsList scrolls; mobile: scrollZone scrolls
-        for (const el of [cmtsList.value, scrollZone.value]) {
-            if (el && el.scrollHeight > el.clientHeight) {
-                el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-            }
-        }
     } catch (e) {
         cmtError.value = e.response?.data?.message ?? __("post.detail.error");
     } finally {
@@ -242,6 +244,7 @@ async function deleteComment(commentId, parentId) {
             }
         } else {
             comments.value = comments.value.filter((c) => c.id !== commentId);
+            commentsTotal.value = Math.max(0, commentsTotal.value - 1);
         }
     } catch (e) {
         console.error(e);
@@ -259,7 +262,7 @@ async function deleteComment(commentId, parentId) {
     >
         <div v-if="post" class="detail">
             <!-- Scrollable zone: left + right columns (transparent to desktop grid) -->
-            <div ref="scrollZone" class="detail__scroll">
+            <div class="detail__scroll">
                 <!-- ── Left: photo + body + footer ── -->
                 <div class="detail__left">
                     <div v-if="post.photo_url" class="detail__photo-wrap">
@@ -394,12 +397,15 @@ async function deleteComment(commentId, parentId) {
                             {{ __("post.detail.comments") }}
                         </span>
                         <span class="detail__cmts-count">{{
-                            comments.length
+                            commentsTotal
                         }}</span>
                     </div>
 
-                    <div ref="cmtsList" class="detail__cmts-list">
-                        <div v-if="loadingCmt" class="detail__cmts-skel-list">
+                    <div class="detail__cmts-list">
+                        <div
+                            v-if="loadingCmt && comments.length === 0"
+                            class="detail__cmts-skel-list"
+                        >
                             <div
                                 v-for="i in 4"
                                 :key="i"
@@ -1008,6 +1014,23 @@ async function deleteComment(commentId, parentId) {
                                     </div>
                                 </Transition>
                             </div>
+
+                            <!-- Main comments Load More -->
+                            <button
+                                v-if="commentsHasMore"
+                                class="detail__replies-more"
+                                style="margin: 1rem 0"
+                                :disabled="loadingCmt"
+                                @click="loadComments(commentsPage + 1)"
+                            >
+                                <span
+                                    v-if="loadingCmt"
+                                    class="detail__replies-more-spinner"
+                                />
+                                <template v-else>{{
+                                    __("post.detail.load_more")
+                                }}</template>
+                            </button>
                         </template>
                     </div>
                 </div>
