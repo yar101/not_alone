@@ -21,20 +21,43 @@ const submitting       = ref(false);
 const warningOpen      = ref(false);
 const warnWrapEl       = ref(null);
 const poppingHeart     = ref(0);
+const isTouch          = ref(false);
 
 function onDocClick(e) {
     if (warningOpen.value && warnWrapEl.value && !warnWrapEl.value.contains(e.target)) {
         warningOpen.value = false;
     }
 }
-onMounted(() => document.addEventListener('click', onDocClick, true));
-onUnmounted(() => document.removeEventListener('click', onDocClick, true));
+
+const markTouch = () => {
+    isTouch.value = true;
+    window.removeEventListener('touchstart', markTouch);
+};
+
+onMounted(() => {
+    document.addEventListener('click', onDocClick, true);
+    window.addEventListener('touchstart', markTouch, { passive: true });
+});
+onUnmounted(() => {
+    document.removeEventListener('click', onDocClick, true);
+    window.removeEventListener('touchstart', markTouch);
+});
 
 onMounted(async () => {
     const res = await axios.get(route('reviews.epithets'));
     epithets.value = res.data;
     loadingEpithets.value = false;
 });
+
+function handleMouseEnter() {
+    if (isTouch.value) return;
+    warningOpen.value = true;
+}
+
+function handleMouseLeave() {
+    if (isTouch.value) return;
+    warningOpen.value = false;
+}
 
 function activeRating(i) {
     return i <= (hovered.value || rating.value);
@@ -67,12 +90,12 @@ async function submit() {
         <!-- Header row: title + warning button -->
         <div class="rv-header-row">
             <div class="rv-header">{{ __('review.title') }}</div>
-            <div class="rv-warn-wrap" ref="warnWrapEl" @mouseleave="warningOpen = false">
+            <div class="rv-warn-wrap" ref="warnWrapEl" @mouseleave="handleMouseLeave">
             <button
                 class="rv-warn-btn"
                 :class="{ 'rv-warn-btn--active': warningOpen }"
-                @click="warningOpen = !warningOpen"
-                @mouseenter="warningOpen = true"
+                @click.stop="warningOpen = !warningOpen"
+                @mouseenter="handleMouseEnter"
                 type="button"
                 :aria-label="__('review.important')"
             >
