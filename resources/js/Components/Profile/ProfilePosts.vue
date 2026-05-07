@@ -361,10 +361,8 @@ function deletePost() {
 }
 
 .posts-feed {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.6rem;
-    align-items: stretch;
+    column-count: 2;
+    column-gap: 1.6rem;
 }
 
 .posts-empty {
@@ -398,12 +396,13 @@ function deletePost() {
 }
 
 .posts-skeleton-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.6rem;
+    column-count: 2;
+    column-gap: 1.6rem;
 }
 
 .sk-card {
+    break-inside: avoid;
+    margin-bottom: 1.6rem;
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 6px;
     background: rgba(255, 255, 255, 0.02);
@@ -776,8 +775,8 @@ function deletePost() {
 @media (max-width: 600px) {
     .posts-feed,
     .posts-skeleton-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
+        column-count: 1;
+        column-gap: 0;
     }
 }
 </style>

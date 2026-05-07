@@ -176,6 +176,8 @@ onMounted(async () => {
 
 <style scoped>
 .feed-card {
+    break-inside: avoid;
+    margin-bottom: 1.6rem;
     border: 1px solid rgba(255, 255, 255, 0.07);
     border-radius: 6px;
     background: rgba(255, 255, 255, 0.02);
@@ -189,9 +191,6 @@ onMounted(async () => {
     flex-direction: column;
 }
 
-.feed-card__footer {
-    margin-top: auto;
-}
 .feed-card:hover {
     border-color: rgba(255, 178, 239, 0.22);
     background: rgba(255, 255, 255, 0.04);
