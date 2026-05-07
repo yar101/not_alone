@@ -43,8 +43,8 @@
         .btn {
             display: inline-block;
             padding: 0.6rem 1.6rem;
-            background: rgba(160, 160, 255, 0.12);
-            border: 1px solid rgba(160, 160, 255, 0.3);
+            background: rgba(255, 178, 239, 0.12);
+            border: 1px solid rgba(255, 178, 239, 0.3);
             border-radius: 8px;
             color: rgba(200, 200, 255, 0.9);
             font-size: 0.9rem;
@@ -52,8 +52,8 @@
             transition: background 0.15s, border-color 0.15s;
         }
         .btn:hover {
-            background: rgba(160, 160, 255, 0.2);
-            border-color: rgba(160, 160, 255, 0.5);
+            background: rgba(255, 178, 239, 0.2);
+            border-color: rgba(255, 178, 239, 0.5);
         }
     </style>
 </head>

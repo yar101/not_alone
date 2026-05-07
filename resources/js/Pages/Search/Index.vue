@@ -701,7 +701,7 @@ function initial(name) {
     max-width: 300px;
     min-width: 220px;
     flex-shrink: 0;
-    border-left: 1px solid rgba(110, 110, 210, 0.12);
+    border-left: 1px solid rgba(255, 178, 239, 0.12);
     height: 100%;
     background: rgba(10, 10, 20, 0.6);
     display: flex;
@@ -743,7 +743,7 @@ function initial(name) {
 .sidebar-footer {
     flex-shrink: 0;
     padding: 0.75rem 1.5rem;
-    border-top: 1px solid rgba(110, 110, 210, 0.15);
+    border-top: 1px solid rgba(255, 178, 239, 0.15);
     background: rgba(10, 10, 20, 0.95);
 }
 
@@ -751,19 +751,21 @@ function initial(name) {
     width: 100%;
     padding: 0.7rem;
     border-radius: 4px;
-    border: 1px solid rgba(160, 160, 255, 0.5);
-    background: rgba(110, 110, 210, 0.15);
-    color: #be91ff;
+    border: 1px solid rgba(255, 178, 239, 0.5);
+    background: rgba(255, 178, 239, 0.15);
+    color: var(--color-base-1);
     font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s;
     font-family: inherit;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .apply-btn:hover {
-    background: rgba(110, 110, 210, 0.28);
-    border-color: rgba(160, 160, 255, 0.8);
+    background: rgba(255, 178, 239, 0.28);
+    border-color: rgba(255, 178, 239, 0.8);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .slide-up-enter-active,
@@ -800,8 +802,8 @@ function initial(name) {
     gap: 0.3rem;
     padding: 0.2rem 0.55rem;
     border-radius: 20px;
-    background: rgba(160, 160, 255, 0.1);
-    border: 1px solid rgba(160, 160, 255, 0.25);
+    background: rgba(255, 178, 239, 0.1);
+    border: 1px solid rgba(255, 178, 239, 0.25);
     color: var(--color-base-1);
     font-size: 0.78rem;
     line-height: 1;
@@ -810,7 +812,7 @@ function initial(name) {
 .active-chip__remove {
     background: none;
     border: none;
-    color: rgba(160, 160, 255, 0.6);
+    color: rgba(255, 178, 239, 0.6);
     cursor: pointer;
     padding: 0;
     font-size: 0.9rem;
@@ -820,7 +822,7 @@ function initial(name) {
 }
 
 .active-chip__remove:hover {
-    color: rgba(160, 160, 255, 0.9);
+    color: rgba(255, 178, 239, 0.9);
 }
 
 .chips-fade-enter-active,
@@ -838,7 +840,7 @@ function initial(name) {
     display: inline-block;
     padding: 0.1rem 0.38rem;
     border-radius: 20px;
-    background: rgba(160, 160, 255, 0.15);
+    background: rgba(255, 178, 239, 0.15);
     color: var(--color-base-1);
     font-size: 0.7rem;
     font-weight: 600;
@@ -857,12 +859,12 @@ function initial(name) {
 .filter-divider::after {
     content: '';
     flex: 1;
-    border-top: 1px solid rgba(110, 110, 210, 0.15);
+    border-top: 1px solid rgba(255, 178, 239, 0.15);
 }
 
 .filter-divider span {
     font-size: 0.7rem;
-    color: rgba(160, 160, 255, 0.35);
+    color: rgba(255, 178, 239, 0.35);
     white-space: nowrap;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -878,7 +880,7 @@ function initial(name) {
 .filter-label {
     font-size: 0.82rem;
     font-weight: 600;
-    color: rgba(160, 160, 255, 0.7);
+    color: rgba(255, 178, 239, 0.7);
     letter-spacing: 0.06em;
     text-transform: uppercase;
 }
@@ -886,7 +888,7 @@ function initial(name) {
 .filter-input {
     width: 100%;
     background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(110, 110, 210, 0.2);
+    border: 1px solid rgba(255, 178, 239, 0.2);
     border-radius: 4px;
     color: rgba(255, 255, 255, 0.85);
     padding: 0.5rem 0.75rem;
@@ -898,7 +900,7 @@ function initial(name) {
 }
 
 .filter-input:focus {
-    border-color: rgba(110, 110, 210, 0.5);
+    border-color: rgba(255, 178, 239, 0.5);
 }
 
 .filter-input--sm {
@@ -935,7 +937,7 @@ function initial(name) {
 .btn-toggle {
     padding: 0.35rem 0.8rem;
     border-radius: 20px;
-    border: 1px solid rgba(110, 110, 210, 0.25);
+    border: 1px solid rgba(255, 178, 239, 0.25);
     background: transparent;
     color: rgba(255, 255, 255, 0.5);
     font-size: 0.88rem;
@@ -945,16 +947,16 @@ function initial(name) {
 }
 
 .btn-toggle:hover {
-    background: rgba(110, 110, 210, 0.06);
-    border-color: rgba(110, 110, 210, 0.5);
+    background: rgba(255, 178, 239, 0.06);
+    border-color: rgba(255, 178, 239, 0.5);
     color: rgba(255, 255, 255, 0.8);
 }
 
 .btn-toggle.active {
-    border-color: rgba(160, 160, 255, 0.6);
-    background: rgba(110, 110, 210, 0.15);
-    color: #be91ff;
-    box-shadow: 0 0 10px rgba(160, 160, 255, 0.2);
+    border-color: rgba(255, 178, 239, 0.6);
+    background: rgba(255, 178, 239, 0.15);
+    color: var(--color-base-1);
+    box-shadow: 0 0 10px rgba(255, 178, 239, 0.2);
 }
 
 /* ── Collapsible section headers ─────────────────────────── */
@@ -971,7 +973,7 @@ function initial(name) {
 }
 
 .filter-section-header:hover {
-    background: rgba(110, 110, 210, 0.08);
+    background: rgba(255, 178, 239, 0.08);
 }
 
 .filter-section-header .filter-label {
@@ -986,7 +988,7 @@ function initial(name) {
 
 .section-search {
     background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(110, 110, 210, 0.2);
+    border: 1px solid rgba(255, 178, 239, 0.2);
     border-radius: 3px;
     color: rgba(255, 255, 255, 0.8);
     padding: 0.3rem 0.6rem;
@@ -1000,7 +1002,7 @@ function initial(name) {
 }
 
 .section-search:focus {
-    border-color: rgba(110, 110, 210, 0.5);
+    border-color: rgba(255, 178, 239, 0.5);
 }
 
 .section-chevron {
@@ -1060,7 +1062,7 @@ function initial(name) {
     -webkit-appearance: none;
     width: 15px;
     height: 15px;
-    border: 1.5px solid rgba(110, 110, 210, 0.35);
+    border: 1.5px solid rgba(255, 178, 239, 0.35);
     border-radius: 3px;
     background: transparent;
     cursor: pointer;
@@ -1070,8 +1072,8 @@ function initial(name) {
 }
 
 .checkbox-input:checked {
-    background: rgba(110, 110, 210, 0.5);
-    border-color: rgba(160, 160, 255, 0.7);
+    background: rgba(255, 178, 239, 0.5);
+    border-color: rgba(255, 178, 239, 0.7);
 }
 
 .checkbox-input:checked::after {
@@ -1103,7 +1105,7 @@ function initial(name) {
 
 .interest-cat__name {
     font-size: 0.8rem;
-    color: rgba(160, 160, 255, 0.5);
+    color: rgba(255, 178, 239, 0.5);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin: 0;
@@ -1114,9 +1116,9 @@ function initial(name) {
 .reset-btn {
     padding: 0.55rem 1.2rem;
     border-radius: 4px;
-    border: 1px solid rgba(110, 110, 210, 0.3);
+    border: 1px solid rgba(255, 178, 239, 0.3);
     background: transparent;
-    color: rgba(160, 160, 255, 0.7);
+    color: rgba(255, 178, 239, 0.7);
     font-size: 0.9rem;
     cursor: pointer;
     transition: all 0.15s;
@@ -1196,7 +1198,7 @@ function initial(name) {
 .sort-btn {
     padding: 0.35rem 0.75rem;
     border-radius: 3px;
-    border: 1px solid rgba(110, 110, 210, 0.2);
+    border: 1px solid rgba(255, 178, 239, 0.2);
     background: transparent;
     color: rgba(255, 255, 255, 0.5);
     font-size: 0.88rem;
@@ -1207,15 +1209,15 @@ function initial(name) {
 
 .sort-btn:hover,
 .sort-btn.active {
-    border-color: rgba(110, 110, 210, 0.5);
-    color: #be91ff;
-    background: rgba(110, 110, 210, 0.1);
+    border-color: rgba(255, 178, 239, 0.5);
+    color: #ffb2ef;
+    background: rgba(255, 178, 239, 0.1);
 }
 
 .sort-dir-btn {
     padding: 0.35rem 0.75rem;
     border-radius: 3px;
-    border: 1px solid rgba(110, 110, 210, 0.2);
+    border: 1px solid rgba(255, 178, 239, 0.2);
     background: transparent;
     color: rgba(255, 255, 255, 0.5);
     font-size: 1rem;
@@ -1226,7 +1228,7 @@ function initial(name) {
 }
 
 .sort-dir-btn:hover {
-    border-color: rgba(110, 110, 210, 0.5);
+    border-color: rgba(255, 178, 239, 0.5);
     color: rgba(255, 255, 255, 0.9);
 }
 
@@ -1272,7 +1274,7 @@ function initial(name) {
     flex-direction: column;
     gap: 0.75rem;
     background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(110, 110, 210, 0.12);
+    border: 1px solid rgba(255, 178, 239, 0.12);
     border-radius: 8px;
     padding: 1rem;
     text-decoration: none;
@@ -1282,8 +1284,8 @@ function initial(name) {
 }
 
 .user-card:hover {
-    border-color: rgba(110, 110, 210, 0.35);
-    background: rgba(110, 110, 210, 0.06);
+    border-color: rgba(255, 178, 239, 0.35);
+    background: rgba(255, 178, 239, 0.06);
     transform: translateY(-2px);
 }
 
@@ -1292,8 +1294,8 @@ function initial(name) {
     height: 96px;
     border-radius: 50%;
     overflow: hidden;
-    background: rgba(110, 110, 210, 0.15);
-    border: 1.5px solid rgba(110, 110, 210, 0.4);
+    background: rgba(255, 178, 239, 0.15);
+    border: 1.5px solid rgba(255, 178, 239, 0.4);
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -1310,7 +1312,7 @@ function initial(name) {
 .card-avatar__initials {
     font-size: 2rem;
     font-weight: 600;
-    color: #7070d8;
+    color: var(--color-base-1);
 }
 
 .card-body {
@@ -1375,15 +1377,15 @@ function initial(name) {
 
 
 .card-badge--female {
-    border-color: rgba(160, 160, 255, 0.3);
-    background: rgba(160, 160, 255, 0.06);
-    color: rgba(160, 160, 255, 0.85);
+    border-color: rgba(255, 178, 239, 0.3);
+    background: rgba(255, 178, 239, 0.06);
+    color: rgba(255, 178, 239, 0.85);
 }
 
 .card-badge--male {
-    border-color: rgba(167, 139, 250, 0.3);
-    background: rgba(167, 139, 250, 0.06);
-    color: rgba(167, 139, 250, 0.85);
+    border-color: rgba(255, 178, 239, 0.3);
+    background: rgba(255, 178, 239, 0.06);
+    color: rgba(255, 178, 239, 0.85);
 }
 
 .card-badge--age {
@@ -1460,7 +1462,7 @@ function initial(name) {
     height: 42px;
     padding: 0 0.8rem;
     border-radius: 5px;
-    border: 1px solid rgba(110, 110, 210, 0.2);
+    border: 1px solid rgba(255, 178, 239, 0.2);
     background: transparent;
     color: rgba(255, 255, 255, 0.5);
     font-size: 1rem;
@@ -1469,15 +1471,15 @@ function initial(name) {
 }
 
 .page-btn:not(.page-btn--disabled):not(.page-btn--active):hover {
-    border-color: rgba(110, 110, 210, 0.5);
+    border-color: rgba(255, 178, 239, 0.5);
     color: rgba(255, 255, 255, 0.9);
-    background: rgba(110, 110, 210, 0.08);
+    background: rgba(255, 178, 239, 0.08);
 }
 
 .page-btn--active {
-    border-color: rgba(160, 160, 255, 0.6);
-    background: rgba(110, 110, 210, 0.2);
-    color: #be91ff;
+    border-color: rgba(255, 178, 239, 0.6);
+    background: rgba(255, 178, 239, 0.2);
+    color: #ffb2ef;
 }
 
 .page-btn--disabled {
@@ -1503,9 +1505,9 @@ function initial(name) {
     gap: 0.4rem;
     position: relative;
     padding: 0.35rem 0.7rem;
-    border: 1px solid rgba(110, 110, 210, 0.3);
+    border: 1px solid rgba(255, 178, 239, 0.3);
     border-radius: 6px;
-    background: rgba(110, 110, 210, 0.08);
+    background: rgba(255, 178, 239, 0.08);
     color: rgba(255, 255, 255, 0.7);
     font-size: 0.82rem;
     font-family: inherit;
@@ -1513,14 +1515,14 @@ function initial(name) {
     transition: border-color 0.15s, background 0.15s;
 }
 .mobile-filters-toggle:hover {
-    border-color: rgba(110, 110, 210, 0.55);
-    background: rgba(110, 110, 210, 0.14);
+    border-color: rgba(255, 178, 239, 0.55);
+    background: rgba(255, 178, 239, 0.14);
 }
 .mobile-filters-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #be91ff;
+    background: #ffb2ef;
     flex-shrink: 0;
 }
 

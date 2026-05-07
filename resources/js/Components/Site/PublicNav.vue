@@ -114,8 +114,8 @@ function onTabClick(tab) {
 
 .pub-tab--active {
     color: rgba(255, 255, 255, 0.92);
-    background: rgba(160, 160, 255, 0.15);
-    border-color: rgba(160, 160, 255, 0.3);
+    background: rgba(255, 178, 239, 0.15);
+    border-color: rgba(255, 178, 239, 0.3);
 }
 
 .pub-tab__icon {

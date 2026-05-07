@@ -472,8 +472,8 @@ onUnmounted(() => {
 /* Subtabs */
 .orders-subtabs {
     display: flex;
-    background: rgba(160,160,255,0.05);
-    border: 1px solid rgba(160,160,255,0.12);
+    background: rgba(255, 178, 239,0.05);
+    border: 1px solid rgba(255, 178, 239,0.12);
     border-radius: 3px;
     padding: 3px;
     gap: 2px;
@@ -481,7 +481,7 @@ onUnmounted(() => {
 .orders-subtab {
     background: transparent;
     border: none;
-    color: rgba(160,160,255,0.5);
+    color: rgba(255, 178, 239,0.5);
     font-size: 0.92rem;
     padding: 0.3rem 0.9rem;
     border-radius: 3px;
@@ -489,7 +489,7 @@ onUnmounted(() => {
     transition: background 0.15s, color 0.15s;
 }
 .orders-subtab--active {
-    background: rgba(160,160,255,0.12);
+    background: rgba(255, 178, 239,0.12);
     color: rgba(200,200,255,0.95);
 }
 
@@ -504,9 +504,9 @@ onUnmounted(() => {
     align-items: center;
     gap: 0.35rem;
     background: transparent;
-    border: 1px solid rgba(160,160,255,0.15);
+    border: 1px solid rgba(255, 178, 239,0.15);
     border-radius: 3px;
-    color: rgba(160,160,255,0.5);
+    color: rgba(255, 178, 239,0.5);
     font-size: 1rem;
     padding: 0.25rem 0.75rem;
     cursor: pointer;
@@ -514,7 +514,7 @@ onUnmounted(() => {
 }
 .orders-status-btn__count {
     font-size: 1rem;
-    background: rgba(160,160,255,0.1);
+    background: rgba(255, 178, 239,0.1);
     border-radius: 3px;
     padding: 0 0.35rem;
     min-width: 1.2rem;
@@ -522,8 +522,8 @@ onUnmounted(() => {
 }
 .orders-status-btn--active {
     color: rgba(200,200,255,0.9);
-    border-color: rgba(160,160,255,0.35);
-    background: rgba(160,160,255,0.08);
+    border-color: rgba(255, 178, 239,0.35);
+    background: rgba(255, 178, 239,0.08);
 }
 .orders-status-btn--pending.orders-status-btn--active  { border-color: rgba(255,200,80,0.45); color: rgba(255,200,80,0.9); }
 .orders-status-btn--accepted.orders-status-btn--active { border-color: rgba(80,240,160,0.45); color: rgba(80,240,160,0.9); }
@@ -533,8 +533,8 @@ onUnmounted(() => {
 .orders-search__input {
     width: 100%;
     max-width: 320px;
-    background: rgba(160,160,255,0.04);
-    border: 1px solid rgba(160,160,255,0.15);
+    background: rgba(255, 178, 239,0.04);
+    border: 1px solid rgba(255, 178, 239,0.15);
     border-radius: 3px;
     color: rgba(220,220,255,0.85);
     font-size: 1.05rem;
@@ -542,8 +542,8 @@ onUnmounted(() => {
     outline: none;
     transition: border-color 0.15s;
 }
-.orders-search__input::placeholder { color: rgba(160,160,255,0.3); }
-.orders-search__input:focus { border-color: rgba(160,160,255,0.45); }
+.orders-search__input::placeholder { color: rgba(255, 178, 239,0.3); }
+.orders-search__input:focus { border-color: rgba(255, 178, 239,0.45); }
 
 /* ── List ─────────────────────────────────────────────────── */
 .orders-grid {
@@ -561,8 +561,8 @@ onUnmounted(() => {
 .ocard {
     display: flex;
     flex-direction: column;
-    background: rgba(160,160,255,0.03);
-    border: 1px solid rgba(160,160,255,0.1);
+    background: rgba(255, 178, 239,0.03);
+    border: 1px solid rgba(255, 178, 239,0.1);
     border-radius: 3px;
     padding: 1.5rem 2rem;
     cursor: pointer;
@@ -577,16 +577,16 @@ onUnmounted(() => {
     height: 1px;
     background: linear-gradient(90deg,
         transparent 0%,
-        rgba(160,160,255,0.15) 10%,
-        rgba(160,160,255,0.7) 50%,
-        rgba(160,160,255,0.15) 90%,
+        rgba(255, 178, 239,0.15) 10%,
+        rgba(255, 178, 239,0.7) 50%,
+        rgba(255, 178, 239,0.15) 90%,
         transparent 100%
     );
     pointer-events: none;
     z-index: 1;
 }
-.ocard:hover    { background: rgba(160,160,255,0.055); }
-.ocard--selected { background: rgba(160,160,255,0.08); border-color: rgba(160,160,255,0.3); }
+.ocard:hover    { background: rgba(255, 178, 239,0.055); }
+.ocard--selected { background: rgba(255, 178, 239,0.08); border-color: rgba(255, 178, 239,0.3); }
 .ocard--cancelled { opacity: 0.65; }
 
 /* Head — partner */
@@ -601,12 +601,12 @@ onUnmounted(() => {
     height: 44px;
     border-radius: 50%;
     overflow: hidden;
-    background: rgba(160,160,255,0.1);
+    background: rgba(255, 178, 239,0.1);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.1rem;
-    color: rgba(160,160,255,0.6);
+    color: rgba(255, 178, 239,0.6);
     flex-shrink: 0;
 }
 .ocard__avatar img { width: 100%; height: 100%; object-fit: cover; }
@@ -627,7 +627,7 @@ onUnmounted(() => {
 }
 .ocard__date {
     font-size: 0.85rem;
-    color: rgba(160,160,255,0.42);
+    color: rgba(255, 178, 239,0.42);
 }
 .ocard__badge {
     font-size: 0.8rem;
@@ -655,13 +655,13 @@ onUnmounted(() => {
     flex-direction: row;
     justify-content: space-between;
     align-items: baseline;
-    border-top: 1px solid rgba(160,160,255,0.08);
+    border-top: 1px solid rgba(255, 178, 239,0.08);
     padding-top: 0.85rem;
     padding-bottom: 0.85rem;
 }
 .ocard__count {
     font-size: 0.9rem;
-    color: rgba(160,160,255,0.45);
+    color: rgba(255, 178, 239,0.45);
 }
 .ocard__total {
     font-size: 1.15rem;
@@ -701,12 +701,12 @@ onUnmounted(() => {
 .ocard__btn--cancel:hover { background: rgba(255,110,110,0.12); }
 .ocard__cancelled-note {
     font-size: 0.88rem;
-    color: rgba(160,160,255,0.3);
+    color: rgba(255, 178, 239,0.3);
     font-style: italic;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    border-top: 1px solid rgba(160,160,255,0.08);
+    border-top: 1px solid rgba(255, 178, 239,0.08);
     padding-top: 0.85rem;
 }
 
@@ -722,7 +722,7 @@ onUnmounted(() => {
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background: rgba(160,160,255,0.25);
+    background: rgba(255, 178, 239,0.25);
     animation: sentinel-pulse 1.1s ease-in-out infinite;
 }
 .orders-sentinel__dot:nth-child(2) { animation-delay: 0.18s; }
@@ -736,7 +736,7 @@ onUnmounted(() => {
 .orders-empty {
     text-align: center;
     padding: 4rem 0;
-    color: rgba(160,160,255,0.3);
+    color: rgba(255, 178, 239,0.3);
     font-size: 1rem;
 }
 
@@ -757,7 +757,7 @@ onUnmounted(() => {
     width: min(680px, 100vw);
     height: 100%;
     background: #080815;
-    border-left: 1px solid rgba(160,160,255,0.1);
+    border-left: 1px solid rgba(255, 178, 239,0.1);
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -769,7 +769,7 @@ onUnmounted(() => {
     align-items: center;
     gap: 0.85rem;
     padding: 1.25rem 2rem;
-    border-bottom: 1px solid rgba(160,160,255,0.08);
+    border-bottom: 1px solid rgba(255, 178, 239,0.08);
     flex-shrink: 0;
 }
 .opanel__back {
@@ -779,14 +779,14 @@ onUnmounted(() => {
     width: 30px;
     height: 30px;
     background: transparent;
-    border: 1px solid rgba(160,160,255,0.15);
+    border: 1px solid rgba(255, 178, 239,0.15);
     border-radius: 3px;
-    color: rgba(160,160,255,0.5);
+    color: rgba(255, 178, 239,0.5);
     cursor: pointer;
     flex-shrink: 0;
     transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
-.opanel__back:hover { color: rgba(200,200,255,0.9); border-color: rgba(160,160,255,0.4); background: rgba(160,160,255,0.06); }
+.opanel__back:hover { color: rgba(200,200,255,0.9); border-color: rgba(255, 178, 239,0.4); background: rgba(255, 178, 239,0.06); }
 .opanel__header-text {
     display: flex;
     flex-direction: column;
@@ -801,7 +801,7 @@ onUnmounted(() => {
 }
 .opanel__date {
     font-size: 0.92rem;
-    color: rgba(160,160,255,0.35);
+    color: rgba(255, 178, 239,0.35);
 }
 .opanel__status-badge {
     font-size: 1rem;
@@ -824,19 +824,19 @@ onUnmounted(() => {
     align-items: center;
     gap: 0.85rem;
     padding: 1.25rem 2rem;
-    border-bottom: 1px solid rgba(160,160,255,0.07);
+    border-bottom: 1px solid rgba(255, 178, 239,0.07);
 }
 .opanel__avatar {
     width: 44px;
     height: 44px;
     border-radius: 50%;
     overflow: hidden;
-    background: rgba(160,160,255,0.1);
+    background: rgba(255, 178, 239,0.1);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.2rem;
-    color: rgba(160,160,255,0.6);
+    color: rgba(255, 178, 239,0.6);
     flex-shrink: 0;
 }
 .opanel__avatar img { width: 100%; height: 100%; object-fit: cover; }
@@ -852,7 +852,7 @@ onUnmounted(() => {
 }
 .opanel__partner-role {
     font-size: 0.92rem;
-    color: rgba(160,160,255,0.4);
+    color: rgba(255, 178, 239,0.4);
 }
 
 /* Lines */
@@ -861,7 +861,7 @@ onUnmounted(() => {
     flex-direction: column;
     padding: 1rem 2rem;
     gap: 0;
-    border-bottom: 1px solid rgba(160,160,255,0.07);
+    border-bottom: 1px solid rgba(255, 178, 239,0.07);
 }
 .opanel__line {
     display: flex;
@@ -869,7 +869,7 @@ onUnmounted(() => {
     justify-content: space-between;
     gap: 1rem;
     padding: 0.65rem 0;
-    border-bottom: 1px solid rgba(160,160,255,0.05);
+    border-bottom: 1px solid rgba(255, 178, 239,0.05);
 }
 .opanel__line:last-child { border-bottom: none; }
 .opanel__line-left {
@@ -887,8 +887,8 @@ onUnmounted(() => {
 }
 .opanel__line-qty {
     font-size: 0.92rem;
-    color: rgba(160,160,255,0.5);
-    background: rgba(160,160,255,0.08);
+    color: rgba(255, 178, 239,0.5);
+    background: rgba(255, 178, 239,0.08);
     border-radius: 3px;
     padding: 0.1rem 0.4rem;
     flex-shrink: 0;
@@ -911,7 +911,7 @@ onUnmounted(() => {
 }
 .opanel__total-label {
     font-size: 1rem;
-    color: rgba(160,160,255,0.4);
+    color: rgba(255, 178, 239,0.4);
 }
 .opanel__total-value {
     font-size: 1.35rem;
@@ -968,15 +968,15 @@ onUnmounted(() => {
 .opanel__action-btn--accept:hover { background: rgba(80,240,160,0.18); }
 .opanel__action-btn--chat {
     flex: 1;
-    background: rgba(160,160,255,0.08);
-    border-color: rgba(160,160,255,0.25);
+    background: rgba(255, 178, 239,0.08);
+    border-color: rgba(255, 178, 239,0.25);
     color: rgba(190,190,255,0.9);
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
 }
-.opanel__action-btn--chat:hover { background: rgba(160,160,255,0.16); border-color: rgba(160,160,255,0.45); }
+.opanel__action-btn--chat:hover { background: rgba(255, 178, 239,0.16); border-color: rgba(255, 178, 239,0.45); }
 .opanel__action-btn--cancel {
     background: rgba(255,110,110,0.06);
     border-color: rgba(255,110,110,0.2);

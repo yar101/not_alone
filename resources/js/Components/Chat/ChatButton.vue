@@ -42,8 +42,8 @@ const unreadMessages = computed(() => page.props.unread_messages_count ?? 0);
     }
 }
 .chat-btn--active {
-    background: rgba(160, 160, 255, 0.1);
-    border-color: rgba(160, 160, 255, 0.3);
+    background: rgba(255, 178, 239, 0.1);
+    border-color: rgba(255, 178, 239, 0.3);
     color: var(--color-base-1);
 }
 @media (max-width: 768px) {
@@ -56,8 +56,8 @@ const unreadMessages = computed(() => page.props.unread_messages_count ?? 0);
         color: rgba(255, 255, 255, 0.55);
     }
     .chat-btn--active {
-        background: rgba(160, 160, 255, 0.12);
-        border-color: rgba(160, 160, 255, 0.28);
+        background: rgba(255, 178, 239, 0.12);
+        border-color: rgba(255, 178, 239, 0.28);
         color: var(--color-base-1);
     }
 }

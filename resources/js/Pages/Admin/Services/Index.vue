@@ -203,7 +203,7 @@ const catForm = useForm({
     description_en:      '',
     name_suggestions_ru: [],
     name_suggestions_en: [],
-    accent_color:        '#a0a0ff',
+    accent_color:        '#ffb2ef',
     sort_order:          0,
     is_active:           true,
     image:               null,
@@ -233,7 +233,7 @@ function openCatEdit(cat) {
     catForm.description_en      = cat.description_en ?? '';
     catForm.name_suggestions_ru = cat.name_suggestions_ru ?? [];
     catForm.name_suggestions_en = cat.name_suggestions_en ?? [];
-    catForm.accent_color     = cat.accent_color ?? '#a0a0ff';
+    catForm.accent_color     = cat.accent_color ?? '#ffb2ef';
     catForm.sort_order       = cat.sort_order;
     catForm.is_active        = cat.is_active;
     catForm.image            = null;

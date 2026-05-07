@@ -47,7 +47,7 @@ const count = computed(() => {
 @media (hover: hover) {
     .cart-icon-btn:hover {
         color: rgba(255,255,255,0.8);
-        background: rgba(110,110,210,0.08);
+        background: rgba(255, 178, 239,0.08);
     }
 }
 .cart-icon-btn--active {
@@ -56,7 +56,7 @@ const count = computed(() => {
 }
 .cart-icon-btn--has-items:not(.cart-icon-btn--active) {
     color: var(--color-base-1);
-    border-color: rgba(160, 160, 255, 0.22);
+    border-color: rgba(255, 178, 239, 0.22);
 }
 @media (max-width: 768px) {
     .cart-icon-btn {
@@ -73,8 +73,8 @@ const count = computed(() => {
         color: var(--color-base-2);
     }
     .cart-icon-btn--has-items:not(.cart-icon-btn--active) {
-        background: rgba(160, 160, 255, 0.12);
-        border-color: rgba(160, 160, 255, 0.28);
+        background: rgba(255, 178, 239, 0.12);
+        border-color: rgba(255, 178, 239, 0.28);
         color: var(--color-base-1);
     }
 }

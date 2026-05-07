@@ -1076,7 +1076,7 @@ const ownerSortOptions = computed(() => [
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: rgba(160, 160, 255, 0.5);
+    background: rgba(255, 178, 239, 0.5);
     animation: dot-pulse 1.2s ease-in-out infinite;
 }
 
@@ -1570,14 +1570,14 @@ const ownerSortOptions = computed(() => [
 /* Замечания — base-1 акцент */
 .pc-btn--details-warn {
     flex: 1;
-    border-color: rgba(160, 160, 255, 0.35);
-    background: rgba(160, 160, 255, 0.10);
+    border-color: rgba(255, 178, 239, 0.35);
+    background: rgba(255, 178, 239, 0.10);
     color: var(--color-base-1);
     box-shadow: inset 0 1px 0 rgba(180, 180, 255, 0.70);
 }
 
 .pc-btn--details-warn:hover {
-    background: rgba(160, 160, 255, 0.18);
+    background: rgba(255, 178, 239, 0.18);
     color: rgba(180, 180, 255, 1);
 }
 
@@ -1641,7 +1641,7 @@ const ownerSortOptions = computed(() => [
 
 .pcd-topbar__close:hover {
     color: rgba(220, 100, 145, 0.9);
-    background: rgba(110, 110, 210, 0.1);
+    background: rgba(255, 178, 239, 0.1);
     transform: rotate(90deg);
 }
 
@@ -1827,7 +1827,7 @@ const ownerSortOptions = computed(() => [
 }
 
 .pcd-field-input:focus {
-    border-color: rgba(110, 110, 210, 0.55);
+    border-color: rgba(255, 178, 239, 0.55);
 }
 
 .pcd-field-input:disabled {
@@ -1866,13 +1866,13 @@ const ownerSortOptions = computed(() => [
 }
 
 .pcd-inline-btn--save {
-    background: rgba(110, 110, 210, 0.18);
-    border-color: rgba(110, 110, 210, 0.4);
-    color: rgba(160, 160, 255, 0.95);
+    background: rgba(255, 178, 239, 0.18);
+    border-color: rgba(255, 178, 239, 0.4);
+    color: rgba(255, 178, 239, 0.95);
 }
 
 .pcd-inline-btn--save:hover:not(:disabled) {
-    background: rgba(110, 110, 210, 0.3);
+    background: rgba(255, 178, 239, 0.3);
 }
 
 .pcd-inline-btn--cancel {
@@ -1924,7 +1924,7 @@ const ownerSortOptions = computed(() => [
 }
 
 .pcd-price-input:focus {
-    border-color: rgba(110, 110, 210, 0.55);
+    border-color: rgba(255, 178, 239, 0.55);
 }
 
 .pcd-price-rub {
@@ -2140,13 +2140,13 @@ const ownerSortOptions = computed(() => [
 }
 
 .pcd-edit-toggle--danger {
-    border-color: rgba(160, 160, 255, 0.35);
-    background: rgba(160, 160, 255, 0.10);
+    border-color: rgba(255, 178, 239, 0.35);
+    background: rgba(255, 178, 239, 0.10);
     color: var(--color-base-1);
     box-shadow: inset 0 1px 0 rgba(180, 180, 255, 0.70);
 }
 .pcd-edit-toggle--danger:hover {
-    background: rgba(160, 160, 255, 0.18);
+    background: rgba(255, 178, 239, 0.18);
     color: rgba(180, 180, 255, 1);
 }
 
@@ -2310,7 +2310,7 @@ const ownerSortOptions = computed(() => [
 }
 
 .pcd-picker__item--active {
-    border-color: rgba(110, 110, 210, 0.8);
+    border-color: rgba(255, 178, 239, 0.8);
 }
 
 .pcd-picker__item:disabled {
@@ -2325,7 +2325,7 @@ const ownerSortOptions = computed(() => [
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: rgba(110, 110, 210, 0.9);
+    background: rgba(255, 178, 239, 0.9);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2472,23 +2472,23 @@ const ownerSortOptions = computed(() => [
 .pc-idol-cta-block {
     position: relative;
     overflow: hidden;
-    border: 1px solid rgba(160, 160, 255, 0.18);
-    border-top-color: rgba(160, 160, 255, 0.3);
+    border: 1px solid rgba(255, 178, 239, 0.18);
+    border-top-color: rgba(255, 178, 239, 0.3);
     border-radius: 6px;
     background:
         repeating-linear-gradient(
             0deg,
             transparent,
             transparent 23px,
-            rgba(160, 160, 255, 0.025) 24px
+            rgba(255, 178, 239, 0.025) 24px
         ),
         linear-gradient(120deg,
-            rgba(160, 160, 255, 0.1) 0%,
+            rgba(255, 178, 239, 0.1) 0%,
             rgba(100, 100, 200, 0.04) 50%,
             rgba(100, 210, 255, 0.07) 100%
         );
     box-shadow:
-        inset 0 1px 0 rgba(160, 160, 255, 0.12),
+        inset 0 1px 0 rgba(255, 178, 239, 0.12),
         inset 0 -1px 0 rgba(0, 0, 0, 0.22),
         0 6px 32px rgba(0, 0, 0, 0.2);
 }
@@ -2548,11 +2548,11 @@ const ownerSortOptions = computed(() => [
     letter-spacing: 0.05em;
     color: var(--color-base-1);
     opacity: 0.8;
-    background: rgba(160, 160, 255, 0.08);
-    border: 1px solid rgba(160, 160, 255, 0.2);
+    background: rgba(255, 178, 239, 0.08);
+    border: 1px solid rgba(255, 178, 239, 0.2);
     border-radius: 3px;
     padding: 0.2rem 0.55rem;
-    box-shadow: inset 0 1px 0 rgba(160, 160, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 178, 239, 0.08);
 }
 
 .pc-idol-cta-btn {
@@ -2560,9 +2560,9 @@ const ownerSortOptions = computed(() => [
     display: inline-flex;
     align-items: center;
     padding: 0.65rem 1.35rem;
-    border: 1px solid rgba(160, 160, 255, 0.3);
+    border: 1px solid rgba(255, 178, 239, 0.3);
     border-radius: 4px;
-    background: rgba(160, 160, 255, 0.09);
+    background: rgba(255, 178, 239, 0.09);
     color: var(--color-base-1);
     font-size: 0.74rem;
     font-weight: 600;
@@ -2571,18 +2571,18 @@ const ownerSortOptions = computed(() => [
     text-decoration: none;
     white-space: nowrap;
     box-shadow:
-        inset 0 1px 0 rgba(160, 160, 255, 0.1),
-        0 2px 12px rgba(160, 160, 255, 0.08);
+        inset 0 1px 0 rgba(255, 178, 239, 0.1),
+        0 2px 12px rgba(255, 178, 239, 0.08);
     transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.15s;
 }
 
 .pc-idol-cta-btn:hover {
-    background: rgba(160, 160, 255, 0.16);
-    border-color: rgba(160, 160, 255, 0.55);
+    background: rgba(255, 178, 239, 0.16);
+    border-color: rgba(255, 178, 239, 0.55);
     color: rgba(200, 200, 255, 1);
     box-shadow:
-        inset 0 1px 0 rgba(160, 160, 255, 0.15),
-        0 0 20px rgba(160, 160, 255, 0.18),
+        inset 0 1px 0 rgba(255, 178, 239, 0.15),
+        0 0 20px rgba(255, 178, 239, 0.18),
         0 4px 18px rgba(0, 0, 0, 0.25);
     transform: translateY(-1px);
 }

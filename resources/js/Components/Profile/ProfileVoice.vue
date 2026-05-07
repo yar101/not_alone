@@ -37,7 +37,7 @@ function initWaveSurfer() {
         container:     waveformEl.value,
         url:           props.voiceUrl,
         waveColor:     'rgba(255,255,255,0.22)',
-        progressColor: getComputedStyle(document.documentElement).getPropertyValue('--color-base-1').trim() || '#a0a0ff',
+        progressColor: getComputedStyle(document.documentElement).getPropertyValue('--color-base-1').trim() || '#ffb2ef',
         cursorColor:   'transparent',
         barWidth:      2,
         barGap:        2,

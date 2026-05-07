@@ -2114,8 +2114,8 @@ function formatDate(iso) {
     z-index: 1000;
     display: flex;
     background: linear-gradient(160deg, #0f0f22 0%, #0a0a16 100%);
-    border-left: 1px solid rgba(110, 110, 210, 0.22);
-    box-shadow: -8px 0 64px rgba(0, 0, 0, 0.7), -1px 0 0 rgba(160, 100, 255, 0.06);
+    border-left: 1px solid rgba(255, 178, 239, 0.22);
+    box-shadow: -8px 0 64px rgba(0, 0, 0, 0.7), -1px 0 0 rgba(255, 178, 239, 0.06);
     overscroll-behavior: contain;
 }
 
@@ -2141,9 +2141,9 @@ function formatDate(iso) {
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid rgba(110, 110, 210, 0.14);
+    border-right: 1px solid rgba(255, 178, 239, 0.14);
     background: #0b0b18;
-    background-image: radial-gradient(ellipse 260px 140px at 50% 0%, rgba(110, 110, 210, 0.1) 0%, transparent 100%);
+    background-image: radial-gradient(ellipse 260px 140px at 50% 0%, rgba(255, 178, 239, 0.1) 0%, transparent 100%);
 }
 
 .chat-sidebar__header {
@@ -2151,7 +2151,7 @@ function formatDate(iso) {
     align-items: center;
     justify-content: space-between;
     padding: 1rem 1rem 0.85rem;
-    border-bottom: 1px solid rgba(110, 110, 210, 0.12);
+    border-bottom: 1px solid rgba(255, 178, 239, 0.12);
     flex-shrink: 0;
 }
 
@@ -2178,7 +2178,7 @@ function formatDate(iso) {
 
 .chat-icon-btn:hover {
     color: rgba(255, 255, 255, 0.85);
-    background: rgba(110, 110, 210, 0.1);
+    background: rgba(255, 178, 239, 0.1);
 }
 
 /* ── Sticky sidebar controls ──────────────────────────── */
@@ -2187,7 +2187,7 @@ function formatDate(iso) {
     top: 0;
     z-index: 5;
     background: #0b0b18;
-    border-bottom: 1px solid rgba(110, 110, 210, 0.1);
+    border-bottom: 1px solid rgba(255, 178, 239, 0.1);
     padding-top: 1px;
 }
 
@@ -2198,8 +2198,8 @@ function formatDate(iso) {
 
 .chat-search-input {
     width: 100%;
-    background: rgba(110, 110, 210, 0.07);
-    border: 1px solid rgba(110, 110, 210, 0.18);
+    background: rgba(255, 178, 239, 0.07);
+    border: 1px solid rgba(255, 178, 239, 0.18);
     border-radius: 8px;
     padding: 0.45rem 0.75rem;
     color: rgba(255, 255, 255, 0.85);
@@ -2210,7 +2210,7 @@ function formatDate(iso) {
 }
 
 .chat-search-input:focus {
-    border-color: rgba(160, 160, 255, 0.45);
+    border-color: rgba(255, 178, 239, 0.45);
 }
 
 .chat-search-input::placeholder {
@@ -2341,14 +2341,14 @@ function formatDate(iso) {
 }
 
 .chat-no-convs a {
-    color: rgba(160, 160, 255, 0.65);
+    color: rgba(255, 178, 239, 0.65);
     text-decoration: none;
     font-size: 0.88rem;
     transition: color 0.15s;
 }
 
 .chat-no-convs a:hover {
-    color: rgba(160, 160, 255, 0.9);
+    color: rgba(255, 178, 239, 0.9);
 }
 
 /* ── Conversation items ───────────────────────────────── */
@@ -2368,7 +2368,7 @@ function formatDate(iso) {
 }
 
 .chat-conv-item:hover {
-    background: rgba(110, 110, 210, 0.06);
+    background: rgba(255, 178, 239, 0.06);
 }
 
 .chat-conv-item--active {
@@ -2383,7 +2383,7 @@ function formatDate(iso) {
     bottom: 20%;
     width: 3px;
     border-radius: 0 3px 3px 0;
-    background: linear-gradient(to bottom, #be91ff, #7060e0);
+    background: linear-gradient(to bottom, #ffb2ef, #ffb2ef);
 }
 
 .chat-conv-item--active:hover {
@@ -2404,14 +2404,14 @@ function formatDate(iso) {
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: rgba(110, 110, 210, 0.15);
-    border: 1.5px solid rgba(110, 110, 210, 0.3);
+    background: rgba(255, 178, 239, 0.15);
+    border: 1.5px solid rgba(255, 178, 239, 0.3);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     overflow: hidden;
-    color: #7070d8;
+    color: #ffb2ef;
     font-weight: 700;
     font-size: 1.05rem;
 }
@@ -2519,7 +2519,7 @@ function formatDate(iso) {
     padding: 1rem;
     padding-bottom: 0.6rem;
     border-bottom: none;
-    box-shadow: 0 1px 0 rgba(110, 110, 210, 0.12), 0 4px 20px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 1px 0 rgba(255, 178, 239, 0.12), 0 4px 20px rgba(0, 0, 0, 0.25);
     flex-shrink: 0;
 }
 
@@ -2546,7 +2546,7 @@ function formatDate(iso) {
 }
 
 .chat-main__name:hover {
-    color: #be91ff;
+    color: #ffb2ef;
 }
 
 /* ── Online indicator ─────────────────────────────────── */
@@ -2632,14 +2632,14 @@ function formatDate(iso) {
     content: '';
     flex: 1;
     height: 1px;
-    background: linear-gradient(to right, transparent, rgba(110, 110, 210, 0.22));
+    background: linear-gradient(to right, transparent, rgba(255, 178, 239, 0.22));
 }
 
 .chat-date-divider::after {
     content: '';
     flex: 1;
     height: 1px;
-    background: linear-gradient(to left, transparent, rgba(110, 110, 210, 0.22));
+    background: linear-gradient(to left, transparent, rgba(255, 178, 239, 0.22));
 }
 
 /* ── Message row ──────────────────────────────────────── */
@@ -2686,7 +2686,7 @@ function formatDate(iso) {
 
 .chat-msg--mine .chat-msg__bubble {
     background: linear-gradient(135deg, rgba(130, 80, 255, 0.26) 0%, rgba(100, 55, 215, 0.2) 100%);
-    border-color: rgba(160, 100, 255, 0.22);
+    border-color: rgba(255, 178, 239, 0.22);
     box-shadow: 0 2px 12px rgba(100, 55, 215, 0.18), inset 0 1px 0 rgba(200, 160, 255, 0.08);
 }
 
@@ -2794,7 +2794,7 @@ function formatDate(iso) {
 
 .chat-typing {
     font-size: 0.88rem;
-    color: rgba(160, 160, 255, 0.55);
+    color: rgba(255, 178, 239, 0.55);
     padding: 0.25rem 0;
     font-style: italic;
 }
@@ -2853,8 +2853,8 @@ function formatDate(iso) {
     right: 0;
     height: 1px;
     border-radius: 6px 6px 0 0;
-    background: linear-gradient(90deg, transparent, rgba(155, 110, 232, 0.4), rgba(190, 145, 255, 0.7), rgba(155, 110, 232, 0.4), transparent);
-    box-shadow: 0 0 12px rgba(155, 110, 232, 0.2);
+    background: linear-gradient(90deg, transparent, rgba(255, 178, 239, 0.4), rgba(255, 178, 239, 0.7), rgba(255, 178, 239, 0.4), transparent);
+    box-shadow: 0 0 12px rgba(255, 178, 239, 0.2);
     z-index: 1;
 }
 
@@ -2878,7 +2878,7 @@ function formatDate(iso) {
 }
 
 .chat-input:focus {
-    border-color: rgba(160, 100, 255, 0.4);
+    border-color: rgba(255, 178, 239, 0.4);
     background: rgba(255, 255, 255, 0.05);
     box-shadow: 0 0 0 3px rgba(130, 80, 255, 0.08);
 }
@@ -2911,7 +2911,7 @@ function formatDate(iso) {
     align-items: center;
     gap: 0.35rem;
     background: linear-gradient(135deg, rgba(140, 90, 255, 0.3), rgba(100, 55, 210, 0.25));
-    border: 1px solid rgba(160, 100, 255, 0.4);
+    border: 1px solid rgba(255, 178, 239, 0.4);
     border-radius: 4px;
     color: rgba(210, 170, 255, 0.95);
     font-family: inherit;
@@ -3035,8 +3035,8 @@ function formatDate(iso) {
     width: min(72vw, 400px);
     height: min(72vw, 400px);
     border-radius: 50%;
-    background: rgba(155, 110, 232, 0.15);
-    border: 2px solid rgba(155, 110, 232, 0.3);
+    background: rgba(255, 178, 239, 0.15);
+    border: 2px solid rgba(255, 178, 239, 0.3);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -3047,7 +3047,7 @@ function formatDate(iso) {
 .avatar-fs-initial {
     font-size: clamp(4rem, 15vw, 8rem);
     font-weight: 700;
-    color: rgba(155, 110, 232, 0.85);
+    color: rgba(255, 178, 239, 0.85);
     line-height: 1;
 }
 
@@ -3253,7 +3253,7 @@ function formatDate(iso) {
 .bm-reason-tag {
     padding: 0.3rem 0.8rem;
     border-radius: 999px;
-    border: 1px solid rgba(110, 110, 210, 0.3);
+    border: 1px solid rgba(255, 178, 239, 0.3);
     background: transparent;
     color: rgba(255, 255, 255, 0.5);
     font-size: 0.85rem;
@@ -3263,14 +3263,14 @@ function formatDate(iso) {
 }
 
 .bm-reason-tag:hover {
-    border-color: rgba(160, 100, 255, 0.5);
+    border-color: rgba(255, 178, 239, 0.5);
     color: rgba(255, 255, 255, 0.85);
 }
 
 .bm-reason-tag--selected {
-    border-color: rgba(160, 100, 255, 0.7);
-    background: rgba(155, 110, 232, 0.2);
-    color: #be91ff;
+    border-color: rgba(255, 178, 239, 0.7);
+    background: rgba(255, 178, 239, 0.2);
+    color: #ffb2ef;
 }
 
 .bm-durations {
@@ -3283,7 +3283,7 @@ function formatDate(iso) {
 .bm-duration-btn {
     padding: 0.3rem 0.85rem;
     border-radius: 8px;
-    border: 1px solid rgba(110, 110, 210, 0.3);
+    border: 1px solid rgba(255, 178, 239, 0.3);
     background: transparent;
     color: rgba(255, 255, 255, 0.5);
     font-size: 0.85rem;
@@ -3293,14 +3293,14 @@ function formatDate(iso) {
 }
 
 .bm-duration-btn:hover {
-    border-color: rgba(160, 100, 255, 0.5);
+    border-color: rgba(255, 178, 239, 0.5);
     color: rgba(255, 255, 255, 0.85);
 }
 
 .bm-duration-btn--selected {
-    border-color: rgba(160, 100, 255, 0.7);
-    background: rgba(155, 110, 232, 0.2);
-    color: #be91ff;
+    border-color: rgba(255, 178, 239, 0.7);
+    background: rgba(255, 178, 239, 0.2);
+    color: #ffb2ef;
 }
 
 .bm-footer {
@@ -3362,8 +3362,8 @@ function formatDate(iso) {
 
 .bm-textarea {
     width: 100%;
-    background: rgba(110, 110, 210, 0.07);
-    border: 1px solid rgba(110, 110, 210, 0.2);
+    background: rgba(255, 178, 239, 0.07);
+    border: 1px solid rgba(255, 178, 239, 0.2);
     border-radius: 8px;
     color: rgba(255, 255, 255, 0.85);
     padding: 0.55rem 0.75rem;
@@ -3376,7 +3376,7 @@ function formatDate(iso) {
 }
 
 .bm-textarea:focus {
-    border-color: rgba(160, 160, 255, 0.4);
+    border-color: rgba(255, 178, 239, 0.4);
 }
 
 /* ── Cancel order modal ─────────────────────────────────── */
@@ -3631,7 +3631,7 @@ function formatDate(iso) {
 /* ── Chat tabs ──────────────────────────────────────────── */
 .chat-tabs {
     display: flex;
-    border-bottom: 1px solid rgba(160, 160, 255, 0.12);
+    border-bottom: 1px solid rgba(255, 178, 239, 0.12);
     flex-shrink: 0;
     padding: 4px 6px;
     gap: 2px;
@@ -3660,7 +3660,7 @@ function formatDate(iso) {
     top: 18%;
     height: 64%;
     width: 1px;
-    background: rgba(160, 160, 255, 0.18);
+    background: rgba(255, 178, 239, 0.18);
     transition: opacity 0.15s;
 }
 
@@ -3676,7 +3676,7 @@ function formatDate(iso) {
 
 .chat-tab--active {
     color: var(--color-base-1);
-    background: rgba(160, 160, 255, 0.1);
+    background: rgba(255, 178, 239, 0.1);
 }
 
 .chat-tab__dot {
@@ -3705,18 +3705,18 @@ function formatDate(iso) {
     position: relative;
     overflow: visible;
     transition: background 0.15s, box-shadow 0.15s;
-    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(110, 110, 210, 0.13);
+    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(255, 178, 239, 0.13);
 }
 
 .order-stub:hover {
     background: rgba(255, 255, 255, 0.055);
 
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(140, 110, 255, 0.2);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 178, 239, 0.2);
 }
 
 .order-stub--active {
-    background: rgba(160, 160, 255, 0.1);
-    box-shadow: 0 2px 14px rgba(160, 160, 255, 0.18), inset 0 0 0 1px rgba(160, 160, 255, 0.28);
+    background: rgba(255, 178, 239, 0.1);
+    box-shadow: 0 2px 14px rgba(255, 178, 239, 0.18), inset 0 0 0 1px rgba(255, 178, 239, 0.28);
 }
 
 .order-stub--active:hover {
@@ -3807,7 +3807,7 @@ function formatDate(iso) {
     height: 9px;
     border-radius: 50%;
     background: #0b0b18;
-    border: 1px solid rgba(110, 110, 210, 0.13);
+    border: 1px solid rgba(255, 178, 239, 0.13);
     z-index: 2;
 }
 
@@ -3880,15 +3880,15 @@ function formatDate(iso) {
 }
 
 .chat-order-subtab--active {
-    background: rgba(160, 160, 255, 0.13);
-    border-color: rgba(160, 160, 255, 0.3);
+    background: rgba(255, 178, 239, 0.13);
+    border-color: rgba(255, 178, 239, 0.3);
     border-top: none;
-    color: rgba(200, 200, 255, 0.95);
-    box-shadow: inset 0 1px 0 rgba(200, 200, 255, 0.25);
+    color: rgba(255, 220, 245, 0.95);
+    box-shadow: inset 0 1px 0 rgba(255, 220, 245, 0.25);
 }
 
 .chat-order-subtab--active:hover {
-    background: rgba(160, 160, 255, 0.18);
+    background: rgba(255, 178, 239, 0.18);
 }
 
 /* ── Unread-only toggle ──────────────────────────────────── */
@@ -3913,9 +3913,9 @@ function formatDate(iso) {
 }
 
 .chat-unread-btn--active {
-    color: rgba(200, 200, 255, 0.95);
-    border-color: rgba(160, 160, 255, 0.4);
-    background: rgba(160, 160, 255, 0.1);
+    color: rgba(255, 220, 245, 0.95);
+    border-color: rgba(255, 178, 239, 0.4);
+    background: rgba(255, 178, 239, 0.1);
 }
 
 /* ── Order filters ───────────────────────────────────────── */
@@ -3966,8 +3966,8 @@ function formatDate(iso) {
 
 .order-filters__toggle--open {
     color: var(--color-base-1);
-    border-color: rgba(160, 160, 255, 0.35);
-    background: rgba(160, 160, 255, 0.08);
+    border-color: rgba(255, 178, 239, 0.35);
+    background: rgba(255, 178, 239, 0.08);
 }
 
 .order-filters__arrow {
@@ -4019,9 +4019,9 @@ function formatDate(iso) {
 }
 
 .order-filter-pill--active {
-    color: rgba(200, 200, 255, 0.95);
-    border-color: rgba(160, 160, 255, 0.4);
-    background: rgba(160, 160, 255, 0.12);
+    color: rgba(255, 220, 245, 0.95);
+    border-color: rgba(255, 178, 239, 0.4);
+    background: rgba(255, 178, 239, 0.12);
 }
 
 .order-filter-pill--pending.order-filter-pill--active {
@@ -4128,7 +4128,7 @@ function formatDate(iso) {
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background: rgba(160, 160, 255, 0.5);
+    background: rgba(255, 178, 239, 0.5);
     animation: notif-bounce 1s ease-in-out infinite;
 }
 
@@ -4177,16 +4177,16 @@ function formatDate(iso) {
     display: block;
     text-align: center;
     font-size: 0.78rem;
-    color: rgba(160, 160, 255, 0.45);
+    color: rgba(255, 178, 239, 0.45);
     padding: 0.5rem 1rem;
     text-decoration: none;
     letter-spacing: 0.05em;
     transition: color 0.15s;
-    border-bottom: 1px solid rgba(160, 160, 255, 0.08);
+    border-bottom: 1px solid rgba(255, 178, 239, 0.08);
 }
 
 .chat-order-detail-link:hover {
-    color: rgba(160, 160, 255, 0.85);
+    color: rgba(255, 178, 239, 0.85);
 }
 
 /* ── Order actions panel ────────────────────────────────── */
@@ -4362,22 +4362,22 @@ function formatDate(iso) {
 }
 
 .chat-order-btn--offer {
-    background: rgba(110, 80, 210, 0.07);
-    border: 1px solid rgba(110, 80, 210, 0.3);
-    color: rgba(155, 110, 232, 0.85);
+    background: rgba(255, 178, 239, 0.07);
+    border: 1px solid rgba(255, 178, 239, 0.3);
+    color: rgba(255, 178, 239, 0.85);
 }
 
 .chat-order-btn--offer::after {
-    background: linear-gradient(90deg, transparent 0%, rgba(155, 110, 232, 0.5) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 178, 239, 0.5) 50%, transparent 100%);
 }
 
 .chat-order-btn--offer::before {
-    border: 1px dashed rgba(110, 80, 210, 0.18);
+    border: 1px dashed rgba(255, 178, 239, 0.18);
 }
 
 .chat-order-btn--offer:hover {
-    background: rgba(110, 80, 210, 0.15);
-    border-color: rgba(110, 80, 210, 0.5);
+    background: rgba(255, 178, 239, 0.15);
+    border-color: rgba(255, 178, 239, 0.5);
 }
 
 .chat-order-btn--offer:hover::before {
@@ -4439,7 +4439,7 @@ function formatDate(iso) {
     flex-shrink: 0;
     padding: 0.55rem 1.25rem;
     background: linear-gradient(160deg, rgb(16, 11, 20) 0%, rgb(7, 6, 11) 100%);
-    border-bottom: 1px solid rgba(110, 110, 210, 0.18);
+    border-bottom: 1px solid rgba(255, 178, 239, 0.18);
 }
 
 .chat-order-timer-bar__inner {
@@ -4561,8 +4561,8 @@ function formatDate(iso) {
     min-width: 180px;
     width: fit-content;
     max-width: 100%;
-    background: linear-gradient(135deg, rgba(80, 60, 160, 0.22), rgba(60, 40, 130, 0.16));
-    border: 1px solid rgba(110, 110, 210, 0.3);
+    background: linear-gradient(135deg, rgba(255, 150, 220, 0.22), rgba(200, 120, 180, 0.16));
+    border: 1px solid rgba(255, 178, 239, 0.3);
     border-radius: 10px;
     border-bottom-left-radius: 2px;
     overflow: hidden;
@@ -4586,8 +4586,8 @@ function formatDate(iso) {
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: rgba(155, 110, 232, 0.75);
-    border-bottom: 1px solid rgba(110, 110, 210, 0.13);
+    color: rgba(255, 178, 239, 0.75);
+    border-bottom: 1px solid rgba(255, 178, 239, 0.13);
 }
 
 .svc-offer__card {
@@ -4596,7 +4596,7 @@ function formatDate(iso) {
     justify-content: space-between;
     gap: 0.5rem;
     padding: 0.35rem 0.7rem;
-    border-bottom: 1px solid rgba(110, 110, 210, 0.08);
+    border-bottom: 1px solid rgba(255, 178, 239, 0.08);
 }
 
 .svc-offer__card:last-of-type {
@@ -4623,8 +4623,8 @@ function formatDate(iso) {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(110, 110, 210, 0.18);
-    border: 1px solid rgba(110, 110, 210, 0.4);
+    background: rgba(255, 178, 239, 0.18);
+    border: 1px solid rgba(255, 178, 239, 0.4);
     border-radius: 6px;
     color: rgba(160, 150, 255, 0.9);
     cursor: pointer;
@@ -4637,7 +4637,7 @@ function formatDate(iso) {
 }
 
 .svc-offer__cart-btn:hover {
-    background: rgba(110, 110, 210, 0.32);
+    background: rgba(255, 178, 239, 0.32);
 }
 
 /* ── Cancelled by in sidebar ────────────────────────────── */
@@ -4950,7 +4950,7 @@ function formatDate(iso) {
 /* ── Support chat ─────────────────────────────────────── */
 .chat-support-icon {
     font-size: 1rem;
-    color: rgba(155, 110, 232, 0.85);
+    color: rgba(255, 178, 239, 0.85);
     line-height: 1;
 }
 
@@ -4969,10 +4969,10 @@ function formatDate(iso) {
 
 .chat-closed-banner {
     padding: 0.5rem 1rem;
-    background: rgba(100, 60, 180, 0.12);
-    border-top: 1px solid rgba(120, 80, 200, 0.2);
+    background: rgba(255, 150, 220, 0.12);
+    border-top: 1px solid rgba(255, 178, 239, 0.2);
     font-size: 0.78rem;
-    color: rgba(190, 150, 255, 0.65);
+    color: rgba(255, 200, 240, 0.65);
     letter-spacing: 0.04em;
     text-align: center;
     font-family: 'Courier New', monospace;
@@ -4998,8 +4998,8 @@ function formatDate(iso) {
 }
 
 .chat-attach-btn:hover:not(:disabled) {
-    color: rgba(190, 145, 255, 0.8);
-    background: rgba(110, 110, 210, 0.12);
+    color: rgba(255, 178, 239, 0.8);
+    background: rgba(255, 178, 239, 0.12);
 }
 
 .chat-attach-btn:disabled {
@@ -5011,7 +5011,7 @@ function formatDate(iso) {
 .chat-msg__bubble--image {
     padding: 0.3rem;
     background: transparent !important;
-    border-color: rgba(110, 110, 210, 0.2) !important;
+    border-color: rgba(255, 178, 239, 0.2) !important;
 }
 
 .chat-msg__image {
@@ -5042,7 +5042,7 @@ function formatDate(iso) {
 
 .chat-main__back-btn:hover {
     color: rgba(255, 255, 255, 0.9);
-    background: rgba(110, 110, 210, 0.12);
+    background: rgba(255, 178, 239, 0.12);
 }
 
 @media (max-width: 767px) {
@@ -5115,8 +5115,8 @@ function formatDate(iso) {
 }
 
 .search-go-btn:hover {
-    background: rgba(160, 160, 255, 0.12);
-    border-color: rgba(160, 160, 255, 0.3);
+    background: rgba(255, 178, 239, 0.12);
+    border-color: rgba(255, 178, 239, 0.3);
     color: var(--color-base-1);
 }
 
@@ -5150,7 +5150,7 @@ function formatDate(iso) {
     margin: 0.75rem auto;
     border-radius: 7px;
     background: rgba(255, 255, 255, 0.022);
-    box-shadow: inset 0 0 0 1px rgba(110, 110, 210, 0.08);
+    box-shadow: inset 0 0 0 1px rgba(255, 178, 239, 0.08);
     padding: 0.7rem 0.85rem 0.65rem;
     display: flex;
     flex-direction: column;

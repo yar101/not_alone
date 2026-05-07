@@ -483,8 +483,8 @@ function formatDate(iso) {
     align-items: center;
     gap: 0.4rem;
     padding: 0.35rem 0.8rem;
-    background: rgba(160,160,255,0.07);
-    border: 1px solid rgba(160,160,255,0.2);
+    background: rgba(255, 178, 239,0.07);
+    border: 1px solid rgba(255, 178, 239,0.2);
     border-radius: 4px;
     line-height: 1;
 }
@@ -587,8 +587,8 @@ function formatDate(iso) {
     align-items: center;
     gap: 0.35rem;
     padding: 0.4rem 0.9rem;
-    background: rgba(160,160,255,0.08);
-    border: 1px solid rgba(160,160,255,0.2);
+    background: rgba(255, 178, 239,0.08);
+    border: 1px solid rgba(255, 178, 239,0.2);
     border-radius: 4px;
     font-size: 0.9rem;
 }
@@ -704,8 +704,8 @@ function formatDate(iso) {
     overflow: hidden;
 }
 .pr-card__dispute-badge--pending {
-    background: rgba(160,160,255,0.07);
-    border: 1px solid rgba(160,160,255,0.25);
+    background: rgba(255, 178, 239,0.07);
+    border: 1px solid rgba(255, 178, 239,0.25);
     border-top: none;
     color: rgba(180,180,255,0.85);
 }
@@ -716,7 +716,7 @@ function formatDate(iso) {
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent 0%, rgba(160,160,255,0.6) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 178, 239,0.6) 50%, transparent 100%);
 }
 .pr-card__dispute-rejected {
     margin-top: -1px;
@@ -913,8 +913,8 @@ function formatDate(iso) {
     gap: 0.45rem;
     width: 100%;
     padding: 0.65rem 1rem;
-    background: rgba(160, 160, 255, 0.06);
-    border: 1px solid rgba(160, 160, 255, 0.18);
+    background: rgba(255, 178, 239, 0.06);
+    border: 1px solid rgba(255, 178, 239, 0.18);
     border-radius: 6px;
     color: rgba(200, 200, 255, 0.75);
     font-size: 0.88rem;
@@ -924,8 +924,8 @@ function formatDate(iso) {
     transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 .pr-load-more:hover:not(:disabled) {
-    background: rgba(160, 160, 255, 0.12);
-    border-color: rgba(160, 160, 255, 0.35);
+    background: rgba(255, 178, 239, 0.12);
+    border-color: rgba(255, 178, 239, 0.35);
     color: rgba(200, 200, 255, 0.95);
 }
 .pr-load-more:disabled {

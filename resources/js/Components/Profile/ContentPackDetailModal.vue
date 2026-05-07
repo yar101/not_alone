@@ -267,7 +267,7 @@ function handleAddToCart() {
 .cdm-price {
     font-size: 1.25rem;
     font-weight: 700;
-    color: rgba(160,160,255,0.9);
+    color: rgba(255, 178, 239,0.9);
 }
 .cdm-count {
     font-size: 0.8rem;

@@ -477,7 +477,7 @@ function isActive(routeName) {
     padding: 0 0.3rem;
     background: rgba(155, 110, 232, 0.25);
     border: 1px solid rgba(155, 110, 232, 0.4);
-    color: #be91ff;
+    color: #ffb2ef;
     font-size: 0.68rem;
     font-weight: 700;
     border-radius: 99px;

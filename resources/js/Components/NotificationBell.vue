@@ -646,8 +646,8 @@ defineExpose({ toggleDropdown });
 }
 
 .bell-btn--active {
-    background: rgba(160, 160, 255, 0.1);
-    border-color: rgba(160, 160, 255, 0.3);
+    background: rgba(255, 178, 239, 0.1);
+    border-color: rgba(255, 178, 239, 0.3);
     color: var(--color-base-1);
 }
 @media (max-width: 768px) {
@@ -660,8 +660,8 @@ defineExpose({ toggleDropdown });
         color: rgba(255, 255, 255, 0.55);
     }
     .bell-btn--active {
-        background: rgba(160, 160, 255, 0.12);
-        border-color: rgba(160, 160, 255, 0.28);
+        background: rgba(255, 178, 239, 0.12);
+        border-color: rgba(255, 178, 239, 0.28);
         color: var(--color-base-1);
     }
 }
@@ -692,7 +692,7 @@ defineExpose({ toggleDropdown });
     right: 0;
     width: min(500px, calc(100vw - 1rem));
     background: #0f0f1d;
-    border: 1px solid rgba(160, 160, 255, 0.18);
+    border: 1px solid rgba(255, 178, 239, 0.18);
     border-radius: 6px;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
     overflow: hidden;
@@ -707,7 +707,7 @@ defineExpose({ toggleDropdown });
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent 0%, rgba(160, 160, 255, 0.3) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 178, 239, 0.3) 50%, transparent 100%);
     pointer-events: none;
 }
 
@@ -717,13 +717,13 @@ defineExpose({ toggleDropdown });
     align-items: center;
     justify-content: space-between;
     padding: 1rem 1.25rem 0.75rem;
-    border-bottom: 1px solid rgba(160, 160, 255, 0.15);
+    border-bottom: 1px solid rgba(255, 178, 239, 0.15);
 }
 
 .notif-panel-title {
     font-size: 0.8rem;
     font-weight: 600;
-    color: rgba(160, 160, 255, 0.75);
+    color: rgba(255, 178, 239, 0.75);
     text-transform: uppercase;
     letter-spacing: 0.06em;
 }
@@ -769,15 +769,15 @@ defineExpose({ toggleDropdown });
 }
 
 .notif-filter-btn--active {
-    background: rgba(160, 160, 255, 0.22);
-    border-color: rgba(160, 160, 255, 0.55);
+    background: rgba(255, 178, 239, 0.22);
+    border-color: rgba(255, 178, 239, 0.55);
     color: var(--color-base-1);
     font-weight: 600;
-    box-shadow: inset 0 1px 0 rgba(160, 160, 255, 0.25);
+    box-shadow: inset 0 1px 0 rgba(255, 178, 239, 0.25);
 }
 
 .notif-filter-btn--active::after {
-    background: linear-gradient(90deg, transparent 0%, rgba(160, 160, 255, 0.8) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 178, 239, 0.8) 50%, transparent 100%);
 }
 
 .notif-filter-dot {
@@ -793,7 +793,7 @@ defineExpose({ toggleDropdown });
     max-height: 560px;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(160, 160, 255, 0.3) transparent;
+    scrollbar-color: rgba(255, 178, 239, 0.3) transparent;
 }
 
 .notif-list:deep(::-webkit-scrollbar) {
@@ -805,12 +805,12 @@ defineExpose({ toggleDropdown });
 }
 
 .notif-list:deep(::-webkit-scrollbar-thumb) {
-    background: rgba(160, 160, 255, 0.3);
+    background: rgba(255, 178, 239, 0.3);
     border-radius: 99px;
 }
 
 .notif-list:deep(::-webkit-scrollbar-thumb:hover) {
-    background: rgba(160, 160, 255, 0.6);
+    background: rgba(255, 178, 239, 0.6);
 }
 
 .notif-item {
@@ -830,11 +830,11 @@ defineExpose({ toggleDropdown });
 }
 
 .notif-item--unread {
-    background: rgba(160, 160, 255, 0.04);
+    background: rgba(255, 178, 239, 0.04);
 }
 
 .notif-item--unread:hover {
-    background: rgba(160, 160, 255, 0.07);
+    background: rgba(255, 178, 239, 0.07);
 }
 
 .notif-item--clickable {
@@ -885,7 +885,7 @@ defineExpose({ toggleDropdown });
 }
 
 .icon--broadcast {
-    background: rgba(160, 160, 255, 0.12);
+    background: rgba(255, 178, 239, 0.12);
     color: var(--color-base-1);
 }
 
@@ -895,7 +895,7 @@ defineExpose({ toggleDropdown });
 }
 
 .icon--personal {
-    background: rgba(160, 160, 255, 0.12);
+    background: rgba(255, 178, 239, 0.12);
     color: var(--color-base-1);
 }
 
@@ -992,8 +992,8 @@ defineExpose({ toggleDropdown });
 }
 
 .cat--service {
-    background: rgba(160, 160, 255, 0.12);
-    color: rgba(160, 160, 255, 0.7);
+    background: rgba(255, 178, 239, 0.12);
+    color: rgba(255, 178, 239, 0.7);
 }
 
 .cat--order {
@@ -1027,8 +1027,8 @@ defineExpose({ toggleDropdown });
     align-items: center;
     gap: 0.6rem;
     padding: 0.65rem 1.25rem;
-    background: rgba(160, 160, 255, 0.06);
-    border-bottom: 1px solid rgba(160, 160, 255, 0.12);
+    background: rgba(255, 178, 239, 0.06);
+    border-bottom: 1px solid rgba(255, 178, 239, 0.12);
     font-size: 0.84rem;
     color: rgba(255, 255, 255, 0.55);
 }
@@ -1042,9 +1042,9 @@ defineExpose({ toggleDropdown });
     flex-shrink: 0;
     padding: 0.25rem 0.7rem;
     border-radius: 5px;
-    background: rgba(160, 160, 255, 0.18);
-    border: 1px solid rgba(160, 160, 255, 0.3);
-    color: rgba(160, 160, 255, 0.95);
+    background: rgba(255, 178, 239, 0.18);
+    border: 1px solid rgba(255, 178, 239, 0.3);
+    color: rgba(255, 178, 239, 0.95);
     font-size: 0.82rem;
     font-family: inherit;
     cursor: pointer;
@@ -1052,7 +1052,7 @@ defineExpose({ toggleDropdown });
 }
 
 .push-banner__btn:hover {
-    background: rgba(160, 160, 255, 0.28);
+    background: rgba(255, 178, 239, 0.28);
 }
 
 /* ── Skeleton loader ── */
@@ -1197,7 +1197,7 @@ defineExpose({ toggleDropdown });
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background: rgba(160, 160, 255, 0.6);
+    background: rgba(255, 178, 239, 0.6);
     animation: notif-bounce 1s ease-in-out infinite;
 }
 
@@ -1283,6 +1283,6 @@ defineExpose({ toggleDropdown });
     min-height: 0;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(160, 160, 255, 0.3) transparent;
+    scrollbar-color: rgba(255, 178, 239, 0.3) transparent;
 }
 </style>

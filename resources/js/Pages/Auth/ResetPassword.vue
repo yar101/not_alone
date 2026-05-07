@@ -86,17 +86,17 @@ const submit = () => form.post(route('password.store'), {
 <style scoped>
 .auth-page { min-height: 100vh; background: #0a0a0f; display: flex; align-items: center; justify-content: center; padding: 2rem 1.5rem; font-family: 'Rubik', sans-serif; box-sizing: border-box; }
 .auth-card { width: 100%; max-width: 400px; border: 1px solid rgba(255,255,255,0.1); border-radius: 3px; background: rgba(255,255,255,0.025); padding: 2.5rem 2rem; display: flex; flex-direction: column; align-items: center; gap: 1.25rem; text-align: center; }
-.auth-icon { width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(160,160,255,0.3); border-radius: 3px; background: rgba(160,160,255,0.06); color: #a0a0ff; flex-shrink: 0; }
+.auth-icon { width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255, 178, 239,0.3); border-radius: 3px; background: rgba(255, 178, 239,0.06); color: #ffb2ef; flex-shrink: 0; }
 .auth-icon svg { width: 1.4rem; height: 1.4rem; }
 .auth-title { margin: 0; font-size: 1.35rem; font-weight: 600; color: rgba(255,255,255,0.92); letter-spacing: -0.01em; }
 .auth-form { display: flex; flex-direction: column; gap: 0.9rem; width: 100%; }
 .field { display: flex; flex-direction: column; gap: 0.3rem; text-align: left; }
 .field-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: rgba(255,255,255,0.35); }
 .input { padding: 0.5rem 0.75rem; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 3px; color: rgba(255,255,255,0.85); font-family: inherit; font-size: 0.9rem; outline: none; transition: border-color 0.15s; width: 100%; box-sizing: border-box; }
-.input:focus { border-color: rgba(160,160,255,0.45); }
+.input:focus { border-color: rgba(255, 178, 239,0.45); }
 .input--err { border-color: rgba(239,68,68,0.5); }
 .err { font-size: 0.75rem; color: rgba(239,68,68,0.8); margin: 0; }
-.btn-primary { width: 100%; padding: 0.65rem 1rem; border: 1px solid rgba(160,160,255,0.5); border-radius: 3px; background: rgba(160,160,255,0.1); color: #a0a0ff; font-size: 0.9rem; font-family: inherit; font-weight: 500; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
-.btn-primary:hover:not(:disabled) { background: rgba(160,160,255,0.18); border-color: rgba(160,160,255,0.75); }
+.btn-primary { width: 100%; padding: 0.65rem 1rem; border: 1px solid rgba(255, 178, 239,0.5); border-radius: 3px; background: rgba(255, 178, 239,0.1); color: #ffb2ef; font-size: 0.9rem; font-family: inherit; font-weight: 500; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+.btn-primary:hover:not(:disabled) { background: rgba(255, 178, 239,0.18); border-color: rgba(255, 178, 239,0.75); }
 .btn-primary:disabled { opacity: 0.45; cursor: default; }
 </style>

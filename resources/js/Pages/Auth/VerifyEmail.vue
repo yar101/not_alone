@@ -99,10 +99,10 @@ const verificationLinkSent = computed(
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(160, 160, 255, 0.3);
+    border: 1px solid rgba(255, 178, 239, 0.3);
     border-radius: 3px;
-    background: rgba(160, 160, 255, 0.06);
-    color: #a0a0ff;
+    background: rgba(255, 178, 239, 0.06);
+    color: #ffb2ef;
     flex-shrink: 0;
 }
 .verify-icon svg {
@@ -148,10 +148,10 @@ const verificationLinkSent = computed(
 .verify-btn-primary {
     width: 100%;
     padding: 0.65rem 1rem;
-    border: 1px solid rgba(160, 160, 255, 0.5);
+    border: 1px solid rgba(255, 178, 239, 0.5);
     border-radius: 3px;
-    background: rgba(160, 160, 255, 0.1);
-    color: #a0a0ff;
+    background: rgba(255, 178, 239, 0.1);
+    color: #ffb2ef;
     font-size: 0.9rem;
     font-family: inherit;
     font-weight: 500;
@@ -159,8 +159,8 @@ const verificationLinkSent = computed(
     transition: background 0.15s, border-color 0.15s;
 }
 .verify-btn-primary:hover:not(:disabled) {
-    background: rgba(160, 160, 255, 0.18);
-    border-color: rgba(160, 160, 255, 0.75);
+    background: rgba(255, 178, 239, 0.18);
+    border-color: rgba(255, 178, 239, 0.75);
 }
 .verify-btn-primary:disabled {
     opacity: 0.45;

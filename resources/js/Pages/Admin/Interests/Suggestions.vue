@@ -157,7 +157,7 @@ function statusLabel(status) {
 
 <style scoped>
 .page-title { font-size: 1.4rem; color: #fff; margin: 0 0 1.25rem; display: flex; align-items: center; gap: 0.6rem; }
-.title-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 0.35rem; background: rgba(155,110,232,0.25); border: 1px solid rgba(155,110,232,0.4); color: #be91ff; font-size: 0.75rem; font-weight: 700; border-radius: 99px; }
+.title-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 0.35rem; background: rgba(155,110,232,0.25); border: 1px solid rgba(155,110,232,0.4); color: #ffb2ef; font-size: 0.75rem; font-weight: 700; border-radius: 99px; }
 
 .tabs-nav { display: flex; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 1.25rem; }
 .tab-btn { padding: 0.6rem 1.25rem; background: none; border: none; border-bottom: 2px solid transparent; color: rgba(255,255,255,0.4); font-size: 0.88rem; cursor: pointer; font-family: inherit; transition: color 0.15s; margin-bottom: -1px; }

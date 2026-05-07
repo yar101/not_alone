@@ -432,8 +432,8 @@ const previewBase = computed(() =>
     transition: transform 0.2s, background 0.2s;
 }
 .toggle input:checked + .toggle__track {
-    background: rgba(110,110,210,0.7);
-    border-color: rgba(110,110,210,0.5);
+    background: rgba(255, 178, 239,0.7);
+    border-color: rgba(255, 178, 239,0.5);
 }
 .toggle input:checked + .toggle__track::after {
     transform: translateX(20px);

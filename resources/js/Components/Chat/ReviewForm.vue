@@ -300,19 +300,19 @@ async function submit() {
     gap: 0.4rem;
 }
 .rv-epithet {
-    background: rgba(160,160,255,0.05);
-    border: 1px solid rgba(160,160,255,0.2);
+    background: rgba(255, 178, 239,0.05);
+    border: 1px solid rgba(255, 178, 239,0.2);
     border-radius: 4px;
     padding: 0.35rem 0.85rem;
     font-size: 0.92rem;
-    color: rgba(160,160,255,0.6);
+    color: rgba(255, 178, 239,0.6);
     cursor: pointer;
     transition: background 0.12s, border-color 0.12s, color 0.12s;
     font-family: inherit;
 }
-.rv-epithet:hover { background: rgba(160,160,255,0.1); color: rgba(180,180,255,0.9); }
+.rv-epithet:hover { background: rgba(255, 178, 239,0.1); color: rgba(180,180,255,0.9); }
 .rv-epithet--active {
-    background: rgba(160,160,255,0.15);
+    background: rgba(255, 178, 239,0.15);
     border-color: var(--color-base-1);
     color: var(--color-base-1);
 }

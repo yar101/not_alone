@@ -18,7 +18,7 @@ const LABELS = computed(() => ({
 }));
 
 const STYLES = {
-    pending_review: { color: 'var(--color-base-1)', bg: 'rgba(160,160,255,0.14)', border: 'rgba(160,160,255,0.28)', shine: 'rgba(200,200,255,0.65)' },
+    pending_review: { color: 'var(--color-base-1)', bg: 'rgba(255, 178, 239,0.14)', border: 'rgba(255, 178, 239,0.28)', shine: 'rgba(200,200,255,0.65)' },
     approved:       { color: '#70e0a8', bg: 'rgba(80,210,140,0.14)',  border: 'rgba(80,210,140,0.28)',  shine: 'rgba(120,240,175,0.60)' },
     published:      { color: 'rgba(200,200,210,0.7)', bg: 'rgba(200,200,210,0.07)', border: 'rgba(200,200,210,0.15)', shine: 'rgba(220,220,230,0.45)' },
     has_remarks:    { color: '#ff8f8f', bg: 'rgba(255,100,100,0.14)', border: 'rgba(255,100,100,0.28)', shine: 'rgba(255,150,150,0.62)' },

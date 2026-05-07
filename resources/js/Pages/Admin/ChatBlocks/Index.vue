@@ -167,13 +167,13 @@ function goToBan(userId) {
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: rgba(110, 110, 210, 0.15);
-    border: 1.5px solid rgba(110, 110, 210, 0.25);
+    background: rgba(255, 178, 239, 0.15);
+    border: 1.5px solid rgba(255, 178, 239, 0.25);
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    color: #7070d8;
+    color: #ffb2ef;
     font-weight: 700;
     font-size: 0.95rem;
     flex-shrink: 0;
@@ -192,7 +192,7 @@ function goToBan(userId) {
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.top-name:hover { color: #be91ff; }
+.top-name:hover { color: #ffb2ef; }
 .top-count {
     font-size: 0.78rem;
     color: rgba(255, 140, 80, 0.8);
@@ -252,13 +252,13 @@ function goToBan(userId) {
     width: 30px;
     height: 30px;
     border-radius: 50%;
-    background: rgba(110, 110, 210, 0.15);
-    border: 1px solid rgba(110, 110, 210, 0.2);
+    background: rgba(255, 178, 239, 0.15);
+    border: 1px solid rgba(255, 178, 239, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    color: #7070d8;
+    color: #ffb2ef;
     font-weight: 700;
     font-size: 0.8rem;
     flex-shrink: 0;
@@ -270,7 +270,7 @@ function goToBan(userId) {
     font-size: 0.88rem;
     white-space: nowrap;
 }
-.cell-name:hover { color: #be91ff; }
+.cell-name:hover { color: #ffb2ef; }
 
 .reason-cell { color: rgba(255, 200, 120, 0.85); }
 .until-cell  { color: rgba(255, 255, 255, 0.45); white-space: nowrap; }
@@ -299,7 +299,7 @@ function goToBan(userId) {
 .page-link--active {
     border-color: rgba(155, 110, 232, 0.6);
     background: rgba(155, 110, 232, 0.15);
-    color: #be91ff;
+    color: #ffb2ef;
 }
 .page-link--disabled {
     opacity: 0.3;

@@ -172,7 +172,7 @@ function formatDate(iso) {
     transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 .cp-tab:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.8); }
-.cp-tab--active { background: rgba(160,160,255,0.15); border-color: rgba(160,160,255,0.4); color: rgba(200,200,255,0.9); }
+.cp-tab--active { background: rgba(255, 178, 239,0.15); border-color: rgba(255, 178, 239,0.4); color: rgba(200,200,255,0.9); }
 .cp-tab__badge { background: rgba(255,100,100,0.25); color: #ff9a9a; border-radius: 10px; padding: 1px 7px; font-size: 0.78rem; }
 
 .cp-toolbar { margin-bottom: 1rem; }
@@ -222,12 +222,12 @@ function formatDate(iso) {
 
 .cp-idol-info { display: flex; align-items: center; gap: 0.5rem; }
 .cp-idol-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-.cp-idol-avatar--empty { background: rgba(160,160,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 0.85rem; color: rgba(160,160,255,0.7); }
+.cp-idol-avatar--empty { background: rgba(255, 178, 239,0.15); display: flex; align-items: center; justify-content: center; font-size: 0.85rem; color: rgba(255, 178, 239,0.7); }
 
 .cp-td-title { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .cp-status { padding: 2px 8px; border-radius: 10px; font-size: 0.78rem; font-weight: 500; }
-.cp-status--pending_review { background: rgba(160,160,255,0.15); color: #a0a0ff; }
+.cp-status--pending_review { background: rgba(255, 178, 239,0.15); color: #ffb2ef; }
 .cp-status--approved       { background: rgba(100,210,160,0.15); color: #64d2a0; }
 .cp-status--published      { background: rgba(100,210,255,0.15); color: #64d2ff; }
 .cp-status--has_remarks    { background: rgba(255,123,123,0.15); color: #ff7b7b; }
@@ -251,12 +251,12 @@ function formatDate(iso) {
     color: #64d2a0;
 }
 
-.cp-link { color: rgba(160,160,255,0.8); font-size: 0.85rem; text-decoration: none; white-space: nowrap; }
-.cp-link:hover { color: #a0a0ff; }
+.cp-link { color: rgba(255, 178, 239,0.8); font-size: 0.85rem; text-decoration: none; white-space: nowrap; }
+.cp-link:hover { color: #ffb2ef; }
 
 .cp-empty { text-align: center; color: rgba(255,255,255,0.25); padding: 2rem; }
 
 .cp-pagination { display: flex; gap: 0.4rem; margin-top: 1.25rem; }
 .cp-page-btn { padding: 0.35rem 0.7rem; border-radius: 5px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); font-size: 0.85rem; cursor: pointer; text-decoration: none; }
-.cp-page-btn--active { background: rgba(160,160,255,0.2); border-color: rgba(160,160,255,0.4); color: #a0a0ff; }
+.cp-page-btn--active { background: rgba(255, 178, 239,0.2); border-color: rgba(255, 178, 239,0.4); color: #ffb2ef; }
 </style>

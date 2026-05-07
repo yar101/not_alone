@@ -1,25 +1,30 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch } from "vue";
 
 const props = defineProps({
-    src:  { default: null },
-    name: { type: String, default: '' },
-    size: { type: String, default: 'md' }, // 'sm' | 'md' | 'lg'
+    src: { default: null },
+    name: { type: String, default: "" },
+    size: { type: String, default: "md" }, // 'sm' | 'md' | 'lg'
 });
 
 const loaded = ref(false);
-const error  = ref(false);
+const error = ref(false);
 
-watch(() => props.src, () => {
-    loaded.value = false;
-    error.value  = false;
-});
+watch(
+    () => props.src,
+    () => {
+        loaded.value = false;
+        error.value = false;
+    },
+);
 </script>
 
 <template>
     <div class="app-avatar" :class="`app-avatar--${size}`">
         <div v-if="src && !loaded && !error" class="app-avatar__shimmer" />
-        <div v-if="!src || error" class="app-avatar__fb">{{ name?.[0]?.toUpperCase() }}</div>
+        <div v-if="!src || error" class="app-avatar__fb">
+            {{ name?.[0]?.toUpperCase() }}
+        </div>
         <img
             v-if="src && !error"
             :src="src"
@@ -38,9 +43,18 @@ watch(() => props.src, () => {
     overflow: hidden;
     flex-shrink: 0;
 }
-.app-avatar--sm { width: 20px; height: 20px; }
-.app-avatar--md { width: 30px; height: 30px; }
-.app-avatar--lg { width: 32px; height: 32px; }
+.app-avatar--sm {
+    width: 20px;
+    height: 20px;
+}
+.app-avatar--md {
+    width: 30px;
+    height: 30px;
+}
+.app-avatar--lg {
+    width: 32px;
+    height: 32px;
+}
 
 .app-avatar__shimmer {
     position: absolute;
@@ -55,8 +69,12 @@ watch(() => props.src, () => {
     animation: avatar-shimmer 1.3s ease-in-out infinite;
 }
 @keyframes avatar-shimmer {
-    0%   { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
 }
 
 .app-avatar__fb {
@@ -65,14 +83,21 @@ watch(() => props.src, () => {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(160, 160, 255, 0.14);
-    color: rgba(160, 160, 255, 0.75);
+    background: rgba(255, 178, 239, 0.14);
+    color: var(--color-base-1);
+    opacity: 0.75;
     font-weight: 700;
     text-transform: uppercase;
 }
-.app-avatar--sm .app-avatar__fb { font-size: 0.55rem; }
-.app-avatar--md .app-avatar__fb { font-size: 0.68rem; }
-.app-avatar--lg .app-avatar__fb { font-size: 0.72rem; }
+.app-avatar--sm .app-avatar__fb {
+    font-size: 0.55rem;
+}
+.app-avatar--md .app-avatar__fb {
+    font-size: 0.68rem;
+}
+.app-avatar--lg .app-avatar__fb {
+    font-size: 0.72rem;
+}
 
 .app-avatar__img {
     position: absolute;
@@ -84,5 +109,7 @@ watch(() => props.src, () => {
     opacity: 0;
     transition: opacity 0.3s ease;
 }
-.app-avatar__img--loaded { opacity: 1; }
+.app-avatar__img--loaded {
+    opacity: 1;
+}
 </style>

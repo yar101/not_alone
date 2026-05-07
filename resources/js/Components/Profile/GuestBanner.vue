@@ -1,14 +1,14 @@
 <script setup>
-import { ref } from 'vue';
-import AuthModal from '@/Components/Site/AuthModal.vue';
-import { useTranslations } from '@/composables/useTranslations';
+import { ref } from "vue";
+import AuthModal from "@/Components/Site/AuthModal.vue";
+import { useTranslations } from "@/composables/useTranslations";
 
 const { __ } = useTranslations();
 
 const showAuth = ref(false);
-const authTab  = ref('login');
+const authTab = ref("login");
 
-function open(tab = 'login') {
+function open(tab = "login") {
     authTab.value = tab;
     showAuth.value = true;
 }
@@ -16,14 +16,28 @@ function open(tab = 'login') {
 
 <template>
     <div class="guest-banner">
-        <p class="guest-banner__text">{{ __('profile.guest.text') }}</p>
+        <p class="guest-banner__text">{{ __("profile.guest.text") }}</p>
         <div class="guest-banner__actions">
-            <button class="guest-banner__btn guest-banner__btn--login" @click="open('login')">{{ __('common.login') }}</button>
-            <button class="guest-banner__btn guest-banner__btn--register" @click="open('register')">{{ __('common.register') }}</button>
+            <button
+                class="guest-banner__btn guest-banner__btn--login"
+                @click="open('login')"
+            >
+                {{ __("common.login") }}
+            </button>
+            <button
+                class="guest-banner__btn guest-banner__btn--register"
+                @click="open('register')"
+            >
+                {{ __("common.register") }}
+            </button>
         </div>
     </div>
 
-    <AuthModal :show="showAuth" :initial-tab="authTab" @close="showAuth = false" />
+    <AuthModal
+        :show="showAuth"
+        :initial-tab="authTab"
+        @close="showAuth = false"
+    />
 </template>
 
 <style scoped>
@@ -55,20 +69,21 @@ function open(tab = 'login') {
 }
 .guest-banner__btn--login {
     background: transparent;
-    border: 1px solid rgba(160, 160, 255, 0.35);
-    color: rgba(160, 160, 255, 0.8);
+    border: 1px solid rgba(255, 178, 239, 0.35);
+    color: var(--color-base-1);
+    opacity: 0.8;
 }
 .guest-banner__btn--login:hover {
-    border-color: rgba(160, 160, 255, 0.7);
-    color: rgba(160, 160, 255, 1);
+    border-color: var(--color-base-1);
+    opacity: 1;
 }
 .guest-banner__btn--register {
-    background: rgba(160, 160, 255, 0.12);
-    border: 1px solid rgba(160, 160, 255, 0.3);
+    background: rgba(255, 178, 239, 0.12);
+    border: 1px solid rgba(255, 178, 239, 0.3);
     color: rgba(255, 255, 255, 0.75);
 }
 .guest-banner__btn--register:hover {
-    background: rgba(160, 160, 255, 0.22);
+    background: rgba(255, 178, 239, 0.22);
     color: #fff;
 }
 </style>

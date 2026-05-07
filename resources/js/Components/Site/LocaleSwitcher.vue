@@ -80,8 +80,8 @@ function init() {
     position: absolute;
     top: 0.3rem; bottom: 0.3rem; left: 0;
     border-radius: 7px;
-    background: rgba(160, 160, 255, 0.15);
-    border: 1px solid rgba(160, 160, 255, 0.22);
+    background: rgba(255, 178, 239, 0.15);
+    border: 1px solid rgba(255, 178, 239, 0.22);
     pointer-events: none;
     z-index: 0;
     width: var(--loc-w, 0px);

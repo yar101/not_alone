@@ -6,7 +6,7 @@ import SiteHeader from '@/Components/Site/SiteHeader.vue';
 // ── Фичи ──────────────────────────────────────────────────────
 const features = [
     {
-        icon: '◈', color: '#be91ff', title: 'Профили',
+        icon: '◈', color: '#ffb2ef', title: 'Профили',
         desc: 'Черты характера, интересы и голосовая визитка',
         detail: 'Заполни профиль с чертами характера, интересами, голосовой визиткой и фото. Другие пользователи поймут, близок ли ты им по духу — ещё до первого сообщения.',
         points: [
@@ -379,7 +379,7 @@ function openFeature(f) {
 /* Hero */
 .ab-hero { display: flex; flex-direction: column; gap: 1rem; }
 .ab-hero-title { font-family: "Brygada 1918", serif; font-size: clamp(2.2rem, 4.2vw, 3.6rem); font-weight: 400; color: rgba(255,255,255,0.92); line-height: 1.15; margin: 0; }
-.ab-hero-title em { font-style: italic; background: linear-gradient(90deg, #be91ff, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.ab-hero-title em { font-style: italic; background: linear-gradient(90deg, #ffb2ef, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .ab-hero-desc { font-size: clamp(1rem, 1.5vw, 1.15rem); line-height: 1.75; color: rgba(255,255,255,0.52); max-width: 580px; margin: 0; }
 
 /* Features grid */
@@ -461,12 +461,12 @@ function openFeature(f) {
     display: flex; align-items: baseline; gap: 0.65rem;
     font-size: clamp(0.88rem, 1.1vw, 0.95rem); color: rgba(255,255,255,0.58);
     padding: 0.45rem 0.7rem;
-    background: linear-gradient(90deg, color-mix(in srgb, var(--accent, #be91ff) 10%, transparent) 0%, transparent 100%);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--accent, #ffb2ef) 10%, transparent) 0%, transparent 100%);
     border-radius: 7px;
     opacity: 0.85;
     transition: opacity 0.15s, background 0.15s;
 }
-.ab-detail-point:hover { opacity: 1; background: linear-gradient(90deg, color-mix(in srgb, var(--accent, #be91ff) 16%, transparent) 0%, transparent 100%); }
+.ab-detail-point:hover { opacity: 1; background: linear-gradient(90deg, color-mix(in srgb, var(--accent, #ffb2ef) 16%, transparent) 0%, transparent 100%); }
 .ab-detail-point__icon { font-size: 0.7rem; flex-shrink: 0; opacity: 0.7; }
 
 /* ── Responsive ────────────────────────────────────────────── */

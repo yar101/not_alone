@@ -362,8 +362,8 @@ function previewForPhoto(id) {
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
-    background: rgba(160, 160, 255, 0.05);
-    border: 1px solid rgba(160, 160, 255, 0.15);
+    background: rgba(255, 178, 239, 0.05);
+    border: 1px solid rgba(255, 178, 239, 0.15);
     border-radius: 8px;
     padding: 0.85rem;
 }
@@ -442,8 +442,8 @@ function previewForPhoto(id) {
     display: flex;
     flex-direction: column;
     gap: 0.45rem;
-    background: rgba(160, 160, 255, 0.05);
-    border: 1px solid rgba(160, 160, 255, 0.15);
+    background: rgba(255, 178, 239, 0.05);
+    border: 1px solid rgba(255, 178, 239, 0.15);
     border-radius: 8px;
     padding: 0.6rem;
     transition: opacity 0.2s;
@@ -511,12 +511,12 @@ function previewForPhoto(id) {
     border: 1px solid;
 }
 .rm-photo__action--replace {
-    background: rgba(110, 110, 210, 0.08);
-    border-color: rgba(110, 110, 210, 0.22);
-    color: rgba(160, 160, 255, 0.75);
+    background: rgba(255, 178, 239, 0.08);
+    border-color: rgba(255, 178, 239, 0.22);
+    color: rgba(255, 178, 239, 0.75);
 }
 .rm-photo__action--replace:hover {
-    background: rgba(110, 110, 210, 0.16);
+    background: rgba(255, 178, 239, 0.16);
     color: rgba(180, 180, 255, 0.95);
 }
 .rm-photo__action--delete {
@@ -529,12 +529,12 @@ function previewForPhoto(id) {
     color: rgba(255, 120, 100, 0.9);
 }
 .rm-photo__action--restore {
-    background: rgba(110, 110, 210, 0.08);
-    border-color: rgba(110, 110, 210, 0.22);
-    color: rgba(160, 160, 255, 0.75);
+    background: rgba(255, 178, 239, 0.08);
+    border-color: rgba(255, 178, 239, 0.22);
+    color: rgba(255, 178, 239, 0.75);
 }
 .rm-photo__action--restore:hover {
-    background: rgba(110, 110, 210, 0.16);
+    background: rgba(255, 178, 239, 0.16);
     color: rgba(180, 180, 255, 0.95);
 }
 
@@ -591,13 +591,13 @@ function previewForPhoto(id) {
 }
 .rm-btn--submit {
     flex: 1;
-    background: rgba(110, 110, 210, 0.15);
-    border-color: rgba(110, 110, 210, 0.38);
+    background: rgba(255, 178, 239, 0.15);
+    border-color: rgba(255, 178, 239, 0.38);
     color: rgba(170, 170, 255, 0.95);
     box-shadow: inset 0 1px 0 rgba(180, 180, 255, 0.18);
 }
 .rm-btn--submit:hover:not(:disabled) {
-    background: rgba(110, 110, 210, 0.26);
+    background: rgba(255, 178, 239, 0.26);
     color: rgba(200, 200, 255, 1);
 }
 

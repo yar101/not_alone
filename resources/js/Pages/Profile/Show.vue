@@ -78,7 +78,7 @@ const initialTab = TAB_ORDER.includes(hashTab) ? hashTab
     : 'about';
 const tab = ref(initialTab);
 
-const serviceNav = reactive({ inCategory: false, accent: '#a0a0ff', onBack: null });
+const serviceNav = reactive({ inCategory: false, accent: '#ffb2ef', onBack: null });
 provide('serviceNav', serviceNav);
 
 
@@ -565,7 +565,7 @@ onMounted(async () => {
 .driver-popover-prev-btn:hover,
 .driver-popover-next-btn:hover,
 .driver-popover-done-btn:hover {
-    border-color: #a0a0ff !important;
+    border-color: #ffb2ef !important;
     color: #fff !important;
 }
 .driver-popover-progress-text {
@@ -831,10 +831,10 @@ onMounted(async () => {
         width: 100%;
         padding: 0.5rem 0.75rem;
         margin-bottom: 0.5rem;
-        background: color-mix(in srgb, var(--cat-accent, #a0a0ff) 8%, transparent);
-        border: 1px solid color-mix(in srgb, var(--cat-accent, #a0a0ff) 25%, transparent);
+        background: color-mix(in srgb, var(--cat-accent, #ffb2ef) 8%, transparent);
+        border: 1px solid color-mix(in srgb, var(--cat-accent, #ffb2ef) 25%, transparent);
         border-radius: 6px;
-        color: color-mix(in srgb, var(--cat-accent, #a0a0ff) 80%, white);
+        color: color-mix(in srgb, var(--cat-accent, #ffb2ef) 80%, white);
         font-size: 0.85rem;
         font-weight: 600;
         font-family: inherit;

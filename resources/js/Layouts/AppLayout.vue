@@ -315,9 +315,9 @@ onUnmounted(() => {
     background: rgba(10, 10, 20, 0.96);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(110, 110, 210, 0.18);
+    border-bottom: 1px solid rgba(255, 178, 239, 0.18);
     box-shadow:
-        0 1px 0 rgba(110, 110, 210, 0.06),
+        0 1px 0 rgba(255, 178, 239, 0.06),
         0 4px 24px rgba(0, 0, 0, 0.4);
     flex-shrink: 0;
 }
@@ -351,8 +351,8 @@ onUnmounted(() => {
 }
 @media (hover: hover) {
     .user-chip:hover {
-        background: rgba(110, 110, 210, 0.08);
-        border-color: rgba(110, 110, 210, 0.22);
+        background: rgba(255, 178, 239, 0.08);
+        border-color: rgba(255, 178, 239, 0.22);
     }
 }
 
@@ -366,7 +366,6 @@ onUnmounted(() => {
     flex-shrink: 0;
     background: color-mix(in srgb, var(--color-base-1), transparent 85%);
     border: 1.5px solid color-mix(in srgb, var(--color-base-1), transparent 50%);
-    box-shadow: 0 0 10px color-mix(in srgb, var(--color-base-1), transparent 75%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -536,10 +535,10 @@ onUnmounted(() => {
 }
 .header-nav__item:hover {
     color: rgba(255, 255, 255, 0.85);
-    background: rgba(110, 110, 210, 0.08);
+    background: rgba(255, 178, 239, 0.08);
 }
 .header-nav__item--active {
-    color: #be91ff;
+    color: #ffb2ef;
 }
 
 /* ── Mobile search button (hidden on desktop) ────────────── */
@@ -562,8 +561,8 @@ onUnmounted(() => {
     color: rgba(255, 255, 255, 0.8);
 }
 .mobile-search-btn--active {
-    background: rgba(160, 160, 255, 0.1);
-    border-color: rgba(160, 160, 255, 0.3);
+    background: rgba(255, 178, 239, 0.1);
+    border-color: rgba(255, 178, 239, 0.3);
     color: var(--color-base-1);
 }
 
@@ -592,7 +591,7 @@ onUnmounted(() => {
         background: linear-gradient(
             90deg,
             transparent 0%,
-            rgba(110, 110, 210, 0.55) 25%,
+            rgba(255, 178, 239, 0.55) 25%,
             rgba(100, 210, 255, 0.35) 65%,
             transparent 100%
         );
@@ -609,8 +608,8 @@ onUnmounted(() => {
         color: rgba(255, 255, 255, 0.55);
     }
     .mobile-search-btn--active {
-        background: rgba(160, 160, 255, 0.12);
-        border-color: rgba(160, 160, 255, 0.28);
+        background: rgba(255, 178, 239, 0.12);
+        border-color: rgba(255, 178, 239, 0.28);
         color: var(--color-base-1);
     }
 }
@@ -625,7 +624,6 @@ onUnmounted(() => {
         width: 40px;
         height: 40px;
         border-width: 2px;
-        box-shadow: 0 0 14px rgba(110, 110, 210, 0.35);
     }
     .guest-btn--fill { display: none; }
     .guest-btn--outline { font-size: 0.75rem; padding: 0.28rem 0.7rem; }

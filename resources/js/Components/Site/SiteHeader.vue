@@ -66,8 +66,8 @@ a.site-header__logo { cursor: pointer; }
 .site-header__name {
     font-family: "Imbue", serif;
     font-size: 1.9rem;
-    color: #7070d8;
-    text-shadow: 0 0 30px rgba(110,110,210,0.25);
+    color: #ffb2ef;
+    text-shadow: 0 0 30px rgba(255, 178, 239,0.25);
     line-height: 0.9;
     letter-spacing: -0.02em;
 }

@@ -112,12 +112,12 @@ function formatDate(iso) {
 .cr-idol-info { display: flex; align-items: center; gap: 0.5rem; }
 .cr-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .cr-avatar--empty {
-    background: rgba(160,160,255,0.15);
+    background: rgba(255, 178, 239,0.15);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.85rem;
-    color: rgba(160,160,255,0.7);
+    color: rgba(255, 178, 239,0.7);
 }
 
 .cr-td-title { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -134,7 +134,7 @@ function formatDate(iso) {
 }
 
 .cr-link {
-    color: rgba(160,160,255,0.8);
+    color: rgba(255, 178, 239,0.8);
     text-decoration: none;
     font-size: 0.85rem;
     white-space: nowrap;
@@ -155,5 +155,5 @@ function formatDate(iso) {
     transition: background 0.15s;
 }
 .cr-page-btn:hover { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.8); }
-.cr-page-btn--active { background: rgba(160,160,255,0.15); border-color: rgba(160,160,255,0.4); color: rgba(200,200,255,0.9); }
+.cr-page-btn--active { background: rgba(255, 178, 239,0.15); border-color: rgba(255, 178, 239,0.4); color: rgba(200,200,255,0.9); }
 </style>

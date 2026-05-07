@@ -192,7 +192,7 @@ function formatPrice(val) {
 .crs-back {
     display: inline-block;
     margin-bottom: 1.25rem;
-    color: rgba(160,160,255,0.7);
+    color: rgba(255, 178, 239,0.7);
     text-decoration: none;
     font-size: 0.88rem;
 }
@@ -228,9 +228,9 @@ function formatPrice(val) {
     border-radius: 50%; object-fit: cover; flex-shrink: 0;
 }
 .crs-idol__avatar--empty {
-    background: rgba(160,160,255,0.15);
+    background: rgba(255, 178, 239,0.15);
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.85rem; color: rgba(160,160,255,0.7);
+    font-size: 0.85rem; color: rgba(255, 178, 239,0.7);
 }
 .crs-idol__name { font-size: 0.9rem; color: rgba(255,255,255,0.85); }
 

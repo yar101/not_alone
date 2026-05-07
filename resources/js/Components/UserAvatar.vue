@@ -22,7 +22,7 @@ const initials = (props.user?.name ?? '?').charAt(0).toUpperCase();
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
-    background: rgba(110, 110, 210, 0.15);
+    background: rgba(255, 178, 239, 0.15);
     border: 2px solid rgba(120, 100, 230, 0.45);
     display: flex;
     align-items: center;

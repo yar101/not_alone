@@ -471,7 +471,7 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     width: 100%;
     max-width: 560px;
     background: #0a0a0f;
-    border: 1px solid rgba(160, 160, 255, 0.18);
+    border: 1px solid rgba(255, 178, 239, 0.18);
     border-radius: 4px;
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 16px 48px rgba(0, 0, 0, 0.6);
 }
@@ -491,7 +491,7 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: #a0a0ff;
+    color: #ffb2ef;
 }
 
 .step-icon {
@@ -558,7 +558,7 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 /* ── Buttons ──────────────────────────────────────────── */
 .btn-primary {
     padding: 0.7rem 2rem;
-    background: #a0a0ff;
+    background: #ffb2ef;
     border: none;
     border-radius: 3px;
     color: #fff;
@@ -585,9 +585,9 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 .btn-secondary {
     padding: 0.6rem 1.4rem;
     background: transparent;
-    border: 1px solid rgba(160, 160, 255, 0.4);
+    border: 1px solid rgba(255, 178, 239, 0.4);
     border-radius: 3px;
-    color: #a0a0ff;
+    color: #ffb2ef;
     font-size: 0.85rem;
     font-family: inherit;
     cursor: pointer;
@@ -595,8 +595,8 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 }
 
 .btn-secondary:hover {
-    background: rgba(160, 160, 255, 0.07);
-    border-color: rgba(160, 160, 255, 0.65);
+    background: rgba(255, 178, 239, 0.07);
+    border-color: rgba(255, 178, 239, 0.65);
 }
 
 /* ── Quiz wrapper ─────────────────────────────────────── */
@@ -695,11 +695,11 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 }
 
 .quiz-segment--done {
-    background: rgba(160, 160, 255, 0.55);
+    background: rgba(255, 178, 239, 0.55);
 }
 
 .quiz-segment--active {
-    background: #a0a0ff;
+    background: #ffb2ef;
 }
 
 /* ── Warning ──────────────────────────────────────────── */
@@ -761,8 +761,8 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 }
 
 .option-row:hover:not(:disabled) {
-    background: rgba(160, 160, 255, 0.07);
-    border-color: rgba(160, 160, 255, 0.28);
+    background: rgba(255, 178, 239, 0.07);
+    border-color: rgba(255, 178, 239, 0.28);
     color: rgba(255, 255, 255, 0.92);
 }
 
@@ -771,8 +771,8 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 }
 
 .option-row--selected {
-    background: rgba(160, 160, 255, 0.1) !important;
-    border-color: rgba(160, 160, 255, 0.5) !important;
+    background: rgba(255, 178, 239, 0.1) !important;
+    border-color: rgba(255, 178, 239, 0.5) !important;
     color: #fff !important;
 }
 
@@ -810,9 +810,9 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 }
 
 .option-row--selected .option-badge {
-    background: rgba(160, 160, 255, 0.2);
-    border-color: rgba(160, 160, 255, 0.5);
-    color: #a0a0ff;
+    background: rgba(255, 178, 239, 0.2);
+    border-color: rgba(255, 178, 239, 0.5);
+    color: #ffb2ef;
 }
 
 .option-row--correct .option-badge {
@@ -850,7 +850,7 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 .cooldown-timer {
     font-size: 2rem;
     font-weight: 700;
-    color: #a0a0ff;
+    color: #ffb2ef;
     letter-spacing: 0.06em;
     font-variant-numeric: tabular-nums;
 }
@@ -859,7 +859,7 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 .dropzone {
     width: 100%;
     min-height: 150px;
-    border: 1px dashed rgba(160, 160, 255, 0.3);
+    border: 1px dashed rgba(255, 178, 239, 0.3);
     border-radius: 3px;
     display: flex;
     flex-direction: column;
@@ -873,13 +873,13 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 }
 
 .dropzone:hover {
-    border-color: rgba(160, 160, 255, 0.55);
-    background: rgba(160, 160, 255, 0.04);
+    border-color: rgba(255, 178, 239, 0.55);
+    background: rgba(255, 178, 239, 0.04);
 }
 
 .dropzone--has-file {
     border-style: solid;
-    border-color: rgba(160, 160, 255, 0.4);
+    border-color: rgba(255, 178, 239, 0.4);
 }
 
 .dropzone-icon {

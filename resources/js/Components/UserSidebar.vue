@@ -95,17 +95,11 @@ const { locale, __, switchLocale } = useTranslations();
                     </div>
 
                     <!-- Rating block — only for idols -->
-                    <div v-if="isIdol" class="usb-rating">
-                        <div class="usb-rating__top">
-                            <svg class="usb-rating__star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                            </svg>
-                            <span class="usb-rating__value">{{ ratingLabel }}</span>
-                            <span class="usb-rating__max">/ 100</span>
-                        </div>
-                        <div class="usb-rating__bar-track">
-                            <div class="usb-rating__bar-fill" :style="{ width: ratingPct + '%' }" />
-                        </div>
+                    <div v-if="isIdol && ratingValue != null" class="usb-rating">
+                        <svg class="usb-rating__star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                        </svg>
+                        <span class="usb-rating__value">{{ ratingLabel }}</span>
                     </div>
                 </div>
 
@@ -144,7 +138,6 @@ const { locale, __, switchLocale } = useTranslations();
                 <!-- Feature cards -->
                 <div class="usb-features">
                     <div class="usb-feature-card usb-feature-card--violet">
-                        <div class="usb-feature-card__glow" />
                         <div class="usb-feature-card__icon-wrap usb-feature-card__icon-wrap--violet">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                                 <rect x="2" y="7" width="20" height="14" rx="2.5"/>
@@ -156,7 +149,6 @@ const { locale, __, switchLocale } = useTranslations();
                     </div>
 
                     <Link :href="route('orders.index')" class="usb-feature-card usb-feature-card--emerald" @click="closeForNav">
-                        <div class="usb-feature-card__glow" />
                         <div class="usb-feature-card__icon-wrap usb-feature-card__icon-wrap--emerald">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
@@ -210,8 +202,8 @@ const { locale, __, switchLocale } = useTranslations();
     display: flex;
     flex-direction: column;
     background: linear-gradient(175deg, #121228 0%, #0a0a1a 55%, #080814 100%);
-    border-left: 1px solid rgba(110, 110, 210, 0.18);
-    box-shadow: -14px 0 70px rgba(0, 0, 0, 0.65), -2px 0 20px rgba(70, 50, 170, 0.14);
+    border-left: 1px solid rgba(255, 178, 239, 0.18);
+    box-shadow: -14px 0 70px rgba(0, 0, 0, 0.65), -2px 0 20px rgba(255, 178, 239, 0.14);
 }
 
 /* ── Hero header ──────────────────────────────────────────── */
@@ -221,9 +213,9 @@ const { locale, __, switchLocale } = useTranslations();
     flex-direction: column;
     align-items: center;
     padding: 2.2rem 1.5rem 1.5rem;
-    border-bottom: 1px solid rgba(110, 110, 210, 0.1);
+    border-bottom: 1px solid rgba(255, 178, 239, 0.1);
     background:
-        radial-gradient(ellipse 280px 160px at 50% 0%, rgba(100, 80, 210, 0.1) 0%, transparent 100%);
+        radial-gradient(ellipse 280px 160px at 50% 0%, rgba(255, 178, 239, 0.1) 0%, transparent 100%);
 }
 
 .usb-close {
@@ -250,8 +242,8 @@ const { locale, __, switchLocale } = useTranslations();
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
-    background: rgba(110, 110, 210, 0.15);
-    border: 2px solid rgba(120, 100, 230, 0.45);
+    background: rgba(255, 178, 239, 0.15);
+    border: 2px solid rgba(255, 178, 239, 0.45);
     box-shadow: none;
     display: flex;
     align-items: center;
@@ -259,7 +251,7 @@ const { locale, __, switchLocale } = useTranslations();
     margin-bottom: 0.9rem;
 }
 .usb-avatar__img { width: 100%; height: 100%; object-fit: cover; }
-.usb-avatar__initials { font-size: 2rem; font-weight: 600; color: #9090e0; }
+.usb-avatar__initials { font-size: 2rem; font-weight: 600; color: var(--color-base-1); }
 
 /* Name */
 .usb-name {
@@ -295,14 +287,14 @@ const { locale, __, switchLocale } = useTranslations();
     color: rgba(255, 255, 255, 0.55);
 }
 .usb-badge--female {
-    border-color: rgba(160, 160, 255, 0.3);
-    background: rgba(160, 160, 255, 0.06);
-    color: rgba(160, 160, 255, 0.85);
+    border-color: rgba(255, 178, 239, 0.3);
+    background: rgba(255, 178, 239, 0.06);
+    color: rgba(255, 178, 239, 0.85);
 }
 .usb-badge--male {
-    border-color: rgba(167, 139, 250, 0.3);
-    background: rgba(167, 139, 250, 0.06);
-    color: rgba(167, 139, 250, 0.85);
+    border-color: rgba(255, 178, 239, 0.3);
+    background: rgba(255, 178, 239, 0.06);
+    color: rgba(255, 178, 239, 0.85);
 }
 .usb-badge--age {
     color: rgba(255, 255, 255, 0.45);
@@ -311,61 +303,38 @@ const { locale, __, switchLocale } = useTranslations();
     font-size: 0.72rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: rgba(160, 140, 230, 0.5);
-    border-color: rgba(120, 100, 220, 0.12);
-    background: rgba(110, 90, 210, 0.06);
+    color: rgba(255, 178, 239, 0.5);
+    border-color: rgba(255, 178, 239, 0.12);
+    background: rgba(255, 178, 239, 0.06);
 }
 
 /* ── Rating ───────────────────────────────────────────────── */
 .usb-rating {
-    margin-top: 1rem;
-    width: 100%;
-    padding: 0 0.1rem;
-}
-
-.usb-rating__top {
-    display: flex;
+    position: absolute;
+    top: 1.15rem;
+    right: 1.15rem;
+    display: inline-flex;
     align-items: center;
-    gap: 0.45rem;
-    margin-bottom: 0.5rem;
+    gap: 0.35rem;
+    padding: 0.22rem 0.6rem;
+    border-radius: 6px;
+    background: rgba(255, 178, 239, 0.08);
+    border: 1px solid rgba(255, 178, 239, 0.2);
+    z-index: 1;
 }
 
 .usb-rating__star {
-    color: rgba(160, 120, 255, 0.9);
+    color: var(--color-base-1);
     flex-shrink: 0;
-    filter: drop-shadow(0 0 5px rgba(140, 90, 255, 0.5));
+    filter: drop-shadow(0 0 4px rgba(255, 178, 239, 0.3));
 }
 
 .usb-rating__value {
-    font-size: 1.05rem;
+    font-size: 0.88rem;
     font-weight: 700;
-    background: linear-gradient(90deg, #c084fc, #818cf8);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--color-base-1);
     letter-spacing: 0.02em;
     line-height: 1;
-}
-
-.usb-rating__max {
-    font-size: 0.72rem;
-    color: rgba(160, 130, 220, 0.35);
-    letter-spacing: 0.03em;
-    margin-top: 0.1rem;
-}
-
-.usb-rating__bar-track {
-    height: 3px;
-    background: rgba(140, 100, 255, 0.1);
-    border-radius: 999px;
-    overflow: hidden;
-}
-
-.usb-rating__bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #7c3aed 0%, #a78bfa 50%, #c084fc 100%);
-    border-radius: 999px;
-    transition: width 0.5s ease;
 }
 
 /* ── Nav ──────────────────────────────────────────────────── */
@@ -374,7 +343,7 @@ const { locale, __, switchLocale } = useTranslations();
     display: flex;
     flex-direction: column;
     gap: 0.05rem;
-    border-bottom: 1px solid rgba(110, 110, 210, 0.08);
+    border-bottom: 1px solid rgba(255, 178, 239, 0.08);
 }
 
 .usb-item {
@@ -386,7 +355,7 @@ const { locale, __, switchLocale } = useTranslations();
     font-size: 0.9rem;
     color: rgba(255, 255, 255, 0.6);
     text-decoration: none;
-    transition: background 0.15s, color 0.15s;
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s;
     cursor: pointer;
     border: none;
     background: none;
@@ -394,8 +363,9 @@ const { locale, __, switchLocale } = useTranslations();
     text-align: left;
 }
 .usb-item:hover {
-    background: rgba(110, 110, 210, 0.1);
+    background: rgba(255, 178, 239, 0.1);
     color: rgba(255, 255, 255, 0.92);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 .usb-item__icon { flex-shrink: 0; opacity: 0.65; }
 
@@ -429,52 +399,34 @@ const { locale, __, switchLocale } = useTranslations();
     border-radius: 14px 14px 0 0;
     pointer-events: none;
 }
-/* Кошелёк — зелёный */
+/* Кошелёк — спокойный зелёный */
 .usb-feature-card--violet::before {
-    background: linear-gradient(90deg, transparent 0%, rgba(52, 211, 130, 0.5) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(52, 211, 130, 0.25) 50%, transparent 100%);
 }
 .usb-feature-card--violet {
-    background: linear-gradient(145deg, rgba(8, 38, 24, 0.92) 0%, rgba(4, 22, 14, 0.96) 100%);
-    border: 1px solid rgba(52, 200, 120, 0.2);
-    box-shadow: 0 4px 20px rgba(30, 170, 90, 0.1), inset 0 1px 0 rgba(80, 220, 145, 0.06);
-    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(52, 211, 130, 0.15);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    transition: background 0.2s, border-color 0.2s;
 }
 .usb-feature-card--violet:hover {
-    background: linear-gradient(145deg, rgba(11, 50, 32, 0.94) 0%, rgba(6, 30, 18, 0.97) 100%);
-    border-color: rgba(60, 210, 130, 0.32);
-    box-shadow: 0 4px 24px rgba(30, 170, 90, 0.18), inset 0 1px 0 rgba(90, 230, 155, 0.09);
+    background: rgba(52, 211, 130, 0.06);
+    border-color: rgba(52, 211, 130, 0.3);
 }
 
-/* Заказы — полуночно-фиолетовые */
+/* Заказы — спокойный розовый/основной */
 .usb-feature-card--emerald::before {
-    background: linear-gradient(90deg, transparent 0%, rgba(110, 80, 220, 0.45) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 178, 239, 0.25) 50%, transparent 100%);
 }
 .usb-feature-card--emerald {
-    background: linear-gradient(145deg, rgba(20, 12, 54, 0.93) 0%, rgba(12, 6, 36, 0.96) 100%);
-    border: 1px solid rgba(110, 80, 220, 0.22);
-    box-shadow: 0 4px 20px rgba(90, 55, 200, 0.11), inset 0 1px 0 rgba(150, 120, 248, 0.06);
-    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 178, 239, 0.15);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    transition: background 0.2s, border-color 0.2s;
 }
 .usb-feature-card--emerald:hover {
-    background: linear-gradient(145deg, rgba(26, 15, 66, 0.95) 0%, rgba(16, 9, 46, 0.98) 100%);
-    border-color: rgba(122, 92, 232, 0.33);
-    box-shadow: 0 4px 24px rgba(90, 55, 200, 0.18), inset 0 1px 0 rgba(160, 130, 252, 0.09);
-}
-
-/* Glow */
-.usb-feature-card__glow {
-    position: absolute;
-    inset: -20px;
-    border-radius: 50%;
-    opacity: 0.1;
-    pointer-events: none;
-    filter: blur(28px);
-}
-.usb-feature-card--violet .usb-feature-card__glow {
-    background: radial-gradient(circle, rgba(50, 200, 120, 0.9) 0%, transparent 70%);
-}
-.usb-feature-card--emerald .usb-feature-card__glow {
-    background: radial-gradient(circle, rgba(100, 60, 210, 0.9) 0%, transparent 70%);
+    background: rgba(255, 178, 239, 0.06);
+    border-color: rgba(255, 178, 239, 0.3);
 }
 
 /* Icon */
@@ -489,14 +441,14 @@ const { locale, __, switchLocale } = useTranslations();
     z-index: 1;
 }
 .usb-feature-card__icon-wrap--violet {
-    background: rgba(50, 200, 120, 0.1);
-    border: 1px solid rgba(60, 210, 130, 0.22);
-    color: rgba(80, 220, 150, 0.9);
+    background: rgba(52, 211, 130, 0.08);
+    border: 1px solid rgba(52, 211, 130, 0.15);
+    color: rgba(52, 211, 130, 0.7);
 }
 .usb-feature-card__icon-wrap--emerald {
-    background: rgba(100, 65, 220, 0.11);
-    border: 1px solid rgba(115, 80, 230, 0.22);
-    color: rgba(155, 125, 248, 0.9);
+    background: rgba(255, 178, 239, 0.08);
+    border: 1px solid rgba(255, 178, 239, 0.15);
+    color: rgba(255, 178, 239, 0.7);
 }
 
 /* Text */
@@ -506,18 +458,11 @@ const { locale, __, switchLocale } = useTranslations();
     position: relative;
     z-index: 1;
 }
-.usb-feature-card--violet .usb-feature-card__label  { color: rgba(80, 220, 150, 0.92); }
-.usb-feature-card--emerald .usb-feature-card__label { color: rgba(160, 130, 250, 0.92); }
+.usb-feature-card--violet .usb-feature-card__label  { color: rgba(255, 255, 255, 0.65); }
+.usb-feature-card--emerald .usb-feature-card__label { color: rgba(255, 255, 255, 0.65); }
 
-.usb-feature-card__sub {
-    font-size: 0.68rem;
-    letter-spacing: 0.02em;
-    position: relative;
-    z-index: 1;
-    margin-top: -0.3rem;
-}
-.usb-feature-card--violet .usb-feature-card__sub    { color: rgba(50, 185, 120, 0.38); }
-.usb-feature-card--emerald .usb-feature-card__sub   { color: rgba(110, 80, 200, 0.38); }
+.usb-feature-card--violet:hover .usb-feature-card__label,
+.usb-feature-card--emerald:hover .usb-feature-card__label { color: rgba(255, 255, 255, 0.9); }
 
 /* ── Transitions ──────────────────────────────────────────── */
 .sidebar-backdrop-enter-active,
@@ -536,7 +481,7 @@ const { locale, __, switchLocale } = useTranslations();
     align-items: center;
     gap: 0.4rem;
     padding: 1rem 1.5rem;
-    border-top: 1px solid rgba(110, 110, 210, 0.12);
+    border-top: 1px solid rgba(255, 178, 239, 0.12);
     margin-top: auto;
 }
 
@@ -547,7 +492,7 @@ const { locale, __, switchLocale } = useTranslations();
     justify-content: center;
     gap: 0.4rem;
     background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(110, 110, 210, 0.15);
+    border: 1px solid rgba(255, 178, 239, 0.15);
     padding: 0.45rem 0.5rem;
     font-size: 0.72rem;
     font-weight: 600;
@@ -556,25 +501,28 @@ const { locale, __, switchLocale } = useTranslations();
     cursor: pointer;
     font-family: inherit;
     border-radius: 4px;
-    transition: color 0.15s, background 0.15s, border-color 0.15s;
+    transition: color 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .usb-locale__btn:hover {
     color: rgba(255, 255, 255, 0.7);
     background: rgba(255, 255, 255, 0.07);
-    border-color: rgba(110, 110, 210, 0.3);
+    border-color: rgba(255, 178, 239, 0.3);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .usb-locale__btn--active {
     color: var(--color-base-1);
-    background: rgba(160, 160, 255, 0.1);
-    border-color: rgba(160, 160, 255, 0.3);
-    box-shadow: inset 0 1px 0 rgba(160, 160, 255, 0.08);
+    background: rgba(255, 178, 239, 0.1);
+    border-color: rgba(255, 178, 239, 0.3);
+    box-shadow: inset 0 1px 0 rgba(255, 178, 239, 0.08);
 }
 
 .usb-locale__btn--active:hover {
     color: var(--color-base-1);
-    background: rgba(160, 160, 255, 0.14);
+    background: rgba(255, 178, 239, 0.14);
+    box-shadow: inset 0 1px 0 rgba(255, 178, 239, 0.12);
 }
 
 .usb-locale__flag {

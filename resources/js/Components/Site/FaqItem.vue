@@ -43,8 +43,8 @@ defineProps({
 .faq-nav-item:hover:not(.faq-nav-item--active) {
     background: linear-gradient(
         90deg,
-        rgba(110, 110, 210, 0.08) 0%,
-        rgba(110, 110, 210, 0.02) 60%,
+        rgba(255, 178, 239, 0.08) 0%,
+        rgba(255, 178, 239, 0.02) 60%,
         transparent 100%
     );
     color: rgba(255, 255, 255, 0.8);
@@ -53,12 +53,12 @@ defineProps({
 .faq-nav-item--active {
     background: linear-gradient(
         90deg,
-        rgba(110, 110, 210, 0.16) 0%,
-        rgba(110, 110, 210, 0.06) 55%,
+        rgba(255, 178, 239, 0.16) 0%,
+        rgba(255, 178, 239, 0.06) 55%,
         transparent 100%
     );
     color: #fff;
-    box-shadow: inset 3px 0 0 rgba(110, 110, 210, 0.9), inset 5px 0 12px rgba(110, 110, 210, 0.15);
+    box-shadow: inset 3px 0 0 rgba(255, 178, 239, 0.9), inset 5px 0 12px rgba(255, 178, 239, 0.15);
 }
 
 /* Icon circle */
@@ -79,16 +79,16 @@ defineProps({
 }
 
 .faq-nav-item:hover:not(.faq-nav-item--active) .faq-nav-item__icon-wrap {
-    background: rgba(110, 110, 210, 0.1);
-    color: rgba(110, 110, 210, 0.7);
+    background: rgba(255, 178, 239, 0.1);
+    color: rgba(255, 178, 239, 0.7);
 }
 
 .faq-nav-item--active .faq-nav-item__icon-wrap {
-    background: rgba(110, 110, 210, 0.2);
-    color: rgba(110, 110, 210, 1);
+    background: rgba(255, 178, 239, 0.2);
+    color: rgba(255, 178, 239, 1);
     box-shadow:
-        0 0 10px rgba(110, 110, 210, 0.35),
-        inset 0 0 8px rgba(110, 110, 210, 0.1);
+        0 0 10px rgba(255, 178, 239, 0.35),
+        inset 0 0 8px rgba(255, 178, 239, 0.1);
 }
 
 .faq-nav-item__title {

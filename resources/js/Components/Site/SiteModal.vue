@@ -1,6 +1,6 @@
 <script setup>
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
-import { useTranslations } from '@/composables/useTranslations';
+import { nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { useTranslations } from "@/composables/useTranslations";
 
 const { __ } = useTranslations();
 
@@ -15,8 +15,8 @@ const props = defineProps({
     },
     variant: {
         type: String,
-        default: 'pink',
-        validator: (v) => ['pink', 'cyan'].includes(v),
+        default: "pink",
+        validator: (v) => ["pink", "cyan"].includes(v),
     },
     compact: {
         type: Boolean,
@@ -40,7 +40,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(["close"]);
 const showSlot = ref(false);
 const localShow = ref(false);
 
@@ -50,9 +50,9 @@ let smPushed = false;
 const onSmPopstate = (e) => {
     if (!smPushed) return;
     // Any popstate while our state is on top means user went back past it
-    if (e.state?.modal !== 'sm') {
+    if (e.state?.modal !== "sm") {
         smPushed = false;
-        emit('close');
+        emit("close");
     }
 };
 
@@ -60,16 +60,16 @@ watch(
     () => props.show,
     async () => {
         if (props.show) {
-            history.pushState({ modal: 'sm' }, '');
+            history.pushState({ modal: "sm" }, "");
             smPushed = true;
-            document.body.style.overflow = 'hidden';
+            document.body.style.overflow = "hidden";
             showSlot.value = true;
             await nextTick();
             localShow.value = true;
         } else {
             smPushed = false;
             localShow.value = false;
-            document.body.style.overflow = '';
+            document.body.style.overflow = "";
             setTimeout(() => {
                 showSlot.value = false;
             }, 180);
@@ -80,12 +80,12 @@ watch(
 
 const close = () => {
     if (props.closeable) {
-        emit('close');
+        emit("close");
     }
 };
 
 const closeOnEscape = (e) => {
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
         e.preventDefault();
         if (props.show) {
             close();
@@ -94,14 +94,14 @@ const closeOnEscape = (e) => {
 };
 
 onMounted(() => {
-    document.addEventListener('keydown', closeOnEscape);
-    window.addEventListener('popstate', onSmPopstate);
+    document.addEventListener("keydown", closeOnEscape);
+    window.addEventListener("popstate", onSmPopstate);
 });
 
 onUnmounted(() => {
-    document.removeEventListener('keydown', closeOnEscape);
-    window.removeEventListener('popstate', onSmPopstate);
-    document.body.style.overflow = '';
+    document.removeEventListener("keydown", closeOnEscape);
+    window.removeEventListener("popstate", onSmPopstate);
+    document.body.style.overflow = "";
 });
 </script>
 
@@ -137,16 +137,32 @@ onUnmounted(() => {
                     v-if="localShow"
                     class="site-modal-sheet"
                     :class="[
-                        variant === 'pink' ? 'site-modal-pink' : 'site-modal-cyan',
-                        compact ? 'site-modal-sheet--compact' : ''
+                        variant === 'pink'
+                            ? 'site-modal-pink'
+                            : 'site-modal-cyan',
+                        compact ? 'site-modal-sheet--compact' : '',
                     ]"
-                    :style="{ ...(maxWidth ? { width: maxWidth, maxWidth } : {}), ...(minHeight ? { minHeight } : {}) }"
+                    :style="{
+                        ...(maxWidth ? { width: maxWidth, maxWidth } : {}),
+                        ...(minHeight ? { minHeight } : {}),
+                    }"
                 >
                     <!-- Ambient orbs -->
-                    <div class="site-modal-ambient" :class="variant === 'pink' ? 'ambient-pink' : 'ambient-cyan'" />
+                    <div
+                        class="site-modal-ambient"
+                        :class="
+                            variant === 'pink' ? 'ambient-pink' : 'ambient-cyan'
+                        "
+                    />
 
                     <!-- Content -->
-                    <div class="site-modal-body" :class="{ 'site-modal-body--fill': fill, 'site-modal-body--no-padding': noPadding }">
+                    <div
+                        class="site-modal-body"
+                        :class="{
+                            'site-modal-body--fill': fill,
+                            'site-modal-body--no-padding': noPadding,
+                        }"
+                    >
                         <slot />
                     </div>
                 </div>
@@ -183,7 +199,7 @@ onUnmounted(() => {
     height: 80%;
     max-height: 90vh;
     background:
-        linear-gradient(135deg, rgba(110, 110, 210, 0.05) 0%, transparent 45%),
+        linear-gradient(135deg, rgba(255, 178, 239, 0.05) 0%, transparent 45%),
         linear-gradient(160deg, rgb(16, 11, 20) 0%, rgb(7, 6, 11) 100%);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 3px;
@@ -218,13 +234,7 @@ onUnmounted(() => {
 }
 
 .site-modal-pink {
-    border-top-color: rgba(110, 110, 210, 0.3);
-    box-shadow:
-        0 0 0 1px rgba(110, 110, 210, 0.08),
-        0 -30px 80px rgba(110, 110, 210, 0.12),
-        0 40px 100px rgba(0, 0, 0, 0.6),
-        inset 0 1px 0 rgba(110, 110, 210, 0.18),
-        inset 0 0 80px rgba(110, 110, 210, 0.04);
+    border-top-color: rgba(255, 178, 239, 0.3);
 }
 
 .site-modal-cyan {
@@ -238,7 +248,7 @@ onUnmounted(() => {
 }
 
 /* ── Ambient orbs ──────────────────────────────────── */
-.site-modal-ambient {
+/*.site-modal-ambient {
     position: absolute;
     inset: 0;
     pointer-events: none;
@@ -247,7 +257,7 @@ onUnmounted(() => {
 
 .site-modal-ambient::before,
 .site-modal-ambient::after {
-    content: '';
+    content: "";
     position: absolute;
     border-radius: 50%;
     filter: blur(50px);
@@ -258,7 +268,11 @@ onUnmounted(() => {
     left: -60px;
     width: 320px;
     height: 320px;
-    background: radial-gradient(circle, rgba(110, 110, 210, 0.18) 0%, transparent 70%);
+    background: radial-gradient(
+        circle,
+        rgba(255, 178, 239, 0.18) 0%,
+        transparent 70%
+    );
     animation: orb-drift-a 9s ease-in-out infinite alternate;
 }
 
@@ -267,7 +281,11 @@ onUnmounted(() => {
     right: -80px;
     width: 380px;
     height: 380px;
-    background: radial-gradient(circle, rgba(60, 60, 180, 0.12) 0%, transparent 70%);
+    background: radial-gradient(
+        circle,
+        rgba(255, 178, 239, 0.12) 0%,
+        transparent 70%
+    );
     animation: orb-drift-b 13s ease-in-out infinite alternate;
 }
 
@@ -276,7 +294,11 @@ onUnmounted(() => {
     right: -60px;
     width: 300px;
     height: 300px;
-    background: radial-gradient(circle, rgba(42, 255, 220, 0.1) 0%, transparent 70%);
+    background: radial-gradient(
+        circle,
+        rgba(42, 255, 220, 0.1) 0%,
+        transparent 70%
+    );
     animation: orb-drift-a 9s ease-in-out infinite alternate;
 }
 
@@ -285,21 +307,31 @@ onUnmounted(() => {
     left: -80px;
     width: 360px;
     height: 360px;
-    background: radial-gradient(circle, rgba(0, 120, 200, 0.1) 0%, transparent 70%);
+    background: radial-gradient(
+        circle,
+        rgba(0, 120, 200, 0.1) 0%,
+        transparent 70%
+    );
     animation: orb-drift-b 13s ease-in-out infinite alternate;
-}
+}*/
 
 @keyframes orb-drift-a {
-    from { transform: translate(0, 0) scale(1); }
-    to   { transform: translate(25px, 18px) scale(1.12); }
+    from {
+        transform: translate(0, 0) scale(1);
+    }
+    to {
+        transform: translate(25px, 18px) scale(1.12);
+    }
 }
 
 @keyframes orb-drift-b {
-    from { transform: translate(0, 0) scale(1); }
-    to   { transform: translate(-20px, -25px) scale(1.08); }
+    from {
+        transform: translate(0, 0) scale(1);
+    }
+    to {
+        transform: translate(-20px, -25px) scale(1.08);
+    }
 }
-
-
 
 /* ── Body ──────────────────────────────────────────── */
 .site-modal-body {
@@ -335,8 +367,12 @@ onUnmounted(() => {
     }
 }
 
-.site-modal-body::-webkit-scrollbar { width: 3px; }
-.site-modal-body::-webkit-scrollbar-track { background: transparent; }
+.site-modal-body::-webkit-scrollbar {
+    width: 3px;
+}
+.site-modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
 .site-modal-body::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.08);
     border-radius: 3px;
@@ -344,17 +380,27 @@ onUnmounted(() => {
 
 /* ── Transitions ───────────────────────────────────── */
 .backdrop-enter-active,
-.backdrop-leave-active { transition: opacity 0.12s ease; }
+.backdrop-leave-active {
+    transition: opacity 0.12s ease;
+}
 .backdrop-enter-from,
-.backdrop-leave-to { opacity: 0; }
+.backdrop-leave-to {
+    opacity: 0;
+}
 .backdrop-enter-to,
-.backdrop-leave-from { opacity: 1; }
+.backdrop-leave-from {
+    opacity: 1;
+}
 
 .sheet-enter-active {
-    transition: transform 0.14s cubic-bezier(0.2, 0, 0.2, 1), opacity 0.12s ease;
+    transition:
+        transform 0.14s cubic-bezier(0.2, 0, 0.2, 1),
+        opacity 0.12s ease;
 }
 .sheet-leave-active {
-    transition: transform 0.12s cubic-bezier(0.4, 0, 1, 1), opacity 0.12s ease;
+    transition:
+        transform 0.12s cubic-bezier(0.4, 0, 1, 1),
+        opacity 0.12s ease;
 }
 .sheet-enter-from,
 .sheet-leave-to {
@@ -369,8 +415,14 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
     .sheet-enter-from,
-    .sheet-leave-to { transform: translateY(100%); opacity: 1; }
+    .sheet-leave-to {
+        transform: translateY(100%);
+        opacity: 1;
+    }
     .sheet-enter-to,
-    .sheet-leave-from { transform: translateY(0); opacity: 1; }
+    .sheet-leave-from {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 </style>

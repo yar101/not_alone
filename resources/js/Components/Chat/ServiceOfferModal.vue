@@ -304,7 +304,7 @@ watch(() => props.modelValue, (val) => {
 .sof-picker {
     display: flex;
     gap: 0;
-    border: 1px solid rgba(110,110,210,0.15);
+    border: 1px solid rgba(255, 178, 239,0.15);
     border-radius: 8px;
     overflow: hidden;
     margin-bottom: 1rem;
@@ -478,7 +478,7 @@ watch(() => props.modelValue, (val) => {
 
 /* ── Accordion (mobile only) ─────────────────────── */
 .sof-accordion {
-    border: 1px solid rgba(110,110,210,0.15);
+    border: 1px solid rgba(255, 178, 239,0.15);
     border-radius: 8px;
     overflow: hidden;
     margin-bottom: 1rem;

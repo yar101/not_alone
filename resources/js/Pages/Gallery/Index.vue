@@ -608,7 +608,7 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
     outline: none;
     transition: border-color 0.15s;
 }
-.gallery-search:focus { border-color: rgba(160,160,255,0.3); }
+.gallery-search:focus { border-color: rgba(255, 178, 239,0.3); }
 .gallery-search::placeholder { color: rgba(255,255,255,0.25); }
 
 .gallery-search-clear {
@@ -652,7 +652,7 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
     transition: background 0.15s, color 0.15s;
 }
 .gallery-idol-item:hover { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.85); }
-.gallery-idol-item--active { background: rgba(160,160,255,0.08); color: rgba(200,200,255,0.9); }
+.gallery-idol-item--active { background: rgba(255, 178, 239,0.08); color: rgba(200,200,255,0.9); }
 
 .gallery-idol-item__avatar {
     width: 32px;
@@ -660,13 +660,13 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
-    background: rgba(160,160,255,0.1);
+    background: rgba(255, 178, 239,0.1);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.85rem;
     font-weight: 600;
-    color: rgba(160,160,255,0.7);
+    color: rgba(255, 178, 239,0.7);
 }
 .gallery-idol-item__avatar--all {
     background: rgba(255,255,255,0.06);
@@ -692,7 +692,7 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
 /* ── Sidebar pack sub-list ───────────────────────────────── */
 .gallery-pack-list {
     padding: 2px 0 4px;
-    border-left: 1px solid rgba(160,160,255,0.12);
+    border-left: 1px solid rgba(255, 178, 239,0.12);
     margin-left: 25px;
 }
 
@@ -717,7 +717,7 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
     transition: background 0.15s, color 0.15s;
 }
 .gallery-pack-item:hover { background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.75); }
-.gallery-pack-item--active { color: rgba(160,160,255,0.9); background: rgba(160,160,255,0.07); }
+.gallery-pack-item--active { color: rgba(255, 178, 239,0.9); background: rgba(255, 178, 239,0.07); }
 
 .gallery-pack-item__cover {
     position: relative;
@@ -751,7 +751,7 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
     display: block;
     width: 100%;
     height: 100%;
-    background: rgba(160,160,255,0.07);
+    background: rgba(255, 178, 239,0.07);
 }
 
 .gallery-pack-item__info {
@@ -778,14 +778,14 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
     padding: 0.35rem 0.75rem;
     background: transparent;
     border: none;
-    color: rgba(160,160,255,0.5);
+    color: rgba(255, 178, 239,0.5);
     font-size: 0.82rem;
     font-family: inherit;
     cursor: pointer;
     text-align: left;
     transition: color 0.15s;
 }
-.gallery-pack-more:hover { color: rgba(160,160,255,0.9); }
+.gallery-pack-more:hover { color: rgba(255, 178, 239,0.9); }
 
 /* ── Main area ───────────────────────────────────────────── */
 .gallery-main {
@@ -825,7 +825,7 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
     transition: background 0.15s, color 0.15s;
 }
 .density-btn:hover { color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.06); }
-.density-btn--active { background: rgba(160,160,255,0.15); color: rgba(160,160,255,0.9); }
+.density-btn--active { background: rgba(255, 178, 239,0.15); color: rgba(255, 178, 239,0.9); }
 
 /* ── Photo grid ──────────────────────────────────────────── */
 .gallery-grid {
@@ -916,8 +916,8 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
 .gallery-loading__spinner--sm {
     width: 16px;
     height: 16px;
-    border: 1.5px solid rgba(160,160,255,0.15);
-    border-top-color: rgba(160,160,255,0.6);
+    border: 1.5px solid rgba(255, 178, 239,0.15);
+    border-top-color: rgba(255, 178, 239,0.6);
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
 }
@@ -936,18 +936,18 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
 
 .gallery-load-more__btn {
     padding: 0.55rem 1.75rem;
-    background: rgba(160,160,255,0.08);
-    border: 1px solid rgba(160,160,255,0.2);
+    background: rgba(255, 178, 239,0.08);
+    border: 1px solid rgba(255, 178, 239,0.2);
     border-radius: 8px;
-    color: rgba(160,160,255,0.85);
+    color: rgba(255, 178, 239,0.85);
     font-size: 0.9rem;
     font-family: inherit;
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 .gallery-load-more__btn:hover {
-    background: rgba(160,160,255,0.15);
-    border-color: rgba(160,160,255,0.35);
+    background: rgba(255, 178, 239,0.15);
+    border-color: rgba(255, 178, 239,0.35);
     color: rgba(200,200,255,0.95);
 }
 
@@ -1093,9 +1093,9 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
         transition: border-color 0.15s, background 0.15s;
     }
     .gallery-mob-filter-btn--active {
-        border-color: rgba(160,160,255,0.3);
-        color: rgba(160,160,255,0.9);
-        background: rgba(160,160,255,0.07);
+        border-color: rgba(255, 178, 239,0.3);
+        color: rgba(255, 178, 239,0.9);
+        background: rgba(255, 178, 239,0.07);
     }
 
     .gallery-mob-filter-label {
@@ -1125,10 +1125,10 @@ onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
         z-index: 2020;
         border-radius: 12px 12px 0 0;
         border-right: none;
-        border-top: 1px solid rgba(160,160,255,0.15);
+        border-top: 1px solid rgba(255, 178, 239,0.15);
         box-shadow:
             0 -20px 60px rgba(0,0,0,0.7),
-            inset 0 1px 0 rgba(160,160,255,0.08);
+            inset 0 1px 0 rgba(255, 178, 239,0.08);
         overflow: hidden;
         background: #0a0a14;
         pointer-events: none;

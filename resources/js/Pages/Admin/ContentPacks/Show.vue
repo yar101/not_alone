@@ -294,8 +294,8 @@ const STATUS_LABELS = {
 <style scoped>
 .cps-wrap { padding: 1.5rem; }
 
-.cps-back { color: rgba(160,160,255,0.7); text-decoration: none; font-size: 0.88rem; display: inline-block; margin-bottom: 1.25rem; }
-.cps-back:hover { color: #a0a0ff; }
+.cps-back { color: rgba(255, 178, 239,0.7); text-decoration: none; font-size: 0.88rem; display: inline-block; margin-bottom: 1.25rem; }
+.cps-back:hover { color: #ffb2ef; }
 
 .cps-layout { display: grid; grid-template-columns: 320px 1fr; gap: 1.25rem; }
 @media (max-width: 900px) { .cps-layout { grid-template-columns: 1fr; } }
@@ -313,7 +313,7 @@ const STATUS_LABELS = {
 
 .cps-idol { display: flex; align-items: center; gap: 0.75rem; }
 .cps-idol__avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-.cps-idol__avatar--empty { background: rgba(160,160,255,0.15); display: flex; align-items: center; justify-content: center; color: rgba(160,160,255,0.7); font-weight: 600; }
+.cps-idol__avatar--empty { background: rgba(255, 178, 239,0.15); display: flex; align-items: center; justify-content: center; color: rgba(255, 178, 239,0.7); font-weight: 600; }
 .cps-idol__name  { font-size: 0.95rem; font-weight: 600; color: rgba(255,255,255,0.85); }
 .cps-idol__email { font-size: 0.8rem; color: rgba(255,255,255,0.4); margin-top: 2px; }
 
@@ -323,7 +323,7 @@ const STATUS_LABELS = {
 .cps-meta__desc { color: rgba(255,255,255,0.65); white-space: pre-wrap; line-height: 1.4; }
 
 .cps-status { padding: 2px 8px; border-radius: 10px; font-size: 0.78rem; font-weight: 500; }
-.cps-status--pending_review { background: rgba(160,160,255,0.15); color: #a0a0ff; }
+.cps-status--pending_review { background: rgba(255, 178, 239,0.15); color: #ffb2ef; }
 .cps-status--approved       { background: rgba(100,210,160,0.15); color: #64d2a0; }
 .cps-status--published      { background: rgba(100,210,255,0.15); color: #64d2ff; }
 .cps-status--has_remarks    { background: rgba(255,123,123,0.15); color: #ff7b7b; }
@@ -344,7 +344,7 @@ const STATUS_LABELS = {
 .cps-flag-name--flagged { color: #ff7b7b; }
 .cps-flag-value { font-size: 0.83rem; color: rgba(255,255,255,0.35); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.cps-checkbox { accent-color: #a0a0ff; width: 15px; height: 15px; }
+.cps-checkbox { accent-color: #ffb2ef; width: 15px; height: 15px; }
 
 .cps-comment {
     width: 100%;
@@ -384,16 +384,16 @@ const STATUS_LABELS = {
     width: 100%;
     padding: 0.65rem;
     border-radius: 8px;
-    background: rgba(160,160,255,0.12);
-    border: 1px solid rgba(160,160,255,0.35);
-    color: #a0a0ff;
+    background: rgba(255, 178, 239,0.12);
+    border: 1px solid rgba(255, 178, 239,0.35);
+    color: #ffb2ef;
     font-size: 0.95rem;
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;
     transition: background 0.15s;
 }
-.cps-submit:hover:not(:disabled) { background: rgba(160,160,255,0.22); }
+.cps-submit:hover:not(:disabled) { background: rgba(255, 178, 239,0.22); }
 .cps-submit:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .cps-reject {

@@ -74,8 +74,8 @@ onUnmounted(() => { if (rafId) cancelAnimationFrame(rafId); });
         ),
         /* Label */
         radial-gradient(circle at center,
-            var(--color-base-1, #a0a0ff) 0%,
-            #7070d8 8%,
+            var(--color-base-1, #ffb2ef) 0%,
+            #ffb2ef 8%,
             #4848a8 18%,
             #252560 25%,
             transparent 27%
@@ -91,8 +91,8 @@ onUnmounted(() => { if (rafId) cancelAnimationFrame(rafId); });
 
     box-shadow:
         0 0 0 1px rgba(255, 255, 255, 0.05),
-        0 0 28px  rgba(160, 160, 255, 0.4),
-        0 0 70px  rgba(160, 160, 255, 0.2),
+        0 0 28px  rgba(255, 178, 239, 0.4),
+        0 0 70px  rgba(255, 178, 239, 0.2),
         0 0 140px rgba(100, 210, 255, 0.12);
 }
 
@@ -120,10 +120,10 @@ onUnmounted(() => { if (rafId) cancelAnimationFrame(rafId); });
         from 0deg,
         transparent                          0deg,
         transparent                          12deg,
-        rgba(160, 160, 255, 0.0)             18deg,
-        rgba(160, 160, 255, 0.22)            38deg,   /* wide purple arc */
+        rgba(255, 178, 239, 0.0)             18deg,
+        rgba(255, 178, 239, 0.22)            38deg,   /* wide purple arc */
         rgba(100, 210, 255, 0.16)            56deg,
-        rgba(160, 160, 255, 0.06)            70deg,
+        rgba(255, 178, 239, 0.06)            70deg,
         transparent                          82deg,
         transparent                          130deg,
         rgba(100, 210, 255, 0.0)             136deg,
@@ -131,10 +131,10 @@ onUnmounted(() => { if (rafId) cancelAnimationFrame(rafId); });
         rgba(100, 210, 255, 0.0)             164deg,
         transparent                          170deg,
         transparent                          218deg,
-        rgba(160, 160, 255, 0.0)             224deg,
-        rgba(160, 160, 255, 0.26)            248deg,  /* medium arc       */
+        rgba(255, 178, 239, 0.0)             224deg,
+        rgba(255, 178, 239, 0.26)            248deg,  /* medium arc       */
         rgba(100, 210, 255, 0.18)            270deg,
-        rgba(160, 160, 255, 0.04)            288deg,
+        rgba(255, 178, 239, 0.04)            288deg,
         transparent                          300deg,
         transparent                          360deg
     );

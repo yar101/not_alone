@@ -264,7 +264,7 @@ function unban() {
 .user-meta { font-size: 0.83rem; color: rgba(255,255,255,0.4); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .rating-display { font-size: 0.88rem; color: rgba(255,255,255,0.6); margin-top: 0.15rem; }
 .btn-profile-link { display: inline-block; margin-top: 0.5rem; font-size: 0.8rem; color: rgba(190,145,255,0.7); text-decoration: none; border: 1px solid rgba(190,145,255,0.25); padding: 0.25rem 0.6rem; transition: all 0.15s; }
-.btn-profile-link:hover { color: #BE91FF; border-color: rgba(190,145,255,0.55); background: rgba(190,145,255,0.06); }
+.btn-profile-link:hover { color: #ffb2ef; border-color: rgba(190,145,255,0.55); background: rgba(190,145,255,0.06); }
 
 .badge { padding: 0.15rem 0.5rem; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
 .badge--user   { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.12); }

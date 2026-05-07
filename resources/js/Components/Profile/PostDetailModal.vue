@@ -1,42 +1,47 @@
 <script setup>
-import { ref, reactive, watch, onMounted, onUnmounted, nextTick } from 'vue';
-import axios from 'axios';
-import { useTranslations } from '@/composables/useTranslations';
-import { RefreshLeft, Promotion, ChatLineSquare } from '@element-plus/icons-vue';
+import { ref, reactive, watch, onMounted, onUnmounted, nextTick } from "vue";
+import axios from "axios";
+import { useTranslations } from "@/composables/useTranslations";
+import {
+    RefreshLeft,
+    Promotion,
+    ChatLineSquare,
+} from "@element-plus/icons-vue";
 
 const { __ } = useTranslations();
-import SiteModal from '@/Components/Site/SiteModal.vue';
-import GuestBanner from '@/Components/Profile/GuestBanner.vue';
-import AuthModal from '@/Components/Site/AuthModal.vue';
-import AppAvatar from '@/Components/Common/AppAvatar.vue';
+import SiteModal from "@/Components/Site/SiteModal.vue";
+import GuestBanner from "@/Components/Profile/GuestBanner.vue";
+import AuthModal from "@/Components/Site/AuthModal.vue";
+import AppAvatar from "@/Components/Common/AppAvatar.vue";
 
 const props = defineProps({
-    post:     { default: null },
-    isOwner:  { type: Boolean, default: false },
+    post: { default: null },
+    isOwner: { type: Boolean, default: false },
     authUser: { default: null },
 });
 
-const emit = defineEmits(['close', 'liked', 'delete', 'comment-added']);
+const emit = defineEmits(["close", "liked", "delete", "comment-added"]);
 
 // ── Comments ───────────────────────────────────────────────
-const comments    = ref([]);
-const loadingCmt  = ref(false);
-const cmtsList    = ref(null);
-const scrollZone  = ref(null);
+const comments = ref([]);
+const loadingCmt = ref(false);
+const cmtsList = ref(null);
+const scrollZone = ref(null);
 
 // ── Replies lazy-load ──────────────────────────────────────
-const expandedReplies      = reactive(new Set());
-const commentReplies       = reactive({});
-const commentRepliesPage   = reactive({});
-const commentRepliesMore   = reactive({});
+const expandedReplies = reactive(new Set());
+const commentReplies = reactive({});
+const commentRepliesPage = reactive({});
+const commentRepliesMore = reactive({});
 const commentRepliesLoading = reactive(new Set());
 
 function replyWord(n) {
-    const mod10  = n % 10;
+    const mod10 = n % 10;
     const mod100 = n % 100;
-    if (mod10 === 1 && mod100 !== 11)                               return 'ответ';
-    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'ответа';
-    return 'ответов';
+    if (mod10 === 1 && mod100 !== 11) return "ответ";
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20))
+        return "ответа";
+    return "ответов";
 }
 
 async function loadReplies(commentId, page = 1) {
@@ -44,11 +49,16 @@ async function loadReplies(commentId, page = 1) {
     commentRepliesLoading.add(commentId);
     expandedReplies.add(commentId); // показать блок сразу, чтобы скелетон был виден
     try {
-        const { data } = await axios.get(route('comments.replies', commentId), { params: { page } });
+        const { data } = await axios.get(route("comments.replies", commentId), {
+            params: { page },
+        });
         if (page === 1) {
             commentReplies[commentId] = data.data;
         } else {
-            commentReplies[commentId] = [...(commentReplies[commentId] ?? []), ...data.data];
+            commentReplies[commentId] = [
+                ...(commentReplies[commentId] ?? []),
+                ...data.data,
+            ];
         }
         commentRepliesPage[commentId] = page;
         commentRepliesMore[commentId] = data.has_more;
@@ -71,7 +81,9 @@ async function loadComments() {
     if (!props.post) return;
     loadingCmt.value = true;
     try {
-        const { data } = await axios.get(route('posts.comments.index', props.post.id));
+        const { data } = await axios.get(
+            route("posts.comments.index", props.post.id),
+        );
         comments.value = data;
     } catch (e) {
         console.error(e);
@@ -80,22 +92,25 @@ async function loadComments() {
     }
 }
 
-watch(() => props.post?.id, (val) => {
-    if (val) {
-        comments.value    = [];
-        photoLoaded.value = false;
-        photoError.value  = false;
-        loadComments();
-    }
-});
+watch(
+    () => props.post?.id,
+    (val) => {
+        if (val) {
+            comments.value = [];
+            photoLoaded.value = false;
+            photoError.value = false;
+            loadComments();
+        }
+    },
+);
 
 // ── Photo loading state ────────────────────────────────────
 const photoLoaded = ref(false);
-const photoError  = ref(false);
+const photoError = ref(false);
 
 // ── Like ───────────────────────────────────────────────────
-const showAuthModal  = ref(false);
-const likeAnimating  = ref(false);
+const showAuthModal = ref(false);
+const likeAnimating = ref(false);
 
 async function toggleLike() {
     if (!props.authUser) {
@@ -104,46 +119,55 @@ async function toggleLike() {
     }
     if (!props.post) return;
     likeAnimating.value = true;
-    setTimeout(() => { likeAnimating.value = false; }, 400);
+    setTimeout(() => {
+        likeAnimating.value = false;
+    }, 400);
     try {
-        const { data } = await axios.post(route('posts.like', props.post.id));
-        emit('liked', { postId: props.post.id, liked: data.liked, likesCount: data.likes_count });
+        const { data } = await axios.post(route("posts.like", props.post.id));
+        emit("liked", {
+            postId: props.post.id,
+            liked: data.liked,
+            likesCount: data.likes_count,
+        });
     } catch (e) {
         console.error(e);
     }
 }
 
 // ── New comment ────────────────────────────────────────────
-const newBody     = ref('');
-const replyToId   = ref(null);
-const replyToName = ref('');
-const submitting  = ref(false);
-const cmtError    = ref('');
+const newBody = ref("");
+const replyToId = ref(null);
+const replyToName = ref("");
+const submitting = ref(false);
+const cmtError = ref("");
 
 function startReply(comment) {
-    replyToId.value   = comment.id;
+    replyToId.value = comment.id;
     replyToName.value = comment.user.name;
-    newBody.value     = '';
-    cmtError.value    = '';
+    newBody.value = "";
+    cmtError.value = "";
 }
 
 function cancelReply() {
-    replyToId.value   = null;
-    replyToName.value = '';
+    replyToId.value = null;
+    replyToName.value = "";
 }
 
 async function submitComment() {
     if (!newBody.value.trim() || submitting.value) return;
     submitting.value = true;
-    cmtError.value   = '';
+    cmtError.value = "";
     try {
-        const { data } = await axios.post(route('posts.comments.store', props.post.id), {
-            body:      newBody.value.trim(),
-            parent_id: replyToId.value ?? undefined,
-        });
+        const { data } = await axios.post(
+            route("posts.comments.store", props.post.id),
+            {
+                body: newBody.value.trim(),
+                parent_id: replyToId.value ?? undefined,
+            },
+        );
 
         if (replyToId.value) {
-            const parent = comments.value.find(c => c.id === replyToId.value);
+            const parent = comments.value.find((c) => c.id === replyToId.value);
             if (parent) {
                 parent.replies_count++;
                 if (commentReplies[parent.id]) {
@@ -155,20 +179,20 @@ async function submitComment() {
             comments.value.push(data);
         }
 
-        emit('comment-added', props.post.id);
-        newBody.value     = '';
-        replyToId.value   = null;
-        replyToName.value = '';
+        emit("comment-added", props.post.id);
+        newBody.value = "";
+        replyToId.value = null;
+        replyToName.value = "";
 
         await nextTick();
         // Desktop: cmtsList scrolls; mobile: scrollZone scrolls
         for (const el of [cmtsList.value, scrollZone.value]) {
             if (el && el.scrollHeight > el.clientHeight) {
-                el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+                el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
             }
         }
     } catch (e) {
-        cmtError.value = e.response?.data?.message ?? __('post.detail.error');
+        cmtError.value = e.response?.data?.message ?? __("post.detail.error");
     } finally {
         submitting.value = false;
     }
@@ -186,30 +210,38 @@ function closeCmtMenus() {
     openCmtMenuId.value = null;
 }
 
-onMounted(() => document.addEventListener('click', closeCmtMenus));
-onUnmounted(() => document.removeEventListener('click', closeCmtMenus));
+onMounted(() => document.addEventListener("click", closeCmtMenus));
+onUnmounted(() => document.removeEventListener("click", closeCmtMenus));
 
 // ── Fullscreen photo ───────────────────────────────────────
 const fullscreen = ref(false);
 
-function openFullscreen() { fullscreen.value = true; }
-function closeFullscreen() { fullscreen.value = false; }
+function openFullscreen() {
+    fullscreen.value = true;
+}
+function closeFullscreen() {
+    fullscreen.value = false;
+}
 
 // ── Delete comment ─────────────────────────────────────────
 async function deleteComment(commentId, parentId) {
     try {
-        await axios.delete(route('posts.comments.destroy', commentId));
+        await axios.delete(route("posts.comments.destroy", commentId));
         if (parentId) {
-            const parent = comments.value.find(c => c.id === parentId);
+            const parent = comments.value.find((c) => c.id === parentId);
             if (parent) {
                 parent.replies_count = Math.max(0, parent.replies_count - 1);
-                parent.replies = parent.replies.filter(r => r.id !== commentId);
+                parent.replies = parent.replies.filter(
+                    (r) => r.id !== commentId,
+                );
                 if (commentReplies[parentId]) {
-                    commentReplies[parentId] = commentReplies[parentId].filter(r => r.id !== commentId);
+                    commentReplies[parentId] = commentReplies[parentId].filter(
+                        (r) => r.id !== commentId,
+                    );
                 }
             }
         } else {
-            comments.value = comments.value.filter(c => c.id !== commentId);
+            comments.value = comments.value.filter((c) => c.id !== commentId);
         }
     } catch (e) {
         console.error(e);
@@ -218,22 +250,43 @@ async function deleteComment(commentId, parentId) {
 </script>
 
 <template>
-    <SiteModal :show="!!post" variant="pink" :compact="false" no-padding @close="emit('close')">
+    <SiteModal
+        :show="!!post"
+        variant="pink"
+        :compact="false"
+        no-padding
+        @close="emit('close')"
+    >
         <div v-if="post" class="detail">
-
             <!-- Scrollable zone: left + right columns (transparent to desktop grid) -->
             <div ref="scrollZone" class="detail__scroll">
-
                 <!-- ── Left: photo + body + footer ── -->
                 <div class="detail__left">
-
                     <div v-if="post.photo_url" class="detail__photo-wrap">
-                        <div v-if="!photoLoaded && !photoError" class="detail__photo-skel" />
+                        <div
+                            v-if="!photoLoaded && !photoError"
+                            class="detail__photo-skel"
+                        />
                         <div v-if="photoError" class="detail__photo-error">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="3" y="3" width="18" height="18" rx="2"/>
-                                <circle cx="8.5" cy="8.5" r="1.5"/>
-                                <polyline points="21 15 16 10 5 21"/>
+                            <svg
+                                width="32"
+                                height="32"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <rect
+                                    x="3"
+                                    y="3"
+                                    width="18"
+                                    height="18"
+                                    rx="2"
+                                />
+                                <circle cx="8.5" cy="8.5" r="1.5" />
+                                <polyline points="21 15 16 10 5 21" />
                             </svg>
                         </div>
                         <img
@@ -244,10 +297,25 @@ async function deleteComment(commentId, parentId) {
                             @error="photoError = true"
                             @click="openFullscreen"
                         />
-                        <button class="detail__photo-expand" @click="openFullscreen" :title="__('post.detail.fullscreen')">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
-                                <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+                        <button
+                            class="detail__photo-expand"
+                            @click="openFullscreen"
+                            :title="__('post.detail.fullscreen')"
+                        >
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <polyline points="15 3 21 3 21 9" />
+                                <polyline points="9 21 3 21 3 15" />
+                                <line x1="21" y1="3" x2="14" y2="10" />
+                                <line x1="3" y1="21" x2="10" y2="14" />
                             </svg>
                         </button>
                     </div>
@@ -261,24 +329,56 @@ async function deleteComment(commentId, parentId) {
                         <div class="detail__actions-row">
                             <button
                                 class="detail__like-btn"
-                                :class="{ 'detail__like-btn--active': post.liked_by_me }"
+                                :class="{
+                                    'detail__like-btn--active':
+                                        post.liked_by_me,
+                                }"
                                 :disabled="!authUser"
                                 @click="toggleLike"
                             >
-                                <svg width="18" height="18" viewBox="0 0 24 24"
-                                    :fill="post.liked_by_me ? 'currentColor' : 'none'"
-                                    stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round"
-                                    :class="{ 'like-pop': likeAnimating }">
-                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                <svg
+                                    width="18"
+                                    height="18"
+                                    viewBox="0 0 24 24"
+                                    :fill="
+                                        post.liked_by_me
+                                            ? 'currentColor'
+                                            : 'none'
+                                    "
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    :class="{ 'like-pop': likeAnimating }"
+                                >
+                                    <path
+                                        d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                                    />
                                 </svg>
                                 {{ post.likes_count }}
                             </button>
-                            <button v-if="isOwner" class="detail__del-btn" @click="emit('delete', post.id)">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                            <button
+                                v-if="isOwner"
+                                class="detail__del-btn"
+                                @click="emit('delete', post.id)"
+                            >
+                                <svg
+                                    width="12"
+                                    height="12"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <polyline points="3 6 5 6 21 6" />
+                                    <path d="M19 6l-1 14H6L5 6" />
+                                    <path d="M10 11v6" />
+                                    <path d="M14 11v6" />
+                                    <path d="M9 6V4h6v2" />
                                 </svg>
-                                {{ __('common.delete') }}
+                                {{ __("common.delete") }}
                             </button>
                         </div>
                     </div>
@@ -286,93 +386,348 @@ async function deleteComment(commentId, parentId) {
 
                 <!-- ── Right: header + comments list ── -->
                 <div class="detail__right">
-
                     <div class="detail__cmts-header">
                         <span class="detail__cmts-label">
-                            <el-icon class="detail__cmts-icon"><ChatLineSquare /></el-icon>
-                            {{ __('post.detail.comments') }}
+                            <el-icon class="detail__cmts-icon"
+                                ><ChatLineSquare
+                            /></el-icon>
+                            {{ __("post.detail.comments") }}
                         </span>
-                        <span class="detail__cmts-count">{{ comments.length }}</span>
+                        <span class="detail__cmts-count">{{
+                            comments.length
+                        }}</span>
                     </div>
 
                     <div ref="cmtsList" class="detail__cmts-list">
                         <div v-if="loadingCmt" class="detail__cmts-skel-list">
-                            <div v-for="i in 4" :key="i" class="detail__cmts-skel" :style="{ animationDelay: (i - 1) * 0.07 + 's' }">
+                            <div
+                                v-for="i in 4"
+                                :key="i"
+                                class="detail__cmts-skel"
+                                :style="{
+                                    animationDelay: (i - 1) * 0.07 + 's',
+                                }"
+                            >
                                 <div class="detail__cmts-skel__avatar" />
                                 <div class="detail__cmts-skel__lines">
-                                    <div class="detail__cmts-skel__line detail__cmts-skel__line--name" />
-                                    <div class="detail__cmts-skel__line detail__cmts-skel__line--body" />
-                                    <div class="detail__cmts-skel__line detail__cmts-skel__line--body2" />
+                                    <div
+                                        class="detail__cmts-skel__line detail__cmts-skel__line--name"
+                                    />
+                                    <div
+                                        class="detail__cmts-skel__line detail__cmts-skel__line--body"
+                                    />
+                                    <div
+                                        class="detail__cmts-skel__line detail__cmts-skel__line--body2"
+                                    />
                                 </div>
                             </div>
                         </div>
-                        <div v-else-if="comments.length === 0" class="detail__cmts-state detail__cmts-state--empty">
-                            {{ __('post.detail.empty') }}
+                        <div
+                            v-else-if="comments.length === 0"
+                            class="detail__cmts-state detail__cmts-state--empty"
+                        >
+                            {{ __("post.detail.empty") }}
                         </div>
                         <template v-else>
-                            <div v-for="cmt in comments" :key="cmt.id" class="detail__cmt">
+                            <div
+                                v-for="cmt in comments"
+                                :key="cmt.id"
+                                class="detail__cmt"
+                            >
                                 <div class="detail__cmt-row">
-                                    <a :href="route('profile.show', cmt.user.id) + '#about'" class="detail__cmt-avatar-link">
-                                        <AppAvatar :src="cmt.user.avatar_url" :name="cmt.user.name" size="md" />
+                                    <a
+                                        :href="
+                                            route('profile.show', cmt.user.id) +
+                                            '#about'
+                                        "
+                                        class="detail__cmt-avatar-link"
+                                    >
+                                        <AppAvatar
+                                            :src="cmt.user.avatar_url"
+                                            :name="cmt.user.name"
+                                            size="md"
+                                        />
                                     </a>
                                     <div class="detail__cmt-content">
                                         <div class="detail__cmt-meta">
-                                            <a :href="route('profile.show', cmt.user.id) + '#about'" class="detail__cmt-name">{{ cmt.user.name }}</a>
-                                            <div v-if="authUser && cmt.user.id === authUser.id" class="detail__cmt-menu-wrap">
-                                                <button class="detail__cmt-dots" @click="toggleCmtMenu(cmt.id, $event)">
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                                        <circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>
+                                            <a
+                                                :href="
+                                                    route(
+                                                        'profile.show',
+                                                        cmt.user.id,
+                                                    ) + '#about'
+                                                "
+                                                class="detail__cmt-name"
+                                                >{{ cmt.user.name }}</a
+                                            >
+                                            <div
+                                                v-if="
+                                                    authUser &&
+                                                    cmt.user.id === authUser.id
+                                                "
+                                                class="detail__cmt-menu-wrap"
+                                            >
+                                                <button
+                                                    class="detail__cmt-dots"
+                                                    @click="
+                                                        toggleCmtMenu(
+                                                            cmt.id,
+                                                            $event,
+                                                        )
+                                                    "
+                                                >
+                                                    <svg
+                                                        width="14"
+                                                        height="14"
+                                                        viewBox="0 0 24 24"
+                                                        fill="currentColor"
+                                                    >
+                                                        <circle
+                                                            cx="5"
+                                                            cy="12"
+                                                            r="1.5"
+                                                        />
+                                                        <circle
+                                                            cx="12"
+                                                            cy="12"
+                                                            r="1.5"
+                                                        />
+                                                        <circle
+                                                            cx="19"
+                                                            cy="12"
+                                                            r="1.5"
+                                                        />
                                                     </svg>
                                                 </button>
-                                                <div v-if="openCmtMenuId === cmt.id" class="detail__cmt-dropdown" @click.stop>
-                                                    <button class="detail__cmt-dropdown-item detail__cmt-dropdown-item--danger" @click="deleteComment(cmt.id, null); closeCmtMenus()">
-                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                                                <div
+                                                    v-if="
+                                                        openCmtMenuId === cmt.id
+                                                    "
+                                                    class="detail__cmt-dropdown"
+                                                    @click.stop
+                                                >
+                                                    <button
+                                                        class="detail__cmt-dropdown-item detail__cmt-dropdown-item--danger"
+                                                        @click="
+                                                            deleteComment(
+                                                                cmt.id,
+                                                                null,
+                                                            );
+                                                            closeCmtMenus();
+                                                        "
+                                                    >
+                                                        <svg
+                                                            width="12"
+                                                            height="12"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            stroke-width="2"
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                        >
+                                                            <polyline
+                                                                points="3 6 5 6 21 6"
+                                                            />
+                                                            <path
+                                                                d="M19 6l-1 14H6L5 6"
+                                                            />
+                                                            <path
+                                                                d="M10 11v6"
+                                                            />
+                                                            <path
+                                                                d="M14 11v6"
+                                                            />
+                                                            <path
+                                                                d="M9 6V4h6v2"
+                                                            />
                                                         </svg>
-                                                        {{ __('common.delete') }}
+                                                        {{
+                                                            __("common.delete")
+                                                        }}
                                                     </button>
                                                 </div>
                                             </div>
                                         </div>
-                                        <p class="detail__cmt-body">{{ cmt.body }}</p>
+                                        <p class="detail__cmt-body">
+                                            {{ cmt.body }}
+                                        </p>
                                         <div class="detail__cmt-acts">
-                                            <span class="detail__cmt-time">{{ cmt.created_at }}</span>
-                                            <button v-if="authUser" class="detail__cmt-btn detail__cmt-btn--reply" @click="startReply(cmt)">
-                                                <el-icon style="vertical-align: middle;"><RefreshLeft /></el-icon>
-                                                {{ __('post.detail.reply') }}
+                                            <span class="detail__cmt-time">{{
+                                                cmt.created_at
+                                            }}</span>
+                                            <button
+                                                v-if="authUser"
+                                                class="detail__cmt-btn detail__cmt-btn--reply"
+                                                @click="startReply(cmt)"
+                                            >
+                                                <el-icon
+                                                    style="
+                                                        vertical-align: middle;
+                                                    "
+                                                    ><RefreshLeft
+                                                /></el-icon>
+                                                {{ __("post.detail.reply") }}
                                             </button>
                                         </div>
                                     </div>
                                 </div>
                                 <!-- Single reply (replies_count === 1): shown inline, no toggle -->
-                                <div v-if="cmt.replies_count === 1 && cmt.replies?.length" class="detail__replies">
+                                <div
+                                    v-if="
+                                        cmt.replies_count === 1 &&
+                                        cmt.replies?.length
+                                    "
+                                    class="detail__replies"
+                                >
                                     <div class="detail__cmt detail__cmt--reply">
                                         <div class="detail__cmt-row">
-                                            <a :href="route('profile.show', cmt.replies[0].user.id) + '#about'" class="detail__cmt-avatar-link">
-                                                <AppAvatar :src="cmt.replies[0].user.avatar_url" :name="cmt.replies[0].user.name" size="sm" />
+                                            <a
+                                                :href="
+                                                    route(
+                                                        'profile.show',
+                                                        cmt.replies[0].user.id,
+                                                    ) + '#about'
+                                                "
+                                                class="detail__cmt-avatar-link"
+                                            >
+                                                <AppAvatar
+                                                    :src="
+                                                        cmt.replies[0].user
+                                                            .avatar_url
+                                                    "
+                                                    :name="
+                                                        cmt.replies[0].user.name
+                                                    "
+                                                    size="sm"
+                                                />
                                             </a>
                                             <div class="detail__cmt-content">
                                                 <div class="detail__cmt-meta">
-                                                    <a :href="route('profile.show', cmt.replies[0].user.id) + '#about'" class="detail__cmt-name">{{ cmt.replies[0].user.name }}</a>
-                                                    <div v-if="authUser && cmt.replies[0].user.id === authUser.id" class="detail__cmt-menu-wrap">
-                                                        <button class="detail__cmt-dots" @click="toggleCmtMenu(cmt.replies[0].id, $event)">
-                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                                                <circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>
+                                                    <a
+                                                        :href="
+                                                            route(
+                                                                'profile.show',
+                                                                cmt.replies[0]
+                                                                    .user.id,
+                                                            ) + '#about'
+                                                        "
+                                                        class="detail__cmt-name"
+                                                        >{{
+                                                            cmt.replies[0].user
+                                                                .name
+                                                        }}</a
+                                                    >
+                                                    <div
+                                                        v-if="
+                                                            authUser &&
+                                                            cmt.replies[0].user
+                                                                .id ===
+                                                                authUser.id
+                                                        "
+                                                        class="detail__cmt-menu-wrap"
+                                                    >
+                                                        <button
+                                                            class="detail__cmt-dots"
+                                                            @click="
+                                                                toggleCmtMenu(
+                                                                    cmt
+                                                                        .replies[0]
+                                                                        .id,
+                                                                    $event,
+                                                                )
+                                                            "
+                                                        >
+                                                            <svg
+                                                                width="14"
+                                                                height="14"
+                                                                viewBox="0 0 24 24"
+                                                                fill="currentColor"
+                                                            >
+                                                                <circle
+                                                                    cx="5"
+                                                                    cy="12"
+                                                                    r="1.5"
+                                                                />
+                                                                <circle
+                                                                    cx="12"
+                                                                    cy="12"
+                                                                    r="1.5"
+                                                                />
+                                                                <circle
+                                                                    cx="19"
+                                                                    cy="12"
+                                                                    r="1.5"
+                                                                />
                                                             </svg>
                                                         </button>
-                                                        <div v-if="openCmtMenuId === cmt.replies[0].id" class="detail__cmt-dropdown" @click.stop>
-                                                            <button class="detail__cmt-dropdown-item detail__cmt-dropdown-item--danger" @click="deleteComment(cmt.replies[0].id, cmt.id); closeCmtMenus()">
-                                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                                                        <div
+                                                            v-if="
+                                                                openCmtMenuId ===
+                                                                cmt.replies[0]
+                                                                    .id
+                                                            "
+                                                            class="detail__cmt-dropdown"
+                                                            @click.stop
+                                                        >
+                                                            <button
+                                                                class="detail__cmt-dropdown-item detail__cmt-dropdown-item--danger"
+                                                                @click="
+                                                                    deleteComment(
+                                                                        cmt
+                                                                            .replies[0]
+                                                                            .id,
+                                                                        cmt.id,
+                                                                    );
+                                                                    closeCmtMenus();
+                                                                "
+                                                            >
+                                                                <svg
+                                                                    width="12"
+                                                                    height="12"
+                                                                    viewBox="0 0 24 24"
+                                                                    fill="none"
+                                                                    stroke="currentColor"
+                                                                    stroke-width="2"
+                                                                    stroke-linecap="round"
+                                                                    stroke-linejoin="round"
+                                                                >
+                                                                    <polyline
+                                                                        points="3 6 5 6 21 6"
+                                                                    />
+                                                                    <path
+                                                                        d="M19 6l-1 14H6L5 6"
+                                                                    />
+                                                                    <path
+                                                                        d="M10 11v6"
+                                                                    />
+                                                                    <path
+                                                                        d="M14 11v6"
+                                                                    />
+                                                                    <path
+                                                                        d="M9 6V4h6v2"
+                                                                    />
                                                                 </svg>
-                                                                {{ __('common.delete') }}
+                                                                {{
+                                                                    __(
+                                                                        "common.delete",
+                                                                    )
+                                                                }}
                                                             </button>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <p class="detail__cmt-body">{{ cmt.replies[0].body }}</p>
+                                                <p class="detail__cmt-body">
+                                                    {{ cmt.replies[0].body }}
+                                                </p>
                                                 <div class="detail__cmt-acts">
-                                                    <span class="detail__cmt-time">{{ cmt.replies[0].created_at }}</span>
+                                                    <span
+                                                        class="detail__cmt-time"
+                                                        >{{
+                                                            cmt.replies[0]
+                                                                .created_at
+                                                        }}</span
+                                                    >
                                                 </div>
                                             </div>
                                         </div>
@@ -380,93 +735,281 @@ async function deleteComment(commentId, parentId) {
                                 </div>
 
                                 <!-- Toggle button: appears when replies > 1 -->
-                                <div v-if="cmt.replies_count > 1" class="detail__replies-toggle-wrap">
+                                <div
+                                    v-if="cmt.replies_count > 1"
+                                    class="detail__replies-toggle-wrap"
+                                >
                                     <button
                                         class="detail__replies-toggle"
-                                        :class="{ 'detail__replies-toggle--open': expandedReplies.has(cmt.id) }"
+                                        :class="{
+                                            'detail__replies-toggle--open':
+                                                expandedReplies.has(cmt.id),
+                                        }"
                                         @click="toggleReplies(cmt.id)"
                                     >
-                                        <span class="detail__replies-toggle-label">
-                                            {{ cmt.replies_count }} {{ replyWord(cmt.replies_count) }}
+                                        <span
+                                            class="detail__replies-toggle-label"
+                                        >
+                                            {{ cmt.replies_count }}
+                                            {{ replyWord(cmt.replies_count) }}
                                         </span>
-                                        <svg class="detail__replies-toggle-chevron" viewBox="0 0 12 12" fill="none">
-                                            <path d="M2 4.5L6 8l4-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <svg
+                                            class="detail__replies-toggle-chevron"
+                                            viewBox="0 0 12 12"
+                                            fill="none"
+                                        >
+                                            <path
+                                                d="M2 4.5L6 8l4-3.5"
+                                                stroke="currentColor"
+                                                stroke-width="1.5"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            />
                                         </svg>
                                     </button>
                                 </div>
 
                                 <!-- Expanded replies block -->
                                 <Transition name="replies-expand">
-                                <div
-                                    v-if="cmt.replies_count > 1 && expandedReplies.has(cmt.id)"
-                                    class="detail__replies"
-                                >
-                                    <!-- Skeleton while first page loading -->
-                                    <template v-if="commentRepliesLoading.has(cmt.id) && !commentReplies[cmt.id]?.length">
-                                        <div v-for="i in 3" :key="i" class="detail__reply-skel">
-                                            <div class="detail__reply-skel__avatar" />
-                                            <div class="detail__reply-skel__lines">
-                                                <div class="detail__reply-skel__line detail__reply-skel__line--name" />
-                                                <div class="detail__reply-skel__line detail__reply-skel__line--body" />
-                                            </div>
-                                        </div>
-                                    </template>
-
-                                    <!-- Loaded replies -->
-                                    <template v-else>
-                                        <div
-                                            v-for="reply in (commentReplies[cmt.id] ?? [])"
-                                            :key="reply.id"
-                                            class="detail__cmt detail__cmt--reply"
+                                    <div
+                                        v-if="
+                                            cmt.replies_count > 1 &&
+                                            expandedReplies.has(cmt.id)
+                                        "
+                                        class="detail__replies"
+                                    >
+                                        <!-- Skeleton while first page loading -->
+                                        <template
+                                            v-if="
+                                                commentRepliesLoading.has(
+                                                    cmt.id,
+                                                ) &&
+                                                !commentReplies[cmt.id]?.length
+                                            "
                                         >
-                                            <div class="detail__cmt-row">
-                                                <a :href="route('profile.show', reply.user.id) + '#about'" class="detail__cmt-avatar-link">
-                                                    <AppAvatar :src="reply.user.avatar_url" :name="reply.user.name" size="sm" />
-                                                </a>
-                                                <div class="detail__cmt-content">
-                                                    <div class="detail__cmt-meta">
-                                                        <a :href="route('profile.show', reply.user.id) + '#about'" class="detail__cmt-name">{{ reply.user.name }}</a>
-                                                        <div v-if="authUser && reply.user.id === authUser.id" class="detail__cmt-menu-wrap">
-                                                            <button class="detail__cmt-dots" @click="toggleCmtMenu(reply.id, $event)">
-                                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                                                    <circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>
-                                                                </svg>
-                                                            </button>
-                                                            <div v-if="openCmtMenuId === reply.id" class="detail__cmt-dropdown" @click.stop>
-                                                                <button class="detail__cmt-dropdown-item detail__cmt-dropdown-item--danger" @click="deleteComment(reply.id, cmt.id); closeCmtMenus()">
-                                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                                        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                                            <div
+                                                v-for="i in 3"
+                                                :key="i"
+                                                class="detail__reply-skel"
+                                            >
+                                                <div
+                                                    class="detail__reply-skel__avatar"
+                                                />
+                                                <div
+                                                    class="detail__reply-skel__lines"
+                                                >
+                                                    <div
+                                                        class="detail__reply-skel__line detail__reply-skel__line--name"
+                                                    />
+                                                    <div
+                                                        class="detail__reply-skel__line detail__reply-skel__line--body"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </template>
+
+                                        <!-- Loaded replies -->
+                                        <template v-else>
+                                            <div
+                                                v-for="reply in commentReplies[
+                                                    cmt.id
+                                                ] ?? []"
+                                                :key="reply.id"
+                                                class="detail__cmt detail__cmt--reply"
+                                            >
+                                                <div class="detail__cmt-row">
+                                                    <a
+                                                        :href="
+                                                            route(
+                                                                'profile.show',
+                                                                reply.user.id,
+                                                            ) + '#about'
+                                                        "
+                                                        class="detail__cmt-avatar-link"
+                                                    >
+                                                        <AppAvatar
+                                                            :src="
+                                                                reply.user
+                                                                    .avatar_url
+                                                            "
+                                                            :name="
+                                                                reply.user.name
+                                                            "
+                                                            size="sm"
+                                                        />
+                                                    </a>
+                                                    <div
+                                                        class="detail__cmt-content"
+                                                    >
+                                                        <div
+                                                            class="detail__cmt-meta"
+                                                        >
+                                                            <a
+                                                                :href="
+                                                                    route(
+                                                                        'profile.show',
+                                                                        reply
+                                                                            .user
+                                                                            .id,
+                                                                    ) + '#about'
+                                                                "
+                                                                class="detail__cmt-name"
+                                                                >{{
+                                                                    reply.user
+                                                                        .name
+                                                                }}</a
+                                                            >
+                                                            <div
+                                                                v-if="
+                                                                    authUser &&
+                                                                    reply.user
+                                                                        .id ===
+                                                                        authUser.id
+                                                                "
+                                                                class="detail__cmt-menu-wrap"
+                                                            >
+                                                                <button
+                                                                    class="detail__cmt-dots"
+                                                                    @click="
+                                                                        toggleCmtMenu(
+                                                                            reply.id,
+                                                                            $event,
+                                                                        )
+                                                                    "
+                                                                >
+                                                                    <svg
+                                                                        width="14"
+                                                                        height="14"
+                                                                        viewBox="0 0 24 24"
+                                                                        fill="currentColor"
+                                                                    >
+                                                                        <circle
+                                                                            cx="5"
+                                                                            cy="12"
+                                                                            r="1.5"
+                                                                        />
+                                                                        <circle
+                                                                            cx="12"
+                                                                            cy="12"
+                                                                            r="1.5"
+                                                                        />
+                                                                        <circle
+                                                                            cx="19"
+                                                                            cy="12"
+                                                                            r="1.5"
+                                                                        />
                                                                     </svg>
-                                                                    {{ __('common.delete') }}
                                                                 </button>
+                                                                <div
+                                                                    v-if="
+                                                                        openCmtMenuId ===
+                                                                        reply.id
+                                                                    "
+                                                                    class="detail__cmt-dropdown"
+                                                                    @click.stop
+                                                                >
+                                                                    <button
+                                                                        class="detail__cmt-dropdown-item detail__cmt-dropdown-item--danger"
+                                                                        @click="
+                                                                            deleteComment(
+                                                                                reply.id,
+                                                                                cmt.id,
+                                                                            );
+                                                                            closeCmtMenus();
+                                                                        "
+                                                                    >
+                                                                        <svg
+                                                                            width="12"
+                                                                            height="12"
+                                                                            viewBox="0 0 24 24"
+                                                                            fill="none"
+                                                                            stroke="currentColor"
+                                                                            stroke-width="2"
+                                                                            stroke-linecap="round"
+                                                                            stroke-linejoin="round"
+                                                                        >
+                                                                            <polyline
+                                                                                points="3 6 5 6 21 6"
+                                                                            />
+                                                                            <path
+                                                                                d="M19 6l-1 14H6L5 6"
+                                                                            />
+                                                                            <path
+                                                                                d="M10 11v6"
+                                                                            />
+                                                                            <path
+                                                                                d="M14 11v6"
+                                                                            />
+                                                                            <path
+                                                                                d="M9 6V4h6v2"
+                                                                            />
+                                                                        </svg>
+                                                                        {{
+                                                                            __(
+                                                                                "common.delete",
+                                                                            )
+                                                                        }}
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                    <p class="detail__cmt-body">{{ reply.body }}</p>
-                                                    <div class="detail__cmt-acts">
-                                                        <span class="detail__cmt-time">{{ reply.created_at }}</span>
+                                                        <p
+                                                            class="detail__cmt-body"
+                                                        >
+                                                            {{ reply.body }}
+                                                        </p>
+                                                        <div
+                                                            class="detail__cmt-acts"
+                                                        >
+                                                            <span
+                                                                class="detail__cmt-time"
+                                                                >{{
+                                                                    reply.created_at
+                                                                }}</span
+                                                            >
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        <!-- Load more -->
-                                        <button
-                                            v-if="commentRepliesMore[cmt.id]"
-                                            class="detail__replies-more"
-                                            :disabled="commentRepliesLoading.has(cmt.id)"
-                                            @click="loadReplies(cmt.id, commentRepliesPage[cmt.id] + 1)"
-                                        >
-                                            <span v-if="commentRepliesLoading.has(cmt.id)" class="detail__replies-more-spinner" />
-                                            <template v-else>Загрузить ещё</template>
-                                        </button>
-                                    </template>
-                                </div>
+                                            <!-- Load more -->
+                                            <button
+                                                v-if="
+                                                    commentRepliesMore[cmt.id]
+                                                "
+                                                class="detail__replies-more"
+                                                :disabled="
+                                                    commentRepliesLoading.has(
+                                                        cmt.id,
+                                                    )
+                                                "
+                                                @click="
+                                                    loadReplies(
+                                                        cmt.id,
+                                                        commentRepliesPage[
+                                                            cmt.id
+                                                        ] + 1,
+                                                    )
+                                                "
+                                            >
+                                                <span
+                                                    v-if="
+                                                        commentRepliesLoading.has(
+                                                            cmt.id,
+                                                        )
+                                                    "
+                                                    class="detail__replies-more-spinner"
+                                                />
+                                                <template v-else
+                                                    >Загрузить ещё</template
+                                                >
+                                            </button>
+                                        </template>
+                                    </div>
                                 </Transition>
                             </div>
                         </template>
                     </div>
-
                 </div>
             </div>
 
@@ -474,46 +1017,98 @@ async function deleteComment(commentId, parentId) {
             <div class="detail__input-area">
                 <template v-if="authUser">
                     <div v-if="replyToId" class="detail__reply-hint">
-                        <span><el-icon style="vertical-align: middle; margin-right: 0.2em;"><RefreshLeft /></el-icon>{{ replyToName }}</span>
-                        <button class="detail__reply-cancel" @click="cancelReply">✕</button>
+                        <span
+                            ><el-icon
+                                style="
+                                    vertical-align: middle;
+                                    margin-right: 0.2em;
+                                "
+                                ><RefreshLeft /></el-icon
+                            >{{ replyToName }}</span
+                        >
+                        <button
+                            class="detail__reply-cancel"
+                            @click="cancelReply"
+                        >
+                            ✕
+                        </button>
                     </div>
                     <div class="detail__input-row">
                         <textarea
                             v-model="newBody"
                             class="detail__textarea"
-                            :placeholder="replyToId ? __('post.detail.placeholder.reply') : __('post.detail.placeholder.comment')"
+                            :placeholder="
+                                replyToId
+                                    ? __('post.detail.placeholder.reply')
+                                    : __('post.detail.placeholder.comment')
+                            "
                             rows="3"
                             maxlength="177"
                             @keydown.enter.exact.prevent="submitComment"
                         />
-                        <span class="detail__char" :class="{ 'detail__char--warn': newBody.length > 150 }">{{ newBody.length }}/177</span>
-                        <button class="detail__send-btn" :disabled="!newBody.trim() || submitting" @click="submitComment">
+                        <span
+                            class="detail__char"
+                            :class="{
+                                'detail__char--warn': newBody.length > 150,
+                            }"
+                            >{{ newBody.length }}/177</span
+                        >
+                        <button
+                            class="detail__send-btn"
+                            :disabled="!newBody.trim() || submitting"
+                            @click="submitComment"
+                        >
                             <template v-if="submitting">
                                 <span class="detail__send-spinner" />
                             </template>
                             <template v-else>
-                                <el-icon class="detail__send-icon"><Promotion /></el-icon>
+                                <el-icon class="detail__send-icon"
+                                    ><Promotion
+                                /></el-icon>
                                 <span class="detail__send-label">Enter</span>
                             </template>
                         </button>
                     </div>
-                    <div v-if="cmtError" class="detail__err">{{ cmtError }}</div>
+                    <div v-if="cmtError" class="detail__err">
+                        {{ cmtError }}
+                    </div>
                 </template>
                 <GuestBanner v-else />
             </div>
-
         </div>
     </SiteModal>
 
-    <AuthModal :show="showAuthModal" initial-tab="register" @close="showAuthModal = false" />
+    <AuthModal
+        :show="showAuthModal"
+        initial-tab="register"
+        @close="showAuthModal = false"
+    />
 
     <!-- Fullscreen photo overlay -->
     <Teleport to="body">
-        <div v-if="fullscreen && post?.photo_url" class="photo-fullscreen" @click="closeFullscreen">
-            <img :src="post.photo_url" class="photo-fullscreen__img" @click.stop />
+        <div
+            v-if="fullscreen && post?.photo_url"
+            class="photo-fullscreen"
+            @click="closeFullscreen"
+        >
+            <img
+                :src="post.photo_url"
+                class="photo-fullscreen__img"
+                @click.stop
+            />
             <button class="photo-fullscreen__close" @click="closeFullscreen">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
             </button>
         </div>
@@ -540,10 +1135,18 @@ async function deleteComment(commentId, parentId) {
     overflow: hidden;
 }
 /* Scroll wrapper is transparent to the grid on desktop */
-.detail__scroll { display: contents; }
-.detail__left        { grid-area: left; }
-.detail__right       { grid-area: right; }
-.detail__input-area  { grid-area: input; }
+.detail__scroll {
+    display: contents;
+}
+.detail__left {
+    grid-area: left;
+}
+.detail__right {
+    grid-area: right;
+}
+.detail__input-area {
+    grid-area: input;
+}
 
 /* ═══════════════════════════════════════════════════════════
    LEFT COLUMN — fixed, no scroll
@@ -575,8 +1178,12 @@ async function deleteComment(commentId, parentId) {
     animation: photo-shimmer 1.4s ease-in-out infinite;
 }
 @keyframes photo-shimmer {
-    0%   { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
 }
 .detail__photo-error {
     position: absolute;
@@ -597,7 +1204,9 @@ async function deleteComment(commentId, parentId) {
     transition: opacity 0.35s ease;
     cursor: zoom-in;
 }
-.detail__photo--loaded { opacity: 1; }
+.detail__photo--loaded {
+    opacity: 1;
+}
 .detail__photo-expand {
     position: absolute;
     bottom: 0.5rem;
@@ -610,7 +1219,9 @@ async function deleteComment(commentId, parentId) {
     cursor: pointer;
     display: flex;
     align-items: center;
-    transition: background 0.15s, color 0.15s;
+    transition:
+        background 0.15s,
+        color 0.15s;
 }
 .detail__photo-expand:hover {
     background: rgba(0, 0, 0, 0.8);
@@ -624,10 +1235,16 @@ async function deleteComment(commentId, parentId) {
     overflow-y: auto;
     padding: 0.9rem 1rem 0.75rem;
     scrollbar-width: thin;
-    scrollbar-color: rgba(160, 160, 255, 0.18) transparent;
+    scrollbar-color: var(--color-base-1) transparent;
 }
-.detail__body-wrap::-webkit-scrollbar { width: 3px; }
-.detail__body-wrap::-webkit-scrollbar-thumb { background: rgba(160, 160, 255, 0.18); border-radius: 3px; }
+.detail__body-wrap::-webkit-scrollbar {
+    width: 3px;
+}
+.detail__body-wrap::-webkit-scrollbar-thumb {
+    background: var(--color-base-1);
+    opacity: 0.18;
+    border-radius: 3px;
+}
 
 .detail__body {
     font-size: 1.05rem;
@@ -673,7 +1290,9 @@ async function deleteComment(commentId, parentId) {
     font-size: 0.9rem;
     font-family: inherit;
     cursor: pointer;
-    transition: color 0.15s, background 0.15s;
+    transition:
+        color 0.15s,
+        background 0.15s;
 }
 @media (hover: hover) {
     .detail__like-btn:hover:not(:disabled) {
@@ -688,13 +1307,24 @@ async function deleteComment(commentId, parentId) {
     color: rgba(224, 24, 108, 1);
     background: rgba(224, 24, 108, 0.07);
 }
-.detail__like-btn:disabled { opacity: 0.45; cursor: default; }
+.detail__like-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
 
 @keyframes like-pop {
-    0%   { transform: scale(1); }
-    30%  { transform: scale(1.45); }
-    60%  { transform: scale(0.88); }
-    100% { transform: scale(1); }
+    0% {
+        transform: scale(1);
+    }
+    30% {
+        transform: scale(1.45);
+    }
+    60% {
+        transform: scale(0.88);
+    }
+    100% {
+        transform: scale(1);
+    }
 }
 .like-pop {
     animation: like-pop 0.38s cubic-bezier(0.36, 0.07, 0.19, 0.97);
@@ -712,7 +1342,10 @@ async function deleteComment(commentId, parentId) {
     font-size: 0.9rem;
     font-family: inherit;
     cursor: pointer;
-    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    transition:
+        color 0.15s,
+        border-color 0.15s,
+        background 0.15s;
 }
 .detail__del-btn:hover {
     color: rgba(239, 68, 68, 1);
@@ -769,10 +1402,16 @@ async function deleteComment(commentId, parentId) {
     flex-direction: column;
     gap: 1.4rem;
     scrollbar-width: thin;
-    scrollbar-color: rgba(160, 160, 255, 0.18) transparent;
+    scrollbar-color: var(--color-base-1) transparent;
 }
-.detail__cmts-list::-webkit-scrollbar { width: 3px; }
-.detail__cmts-list::-webkit-scrollbar-thumb { background: rgba(160, 160, 255, 0.18); border-radius: 3px; }
+.detail__cmts-list::-webkit-scrollbar {
+    width: 3px;
+}
+.detail__cmts-list::-webkit-scrollbar-thumb {
+    background: var(--color-base-1);
+    opacity: 0.18;
+    border-radius: 3px;
+}
 
 /* Empty state */
 .detail__cmts-state--empty {
@@ -813,9 +1452,17 @@ async function deleteComment(commentId, parentId) {
     border-radius: 3px;
     background: rgba(255, 255, 255, 0.06);
 }
-.detail__cmts-skel__line--name  { width: 90px; }
-.detail__cmts-skel__line--body  { width: 80%; animation-delay: 0.05s; }
-.detail__cmts-skel__line--body2 { width: 55%; animation-delay: 0.1s; }
+.detail__cmts-skel__line--name {
+    width: 90px;
+}
+.detail__cmts-skel__line--body {
+    width: 80%;
+    animation-delay: 0.05s;
+}
+.detail__cmts-skel__line--body2 {
+    width: 55%;
+    animation-delay: 0.1s;
+}
 
 /* Comment items */
 .detail__cmts-list > div + div {
@@ -829,7 +1476,10 @@ async function deleteComment(commentId, parentId) {
     align-items: flex-start;
 }
 
-.detail__cmt-content { flex: 1; min-width: 0; }
+.detail__cmt-content {
+    flex: 1;
+    min-width: 0;
+}
 .detail__cmt-meta {
     display: flex;
     align-items: center;
@@ -885,16 +1535,22 @@ async function deleteComment(commentId, parentId) {
 .detail__cmt-btn--reply {
     font-size: 0.8rem;
     font-weight: 600;
-    color: rgba(160, 160, 255, 0.75);
-    border: 1px solid rgba(160, 160, 255, 0.3);
+    color: var(--color-base-1);
+    opacity: 0.75;
+    border: 1px solid var(--color-base-1);
     border-radius: 4px;
     padding: 0.18rem 0.55rem;
-    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    transition:
+        color 0.15s,
+        border-color 0.15s,
+        background 0.15s,
+        opacity 0.15s;
 }
 .detail__cmt-btn--reply:hover {
-    color: rgba(160, 160, 255, 1);
-    border-color: rgba(160, 160, 255, 0.6);
-    background: rgba(160, 160, 255, 0.08);
+    color: var(--color-base-1);
+    opacity: 1;
+    border-color: var(--color-base-1);
+    background: rgba(255, 178, 239, 0.08);
 }
 
 /* 3-dot menu for comments */
@@ -912,7 +1568,9 @@ async function deleteComment(commentId, parentId) {
     border-radius: 4px;
     color: rgba(255, 255, 255, 0.25);
     cursor: pointer;
-    transition: color 0.15s, background 0.15s;
+    transition:
+        color 0.15s,
+        background 0.15s;
 }
 .detail__cmt-dots:hover {
     color: rgba(255, 255, 255, 0.65);
@@ -932,8 +1590,14 @@ async function deleteComment(commentId, parentId) {
     animation: cmt-menu-in 0.1s ease;
 }
 @keyframes cmt-menu-in {
-    from { opacity: 0; transform: translateY(-3px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-3px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 .detail__cmt-dropdown-item {
     display: flex;
@@ -982,20 +1646,25 @@ async function deleteComment(commentId, parentId) {
     border: none;
     padding: 4px 2px;
     cursor: pointer;
-    color: rgba(160, 160, 255, 0.65);
+    color: var(--color-base-1);
+    opacity: 0.65;
     font-size: 0.82rem;
     font-weight: 500;
     font-family: inherit;
     letter-spacing: 0.02em;
-    transition: color 0.15s;
+    transition:
+        color 0.15s,
+        opacity 0.15s;
 }
 @media (hover: hover) {
     .detail__replies-toggle:hover {
-        color: rgba(180, 180, 255, 0.95);
+        color: var(--color-base-1);
+        opacity: 0.95;
     }
 }
 .detail__replies-toggle--open {
-    color: rgba(180, 180, 255, 0.95);
+    color: var(--color-base-1);
+    opacity: 0.95;
 }
 .detail__replies-toggle-chevron {
     width: 13px;
@@ -1034,11 +1703,21 @@ async function deleteComment(commentId, parentId) {
     background: rgba(255, 255, 255, 0.06);
     animation: reply-shimmer 1.4s ease-in-out infinite;
 }
-.detail__reply-skel__line--name { width: 72px; }
-.detail__reply-skel__line--body { width: 140px; animation-delay: 0.1s; }
+.detail__reply-skel__line--name {
+    width: 72px;
+}
+.detail__reply-skel__line--body {
+    width: 140px;
+    animation-delay: 0.1s;
+}
 @keyframes reply-shimmer {
-    0%, 100% { opacity: 0.55; }
-    50%       { opacity: 1; }
+    0%,
+    100% {
+        opacity: 0.55;
+    }
+    50% {
+        opacity: 1;
+    }
 }
 
 /* ── Load more ───────────────────────────────────────────── */
@@ -1050,36 +1729,52 @@ async function deleteComment(commentId, parentId) {
     width: 100%;
     padding: 0.32rem;
     background: none;
-    border: 1px dashed rgba(160, 160, 255, 0.18);
+    border: 1px dashed rgba(255, 178, 239, 0.18);
     border-radius: 3px;
-    color: rgba(160, 160, 255, 0.55);
+    color: var(--color-base-1);
+    opacity: 0.55;
     font-size: 0.73rem;
     font-family: inherit;
     cursor: pointer;
-    transition: border-color 0.15s, color 0.15s;
+    transition:
+        border-color 0.15s,
+        color 0.15s,
+        opacity 0.15s;
     margin-top: 0.2rem;
 }
 .detail__replies-more:hover:not(:disabled) {
-    border-color: rgba(160, 160, 255, 0.4);
-    color: rgba(180, 180, 255, 0.9);
+    border-color: rgba(255, 178, 239, 0.4);
+    color: var(--color-base-1);
+    opacity: 0.9;
 }
-.detail__replies-more:disabled { opacity: 0.5; cursor: default; }
+.detail__replies-more:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
 .detail__replies-more-spinner {
     width: 11px;
     height: 11px;
-    border: 1.5px solid rgba(160, 160, 255, 0.3);
-    border-top-color: rgba(160, 160, 255, 0.9);
+    border: 1.5px solid rgba(255, 178, 239, 0.3);
+    border-top-color: var(--color-base-1);
     border-radius: 50%;
     animation: reply-spin 0.7s linear infinite;
 }
-@keyframes reply-spin { to { transform: rotate(360deg); } }
+@keyframes reply-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
 
 /* ── Replies expand transition ───────────────────────────── */
 .replies-expand-enter-active {
-    transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.33, 1, 0.68, 1);
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s cubic-bezier(0.33, 1, 0.68, 1);
 }
 .replies-expand-leave-active {
-    transition: opacity 0.12s ease, transform 0.12s ease;
+    transition:
+        opacity 0.12s ease,
+        transform 0.12s ease;
 }
 .replies-expand-enter-from,
 .replies-expand-leave-to {
@@ -1099,7 +1794,8 @@ async function deleteComment(commentId, parentId) {
     align-items: center;
     justify-content: space-between;
     font-size: 0.68rem;
-    color: rgba(160, 160, 255, 0.6);
+    color: var(--color-base-1);
+    opacity: 0.6;
     margin-bottom: 0.35rem;
 }
 .detail__reply-cancel {
@@ -1112,7 +1808,9 @@ async function deleteComment(commentId, parentId) {
     line-height: 1;
     transition: color 0.12s;
 }
-.detail__reply-cancel:hover { color: rgba(255, 255, 255, 0.6); }
+.detail__reply-cancel:hover {
+    color: rgba(255, 255, 255, 0.6);
+}
 .detail__input-row {
     position: relative;
 }
@@ -1130,29 +1828,38 @@ async function deleteComment(commentId, parentId) {
     resize: none;
     outline: none;
     line-height: 1.55;
-    transition: border-color 0.15s, background 0.15s;
+    transition:
+        border-color 0.15s,
+        background 0.15s;
 }
 .detail__textarea:focus {
-    border-color: rgba(160, 160, 255, 0.4);
+    border-color: var(--color-base-1);
     background: rgba(255, 255, 255, 0.06);
 }
-.detail__textarea::placeholder { color: rgba(255, 255, 255, 0.4); }
+.detail__textarea::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
 .detail__send-btn {
     position: absolute;
     right: 0.5rem;
     bottom: 0.5rem;
     padding: 0.28rem 0.6rem;
-    background: rgba(160, 160, 255, 0.18);
-    border: 1px solid rgba(160, 160, 255, 0.45);
-    border-bottom: 2px solid rgba(160, 160, 255, 0.6);
+    background: rgba(255, 178, 239, 0.18);
+    border: 1px solid rgba(255, 178, 239, 0.45);
+    border-bottom: 2px solid rgba(255, 178, 239, 0.6);
     border-radius: 5px;
-    color: rgba(160, 160, 255, 0.9);
+    color: var(--color-base-1);
+    opacity: 0.9;
     font-family: inherit;
     font-size: 0.72rem;
     font-weight: 600;
     letter-spacing: 0.03em;
     cursor: pointer;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    transition:
+        background 0.15s,
+        color 0.15s,
+        border-color 0.15s,
+        opacity 0.15s;
     white-space: nowrap;
     display: flex;
     align-items: center;
@@ -1162,14 +1869,20 @@ async function deleteComment(commentId, parentId) {
     font-size: 1rem;
 }
 .detail__send-btn:hover:not(:disabled) {
-    background: rgba(160, 160, 255, 0.3);
-    border-color: rgba(160, 160, 255, 0.75);
-    border-bottom-color: rgba(160, 160, 255, 0.9);
-    color: rgba(160, 160, 255, 1);
+    background: rgba(255, 178, 239, 0.3);
+    border-color: rgba(255, 178, 239, 0.75);
+    border-bottom-color: var(--color-base-1);
+    color: var(--color-base-1);
+    opacity: 1;
 }
-.detail__send-btn:disabled { opacity: 0.3; cursor: default; }
+.detail__send-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
 @keyframes detail-spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 .detail__send-spinner {
     display: inline-block;
@@ -1189,7 +1902,10 @@ async function deleteComment(commentId, parentId) {
     color: rgba(255, 255, 255, 0.3);
     pointer-events: none;
 }
-.detail__char--warn { color: rgba(160, 160, 255, 0.8); }
+.detail__char--warn {
+    color: var(--color-base-1);
+    opacity: 0.8;
+}
 .detail__err {
     font-size: 0.65rem;
     color: rgba(239, 68, 68, 0.7);
@@ -1224,7 +1940,9 @@ async function deleteComment(commentId, parentId) {
         overflow-y: auto;
         scrollbar-width: none;
     }
-    .detail__scroll::-webkit-scrollbar { display: none; }
+    .detail__scroll::-webkit-scrollbar {
+        display: none;
+    }
 
     /* Left: natural flow */
     .detail__left {
@@ -1240,7 +1958,9 @@ async function deleteComment(commentId, parentId) {
         min-height: unset;
         overflow: visible;
     }
-    .detail__photo { max-height: 65vw; }
+    .detail__photo {
+        max-height: 65vw;
+    }
 
     /* Right: natural flow, no internal scroll */
     .detail__right {
@@ -1261,7 +1981,7 @@ async function deleteComment(commentId, parentId) {
         grid-area: unset;
         flex-shrink: 0;
         background: rgb(10, 9, 20);
-        border-top: 1px solid rgba(160, 160, 255, 0.12);
+        border-top: 1px solid rgba(255, 178, 239, 0.12);
         padding: 0.6rem 0.75rem 0.75rem;
     }
 
@@ -1280,9 +2000,16 @@ async function deleteComment(commentId, parentId) {
     }
 
     /* Send button */
-    .detail__send-label { display: none; }
-    .detail__send-icon  { font-size: 1.3rem; }
-    .detail__send-btn   { bottom: 0.5rem; padding: 0.35rem 0.5rem; }
+    .detail__send-label {
+        display: none;
+    }
+    .detail__send-icon {
+        font-size: 1.3rem;
+    }
+    .detail__send-btn {
+        bottom: 0.5rem;
+        padding: 0.35rem 0.5rem;
+    }
 }
 </style>
 
@@ -1299,8 +2026,12 @@ async function deleteComment(commentId, parentId) {
     animation: fs-in 0.18s ease;
 }
 @keyframes fs-in {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
 }
 .photo-fullscreen__img {
     max-width: 92vw;
@@ -1324,7 +2055,9 @@ async function deleteComment(commentId, parentId) {
     justify-content: center;
     color: rgba(255, 255, 255, 0.75);
     cursor: pointer;
-    transition: background 0.15s, color 0.15s;
+    transition:
+        background 0.15s,
+        color 0.15s;
 }
 .photo-fullscreen__close:hover {
     background: rgba(255, 255, 255, 0.16);

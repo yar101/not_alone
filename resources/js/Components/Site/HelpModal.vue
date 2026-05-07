@@ -557,8 +557,8 @@ async function submitDispute() {
     padding: 0 0 0.5rem;
     background: linear-gradient(
         180deg,
-        rgba(110, 110, 210, 0.06) 0%,
-        rgba(110, 110, 210, 0.02) 40%,
+        rgba(255, 178, 239, 0.06) 0%,
+        rgba(255, 178, 239, 0.02) 40%,
         transparent 100%
     );
     border-radius: 3px 0 0 3px;
@@ -577,7 +577,7 @@ async function submitDispute() {
     font-weight: 600;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: rgba(110, 110, 210, 0.45);
+    color: rgba(255, 178, 239, 0.45);
     padding: 0.5rem 0.9rem;
     margin-bottom: 0.15rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.04);
@@ -627,7 +627,7 @@ async function submitDispute() {
     font-family: 'Courier New', 'Courier', monospace;
     font-size: 0.65rem;
     letter-spacing: 0.14em;
-    color: rgba(110, 110, 210, 0.55);
+    color: rgba(255, 178, 239, 0.55);
     margin-bottom: 0.3rem;
 }
 
@@ -639,8 +639,8 @@ async function submitDispute() {
     line-height: 1.2;
     color: rgba(255, 255, 255, 0.92);
     text-shadow:
-        0 0 25px rgba(110, 110, 210, 0.35),
-        0 0 60px rgba(110, 110, 210, 0.15);
+        0 0 25px rgba(255, 178, 239, 0.35),
+        0 0 60px rgba(255, 178, 239, 0.15);
 }
 
 .faq-accordions {
@@ -672,10 +672,10 @@ async function submitDispute() {
 }
 .faq-subsection-item:last-child { border-bottom: none; }
 .faq-subsection-item:hover {
-    background: rgba(110,110,210,0.06);
+    background: rgba(255, 178, 239,0.06);
 }
 .faq-subsection-item:hover .faq-subsection-item__arrow {
-    color: rgba(110,110,210,0.8);
+    color: rgba(255, 178, 239,0.8);
     transform: translateX(2px);
 }
 
@@ -716,7 +716,7 @@ async function submitDispute() {
     padding: 0;
     transition: color 0.15s;
 }
-.faq-back-btn:hover { color: rgba(110,110,210,0.85); }
+.faq-back-btn:hover { color: rgba(255, 178, 239,0.85); }
 
 .faq-answer-body {
     font-size: 1rem;
@@ -726,7 +726,7 @@ async function submitDispute() {
 .faq-answer-body :deep(p) { margin-bottom: 0.65rem; }
 .faq-answer-body :deep(p:last-child) { margin-bottom: 0; }
 .faq-answer-body :deep(strong) { color: rgba(255,255,255,0.75); font-weight: 500; }
-.faq-answer-body :deep(a) { color: rgba(110,110,210,0.85); text-decoration: none; transition: color 0.15s; }
+.faq-answer-body :deep(a) { color: rgba(255, 178, 239,0.85); text-decoration: none; transition: color 0.15s; }
 .faq-answer-body :deep(a:hover) { color: rgba(160,150,255,0.9); text-decoration: underline; }
 
 .faq-cat-icon {
@@ -777,8 +777,8 @@ async function submitDispute() {
 .faq-action-btn svg { flex-shrink: 0; opacity: 0.7; }
 
 .faq-action-btn--support:hover {
-    background: rgba(110, 110, 210, 0.1);
-    border-color: rgba(110, 110, 210, 0.3);
+    background: rgba(255, 178, 239, 0.1);
+    border-color: rgba(255, 178, 239, 0.3);
     color: rgba(160, 140, 255, 0.9);
 }
 .faq-action-btn--dispute:hover {
@@ -881,7 +881,7 @@ async function submitDispute() {
 
     .faq-content__title {
         font-size: 1.25rem;
-        text-shadow: 0 0 18px rgba(110, 110, 210, 0.3);
+        text-shadow: 0 0 18px rgba(255, 178, 239, 0.3);
     }
 
     /* Footer actions скрыт — actions живут внизу sidebar */
@@ -906,7 +906,7 @@ async function submitDispute() {
     }
     :deep(.faq-nav-item:hover),
     :deep(.faq-nav-item:active) {
-        background: rgba(110,110,210,0.07);
+        background: rgba(255, 178, 239,0.07);
     }
     :deep(.faq-nav-item__icon-wrap) {
         width: 36px;
@@ -974,8 +974,8 @@ async function submitDispute() {
         min-height: 44px;
         padding: 0 1rem;
         border-radius: 6px;
-        border: 1px solid rgba(110,110,210,0.2);
-        background: rgba(110,110,210,0.07);
+        border: 1px solid rgba(255, 178, 239,0.2);
+        background: rgba(255, 178, 239,0.07);
         color: rgba(255,255,255,0.55);
         font-size: 0.85rem;
         font-family: inherit;
@@ -983,8 +983,8 @@ async function submitDispute() {
         transition: background 0.15s, border-color 0.15s, color 0.15s;
     }
     .faq-mob-back:active {
-        background: rgba(110,110,210,0.15);
-        border-color: rgba(110,110,210,0.4);
+        background: rgba(255, 178, 239,0.15);
+        border-color: rgba(255, 178, 239,0.4);
         color: rgba(255,255,255,0.85);
     }
 
@@ -994,15 +994,15 @@ async function submitDispute() {
         padding: 0 1rem;
         gap: 0.55rem;
         border-radius: 6px;
-        border: 1px solid rgba(110,110,210,0.2);
-        background: rgba(110,110,210,0.07);
+        border: 1px solid rgba(255, 178, 239,0.2);
+        background: rgba(255, 178, 239,0.07);
         color: rgba(255,255,255,0.55);
         font-size: 0.85rem;
         transition: background 0.15s, border-color 0.15s, color 0.15s;
     }
     .faq-back-btn:active {
-        background: rgba(110,110,210,0.15);
-        border-color: rgba(110,110,210,0.4);
+        background: rgba(255, 178, 239,0.15);
+        border-color: rgba(255, 178, 239,0.4);
         color: rgba(255,255,255,0.85);
     }
 
@@ -1054,7 +1054,7 @@ async function submitDispute() {
 .dispute-textarea {
     width: 100%;
     background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(110,110,210,0.25);
+    border: 1px solid rgba(255, 178, 239,0.25);
     border-radius: 3px;
     color: rgba(255,255,255,0.85);
     font-size: 0.82rem;
@@ -1066,7 +1066,7 @@ async function submitDispute() {
 
 .dispute-select:focus,
 .dispute-textarea:focus {
-    border-color: rgba(110,110,210,0.55);
+    border-color: rgba(255, 178, 239,0.55);
 }
 
 .dispute-select option {
@@ -1086,19 +1086,19 @@ async function submitDispute() {
 }
 .dispute-orders-list::-webkit-scrollbar { width: 4px; }
 .dispute-orders-list::-webkit-scrollbar-track { background: transparent; }
-.dispute-orders-list::-webkit-scrollbar-thumb { background: rgba(110,110,210,0.3); border-radius: 2px; }
+.dispute-orders-list::-webkit-scrollbar-thumb { background: rgba(255, 178, 239,0.3); border-radius: 2px; }
 
 .dispute-order-card {
     padding: 0.55rem 0.75rem;
-    border: 1px solid rgba(110,110,210,0.2);
+    border: 1px solid rgba(255, 178, 239,0.2);
     border-radius: 4px;
     cursor: pointer;
     background: rgba(255,255,255,0.03);
     transition: border-color 0.15s, background 0.15s;
     flex-shrink: 0;
 }
-.dispute-order-card:hover { background: rgba(110,110,210,0.05); border-color: rgba(110,110,210,0.4); }
-.dispute-order-card--active { border-color: rgba(110,110,210,0.65); background: rgba(110,110,210,0.09); }
+.dispute-order-card:hover { background: rgba(255, 178, 239,0.05); border-color: rgba(255, 178, 239,0.4); }
+.dispute-order-card--active { border-color: rgba(255, 178, 239,0.65); background: rgba(255, 178, 239,0.09); }
 
 .dispute-order-card__top {
     display: flex;
@@ -1144,8 +1144,8 @@ async function submitDispute() {
 .dispute-submit {
     margin-top: 0.5rem;
     padding: 0.55rem 1rem;
-    background: rgba(110,110,210,0.1);
-    border: 1px solid rgba(110,110,210,0.35);
+    background: rgba(255, 178, 239,0.1);
+    border: 1px solid rgba(255, 178, 239,0.35);
     color: rgba(160,150,255,0.9);
     font-size: 0.8rem;
     font-weight: 600;
@@ -1157,8 +1157,8 @@ async function submitDispute() {
 }
 
 .dispute-submit:hover:not(:disabled) {
-    background: rgba(110,110,210,0.17);
-    border-color: rgba(110,110,210,0.6);
+    background: rgba(255, 178, 239,0.17);
+    border-color: rgba(255, 178, 239,0.6);
 }
 
 .dispute-submit:disabled {

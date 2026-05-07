@@ -99,7 +99,7 @@ onUnmounted(() => document.removeEventListener('click', onDocClick, true));
     top: calc(100% + 6px);
     left: 0;
     background: rgb(12, 10, 20);
-    border: 1px solid rgba(160,160,255,0.2);
+    border: 1px solid rgba(255, 178, 239,0.2);
     border-radius: 6px;
     z-index: 20;
     width: max-content;
@@ -131,8 +131,8 @@ onUnmounted(() => document.removeEventListener('click', onDocClick, true));
     white-space: nowrap;
     transition: color 0.12s, background 0.12s;
 }
-.sd-option:hover { background: rgba(160,160,255,0.07); color: rgba(200,200,255,0.9); }
-.sd-option--active { color: var(--color-base-1, #a0a0ff); }
+.sd-option:hover { background: rgba(255, 178, 239,0.07); color: rgba(200,200,255,0.9); }
+.sd-option--active { color: var(--color-base-1, #ffb2ef); }
 
 .sd-drop-enter-active, .sd-drop-leave-active { transition: opacity 0.12s, transform 0.12s; }
 .sd-drop-enter-from, .sd-drop-leave-to { opacity: 0; transform: translateY(-4px); }
