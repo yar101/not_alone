@@ -4401,8 +4401,9 @@ function formatDate(iso) {
 
 .chat-main__name-row {
     display: flex;
-    align-items: start;
+    align-items: center;
     gap: 0.5rem;
+    min-width: 0;
 }
 
 .chat-main__name {
@@ -4411,6 +4412,9 @@ function formatDate(iso) {
     color: rgba(255, 255, 255, 0.9);
     text-decoration: none;
     transition: color 0.15s;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .chat-main__name:hover {
@@ -4425,6 +4429,7 @@ function formatDate(iso) {
     font-size: 0.78rem;
     color: rgba(80, 220, 140, 0.85);
     visibility: hidden;
+    flex-shrink: 0;
     /* место зарезервировано всегда */
 }
 
@@ -6715,7 +6720,7 @@ function formatDate(iso) {
     border: 1px dashed rgba(100, 210, 255, 0.2);
     border-radius: 4px;
     padding: 0.65rem 1.1rem;
-    width: min(620px, 90vw);
+    width: min(620px, 86vw);
     max-width: 100%;
     display: flex;
     flex-direction: column;
@@ -6867,7 +6872,8 @@ function formatDate(iso) {
     white-space: normal;
     overflow: visible;
     max-width: 55%;
-    flex-shrink: 0;
+    flex-shrink: 1;
+    min-width: 0;
 }
 
 .sc-line__dots {
@@ -7105,6 +7111,11 @@ function formatDate(iso) {
 
     .chat-main__back-btn {
         display: flex;
+    }
+
+    .chat-main__header {
+        justify-content: flex-start;
+        gap: 0.6rem;
     }
 }
 
