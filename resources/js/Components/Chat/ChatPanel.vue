@@ -1,19 +1,27 @@
 <script setup>
-import { ref, watch, onMounted, onUnmounted, computed, nextTick, inject } from 'vue';
-import { usePage, router } from '@inertiajs/vue3';
-import SiteModal from '@/Components/Site/SiteModal.vue';
-import axios from 'axios';
-import { Check, Lock } from '@element-plus/icons-vue';
-import IdolBadge from '@/Components/IdolBadge.vue';
-import ServiceOfferModal from '@/Components/Chat/ServiceOfferModal.vue';
-import ReviewForm from '@/Components/Chat/ReviewForm.vue';
-import RepeatOrderModal from '@/Components/Chat/RepeatOrderModal.vue';
-import { useTranslations } from '@/composables/useTranslations';
+import {
+    ref,
+    watch,
+    onMounted,
+    onUnmounted,
+    computed,
+    nextTick,
+    inject,
+} from "vue";
+import { usePage, router } from "@inertiajs/vue3";
+import SiteModal from "@/Components/Site/SiteModal.vue";
+import axios from "axios";
+import { Check, Lock } from "@element-plus/icons-vue";
+import IdolBadge from "@/Components/IdolBadge.vue";
+import ServiceOfferModal from "@/Components/Chat/ServiceOfferModal.vue";
+import ReviewForm from "@/Components/Chat/ReviewForm.vue";
+import RepeatOrderModal from "@/Components/Chat/RepeatOrderModal.vue";
+import { useTranslations } from "@/composables/useTranslations";
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
 });
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(["update:modelValue"]);
 
 const page = usePage();
 const { __, transChoice, locale } = useTranslations();
@@ -21,13 +29,13 @@ const authUser = computed(() => page.props.auth.user);
 
 const isOpen = computed({
     get: () => props.modelValue,
-    set: (v) => emit('update:modelValue', v),
+    set: (v) => emit("update:modelValue", v),
 });
 
 const conversations = ref([]);
 const activeConversation = ref(null);
 const messages = ref([]);
-const newMessage = ref('');
+const newMessage = ref("");
 const isTyping = ref(false);
 const typingTimer = ref(null);
 const loadingConvs = ref(false);
@@ -46,11 +54,11 @@ const messagesContainer = ref(null);
 const otherLastReadAt = ref(null);
 const hasMore = ref(false);
 const loadingMore = ref(false);
-const searchQuery = ref('');
+const searchQuery = ref("");
 
 // Online status — from global presence channel in AppLayout
-const onlineUserIds = inject('onlineUserIds', ref([]));
-const injectAddToCart = inject('addToCart', null);
+const onlineUserIds = inject("onlineUserIds", ref([]));
+const injectAddToCart = inject("addToCart", null);
 const showOfferModal = ref(false);
 const repeatOrderOpen = ref(false);
 const confirmAddModal = ref(false);
@@ -59,64 +67,83 @@ const confirmAddService = ref(null); // { id, name, price, time_unit }
 const confirmAddLoading = ref(false);
 
 // ── Orders tab ────────────────────────────────────────────
-const activeTab = ref('messages'); // 'messages' | 'orders'
+const activeTab = ref("messages"); // 'messages' | 'orders'
 const orders = ref([]);
 const loadingOrders = ref(false);
 const loadingMoreOrders = ref(false);
 const ordersHasMore = ref(false);
 const ordersCursor = ref(null); // id последнего загруженного заказа
 const activeOrderData = ref(null); // order data for the current open conversation
-const ordersSubTab = ref('mine'); // 'mine' | 'incoming' — only used when authUser is idol
+const ordersSubTab = ref("mine"); // 'mine' | 'incoming' — only used when authUser is idol
 
-const orderStatusFilter = ref('all'); // 'all' | 'pending' | 'accepted' | 'cancelled'
-const orderSearch = ref('');
+const orderStatusFilter = ref("all"); // 'all' | 'pending' | 'accepted' | 'cancelled'
+const orderSearch = ref("");
 const orderFiltersOpen = ref(false);
-const orderCounts = ref({ all: 0, pending: 0, accepted: 0, paid: 0, completed: 0, cancelled: 0, refunded: 0, disputed: 0 });
+const orderCounts = ref({
+    all: 0,
+    pending: 0,
+    accepted: 0,
+    paid: 0,
+    completed: 0,
+    cancelled: 0,
+    refunded: 0,
+    disputed: 0,
+});
 const convUnreadOnly = ref(false);
 const orderUnreadOnly = ref(false);
 
 const isMobile = ref(false);
-function checkMobile() { isMobile.value = window.innerWidth < 768; }
-
+function checkMobile() {
+    isMobile.value = window.innerWidth < 768;
+}
 
 const subtabOrders = computed(() => orders.value);
 
 const pendingOrderUnread = ref(false);
 
 // Instant dots from server-shared props — no fetch required
-const messagesHaveUnread = computed(() => (page.props.unread_direct_count ?? 0) > 0);
-const ordersHaveUnread = computed(() =>
-    pendingOrderUnread.value ||
-    (page.props.unread_orders_count ?? 0) > 0 ||
-    orders.value.some(o => (o.unread_count ?? 0) > 0)
+const messagesHaveUnread = computed(
+    () => (page.props.unread_direct_count ?? 0) > 0,
 );
-const mineHaveUnread = computed(() =>
-    (page.props.unread_mine_count ?? 0) > 0 ||
-    orders.value.filter(o => o.is_customer).some(o => (o.unread_count ?? 0) > 0)
+const ordersHaveUnread = computed(
+    () =>
+        pendingOrderUnread.value ||
+        (page.props.unread_orders_count ?? 0) > 0 ||
+        orders.value.some((o) => (o.unread_count ?? 0) > 0),
 );
-const incomingHaveUnread = computed(() =>
-    (page.props.unread_incoming_count ?? 0) > 0 ||
-    orders.value.filter(o => !o.is_customer).some(o => (o.unread_count ?? 0) > 0)
+const mineHaveUnread = computed(
+    () =>
+        (page.props.unread_mine_count ?? 0) > 0 ||
+        orders.value
+            .filter((o) => o.is_customer)
+            .some((o) => (o.unread_count ?? 0) > 0),
+);
+const incomingHaveUnread = computed(
+    () =>
+        (page.props.unread_incoming_count ?? 0) > 0 ||
+        orders.value
+            .filter((o) => !o.is_customer)
+            .some((o) => (o.unread_count ?? 0) > 0),
 );
 
 const orderStatusLabels = computed(() => ({
-    pending: __('order.status.pending'),
-    accepted: __('order.status.accepted'),
-    paid: __('order.status.paid'),
-    completed: __('order.status.completed'),
-    cancelled: __('order.status.cancelled'),
-    refunded: __('order.status.refunded'),
-    disputed: __('order.status.disputed'),
+    pending: __("order.status.pending"),
+    accepted: __("order.status.accepted"),
+    paid: __("order.status.paid"),
+    completed: __("order.status.completed"),
+    cancelled: __("order.status.cancelled"),
+    refunded: __("order.status.refunded"),
+    disputed: __("order.status.disputed"),
 }));
 
 const visibleOrders = computed(() => subtabOrders.value);
 
 // ── Pay / complete / timer ────────────────────────────────
 const orderTimerLabel = computed(() => {
-    if (activeOrderData.value?.status !== 'paid') return '';
+    if (activeOrderData.value?.status !== "paid") return "";
     const paidAt = activeOrderData.value?.paid_at;
-    if (!paidAt) return '— : — : —';
-    
+    if (!paidAt) return "— : — : —";
+
     let deadline;
     if (activeOrderData.value.auto_complete_at) {
         deadline = new Date(activeOrderData.value.auto_complete_at).getTime();
@@ -129,15 +156,16 @@ const orderTimerLabel = computed(() => {
     if (diff === 0) {
         // Show "Completing..." only for first 10 seconds after deadline
         const secondsPast = Math.floor((nowTick.value - deadline) / 1000);
-        return secondsPast < 10 ? __('chat.completing') : '00:00:00';
+        return secondsPast < 10 ? __("chat.completing") : "00:00:00";
     }
     const totalSec = Math.floor(diff / 1000);
     const days = Math.floor(totalSec / 86400);
     const hours = Math.floor((totalSec % 86400) / 3600);
     const mins = Math.floor((totalSec % 3600) / 60);
     const secs = totalSec % 60;
-    if (days > 0) return `${days} ${__('chat.days')} ${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-    return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    if (days > 0)
+        return `${days} ${__("chat.days")} ${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 });
 
 const myConfirmation = computed(() => {
@@ -148,28 +176,40 @@ const myConfirmation = computed(() => {
 });
 
 async function payOrder() {
-    if (!activeOrderData.value || activeOrderData.value.status !== 'accepted' || orderAction.value) return;
-    orderAction.value = 'pay';
+    if (
+        !activeOrderData.value ||
+        activeOrderData.value.status !== "accepted" ||
+        orderAction.value
+    )
+        return;
+    orderAction.value = "pay";
     try {
-        await axios.patch(route('orders.pay', activeOrderData.value.id));
+        await axios.patch(route("orders.pay", activeOrderData.value.id));
     } finally {
-        orderAction.value = '';
+        orderAction.value = "";
     }
 }
 
 async function confirmCompletion() {
-    if (!activeOrderData.value || activeOrderData.value.status !== 'paid' || orderAction.value) return;
-    orderAction.value = 'complete';
+    if (
+        !activeOrderData.value ||
+        activeOrderData.value.status !== "paid" ||
+        orderAction.value
+    )
+        return;
+    orderAction.value = "complete";
     try {
-        await axios.patch(route('orders.confirm-completion', activeOrderData.value.id));
+        await axios.patch(
+            route("orders.confirm-completion", activeOrderData.value.id),
+        );
         completeModal.value = false;
     } finally {
-        orderAction.value = '';
+        orderAction.value = "";
     }
 }
 
 // ── Order action loading ('accept' | 'pay' | 'complete' | '')
-const orderAction = ref('');
+const orderAction = ref("");
 
 // ── Accept order confirm modal ────────────────────────────
 const acceptModal = ref(false);
@@ -179,28 +219,30 @@ const completeModal = ref(false);
 
 // ── Cancel order modal ────────────────────────────────────
 const cancelModal = ref(false);
-const cancelReason = ref('');
+const cancelReason = ref("");
 const cancelSubmitting = ref(false);
 const cancelTemplatesCustomer = computed(() => [
-    __('order.cancel.customer.1'),
-    __('order.cancel.customer.2'),
-    __('order.cancel.customer.3'),
-    __('order.cancel.customer.4'),
-    __('order.cancel.customer.5'),
-    __('order.cancel.customer.6'),
+    __("order.cancel.customer.1"),
+    __("order.cancel.customer.2"),
+    __("order.cancel.customer.3"),
+    __("order.cancel.customer.4"),
+    __("order.cancel.customer.5"),
+    __("order.cancel.customer.6"),
 ]);
 
 const cancelTemplatesIdol = computed(() => [
-    __('order.cancel.idol.1'),
-    __('order.cancel.idol.2'),
-    __('order.cancel.idol.3'),
-    __('order.cancel.idol.4'),
-    __('order.cancel.idol.5'),
-    __('order.cancel.idol.6'),
+    __("order.cancel.idol.1"),
+    __("order.cancel.idol.2"),
+    __("order.cancel.idol.3"),
+    __("order.cancel.idol.4"),
+    __("order.cancel.idol.5"),
+    __("order.cancel.idol.6"),
 ]);
 
 const cancelTemplates = computed(() =>
-    activeOrderData.value?.is_customer ? cancelTemplatesCustomer.value : cancelTemplatesIdol.value
+    activeOrderData.value?.is_customer
+        ? cancelTemplatesCustomer.value
+        : cancelTemplatesIdol.value,
 );
 
 // ── Avatar fullscreen ─────────────────────────────────────
@@ -209,7 +251,7 @@ const avatarFullscreen = ref(false);
 // ── Block state ───────────────────────────────────────────
 const activeBlock = ref(null);
 const blockModal = ref(false);
-const blockReason = ref('');
+const blockReason = ref("");
 const blockDuration = ref(null);
 const blockDurationChosen = ref(false);
 const blockSubmitting = ref(false);
@@ -217,37 +259,45 @@ const blockSubmitting = ref(false);
 const blockReasons = computed(() => page.props.chat_block_reasons ?? []);
 
 const blockDurations = computed(() => [
-    { label: __('chat.block.dur.1h'), minutes: 60 },
-    { label: __('chat.block.dur.24h'), minutes: 1440 },
-    { label: __('chat.block.dur.7d'), minutes: 10080 },
-    { label: __('chat.block.dur.30d'), minutes: 43200 },
-    { label: __('chat.block.dur.forever'), minutes: null },
+    { label: __("chat.block.dur.1h"), minutes: 60 },
+    { label: __("chat.block.dur.24h"), minutes: 1440 },
+    { label: __("chat.block.dur.7d"), minutes: 10080 },
+    { label: __("chat.block.dur.30d"), minutes: 43200 },
+    { label: __("chat.block.dur.forever"), minutes: null },
 ]);
 
 const nowTick = ref(Date.now());
 let nowTimer = null;
 onMounted(() => {
-    nowTimer = setInterval(() => { nowTick.value = Date.now(); }, 1000);
+    nowTimer = setInterval(() => {
+        nowTick.value = Date.now();
+    }, 1000);
     subscribeUserEcho();
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    window.addEventListener('popstate', onCpPopstate, true);
+    window.addEventListener("resize", checkMobile);
+    window.addEventListener("popstate", onCpPopstate, true);
 });
 
 const blockedUntilLabel = computed(() => {
-    if (!activeBlock.value) return '';
-    if (!activeBlock.value.blocked_until) return __('chat.block.dur.forever');
-    const diff = Math.max(0, new Date(activeBlock.value.blocked_until).getTime() - nowTick.value);
-    if (diff === 0) return __('chat.block.expired');
+    if (!activeBlock.value) return "";
+    if (!activeBlock.value.blocked_until) return __("chat.block.dur.forever");
+    const diff = Math.max(
+        0,
+        new Date(activeBlock.value.blocked_until).getTime() - nowTick.value,
+    );
+    if (diff === 0) return __("chat.block.expired");
     const totalSec = Math.floor(diff / 1000);
     const days = Math.floor(totalSec / 86400);
     const hours = Math.floor((totalSec % 86400) / 3600);
     const mins = Math.floor((totalSec % 3600) / 60);
     const secs = totalSec % 60;
-    if (days > 0) return `${days} ${__('chat.block.time.d')} ${hours} ${__('chat.block.time.h')}`;
-    if (hours > 0) return `${hours} ${__('chat.block.time.h')} ${mins} ${__('chat.block.time.m')}`;
-    if (mins > 0) return `${mins} ${__('chat.block.time.m')} ${secs} ${__('chat.block.time.s')}`;
-    return `${secs} ${__('chat.block.time.s')}`;
+    if (days > 0)
+        return `${days} ${__("chat.block.time.d")} ${hours} ${__("chat.block.time.h")}`;
+    if (hours > 0)
+        return `${hours} ${__("chat.block.time.h")} ${mins} ${__("chat.block.time.m")}`;
+    if (mins > 0)
+        return `${mins} ${__("chat.block.time.m")} ${secs} ${__("chat.block.time.s")}`;
+    return `${secs} ${__("chat.block.time.s")}`;
 });
 
 let echoChannel = null;
@@ -255,22 +305,24 @@ let ordersEchoChannel = null;
 let userEchoChannel = null;
 
 // ── Back-gesture (History API) ───────────────────────────
-let cpDepth = 0;   // how many cp states we pushed
-let cpIgnoreTill = 0;  // timestamp until which to ignore popstate
+let cpDepth = 0; // how many cp states we pushed
+let cpIgnoreTill = 0; // timestamp until which to ignore popstate
 let ignoreNextModalPrune = false;
 
 const isAnyModalOpen = computed(() => {
-    return blockModal.value || 
-           cancelModal.value || 
-           confirmAddModal.value || 
-           acceptModal.value || 
-           completeModal.value || 
-           showOfferModal.value || 
-           repeatOrderOpen.value;
+    return (
+        blockModal.value ||
+        cancelModal.value ||
+        confirmAddModal.value ||
+        acceptModal.value ||
+        completeModal.value ||
+        showOfferModal.value ||
+        repeatOrderOpen.value
+    );
 });
 
 function pushCp(state) {
-    history.pushState({ modal: 'sm', cp: state }, '');
+    history.pushState({ modal: "sm", cp: state }, "");
     cpDepth++;
 }
 
@@ -294,10 +346,10 @@ function onCpPopstate(e) {
 
     // Every popstate we handle reduces our internal depth
     cpDepth = Math.max(0, cpDepth - 1);
-    
+
     // Stop other listeners (like SiteModal's onSmPopstate) from closing the panel
     // if we are still within the chat panel's history states.
-    if (e.state?.modal === 'sm') {
+    if (e.state?.modal === "sm") {
         e.stopImmediatePropagation();
     }
 
@@ -326,7 +378,7 @@ function onCpPopstate(e) {
 // Watch for modal changes to push history state
 watch(isAnyModalOpen, (newVal, oldVal) => {
     if (newVal && !oldVal && isOpen.value) {
-        pushCp('modal');
+        pushCp("modal");
     } else if (!newVal && oldVal) {
         // If it was a back gesture, onCpPopstate already handled it
         if (ignoreNextModalPrune) {
@@ -362,9 +414,11 @@ async function fetchConversations(reset = true) {
             params.cursor_at = convsCursor.value.at;
             params.cursor_id = convsCursor.value.id;
         }
-        const res = await axios.get(route('conversations.index'), { params });
+        const res = await axios.get(route("conversations.index"), { params });
         const fresh = res.data.conversations ?? [];
-        conversations.value = reset ? fresh : [...conversations.value, ...fresh];
+        conversations.value = reset
+            ? fresh
+            : [...conversations.value, ...fresh];
         convsHasMore.value = res.data.has_more ?? false;
         if (fresh.length > 0) {
             const last = fresh[fresh.length - 1];
@@ -386,13 +440,13 @@ async function openConversation(conv) {
     loadingMsgs.value = true;
     activeConversation.value = conv;
     messages.value = [];
-    newMessage.value = '';
+    newMessage.value = "";
     isTyping.value = false;
     otherLastReadAt.value = null;
     hasMore.value = false;
 
     try {
-        const res = await axios.get(route('conversations.show', conv.id));
+        const res = await axios.get(route("conversations.show", conv.id));
         messages.value = res.data.messages;
         hasMore.value = res.data.has_more;
         otherLastReadAt.value = res.data.other_last_read_at ?? null;
@@ -405,11 +459,19 @@ async function openConversation(conv) {
             is_support: res.data.is_support ?? conv.is_support ?? false,
             closed_at: res.data.closed_at ?? null,
         };
-        const local = conversations.value.find(c => c.id === conv.id);
+        const local = conversations.value.find((c) => c.id === conv.id);
         if (local) local.unread_count = 0;
-        const order = orders.value.find(o => o.conversation_id === conv.id);
+        const order = orders.value.find((o) => o.conversation_id === conv.id);
         if (order) order.unread_count = 0;
-        router.reload({ only: ['unread_messages_count', 'unread_direct_count', 'unread_orders_count', 'unread_mine_count', 'unread_incoming_count'] });
+        router.reload({
+            only: [
+                "unread_messages_count",
+                "unread_direct_count",
+                "unread_orders_count",
+                "unread_mine_count",
+                "unread_incoming_count",
+            ],
+        });
     } finally {
         coverMessages.value = true;
         loadingMsgs.value = false;
@@ -417,30 +479,38 @@ async function openConversation(conv) {
 
     subscribeEcho(conv.id);
     await nextTick();
-    messagesEnd.value?.scrollIntoView({ behavior: 'instant' });
-    setTimeout(() => { coverMessages.value = false; }, 80);
+    messagesEnd.value?.scrollIntoView({ behavior: "instant" });
+    setTimeout(() => {
+        coverMessages.value = false;
+    }, 80);
 }
 
 // ── Start conversation with user (called from outside) ───
 async function startWith(userId) {
     isOpen.value = true;
-    const res = await axios.post(route('conversations.store'), { target_user_id: userId });
+    const res = await axios.post(route("conversations.store"), {
+        target_user_id: userId,
+    });
     const convId = res.data.conversation_id;
 
     await fetchConversations();
-    const conv = conversations.value.find(c => c.id === convId);
-    await openConversation(conv ?? { id: convId, other_user: null, unread_count: 0 });
+    const conv = conversations.value.find((c) => c.id === convId);
+    await openConversation(
+        conv ?? { id: convId, other_user: null, unread_count: 0 },
+    );
 }
 
 async function startConversation(convId) {
     isOpen.value = true;
-    activeTab.value = 'messages';
-    let conv = conversations.value.find(c => c.id === convId);
+    activeTab.value = "messages";
+    let conv = conversations.value.find((c) => c.id === convId);
     if (!conv) {
         await fetchConversations();
-        conv = conversations.value.find(c => c.id === convId);
+        conv = conversations.value.find((c) => c.id === convId);
     }
-    await openConversation(conv ?? { id: convId, other_user: null, unread_count: 0 });
+    await openConversation(
+        conv ?? { id: convId, other_user: null, unread_count: 0 },
+    );
 }
 
 // ── Send message ─────────────────────────────────────────
@@ -449,11 +519,11 @@ async function sendMessage() {
     if (!body || sending.value || !activeConversation.value) return;
 
     sending.value = true;
-    newMessage.value = '';
+    newMessage.value = "";
     try {
         const res = await axios.post(
-            route('conversations.message', activeConversation.value.id),
-            { body }
+            route("conversations.message", activeConversation.value.id),
+            { body },
         );
         messages.value.push(res.data);
         scrollToBottom();
@@ -472,64 +542,97 @@ function handleEnter(e) {
 // ── Whisper typing ───────────────────────────────────────
 function onInput() {
     if (!echoChannel) return;
-    echoChannel.whisper('typing', { user_id: authUser.value?.id });
+    echoChannel.whisper("typing", { user_id: authUser.value?.id });
 }
 
 // ── Echo subscription ────────────────────────────────────
 function subscribeEcho(conversationId) {
     if (!window.Echo || !authUser.value) return;
     echoChannel = window.Echo.private(`conversation.${conversationId}`)
-        .listen('.message.sent', (data) => {
-            if (data.sender_id !== authUser.value.id || data.type === 'system') {
+        .listen(".message.sent", (data) => {
+            if (
+                data.sender_id !== authUser.value.id ||
+                data.type === "system"
+            ) {
                 messages.value.push(data);
                 scrollToBottom();
                 markRead(conversationId);
                 updateLastMessage(conversationId, data);
-                if (data.type !== 'system') playNotificationSound();
+                if (data.type !== "system") playNotificationSound();
             }
-            if (data.type === 'system' && activeConversation.value?.id === conversationId) {
-                if (data.metadata?.event === 'chat_closed') {
-                    activeConversation.value = { ...activeConversation.value, closed_at: data.created_at };
-                } else if (data.metadata?.event === 'chat_opened') {
-                    activeConversation.value = { ...activeConversation.value, closed_at: null };
+            if (
+                data.type === "system" &&
+                activeConversation.value?.id === conversationId
+            ) {
+                if (data.metadata?.event === "chat_closed") {
+                    activeConversation.value = {
+                        ...activeConversation.value,
+                        closed_at: data.created_at,
+                    };
+                } else if (data.metadata?.event === "chat_opened") {
+                    activeConversation.value = {
+                        ...activeConversation.value,
+                        closed_at: null,
+                    };
                 }
             }
         })
-        .listen('.message.read', (data) => {
+        .listen(".message.read", (data) => {
             if (data.reader_id !== authUser.value.id) {
                 otherLastReadAt.value = data.read_at;
             }
         })
-        .listen('.order.status-changed', (data) => {
-            if (activeOrderData.value && activeOrderData.value.id === data.order_id) {
+        .listen(".order.status-changed", (data) => {
+            if (
+                activeOrderData.value &&
+                activeOrderData.value.id === data.order_id
+            ) {
                 activeOrderData.value = {
                     ...activeOrderData.value,
                     status: data.status,
-                    cancelled_by: data.cancelled_by ?? activeOrderData.value.cancelled_by,
-                    cancelled_by_name: data.cancelled_by_name ?? activeOrderData.value.cancelled_by_name,
-                    cancel_reason: data.cancel_reason ?? activeOrderData.value.cancel_reason,
+                    cancelled_by:
+                        data.cancelled_by ?? activeOrderData.value.cancelled_by,
+                    cancelled_by_name:
+                        data.cancelled_by_name ??
+                        activeOrderData.value.cancelled_by_name,
+                    cancel_reason:
+                        data.cancel_reason ??
+                        activeOrderData.value.cancel_reason,
                     paid_at: data.paid_at ?? activeOrderData.value.paid_at,
-                    auto_complete_at: data.auto_complete_at ?? activeOrderData.value.auto_complete_at,
-                    completed_at: data.completed_at ?? activeOrderData.value.completed_at,
-                    completion_confirmed_by_idol: data.completion_confirmed_by_idol ?? activeOrderData.value.completion_confirmed_by_idol,
-                    completion_confirmed_by_customer: data.completion_confirmed_by_customer ?? activeOrderData.value.completion_confirmed_by_customer,
+                    auto_complete_at:
+                        data.auto_complete_at ??
+                        activeOrderData.value.auto_complete_at,
+                    completed_at:
+                        data.completed_at ?? activeOrderData.value.completed_at,
+                    completion_confirmed_by_idol:
+                        data.completion_confirmed_by_idol ??
+                        activeOrderData.value.completion_confirmed_by_idol,
+                    completion_confirmed_by_customer:
+                        data.completion_confirmed_by_customer ??
+                        activeOrderData.value.completion_confirmed_by_customer,
                 };
             }
-            const idx = orders.value.findIndex(o => o.id === data.order_id);
+            const idx = orders.value.findIndex((o) => o.id === data.order_id);
             if (idx !== -1) {
                 orders.value[idx] = {
                     ...orders.value[idx],
                     status: data.status,
-                    cancelled_by: data.cancelled_by ?? orders.value[idx].cancelled_by,
-                    cancelled_by_name: data.cancelled_by_name ?? orders.value[idx].cancelled_by_name,
-                    cancel_reason: data.cancel_reason ?? orders.value[idx].cancel_reason,
+                    cancelled_by:
+                        data.cancelled_by ?? orders.value[idx].cancelled_by,
+                    cancelled_by_name:
+                        data.cancelled_by_name ??
+                        orders.value[idx].cancelled_by_name,
+                    cancel_reason:
+                        data.cancel_reason ?? orders.value[idx].cancel_reason,
                 };
             }
         })
-        .listenForWhisper('typing', () => {
+        .listenForWhisper("typing", () => {
             isTyping.value = true;
             clearTimeout(typingTimer.value);
-            typingTimer.value = setTimeout(() => { isTyping.value = false; }, 2000);
+            typingTimer.value = setTimeout(() => {
+                isTyping.value = false;
+            }, 2000);
         });
 }
 
@@ -545,21 +648,22 @@ function leaveEcho() {
 
 function subscribeOrdersEcho() {
     if (!window.Echo || !authUser.value) return;
-    ordersEchoChannel = window.Echo.private(`orders.${authUser.value.id}`)
-        .listen('.order.changed', ({ change_type, order }) => {
-            const idx = orders.value.findIndex(o => o.id === order.id);
-            if (idx !== -1) {
-                orders.value.splice(idx, 1, {
-                    ...order,
-                    unread_count: orders.value[idx].unread_count ?? 0,
-                });
-            } else {
-                orders.value.unshift({ ...order, unread_count: 0 });
-            }
-            if (activeOrderData.value?.id === order.id) {
-                activeOrderData.value = { ...activeOrderData.value, ...order };
-            }
-        });
+    ordersEchoChannel = window.Echo.private(
+        `orders.${authUser.value.id}`,
+    ).listen(".order.changed", ({ change_type, order }) => {
+        const idx = orders.value.findIndex((o) => o.id === order.id);
+        if (idx !== -1) {
+            orders.value.splice(idx, 1, {
+                ...order,
+                unread_count: orders.value[idx].unread_count ?? 0,
+            });
+        } else {
+            orders.value.unshift({ ...order, unread_count: 0 });
+        }
+        if (activeOrderData.value?.id === order.id) {
+            activeOrderData.value = { ...activeOrderData.value, ...order };
+        }
+    });
 }
 
 function leaveOrdersEcho() {
@@ -571,13 +675,17 @@ function leaveOrdersEcho() {
 
 function subscribeUserEcho() {
     if (!window.Echo || !authUser.value) return;
-    userEchoChannel = window.Echo.private(`App.Models.User.${authUser.value.id}`)
-        .listen('.message.received', handleIncomingMessageForList);
+    userEchoChannel = window.Echo.private(
+        `App.Models.User.${authUser.value.id}`,
+    ).listen(".message.received", handleIncomingMessageForList);
 }
 
 function leaveUserEcho() {
     if (userEchoChannel) {
-        userEchoChannel.stopListening('.message.received', handleIncomingMessageForList);
+        userEchoChannel.stopListening(
+            ".message.received",
+            handleIncomingMessageForList,
+        );
     }
     userEchoChannel = null;
 }
@@ -590,15 +698,24 @@ function handleIncomingMessageForList(data) {
 
     if (order_id) {
         pendingOrderUnread.value = true;
-        const order = orders.value.find(o => o.conversation_id === conversation_id);
+        const order = orders.value.find(
+            (o) => o.conversation_id === conversation_id,
+        );
         if (order) {
             order.unread_count = (order.unread_count ?? 0) + 1;
         }
     } else {
-        const conv = conversations.value.find(c => c.id === conversation_id);
+        const conv = conversations.value.find((c) => c.id === conversation_id);
         if (conv) {
-            const body = last_message?.type === 'image' ? `[${__('chat.photo.label')}]` : (last_message?.body ?? '');
-            conv.last_message = { body, sender_id: last_message?.sender_id, created_at: last_message?.created_at };
+            const body =
+                last_message?.type === "image"
+                    ? `[${__("chat.photo.label")}]`
+                    : (last_message?.body ?? "");
+            conv.last_message = {
+                body,
+                sender_id: last_message?.sender_id,
+                created_at: last_message?.created_at,
+            };
             conv.updated_at = last_message?.created_at;
             conv.unread_count = (conv.unread_count ?? 0) + 1;
         }
@@ -606,19 +723,26 @@ function handleIncomingMessageForList(data) {
 }
 
 async function markRead(conversationId) {
-    await axios.get(route('conversations.show', conversationId));
-    const local = conversations.value.find(c => c.id === conversationId);
+    await axios.get(route("conversations.show", conversationId));
+    const local = conversations.value.find((c) => c.id === conversationId);
     if (local) local.unread_count = 0;
-    const order = orders.value.find(o => o.conversation_id === conversationId);
+    const order = orders.value.find(
+        (o) => o.conversation_id === conversationId,
+    );
     if (order) order.unread_count = 0;
-    router.reload({ only: ['unread_messages_count'] });
+    router.reload({ only: ["unread_messages_count"] });
 }
 
 function updateLastMessage(convId, msg) {
-    const conv = conversations.value.find(c => c.id === convId);
+    const conv = conversations.value.find((c) => c.id === convId);
     if (conv) {
-        const body = msg.type === 'image' ? `[${__('chat.photo.label')}]` : msg.body;
-        conv.last_message = { body, sender_id: msg.sender_id, created_at: msg.created_at };
+        const body =
+            msg.type === "image" ? `[${__("chat.photo.label")}]` : msg.body;
+        conv.last_message = {
+            body,
+            sender_id: msg.sender_id,
+            created_at: msg.created_at,
+        };
         conv.updated_at = msg.created_at;
     }
 }
@@ -626,7 +750,9 @@ function updateLastMessage(convId, msg) {
 // ── Scroll helpers ────────────────────────────────────────
 function scrollToBottom(instant = false) {
     setTimeout(() => {
-        messagesEnd.value?.scrollIntoView({ behavior: instant ? 'instant' : 'smooth' });
+        messagesEnd.value?.scrollIntoView({
+            behavior: instant ? "instant" : "smooth",
+        });
     }, 50);
 }
 
@@ -646,9 +772,12 @@ async function loadOlderMessages() {
     const prevScrollHeight = container?.scrollHeight ?? 0;
 
     try {
-        const res = await axios.get(route('conversations.show', activeConversation.value.id), {
-            params: { before_id: firstId },
-        });
+        const res = await axios.get(
+            route("conversations.show", activeConversation.value.id),
+            {
+                params: { before_id: firstId },
+            },
+        );
         messages.value = [...res.data.messages, ...messages.value];
         hasMore.value = res.data.has_more;
 
@@ -670,12 +799,12 @@ function playNotificationSound() {
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.frequency.value = 880;
-        osc.type = 'sine';
+        osc.type = "sine";
         gain.gain.setValueAtTime(0.08, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
         osc.start();
         osc.stop(ctx.currentTime + 0.25);
-    } catch { }
+    } catch {}
 }
 
 // ── Grouped messages (date dividers + group info) ────────
@@ -695,28 +824,34 @@ const groupedMessages = computed(() => {
 
         if (dateKey !== prevDate) {
             let label;
-            const loc = locale.value?.current === 'ru' ? 'ru-RU' : 'en-US';
+            const loc = locale.value?.current === "ru" ? "ru-RU" : "en-US";
             if (dateKey === today.toDateString()) {
-                label = __('chat.date.today');
+                label = __("chat.date.today");
             } else if (dateKey === yesterday.toDateString()) {
-                label = __('chat.date.yesterday');
+                label = __("chat.date.yesterday");
             } else {
-                label = msgDate.toLocaleDateString(loc, { day: 'numeric', month: 'long' });
+                label = msgDate.toLocaleDateString(loc, {
+                    day: "numeric",
+                    month: "long",
+                });
             }
-            result.push({ type: 'divider', label, key: 'divider-' + dateKey });
+            result.push({ type: "divider", label, key: "divider-" + dateKey });
             prevDate = dateKey;
             prevSenderId = null;
         }
 
         const nextMsg = messages.value[i + 1];
         const nextSenderId = nextMsg?.sender_id;
-        const nextDateKey = nextMsg ? new Date(nextMsg.created_at).toDateString() : null;
+        const nextDateKey = nextMsg
+            ? new Date(nextMsg.created_at).toDateString()
+            : null;
 
         const isFirstInGroup = msg.sender_id !== prevSenderId;
-        const isLastInGroup = msg.sender_id !== nextSenderId || nextDateKey !== dateKey;
+        const isLastInGroup =
+            msg.sender_id !== nextSenderId || nextDateKey !== dateKey;
 
         result.push({
-            type: 'message',
+            type: "message",
             msg,
             isFirstInGroup,
             isLastInGroup,
@@ -736,11 +871,14 @@ const isOtherOnline = computed(() => {
 
 // ── Support chat helpers ──────────────────────────────────
 const isSupport = computed(() => !!activeConversation.value?.is_support);
-const isChatClosed = computed(() => isSupport.value && !!activeConversation.value?.closed_at);
-const showReviewForm = computed(() =>
-    activeOrderData.value?.status === 'completed' &&
-    activeOrderData.value?.is_customer === true &&
-    !hasReview.value
+const isChatClosed = computed(
+    () => isSupport.value && !!activeConversation.value?.closed_at,
+);
+const showReviewForm = computed(
+    () =>
+        activeOrderData.value?.status === "completed" &&
+        activeOrderData.value?.is_customer === true &&
+        !hasReview.value,
 );
 
 function onReviewSubmitted() {
@@ -749,9 +887,9 @@ function onReviewSubmitted() {
         id: Date.now(),
         sender_id: null,
         created_at: new Date().toISOString(),
-        type: 'system',
+        type: "system",
         body: null,
-        metadata: { event: 'review_submitted' },
+        metadata: { event: "review_submitted" },
         read_at: null,
     });
 }
@@ -759,8 +897,10 @@ function onReviewSubmitted() {
 async function onRepeatOrderCreated({ conversation_id }) {
     repeatOrderOpen.value = false;
     await fetchConversations();
-    const conv = conversations.value.find(c => c.id === conversation_id);
-    await openConversation(conv ?? { id: conversation_id, other_user: null, unread_count: 0 });
+    const conv = conversations.value.find((c) => c.id === conversation_id);
+    await openConversation(
+        conv ?? { id: conversation_id, other_user: null, unread_count: 0 },
+    );
 }
 
 function onOfferSent(msg) {
@@ -773,7 +913,7 @@ function onOfferSent(msg) {
 }
 
 function addServiceToCart(svc) {
-    if (activeOrderData.value && activeOrderData.value.status === 'pending') {
+    if (activeOrderData.value && activeOrderData.value.status === "pending") {
         confirmAddService.value = svc;
         confirmAddModal.value = true;
     } else if (injectAddToCart) {
@@ -786,10 +926,12 @@ async function confirmAddToOrder() {
     if (!confirmAddService.value || confirmAddLoading.value) return;
     confirmAddLoading.value = true;
     try {
-        await axios.post(route('orders.items.add', activeOrderData.value.id), { service_id: confirmAddService.value.id });
+        await axios.post(route("orders.items.add", activeOrderData.value.id), {
+            service_id: confirmAddService.value.id,
+        });
         confirmAddModal.value = false;
     } catch (e) {
-        alert(e.response?.data?.message ?? __('chat.add_service.error'));
+        alert(e.response?.data?.message ?? __("chat.add_service.error"));
     } finally {
         confirmAddLoading.value = false;
     }
@@ -800,15 +942,15 @@ async function uploadAndSendImage(file) {
     uploading.value = true;
     try {
         const form = new FormData();
-        form.append('file', file);
+        form.append("file", file);
         const up = await axios.post(
-            route('conversations.upload', activeConversation.value.id),
+            route("conversations.upload", activeConversation.value.id),
             form,
-            { headers: { 'Content-Type': 'multipart/form-data' } }
+            { headers: { "Content-Type": "multipart/form-data" } },
         );
         const res = await axios.post(
-            route('conversations.message', activeConversation.value.id),
-            { body: '', type: 'image', metadata: { image_url: up.data.url } }
+            route("conversations.message", activeConversation.value.id),
+            { body: "", type: "image", metadata: { image_url: up.data.url } },
         );
         messages.value.push(res.data);
         scrollToBottom();
@@ -821,7 +963,7 @@ async function uploadAndSendImage(file) {
 function onFileChange(e) {
     const file = e.target.files?.[0];
     if (file) uploadAndSendImage(file);
-    e.target.value = '';
+    e.target.value = "";
 }
 
 // ── Block / unblock ───────────────────────────────────────
@@ -830,12 +972,12 @@ async function submitBlock() {
     blockSubmitting.value = true;
     try {
         const res = await axios.post(
-            route('conversations.block', activeConversation.value.id),
-            { reason: blockReason.value, duration: blockDuration.value }
+            route("conversations.block", activeConversation.value.id),
+            { reason: blockReason.value, duration: blockDuration.value },
         );
         activeBlock.value = res.data.block;
         blockModal.value = false;
-        blockReason.value = '';
+        blockReason.value = "";
         blockDuration.value = null;
         blockDurationChosen.value = false;
     } finally {
@@ -844,7 +986,9 @@ async function submitBlock() {
 }
 
 async function submitUnblock() {
-    await axios.delete(route('conversations.unblock', activeConversation.value.id));
+    await axios.delete(
+        route("conversations.unblock", activeConversation.value.id),
+    );
     activeBlock.value = null;
 }
 
@@ -860,7 +1004,7 @@ watch(isOpen, (val, oldVal) => {
         cpIgnoreTill = Date.now() + 500;
         // Instead of pushCp, we replace the 'sm' state pushed by SiteModal
         // to avoid having two states for the chat list (sm + list).
-        history.replaceState({ modal: 'sm', cp: 'list' }, '');
+        history.replaceState({ modal: "sm", cp: "list" }, "");
         cpDepth = 1;
         fetchConversations();
         fetchOrders();
@@ -872,50 +1016,63 @@ watch(isOpen, (val, oldVal) => {
         leaveOrdersEcho();
         activeConversation.value = null;
         activeOrderData.value = null;
-        searchQuery.value = '';
+        searchQuery.value = "";
         convsCursor.value = null;
         convsHasMore.value = false;
-        orderSearch.value = '';
-        orderStatusFilter.value = 'all';
+        orderSearch.value = "";
+        orderStatusFilter.value = "all";
         orderFiltersOpen.value = false;
     }
 });
 
 watch(activeConversation, (conv, oldConv) => {
     if (!isMobile.value) return;
-    if (conv && !oldConv && cpDepth === 1) pushCp('conv');
+    if (conv && !oldConv && cpDepth === 1) pushCp("conv");
     if (!conv && oldConv && cpDepth === 2) pruneCp(1);
 });
 
 watch(activeTab, (tab) => {
-    if (tab === 'orders') fetchOrders(true);
+    if (tab === "orders") fetchOrders(true);
 });
 
 watch(ordersSubTab, () => {
-    orderStatusFilter.value = 'all';
-    orderSearch.value = '';
+    orderStatusFilter.value = "all";
+    orderSearch.value = "";
     orderFiltersOpen.value = false;
     if (!_skipSubTabFetch) fetchOrders(true);
     _skipSubTabFetch = false;
 });
 
-function doOrderSearch() { fetchOrders(true); }
-function clearOrderSearch() { orderSearch.value = ''; fetchOrders(true); }
-function doConvSearch() { fetchConversations(true); }
-function clearConvSearch() { searchQuery.value = ''; fetchConversations(true); }
+function doOrderSearch() {
+    fetchOrders(true);
+}
+function clearOrderSearch() {
+    orderSearch.value = "";
+    fetchOrders(true);
+}
+function doConvSearch() {
+    fetchConversations(true);
+}
+function clearConvSearch() {
+    searchQuery.value = "";
+    fetchConversations(true);
+}
 
 // ── Close on navigation (ignore reloads on same URL) ─────
-watch(() => page.url, (newUrl, oldUrl) => {
-    const stripQuery = (url) => url.split('?')[0].split('#')[0];
-    if (stripQuery(newUrl) !== stripQuery(oldUrl)) isOpen.value = false;
-});
+watch(
+    () => page.url,
+    (newUrl, oldUrl) => {
+        const stripQuery = (url) => url.split("?")[0].split("#")[0];
+        if (stripQuery(newUrl) !== stripQuery(oldUrl)) isOpen.value = false;
+    },
+);
 
 function setScrollLock(locked) {
     if (locked) {
-        window.scrollTo({ top: 0, behavior: 'instant' });
-        document.documentElement.classList.add('chat-scroll-locked');
+        window.scrollTo({ top: 0, behavior: "instant" });
+        document.documentElement.classList.add("chat-scroll-locked");
     } else {
-        document.documentElement.classList.remove('chat-scroll-locked');
+        document.documentElement.classList.remove("chat-scroll-locked");
     }
 }
 
@@ -924,15 +1081,19 @@ onUnmounted(() => {
     leaveOrdersEcho();
     leaveUserEcho();
     clearInterval(nowTimer);
-    window.removeEventListener('resize', checkMobile);
-    window.removeEventListener('popstate', onCpPopstate, true);
+    window.removeEventListener("resize", checkMobile);
+    window.removeEventListener("popstate", onCpPopstate, true);
     pruneCp();
     setScrollLock(false);
 });
 
-watch([isMobile, isOpen], ([mobile, open]) => {
-    setScrollLock(mobile && open);
-}, { immediate: true });
+watch(
+    [isMobile, isOpen],
+    ([mobile, open]) => {
+        setScrollLock(mobile && open);
+    },
+    { immediate: true },
+);
 
 function backToList() {
     leaveEcho();
@@ -961,15 +1122,16 @@ async function fetchOrders(reset = true) {
     try {
         const params = {};
         if (ordersCursor.value) params.cursor = ordersCursor.value;
-        if (orderStatusFilter.value !== 'all') params.status = orderStatusFilter.value;
+        if (orderStatusFilter.value !== "all")
+            params.status = orderStatusFilter.value;
         if (orderSearch.value.trim()) params.search = orderSearch.value.trim();
         if (orderUnreadOnly.value) params.unread = 1;
         if (authUser.value?.is_idol) {
-            params.role = ordersSubTab.value === 'mine' ? 'customer' : 'idol';
+            params.role = ordersSubTab.value === "mine" ? "customer" : "idol";
         } else {
-            params.role = 'customer';
+            params.role = "customer";
         }
-        const res = await axios.get(route('orders.index'), { params });
+        const res = await axios.get(route("orders.index"), { params });
         const fresh = res.data.orders ?? [];
         orders.value = reset ? fresh : [...orders.value, ...fresh];
         ordersHasMore.value = res.data.has_more ?? false;
@@ -985,37 +1147,57 @@ async function fetchOrders(reset = true) {
 async function openOrderConversation(order) {
     if (!order.conversation_id) return;
     const other = order.is_customer ? order.idol : order.customer;
-    await openConversation({ id: order.conversation_id, other_user: other, unread_count: 0 });
+    await openConversation({
+        id: order.conversation_id,
+        other_user: other,
+        unread_count: 0,
+    });
 }
 
 const acceptBtnText = computed(() => {
     const gender = activeOrderData.value?.idol?.gender;
-    if (gender === 'male') return __('chat.msg.accept.male');
-    if (gender === 'female') return __('chat.msg.accept.female');
-    return __('chat.msg.accept.neutral');
+    if (gender === "male") return __("chat.msg.accept.male");
+    if (gender === "female") return __("chat.msg.accept.female");
+    return __("chat.msg.accept.neutral");
 });
 
 function orderTotal(order) {
-    return order.items.reduce((s, i) => s + (i.service?.price ?? 0) * (i.quantity ?? 1), 0);
+    return order.items.reduce(
+        (s, i) => s + (i.service?.price ?? 0) * (i.quantity ?? 1),
+        0,
+    );
 }
 
 function cancelledByLabel(orderData) {
     if (!orderData?.cancelled_by) return null;
-    if (orderData.cancelled_by === authUser.value?.id) return __('chat.msg.by_you');
+    if (orderData.cancelled_by === authUser.value?.id)
+        return __("chat.msg.by_you");
     return orderData.cancelled_by_name ?? null;
 }
 
 async function acceptOrder() {
-    if (!activeOrderData.value || activeOrderData.value.status !== 'pending' || orderAction.value) return;
-    orderAction.value = 'accept';
+    if (
+        !activeOrderData.value ||
+        activeOrderData.value.status !== "pending" ||
+        orderAction.value
+    )
+        return;
+    orderAction.value = "accept";
     try {
-        await axios.patch(route('orders.accept', activeOrderData.value.id));
-        activeOrderData.value = { ...activeOrderData.value, status: 'accepted' };
-        orders.value = orders.value.map(o => o.id === activeOrderData.value.id ? { ...o, status: 'accepted' } : o);
+        await axios.patch(route("orders.accept", activeOrderData.value.id));
+        activeOrderData.value = {
+            ...activeOrderData.value,
+            status: "accepted",
+        };
+        orders.value = orders.value.map((o) =>
+            o.id === activeOrderData.value.id
+                ? { ...o, status: "accepted" }
+                : o,
+        );
         acceptModal.value = false;
-        router.reload({ only: ['order_notifications_unread'] });
+        router.reload({ only: ["order_notifications_unread"] });
     } finally {
-        orderAction.value = '';
+        orderAction.value = "";
     }
 }
 
@@ -1023,22 +1205,31 @@ async function submitCancelOrder() {
     if (!cancelReason.value.trim() || cancelSubmitting.value) return;
     cancelSubmitting.value = true;
     try {
-        await axios.patch(route('orders.cancel', activeOrderData.value.id), { cancel_reason: cancelReason.value });
+        await axios.patch(route("orders.cancel", activeOrderData.value.id), {
+            cancel_reason: cancelReason.value,
+        });
         const updated = {
             ...activeOrderData.value,
-            status: 'cancelled',
+            status: "cancelled",
             cancel_reason: cancelReason.value,
             cancelled_by: authUser.value.id,
             cancelled_by_name: authUser.value.name,
         };
         activeOrderData.value = updated;
-        orders.value = orders.value.map(o => o.id === updated.id
-            ? { ...o, status: 'cancelled', cancel_reason: updated.cancel_reason, cancelled_by: updated.cancelled_by, cancelled_by_name: updated.cancelled_by_name }
-            : o
+        orders.value = orders.value.map((o) =>
+            o.id === updated.id
+                ? {
+                      ...o,
+                      status: "cancelled",
+                      cancel_reason: updated.cancel_reason,
+                      cancelled_by: updated.cancelled_by,
+                      cancelled_by_name: updated.cancelled_by_name,
+                  }
+                : o,
         );
         cancelModal.value = false;
-        cancelReason.value = '';
-        router.reload({ only: ['order_notifications_unread'] });
+        cancelReason.value = "";
+        router.reload({ only: ["order_notifications_unread"] });
     } finally {
         cancelSubmitting.value = false;
     }
@@ -1046,19 +1237,19 @@ async function submitCancelOrder() {
 
 async function openOrder(orderId) {
     isOpen.value = true;
-    activeTab.value = 'orders';
-    orderStatusFilter.value = 'all';
+    activeTab.value = "orders";
+    orderStatusFilter.value = "all";
     await fetchOrders();
-    const order = orders.value.find(o => o.id === orderId);
+    const order = orders.value.find((o) => o.id === orderId);
     _skipSubTabFetch = true;
-    ordersSubTab.value = order?.is_customer === false ? 'incoming' : 'mine';
+    ordersSubTab.value = order?.is_customer === false ? "incoming" : "mine";
     if (order) await openOrderConversation(order);
 }
 
 function silentClose() {
     if (cpDepth > 0) {
         cpIgnoreTill = Date.now() + 500;
-        history.replaceState(null, '');
+        history.replaceState(null, "");
         if (cpDepth > 1) history.go(-(cpDepth - 1));
         cpDepth = 0;
     }
@@ -1069,18 +1260,21 @@ defineExpose({ startWith, startConversation, openOrder, silentClose });
 
 // ── Helpers ──────────────────────────────────────────────
 function formatTime(iso) {
-    if (!iso) return '';
-    const loc = locale.value?.current === 'ru' ? 'ru-RU' : 'en-US';
-    return new Date(iso).toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
+    if (!iso) return "";
+    const loc = locale.value?.current === "ru" ? "ru-RU" : "en-US";
+    return new Date(iso).toLocaleTimeString(loc, {
+        hour: "2-digit",
+        minute: "2-digit",
+    });
 }
 
 function formatDate(iso) {
-    if (!iso) return '';
+    if (!iso) return "";
     const d = new Date(iso);
     const now = new Date();
     if (d.toDateString() === now.toDateString()) return formatTime(iso);
-    const loc = locale.value?.current === 'ru' ? 'ru-RU' : 'en-US';
-    return d.toLocaleDateString(loc, { day: 'numeric', month: 'short' });
+    const loc = locale.value?.current === "ru" ? "ru-RU" : "en-US";
+    return d.toLocaleDateString(loc, { day: "numeric", month: "short" });
 }
 </script>
 
@@ -1092,14 +1286,29 @@ function formatDate(iso) {
 
         <Transition name="slide">
             <div v-if="isOpen" class="chat-panel">
-
                 <!-- ── Sidebar: список диалогов ───────────── -->
-                <div class="chat-sidebar" :class="{ 'chat-sidebar--mobile-hidden': isMobile && activeConversation }">
+                <div
+                    class="chat-sidebar"
+                    :class="{
+                        'chat-sidebar--mobile-hidden':
+                            isMobile && activeConversation,
+                    }"
+                >
                     <div class="chat-sidebar__header">
-                        <span class="chat-sidebar__title">{{ __('chat.title') }}</span>
+                        <span class="chat-sidebar__title">{{
+                            __("chat.title")
+                        }}</span>
                         <button class="chat-icon-btn" @click="close">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
                                 <line x1="18" y1="6" x2="6" y2="18" />
                                 <line x1="6" y1="6" x2="18" y2="18" />
                             </svg>
@@ -1108,15 +1317,31 @@ function formatDate(iso) {
 
                     <!-- Табы -->
                     <div class="chat-tabs">
-                        <button class="chat-tab" :class="{ 'chat-tab--active': activeTab === 'messages' }"
-                            @click="activeTab = 'messages'">
-                            {{ __('chat.messages') }}
-                            <span v-if="messagesHaveUnread" class="chat-tab__dot"></span>
+                        <button
+                            class="chat-tab"
+                            :class="{
+                                'chat-tab--active': activeTab === 'messages',
+                            }"
+                            @click="activeTab = 'messages'"
+                        >
+                            {{ __("chat.messages") }}
+                            <span
+                                v-if="messagesHaveUnread"
+                                class="chat-tab__dot"
+                            ></span>
                         </button>
-                        <button class="chat-tab" :class="{ 'chat-tab--active': activeTab === 'orders' }"
-                            @click="activeTab = 'orders'">
-                            {{ __('chat.tab.orders') }}
-                            <span v-if="ordersHaveUnread" class="chat-tab__dot"></span>
+                        <button
+                            class="chat-tab"
+                            :class="{
+                                'chat-tab--active': activeTab === 'orders',
+                            }"
+                            @click="activeTab = 'orders'"
+                        >
+                            {{ __("chat.tab.orders") }}
+                            <span
+                                v-if="ordersHaveUnread"
+                                class="chat-tab__dot"
+                            ></span>
                         </button>
                     </div>
 
@@ -1126,97 +1351,221 @@ function formatDate(iso) {
                             <div class="chat-sticky-controls">
                                 <div class="chat-sidebar__search">
                                     <div class="search-row">
-                                        <input v-model="searchQuery" type="text" class="chat-search-input"
-                                            :placeholder="__('chat.search')" @keyup.enter="doConvSearch" />
-                                        <button v-if="searchQuery.trim()" class="search-clear-btn"
-                                            @click="clearConvSearch" title="Сбросить">
-                                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                                <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.8"
-                                                    stroke-linecap="round" />
+                                        <input
+                                            v-model="searchQuery"
+                                            type="text"
+                                            class="chat-search-input"
+                                            :placeholder="__('chat.search')"
+                                            @keyup.enter="doConvSearch"
+                                        />
+                                        <button
+                                            v-if="searchQuery.trim()"
+                                            class="search-clear-btn"
+                                            @click="clearConvSearch"
+                                            title="Сбросить"
+                                        >
+                                            <svg
+                                                width="12"
+                                                height="12"
+                                                viewBox="0 0 12 12"
+                                                fill="none"
+                                            >
+                                                <path
+                                                    d="M1 1l10 10M11 1L1 11"
+                                                    stroke="currentColor"
+                                                    stroke-width="1.8"
+                                                    stroke-linecap="round"
+                                                />
                                             </svg>
                                         </button>
-                                        <button class="search-go-btn" @click="doConvSearch" title="Найти">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                                stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
-                                                stroke-linejoin="round">
+                                        <button
+                                            class="search-go-btn"
+                                            @click="doConvSearch"
+                                            title="Найти"
+                                        >
+                                            <svg
+                                                width="14"
+                                                height="14"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2.2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            >
                                                 <circle cx="11" cy="11" r="8" />
-                                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                                <line
+                                                    x1="21"
+                                                    y1="21"
+                                                    x2="16.65"
+                                                    y2="16.65"
+                                                />
                                             </svg>
                                         </button>
                                     </div>
                                 </div>
                                 <div class="chat-unread-toggle">
-                                    <button class="chat-unread-btn"
-                                        :class="{ 'chat-unread-btn--active': convUnreadOnly }"
-                                        @click="convUnreadOnly = !convUnreadOnly; fetchConversations(true)">
-                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                            stroke-linejoin="round">
+                                    <button
+                                        class="chat-unread-btn"
+                                        :class="{
+                                            'chat-unread-btn--active':
+                                                convUnreadOnly,
+                                        }"
+                                        @click="
+                                            convUnreadOnly = !convUnreadOnly;
+                                            fetchConversations(true);
+                                        "
+                                    >
+                                        <svg
+                                            width="13"
+                                            height="13"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        >
                                             <path
-                                                d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                                                d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+                                            />
                                             <polyline points="22,6 12,13 2,6" />
                                         </svg>
-                                        {{ __('chat.filter.unread_only') }}
+                                        {{ __("chat.filter.unread_only") }}
                                     </button>
                                 </div>
                             </div>
                             <template v-if="loadingConvs">
                                 <div v-for="n in 6" :key="n" class="conv-skel">
-                                    <div class="conv-skel__avatar skel-pulse"></div>
+                                    <div
+                                        class="conv-skel__avatar skel-pulse"
+                                    ></div>
                                     <div class="conv-skel__info">
-                                        <div class="conv-skel__name skel-pulse"
-                                            :style="{ width: [52, 45, 60, 38, 55, 48][n - 1] + '%' }"></div>
-                                        <div class="conv-skel__preview skel-pulse"
-                                            :style="{ width: [75, 85, 65, 90, 70, 80][n - 1] + '%' }"></div>
+                                        <div
+                                            class="conv-skel__name skel-pulse"
+                                            :style="{
+                                                width:
+                                                    [52, 45, 60, 38, 55, 48][
+                                                        n - 1
+                                                    ] + '%',
+                                            }"
+                                        ></div>
+                                        <div
+                                            class="conv-skel__preview skel-pulse"
+                                            :style="{
+                                                width:
+                                                    [75, 85, 65, 90, 70, 80][
+                                                        n - 1
+                                                    ] + '%',
+                                            }"
+                                        ></div>
                                     </div>
-                                    <div class="conv-skel__time skel-pulse"></div>
+                                    <div
+                                        class="conv-skel__time skel-pulse"
+                                    ></div>
                                 </div>
                             </template>
                             <template v-else-if="conversations.length === 0">
                                 <div class="chat-no-convs">
-                                    <p>{{ $page.props.is_idol ? __('chat.empty.dialogs') : __('chat.empty.dialogs.sub')
-                                    }}</p>
-                                    <a v-if="$page.props.is_idol" :href="route('users.search')">{{ __('chat.find_users')
-                                    }}</a>
+                                    <p>
+                                        {{
+                                            $page.props.is_idol
+                                                ? __("chat.empty.dialogs")
+                                                : __("chat.empty.dialogs.sub")
+                                        }}
+                                    </p>
+                                    <a
+                                        v-if="$page.props.is_idol"
+                                        :href="route('users.search')"
+                                        >{{ __("chat.find_users") }}</a
+                                    >
                                 </div>
                             </template>
                             <template v-else>
-                                <button v-for="conv in filteredConversations" :key="conv.id" class="chat-conv-item"
+                                <button
+                                    v-for="conv in filteredConversations"
+                                    :key="conv.id"
+                                    class="chat-conv-item"
                                     :class="{
-                                        'chat-conv-item--active': activeConversation?.id === conv.id,
-                                        'chat-conv-item--unread': conv.unread_count > 0,
-                                    }" @click="openConversation(conv)">
+                                        'chat-conv-item--active':
+                                            activeConversation?.id === conv.id,
+                                        'chat-conv-item--unread':
+                                            conv.unread_count > 0,
+                                    }"
+                                    @click="openConversation(conv)"
+                                >
                                     <div class="chat-conv-avatar">
                                         <template v-if="conv.is_support">
-                                            <span class="chat-support-icon">✦</span>
+                                            <span class="chat-support-icon"
+                                                >✦</span
+                                            >
                                         </template>
                                         <template v-else>
-                                            <img v-if="conv.other_user?.avatar_url" :src="conv.other_user.avatar_url"
-                                                alt="" />
-                                            <span v-else>{{ conv.other_user?.name?.charAt(0) ?? '?' }}</span>
+                                            <img
+                                                v-if="
+                                                    conv.other_user?.avatar_url
+                                                "
+                                                :src="
+                                                    conv.other_user.avatar_url
+                                                "
+                                                alt=""
+                                            />
+                                            <span v-else>{{
+                                                conv.other_user?.name?.charAt(
+                                                    0,
+                                                ) ?? "?"
+                                            }}</span>
                                         </template>
                                     </div>
                                     <div class="chat-conv-info">
-                                        <div class="chat-conv-name">{{ conv.is_support ? __('chat.support') :
-                                            (conv.other_user?.name ?? '—') }}</div>
-                                        <div class="chat-conv-preview">{{ conv.last_message?.body ?? '' }}</div>
+                                        <div class="chat-conv-name">
+                                            {{
+                                                conv.is_support
+                                                    ? __("chat.support")
+                                                    : (conv.other_user?.name ??
+                                                      "—")
+                                            }}
+                                        </div>
+                                        <div class="chat-conv-preview">
+                                            {{ conv.last_message?.body ?? "" }}
+                                        </div>
                                     </div>
                                     <div class="chat-conv-meta">
-                                        <span class="chat-conv-time">{{ formatDate(conv.last_message?.created_at)
+                                        <span class="chat-conv-time">{{
+                                            formatDate(
+                                                conv.last_message?.created_at,
+                                            )
                                         }}</span>
-                                        <span v-if="conv.unread_count > 0" class="chat-conv-badge">{{ conv.unread_count
-                                        }}</span>
+                                        <span
+                                            v-if="conv.unread_count > 0"
+                                            class="chat-conv-badge"
+                                            >{{ conv.unread_count }}</span
+                                        >
                                     </div>
                                 </button>
                                 <!-- Load more conversations -->
-                                <div v-if="convsHasMore || loadingMoreConvs" class="orders-load-more">
-                                    <button class="orders-load-more-btn" :disabled="loadingMoreConvs"
-                                        @click="fetchConversations(false)">
-                                        <span v-if="!loadingMoreConvs">{{ __('notification.load_more') }}</span>
+                                <div
+                                    v-if="convsHasMore || loadingMoreConvs"
+                                    class="orders-load-more"
+                                >
+                                    <button
+                                        class="orders-load-more-btn"
+                                        :disabled="loadingMoreConvs"
+                                        @click="fetchConversations(false)"
+                                    >
+                                        <span v-if="!loadingMoreConvs">{{
+                                            __("notification.load_more")
+                                        }}</span>
                                         <span v-else class="orders-load-dots">
-                                            <span class="orders-load-dot"></span>
-                                            <span class="orders-load-dot"></span>
-                                            <span class="orders-load-dot"></span>
+                                            <span
+                                                class="orders-load-dot"
+                                            ></span>
+                                            <span
+                                                class="orders-load-dot"
+                                            ></span>
+                                            <span
+                                                class="orders-load-dot"
+                                            ></span>
                                         </span>
                                     </button>
                                 </div>
@@ -1227,228 +1576,600 @@ function formatDate(iso) {
                         <template v-else-if="activeTab === 'orders'">
                             <div class="chat-sticky-controls">
                                 <!-- Саб-табы только для айдолов — всегда видны -->
-                                <div v-if="authUser?.is_idol" class="chat-order-subtabs">
-                                    <button class="chat-order-subtab"
-                                        :class="{ 'chat-order-subtab--active': ordersSubTab === 'mine' }"
-                                        @click="ordersSubTab = 'mine'">{{ __('order.my') }} <span v-if="mineHaveUnread"
-                                            class="chat-tab__dot"></span></button>
-                                    <button class="chat-order-subtab"
-                                        :class="{ 'chat-order-subtab--active': ordersSubTab === 'incoming' }"
-                                        @click="ordersSubTab = 'incoming'">{{ __('order.incoming') }} <span
-                                            v-if="incomingHaveUnread" class="chat-tab__dot"></span></button>
+                                <div
+                                    v-if="authUser?.is_idol"
+                                    class="chat-order-subtabs"
+                                >
+                                    <button
+                                        class="chat-order-subtab"
+                                        :class="{
+                                            'chat-order-subtab--active':
+                                                ordersSubTab === 'mine',
+                                        }"
+                                        @click="ordersSubTab = 'mine'"
+                                    >
+                                        {{ __("order.my") }}
+                                        <span
+                                            v-if="mineHaveUnread"
+                                            class="chat-tab__dot"
+                                        ></span>
+                                    </button>
+                                    <button
+                                        class="chat-order-subtab"
+                                        :class="{
+                                            'chat-order-subtab--active':
+                                                ordersSubTab === 'incoming',
+                                        }"
+                                        @click="ordersSubTab = 'incoming'"
+                                    >
+                                        {{ __("order.incoming") }}
+                                        <span
+                                            v-if="incomingHaveUnread"
+                                            class="chat-tab__dot"
+                                        ></span>
+                                    </button>
                                 </div>
 
                                 <!-- ── Фильтры заказов — всегда видны ──────── -->
                                 <div class="order-filters">
                                     <div class="search-row">
-                                        <input v-model="orderSearch" type="text" class="chat-search-input"
-                                            :placeholder="__('chat.search.name')" @keyup.enter="doOrderSearch" />
-                                        <button v-if="orderSearch.trim()" class="search-clear-btn"
-                                            @click="clearOrderSearch" title="Сбросить">
-                                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                                <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.8"
-                                                    stroke-linecap="round" />
+                                        <input
+                                            v-model="orderSearch"
+                                            type="text"
+                                            class="chat-search-input"
+                                            :placeholder="
+                                                __('chat.search.name')
+                                            "
+                                            @keyup.enter="doOrderSearch"
+                                        />
+                                        <button
+                                            v-if="orderSearch.trim()"
+                                            class="search-clear-btn"
+                                            @click="clearOrderSearch"
+                                            title="Сбросить"
+                                        >
+                                            <svg
+                                                width="12"
+                                                height="12"
+                                                viewBox="0 0 12 12"
+                                                fill="none"
+                                            >
+                                                <path
+                                                    d="M1 1l10 10M11 1L1 11"
+                                                    stroke="currentColor"
+                                                    stroke-width="1.8"
+                                                    stroke-linecap="round"
+                                                />
                                             </svg>
                                         </button>
-                                        <button class="search-go-btn" @click="doOrderSearch" title="Найти">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                                stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
-                                                stroke-linejoin="round">
+                                        <button
+                                            class="search-go-btn"
+                                            @click="doOrderSearch"
+                                            title="Найти"
+                                        >
+                                            <svg
+                                                width="14"
+                                                height="14"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2.2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            >
                                                 <circle cx="11" cy="11" r="8" />
-                                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                                <line
+                                                    x1="21"
+                                                    y1="21"
+                                                    x2="16.65"
+                                                    y2="16.65"
+                                                />
                                             </svg>
                                         </button>
                                     </div>
                                     <div class="order-filters__btns-row">
-                                        <button class="order-filters__toggle"
-                                            :class="{ 'order-filters__toggle--open': orderFiltersOpen }"
-                                            @click="orderFiltersOpen = !orderFiltersOpen">
-                                            {{ __('chat.orders.filters') }}
-                                            <svg class="order-filters__arrow" width="10" height="10" viewBox="0 0 10 10"
-                                                fill="none">
-                                                <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5"
-                                                    stroke-linecap="round" stroke-linejoin="round" />
+                                        <button
+                                            class="order-filters__toggle"
+                                            :class="{
+                                                'order-filters__toggle--open':
+                                                    orderFiltersOpen,
+                                            }"
+                                            @click="
+                                                orderFiltersOpen =
+                                                    !orderFiltersOpen
+                                            "
+                                        >
+                                            {{ __("chat.orders.filters") }}
+                                            <svg
+                                                class="order-filters__arrow"
+                                                width="10"
+                                                height="10"
+                                                viewBox="0 0 10 10"
+                                                fill="none"
+                                            >
+                                                <path
+                                                    d="M2 3.5L5 6.5L8 3.5"
+                                                    stroke="currentColor"
+                                                    stroke-width="1.5"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                />
                                             </svg>
                                         </button>
-                                        <button class="chat-unread-btn"
-                                            :class="{ 'chat-unread-btn--active': orderUnreadOnly }"
-                                            @click="orderUnreadOnly = !orderUnreadOnly; fetchOrders(true)">
-                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                                stroke-linejoin="round">
+                                        <button
+                                            class="chat-unread-btn"
+                                            :class="{
+                                                'chat-unread-btn--active':
+                                                    orderUnreadOnly,
+                                            }"
+                                            @click="
+                                                orderUnreadOnly =
+                                                    !orderUnreadOnly;
+                                                fetchOrders(true);
+                                            "
+                                        >
+                                            <svg
+                                                width="13"
+                                                height="13"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            >
                                                 <path
-                                                    d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                                                <polyline points="22,6 12,13 2,6" />
+                                                    d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+                                                />
+                                                <polyline
+                                                    points="22,6 12,13 2,6"
+                                                />
                                             </svg>
-                                            {{ __('chat.filter.unread_only') }}
+                                            {{ __("chat.filter.unread_only") }}
                                         </button>
                                     </div>
                                     <Transition name="of-expand">
-                                        <div v-if="orderFiltersOpen" class="order-filters__pills">
-                                            <button v-for="pill in [
-                                                { key: 'all', label: __('chat.orders.filter.all') },
-                                                { key: 'pending', label: __('chat.orders.filter.pending') },
-                                                { key: 'accepted', label: __('chat.orders.filter.accepted') },
-                                                { key: 'paid', label: __('chat.orders.filter.paid') },
-                                                { key: 'completed', label: __('chat.orders.filter.completed') },
-                                                { key: 'cancelled', label: __('chat.orders.filter.cancelled') },
-                                                { key: 'refunded', label: __('chat.orders.filter.refunded') },
-                                                { key: 'disputed', label: __('chat.orders.filter.disputed') },
-                                            ]" :key="pill.key" class="order-filter-pill" :class="{
-                                                'order-filter-pill--active': orderStatusFilter === pill.key,
-                                                'order-filter-pill--empty': (orderCounts[pill.key] ?? 0) === 0 && orderStatusFilter !== pill.key,
-                                                [`order-filter-pill--${pill.key}`]: pill.key !== 'all',
-                                            }" @click="applyStatusFilter(pill.key)">
+                                        <div
+                                            v-if="orderFiltersOpen"
+                                            class="order-filters__pills"
+                                        >
+                                            <button
+                                                v-for="pill in [
+                                                    {
+                                                        key: 'all',
+                                                        label: __(
+                                                            'chat.orders.filter.all',
+                                                        ),
+                                                    },
+                                                    {
+                                                        key: 'pending',
+                                                        label: __(
+                                                            'chat.orders.filter.pending',
+                                                        ),
+                                                    },
+                                                    {
+                                                        key: 'accepted',
+                                                        label: __(
+                                                            'chat.orders.filter.accepted',
+                                                        ),
+                                                    },
+                                                    {
+                                                        key: 'paid',
+                                                        label: __(
+                                                            'chat.orders.filter.paid',
+                                                        ),
+                                                    },
+                                                    {
+                                                        key: 'completed',
+                                                        label: __(
+                                                            'chat.orders.filter.completed',
+                                                        ),
+                                                    },
+                                                    {
+                                                        key: 'cancelled',
+                                                        label: __(
+                                                            'chat.orders.filter.cancelled',
+                                                        ),
+                                                    },
+                                                    {
+                                                        key: 'refunded',
+                                                        label: __(
+                                                            'chat.orders.filter.refunded',
+                                                        ),
+                                                    },
+                                                    {
+                                                        key: 'disputed',
+                                                        label: __(
+                                                            'chat.orders.filter.disputed',
+                                                        ),
+                                                    },
+                                                ]"
+                                                :key="pill.key"
+                                                class="order-filter-pill"
+                                                :class="{
+                                                    'order-filter-pill--active':
+                                                        orderStatusFilter ===
+                                                        pill.key,
+                                                    'order-filter-pill--empty':
+                                                        (orderCounts[
+                                                            pill.key
+                                                        ] ?? 0) === 0 &&
+                                                        orderStatusFilter !==
+                                                            pill.key,
+                                                    [`order-filter-pill--${pill.key}`]:
+                                                        pill.key !== 'all',
+                                                }"
+                                                @click="
+                                                    applyStatusFilter(pill.key)
+                                                "
+                                            >
                                                 {{ pill.label }}
-                                                <span class="order-filter-pill__count">{{ orderCounts[pill.key] ?? 0
-                                                }}</span>
+                                                <span
+                                                    class="order-filter-pill__count"
+                                                    >{{
+                                                        orderCounts[pill.key] ??
+                                                        0
+                                                    }}</span
+                                                >
                                             </button>
                                         </div>
                                     </Transition>
                                 </div>
-                            </div><!-- /chat-sticky-controls -->
+                            </div>
+                            <!-- /chat-sticky-controls -->
 
                             <!-- Список — скелетон или данные -->
                             <template v-if="loadingOrders">
                                 <div v-for="n in 4" :key="n" class="order-skel">
                                     <div class="order-skel__head">
-                                        <div class="order-skel__avatar skel-pulse"></div>
+                                        <div
+                                            class="order-skel__avatar skel-pulse"
+                                        ></div>
                                         <div class="order-skel__lines">
-                                            <div class="order-skel__name skel-pulse"
-                                                :style="{ width: [55, 42, 60, 48][n - 1] + '%' }"></div>
-                                            <div class="order-skel__date skel-pulse"
-                                                :style="{ width: [28, 35, 25, 32][n - 1] + '%' }"></div>
+                                            <div
+                                                class="order-skel__name skel-pulse"
+                                                :style="{
+                                                    width:
+                                                        [55, 42, 60, 48][
+                                                            n - 1
+                                                        ] + '%',
+                                                }"
+                                            ></div>
+                                            <div
+                                                class="order-skel__date skel-pulse"
+                                                :style="{
+                                                    width:
+                                                        [28, 35, 25, 32][
+                                                            n - 1
+                                                        ] + '%',
+                                                }"
+                                            ></div>
                                         </div>
-                                        <div class="order-skel__badge skel-pulse"></div>
+                                        <div
+                                            class="order-skel__badge skel-pulse"
+                                        ></div>
                                     </div>
                                     <div class="order-skel__sep"></div>
                                     <div class="order-skel__foot">
-                                        <div class="order-skel__count skel-pulse"></div>
-                                        <div class="order-skel__total skel-pulse"></div>
+                                        <div
+                                            class="order-skel__count skel-pulse"
+                                        ></div>
+                                        <div
+                                            class="order-skel__total skel-pulse"
+                                        ></div>
                                     </div>
                                 </div>
                             </template>
                             <template v-else>
                                 <template v-if="visibleOrders.length === 0">
                                     <div class="chat-no-convs">
-                                        <p>{{ __('chat.orders.empty') }}</p>
+                                        <p>{{ __("chat.orders.empty") }}</p>
                                     </div>
                                 </template>
                                 <template v-else>
-                                    <button v-for="order in visibleOrders" :key="order.id" class="order-stub"
-                                        :class="[`order-stub--${order.status}`, { 'order-stub--active': activeOrderData?.id === order.id }]"
-                                        @click="openOrderConversation(order)">
+                                    <button
+                                        v-for="order in visibleOrders"
+                                        :key="order.id"
+                                        class="order-stub"
+                                        :class="[
+                                            `order-stub--${order.status}`,
+                                            {
+                                                'order-stub--active':
+                                                    activeOrderData?.id ===
+                                                    order.id,
+                                            },
+                                        ]"
+                                        @click="openOrderConversation(order)"
+                                    >
                                         <div class="order-stub__head">
-                                            <div class="chat-conv-avatar chat-conv-avatar--sm">
-                                                <img v-if="(order.is_customer ? order.idol : order.customer).avatar_url"
-                                                    :src="(order.is_customer ? order.idol : order.customer).avatar_url"
-                                                    alt="" />
-                                                <span v-else>{{ (order.is_customer ? order.idol :
-                                                    order.customer).name?.charAt(0) ?? '?' }}</span>
+                                            <div
+                                                class="chat-conv-avatar chat-conv-avatar--sm"
+                                            >
+                                                <img
+                                                    v-if="
+                                                        (order.is_customer
+                                                            ? order.idol
+                                                            : order.customer
+                                                        ).avatar_url
+                                                    "
+                                                    :src="
+                                                        (order.is_customer
+                                                            ? order.idol
+                                                            : order.customer
+                                                        ).avatar_url
+                                                    "
+                                                    alt=""
+                                                />
+                                                <span v-else>{{
+                                                    (order.is_customer
+                                                        ? order.idol
+                                                        : order.customer
+                                                    ).name?.charAt(0) ?? "?"
+                                                }}</span>
                                             </div>
                                             <div class="order-stub__who">
-                                                <span class="order-stub__name">{{ (order.is_customer ? order.idol :
-                                                    order.customer).name }}</span>
-                                                <span class="order-stub__date">{{ formatDate(order.created_at) }}</span>
+                                                <span
+                                                    class="order-stub__name"
+                                                    >{{
+                                                        (order.is_customer
+                                                            ? order.idol
+                                                            : order.customer
+                                                        ).name
+                                                    }}</span
+                                                >
+                                                <span
+                                                    class="order-stub__date"
+                                                    >{{
+                                                        formatDate(
+                                                            order.created_at,
+                                                        )
+                                                    }}</span
+                                                >
                                             </div>
-                                            <span class="order-stub__badge"
-                                                :class="`order-stub__badge--${order.status}`">
-                                                {{ orderStatusLabels[order.status] }}
+                                            <span
+                                                class="order-stub__badge"
+                                                :class="`order-stub__badge--${order.status}`"
+                                            >
+                                                {{
+                                                    orderStatusLabels[
+                                                        order.status
+                                                    ]
+                                                }}
                                             </span>
-                                            <span v-if="(order.unread_count ?? 0) > 0" class="chat-conv-badge">{{
-                                                order.unread_count }}</span>
+                                            <span
+                                                v-if="
+                                                    (order.unread_count ?? 0) >
+                                                    0
+                                                "
+                                                class="chat-conv-badge"
+                                                >{{ order.unread_count }}</span
+                                            >
                                         </div>
                                         <div class="order-stub__perf">
-                                            <span class="order-stub__perf-dot" v-for="n in 14" :key="n"></span>
+                                            <span
+                                                class="order-stub__perf-dot"
+                                                v-for="n in 14"
+                                                :key="n"
+                                            ></span>
                                         </div>
                                         <div class="order-stub__foot">
                                             <span class="order-stub__count">
-                                                {{ transChoice('order.service_count', order.items.length, {
-                                                    count:
-                                                        order.items.length
-                                                }) }}
+                                                {{
+                                                    transChoice(
+                                                        "order.service_count",
+                                                        order.items.length,
+                                                        {
+                                                            count: order.items
+                                                                .length,
+                                                        },
+                                                    )
+                                                }}
                                             </span>
-                                            <span class="order-stub__total">{{ orderTotal(order).toLocaleString('ru-RU')
-                                            }}&thinsp;₽</span>
+                                            <span class="order-stub__total"
+                                                >{{
+                                                    orderTotal(
+                                                        order,
+                                                    ).toLocaleString("ru-RU")
+                                                }}&thinsp;₽</span
+                                            >
                                         </div>
-                                    </button>
-                                </template><!-- /visibleOrders -->
+                                    </button> </template
+                                ><!-- /visibleOrders -->
 
                                 <!-- Load more -->
-                                <div v-if="ordersHasMore || loadingMoreOrders" class="orders-load-more">
-                                    <button class="orders-load-more-btn" :disabled="loadingMoreOrders"
-                                        @click="fetchOrders(false)">
-                                        <span v-if="!loadingMoreOrders">{{ __('notification.load_more') }}</span>
+                                <div
+                                    v-if="ordersHasMore || loadingMoreOrders"
+                                    class="orders-load-more"
+                                >
+                                    <button
+                                        class="orders-load-more-btn"
+                                        :disabled="loadingMoreOrders"
+                                        @click="fetchOrders(false)"
+                                    >
+                                        <span v-if="!loadingMoreOrders">{{
+                                            __("notification.load_more")
+                                        }}</span>
                                         <span v-else class="orders-load-dots">
-                                            <span class="orders-load-dot"></span>
-                                            <span class="orders-load-dot"></span>
-                                            <span class="orders-load-dot"></span>
+                                            <span
+                                                class="orders-load-dot"
+                                            ></span>
+                                            <span
+                                                class="orders-load-dot"
+                                            ></span>
+                                            <span
+                                                class="orders-load-dot"
+                                            ></span>
                                         </span>
                                     </button>
-                                </div>
-                            </template><!-- /v-else (not loading) -->
-                        </template><!-- /orders tab -->
+                                </div> </template
+                            ><!-- /v-else (not loading) --> </template
+                        ><!-- /orders tab -->
                     </div>
                 </div>
 
                 <!-- ── Main: переписка ────────────────────── -->
-                <div class="chat-main" :class="{ 'chat-main--mobile-hidden': isMobile && !activeConversation }">
+                <div
+                    class="chat-main"
+                    :class="{
+                        'chat-main--mobile-hidden':
+                            isMobile && !activeConversation,
+                    }"
+                >
                     <!-- Пусто — нет выбранного диалога -->
                     <div v-if="!activeConversation" class="chat-main__empty">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.2">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                        <svg
+                            width="48"
+                            height="48"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            style="opacity: 0.2"
+                        >
+                            <path
+                                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                            />
                         </svg>
-                        <span>{{ __('chat.empty.select') }}</span>
+                        <span>{{ __("chat.empty.select") }}</span>
                     </div>
 
                     <template v-else>
                         <!-- Шапка диалога -->
                         <div class="chat-main__header">
-                            <button v-if="isMobile" class="chat-main__back-btn" @click="backToList">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <button
+                                v-if="isMobile"
+                                class="chat-main__back-btn"
+                                @click="backToList"
+                            >
+                                <svg
+                                    width="18"
+                                    height="18"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2.2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
                                     <polyline points="15 18 9 12 15 6" />
                                 </svg>
                             </button>
-                            <div class="chat-conv-avatar chat-conv-avatar--sm"
-                                :class="{ 'chat-conv-avatar--clickable': !isSupport }"
+                            <div
+                                class="chat-conv-avatar chat-conv-avatar--sm"
+                                :class="{
+                                    'chat-conv-avatar--clickable': !isSupport,
+                                }"
                                 @click="!isSupport && (avatarFullscreen = true)"
-                                :title="!isSupport ? __('chat.photo.view') : undefined">
+                                :title="
+                                    !isSupport
+                                        ? __('chat.photo.view')
+                                        : undefined
+                                "
+                            >
                                 <template v-if="isSupport">
                                     <span class="chat-support-icon">✦</span>
                                 </template>
                                 <template v-else>
-                                    <img v-if="activeConversation.other_user?.avatar_url"
-                                        :src="activeConversation.other_user.avatar_url" alt="" />
-                                    <span v-else>{{ activeConversation.other_user?.name?.charAt(0) ?? '?' }}</span>
+                                    <img
+                                        v-if="
+                                            activeConversation.other_user
+                                                ?.avatar_url
+                                        "
+                                        :src="
+                                            activeConversation.other_user
+                                                .avatar_url
+                                        "
+                                        alt=""
+                                    />
+                                    <span v-else>{{
+                                        activeConversation.other_user?.name?.charAt(
+                                            0,
+                                        ) ?? "?"
+                                    }}</span>
                                 </template>
                             </div>
                             <div class="chat-main__header-info">
                                 <div class="chat-main__name-row">
                                     <template v-if="isSupport">
-                                        <span class="chat-main__name">{{ __('chat.support') }}</span>
+                                        <span class="chat-main__name">{{
+                                            __("chat.support")
+                                        }}</span>
                                     </template>
                                     <template v-else>
-                                        <a :href="route('profile.show', { user: activeConversation.other_user?.id })"
-                                            target="_blank" rel="noopener" class="chat-main__name">{{
-                                                activeConversation.other_user?.name ?? '…' }}</a>
-                                        <IdolBadge v-if="activeConversation.other_user?.is_idol" />
+                                        <a
+                                            :href="
+                                                route('profile.show', {
+                                                    user: activeConversation
+                                                        .other_user?.id,
+                                                })
+                                            "
+                                            target="_blank"
+                                            rel="noopener"
+                                            class="chat-main__name"
+                                            >{{
+                                                activeConversation.other_user
+                                                    ?.name ?? "…"
+                                            }}</a
+                                        >
+                                        <IdolBadge
+                                            v-if="
+                                                activeConversation.other_user
+                                                    ?.is_idol
+                                            "
+                                        />
                                     </template>
                                 </div>
-                                <span v-if="!isSupport" class="chat-online-badge"
-                                    :class="{ 'chat-online-badge--visible': isOtherOnline }">
-                                    <span class="chat-online-dot"></span>{{ __('chat.online') }}
+                                <span
+                                    v-if="!isSupport"
+                                    class="chat-online-badge"
+                                    :class="{
+                                        'chat-online-badge--visible':
+                                            isOtherOnline,
+                                    }"
+                                >
+                                    <span class="chat-online-dot"></span
+                                    >{{ __("chat.online") }}
                                 </span>
                             </div>
-                            <button v-if="!isSupport && (!activeBlock?.active || activeBlock?.i_am_blocker)"
+                            <button
+                                v-if="
+                                    !isSupport &&
+                                    (!activeBlock?.active ||
+                                        activeBlock?.i_am_blocker)
+                                "
                                 class="chat-lock-btn"
-                                :class="{ 'chat-lock-btn--active': activeBlock?.active && activeBlock?.i_am_blocker }"
-                                :title="activeBlock?.active ? __('chat.blocked') : __('chat.block.action')"
-                                @click="blockModal = true">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                :class="{
+                                    'chat-lock-btn--active':
+                                        activeBlock?.active &&
+                                        activeBlock?.i_am_blocker,
+                                }"
+                                :title="
+                                    activeBlock?.active
+                                        ? __('chat.blocked')
+                                        : __('chat.block.action')
+                                "
+                                @click="blockModal = true"
+                            >
+                                <svg
+                                    width="18"
+                                    height="18"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2.5"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <rect
+                                        x="3"
+                                        y="11"
+                                        width="18"
+                                        height="11"
+                                        rx="2"
+                                        ry="2"
+                                    />
                                     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                                 </svg>
                             </button>
@@ -1456,276 +2177,914 @@ function formatDate(iso) {
 
                         <!-- Таймер авто-завершения — встроенный блок под шапкой -->
                         <Transition name="timer-pop">
-                            <div v-if="activeOrderData?.status === 'paid'" class="chat-order-timer-bar">
+                            <div
+                                v-if="activeOrderData?.status === 'paid'"
+                                class="chat-order-timer-bar"
+                            >
                                 <div class="chat-order-timer-bar__inner">
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                                        style="flex-shrink:0">
+                                    <svg
+                                        width="15"
+                                        height="15"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        style="flex-shrink: 0"
+                                    >
                                         <circle cx="12" cy="12" r="10" />
                                         <polyline points="12 6 12 12 16 14" />
                                     </svg>
-                                    <span class="chat-order-timer-bar__label">{{ __('chat.auto_complete') }}</span>
-                                    <span class="chat-order-timer-bar__value">{{ orderTimerLabel }}</span>
+                                    <span class="chat-order-timer-bar__label">{{
+                                        __("chat.auto_complete")
+                                    }}</span>
+                                    <span class="chat-order-timer-bar__value">{{
+                                        orderTimerLabel
+                                    }}</span>
                                 </div>
                             </div>
                         </Transition>
 
                         <!-- Сообщения -->
                         <div class="chat-messages-wrap">
-                            <div class="chat-messages" ref="messagesContainer" @scroll="onMessagesScroll">
+                            <div
+                                class="chat-messages"
+                                ref="messagesContainer"
+                                @scroll="onMessagesScroll"
+                            >
                                 <div v-if="loadingMsgs" class="chat-skeleton">
-                                    <div class="chat-skeleton__row chat-skeleton__row--left">
-                                        <div class="chat-skeleton__avatar"></div>
+                                    <div
+                                        class="chat-skeleton__row chat-skeleton__row--left"
+                                    >
+                                        <div
+                                            class="chat-skeleton__avatar"
+                                        ></div>
                                         <div class="chat-skeleton__bubbles">
-                                            <div class="chat-skeleton__bubble" style="width:54%"></div>
+                                            <div
+                                                class="chat-skeleton__bubble"
+                                                style="width: 54%"
+                                            ></div>
                                         </div>
                                     </div>
-                                    <div class="chat-skeleton__row chat-skeleton__row--right">
+                                    <div
+                                        class="chat-skeleton__row chat-skeleton__row--right"
+                                    >
                                         <div class="chat-skeleton__bubbles">
-                                            <div class="chat-skeleton__bubble" style="width:38%"></div>
-                                            <div class="chat-skeleton__bubble" style="width:62%"></div>
+                                            <div
+                                                class="chat-skeleton__bubble"
+                                                style="width: 38%"
+                                            ></div>
+                                            <div
+                                                class="chat-skeleton__bubble"
+                                                style="width: 62%"
+                                            ></div>
                                         </div>
-                                        <div class="chat-skeleton__avatar"></div>
+                                        <div
+                                            class="chat-skeleton__avatar"
+                                        ></div>
                                     </div>
-                                    <div class="chat-skeleton__row chat-skeleton__row--left">
-                                        <div class="chat-skeleton__avatar"></div>
+                                    <div
+                                        class="chat-skeleton__row chat-skeleton__row--left"
+                                    >
+                                        <div
+                                            class="chat-skeleton__avatar"
+                                        ></div>
                                         <div class="chat-skeleton__bubbles">
-                                            <div class="chat-skeleton__bubble" style="width:72%"></div>
-                                            <div class="chat-skeleton__bubble" style="width:45%"></div>
+                                            <div
+                                                class="chat-skeleton__bubble"
+                                                style="width: 72%"
+                                            ></div>
+                                            <div
+                                                class="chat-skeleton__bubble"
+                                                style="width: 45%"
+                                            ></div>
                                         </div>
                                     </div>
-                                    <div class="chat-skeleton__row chat-skeleton__row--right">
+                                    <div
+                                        class="chat-skeleton__row chat-skeleton__row--right"
+                                    >
                                         <div class="chat-skeleton__bubbles">
-                                            <div class="chat-skeleton__bubble" style="width:48%"></div>
+                                            <div
+                                                class="chat-skeleton__bubble"
+                                                style="width: 48%"
+                                            ></div>
                                         </div>
-                                        <div class="chat-skeleton__avatar"></div>
+                                        <div
+                                            class="chat-skeleton__avatar"
+                                        ></div>
                                     </div>
-                                    <div class="chat-skeleton__row chat-skeleton__row--left">
-                                        <div class="chat-skeleton__avatar"></div>
+                                    <div
+                                        class="chat-skeleton__row chat-skeleton__row--left"
+                                    >
+                                        <div
+                                            class="chat-skeleton__avatar"
+                                        ></div>
                                         <div class="chat-skeleton__bubbles">
-                                            <div class="chat-skeleton__bubble" style="width:60%"></div>
+                                            <div
+                                                class="chat-skeleton__bubble"
+                                                style="width: 60%"
+                                            ></div>
                                         </div>
                                     </div>
-                                    <div class="chat-skeleton__row chat-skeleton__row--right">
+                                    <div
+                                        class="chat-skeleton__row chat-skeleton__row--right"
+                                    >
                                         <div class="chat-skeleton__bubbles">
-                                            <div class="chat-skeleton__bubble" style="width:55%"></div>
-                                            <div class="chat-skeleton__bubble" style="width:30%"></div>
+                                            <div
+                                                class="chat-skeleton__bubble"
+                                                style="width: 55%"
+                                            ></div>
+                                            <div
+                                                class="chat-skeleton__bubble"
+                                                style="width: 30%"
+                                            ></div>
                                         </div>
-                                        <div class="chat-skeleton__avatar"></div>
+                                        <div
+                                            class="chat-skeleton__avatar"
+                                        ></div>
                                     </div>
                                 </div>
                                 <template v-else>
                                     <!-- Индикатор подгрузки -->
-                                    <div v-if="loadingMore" class="chat-loading-more">{{ __('common.loading') }}</div>
+                                    <div
+                                        v-if="loadingMore"
+                                        class="chat-loading-more"
+                                    >
+                                        {{ __("common.loading") }}
+                                    </div>
 
-                                    <TransitionGroup name="msg" tag="div" class="chat-messages-inner">
-                                        <template v-for="item in groupedMessages" :key="item.key ?? item.msg?.id">
+                                    <TransitionGroup
+                                        name="msg"
+                                        tag="div"
+                                        class="chat-messages-inner"
+                                    >
+                                        <template
+                                            v-for="item in groupedMessages"
+                                            :key="item.key ?? item.msg?.id"
+                                        >
                                             <!-- Date divider -->
-                                            <div v-if="item.type === 'divider'" class="chat-date-divider">
+                                            <div
+                                                v-if="item.type === 'divider'"
+                                                class="chat-date-divider"
+                                            >
                                                 <span>{{ item.label }}</span>
                                             </div>
 
                                             <!-- System message -->
-                                            <div v-else-if="item.type === 'message' && item.msg.type === 'system'"
-                                                class="chat-system-msg">
-                                                <template v-if="item.msg.metadata?.event === 'order_created'">
+                                            <div
+                                                v-else-if="
+                                                    item.type === 'message' &&
+                                                    item.msg.type === 'system'
+                                                "
+                                                class="chat-system-msg"
+                                            >
+                                                <template
+                                                    v-if="
+                                                        item.msg.metadata
+                                                            ?.event ===
+                                                        'order_created'
+                                                    "
+                                                >
                                                     <div class="sc-card">
-                                                        <p class="sc-title">{{ __('chat.msg.order_placed') }}</p>
-                                                        <div class="sc-rule sc-rule--double"></div>
-                                                        <div class="sc-lines">
-                                                            <div v-for="s in item.msg.metadata.services" :key="s.id"
-                                                                class="sc-line">
-                                                                <span class="sc-line__name">{{ s.name }}</span>
-                                                                <span class="sc-line__dots"></span>
-                                                                <span class="sc-line__qty"
-                                                                    v-if="(s.quantity ?? 1) > 1">×{{ s.quantity
-                                                                    }}</span>
-                                                                <span class="sc-line__price">{{ (s.price * (s.quantity
-                                                                    ?? 1))?.toLocaleString('ru-RU') }}&thinsp;₽<template
-                                                                        v-if="s.time_unit">&thinsp;/&thinsp;{{
-                                                                            s.time_unit }}</template></span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="sc-perf"><span class="sc-perf__line"></span></div>
-                                                        <div class="sc-total">
-                                                            <span class="sc-total__label">{{ __('chat.msg.total')
-                                                            }}</span>
-                                                            <span class="sc-total__value">{{
-                                                                item.msg.metadata.services.reduce((sum, s) => sum +
-                                                                    (s.price ?? 0) * (s.quantity ??
-                                                                        1), 0).toLocaleString('ru-RU')}}&thinsp;₽</span>
-                                                        </div>
-                                                        <p class="sc-date">{{ formatTime(item.msg.created_at) }}</p>
-                                                    </div>
-                                                </template>
-                                                <template v-else-if="item.msg.metadata?.event === 'order_accepted'">
-                                                    <div class="sc-card sc-card--accept">
-                                                        <div class="sc-rule sc-rule--double sc-rule--green"></div>
-                                                        <p class="sc-title sc-title--accept">
+                                                        <p class="sc-title">
                                                             {{
-                                                                item.msg.metadata.idol_gender === 'male' ?
-                                                                    __('chat.msg.accept.male') :
-                                                                    item.msg.metadata.idol_gender === 'female' ?
-                                                                        __('chat.msg.accept.female') :
-                                                                        __('chat.msg.accept.neutral')
+                                                                __(
+                                                                    "chat.msg.order_placed",
+                                                                )
                                                             }}
                                                         </p>
-                                                        <p class="sc-date">{{ formatTime(item.msg.created_at) }}</p>
-                                                        <div class="sc-rule sc-rule--double sc-rule--green"></div>
-                                                    </div>
-                                                </template>
-                                                <template v-else-if="item.msg.metadata?.event === 'order_paid'">
-                                                    <div class="sc-card sc-card--paid">
-                                                        <div class="sc-rule sc-rule--double sc-rule--cyan"></div>
-                                                        <p class="sc-title sc-title--paid">{{ __('chat.msg.order_paid')
-                                                        }}</p>
-                                                        <p class="sc-date sc-date--paid">{{
-                                                            formatTime(item.msg.created_at) }}</p>
-                                                        <div class="sc-rule sc-rule--double sc-rule--cyan"></div>
-                                                    </div>
-                                                </template>
-                                                <template v-else-if="item.msg.metadata?.event === 'order_cancelled'">
-                                                    <div class="sc-card sc-card--cancel">
-                                                        <div class="sc-rule sc-rule--double sc-rule--red"></div>
-                                                        <p class="sc-title sc-title--cancel">{{
-                                                            __('chat.msg.order_cancelled') }}</p>
-                                                        <p class="sc-who sc-who--cancel">{{
-                                                            item.msg.metadata.cancelled_by === authUser?.id ?
-                                                                __('chat.msg.cancelled_by_you') :
-                                                                (item.msg.metadata.cancelled_by_name ??
-                                                                    __('chat.msg.cancelled_by_other')) }}</p>
-                                                        <p v-if="item.msg.metadata.cancel_reason" class="sc-reason">{{
-                                                            item.msg.metadata.cancel_reason }}</p>
-                                                        <p class="sc-date sc-date--cancel">{{
-                                                            formatTime(item.msg.created_at) }}</p>
-                                                        <div class="sc-rule sc-rule--double sc-rule--red"></div>
-                                                    </div>
-                                                </template>
-                                                <template v-else-if="item.msg.metadata?.event === 'item_added'">
-                                                    <div class="sc-card sc-card--update">
-                                                        <p class="sc-title sc-title--update">{{
-                                                            __('chat.msg.order_updated') }}</p>
-                                                        <div class="sc-rule sc-rule--double sc-rule--cyan"></div>
+                                                        <div
+                                                            class="sc-rule sc-rule--double"
+                                                        ></div>
                                                         <div class="sc-lines">
-                                                            <div v-for="s in item.msg.metadata.services" :key="s.id"
-                                                                class="sc-line">
-                                                                <span class="sc-line__name">{{ s.name }}</span>
-                                                                <span class="sc-line__dots"></span>
-                                                                <span class="sc-line__qty"
-                                                                    v-if="(s.quantity ?? 1) > 1">×{{ s.quantity
-                                                                    }}</span>
-                                                                <span class="sc-line__price">{{ ((s.price ?? 0) *
-                                                                    (s.quantity ?? 1)).toLocaleString('ru-RU')
-                                                                }}&thinsp;₽<template
-                                                                        v-if="s.time_unit">&thinsp;/&thinsp;{{
-                                                                            s.time_unit }}</template></span>
+                                                            <div
+                                                                v-for="s in item
+                                                                    .msg
+                                                                    .metadata
+                                                                    .services"
+                                                                :key="s.id"
+                                                                class="sc-line"
+                                                            >
+                                                                <span
+                                                                    class="sc-line__name"
+                                                                    >{{
+                                                                        s.name
+                                                                    }}</span
+                                                                >
+                                                                <span
+                                                                    class="sc-line__dots"
+                                                                ></span>
+                                                                <span
+                                                                    class="sc-line__qty"
+                                                                    v-if="
+                                                                        (s.quantity ??
+                                                                            1) >
+                                                                        1
+                                                                    "
+                                                                    >×{{
+                                                                        s.quantity
+                                                                    }}</span
+                                                                >
+                                                                <span
+                                                                    class="sc-line__price"
+                                                                    >{{
+                                                                        (
+                                                                            s.price *
+                                                                            (s.quantity ??
+                                                                                1)
+                                                                        )?.toLocaleString(
+                                                                            "ru-RU",
+                                                                        )
+                                                                    }}&thinsp;₽<template
+                                                                        v-if="
+                                                                            s.time_unit
+                                                                        "
+                                                                        >&thinsp;/&thinsp;{{
+                                                                            s.time_unit
+                                                                        }}</template
+                                                                    ></span
+                                                                >
                                                             </div>
                                                         </div>
-                                                        <div class="sc-perf"><span class="sc-perf__line"></span></div>
-                                                        <div class="sc-total">
-                                                            <span class="sc-total__label">{{ __('chat.msg.total')
-                                                            }}</span>
-                                                            <span class="sc-total__value">{{(item.msg.metadata.services
-                                                                ?? []).reduce((sum, s) => sum + (s.price ?? 0) *
-                                                                    (s.quantity ?? 1), 0).toLocaleString('ru-RU')
-                                                            }}&thinsp;₽</span>
+                                                        <div class="sc-perf">
+                                                            <span
+                                                                class="sc-perf__line"
+                                                            ></span>
                                                         </div>
-                                                        <p class="sc-date">{{ formatTime(item.msg.created_at) }}</p>
+                                                        <div class="sc-total">
+                                                            <span
+                                                                class="sc-total__label"
+                                                                >{{
+                                                                    __(
+                                                                        "chat.msg.total",
+                                                                    )
+                                                                }}</span
+                                                            >
+                                                            <span
+                                                                class="sc-total__value"
+                                                                >{{
+                                                                    item.msg.metadata.services
+                                                                        .reduce(
+                                                                            (
+                                                                                sum,
+                                                                                s,
+                                                                            ) =>
+                                                                                sum +
+                                                                                (s.price ??
+                                                                                    0) *
+                                                                                    (s.quantity ??
+                                                                                        1),
+                                                                            0,
+                                                                        )
+                                                                        .toLocaleString(
+                                                                            "ru-RU",
+                                                                        )
+                                                                }}&thinsp;₽</span
+                                                            >
+                                                        </div>
+                                                        <p class="sc-date">
+                                                            {{
+                                                                formatTime(
+                                                                    item.msg
+                                                                        .created_at,
+                                                                )
+                                                            }}
+                                                        </p>
                                                     </div>
                                                 </template>
                                                 <template
-                                                    v-else-if="item.msg.metadata?.event === 'completion_confirmed_by_idol'">
-                                                    <div class="sc-card sc-card--confirm">
-                                                        <div class="sc-rule sc-rule--green"></div>
-                                                        <p class="sc-title sc-title--confirm">{{
-                                                            __('chat.msg.completed') }}</p>
-                                                        <p class="sc-who">{{ __('chat.msg.completed.idol') }}</p>
-                                                        <p class="sc-date">{{ formatTime(item.msg.created_at) }}</p>
-                                                        <div class="sc-rule sc-rule--green"></div>
+                                                    v-else-if="
+                                                        item.msg.metadata
+                                                            ?.event ===
+                                                        'order_accepted'
+                                                    "
+                                                >
+                                                    <div
+                                                        class="sc-card sc-card--accept"
+                                                    >
+                                                        <div
+                                                            class="sc-rule sc-rule--double sc-rule--green"
+                                                        ></div>
+                                                        <p
+                                                            class="sc-title sc-title--accept"
+                                                        >
+                                                            {{
+                                                                item.msg
+                                                                    .metadata
+                                                                    .idol_gender ===
+                                                                "male"
+                                                                    ? __(
+                                                                          "chat.msg.accept.male",
+                                                                      )
+                                                                    : item.msg
+                                                                            .metadata
+                                                                            .idol_gender ===
+                                                                        "female"
+                                                                      ? __(
+                                                                            "chat.msg.accept.female",
+                                                                        )
+                                                                      : __(
+                                                                            "chat.msg.accept.neutral",
+                                                                        )
+                                                            }}
+                                                        </p>
+                                                        <p class="sc-date">
+                                                            {{
+                                                                formatTime(
+                                                                    item.msg
+                                                                        .created_at,
+                                                                )
+                                                            }}
+                                                        </p>
+                                                        <div
+                                                            class="sc-rule sc-rule--double sc-rule--green"
+                                                        ></div>
                                                     </div>
                                                 </template>
                                                 <template
-                                                    v-else-if="item.msg.metadata?.event === 'completion_confirmed_by_customer'">
-                                                    <div class="sc-card sc-card--confirm">
-                                                        <div class="sc-rule sc-rule--green"></div>
-                                                        <p class="sc-title sc-title--confirm">{{
-                                                            __('chat.msg.completed') }}</p>
-                                                        <p class="sc-who">{{ __('chat.msg.completed.customer') }}</p>
-                                                        <p class="sc-date">{{ formatTime(item.msg.created_at) }}</p>
-                                                        <div class="sc-rule sc-rule--green"></div>
+                                                    v-else-if="
+                                                        item.msg.metadata
+                                                            ?.event ===
+                                                        'order_paid'
+                                                    "
+                                                >
+                                                    <div
+                                                        class="sc-card sc-card--paid"
+                                                    >
+                                                        <div
+                                                            class="sc-rule sc-rule--double sc-rule--cyan"
+                                                        ></div>
+                                                        <p
+                                                            class="sc-title sc-title--paid"
+                                                        >
+                                                            {{
+                                                                __(
+                                                                    "chat.msg.order_paid",
+                                                                )
+                                                            }}
+                                                        </p>
+                                                        <p
+                                                            class="sc-date sc-date--paid"
+                                                        >
+                                                            {{
+                                                                formatTime(
+                                                                    item.msg
+                                                                        .created_at,
+                                                                )
+                                                            }}
+                                                        </p>
+                                                        <div
+                                                            class="sc-rule sc-rule--double sc-rule--cyan"
+                                                        ></div>
                                                     </div>
                                                 </template>
                                                 <template
-                                                    v-else-if="item.msg.metadata?.event === 'order_completed' || item.msg.metadata?.event === 'order_auto_completed'">
-                                                    <div v-if="activeOrderData?.is_customer" class="chat-repeat-wrap">
-                                                        <button class="chat-repeat-btn"
-                                                            @click="repeatOrderOpen = true">{{ __('chat.msg.repeat')
-                                                            }}</button>
+                                                    v-else-if="
+                                                        item.msg.metadata
+                                                            ?.event ===
+                                                        'order_cancelled'
+                                                    "
+                                                >
+                                                    <div
+                                                        class="sc-card sc-card--cancel"
+                                                    >
+                                                        <div
+                                                            class="sc-rule sc-rule--double sc-rule--red"
+                                                        ></div>
+                                                        <p
+                                                            class="sc-title sc-title--cancel"
+                                                        >
+                                                            {{
+                                                                __(
+                                                                    "chat.msg.order_cancelled",
+                                                                )
+                                                            }}
+                                                        </p>
+                                                        <p
+                                                            class="sc-who sc-who--cancel"
+                                                        >
+                                                            {{
+                                                                item.msg
+                                                                    .metadata
+                                                                    .cancelled_by ===
+                                                                authUser?.id
+                                                                    ? __(
+                                                                          "chat.msg.cancelled_by_you",
+                                                                      )
+                                                                    : (item.msg
+                                                                          .metadata
+                                                                          .cancelled_by_name ??
+                                                                      __(
+                                                                          "chat.msg.cancelled_by_other",
+                                                                      ))
+                                                            }}
+                                                        </p>
+                                                        <p
+                                                            v-if="
+                                                                item.msg
+                                                                    .metadata
+                                                                    .cancel_reason
+                                                            "
+                                                            class="sc-reason"
+                                                        >
+                                                            {{
+                                                                item.msg
+                                                                    .metadata
+                                                                    .cancel_reason
+                                                            }}
+                                                        </p>
+                                                        <p
+                                                            class="sc-date sc-date--cancel"
+                                                        >
+                                                            {{
+                                                                formatTime(
+                                                                    item.msg
+                                                                        .created_at,
+                                                                )
+                                                            }}
+                                                        </p>
+                                                        <div
+                                                            class="sc-rule sc-rule--double sc-rule--red"
+                                                        ></div>
                                                     </div>
                                                 </template>
-                                                <template v-else-if="item.msg.metadata?.event === 'chat_closed'">
-                                                    <div class="chat-event-label">{{ __('chat.status.closed') }} <span
-                                                            class="chat-event-label__time">{{
-                                                                formatTime(item.msg.created_at) }}</span></div>
+                                                <template
+                                                    v-else-if="
+                                                        item.msg.metadata
+                                                            ?.event ===
+                                                        'item_added'
+                                                    "
+                                                >
+                                                    <div
+                                                        class="sc-card sc-card--update"
+                                                    >
+                                                        <p
+                                                            class="sc-title sc-title--update"
+                                                        >
+                                                            {{
+                                                                __(
+                                                                    "chat.msg.order_updated",
+                                                                )
+                                                            }}
+                                                        </p>
+                                                        <div
+                                                            class="sc-rule sc-rule--double sc-rule--cyan"
+                                                        ></div>
+                                                        <div class="sc-lines">
+                                                            <div
+                                                                v-for="s in item
+                                                                    .msg
+                                                                    .metadata
+                                                                    .services"
+                                                                :key="s.id"
+                                                                class="sc-line"
+                                                            >
+                                                                <span
+                                                                    class="sc-line__name"
+                                                                    >{{
+                                                                        s.name
+                                                                    }}</span
+                                                                >
+                                                                <span
+                                                                    class="sc-line__dots"
+                                                                ></span>
+                                                                <span
+                                                                    class="sc-line__qty"
+                                                                    v-if="
+                                                                        (s.quantity ??
+                                                                            1) >
+                                                                        1
+                                                                    "
+                                                                    >×{{
+                                                                        s.quantity
+                                                                    }}</span
+                                                                >
+                                                                <span
+                                                                    class="sc-line__price"
+                                                                    >{{
+                                                                        (
+                                                                            (s.price ??
+                                                                                0) *
+                                                                            (s.quantity ??
+                                                                                1)
+                                                                        ).toLocaleString(
+                                                                            "ru-RU",
+                                                                        )
+                                                                    }}&thinsp;₽<template
+                                                                        v-if="
+                                                                            s.time_unit
+                                                                        "
+                                                                        >&thinsp;/&thinsp;{{
+                                                                            s.time_unit
+                                                                        }}</template
+                                                                    ></span
+                                                                >
+                                                            </div>
+                                                        </div>
+                                                        <div class="sc-perf">
+                                                            <span
+                                                                class="sc-perf__line"
+                                                            ></span>
+                                                        </div>
+                                                        <div class="sc-total">
+                                                            <span
+                                                                class="sc-total__label"
+                                                                >{{
+                                                                    __(
+                                                                        "chat.msg.total",
+                                                                    )
+                                                                }}</span
+                                                            >
+                                                            <span
+                                                                class="sc-total__value"
+                                                                >{{
+                                                                    (
+                                                                        item.msg
+                                                                            .metadata
+                                                                            .services ??
+                                                                        []
+                                                                    )
+                                                                        .reduce(
+                                                                            (
+                                                                                sum,
+                                                                                s,
+                                                                            ) =>
+                                                                                sum +
+                                                                                (s.price ??
+                                                                                    0) *
+                                                                                    (s.quantity ??
+                                                                                        1),
+                                                                            0,
+                                                                        )
+                                                                        .toLocaleString(
+                                                                            "ru-RU",
+                                                                        )
+                                                                }}&thinsp;₽</span
+                                                            >
+                                                        </div>
+                                                        <p class="sc-date">
+                                                            {{
+                                                                formatTime(
+                                                                    item.msg
+                                                                        .created_at,
+                                                                )
+                                                            }}
+                                                        </p>
+                                                    </div>
                                                 </template>
-                                                <template v-else-if="item.msg.metadata?.event === 'chat_opened'">
-                                                    <div class="chat-event-label">{{ __('chat.status.open') }} <span
-                                                            class="chat-event-label__time">{{
-                                                                formatTime(item.msg.created_at) }}</span></div>
+                                                <template
+                                                    v-else-if="
+                                                        item.msg.metadata
+                                                            ?.event ===
+                                                        'completion_confirmed_by_idol'
+                                                    "
+                                                >
+                                                    <div
+                                                        class="sc-card sc-card--confirm"
+                                                    >
+                                                        <div
+                                                            class="sc-rule sc-rule--green"
+                                                        ></div>
+                                                        <p
+                                                            class="sc-title sc-title--confirm"
+                                                        >
+                                                            {{
+                                                                __(
+                                                                    "chat.msg.completed",
+                                                                )
+                                                            }}
+                                                        </p>
+                                                        <p class="sc-who">
+                                                            {{
+                                                                __(
+                                                                    "chat.msg.completed.idol",
+                                                                )
+                                                            }}
+                                                        </p>
+                                                        <p class="sc-date">
+                                                            {{
+                                                                formatTime(
+                                                                    item.msg
+                                                                        .created_at,
+                                                                )
+                                                            }}
+                                                        </p>
+                                                        <div
+                                                            class="sc-rule sc-rule--green"
+                                                        ></div>
+                                                    </div>
                                                 </template>
-                                                <template v-else-if="item.msg.metadata?.event === 'review_submitted'">
-                                                    <div class="chat-event-label chat-event-label--review">{{
-                                                        __('chat.status.reviewed') }}</div>
+                                                <template
+                                                    v-else-if="
+                                                        item.msg.metadata
+                                                            ?.event ===
+                                                        'completion_confirmed_by_customer'
+                                                    "
+                                                >
+                                                    <div
+                                                        class="sc-card sc-card--confirm"
+                                                    >
+                                                        <div
+                                                            class="sc-rule sc-rule--green"
+                                                        ></div>
+                                                        <p
+                                                            class="sc-title sc-title--confirm"
+                                                        >
+                                                            {{
+                                                                __(
+                                                                    "chat.msg.completed",
+                                                                )
+                                                            }}
+                                                        </p>
+                                                        <p class="sc-who">
+                                                            {{
+                                                                __(
+                                                                    "chat.msg.completed.customer",
+                                                                )
+                                                            }}
+                                                        </p>
+                                                        <p class="sc-date">
+                                                            {{
+                                                                formatTime(
+                                                                    item.msg
+                                                                        .created_at,
+                                                                )
+                                                            }}
+                                                        </p>
+                                                        <div
+                                                            class="sc-rule sc-rule--green"
+                                                        ></div>
+                                                    </div>
+                                                </template>
+                                                <template
+                                                    v-else-if="
+                                                        item.msg.metadata
+                                                            ?.event ===
+                                                            'order_completed' ||
+                                                        item.msg.metadata
+                                                            ?.event ===
+                                                            'order_auto_completed'
+                                                    "
+                                                >
+                                                    <div
+                                                        v-if="
+                                                            activeOrderData?.is_customer
+                                                        "
+                                                        class="chat-repeat-wrap"
+                                                    >
+                                                        <button
+                                                            class="chat-repeat-btn"
+                                                            @click="
+                                                                repeatOrderOpen = true
+                                                            "
+                                                        >
+                                                            {{
+                                                                __(
+                                                                    "chat.msg.repeat",
+                                                                )
+                                                            }}
+                                                        </button>
+                                                    </div>
+                                                </template>
+                                                <template
+                                                    v-else-if="
+                                                        item.msg.metadata
+                                                            ?.event ===
+                                                        'chat_closed'
+                                                    "
+                                                >
+                                                    <div
+                                                        class="chat-event-label"
+                                                    >
+                                                        {{
+                                                            __(
+                                                                "chat.status.closed",
+                                                            )
+                                                        }}
+                                                        <span
+                                                            class="chat-event-label__time"
+                                                            >{{
+                                                                formatTime(
+                                                                    item.msg
+                                                                        .created_at,
+                                                                )
+                                                            }}</span
+                                                        >
+                                                    </div>
+                                                </template>
+                                                <template
+                                                    v-else-if="
+                                                        item.msg.metadata
+                                                            ?.event ===
+                                                        'chat_opened'
+                                                    "
+                                                >
+                                                    <div
+                                                        class="chat-event-label"
+                                                    >
+                                                        {{
+                                                            __(
+                                                                "chat.status.open",
+                                                            )
+                                                        }}
+                                                        <span
+                                                            class="chat-event-label__time"
+                                                            >{{
+                                                                formatTime(
+                                                                    item.msg
+                                                                        .created_at,
+                                                                )
+                                                            }}</span
+                                                        >
+                                                    </div>
+                                                </template>
+                                                <template
+                                                    v-else-if="
+                                                        item.msg.metadata
+                                                            ?.event ===
+                                                        'review_submitted'
+                                                    "
+                                                >
+                                                    <div
+                                                        class="chat-event-label chat-event-label--review"
+                                                    >
+                                                        {{
+                                                            __(
+                                                                "chat.status.reviewed",
+                                                            )
+                                                        }}
+                                                    </div>
                                                 </template>
                                                 <template v-else>
-                                                    <div class="chat-event-label">{{ item.msg.body || '—' }} <span
-                                                            class="chat-event-label__time">{{
-                                                                formatTime(item.msg.created_at) }}</span></div>
+                                                    <div
+                                                        class="chat-event-label"
+                                                    >
+                                                        {{
+                                                            item.msg.body || "—"
+                                                        }}
+                                                        <span
+                                                            class="chat-event-label__time"
+                                                            >{{
+                                                                formatTime(
+                                                                    item.msg
+                                                                        .created_at,
+                                                                )
+                                                            }}</span
+                                                        >
+                                                    </div>
                                                 </template>
                                             </div>
 
                                             <!-- Service offer message — one bubble per service -->
                                             <template
-                                                v-else-if="item.type === 'message' && item.msg.type === 'service_offer'">
-                                                <div v-for="(svc, svcIdx) in (item.msg.metadata?.services ?? [])"
-                                                    :key="svc.id" class="chat-msg" :class="{
-                                                        'chat-msg--mine': item.msg.sender_id === authUser?.id,
-                                                        'chat-msg--first-in-group': item.isFirstInGroup && svcIdx === 0,
-                                                        'chat-msg--last-in-group': item.isLastInGroup && svcIdx === (item.msg.metadata?.services?.length ?? 1) - 1,
-                                                    }">
-                                                    <div class="svc-offer-bubble">
-                                                        <div v-if="svcIdx === 0" class="svc-offer__header">{{
-                                                            __('chat.msg.offer_label') }}</div>
-                                                        <div class="svc-offer__card">
-                                                            <span class="svc-offer__svc">{{ svc.name }}<template
-                                                                    v-if="svc.time_unit">&thinsp;/&thinsp;{{
-                                                                        svc.time_unit }}</template></span>
+                                                v-else-if="
+                                                    item.type === 'message' &&
+                                                    item.msg.type ===
+                                                        'service_offer'
+                                                "
+                                            >
+                                                <div
+                                                    v-for="(svc, svcIdx) in item
+                                                        .msg.metadata
+                                                        ?.services ?? []"
+                                                    :key="svc.id"
+                                                    class="chat-msg"
+                                                    :class="{
+                                                        'chat-msg--mine':
+                                                            item.msg
+                                                                .sender_id ===
+                                                            authUser?.id,
+                                                        'chat-msg--first-in-group':
+                                                            item.isFirstInGroup &&
+                                                            svcIdx === 0,
+                                                        'chat-msg--last-in-group':
+                                                            item.isLastInGroup &&
+                                                            svcIdx ===
+                                                                (item.msg
+                                                                    .metadata
+                                                                    ?.services
+                                                                    ?.length ??
+                                                                    1) -
+                                                                    1,
+                                                    }"
+                                                >
+                                                    <div
+                                                        class="svc-offer-bubble"
+                                                    >
+                                                        <div
+                                                            v-if="svcIdx === 0"
+                                                            class="svc-offer__header"
+                                                        >
+                                                            {{
+                                                                __(
+                                                                    "chat.msg.offer_label",
+                                                                )
+                                                            }}
+                                                        </div>
+                                                        <div
+                                                            class="svc-offer__card"
+                                                        >
+                                                            <span
+                                                                class="svc-offer__svc"
+                                                                >{{ svc.name
+                                                                }}<template
+                                                                    v-if="
+                                                                        svc.time_unit
+                                                                    "
+                                                                    >&thinsp;/&thinsp;{{
+                                                                        svc.time_unit
+                                                                    }}</template
+                                                                ></span
+                                                            >
                                                             <button
-                                                                v-if="item.msg.sender_id !== authUser?.id && (!activeOrderData || activeOrderData.status === 'pending' || !activeOrderData.id)"
+                                                                v-if="
+                                                                    item.msg
+                                                                        .sender_id !==
+                                                                        authUser?.id &&
+                                                                    (!activeOrderData ||
+                                                                        activeOrderData.status ===
+                                                                            'pending' ||
+                                                                        !activeOrderData.id)
+                                                                "
                                                                 class="svc-offer__cart-btn"
-                                                                @click="addServiceToCart(svc)"><svg width="16"
-                                                                    height="16" viewBox="0 0 24 24" fill="none"
-                                                                    stroke="currentColor" stroke-width="1.8"
-                                                                    stroke-linecap="round" stroke-linejoin="round">
+                                                                @click="
+                                                                    addServiceToCart(
+                                                                        svc,
+                                                                    )
+                                                                "
+                                                            >
+                                                                <svg
+                                                                    width="16"
+                                                                    height="16"
+                                                                    viewBox="0 0 24 24"
+                                                                    fill="none"
+                                                                    stroke="currentColor"
+                                                                    stroke-width="1.8"
+                                                                    stroke-linecap="round"
+                                                                    stroke-linejoin="round"
+                                                                >
                                                                     <path
-                                                                        d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
-                                                                    <line x1="3" y1="6" x2="21" y2="6" />
-                                                                    <path d="M16 10a4 4 0 01-8 0" />
-                                                                </svg></button>
+                                                                        d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"
+                                                                    />
+                                                                    <line
+                                                                        x1="3"
+                                                                        y1="6"
+                                                                        x2="21"
+                                                                        y2="6"
+                                                                    />
+                                                                    <path
+                                                                        d="M16 10a4 4 0 01-8 0"
+                                                                    />
+                                                                </svg>
+                                                            </button>
                                                         </div>
                                                         <span
-                                                            v-if="svcIdx === (item.msg.metadata?.services?.length ?? 1) - 1"
-                                                            class="chat-msg__meta">
-                                                            <span class="chat-msg__time">{{
-                                                                formatTime(item.msg.created_at) }}</span>
-                                                            <span v-if="item.msg.sender_id === authUser?.id"
+                                                            v-if="
+                                                                svcIdx ===
+                                                                (item.msg
+                                                                    .metadata
+                                                                    ?.services
+                                                                    ?.length ??
+                                                                    1) -
+                                                                    1
+                                                            "
+                                                            class="chat-msg__meta"
+                                                        >
+                                                            <span
+                                                                class="chat-msg__time"
+                                                                >{{
+                                                                    formatTime(
+                                                                        item.msg
+                                                                            .created_at,
+                                                                    )
+                                                                }}</span
+                                                            >
+                                                            <span
+                                                                v-if="
+                                                                    item.msg
+                                                                        .sender_id ===
+                                                                    authUser?.id
+                                                                "
                                                                 class="chat-msg__status"
-                                                                :class="{ 'chat-msg__status--read': isMessageRead(item.msg) }">
-                                                                <span class="chat-ticks">
-                                                                    <el-icon class="chat-tick chat-tick--1">
+                                                                :class="{
+                                                                    'chat-msg__status--read':
+                                                                        isMessageRead(
+                                                                            item.msg,
+                                                                        ),
+                                                                }"
+                                                            >
+                                                                <span
+                                                                    class="chat-ticks"
+                                                                >
+                                                                    <el-icon
+                                                                        class="chat-tick chat-tick--1"
+                                                                    >
                                                                         <Check />
                                                                     </el-icon>
-                                                                    <el-icon class="chat-tick chat-tick--2">
+                                                                    <el-icon
+                                                                        class="chat-tick chat-tick--2"
+                                                                    >
                                                                         <Check />
                                                                     </el-icon>
                                                                 </span>
@@ -1736,33 +3095,102 @@ function formatDate(iso) {
                                             </template>
 
                                             <!-- Regular message -->
-                                            <div v-else-if="item.type === 'message'" class="chat-msg" :class="{
-                                                'chat-msg--mine': item.msg.sender_id === authUser?.id,
-                                                'chat-msg--first-in-group': item.isFirstInGroup,
-                                                'chat-msg--last-in-group': item.isLastInGroup,
-                                            }">
-                                                <div class="chat-msg__bubble"
-                                                    :class="{ 'chat-msg__bubble--image': item.msg.type === 'image' && item.msg.metadata?.image_url }">
+                                            <div
+                                                v-else-if="
+                                                    item.type === 'message'
+                                                "
+                                                class="chat-msg"
+                                                :class="{
+                                                    'chat-msg--mine':
+                                                        item.msg.sender_id ===
+                                                        authUser?.id,
+                                                    'chat-msg--first-in-group':
+                                                        item.isFirstInGroup,
+                                                    'chat-msg--last-in-group':
+                                                        item.isLastInGroup,
+                                                }"
+                                            >
+                                                <div
+                                                    class="chat-msg__bubble"
+                                                    :class="{
+                                                        'chat-msg__bubble--image':
+                                                            item.msg.type ===
+                                                                'image' &&
+                                                            item.msg.metadata
+                                                                ?.image_url,
+                                                    }"
+                                                >
                                                     <template
-                                                        v-if="item.msg.type === 'image' && item.msg.metadata?.image_url">
-                                                        <a :href="item.msg.metadata.image_url" target="_blank"
-                                                            rel="noopener">
-                                                            <img :src="item.msg.metadata.image_url"
-                                                                class="chat-msg__image" />
+                                                        v-if="
+                                                            item.msg.type ===
+                                                                'image' &&
+                                                            item.msg.metadata
+                                                                ?.image_url
+                                                        "
+                                                    >
+                                                        <a
+                                                            :href="
+                                                                item.msg
+                                                                    .metadata
+                                                                    .image_url
+                                                            "
+                                                            target="_blank"
+                                                            rel="noopener"
+                                                        >
+                                                            <img
+                                                                :src="
+                                                                    item.msg
+                                                                        .metadata
+                                                                        .image_url
+                                                                "
+                                                                class="chat-msg__image"
+                                                            />
                                                         </a>
                                                     </template>
-                                                    <span v-else class="chat-msg__text">{{ item.msg.body }}</span>
-                                                    <span class="chat-msg__meta">
-                                                        <span class="chat-msg__time">{{ formatTime(item.msg.created_at)
-                                                        }}</span>
-                                                        <span v-if="item.msg.sender_id === authUser?.id"
+                                                    <span
+                                                        v-else
+                                                        class="chat-msg__text"
+                                                        >{{
+                                                            item.msg.body
+                                                        }}</span
+                                                    >
+                                                    <span
+                                                        class="chat-msg__meta"
+                                                    >
+                                                        <span
+                                                            class="chat-msg__time"
+                                                            >{{
+                                                                formatTime(
+                                                                    item.msg
+                                                                        .created_at,
+                                                                )
+                                                            }}</span
+                                                        >
+                                                        <span
+                                                            v-if="
+                                                                item.msg
+                                                                    .sender_id ===
+                                                                authUser?.id
+                                                            "
                                                             class="chat-msg__status"
-                                                            :class="{ 'chat-msg__status--read': isMessageRead(item.msg) }">
-                                                            <span class="chat-ticks">
-                                                                <el-icon class="chat-tick chat-tick--1">
+                                                            :class="{
+                                                                'chat-msg__status--read':
+                                                                    isMessageRead(
+                                                                        item.msg,
+                                                                    ),
+                                                            }"
+                                                        >
+                                                            <span
+                                                                class="chat-ticks"
+                                                            >
+                                                                <el-icon
+                                                                    class="chat-tick chat-tick--1"
+                                                                >
                                                                     <Check />
                                                                 </el-icon>
-                                                                <el-icon class="chat-tick chat-tick--2">
+                                                                <el-icon
+                                                                    class="chat-tick chat-tick--2"
+                                                                >
                                                                     <Check />
                                                                 </el-icon>
                                                             </span>
@@ -1774,175 +3202,426 @@ function formatDate(iso) {
                                     </TransitionGroup>
 
                                     <div v-if="isTyping" class="chat-typing">
-                                        {{ __('chat.typing', { name: activeConversation.other_user?.name }) }}
+                                        {{
+                                            __("chat.typing", {
+                                                name: activeConversation
+                                                    .other_user?.name,
+                                            })
+                                        }}
                                     </div>
-                                    <ReviewForm v-if="showReviewForm" :order-id="activeOrderData.id"
-                                        :idol-id="activeOrderData.idol.id" @submitted="onReviewSubmitted" />
-                                    <RepeatOrderModal v-if="activeOrderData" :show="repeatOrderOpen"
-                                        :order="activeOrderData" @created="onRepeatOrderCreated"
-                                        @close="repeatOrderOpen = false" />
+                                    <ReviewForm
+                                        v-if="showReviewForm"
+                                        :order-id="activeOrderData.id"
+                                        :idol-id="activeOrderData.idol.id"
+                                        @submitted="onReviewSubmitted"
+                                    />
+                                    <RepeatOrderModal
+                                        v-if="activeOrderData"
+                                        :show="repeatOrderOpen"
+                                        :order="activeOrderData"
+                                        @created="onRepeatOrderCreated"
+                                        @close="repeatOrderOpen = false"
+                                    />
                                     <div ref="messagesEnd" />
                                 </template>
                             </div>
 
                             <!-- Оверлей: скрывает скролл при открытии диалога -->
                             <Transition name="cover-fade">
-                                <div v-if="coverMessages" class="chat-messages-cover" />
+                                <div
+                                    v-if="coverMessages"
+                                    class="chat-messages-cover"
+                                />
                             </Transition>
 
                             <!-- Оверлей: заблокированный -->
-                            <div v-if="activeBlock?.active && !activeBlock?.i_am_blocker" class="chat-blocked-overlay">
+                            <div
+                                v-if="
+                                    activeBlock?.active &&
+                                    !activeBlock?.i_am_blocker
+                                "
+                                class="chat-blocked-overlay"
+                            >
                                 <div class="chat-blocked-card">
-                                    <p class="chat-blocked-header">================================</p>
-                                    <p class="chat-blocked-title">{{ __('chat.access_denied') }}</p>
-                                    <p class="chat-blocked-header">================================</p>
-                                    <p class="chat-blocked-reason">{{ activeBlock.reason }}</p>
-                                    <p class="chat-blocked-header">--------------------------------</p>
+                                    <p class="chat-blocked-header">
+                                        ================================
+                                    </p>
+                                    <p class="chat-blocked-title">
+                                        {{ __("chat.access_denied") }}
+                                    </p>
+                                    <p class="chat-blocked-header">
+                                        ================================
+                                    </p>
+                                    <p class="chat-blocked-reason">
+                                        {{ activeBlock.reason }}
+                                    </p>
+                                    <p class="chat-blocked-header">
+                                        --------------------------------
+                                    </p>
                                     <div class="chat-blocked-timer">
-                                        <span class="chat-blocked-timer__label" v-if="activeBlock.blocked_until">{{
-                                            __('chat.time_left') }}</span>
-                                        <span class="chat-blocked-timer__label" v-else>{{ __('chat.block_until')
-                                        }}</span>
-                                        <span class="chat-blocked-timer__value">{{ blockedUntilLabel }}</span>
+                                        <span
+                                            class="chat-blocked-timer__label"
+                                            v-if="activeBlock.blocked_until"
+                                            >{{ __("chat.time_left") }}</span
+                                        >
+                                        <span
+                                            class="chat-blocked-timer__label"
+                                            v-else
+                                            >{{ __("chat.block_until") }}</span
+                                        >
+                                        <span
+                                            class="chat-blocked-timer__value"
+                                            >{{ blockedUntilLabel }}</span
+                                        >
                                     </div>
-                                    <p class="chat-blocked-header">================================</p>
+                                    <p class="chat-blocked-header">
+                                        ================================
+                                    </p>
                                 </div>
                             </div>
                             <div class="chat-input-fade"></div>
-                        </div><!-- end chat-messages-wrap -->
+                        </div>
+                        <!-- end chat-messages-wrap -->
 
                         <!-- Поле ввода + панель заказа -->
                         <Transition name="chat-input-appear">
                             <div v-if="!loadingMsgs" class="chat-input-wrap">
-
                                 <!-- Баннер: чат закрыт -->
-                                <div v-if="isChatClosed" class="chat-closed-banner">
-                                    {{ __('chat.wait_support') }}
+                                <div
+                                    v-if="isChatClosed"
+                                    class="chat-closed-banner"
+                                >
+                                    {{ __("chat.wait_support") }}
                                 </div>
 
                                 <!-- Баннер блокировщика -->
-                                <div v-if="activeBlock?.active && activeBlock?.i_am_blocker" class="chat-block-banner">
+                                <div
+                                    v-if="
+                                        activeBlock?.active &&
+                                        activeBlock?.i_am_blocker
+                                    "
+                                    class="chat-block-banner"
+                                >
                                     <div class="chat-block-banner__info">
-                                        <span class="chat-block-banner__label">{{ __('chat.user_blocked_label')
-                                        }}</span>
+                                        <span
+                                            class="chat-block-banner__label"
+                                            >{{
+                                                __("chat.user_blocked_label")
+                                            }}</span
+                                        >
                                         <span class="chat-block-banner__timer">
-                                            {{ activeBlock.blocked_until ? __('chat.block.time_remaining', {
-                                                time:
-                                                    blockedUntilLabel
-                                            }) :
-                                                __('chat.block.dur.forever') }}
+                                            {{
+                                                activeBlock.blocked_until
+                                                    ? __(
+                                                          "chat.block.time_remaining",
+                                                          {
+                                                              time: blockedUntilLabel,
+                                                          },
+                                                      )
+                                                    : __(
+                                                          "chat.block.dur.forever",
+                                                      )
+                                            }}
                                         </span>
                                     </div>
-                                    <button @click="submitUnblock" class="chat-block-unblock-btn">{{
-                                        __('chat.block.unblock') }}</button>
+                                    <button
+                                        @click="submitUnblock"
+                                        class="chat-block-unblock-btn"
+                                    >
+                                        {{ __("chat.block.unblock") }}
+                                    </button>
                                 </div>
 
                                 <!-- Панель действий заказа -->
-                                <div v-if="activeOrderData && ['pending', 'accepted', 'paid'].includes(activeOrderData.status)"
-                                    class="chat-order-actions">
-                                    <button v-if="!activeOrderData.is_customer && activeOrderData.status === 'pending'"
-                                        class="chat-order-btn chat-order-btn--accept" :disabled="!!orderAction"
-                                        @click="acceptModal = true">{{
-                                            acceptBtnText.toUpperCase() }}</button>
-                                    <button v-if="activeOrderData.is_customer && activeOrderData.status === 'accepted'"
-                                        class="chat-order-btn chat-order-btn--pay" :disabled="!!orderAction"
-                                        @click="payOrder">
-                                        <span v-if="orderAction === 'pay'" class="order-btn-spinner" />
-                                        <template v-else>{{ __('chat.btn.pay_order') }}</template>
+                                <div
+                                    v-if="
+                                        activeOrderData &&
+                                        [
+                                            'pending',
+                                            'accepted',
+                                            'paid',
+                                        ].includes(activeOrderData.status)
+                                    "
+                                    class="chat-order-actions"
+                                >
+                                    <button
+                                        v-if="
+                                            !activeOrderData.is_customer &&
+                                            activeOrderData.status === 'pending'
+                                        "
+                                        class="chat-order-btn chat-order-btn--accept"
+                                        :disabled="!!orderAction"
+                                        @click="acceptModal = true"
+                                    >
+                                        {{ acceptBtnText.toUpperCase() }}
                                     </button>
-                                    <button v-if="activeOrderData.status === 'paid'"
+                                    <button
+                                        v-if="
+                                            activeOrderData.is_customer &&
+                                            activeOrderData.status ===
+                                                'accepted'
+                                        "
+                                        class="chat-order-btn chat-order-btn--pay"
+                                        :disabled="!!orderAction"
+                                        @click="payOrder"
+                                    >
+                                        <span
+                                            v-if="orderAction === 'pay'"
+                                            class="order-btn-spinner"
+                                        />
+                                        <template v-else>{{
+                                            __("chat.btn.pay_order")
+                                        }}</template>
+                                    </button>
+                                    <button
+                                        v-if="activeOrderData.status === 'paid'"
                                         class="chat-order-btn chat-order-btn--complete"
-                                        :disabled="myConfirmation || !!orderAction" @click="completeModal = true">{{
-                                            myConfirmation ?
-                                                __('chat.btn.confirmed') : __('chat.btn.order_done') }}</button>
-                                    <button v-if="['pending', 'accepted'].includes(activeOrderData.status)"
-                                        class="chat-order-btn chat-order-btn--cancel" :disabled="!!orderAction"
-                                        @click="cancelModal = true">{{
-                                            __('chat.btn.cancel') }}</button>
+                                        :disabled="
+                                            myConfirmation || !!orderAction
+                                        "
+                                        @click="completeModal = true"
+                                    >
+                                        {{
+                                            myConfirmation
+                                                ? __("chat.btn.confirmed")
+                                                : __("chat.btn.order_done")
+                                        }}
+                                    </button>
+                                    <button
+                                        v-if="
+                                            ['pending', 'accepted'].includes(
+                                                activeOrderData.status,
+                                            )
+                                        "
+                                        class="chat-order-btn chat-order-btn--cancel"
+                                        :disabled="!!orderAction"
+                                        @click="cancelModal = true"
+                                    >
+                                        {{ __("chat.btn.cancel") }}
+                                    </button>
                                     <!-- Предложить услугу — рядом с кнопками заказа -->
                                     <button
-                                        v-if="authUser?.is_idol && !activeOrderData.is_customer && activeOrderData.status === 'pending'"
-                                        class="chat-order-btn chat-order-btn--offer" @click="showOfferModal = true">{{
-                                            __('chat.btn.offer')
-                                        }}</button>
+                                        v-if="
+                                            authUser?.is_idol &&
+                                            !activeOrderData.is_customer &&
+                                            activeOrderData.status === 'pending'
+                                        "
+                                        class="chat-order-btn chat-order-btn--offer"
+                                        @click="showOfferModal = true"
+                                    >
+                                        {{ __("chat.btn.offer") }}
+                                    </button>
                                 </div>
 
                                 <!-- Кнопка предложения услуги — для обычного чата (без заказа) -->
-                                <div v-if="authUser?.is_idol && !isSupport && !activeOrderData && !isChatClosed"
-                                    class="chat-order-actions">
-                                    <button class="chat-order-btn chat-order-btn--offer"
-                                        @click="showOfferModal = true">{{ __('chat.btn.offer')
-                                        }}</button>
+                                <div
+                                    v-if="
+                                        authUser?.is_idol &&
+                                        !isSupport &&
+                                        !activeOrderData &&
+                                        !isChatClosed
+                                    "
+                                    class="chat-order-actions"
+                                >
+                                    <button
+                                        class="chat-order-btn chat-order-btn--offer"
+                                        @click="showOfferModal = true"
+                                    >
+                                        {{ __("chat.btn.offer") }}
+                                    </button>
                                 </div>
 
                                 <!-- Плашка: заказ отменён -->
-                                <div v-if="activeOrderData?.status === 'cancelled'" class="chat-order-cancelled-bar">
-                                    <span class="chat-order-cancelled-bar__label">{{ __('chat.order.cancelled_label')
-                                    }}</span>
-                                    <template v-if="cancelledByLabel(activeOrderData)">
-                                        <span class="chat-order-cancelled-bar__who">{{ cancelledByLabel(activeOrderData)
-                                        }}</span>
+                                <div
+                                    v-if="
+                                        activeOrderData?.status === 'cancelled'
+                                    "
+                                    class="chat-order-cancelled-bar"
+                                >
+                                    <span
+                                        class="chat-order-cancelled-bar__label"
+                                        >{{
+                                            __("chat.order.cancelled_label")
+                                        }}</span
+                                    >
+                                    <template
+                                        v-if="cancelledByLabel(activeOrderData)"
+                                    >
+                                        <span
+                                            class="chat-order-cancelled-bar__who"
+                                            >{{
+                                                cancelledByLabel(
+                                                    activeOrderData,
+                                                )
+                                            }}</span
+                                        >
                                     </template>
-                                    <span v-if="activeOrderData.cancel_reason"
-                                        class="chat-order-cancelled-bar__reason">{{
-                                            activeOrderData.cancel_reason }}</span>
+                                    <span
+                                        v-if="activeOrderData.cancel_reason"
+                                        class="chat-order-cancelled-bar__reason"
+                                        >{{
+                                            activeOrderData.cancel_reason
+                                        }}</span
+                                    >
                                 </div>
 
                                 <!-- Плашка: заказ выполнен -->
-                                <div v-if="activeOrderData?.status === 'completed'" class="chat-order-completed-bar">
-                                    <span class="chat-order-completed-bar__label">{{ __('chat.order.done_label')
-                                    }}</span>
-                                    <span v-if="activeOrderData.completed_at" class="chat-order-completed-bar__time">{{
-                                        formatDate(activeOrderData.completed_at) }}</span>
+                                <div
+                                    v-if="
+                                        activeOrderData?.status === 'completed'
+                                    "
+                                    class="chat-order-completed-bar"
+                                >
+                                    <span
+                                        class="chat-order-completed-bar__label"
+                                        >{{ __("chat.order.done_label") }}</span
+                                    >
+                                    <span
+                                        v-if="activeOrderData.completed_at"
+                                        class="chat-order-completed-bar__time"
+                                        >{{
+                                            formatDate(
+                                                activeOrderData.completed_at,
+                                            )
+                                        }}</span
+                                    >
                                 </div>
 
                                 <!-- Плашка: спор -->
-                                <div v-if="activeOrderData?.status === 'disputed'" class="chat-order-disputed-bar">
-                                    <span class="chat-order-disputed-bar__label">{{ __('chat.order.dispute_label')
-                                    }}</span>
+                                <div
+                                    v-if="
+                                        activeOrderData?.status === 'disputed'
+                                    "
+                                    class="chat-order-disputed-bar"
+                                >
+                                    <span
+                                        class="chat-order-disputed-bar__label"
+                                        >{{
+                                            __("chat.order.dispute_label")
+                                        }}</span
+                                    >
                                 </div>
 
                                 <!-- Плашка: заказ аннулирован -->
-                                <div v-if="activeOrderData?.status === 'refunded'" class="chat-order-cancelled-bar">
-                                    <span class="chat-order-cancelled-bar__label">{{ __('chat.order.annulled_label')
-                                    }}</span>
+                                <div
+                                    v-if="
+                                        activeOrderData?.status === 'refunded'
+                                    "
+                                    class="chat-order-cancelled-bar"
+                                >
+                                    <span
+                                        class="chat-order-cancelled-bar__label"
+                                        >{{
+                                            __("chat.order.annulled_label")
+                                        }}</span
+                                    >
                                 </div>
 
                                 <!-- Textarea (скрыт если заказ завершён в финальном статусе) -->
-                                <div v-if="!activeOrderData || !['cancelled', 'completed', 'disputed', 'refunded'].includes(activeOrderData.status)"
-                                    class="chat-input-inner">
-                                    <input v-if="isSupport" type="file" ref="fileInput" accept="image/*"
-                                        style="display:none" @change="onFileChange" />
-                                    <button v-if="isSupport" class="chat-attach-btn"
-                                        :disabled="isChatClosed || uploading || (!!activeBlock?.active && !activeBlock?.i_am_blocker)"
-                                        @click="fileInput.click()" :title="__('chat.attach')">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                            stroke-linejoin="round">
+                                <div
+                                    v-if="
+                                        !activeOrderData ||
+                                        ![
+                                            'cancelled',
+                                            'completed',
+                                            'disputed',
+                                            'refunded',
+                                        ].includes(activeOrderData.status)
+                                    "
+                                    class="chat-input-inner"
+                                >
+                                    <input
+                                        v-if="isSupport"
+                                        type="file"
+                                        ref="fileInput"
+                                        accept="image/*"
+                                        style="display: none"
+                                        @change="onFileChange"
+                                    />
+                                    <button
+                                        v-if="isSupport"
+                                        class="chat-attach-btn"
+                                        :disabled="
+                                            isChatClosed ||
+                                            uploading ||
+                                            (!!activeBlock?.active &&
+                                                !activeBlock?.i_am_blocker)
+                                        "
+                                        @click="fileInput.click()"
+                                        :title="__('chat.attach')"
+                                    >
+                                        <svg
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        >
                                             <path
-                                                d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                                                d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"
+                                            />
                                         </svg>
                                     </button>
-                                    <textarea v-model="newMessage" class="chat-input"
-                                        :placeholder="__('chat.placeholder')" rows="3" maxlength="500"
-                                        :disabled="isChatClosed || (!!activeBlock?.active && !activeBlock?.i_am_blocker)"
-                                        @keydown.enter="handleEnter" @input="onInput" />
-                                    <span class="chat-char-count"
-                                        :class="{ 'chat-char-count--warn': newMessage.length > 450 }">
+                                    <textarea
+                                        v-model="newMessage"
+                                        class="chat-input"
+                                        :placeholder="__('chat.placeholder')"
+                                        rows="3"
+                                        maxlength="500"
+                                        :disabled="
+                                            isChatClosed ||
+                                            (!!activeBlock?.active &&
+                                                !activeBlock?.i_am_blocker)
+                                        "
+                                        @keydown.enter="handleEnter"
+                                        @input="onInput"
+                                    />
+                                    <span
+                                        class="chat-char-count"
+                                        :class="{
+                                            'chat-char-count--warn':
+                                                newMessage.length > 450,
+                                        }"
+                                    >
                                         {{ newMessage.length }}/500
                                     </span>
-                                    <button class="chat-send"
-                                        :disabled="!newMessage.trim() || sending || isChatClosed || (!!activeBlock?.active && !activeBlock?.i_am_blocker)"
-                                        @click="sendMessage">
+                                    <button
+                                        class="chat-send"
+                                        :disabled="
+                                            !newMessage.trim() ||
+                                            sending ||
+                                            isChatClosed ||
+                                            (!!activeBlock?.active &&
+                                                !activeBlock?.i_am_blocker)
+                                        "
+                                        @click="sendMessage"
+                                    >
                                         <template v-if="sending">
                                             <span class="order-btn-spinner" />
                                         </template>
                                         <template v-else>
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                                stroke-linejoin="round">
-                                                <line x1="22" y1="2" x2="11" y2="13" />
-                                                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                                            <svg
+                                                width="12"
+                                                height="12"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            >
+                                                <line
+                                                    x1="22"
+                                                    y1="2"
+                                                    x2="11"
+                                                    y2="13"
+                                                />
+                                                <polygon
+                                                    points="22 2 15 22 11 13 2 9 22 2"
+                                                />
                                             </svg>
                                             Enter
                                         </template>
@@ -1952,140 +3631,301 @@ function formatDate(iso) {
                         </Transition>
                     </template>
                 </div>
-
             </div>
         </Transition>
-
     </Teleport>
 
     <!-- ── Модалка блокировки ─────────────────────── -->
-    <SiteModal :show="blockModal" variant="pink" compact @close="blockModal = false">
-        <h2 class="bm-title">{{ __('chat.block.user_title') }} <span class="bm-title-name">{{
-            activeConversation?.other_user?.name }}</span></h2>
+    <SiteModal
+        :show="blockModal"
+        variant="pink"
+        compact
+        @close="blockModal = false"
+    >
+        <h2 class="bm-title">
+            {{ __("chat.block.user_title") }}
+            <span class="bm-title-name">{{
+                activeConversation?.other_user?.name
+            }}</span>
+        </h2>
 
-        <div class="bm-section-label">{{ __('common.reason') }}</div>
+        <div class="bm-section-label">{{ __("common.reason") }}</div>
         <div class="bm-reasons">
-            <button v-for="r in blockReasons" :key="r" class="bm-reason-tag"
-                :class="{ 'bm-reason-tag--selected': blockReason === r }" @click="blockReason = r">{{ r }}</button>
+            <button
+                v-for="r in blockReasons"
+                :key="r"
+                class="bm-reason-tag"
+                :class="{ 'bm-reason-tag--selected': blockReason === r }"
+                @click="blockReason = r"
+            >
+                {{ r }}
+            </button>
         </div>
 
-        <div class="bm-section-label">{{ __('chat.block.duration') }}</div>
+        <div class="bm-section-label">{{ __("chat.block.duration") }}</div>
         <div class="bm-durations">
-            <button v-for="d in blockDurations" :key="d.label" class="bm-duration-btn"
-                :class="{ 'bm-duration-btn--selected': blockDurationChosen && blockDuration === d.minutes }"
-                @click="() => { blockDuration = d.minutes; blockDurationChosen = true; }">{{ d.label }}</button>
+            <button
+                v-for="d in blockDurations"
+                :key="d.label"
+                class="bm-duration-btn"
+                :class="{
+                    'bm-duration-btn--selected':
+                        blockDurationChosen && blockDuration === d.minutes,
+                }"
+                @click="
+                    () => {
+                        blockDuration = d.minutes;
+                        blockDurationChosen = true;
+                    }
+                "
+            >
+                {{ d.label }}
+            </button>
         </div>
 
         <div class="bm-footer">
-            <button class="bm-cancel" @click="blockModal = false">{{ __('common.cancel') }}</button>
-            <button class="bm-submit" :disabled="!blockReason || !blockDurationChosen || blockSubmitting"
-                @click="submitBlock">{{ __('chat.block.action') }}</button>
+            <button class="bm-cancel" @click="blockModal = false">
+                {{ __("common.cancel") }}
+            </button>
+            <button
+                class="bm-submit"
+                :disabled="
+                    !blockReason || !blockDurationChosen || blockSubmitting
+                "
+                @click="submitBlock"
+            >
+                {{ __("chat.block.action") }}
+            </button>
         </div>
     </SiteModal>
 
     <!-- ── Модалка отмены заказа ─────────────────────── -->
-    <SiteModal :show="cancelModal" variant="pink" compact @close="cancelModal = false">
+    <SiteModal
+        :show="cancelModal"
+        variant="pink"
+        compact
+        @close="cancelModal = false"
+    >
         <div class="cm-wrap">
             <div class="cm-rule cm-rule--double cm-rule--red"></div>
-            <h2 class="cm-title">{{ __('order.cancel.title') }}</h2>
+            <h2 class="cm-title">{{ __("order.cancel.title") }}</h2>
             <div class="cm-rule cm-rule--double cm-rule--red"></div>
 
-            <div class="cm-section-label">{{ __('order.cancel.choose') }}</div>
+            <div class="cm-section-label">{{ __("order.cancel.choose") }}</div>
             <div class="cm-tags">
-                <button v-for="t in cancelTemplates" :key="t" class="cm-tag"
-                    :class="{ 'cm-tag--selected': cancelReason === t }" @click="cancelReason = t">{{ t }}</button>
+                <button
+                    v-for="t in cancelTemplates"
+                    :key="t"
+                    class="cm-tag"
+                    :class="{ 'cm-tag--selected': cancelReason === t }"
+                    @click="cancelReason = t"
+                >
+                    {{ t }}
+                </button>
             </div>
 
-            <div class="cm-section-label">{{ __('order.cancel.custom') }}</div>
-            <textarea v-model="cancelReason" class="cm-textarea" placeholder="причина отмены…" rows="3"
-                maxlength="1000"></textarea>
+            <div class="cm-section-label">{{ __("order.cancel.custom") }}</div>
+            <textarea
+                v-model="cancelReason"
+                class="cm-textarea"
+                placeholder="причина отмены…"
+                rows="3"
+                maxlength="1000"
+            ></textarea>
 
             <div class="cm-perf"><span class="cm-perf__line"></span></div>
 
             <div class="cm-footer">
-                <button class="cm-btn cm-btn--back" @click="cancelModal = false">{{ __('order.cancel.back') }}</button>
-                <button class="cm-btn cm-btn--confirm" :disabled="!cancelReason.trim() || cancelSubmitting"
-                    @click="submitCancelOrder">{{ cancelSubmitting ? __('order.cancel.loading') :
-                        __('order.cancel.submit')
-                    }}</button>
+                <button
+                    class="cm-btn cm-btn--back"
+                    @click="cancelModal = false"
+                >
+                    {{ __("order.cancel.back") }}
+                </button>
+                <button
+                    class="cm-btn cm-btn--confirm"
+                    :disabled="!cancelReason.trim() || cancelSubmitting"
+                    @click="submitCancelOrder"
+                >
+                    {{
+                        cancelSubmitting
+                            ? __("order.cancel.loading")
+                            : __("order.cancel.submit")
+                    }}
+                </button>
             </div>
         </div>
     </SiteModal>
 
     <!-- ── Подтверждение добавления услуги к заказу ────────── -->
-    <SiteModal :show="confirmAddModal" variant="cyan" compact max-width="420px" @close="confirmAddModal = false">
-        <div class="cm-title cm-title--cyan">{{ __('chat.add_to_order') }}</div>
+    <SiteModal
+        :show="confirmAddModal"
+        variant="cyan"
+        compact
+        max-width="420px"
+        @close="confirmAddModal = false"
+    >
+        <div class="cm-title cm-title--cyan">{{ __("chat.add_to_order") }}</div>
         <div class="confirm-add__svc">{{ confirmAddService?.name }}</div>
         <div v-if="confirmAddService?.price" class="confirm-add__price">
-            {{ confirmAddService.price.toLocaleString('ru-RU') }}&thinsp;₽<template
-                v-if="confirmAddService.time_unit">&thinsp;/&thinsp;{{ confirmAddService.time_unit }}</template>
+            {{
+                confirmAddService.price.toLocaleString("ru-RU")
+            }}&thinsp;₽<template v-if="confirmAddService.time_unit"
+                >&thinsp;/&thinsp;{{ confirmAddService.time_unit }}</template
+            >
         </div>
-        <div class="cm-perf"><span class="cm-perf__line cm-perf__line--cyan"></span></div>
+        <div class="cm-perf">
+            <span class="cm-perf__line cm-perf__line--cyan"></span>
+        </div>
         <div class="cm-footer">
-            <button class="cm-btn cm-btn--back" @click="confirmAddModal = false">{{ __('order.cancel.back') }}</button>
-            <button class="cm-btn cm-btn--confirm-cyan" :disabled="confirmAddLoading" @click="confirmAddToOrder">
-                {{ confirmAddLoading ? __('chat.add_to_order.loading') : __('chat.add_to_order.btn') }}
+            <button
+                class="cm-btn cm-btn--back"
+                @click="confirmAddModal = false"
+            >
+                {{ __("order.cancel.back") }}
+            </button>
+            <button
+                class="cm-btn cm-btn--confirm-cyan"
+                :disabled="confirmAddLoading"
+                @click="confirmAddToOrder"
+            >
+                {{
+                    confirmAddLoading
+                        ? __("chat.add_to_order.loading")
+                        : __("chat.add_to_order.btn")
+                }}
             </button>
         </div>
     </SiteModal>
 
     <!-- ── Модалка подтверждения принятия заказа ────────── -->
-    <SiteModal :show="acceptModal" variant="cyan" compact max-width="420px" @close="acceptModal = false">
-        <div class="cm-title cm-title--cyan">{{ acceptBtnText.toUpperCase() }}</div>
-        <div class="cm-body">{{ __('chat.order.accept_confirm') }}</div>
-        <div class="cm-perf"><span class="cm-perf__line cm-perf__line--cyan"></span></div>
+    <SiteModal
+        :show="acceptModal"
+        variant="cyan"
+        compact
+        max-width="420px"
+        @close="acceptModal = false"
+    >
+        <div class="cm-title cm-title--cyan">
+            {{ acceptBtnText.toUpperCase() }}
+        </div>
+        <div class="cm-body">{{ __("chat.order.accept_confirm") }}</div>
+        <div class="cm-perf">
+            <span class="cm-perf__line cm-perf__line--cyan"></span>
+        </div>
         <div class="cm-footer">
-            <button class="cm-btn cm-btn--back" :disabled="orderAction === 'accept'" @click="acceptModal = false">{{
-                __('order.cancel.back') }}</button>
-            <button class="cm-btn cm-btn--confirm-cyan" :disabled="orderAction === 'accept'" @click="acceptOrder()">
-                <span v-if="orderAction === 'accept'" class="order-btn-spinner" />
-                <template v-else>{{ __('order.accept') }}</template>
+            <button
+                class="cm-btn cm-btn--back"
+                :disabled="orderAction === 'accept'"
+                @click="acceptModal = false"
+            >
+                {{ __("order.cancel.back") }}
+            </button>
+            <button
+                class="cm-btn cm-btn--confirm-cyan"
+                :disabled="orderAction === 'accept'"
+                @click="acceptOrder()"
+            >
+                <span
+                    v-if="orderAction === 'accept'"
+                    class="order-btn-spinner"
+                />
+                <template v-else>{{ __("order.accept") }}</template>
             </button>
         </div>
     </SiteModal>
 
     <!-- ── Модалка подтверждения выполнения заказа ─────── -->
-    <SiteModal :show="completeModal" variant="cyan" compact max-width="420px" @close="completeModal = false">
-        <div class="cm-title cm-title--green">{{ __('chat.btn.order_done') }}</div>
-        <div class="cm-body">{{ __('chat.order.complete_confirm') }}</div>
-        <div class="cm-perf"><span class="cm-perf__line cm-perf__line--green"></span></div>
+    <SiteModal
+        :show="completeModal"
+        variant="cyan"
+        compact
+        max-width="420px"
+        @close="completeModal = false"
+    >
+        <div class="cm-title cm-title--green">
+            {{ __("chat.btn.order_done") }}
+        </div>
+        <div class="cm-body">{{ __("chat.order.complete_confirm") }}</div>
+        <div class="cm-perf">
+            <span class="cm-perf__line cm-perf__line--green"></span>
+        </div>
         <div class="cm-footer">
-            <button class="cm-btn cm-btn--back" :disabled="orderAction === 'complete'" @click="completeModal = false">{{
-                __('order.cancel.back') }}</button>
-            <button class="cm-btn cm-btn--confirm-green" :disabled="orderAction === 'complete'"
-                @click="confirmCompletion()">
-                <span v-if="orderAction === 'complete'" class="order-btn-spinner" />
-                <template v-else>{{ __('chat.btn.order_done') }}</template>
+            <button
+                class="cm-btn cm-btn--back"
+                :disabled="orderAction === 'complete'"
+                @click="completeModal = false"
+            >
+                {{ __("order.cancel.back") }}
+            </button>
+            <button
+                class="cm-btn cm-btn--confirm-green"
+                :disabled="orderAction === 'complete'"
+                @click="confirmCompletion()"
+            >
+                <span
+                    v-if="orderAction === 'complete'"
+                    class="order-btn-spinner"
+                />
+                <template v-else>{{ __("chat.btn.order_done") }}</template>
             </button>
         </div>
     </SiteModal>
 
     <!-- ── Модалка предложения услуги ───────────────────── -->
-    <ServiceOfferModal v-if="activeConversation" v-model="showOfferModal" :conversation-id="activeConversation.id"
-        @sent="onOfferSent" />
+    <ServiceOfferModal
+        v-if="activeConversation"
+        v-model="showOfferModal"
+        :conversation-id="activeConversation.id"
+        @sent="onOfferSent"
+    />
 
     <!-- ── Полноэкранный просмотр аватарки ──────────────── -->
     <Teleport to="body">
         <Transition name="avatar-fade">
-            <div v-if="avatarFullscreen" class="avatar-fs-backdrop" @click="avatarFullscreen = false">
+            <div
+                v-if="avatarFullscreen"
+                class="avatar-fs-backdrop"
+                @click="avatarFullscreen = false"
+            >
                 <div class="avatar-fs-inner" @click.stop>
-                    <button class="avatar-fs-close" @click="avatarFullscreen = false">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <button
+                        class="avatar-fs-close"
+                        @click="avatarFullscreen = false"
+                    >
+                        <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2.2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
                             <line x1="18" y1="6" x2="6" y2="18" />
                             <line x1="6" y1="6" x2="18" y2="18" />
                         </svg>
                     </button>
-                    <img v-if="activeConversation?.other_user?.avatar_url"
-                        :src="activeConversation.other_user.avatar_url" class="avatar-fs-img"
-                        :alt="activeConversation.other_user?.name" />
+                    <img
+                        v-if="activeConversation?.other_user?.avatar_url"
+                        :src="activeConversation.other_user.avatar_url"
+                        class="avatar-fs-img"
+                        :alt="activeConversation.other_user?.name"
+                    />
                     <div v-else class="avatar-fs-placeholder">
                         <span class="avatar-fs-initial">{{
-                            activeConversation?.other_user?.name?.charAt(0)?.toUpperCase() ??
-                            '?' }}</span>
-                        <span class="avatar-fs-noavatar">{{ __('chat.no_photos') }}</span>
+                            activeConversation?.other_user?.name
+                                ?.charAt(0)
+                                ?.toUpperCase() ?? "?"
+                        }}</span>
+                        <span class="avatar-fs-noavatar">{{
+                            __("chat.no_photos")
+                        }}</span>
                     </div>
-                    <div class="avatar-fs-name">{{ activeConversation?.other_user?.name }}</div>
+                    <div class="avatar-fs-name">
+                        {{ activeConversation?.other_user?.name }}
+                    </div>
                 </div>
             </div>
         </Transition>
@@ -2126,7 +3966,9 @@ function formatDate(iso) {
     display: flex;
     background: linear-gradient(160deg, #0f0f22 0%, #0a0a16 100%);
     border-left: 1px solid rgba(255, 178, 239, 0.22);
-    box-shadow: -8px 0 64px rgba(0, 0, 0, 0.7), -1px 0 0 rgba(255, 178, 239, 0.06);
+    box-shadow:
+        -8px 0 64px rgba(0, 0, 0, 0.7),
+        -1px 0 0 rgba(255, 178, 239, 0.06);
     overscroll-behavior: contain;
 }
 
@@ -2154,7 +3996,11 @@ function formatDate(iso) {
     flex-direction: column;
     border-right: 1px solid rgba(255, 178, 239, 0.14);
     background: #0b0b18;
-    background-image: radial-gradient(ellipse 260px 140px at 50% 0%, rgba(255, 178, 239, 0.1) 0%, transparent 100%);
+    background-image: radial-gradient(
+        ellipse 260px 140px at 50% 0%,
+        rgba(255, 178, 239, 0.1) 0%,
+        transparent 100%
+    );
 }
 
 .chat-sidebar__header {
@@ -2184,7 +4030,9 @@ function formatDate(iso) {
     border-radius: 50%;
     color: rgba(255, 255, 255, 0.4);
     cursor: pointer;
-    transition: color 0.15s, background 0.15s;
+    transition:
+        color 0.15s,
+        background 0.15s;
 }
 
 .chat-icon-btn:hover {
@@ -2317,13 +4165,15 @@ function formatDate(iso) {
 /* GPU-accelerated shimmer via translateX on ::after */
 .chat-skeleton__bubble::after,
 .chat-skeleton__avatar::after {
-    content: '';
+    content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg,
-            transparent 0%,
-            rgba(255, 255, 255, 0.09) 50%,
-            transparent 100%);
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.09) 50%,
+        transparent 100%
+    );
     transform: translateX(-100%);
     animation: skel-slide 1.2s ease-in-out infinite;
     will-change: transform;
@@ -2387,7 +4237,7 @@ function formatDate(iso) {
 }
 
 .chat-conv-item--active::before {
-    content: '';
+    content: "";
     position: absolute;
     left: 0;
     top: 20%;
@@ -2530,7 +4380,9 @@ function formatDate(iso) {
     padding: 1rem;
     padding-bottom: 0.6rem;
     border-bottom: none;
-    box-shadow: 0 1px 0 rgba(255, 178, 239, 0.12), 0 4px 20px rgba(0, 0, 0, 0.25);
+    box-shadow:
+        0 1px 0 rgba(255, 178, 239, 0.12),
+        0 4px 20px rgba(0, 0, 0, 0.25);
     flex-shrink: 0;
 }
 
@@ -2640,17 +4492,25 @@ function formatDate(iso) {
 }
 
 .chat-date-divider::before {
-    content: '';
+    content: "";
     flex: 1;
     height: 1px;
-    background: linear-gradient(to right, transparent, rgba(255, 178, 239, 0.22));
+    background: linear-gradient(
+        to right,
+        transparent,
+        rgba(255, 178, 239, 0.22)
+    );
 }
 
 .chat-date-divider::after {
-    content: '';
+    content: "";
     flex: 1;
     height: 1px;
-    background: linear-gradient(to left, transparent, rgba(255, 178, 239, 0.22));
+    background: linear-gradient(
+        to left,
+        transparent,
+        rgba(255, 178, 239, 0.22)
+    );
 }
 
 /* ── Message row ──────────────────────────────────────── */
@@ -2667,7 +4527,7 @@ function formatDate(iso) {
 }
 
 /* Tight spacing inside a chain */
-.chat-msg+.chat-msg:not(.chat-msg--first-in-group) {
+.chat-msg + .chat-msg:not(.chat-msg--first-in-group) {
     margin-top: 0.15rem;
 }
 
@@ -2687,18 +4547,30 @@ function formatDate(iso) {
     max-width: 72%;
     padding: 0.55rem 0.9rem;
     border-radius: 14px;
-    background: linear-gradient(135deg, rgba(80, 80, 160, 0.22) 0%, rgba(60, 60, 130, 0.16) 100%);
+    background: linear-gradient(
+        135deg,
+        rgba(80, 80, 160, 0.22) 0%,
+        rgba(60, 60, 130, 0.16) 100%
+    );
     border: 1px solid rgba(130, 130, 210, 0.22);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(180, 180, 255, 0.07);
+    box-shadow:
+        0 2px 10px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(180, 180, 255, 0.07);
     display: flex;
     flex-direction: column;
     gap: 3px;
 }
 
 .chat-msg--mine .chat-msg__bubble {
-    background: linear-gradient(135deg, rgba(130, 80, 255, 0.26) 0%, rgba(100, 55, 215, 0.2) 100%);
+    background: linear-gradient(
+        135deg,
+        rgba(130, 80, 255, 0.26) 0%,
+        rgba(100, 55, 215, 0.2) 100%
+    );
     border-color: rgba(255, 178, 239, 0.22);
-    box-shadow: 0 2px 12px rgba(100, 55, 215, 0.18), inset 0 1px 0 rgba(200, 160, 255, 0.08);
+    box-shadow:
+        0 2px 12px rgba(100, 55, 215, 0.18),
+        inset 0 1px 0 rgba(200, 160, 255, 0.08);
 }
 
 /* Smart corners — theirs (left side) */
@@ -2706,7 +4578,8 @@ function formatDate(iso) {
     border-top-left-radius: 14px;
 }
 
-.chat-msg:not(.chat-msg--mine):not(.chat-msg--first-in-group) .chat-msg__bubble {
+.chat-msg:not(.chat-msg--mine):not(.chat-msg--first-in-group)
+    .chat-msg__bubble {
     border-top-left-radius: 4px;
 }
 
@@ -2791,7 +4664,9 @@ function formatDate(iso) {
     z-index: 2;
     /* До прочтения — скрыта */
     opacity: 0;
-    transition: opacity 0.2s, color 0.2s;
+    transition:
+        opacity 0.2s,
+        color 0.2s;
 }
 
 /* Прочитано: обе видны и синие */
@@ -2857,14 +4732,21 @@ function formatDate(iso) {
 }
 
 .chat-input-inner::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     height: 1px;
     border-radius: 6px 6px 0 0;
-    background: linear-gradient(90deg, transparent, rgba(255, 178, 239, 0.4), rgba(255, 178, 239, 0.7), rgba(255, 178, 239, 0.4), transparent);
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 178, 239, 0.4),
+        rgba(255, 178, 239, 0.7),
+        rgba(255, 178, 239, 0.4),
+        transparent
+    );
     box-shadow: 0 0 12px rgba(255, 178, 239, 0.2);
     z-index: 1;
 }
@@ -2884,7 +4766,9 @@ function formatDate(iso) {
     line-height: 1.55;
     outline: none;
     font-family: inherit;
-    transition: border-color 0.15s, background 0.15s;
+    transition:
+        border-color 0.15s,
+        background 0.15s;
     display: block;
 }
 
@@ -2921,7 +4805,11 @@ function formatDate(iso) {
     display: flex;
     align-items: center;
     gap: 0.35rem;
-    background: linear-gradient(135deg, rgba(140, 90, 255, 0.3), rgba(100, 55, 210, 0.25));
+    background: linear-gradient(
+        135deg,
+        rgba(140, 90, 255, 0.3),
+        rgba(100, 55, 210, 0.25)
+    );
     border: 1px solid rgba(255, 178, 239, 0.4);
     border-radius: 4px;
     color: rgba(210, 170, 255, 0.95);
@@ -2931,11 +4819,19 @@ function formatDate(iso) {
     letter-spacing: 0.03em;
     cursor: pointer;
     box-shadow: 0 2px 10px rgba(100, 55, 210, 0.25);
-    transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+    transition:
+        background 0.15s,
+        border-color 0.15s,
+        color 0.15s,
+        box-shadow 0.15s;
 }
 
 .chat-send:hover:not(:disabled) {
-    background: linear-gradient(135deg, rgba(155, 100, 255, 0.42), rgba(110, 65, 220, 0.36));
+    background: linear-gradient(
+        135deg,
+        rgba(155, 100, 255, 0.42),
+        rgba(110, 65, 220, 0.36)
+    );
     border-color: rgba(180, 120, 255, 0.6);
     color: #d4aaff;
     box-shadow: 0 2px 16px rgba(120, 60, 230, 0.4);
@@ -2958,7 +4854,10 @@ function formatDate(iso) {
     border-radius: 3px;
     color: rgba(220, 60, 60, 0.65);
     cursor: pointer;
-    transition: color 0.15s, background 0.15s, border-color 0.15s;
+    transition:
+        color 0.15s,
+        background 0.15s,
+        border-color 0.15s;
 }
 
 .chat-lock-btn--active {
@@ -3026,7 +4925,9 @@ function formatDate(iso) {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: background 0.15s, color 0.15s;
+    transition:
+        background 0.15s,
+        color 0.15s;
 }
 
 .avatar-fs-close:hover {
@@ -3128,7 +5029,7 @@ function formatDate(iso) {
     border-radius: 3px;
     padding: 1.5rem 2rem;
     max-width: 320px;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: "Courier New", Courier, monospace;
     text-align: center;
 }
 
@@ -3189,7 +5090,7 @@ function formatDate(iso) {
     background: rgba(200, 30, 30, 0.12);
     border-top: 2px dashed rgba(220, 60, 60, 0.4);
     border-bottom: 2px dashed rgba(220, 60, 60, 0.4);
-    font-family: 'Courier New', Courier, monospace;
+    font-family: "Courier New", Courier, monospace;
     flex-shrink: 0;
 }
 
@@ -3222,8 +5123,11 @@ function formatDate(iso) {
     padding: 0.3rem 0.9rem;
     border-radius: 3px;
     cursor: pointer;
-    font-family: 'Courier New', Courier, monospace;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    font-family: "Courier New", Courier, monospace;
+    transition:
+        border-color 0.15s,
+        color 0.15s,
+        background 0.15s;
     white-space: nowrap;
 }
 
@@ -3270,7 +5174,10 @@ function formatDate(iso) {
     font-size: 0.85rem;
     cursor: pointer;
     font-family: inherit;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    transition:
+        border-color 0.15s,
+        color 0.15s,
+        background 0.15s;
 }
 
 .bm-reason-tag:hover {
@@ -3300,7 +5207,10 @@ function formatDate(iso) {
     font-size: 0.85rem;
     cursor: pointer;
     font-family: inherit;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    transition:
+        border-color 0.15s,
+        color 0.15s,
+        background 0.15s;
 }
 
 .bm-duration-btn:hover {
@@ -3329,7 +5239,9 @@ function formatDate(iso) {
     border-radius: 8px;
     cursor: pointer;
     font-family: inherit;
-    transition: border-color 0.15s, color 0.15s;
+    transition:
+        border-color 0.15s,
+        color 0.15s;
 }
 
 .bm-cancel:hover {
@@ -3338,7 +5250,11 @@ function formatDate(iso) {
 }
 
 .bm-submit {
-    background: linear-gradient(135deg, rgba(220, 60, 100, 0.45), rgba(180, 30, 80, 0.4));
+    background: linear-gradient(
+        135deg,
+        rgba(220, 60, 100, 0.45),
+        rgba(180, 30, 80, 0.4)
+    );
     border: 1px solid rgba(220, 80, 110, 0.5);
     color: #ff9ab5;
     font-size: 0.88rem;
@@ -3347,11 +5263,17 @@ function formatDate(iso) {
     cursor: pointer;
     font-family: inherit;
     font-weight: 600;
-    transition: background 0.15s, border-color 0.15s;
+    transition:
+        background 0.15s,
+        border-color 0.15s;
 }
 
 .bm-submit:hover:not(:disabled) {
-    background: linear-gradient(135deg, rgba(220, 60, 100, 0.65), rgba(180, 30, 80, 0.6));
+    background: linear-gradient(
+        135deg,
+        rgba(220, 60, 100, 0.65),
+        rgba(180, 30, 80, 0.6)
+    );
     border-color: rgba(220, 80, 110, 0.75);
 }
 
@@ -3361,13 +5283,21 @@ function formatDate(iso) {
 }
 
 .bm-submit--danger {
-    background: linear-gradient(135deg, rgba(220, 60, 60, 0.45), rgba(180, 30, 30, 0.4));
+    background: linear-gradient(
+        135deg,
+        rgba(220, 60, 60, 0.45),
+        rgba(180, 30, 30, 0.4)
+    );
     border: 1px solid rgba(220, 80, 80, 0.5);
     color: #ffaaaa;
 }
 
 .bm-submit--danger:hover:not(:disabled) {
-    background: linear-gradient(135deg, rgba(220, 60, 60, 0.65), rgba(180, 30, 30, 0.6));
+    background: linear-gradient(
+        135deg,
+        rgba(220, 60, 60, 0.65),
+        rgba(180, 30, 30, 0.6)
+    );
     border-color: rgba(220, 80, 80, 0.75);
 }
 
@@ -3392,7 +5322,7 @@ function formatDate(iso) {
 
 /* ── Cancel order modal ─────────────────────────────────── */
 .cm-wrap {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: "Courier New", Courier, monospace;
     color: rgba(210, 240, 255, 0.78);
     display: flex;
     flex-direction: column;
@@ -3458,7 +5388,7 @@ function formatDate(iso) {
     font-size: 0.95rem;
     color: rgba(100, 200, 255, 0.75);
     text-align: center;
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
     margin-bottom: 0.75rem;
 }
 
@@ -3482,11 +5412,14 @@ function formatDate(iso) {
     border: 1px dashed rgba(210, 240, 255, 0.2);
     background: transparent;
     color: rgba(210, 240, 255, 0.5);
-    font-family: 'Courier New', Courier, monospace;
+    font-family: "Courier New", Courier, monospace;
     font-size: 0.75rem;
     letter-spacing: 0.04em;
     cursor: pointer;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    transition:
+        border-color 0.15s,
+        color 0.15s,
+        background 0.15s;
 }
 
 .cm-tag:hover {
@@ -3509,7 +5442,7 @@ function formatDate(iso) {
     border: 1px dashed rgba(100, 210, 255, 0.22);
     border-radius: 3px;
     color: rgba(210, 240, 255, 0.82);
-    font-family: 'Courier New', Courier, monospace;
+    font-family: "Courier New", Courier, monospace;
     font-size: 0.82rem;
     padding: 0.65rem 0.85rem;
     resize: none;
@@ -3536,7 +5469,7 @@ function formatDate(iso) {
 
 .cm-perf::before,
 .cm-perf::after {
-    content: '';
+    content: "";
     width: 10px;
     height: 10px;
     border-radius: 50%;
@@ -3571,13 +5504,15 @@ function formatDate(iso) {
     flex: 1;
     padding: 0.65rem 1rem;
     border-radius: 3px;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: "Courier New", Courier, monospace;
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.15em;
     cursor: pointer;
     line-height: 1;
-    transition: background 0.15s, border-color 0.15s;
+    transition:
+        background 0.15s,
+        border-color 0.15s;
 }
 
 .cm-btn--back {
@@ -3659,13 +5594,15 @@ function formatDate(iso) {
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    transition: color 0.15s, background 0.15s;
+    transition:
+        color 0.15s,
+        background 0.15s;
     font-family: inherit;
     position: relative;
 }
 
-.chat-tab+.chat-tab::before {
-    content: '';
+.chat-tab + .chat-tab::before {
+    content: "";
     position: absolute;
     left: -1px;
     top: 18%;
@@ -3675,7 +5612,7 @@ function formatDate(iso) {
     transition: opacity 0.15s;
 }
 
-.chat-tab--active+.chat-tab::before,
+.chat-tab--active + .chat-tab::before,
 .chat-tab--active::before {
     opacity: 0;
 }
@@ -3715,19 +5652,27 @@ function formatDate(iso) {
     text-align: left;
     position: relative;
     overflow: visible;
-    transition: background 0.15s, box-shadow 0.15s;
-    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(255, 178, 239, 0.13);
+    transition:
+        background 0.15s,
+        box-shadow 0.15s;
+    box-shadow:
+        0 1px 8px rgba(0, 0, 0, 0.35),
+        inset 0 0 0 1px rgba(255, 178, 239, 0.13);
 }
 
 .order-stub:hover {
     background: rgba(255, 255, 255, 0.055);
 
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 178, 239, 0.2);
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.45),
+        inset 0 0 0 1px rgba(255, 178, 239, 0.2);
 }
 
 .order-stub--active {
     background: rgba(255, 178, 239, 0.1);
-    box-shadow: 0 2px 14px rgba(255, 178, 239, 0.18), inset 0 0 0 1px rgba(255, 178, 239, 0.28);
+    box-shadow:
+        0 2px 14px rgba(255, 178, 239, 0.18),
+        inset 0 0 0 1px rgba(255, 178, 239, 0.28);
 }
 
 .order-stub--active:hover {
@@ -3810,7 +5755,7 @@ function formatDate(iso) {
 
 .order-stub__perf::before,
 .order-stub__perf::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
@@ -3879,8 +5824,14 @@ function formatDate(iso) {
     background: rgba(255, 255, 255, 0.04);
     color: rgba(255, 255, 255, 0.38);
     cursor: pointer;
-    transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    transition:
+        background 0.15s,
+        color 0.15s,
+        border-color 0.15s,
+        box-shadow 0.15s;
+    box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18);
     position: relative;
 }
 
@@ -3920,7 +5871,10 @@ function formatDate(iso) {
     color: rgba(255, 255, 255, 0.32);
     cursor: pointer;
     font-family: inherit;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    transition:
+        background 0.15s,
+        color 0.15s,
+        border-color 0.15s;
 }
 
 .chat-unread-btn--active {
@@ -3967,7 +5921,10 @@ function formatDate(iso) {
     font-family: inherit;
     white-space: nowrap;
     flex-shrink: 0;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    transition:
+        background 0.15s,
+        color 0.15s,
+        border-color 0.15s;
 }
 
 .order-filters__toggle:hover {
@@ -3992,7 +5949,9 @@ function formatDate(iso) {
 /* pills expand transition */
 .of-expand-enter-active,
 .of-expand-leave-active {
-    transition: opacity 0.18s ease, transform 0.18s ease;
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease;
 }
 
 .of-expand-enter-from,
@@ -4021,7 +5980,10 @@ function formatDate(iso) {
     color: rgba(255, 255, 255, 0.4);
     cursor: pointer;
     font-family: inherit;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    transition:
+        background 0.15s,
+        color 0.15s,
+        border-color 0.15s;
 }
 
 .order-filter-pill:hover {
@@ -4148,7 +6110,7 @@ function formatDate(iso) {
 }
 
 .orders-load-dot:nth-child(3) {
-    animation-delay: 0.30s;
+    animation-delay: 0.3s;
 }
 
 /* ── Order badge in sidebar ─────────────────────────────── */
@@ -4237,7 +6199,10 @@ function formatDate(iso) {
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+    transition:
+        background 0.15s,
+        border-color 0.15s,
+        box-shadow 0.15s;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -4249,7 +6214,7 @@ function formatDate(iso) {
 }
 
 .chat-order-btn::before {
-    content: '';
+    content: "";
     position: absolute;
     inset: 2px;
     border-radius: 2px;
@@ -4258,7 +6223,7 @@ function formatDate(iso) {
 }
 
 .chat-order-btn::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
@@ -4275,7 +6240,12 @@ function formatDate(iso) {
 }
 
 .chat-order-btn--accept::after {
-    background: linear-gradient(90deg, transparent 0%, rgba(140, 255, 180, 0.65) 50%, transparent 100%);
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(140, 255, 180, 0.65) 50%,
+        transparent 100%
+    );
 }
 
 .chat-order-btn--accept::before {
@@ -4300,7 +6270,12 @@ function formatDate(iso) {
 }
 
 .chat-order-btn--pay::after {
-    background: linear-gradient(90deg, transparent 0%, rgba(180, 235, 255, 0.65) 50%, transparent 100%);
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(180, 235, 255, 0.65) 50%,
+        transparent 100%
+    );
 }
 
 .chat-order-btn--pay::before {
@@ -4325,7 +6300,12 @@ function formatDate(iso) {
 }
 
 .chat-order-btn--cancel::after {
-    background: linear-gradient(90deg, transparent 0%, rgba(255, 150, 150, 0.6) 50%, transparent 100%);
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 150, 150, 0.6) 50%,
+        transparent 100%
+    );
 }
 
 .chat-order-btn--cancel::before {
@@ -4350,7 +6330,12 @@ function formatDate(iso) {
 }
 
 .chat-order-btn--complete::after {
-    background: linear-gradient(90deg, transparent 0%, rgba(80, 240, 160, 0.6) 50%, transparent 100%);
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(80, 240, 160, 0.6) 50%,
+        transparent 100%
+    );
 }
 
 .chat-order-btn--complete::before {
@@ -4379,7 +6364,12 @@ function formatDate(iso) {
 }
 
 .chat-order-btn--offer::after {
-    background: linear-gradient(90deg, transparent 0%, rgba(255, 178, 239, 0.5) 50%, transparent 100%);
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 178, 239, 0.5) 50%,
+        transparent 100%
+    );
 }
 
 .chat-order-btn--offer::before {
@@ -4405,7 +6395,7 @@ function formatDate(iso) {
     border-radius: 3px;
     font-size: 0.88rem;
     font-weight: 700;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: "Courier New", Courier, monospace;
     letter-spacing: 0.1em;
     cursor: pointer;
     position: relative;
@@ -4413,21 +6403,29 @@ function formatDate(iso) {
     background: rgba(100, 210, 255, 0.06);
     border: 1px solid rgba(100, 210, 255, 0.28);
     color: var(--color-base-2);
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    transition:
+        background 0.15s,
+        border-color 0.15s,
+        color 0.15s;
 }
 
 .chat-repeat-btn::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent 0%, rgba(100, 210, 255, 0.45) 50%, transparent 100%);
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(100, 210, 255, 0.45) 50%,
+        transparent 100%
+    );
 }
 
 .chat-repeat-btn::before {
-    content: '';
+    content: "";
     position: absolute;
     inset: 2px;
     border-radius: 2px;
@@ -4444,7 +6442,6 @@ function formatDate(iso) {
 .chat-repeat-btn:hover::before {
     opacity: 1;
 }
-
 
 .chat-order-timer-bar {
     flex-shrink: 0;
@@ -4469,7 +6466,7 @@ function formatDate(iso) {
 .chat-order-timer-bar__value {
     font-size: 1.05rem;
     font-weight: 700;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: "Courier New", Courier, monospace;
     color: rgba(255, 255, 255, 0.82);
     letter-spacing: 0.08em;
     min-width: 7ch;
@@ -4478,7 +6475,9 @@ function formatDate(iso) {
 
 .timer-pop-enter-active,
 .timer-pop-leave-active {
-    transition: opacity 0.2s, max-height 0.2s;
+    transition:
+        opacity 0.2s,
+        max-height 0.2s;
 }
 
 .timer-pop-enter-from,
@@ -4497,7 +6496,7 @@ function formatDate(iso) {
     border-bottom: 1px dashed rgba(255, 100, 100, 0.25);
     margin: 0 0 0.4rem;
     flex-shrink: 0;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: "Courier New", Courier, monospace;
 }
 
 .chat-order-cancelled-bar__label {
@@ -4529,7 +6528,7 @@ function formatDate(iso) {
     border-bottom: 1px dashed rgba(80, 240, 160, 0.25);
     margin: 0 0 0.4rem;
     flex-shrink: 0;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: "Courier New", Courier, monospace;
 }
 
 .chat-order-completed-bar__label {
@@ -4546,7 +6545,6 @@ function formatDate(iso) {
     letter-spacing: 0.06em;
 }
 
-
 /* ── Disputed bar ───────────────────────────────────────── */
 .chat-order-disputed-bar {
     display: flex;
@@ -4557,7 +6555,7 @@ function formatDate(iso) {
     border-bottom: 1px dashed rgba(255, 100, 100, 0.25);
     margin: 0 0 0.4rem;
     flex-shrink: 0;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: "Courier New", Courier, monospace;
 }
 
 .chat-order-disputed-bar__label {
@@ -4572,7 +6570,11 @@ function formatDate(iso) {
     min-width: 180px;
     width: fit-content;
     max-width: 100%;
-    background: linear-gradient(135deg, rgba(255, 150, 220, 0.22), rgba(200, 120, 180, 0.16));
+    background: linear-gradient(
+        135deg,
+        rgba(255, 150, 220, 0.22),
+        rgba(200, 120, 180, 0.16)
+    );
     border: 1px solid rgba(255, 178, 239, 0.3);
     border-radius: 10px;
     border-bottom-left-radius: 2px;
@@ -4639,7 +6641,9 @@ function formatDate(iso) {
     border-radius: 6px;
     color: rgba(160, 150, 255, 0.9);
     cursor: pointer;
-    transition: background 0.15s, color 0.15s;
+    transition:
+        background 0.15s,
+        color 0.15s;
     line-height: 0;
 }
 
@@ -4668,7 +6672,7 @@ function formatDate(iso) {
 
 .chat-system-msg::before,
 .chat-system-msg::after {
-    content: '';
+    content: "";
     flex: 1;
     height: 0;
     border-top: 1px dashed rgba(100, 210, 255, 0.28);
@@ -4701,7 +6705,7 @@ function formatDate(iso) {
 
 /* base card */
 .sc-card {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: "Courier New", Courier, monospace;
     background: rgba(100, 210, 255, 0.04);
     border: 1px dashed rgba(100, 210, 255, 0.2);
     border-radius: 4px;
@@ -4888,7 +6892,7 @@ function formatDate(iso) {
 
 .sc-perf::before,
 .sc-perf::after {
-    content: '';
+    content: "";
     width: 10px;
     height: 10px;
     border-radius: 50%;
@@ -4969,7 +6973,7 @@ function formatDate(iso) {
     font-size: 0.75rem;
     color: rgba(255, 255, 255, 0.25);
     letter-spacing: 0.06em;
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
     text-align: center;
     padding: 0.2rem 0;
 }
@@ -4986,13 +6990,13 @@ function formatDate(iso) {
     color: rgba(255, 200, 240, 0.65);
     letter-spacing: 0.04em;
     text-align: center;
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
 }
 
 /* ── Attach button ────────────────────────────────────── */
 .chat-attach-btn {
     position: absolute;
-    right: 0.5rem;
+    right: 1.5rem;
     bottom: 2.35rem;
     display: flex;
     align-items: center;
@@ -5004,7 +7008,9 @@ function formatDate(iso) {
     border-radius: 4px;
     color: rgba(255, 255, 255, 0.28);
     cursor: pointer;
-    transition: color 0.15s, background 0.15s;
+    transition:
+        color 0.15s,
+        background 0.15s;
     z-index: 1;
 }
 
@@ -5048,7 +7054,9 @@ function formatDate(iso) {
     color: rgba(255, 255, 255, 0.55);
     cursor: pointer;
     margin-right: 0.25rem;
-    transition: color 0.15s, background 0.15s;
+    transition:
+        color 0.15s,
+        background 0.15s;
 }
 
 .chat-main__back-btn:hover {
@@ -5093,7 +7101,6 @@ function formatDate(iso) {
     .chat-main__back-btn {
         display: flex;
     }
-
 }
 
 /* ── Search row (messages & orders) ──────────────────────── */
@@ -5121,7 +7128,10 @@ function formatDate(iso) {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    transition:
+        background 0.15s,
+        color 0.15s,
+        border-color 0.15s;
     font-family: inherit;
 }
 
@@ -5146,10 +7156,15 @@ function formatDate(iso) {
 }
 
 .skel-pulse::after {
-    content: '';
+    content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.07) 50%, transparent 100%);
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.07) 50%,
+        transparent 100%
+    );
     transform: translateX(-100%);
     animation: skel-slide 1.5s ease-in-out infinite;
     will-change: transform;
