@@ -2,7 +2,10 @@
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
-IP=$(hostname -I | awk '{print $1}')
+IP=$(ip -4 addr show wlp39s0f3u2 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -n 1)
+if [ -z "$IP" ]; then
+    IP=$(hostname -I | awk '{print $1}')
+fi
 
 echo "LAN (HTTPS): https://$IP:8443"
 echo "Vite HMR:    https://$IP:5173"

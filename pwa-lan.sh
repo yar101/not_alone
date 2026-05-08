@@ -2,7 +2,10 @@
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
-IP=$(hostname -I | awk '{print $1}')
+IP=$(ip -4 addr show wlp39s0f3u2 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -n 1)
+if [ -z "$IP" ]; then
+    IP=$(hostname -I | awk '{print $1}')
+fi
 
 echo "Building assets..."
 VITE_REVERB_HOST=$IP VITE_REVERB_PORT=8443 VITE_REVERB_SCHEME=https npm run build
