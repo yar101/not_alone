@@ -2099,10 +2099,11 @@ function formatDate(iso) {
                                     </template>
                                     <template v-else>
                                         <a
+                                            v-if="activeConversation.other_user?.id"
                                             :href="
                                                 route('profile.show', {
                                                     user: activeConversation
-                                                        .other_user?.id,
+                                                        .other_user.id,
                                                 })
                                             "
                                             target="_blank"
@@ -2113,6 +2114,10 @@ function formatDate(iso) {
                                                     ?.name ?? "…"
                                             }}</a
                                         >
+                                        <span v-else class="chat-main__name">{{
+                                            activeConversation.other_user
+                                                ?.name ?? "…"
+                                        }}</span>
                                         <IdolBadge
                                             v-if="
                                                 activeConversation.other_user

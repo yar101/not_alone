@@ -98,6 +98,8 @@ function toggleDropdown() {
 }
 
 function handleItemClick(item) {
+    const authUser = page.props.auth?.user;
+
     if (item.type === 'new_message' && item.data?.conversation_id) {
         open.value = false;
         openConversation?.(item.data.conversation_id);
@@ -108,9 +110,9 @@ function handleItemClick(item) {
         openOrder?.(item.order_id);
         return;
     }
-    if (item.type === 'new_review') {
+    if (item.type === 'new_review' && authUser?.id) {
         open.value = false;
-        router.visit(route('profile.show', { user: page.props.auth.user.id }) + '#reviews');
+        router.visit(route('profile.show', { user: authUser.id }) + '#reviews');
         return;
     }
     const profileTypes = [
@@ -118,9 +120,9 @@ function handleItemClick(item) {
         'admin_rating', 'review_dispute_approved', 'review_dispute_rejected',
         'content_pack_approved', 'content_pack_remarks', 'content_pack_rejected',
     ];
-    if (profileTypes.includes(item.type)) {
+    if (profileTypes.includes(item.type) && authUser?.id) {
         open.value = false;
-        router.visit(route('profile.show', { user: page.props.auth.user.id }) + '#content');
+        router.visit(route('profile.show', { user: authUser.id }) + '#content');
     }
 }
 
