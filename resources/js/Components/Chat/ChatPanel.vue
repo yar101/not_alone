@@ -12,7 +12,6 @@ import { usePage, router } from "@inertiajs/vue3";
 import SiteModal from "@/Components/Site/SiteModal.vue";
 import axios from "axios";
 import { Check, Lock } from "@element-plus/icons-vue";
-import IdolBadge from "@/Components/IdolBadge.vue";
 import ServiceOfferModal from "@/Components/Chat/ServiceOfferModal.vue";
 import ReviewForm from "@/Components/Chat/ReviewForm.vue";
 import RepeatOrderModal from "@/Components/Chat/RepeatOrderModal.vue";
@@ -2056,40 +2055,62 @@ function formatDate(iso) {
                                     <polyline points="15 18 9 12 15 6" />
                                 </svg>
                             </button>
-                            <div
-                                class="chat-conv-avatar chat-conv-avatar--sm"
-                                :class="{
-                                    'chat-conv-avatar--clickable': !isSupport,
-                                }"
-                                @click="!isSupport && (avatarFullscreen = true)"
-                                :title="
-                                    !isSupport
-                                        ? __('chat.photo.view')
-                                        : undefined
-                                "
-                            >
-                                <template v-if="isSupport">
-                                    <span class="chat-support-icon">✦</span>
-                                </template>
-                                <template v-else>
-                                    <img
+                            <div class="chat-main__avatar-wrapper">
+                                <div
+                                    class="chat-conv-avatar chat-conv-avatar--sm"
+                                    :class="{
+                                        'chat-conv-avatar--clickable':
+                                            !isSupport,
+                                    }"
+                                    @click="
+                                        !isSupport && (avatarFullscreen = true)
+                                    "
+                                    :title="
+                                        !isSupport
+                                            ? __('chat.photo.view')
+                                            : undefined
+                                    "
+                                >
+                                    <template v-if="isSupport">
+                                        <span class="chat-support-icon">✦</span>
+                                    </template>
+                                    <template v-else>
+                                        <img
+                                            v-if="
+                                                activeConversation.other_user
+                                                    ?.avatar_url
+                                            "
+                                            :src="
+                                                activeConversation.other_user
+                                                    .avatar_url
+                                            "
+                                            alt=""
+                                        />
+                                        <span v-else>{{
+                                            activeConversation.other_user?.name?.charAt(
+                                                0,
+                                            ) ?? "?"
+                                        }}</span>
+                                    </template>
+                                </div>
+                                <!-- Индикаторы на аватарке -->
+                                <template v-if="!isSupport">
+                                    <div
+                                        v-if="isOtherOnline"
+                                        class="chat-avatar-online-dot"
+                                    ></div>
+                                    <div
                                         v-if="
                                             activeConversation.other_user
-                                                ?.avatar_url
+                                                ?.is_idol
                                         "
-                                        :src="
-                                            activeConversation.other_user
-                                                .avatar_url
-                                        "
-                                        alt=""
-                                    />
-                                    <span v-else>{{
-                                        activeConversation.other_user?.name?.charAt(
-                                            0,
-                                        ) ?? "?"
-                                    }}</span>
+                                        class="chat-avatar-idol-badge"
+                                    >
+                                        IDOL
+                                    </div>
                                 </template>
                             </div>
+
                             <div class="chat-main__header-info">
                                 <div class="chat-main__name-row">
                                     <template v-if="isSupport">
@@ -2099,7 +2120,9 @@ function formatDate(iso) {
                                     </template>
                                     <template v-else>
                                         <a
-                                            v-if="activeConversation.other_user?.id"
+                                            v-if="
+                                                activeConversation.other_user?.id
+                                            "
                                             :href="
                                                 route('profile.show', {
                                                     user: activeConversation
@@ -2118,25 +2141,8 @@ function formatDate(iso) {
                                             activeConversation.other_user
                                                 ?.name ?? "…"
                                         }}</span>
-                                        <IdolBadge
-                                            v-if="
-                                                activeConversation.other_user
-                                                    ?.is_idol
-                                            "
-                                        />
                                     </template>
                                 </div>
-                                <span
-                                    v-if="!isSupport"
-                                    class="chat-online-badge"
-                                    :class="{
-                                        'chat-online-badge--visible':
-                                            isOtherOnline,
-                                    }"
-                                >
-                                    <span class="chat-online-dot"></span
-                                    >{{ __("chat.online") }}
-                                </span>
                             </div>
                             <button
                                 v-if="
@@ -4421,28 +4427,49 @@ function formatDate(iso) {
     color: #ffb2ef;
 }
 
-/* ── Online indicator ─────────────────────────────────── */
-.chat-online-badge {
+.chat-main__avatar-wrapper {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+}
+
+.chat-avatar-online-dot {
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    width: 10px;
+    height: 10px;
+    background: #3ddc84;
+    border: 2px solid #0f0f22;
+    border-radius: 50%;
+    z-index: 2;
+    box-shadow: 0 0 6px rgba(61, 220, 132, 0.4);
+}
+
+.chat-avatar-idol-badge {
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--color-base-1), #000 30%) 0%,
+        color-mix(in srgb, var(--color-base-1), #000 60%) 100%
+    );
+    color: #000;
+    font-size: 0.56rem;
+    font-weight: 900;
+    padding: 1px 4px;
+    border-radius: 3px;
+    letter-spacing: 0.06em;
+    z-index: 3;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
     display: flex;
     align-items: center;
-    gap: 4px;
-    font-size: 0.78rem;
-    color: rgba(80, 220, 140, 0.85);
-    visibility: hidden;
-    flex-shrink: 0;
-    /* место зарезервировано всегда */
-}
-
-.chat-online-badge--visible {
-    visibility: visible;
-}
-
-.chat-online-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #3ddc84;
-    box-shadow: 0 0 4px rgba(61, 220, 132, 0.6);
+    justify-content: center;
+    line-height: 1;
+    min-width: 32px;
 }
 
 /* ── Messages ─────────────────────────────────────────── */
