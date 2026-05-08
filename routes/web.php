@@ -33,10 +33,6 @@ Route::get('/news/feed',      [NewsPublicController::class, 'feed'])->name('news
 Route::get('/news/{news}',    [NewsPublicController::class, 'show'])->name('news.show');
 
 Route::get('/', function () {
-    if (auth()->check()) {
-        return redirect()->route('profile.show', ['user' => auth()->id()]);
-    }
-
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
