@@ -19,11 +19,10 @@ class BanReasonSeeder extends Seeder
         ];
 
         foreach ($chatBlockReasons as $i => $label) {
-            BanReason::create([
-                'label'      => $label,
-                'type'       => 'chat_block',
-                'sort_order' => $i,
-            ]);
+            BanReason::updateOrCreate(
+                ['label' => $label, 'type' => 'chat_block'],
+                ['sort_order' => $i]
+            );
         }
 
         $userBanReasons = [
@@ -35,11 +34,10 @@ class BanReasonSeeder extends Seeder
         ];
 
         foreach ($userBanReasons as $i => $label) {
-            BanReason::create([
-                'label'      => $label,
-                'type'       => 'user_ban',
-                'sort_order' => $i,
-            ]);
+            BanReason::updateOrCreate(
+                ['label' => $label, 'type' => 'user_ban'],
+                ['sort_order' => $i]
+            );
         }
     }
 }

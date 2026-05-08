@@ -70,10 +70,10 @@ class HandleInertiaRequests extends Middleware
             'unread_mine_count'      => fn() => $user?->unreadMineCount() ?? 0,
             'unread_incoming_count'  => fn() => $user?->unreadIncomingCount() ?? 0,
             'chat_block_reasons' => fn() => $user
-                ? BanReason::forChatBlock()->pluck('label')
+                ? BanReason::forChatBlock()->pluck('label')->unique()->values()
                 : [],
             'user_ban_reasons' => fn() => auth('admin')->check()
-                ? BanReason::forUserBan()->pluck('label')
+                ? BanReason::forUserBan()->pluck('label')->unique()->values()
                 : [],
             'flash' => [
                 'success'         => $request->session()->get('success'),
