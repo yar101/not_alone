@@ -23,6 +23,20 @@ class NewMessageNotification extends Notification
     public function toDatabase(object $notifiable): array
     {
         $senderName = $this->getSenderName();
+        $event = $this->message->metadata['event'] ?? null;
+
+        if ($this->message->type === 'system' && in_array($event, ['chat_opened', 'chat_closed'])) {
+            return [
+                'type'            => 'new_message',
+                'message_id'      => $this->message->id,
+                'conversation_id' => $this->message->conversation_id,
+                'sender_id'       => null,
+                'sender_name'     => __('chat.support'),
+                'message'         => __("notification.msg.$event"),
+                'title'           => __('notification.type.chat_status'),
+            ];
+        }
+
         return [
             'type'            => 'new_message',
             'message_id'      => $this->message->id,
@@ -41,11 +55,19 @@ class NewMessageNotification extends Notification
 
     protected function webPushTitle(): string
     {
+        $event = $this->message->metadata['event'] ?? null;
+        if ($this->message->type === 'system' && in_array($event, ['chat_opened', 'chat_closed'])) {
+            return __('notification.type.chat_status');
+        }
         return __('push.title.new_message');
     }
 
     protected function webPushBody(): string
     {
+        $event = $this->message->metadata['event'] ?? null;
+        if ($this->message->type === 'system' && in_array($event, ['chat_opened', 'chat_closed'])) {
+            return __("notification.msg.$event");
+        }
         return __('push.new_message', ['name' => $this->getSenderName()]);
     }
 
