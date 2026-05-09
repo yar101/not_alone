@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import SiteHeader from '@/Components/Site/SiteHeader.vue';
+import LocaleLoader from '@/Components/LocaleLoader.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
 const { __ } = useTranslations();
@@ -89,6 +90,8 @@ onUnmounted(() => {
         <title>{{ __('news.title') }} — no alone</title>
         <meta name="description" content="Последние новости проекта no alone." />
     </Head>
+
+    <LocaleLoader />
 
     <!-- Декор -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">

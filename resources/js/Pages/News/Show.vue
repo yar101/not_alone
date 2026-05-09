@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import SiteHeader from '@/Components/Site/SiteHeader.vue';
+import LocaleLoader from '@/Components/LocaleLoader.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
 const { __ } = useTranslations();
@@ -37,6 +38,8 @@ onUnmounted(() => heroObserver?.disconnect());
         <meta property="og:type"    content="article" />
         <meta v-if="item.image" property="og:image" :content="item.image" />
     </Head>
+
+    <LocaleLoader />
 
     <!-- Декор -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">

@@ -2,6 +2,7 @@
 import { ref, nextTick } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import SiteHeader from '@/Components/Site/SiteHeader.vue';
+import LocaleLoader from '@/Components/LocaleLoader.vue';
 
 // ── Фичи ──────────────────────────────────────────────────────
 const features = [
@@ -96,6 +97,8 @@ function openFeature(f) {
         <meta property="og:description" content="no alone — платформа для поиска компании и общения. Никто не должен чувствовать себя в одиночестве." />
         <meta property="og:type" content="website" />
     </Head>
+
+    <LocaleLoader />
 
     <!-- Декор -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
