@@ -95,12 +95,10 @@ const closeOnEscape = (e) => {
 
 onMounted(() => {
     document.addEventListener("keydown", closeOnEscape);
-    window.addEventListener("popstate", onSmPopstate);
 });
 
 onUnmounted(() => {
     document.removeEventListener("keydown", closeOnEscape);
-    window.removeEventListener("popstate", onSmPopstate);
     document.body.style.overflow = "";
 });
 </script>

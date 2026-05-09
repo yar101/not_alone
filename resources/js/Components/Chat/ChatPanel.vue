@@ -303,11 +303,6 @@ let echoChannel = null;
 let ordersEchoChannel = null;
 let userEchoChannel = null;
 
-// ── Back-gesture (History API) ───────────────────────────
-let cpDepth = 0; // how many cp states we pushed
-let cpIgnoreTill = 0; // timestamp until which to ignore popstate
-let ignoreNextModalPrune = false;
-
 const isAnyModalOpen = computed(() => {
     return (
         blockModal.value ||
@@ -320,72 +315,10 @@ const isAnyModalOpen = computed(() => {
     );
 });
 
-function pushCp(state) {
-    history.pushState({ modal: "sm", cp: state }, "");
-    cpDepth++;
-}
-
-function pruneCp(n = cpDepth) {
-    n = Math.min(n, cpDepth);
-    if (n <= 0) return;
-    cpIgnoreTill = Date.now() + 500;
-    history.go(-n);
-    cpDepth -= n;
-}
-
-function onCpPopstate(e) {
-    if (Date.now() < cpIgnoreTill || !isOpen.value) return;
-
-    // Landed on a state without our marker -> we went back past chat panel
-    if (!e.state?.cp) {
-        cpDepth = 0;
-        isOpen.value = false;
-        return;
-    }
-
-    // Every popstate we handle reduces our internal depth
-    cpDepth = Math.max(0, cpDepth - 1);
-
-    // Stop other listeners (like SiteModal's onSmPopstate) from closing the panel
-    // if we are still within the chat panel's history states.
-    if (e.state?.modal === "sm") {
-        e.stopImmediatePropagation();
-    }
-
-    // 1. If any modal is open, close it
-    if (isAnyModalOpen.value) {
-        ignoreNextModalPrune = true; // Tell the watcher NOT to call pruneCp
-        blockModal.value = false;
-        cancelModal.value = false;
-        confirmAddModal.value = false;
-        acceptModal.value = false;
-        completeModal.value = false;
-        showOfferModal.value = false;
-        repeatOrderOpen.value = false;
-        return;
-    }
-
-    // 2. Navigation between conv and list
-    if (activeConversation.value || activeOrderData.value) {
-        leaveEcho();
-        activeConversation.value = null;
-        activeOrderData.value = null;
-        return;
-    }
-}
-
-// Watch for modal changes to push history state
+// Watch for modal changes
 watch(isAnyModalOpen, (newVal, oldVal) => {
-    if (newVal && !oldVal && isOpen.value) {
-        pushCp("modal");
-    } else if (!newVal && oldVal) {
-        // If it was a back gesture, onCpPopstate already handled it
-        if (ignoreNextModalPrune) {
-            ignoreNextModalPrune = false;
-            return;
-        }
-        // Manual close: we need to remove the 'modal' state from history
-        pruneCp(1);
+    if (!newVal && oldVal) {
+        // Modal closed manually
     }
 });
 
@@ -1000,17 +933,11 @@ function isMessageRead(msg) {
 // ── Watch panel open ─────────────────────────────────────
 watch(isOpen, (val, oldVal) => {
     if (val) {
-        cpIgnoreTill = Date.now() + 500;
-        // Instead of pushCp, we replace the 'sm' state pushed by SiteModal
-        // to avoid having two states for the chat list (sm + list).
-        history.replaceState({ modal: "sm", cp: "list" }, "");
-        cpDepth = 1;
         fetchConversations();
         fetchOrders();
         subscribeOrdersEcho();
     }
     if (!val && oldVal) {
-        pruneCp();
         leaveEcho();
         leaveOrdersEcho();
         activeConversation.value = null;
@@ -1026,8 +953,6 @@ watch(isOpen, (val, oldVal) => {
 
 watch(activeConversation, (conv, oldConv) => {
     if (!isMobile.value) return;
-    if (conv && !oldConv && cpDepth === 1) pushCp("conv");
-    if (!conv && oldConv && cpDepth === 2) pruneCp(1);
 });
 
 watch(activeTab, (tab) => {
@@ -1081,8 +1006,6 @@ onUnmounted(() => {
     leaveUserEcho();
     clearInterval(nowTimer);
     window.removeEventListener("resize", checkMobile);
-    window.removeEventListener("popstate", onCpPopstate, true);
-    pruneCp();
     setScrollLock(false);
 });
 
@@ -1246,12 +1169,6 @@ async function openOrder(orderId) {
 }
 
 function silentClose() {
-    if (cpDepth > 0) {
-        cpIgnoreTill = Date.now() + 500;
-        history.replaceState(null, "");
-        if (cpDepth > 1) history.go(-(cpDepth - 1));
-        cpDepth = 0;
-    }
     isOpen.value = false;
 }
 

@@ -228,14 +228,6 @@ function selectPack(id) {
     selectedPackId.value = id;
     closeFilters();
 }
-
-const onFiltersPopstate = () => {
-    if (!filtersPushed) return;
-    closeFilters();
-};
-
-onMounted(() => window.addEventListener('popstate', onFiltersPopstate));
-onUnmounted(() => window.removeEventListener('popstate', onFiltersPopstate));
 </script>
 
 <template>

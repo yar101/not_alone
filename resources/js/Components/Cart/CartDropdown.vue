@@ -47,48 +47,27 @@ const contentTotal = computed(() =>
     contentItems.value.reduce((sum, item) => sum + (item.price || 0), 0)
 );
 
-// ── Back-gesture ─────────────────────────────────────────
-let cartPushed  = false;
-let cartIgnoreTill = 0;
-
-const onCartPopstate = (e) => {
-    if (Date.now() < cartIgnoreTill) return;
-    if (cartPushed && !e.state?.cart) {
-        cartPushed = false;
-        isOpen.value = false;
-    }
-};
-
 watch(isOpen, (val, oldVal) => {
     if (val) {
-        history.pushState({ cart: true }, '');
-        cartPushed = true;
-        cartIgnoreTill = Date.now() + 500;
         window.scrollTo({ top: 0, behavior: 'instant' });
         document.documentElement.classList.add('chat-scroll-locked');
     }
-    if (!val && oldVal && cartPushed) {
-        cartPushed = false;
-        cartIgnoreTill = Date.now() + 500;
-        history.go(-1);
+    if (!val && oldVal) {
         document.documentElement.classList.remove('chat-scroll-locked');
     }
-    if (!val && !cartPushed) {
+    if (!val) {
         document.documentElement.classList.remove('chat-scroll-locked');
     }
 });
 
-onMounted(() => window.addEventListener('popstate', onCartPopstate));
+onMounted(() => {});
 onUnmounted(() => {
-    window.removeEventListener('popstate', onCartPopstate);
-    if (cartPushed) { cartPushed = false; history.go(-1); }
     document.documentElement.classList.remove('chat-scroll-locked');
 });
 
 function close() { isOpen.value = false; }
 
 function silentClose() {
-    if (cartPushed) { cartPushed = false; history.replaceState(null, ''); }
     isOpen.value = false;
 }
 

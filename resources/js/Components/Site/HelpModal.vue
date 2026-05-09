@@ -282,25 +282,9 @@ function fmtDate(iso) {
     return new Date(iso).toLocaleString(loc, { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
-const onHelpPopstate = (e) => {
-    if (helpDepth > 0) {
-        e.stopImmediatePropagation();
-        helpDepth--;
-        if (mobileNav.value === 'answer') {
-            activeQuestion.value = null;
-            mobileNav.value      = 'questions';
-        } else {
-            backToCategories();
-        }
-    }
-};
-
-onMounted(() => {
-    window.addEventListener('popstate', onHelpPopstate, true);
-});
+onMounted(() => {});
 
 onUnmounted(() => {
-    window.removeEventListener('popstate', onHelpPopstate, true);
     clearInterval(tickInterval);
 });
 
