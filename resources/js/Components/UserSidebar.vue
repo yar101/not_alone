@@ -43,15 +43,8 @@ onUnmounted(() => {
     document.documentElement.classList.remove('chat-scroll-locked');
 });
 
-const agePR = new Intl.PluralRules('ru');
-const ageForms = { one: 'год', few: 'года', many: 'лет', other: 'лет' };
-function ageLabel(n) { return `${n} ${ageForms[agePR.select(n)]}`; }
-
-const ratingValue  = computed(() => props.rating != null ? Number(props.rating) : null);
-const ratingLabel  = computed(() => ratingValue.value != null ? ratingValue.value : '—');
-const ratingPct    = computed(() => ratingValue.value != null ? Math.min(ratingValue.value / 100, 1) * 100 : 0);
-
-const { locale, __, switchLocale } = useTranslations();
+const { locale, __, transChoice, switchLocale } = useTranslations();
+function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 </script>
 
 <template>

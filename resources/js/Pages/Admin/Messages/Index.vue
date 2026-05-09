@@ -4,6 +4,9 @@ import { useForm } from '@inertiajs/vue3';
 import AppSelect from '@/Components/AppSelect.vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import UserPickerModal from '@/Components/Admin/UserPickerModal.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { transChoice } = useTranslations();
 
 defineOptions({ layout: AdminLayout });
 
@@ -79,8 +82,8 @@ function filterLabel(key, value) {
         gender: { male: 'Мужчины', female: 'Женщины' },
     };
     if (labels[key]) return labels[key][value] ?? value;
-    if (key === 'age_from') return `от ${value} лет`;
-    if (key === 'age_to') return `до ${value} лет`;
+    if (key === 'age_from') return `от ${value} ${transChoice('search.age.years', value)}`;
+    if (key === 'age_to') return `до ${value} ${transChoice('search.age.years', value)}`;
     if (key === 'registered_from') return `рег. с ${value}`;
     if (key === 'registered_to') return `рег. до ${value}`;
     if (key === 'q') return `«${value}»`;

@@ -213,7 +213,7 @@
     "search.active.age": "Возраст: :from–:to",
     "search.active.idol": "Айдол: :value",
     "search.active.rating": "Рейтинг: :from–:to",
-    "search.age.years": "лет|лет|лет",
+    "search.age.years": "год|года|лет",
 
     "common.back": "Назад",
     "common.edit": "Редактировать",
