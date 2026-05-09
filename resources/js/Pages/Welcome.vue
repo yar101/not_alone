@@ -1,5 +1,6 @@
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
+import { usePage } from "@inertiajs/vue3";
 import StartBtn from "@/Components/Site/StartBtn.vue";
 import HelpModal from "@/Components/Site/HelpModal.vue";
 import AuthModal from "@/Components/Site/AuthModal.vue";
@@ -7,10 +8,15 @@ import SiteHeader from "@/Components/Site/SiteHeader.vue";
 import { useTranslations } from "@/composables/useTranslations";
 import LocaleLoader from "@/Components/LocaleLoader.vue";
 
+const page = usePage();
 const showHelpModal = ref(false);
 const showAuthModal = ref(false);
 
 const { __ } = useTranslations();
+
+const startBtnLabel = computed(() => {
+    return page.props.auth?.user ? __("welcome.enter") : __("welcome.start");
+});
 </script>
 
 <template>
@@ -54,7 +60,7 @@ const { __ } = useTranslations();
                     class="scale-110 sm:scale-105 backdrop-blur md:scale-125 mb-14 md:mb-16 transform transition-transform wlc-fade-start"
                 >
                     <StartBtn
-                        :label="__('welcome.start')"
+                        :label="startBtnLabel"
                         @click="showAuthModal = true"
                     />
                 </div>
