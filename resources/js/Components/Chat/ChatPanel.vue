@@ -16,6 +16,7 @@ import ServiceOfferModal from "@/Components/Chat/ServiceOfferModal.vue";
 import ReviewForm from "@/Components/Chat/ReviewForm.vue";
 import RepeatOrderModal from "@/Components/Chat/RepeatOrderModal.vue";
 import { useTranslations } from "@/composables/useTranslations";
+import { useModalHistory } from "@/composables/useModalHistory";
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -166,6 +167,16 @@ const orderTimerLabel = computed(() => {
         return `${days} ${__("chat.days")} ${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
     return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 });
+
+const isDetailOpen = computed({
+    get: () => (activeConversation.value !== null || activeOrderData.value !== null) && isMobile.value,
+    set: (v) => {
+        if (!v) backToList();
+    },
+});
+
+useModalHistory(isOpen, "chat");
+useModalHistory(isDetailOpen, "chat-detail");
 
 const myConfirmation = computed(() => {
     if (!activeOrderData.value) return false;

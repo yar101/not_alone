@@ -1,6 +1,7 @@
 <script setup>
-import { nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { nextTick, onMounted, onUnmounted, ref, watch, computed } from "vue";
 import { useTranslations } from "@/composables/useTranslations";
+import { useModalHistory } from "@/composables/useModalHistory";
 
 const { __ } = useTranslations();
 
@@ -44,30 +45,24 @@ const emit = defineEmits(["close"]);
 const showSlot = ref(false);
 const localShow = ref(false);
 
-// ── Back-gesture (History API) ───────────────────────────
-let smPushed = false;
+const isOpen = computed({
+    get: () => props.show,
+    set: (val) => {
+        if (!val) emit("close");
+    },
+});
 
-const onSmPopstate = (e) => {
-    if (!smPushed) return;
-    // Any popstate while our state is on top means user went back past it
-    if (e.state?.modal !== "sm") {
-        smPushed = false;
-        emit("close");
-    }
-};
+useModalHistory(isOpen, "sm");
 
 watch(
     () => props.show,
     async () => {
         if (props.show) {
-            history.pushState({ modal: "sm" }, "");
-            smPushed = true;
             document.body.style.overflow = "hidden";
             showSlot.value = true;
             await nextTick();
             localShow.value = true;
         } else {
-            smPushed = false;
             localShow.value = false;
             document.body.style.overflow = "";
             setTimeout(() => {

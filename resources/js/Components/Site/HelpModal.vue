@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, shallowRef, onMounted, onUnmounted } from 'vue';
 import { useTranslations } from '@/composables/useTranslations';
+import { useModalHistory } from '@/composables/useModalHistory';
 
 const { __, locale } = useTranslations();
 import axios from 'axios';
@@ -180,27 +181,41 @@ const activeIndex = computed(() =>
     faqCategories.findIndex((c) => c === activeCategory.value) + 1,
 );
 
+const isMobile = computed(() => window.innerWidth <= 767);
+
 // ── Mobile drill-down navigation ──────────────────────────
-const mobileNav = ref('cats'); // 'cats' | 'questions' | 'answer'
-let helpDepth   = 0;
+const mobileNav = ref("cats"); // 'cats' | 'questions' | 'answer'
+
+const isQuestionsOpen = computed({
+    get: () => mobileNav.value !== "cats" && isMobile.value,
+    set: (v) => {
+        if (!v) backToCategories();
+    },
+});
+
+const isAnswerOpen = computed({
+    get: () => mobileNav.value === "answer" && isMobile.value,
+    set: (v) => {
+        if (!v) backToList();
+    },
+});
+
+useModalHistory(isQuestionsOpen, "help-q");
+useModalHistory(isAnswerOpen, "help-a");
 
 function setCategory(cat) {
-    disputeView.value    = false;
+    disputeView.value = false;
     activeCategory.value = cat;
     activeQuestion.value = null;
-    if (mobileNav.value === 'cats') {
-        history.pushState({ modal: 'help-questions' }, '');
-        helpDepth++;
-        mobileNav.value = 'questions';
+    if (mobileNav.value === "cats") {
+        mobileNav.value = "questions";
     }
 }
 
 function openQuestion(item) {
     activeQuestion.value = item;
     if (window.innerWidth <= 767) {
-        history.pushState({ modal: 'help-answer' }, '');
-        helpDepth++;
-        mobileNav.value = 'answer';
+        mobileNav.value = "answer";
     }
 }
 
@@ -245,8 +260,6 @@ async function openDisputeForm() {
     disputeLoading.value  = true;
     disputeView.value     = true;
     if (mobileNav.value === 'cats') {
-        history.pushState({ modal: 'help-questions' }, '');
-        helpDepth++;
         mobileNav.value = 'questions';
     }
     disputeSuccess.value  = false;

@@ -3,6 +3,7 @@ import { ref, computed, watch, inject, onMounted, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useTranslations } from '@/composables/useTranslations';
+import { useModalHistory } from '@/composables/useModalHistory';
 
 const { __ } = useTranslations();
 
@@ -38,6 +39,8 @@ const isOpen = computed({
     get: () => props.modelValue,
     set: (v) => emit('update:modelValue', v),
 });
+
+useModalHistory(isOpen, 'cart');
 
 const servicesTotal = computed(() =>
     servicesItems.value.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0)
@@ -84,9 +87,6 @@ async function createOrder() {
             services: sc.items.map(i => ({ id: i.service_id, quantity: i.quantity || 1 })),
         });
         emit('clear-services');
-        // Заменяем запись корзины в истории нейтральной, чтобы history.go(-1)
-        // не триггернулся и не закрыл чат, который откроется следом
-        if (cartPushed) { cartPushed = false; history.replaceState(null, ''); }
         isOpen.value = false;
         if (openOrder) openOrder(res.data.order_id);
         router.reload({ only: ['order_notifications_unread'] });
