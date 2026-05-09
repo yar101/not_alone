@@ -23,16 +23,24 @@ function closeForNav() {
 const showHelp = ref(false);
 function openHelp() { showHelp.value = true; }
 
-watch(() => props.modelValue, (val, oldVal) => {
-    // History API removed
+watch(() => props.modelValue, (val) => {
+    if (val) {
+        document.documentElement.classList.add('chat-scroll-locked');
+    } else {
+        document.documentElement.classList.remove('chat-scroll-locked');
+    }
 });
 
 function onKey(e) { if (e.key === 'Escape') close(); }
 onMounted(() => {
     document.addEventListener('keydown', onKey);
+    if (props.modelValue) {
+        document.documentElement.classList.add('chat-scroll-locked');
+    }
 });
 onUnmounted(() => {
     document.removeEventListener('keydown', onKey);
+    document.documentElement.classList.remove('chat-scroll-locked');
 });
 
 const agePR = new Intl.PluralRules('ru');
