@@ -304,6 +304,7 @@
     "notification.empty": "Нет уведомлений",
     "notification.push_prompt": "Разрешите уведомления, чтобы получать их даже когда приложение закрыто.",
     "notification.push_allow": "Разрешить",
+    "notification.push_denied": "Уведомления заблокированы. Включите их в настройках браузера.",
     "notification.load_more": "Загрузить ещё",
     "notification.time.just_now": "только что",
     "notification.time.minutes": ":n мин. назад",

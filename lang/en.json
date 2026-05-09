@@ -304,6 +304,7 @@
     "notification.empty": "No notifications",
     "notification.push_prompt": "Allow notifications to receive them even when the app is closed.",
     "notification.push_allow": "Allow",
+    "notification.push_denied": "Notifications are blocked. Please enable them in your browser settings.",
     "notification.load_more": "Load more",
     "notification.time.just_now": "just now",
     "notification.time.minutes": ":n min. ago",

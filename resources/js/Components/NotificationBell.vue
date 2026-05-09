@@ -345,8 +345,15 @@ function orderMessage(item) {
 }
 
 async function requestPush() {
-    const granted = await subscribe();
-    if (granted) pushPermission.value = 'granted';
+    try {
+        await subscribe();
+    } catch (e) {
+        console.error('Push subscription failed', e);
+    } finally {
+        if (typeof Notification !== 'undefined') {
+            pushPermission.value = Notification.permission;
+        }
+    }
 }
 
 onMounted(() => {
@@ -437,12 +444,17 @@ defineExpose({ toggleDropdown });
                 </div>
 
                 <!-- Push permission banner -->
-                <div v-if="isSupported() && pushPermission === 'default' && page.props.auth?.user" class="push-banner">
+                <div v-if="isSupported() && pushPermission !== 'granted' && page.props.auth?.user" class="push-banner">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.7">
                         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                     </svg>
-                    <span class="push-banner__text">{{ __('notification.push_prompt') }}</span>
-                    <button class="push-banner__btn" @click.stop="requestPush">{{ __('notification.push_allow') }}</button>
+                    <template v-if="pushPermission === 'denied'">
+                        <span class="push-banner__text">{{ __('notification.push_denied') }}</span>
+                    </template>
+                    <template v-else>
+                        <span class="push-banner__text">{{ __('notification.push_prompt') }}</span>
+                        <button class="push-banner__btn" @click.stop="requestPush">{{ __('notification.push_allow') }}</button>
+                    </template>
                 </div>
 
                 <!-- Skeleton loader -->
@@ -550,12 +562,17 @@ defineExpose({ toggleDropdown });
                     </div>
                 </div>
 
-                <div v-if="isSupported() && pushPermission === 'default' && page.props.auth?.user" class="push-banner">
+                <div v-if="isSupported() && pushPermission !== 'granted' && page.props.auth?.user" class="push-banner">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.7">
                         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                     </svg>
-                    <span class="push-banner__text">{{ __('notification.push_prompt') }}</span>
-                    <button class="push-banner__btn" @click.stop="requestPush">{{ __('notification.push_allow') }}</button>
+                    <template v-if="pushPermission === 'denied'">
+                        <span class="push-banner__text">{{ __('notification.push_denied') }}</span>
+                    </template>
+                    <template v-else>
+                        <span class="push-banner__text">{{ __('notification.push_prompt') }}</span>
+                        <button class="push-banner__btn" @click.stop="requestPush">{{ __('notification.push_allow') }}</button>
+                    </template>
                 </div>
 
                 <div class="notif-fill-scroll">
