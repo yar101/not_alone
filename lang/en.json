@@ -32,6 +32,10 @@
     "layout.become_idol": "Become an Idol",
     "layout.banned_error": "Cannot interact with a banned user",
 
+    "app.update.title": "Update Available",
+    "app.update.message": "A new version of the app is available.",
+    "app.update.button": "Refresh Page",
+
     "upload.drop": "Release to upload",
     "upload.hint": "Drag or paste from clipboard",
     "upload.hint.select": "or select a file",

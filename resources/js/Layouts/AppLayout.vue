@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, provide, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, provide, watch, onMounted, onUnmounted, h } from 'vue';
 import { Link, usePage, router } from '@inertiajs/vue3';
 import { ElNotification } from 'element-plus';
 import NotificationBell from '@/Components/NotificationBell.vue';
@@ -200,6 +200,30 @@ function handleUserBannedEvent() {
 onMounted(() => {
     window.addEventListener('noalone:open-order', handleOpenOrderEvent);
     window.addEventListener('noalone:user-banned', handleUserBannedEvent);
+
+    if ('serviceWorker' in navigator) {
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (refreshing) return;
+            refreshing = true;
+            ElNotification({
+                title: __('app.update.title'),
+                message: h('div', null, [
+                    h('p', null, __('app.update.message')),
+                    h('button', {
+                        class: 'cm-btn cm-btn--primary',
+                        style: 'margin-top: 10px; width: 100%;',
+                        onClick: () => window.location.reload()
+                    }, __('app.update.button'))
+                ]),
+                duration: 0,
+                position: 'top-right',
+                offset: 70,
+                customClass: 'app-notif app-notif--info',
+                showClose: true,
+            });
+        });
+    }
 });
 
 onUnmounted(() => {
