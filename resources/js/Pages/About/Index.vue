@@ -78,13 +78,24 @@ const features = [
 const selectedFeature = ref(features[0]);
 const leftColRef      = ref(null);
 const detailColRef    = ref(null);
-
 function openFeature(f) {
-    if (selectedFeature.value?.title === f.title) return;
+    const isMobile = window.innerWidth <= 900;
+
+    if (selectedFeature.value?.title === f.title) {
+        if (isMobile && detailColRef.value) {
+            detailColRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        return;
+    }
     if (detailColRef.value) detailColRef.value.style.opacity = '0';
     selectedFeature.value = f;
     nextTick(() => {
-        if (detailColRef.value) detailColRef.value.style.opacity = '';
+        if (detailColRef.value) {
+            detailColRef.value.style.opacity = '';
+            if (isMobile) {
+                detailColRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
     });
 }
 </script>

@@ -53,7 +53,7 @@ defineProps({
     align-items: center;
     justify-content: space-between;
     gap: 1.5rem;
-    padding: 1.2rem 4rem 0;
+    padding: 1.2rem 4rem 1.2rem;
     flex-shrink: 0;
     position: relative;
     z-index: 10;
@@ -129,7 +129,7 @@ a.site-header__logo {
 
 @media (max-width: 768px) {
     .site-header {
-        padding: 0.75rem 1rem 0;
+        padding: 0.75rem 1rem 0.75rem;
         gap: 1.25rem;
     }
     .site-header__nav {
