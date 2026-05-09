@@ -1220,43 +1220,50 @@ function initial(name) {
                     <label class="filter-label">{{
                         __("search.filters.traits")
                     }}</label>
-                    <span
-                        v-if="openSection !== 'traits' && f.traits.length"
-                        class="section-badge"
-                        >{{ f.traits.length }}</span
-                    >
-                    <svg
-                        class="section-chevron"
-                        :class="{ open: openSection === 'traits' }"
-                        viewBox="0 0 14 14"
-                        fill="none"
-                    >
-                        <path
-                            d="M2.5 5L7 9.5L11.5 5"
-                            stroke="currentColor"
-                            stroke-width="1.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
+                    <div class="header-indicators">
+                        <span v-if="f.traits.length" class="active-dot"></span>
+                        <span
+                            v-if="openSection !== 'traits' && f.traits.length"
+                            class="section-badge"
+                            >{{ f.traits.length }}</span
+                        >
+                        <svg
+                            class="section-chevron"
+                            :class="{ open: openSection === 'traits' }"
+                            viewBox="0 0 14 14"
+                            fill="none"
+                        >
+                            <path
+                                d="M2.5 5L7 9.5L11.5 5"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            />
+                        </svg>
+                    </div>
+                </div>
+                <Transition name="filter-section">
+                    <div v-if="openSection === 'traits'" class="section-content">
+                        <input
+                            type="text"
+                            class="section-search"
+                            v-model="sectionSearch.traits"
+                            :placeholder="__('search.filter')"
                         />
-                    </svg>
-                </div>
-                <input
-                    v-if="openSection === 'traits'"
-                    class="section-search"
-                    v-model="sectionSearch.traits"
-                    :placeholder="__('search.filter')"
-                />
-                <div v-if="openSection === 'traits'" class="checkbox-list">
-                    <button
-                        v-for="trait in filteredTraits"
-                        :key="trait.id"
-                        class="filter-toggle-btn"
-                        :class="{ active: f.traits.includes(trait.id) }"
-                        @click="toggleFilterId('traits', trait.id)"
-                    >
-                        {{ localName(trait) }}
-                    </button>
-                </div>
+                        <div class="checkbox-list">
+                            <button
+                                v-for="trait in filteredTraits"
+                                :key="trait.id"
+                                class="filter-toggle-btn"
+                                :class="{ active: f.traits.includes(trait.id) }"
+                                @click="toggleFilterId('traits', trait.id)"
+                            >
+                                {{ localName(trait) }}
+                            </button>
+                        </div>
+                    </div>
+                </Transition>
             </div>
 
             <!-- Интересы -->
@@ -1276,53 +1283,59 @@ function initial(name) {
                         <div class="interest-cat__name">
                             {{ localName(cat) }}
                         </div>
-                        <span
-                            v-if="
-                                openSection !== `interest_cat_${cat.id}` &&
-                                interestCountForCat(cat)
-                            "
-                            class="section-badge"
-                            >{{ interestCountForCat(cat) }}</span
-                        >
-                        <svg
-                            class="section-chevron"
-                            :class="{
-                                open: openSection === `interest_cat_${cat.id}`,
-                            }"
-                            viewBox="0 0 14 14"
-                            fill="none"
-                        >
-                            <path
-                                d="M2.5 5L7 9.5L11.5 5"
-                                stroke="currentColor"
-                                stroke-width="1.5"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
+                        <div class="header-indicators">
+                            <span v-if="interestCountForCat(cat)" class="active-dot"></span>
+                            <span
+                                v-if="
+                                    openSection !== `interest_cat_${cat.id}` &&
+                                    interestCountForCat(cat)
+                                "
+                                class="section-badge"
+                                >{{ interestCountForCat(cat) }}</span
+                            >
+                            <svg
+                                class="section-chevron"
+                                :class="{
+                                    open: openSection === `interest_cat_${cat.id}`,
+                                }"
+                                viewBox="0 0 14 14"
+                                fill="none"
+                            >
+                                <path
+                                    d="M2.5 5L7 9.5L11.5 5"
+                                    stroke="currentColor"
+                                    stroke-width="1.5"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                            </svg>
+                        </div>
+                    </div>
+                    <Transition name="filter-section">
+                        <div v-if="openSection === `interest_cat_${cat.id}`" class="section-content">
+                            <input
+                                type="text"
+                                class="section-search"
+                                v-model="sectionSearch[`interest_cat_${cat.id}`]"
+                                :placeholder="__('search.filter')"
                             />
-                        </svg>
-                    </div>
-                    <input
-                        v-if="openSection === `interest_cat_${cat.id}`"
-                        class="section-search"
-                        v-model="sectionSearch[`interest_cat_${cat.id}`]"
-                        :placeholder="__('search.filter')"
-                    />
-                    <div
-                        v-if="openSection === `interest_cat_${cat.id}`"
-                        class="checkbox-list"
-                    >
-                        <button
-                            v-for="interest in filteredInterests(cat)"
-                            :key="interest.id"
-                            class="filter-toggle-btn"
-                            :class="{
-                                active: f.interests.includes(interest.id),
-                            }"
-                            @click="toggleFilterId('interests', interest.id)"
-                        >
-                            {{ localName(interest) }}
-                        </button>
-                    </div>
+                            <div
+                                class="checkbox-list"
+                            >
+                                <button
+                                    v-for="interest in filteredInterests(cat)"
+                                    :key="interest.id"
+                                    class="filter-toggle-btn"
+                                    :class="{
+                                        active: f.interests.includes(interest.id),
+                                    }"
+                                    @click="toggleFilterId('interests', interest.id)"
+                                >
+                                    {{ localName(interest) }}
+                                </button>
+                            </div>
+                        </div>
+                    </Transition>
                 </div>
             </div>
 
@@ -1335,45 +1348,52 @@ function initial(name) {
                     <label class="filter-label">{{
                         __("search.filters.languages")
                     }}</label>
-                    <span
-                        v-if="
-                            openSection !== 'languages' && f.languages.length
-                        "
-                        class="section-badge"
-                        >{{ f.languages.length }}</span
-                    >
-                    <svg
-                        class="section-chevron"
-                        :class="{ open: openSection === 'languages' }"
-                        viewBox="0 0 14 14"
-                        fill="none"
-                    >
-                        <path
-                            d="M2.5 5L7 9.5L11.5 5"
-                            stroke="currentColor"
-                            stroke-width="1.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
+                    <div class="header-indicators">
+                        <span v-if="f.languages.length" class="active-dot"></span>
+                        <span
+                            v-if="
+                                openSection !== 'languages' && f.languages.length
+                            "
+                            class="section-badge"
+                            >{{ f.languages.length }}</span
+                        >
+                        <svg
+                            class="section-chevron"
+                            :class="{ open: openSection === 'languages' }"
+                            viewBox="0 0 14 14"
+                            fill="none"
+                        >
+                            <path
+                                d="M2.5 5L7 9.5L11.5 5"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            />
+                        </svg>
+                    </div>
+                </div>
+                <Transition name="filter-section">
+                    <div v-if="openSection === 'languages'" class="section-content">
+                        <input
+                            type="text"
+                            class="section-search"
+                            v-model="sectionSearch.languages"
+                            :placeholder="__('search.filter')"
                         />
-                    </svg>
-                </div>
-                <input
-                    v-if="openSection === 'languages'"
-                    class="section-search"
-                    v-model="sectionSearch.languages"
-                    :placeholder="__('search.filter')"
-                />
-                <div v-if="openSection === 'languages'" class="checkbox-list">
-                    <button
-                        v-for="lang in filteredLanguages"
-                        :key="lang.code"
-                        class="filter-toggle-btn"
-                        :class="{ active: f.languages.includes(lang.code) }"
-                        @click="toggleFilterId('languages', lang.code)"
-                    >
-                        {{ lang.label }}
-                    </button>
-                </div>
+                        <div class="checkbox-list">
+                            <button
+                                v-for="lang in filteredLanguages"
+                                :key="lang.code"
+                                class="filter-toggle-btn"
+                                :class="{ active: f.languages.includes(lang.code) }"
+                                @click="toggleFilterId('languages', lang.code)"
+                            >
+                                {{ lang.label }}
+                            </button>
+                        </div>
+                    </div>
+                </Transition>
             </div>
 
             <!-- Часовой пояс -->
@@ -1398,51 +1418,57 @@ function initial(name) {
                     <label class="filter-label">{{
                         __("search.filters.services")
                     }}</label>
-                    <span
-                        v-if="
-                            openSection !== 'service_categories' &&
-                            f.service_categories.length
-                        "
-                        class="section-badge"
-                        >{{ f.service_categories.length }}</span
-                    >
-                    <svg
-                        class="section-chevron"
-                        :class="{
-                            open: openSection === 'service_categories',
-                        }"
-                        viewBox="0 0 14 14"
-                        fill="none"
-                    >
-                        <path
-                            d="M2.5 5L7 9.5L11.5 5"
-                            stroke="currentColor"
-                            stroke-width="1.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
+                    <div class="header-indicators">
+                        <span v-if="f.service_categories.length" class="active-dot"></span>
+                        <span
+                            v-if="
+                                openSection !== 'service_categories' &&
+                                f.service_categories.length
+                            "
+                            class="section-badge"
+                            >{{ f.service_categories.length }}</span
+                        >
+                        <svg
+                            class="section-chevron"
+                            :class="{
+                                open: openSection === 'service_categories',
+                            }"
+                            viewBox="0 0 14 14"
+                            fill="none"
+                        >
+                            <path
+                                d="M2.5 5L7 9.5L11.5 5"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            />
+                        </svg>
+                    </div>
+                </div>
+                <Transition name="filter-section">
+                    <div v-if="openSection === 'service_categories'" class="section-content">
+                        <input
+                            type="text"
+                            class="section-search"
+                            v-model="sectionSearch.service_categories"
+                            :placeholder="__('search.filter')"
                         />
-                    </svg>
-                </div>
-                <input
-                    v-if="openSection === 'service_categories'"
-                    class="section-search"
-                    v-model="sectionSearch.service_categories"
-                    :placeholder="__('search.filter')"
-                />
-                <div
-                    v-if="openSection === 'service_categories'"
-                    class="checkbox-list"
-                >
-                    <button
-                        v-for="cat in filteredServiceCategories"
-                        :key="cat.id"
-                        class="filter-toggle-btn"
-                        :class="{ active: f.service_categories.includes(cat.id) }"
-                        @click="toggleFilterId('service_categories', cat.id)"
-                    >
-                        {{ localName(cat) }}
-                    </button>
-                </div>
+                        <div
+                            class="checkbox-list"
+                        >
+                            <button
+                                v-for="cat in filteredServiceCategories"
+                                :key="cat.id"
+                                class="filter-toggle-btn"
+                                :class="{ active: f.service_categories.includes(cat.id) }"
+                                @click="toggleFilterId('service_categories', cat.id)"
+                            >
+                                {{ localName(cat) }}
+                            </button>
+                        </div>
+                    </div>
+                </Transition>
             </div>
 
             <!-- Сбросить / Применить -->
