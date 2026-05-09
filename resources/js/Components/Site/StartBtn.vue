@@ -3,8 +3,8 @@
  * Компонент элегантной кнопки в стиле "Start"
  * Использует шрифт Brygada 1918 и внутренние тени для создания эффекта обводки
  */
-import { computed } from 'vue';
-import { useTranslations } from '@/composables/useTranslations';
+import { computed } from "vue";
+import { useTranslations } from "@/composables/useTranslations";
 
 const { __ } = useTranslations();
 
@@ -12,15 +12,15 @@ const props = defineProps({
     label: {
         type: String,
         default: null,
-    }
+    },
 });
 
-const effectiveLabel = computed(() => props.label ?? __('welcome.start'));
+const effectiveLabel = computed(() => props.label ?? __("welcome.start"));
 
-const emit = defineEmits(['click']);
+const emit = defineEmits(["click"]);
 
 const handleClick = (event) => {
-    emit('click', event);
+    emit("click", event);
 };
 </script>
 
@@ -48,7 +48,12 @@ const handleClick = (event) => {
     height: 140px;
 
     /* Яркий фон: насыщенный градиент для глубины */
-    background: linear-gradient(135deg, #2a1b2d 0%, #121212 50%, rgba(64, 166, 166, 0.18) 100%);
+    background: linear-gradient(
+        135deg,
+        #2a1b2d 0%,
+        #121212 50%,
+        rgba(64, 166, 166, 0.18) 100%
+    );
 
     /* Эффект внутренней обводки через spread (spread = 2px) */
     box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 3%);
@@ -63,7 +68,7 @@ const handleClick = (event) => {
 
 .label {
     color: #ffffff;
-    font-size: 80px;
+    font-size: 5rem;
     letter-spacing: 0.02em;
     text-transform: uppercase;
 
@@ -72,7 +77,8 @@ const handleClick = (event) => {
     font-weight: 100;
 
     /* Усиленное свечение букв */
-    text-shadow: 0 0 15px rgba(255, 255, 255, 0.3),
+    text-shadow:
+        0 0 15px rgba(255, 255, 255, 0.3),
         0 0 2px rgba(255, 255, 255, 0.5);
 
     /* Центровка (компенсация letter-spacing) */
@@ -85,13 +91,17 @@ const handleClick = (event) => {
 
 /* Эффект мягкого блика по центру */
 .start-button::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+    background: radial-gradient(
+        circle at center,
+        rgba(255, 255, 255, 0.05) 0%,
+        transparent 70%
+    );
     pointer-events: none;
 }
 
@@ -122,7 +132,7 @@ const handleClick = (event) => {
     }
 
     .label {
-        font-size: 70px;
+        font-size: 3rem;
     }
 }
 </style>
