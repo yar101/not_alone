@@ -478,17 +478,51 @@ class UserProfileController extends Controller
     {
         $request->validate([
             'body'  => ['required', 'string', 'max:377'],
-            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:1024'],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
         ]);
         $user = $request->user();
         $photoPath = null;
         if ($request->hasFile('photo')) {
-            $ext       = $request->file('photo')->getClientOriginalExtension() ?: 'jpg';
-            $photoPath = $request->file('photo')->storeAs(
-                "posts/{$user->id}",
-                time() . '.' . $ext,
-                'public'
-            );
+            $file = $request->file('photo');
+            $img = imagecreatefromstring(file_get_contents($file->getRealPath()));
+
+            if ($img) {
+                $width  = imagesx($img);
+                $height = imagesy($img);
+                $maxDim = 1600;
+
+                if ($width > $maxDim || $height > $maxDim) {
+                    $ratio = $width / $height;
+                    if ($ratio > 1) {
+                        $newWidth  = $maxDim;
+                        $newHeight = (int)($maxDim / $ratio);
+                    } else {
+                        $newHeight = $maxDim;
+                        $newWidth  = (int)($maxDim * $ratio);
+                    }
+                } else {
+                    $newWidth  = $width;
+                    $newHeight = $height;
+                }
+
+                $newImg = imagecreatetruecolor($newWidth, $newHeight);
+                $white  = imagecolorallocate($newImg, 255, 255, 255);
+                imagefill($newImg, 0, 0, $white);
+                imagecopyresampled($newImg, $img, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+
+                $photoPath = "posts/{$user->id}/" . time() . ".jpg";
+                ob_start();
+                imagejpeg($newImg, null, 70);
+                $imageData = ob_get_clean();
+
+                Storage::disk('public')->put($photoPath, $imageData);
+                imagedestroy($img);
+                imagedestroy($newImg);
+            } else {
+                // Fallback to regular store if GD fails
+                $ext       = $file->getClientOriginalExtension() ?: 'jpg';
+                $photoPath = $file->storeAs("posts/{$user->id}", time() . '.' . $ext, 'public');
+            }
         }
         Post::create([
             'user_id'    => $user->id,

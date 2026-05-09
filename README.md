@@ -10,7 +10,7 @@
 
 ## Требования
 
-- PHP 8.4+ с расширениями: `bcmath`, `pgsql`
+- PHP 8.4+ с расширениями: `bcmath`, `pgsql`, `gd`
 - PostgreSQL
 - Node.js + npm
 - Composer
@@ -18,7 +18,7 @@
 > Установка расширений на Fedora/RHEL:
 >
 > ```bash
-> sudo dnf install php-bcmath php-pgsql
+> sudo dnf install php-bcmath php-pgsql php-gd
 > sudo systemctl restart php-fpm
 > ```
 
@@ -200,6 +200,18 @@ routes/
 - **Очередь / сессии / кеш:** database-драйвер (Redis не нужен на старте)
 - **WebSocket:** Reverb в отдельном контейнере
 - **Docker Registry:** GitHub Container Registry (`ghcr.io/yar101/no-alone`)
+
+### Настройка PHP (php.ini)
+
+Для корректной работы загрузки и сжатия изображений (аватары до 5МБ, посты до 10МБ), на сервере должны быть установлены следующие лимиты:
+
+```ini
+post_max_size = 15M
+upload_max_filesize = 12M
+max_file_uploads = 50
+```
+
+*После изменения настроек необходимо перезапустить PHP-FPM или Apache.*
 
 ### Защита медиафайлов
 

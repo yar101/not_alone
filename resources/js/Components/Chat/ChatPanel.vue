@@ -274,7 +274,6 @@ onMounted(() => {
     subscribeUserEcho();
     checkMobile();
     window.addEventListener("resize", checkMobile);
-    window.addEventListener("popstate", onCpPopstate, true);
 });
 
 const blockedUntilLabel = computed(() => {
