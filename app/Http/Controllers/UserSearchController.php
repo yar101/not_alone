@@ -66,7 +66,7 @@ class UserSearchController extends Controller
 
         $users = $query
             ->select(['id','name','avatar_path','gender','birth_date','is_idol','rating','about','timezone','created_at'])
-            ->paginate(12)
+            ->paginate(20)
             ->withQueryString();
 
         return Inertia::render('Search/Index', [

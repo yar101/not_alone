@@ -1,19 +1,25 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
-import { router, usePage, Link } from '@inertiajs/vue3';
-import AppLayout from '@/Layouts/AppLayout.vue';
-import { Head } from '@inertiajs/vue3';
-import IdolBadge from '@/Components/IdolBadge.vue';
-import SiteModal from '@/Components/Site/SiteModal.vue';
-import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown } from '@element-plus/icons-vue';
-import { useTranslations } from '@/composables/useTranslations';
+import { ref, computed, watch } from "vue";
+import { router, usePage, Link } from "@inertiajs/vue3";
+import AppLayout from "@/Layouts/AppLayout.vue";
+import { Head } from "@inertiajs/vue3";
+import IdolBadge from "@/Components/IdolBadge.vue";
+import SiteModal from "@/Components/Site/SiteModal.vue";
+import {
+    ArrowLeft,
+    ArrowRight,
+    ArrowUp,
+    ArrowDown,
+} from "@element-plus/icons-vue";
+import { useTranslations } from "@/composables/useTranslations";
 
 const { __, transChoice, locale } = useTranslations();
 
 function localName(item) {
-    return locale.value?.current === 'en' && item?.name_en ? item.name_en : (item?.name_ru ?? item?.name ?? '');
+    return locale.value?.current === "en" && item?.name_en
+        ? item.name_en
+        : (item?.name_ru ?? item?.name ?? "");
 }
-
 
 const props = defineProps({
     users: Object,
@@ -24,66 +30,111 @@ const props = defineProps({
 });
 
 const LANGUAGES = [
-    { code: 'ru', label: 'Русский' },
-    { code: 'en', label: 'English' },
-    { code: 'de', label: 'Deutsch' },
-    { code: 'fr', label: 'Français' },
-    { code: 'es', label: 'Español' },
-    { code: 'zh', label: '中文' },
-    { code: 'ja', label: '日本語' },
-    { code: 'ko', label: '한국어' },
-    { code: 'uk', label: 'Українська' },
-    { code: 'pl', label: 'Polski' },
-    { code: 'tr', label: 'Türkçe' },
-    { code: 'ar', label: 'العربية' },
+    { code: "ru", label: "Русский" },
+    { code: "en", label: "English" },
+    { code: "de", label: "Deutsch" },
+    { code: "fr", label: "Français" },
+    { code: "es", label: "Español" },
+    { code: "zh", label: "中文" },
+    { code: "ja", label: "日本語" },
+    { code: "ko", label: "한국어" },
+    { code: "uk", label: "Українська" },
+    { code: "pl", label: "Polski" },
+    { code: "tr", label: "Türkçe" },
+    { code: "ar", label: "العربية" },
 ];
 
 const TIMEZONES = [
-    'Europe/Moscow', 'Europe/Kiev', 'Europe/Minsk', 'Europe/London',
-    'Europe/Berlin', 'Europe/Paris', 'Europe/Amsterdam', 'Europe/Warsaw',
-    'Asia/Almaty', 'Asia/Tashkent', 'Asia/Yekaterinburg', 'Asia/Novosibirsk',
-    'Asia/Krasnoyarsk', 'Asia/Irkutsk', 'Asia/Yakutsk', 'Asia/Vladivostok',
-    'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
-    'Asia/Tokyo', 'Asia/Seoul', 'Asia/Shanghai', 'Asia/Dubai', 'Asia/Kolkata',
+    "Europe/Moscow",
+    "Europe/Kiev",
+    "Europe/Minsk",
+    "Europe/London",
+    "Europe/Berlin",
+    "Europe/Paris",
+    "Europe/Amsterdam",
+    "Europe/Warsaw",
+    "Asia/Almaty",
+    "Asia/Tashkent",
+    "Asia/Yekaterinburg",
+    "Asia/Novosibirsk",
+    "Asia/Krasnoyarsk",
+    "Asia/Irkutsk",
+    "Asia/Yakutsk",
+    "Asia/Vladivostok",
+    "America/New_York",
+    "America/Chicago",
+    "America/Denver",
+    "America/Los_Angeles",
+    "Asia/Tokyo",
+    "Asia/Seoul",
+    "Asia/Shanghai",
+    "Asia/Dubai",
+    "Asia/Kolkata",
 ];
 
 // ── Reactive filters ────────────────────────────────────────
 const f = ref({
-    name: props.filters.name ?? '',
-    gender: props.filters.gender ?? '',
-    age_from: props.filters.age_from ?? '',
-    age_to: props.filters.age_to ?? '',
-    is_idol: props.filters.is_idol ?? '',
-    rating_from: props.filters.rating_from ?? '',
-    rating_to: props.filters.rating_to ?? '',
-    traits: props.filters.traits ? [].concat(props.filters.traits).map(Number) : [],
-    interests: props.filters.interests ? [].concat(props.filters.interests).map(Number) : [],
-    languages: props.filters.languages ? [].concat(props.filters.languages) : [],
-    timezone: props.filters.timezone ?? '',
-    service_categories: props.filters.service_categories ? [].concat(props.filters.service_categories).map(Number) : [],
-    sort_by: props.filters.sort_by ?? 'rating',
-    sort_dir: props.filters.sort_dir ?? 'desc',
+    name: props.filters.name ?? "",
+    gender: props.filters.gender ?? "",
+    age_from: props.filters.age_from ?? "",
+    age_to: props.filters.age_to ?? "",
+    is_idol: props.filters.is_idol ?? "",
+    rating_from: props.filters.rating_from ?? "",
+    rating_to: props.filters.rating_to ?? "",
+    traits: props.filters.traits
+        ? [].concat(props.filters.traits).map(Number)
+        : [],
+    interests: props.filters.interests
+        ? [].concat(props.filters.interests).map(Number)
+        : [],
+    languages: props.filters.languages
+        ? [].concat(props.filters.languages)
+        : [],
+    timezone: props.filters.timezone ?? "",
+    service_categories: props.filters.service_categories
+        ? [].concat(props.filters.service_categories).map(Number)
+        : [],
+    sort_by: props.filters.sort_by ?? "rating",
+    sort_dir: props.filters.sort_dir ?? "desc",
 });
 
 // Snapshot of last applied state (excluding sort_*)
 const appliedFilters = ref({ ...f.value });
 
-const DIRTY_KEYS = ['name', 'gender', 'age_from', 'age_to', 'is_idol',
-    'rating_from', 'rating_to', 'traits', 'interests', 'languages',
-    'timezone', 'service_categories'];
+const DIRTY_KEYS = [
+    "name",
+    "gender",
+    "age_from",
+    "age_to",
+    "is_idol",
+    "rating_from",
+    "rating_to",
+    "traits",
+    "interests",
+    "languages",
+    "timezone",
+    "service_categories",
+];
 
 const isDirty = computed(() =>
-    DIRTY_KEYS.some(k => JSON.stringify(f.value[k]) !== JSON.stringify(appliedFilters.value[k]))
+    DIRTY_KEYS.some(
+        (k) =>
+            JSON.stringify(f.value[k]) !==
+            JSON.stringify(appliedFilters.value[k]),
+    ),
 );
 
 function apply() {
     const params = {};
     Object.entries(f.value).forEach(([k, v]) => {
-        if (v !== '' && v !== null && !(Array.isArray(v) && v.length === 0)) {
+        if (v !== "" && v !== null && !(Array.isArray(v) && v.length === 0)) {
             params[k] = v;
         }
     });
-    router.get(route('users.search'), params, { preserveState: true, replace: true });
+    router.get(route("users.search"), params, {
+        preserveState: true,
+        replace: true,
+    });
 }
 
 function applyFilters() {
@@ -97,14 +148,27 @@ watch(() => f.value.sort_dir, apply);
 
 function resetFilters() {
     f.value = {
-        name: '', gender: '', age_from: '', age_to: '',
-        is_idol: '', rating_from: '', rating_to: '',
-        traits: [], interests: [], languages: [],
-        timezone: '', service_categories: [],
-        sort_by: 'rating', sort_dir: 'desc',
+        name: "",
+        gender: "",
+        age_from: "",
+        age_to: "",
+        is_idol: "",
+        rating_from: "",
+        rating_to: "",
+        traits: [],
+        interests: [],
+        languages: [],
+        timezone: "",
+        service_categories: [],
+        sort_by: "rating",
+        sort_dir: "desc",
     };
     appliedFilters.value = { ...f.value };
-    router.get(route('users.search'), {}, { preserveState: false, replace: true });
+    router.get(
+        route("users.search"),
+        {},
+        { preserveState: false, replace: true },
+    );
 }
 
 const mobileFiltersOpen = ref(false);
@@ -115,107 +179,187 @@ function applyAndClose() {
 }
 
 function toggleSortDir() {
-    f.value.sort_dir = f.value.sort_dir === 'desc' ? 'asc' : 'desc';
+    f.value.sort_dir = f.value.sort_dir === "desc" ? "asc" : "desc";
 }
 
 // ── Collapsible sections ─────────────────────────────────────
-const openSections = ref(new Set());
+const openSection = ref(null);
 function toggleSection(key) {
-    if (openSections.value.has(key)) openSections.value.delete(key);
-    else openSections.value.add(key);
-    openSections.value = new Set(openSections.value);
+    openSection.value = openSection.value === key ? null : key;
+}
+
+function toggleFilterId(key, id) {
+    const idx = f.value[key].indexOf(id);
+    if (idx === -1) f.value[key].push(id);
+    else f.value[key].splice(idx, 1);
 }
 
 // Per-section search strings
 const sectionSearch = ref({
-    traits: '',
-    languages: '',
-    service_categories: '',
+    traits: "",
+    languages: "",
+    service_categories: "",
 });
 
 const filteredTraits = computed(() =>
-    props.traits.filter(t => localName(t).toLowerCase().includes(sectionSearch.value.traits.toLowerCase()))
+    props.traits.filter((t) =>
+        localName(t)
+            .toLowerCase()
+            .includes(sectionSearch.value.traits.toLowerCase()),
+    ),
 );
 
 const filteredLanguages = computed(() =>
-    LANGUAGES.filter(l => l.label.toLowerCase().includes(sectionSearch.value.languages.toLowerCase()))
+    LANGUAGES.filter((l) =>
+        l.label
+            .toLowerCase()
+            .includes(sectionSearch.value.languages.toLowerCase()),
+    ),
 );
 
 const filteredServiceCategories = computed(() =>
-    props.serviceCategories.filter(c => localName(c).toLowerCase().includes((sectionSearch.value.service_categories || '').toLowerCase()))
+    props.serviceCategories.filter((c) =>
+        localName(c)
+            .toLowerCase()
+            .includes(
+                (sectionSearch.value.service_categories || "").toLowerCase(),
+            ),
+    ),
 );
 
 function filteredInterests(cat) {
-    const q = (sectionSearch.value[`interest_cat_${cat.id}`] || '').toLowerCase();
-    return cat.interests.filter(i => localName(i).toLowerCase().includes(q));
+    const q = (
+        sectionSearch.value[`interest_cat_${cat.id}`] || ""
+    ).toLowerCase();
+    return cat.interests.filter((i) => localName(i).toLowerCase().includes(q));
 }
 
 // ── Active chips ─────────────────────────────────────────────
 const activeChips = computed(() => {
     const chips = [];
     if (f.value.name)
-        chips.push({ label: __('search.active.name', { value: f.value.name }), key: 'name' });
+        chips.push({
+            label: __("search.active.name", { value: f.value.name }),
+            key: "name",
+        });
     if (f.value.gender)
-        chips.push({ label: __('search.active.gender', { value: f.value.gender === 'male' ? __('gender.male') : __('gender.female') }), key: 'gender' });
+        chips.push({
+            label: __("search.active.gender", {
+                value:
+                    f.value.gender === "male"
+                        ? __("gender.male")
+                        : __("gender.female"),
+            }),
+            key: "gender",
+        });
     if (f.value.age_from || f.value.age_to)
-        chips.push({ label: __('search.active.age', { from: f.value.age_from || '…', to: f.value.age_to || '…' }), key: 'age' });
-    if (f.value.is_idol !== '')
-        chips.push({ label: __('search.active.idol', { value: f.value.is_idol === '1' ? __('common.yes') : __('common.no') }), key: 'is_idol' });
+        chips.push({
+            label: __("search.active.age", {
+                from: f.value.age_from || "…",
+                to: f.value.age_to || "…",
+            }),
+            key: "age",
+        });
+    if (f.value.is_idol !== "")
+        chips.push({
+            label: __("search.active.idol", {
+                value:
+                    f.value.is_idol === "1"
+                        ? __("common.yes")
+                        : __("common.no"),
+            }),
+            key: "is_idol",
+        });
     if (f.value.rating_from || f.value.rating_to)
-        chips.push({ label: __('search.active.rating', { from: f.value.rating_from || '…', to: f.value.rating_to || '…' }), key: 'rating' });
-    f.value.traits.forEach(id => {
-        const t = props.traits.find(x => x.id === id);
-        if (t) chips.push({ label: localName(t), key: 'traits', value: id });
+        chips.push({
+            label: __("search.active.rating", {
+                from: f.value.rating_from || "…",
+                to: f.value.rating_to || "…",
+            }),
+            key: "rating",
+        });
+    f.value.traits.forEach((id) => {
+        const t = props.traits.find((x) => x.id === id);
+        if (t) chips.push({ label: localName(t), key: "traits", value: id });
     });
-    f.value.interests.forEach(id => {
+    f.value.interests.forEach((id) => {
         for (const cat of props.interestCategories) {
-            const i = cat.interests.find(x => x.id === id);
-            if (i) { chips.push({ label: localName(i), key: 'interests', value: id }); break; }
+            const i = cat.interests.find((x) => x.id === id);
+            if (i) {
+                chips.push({
+                    label: localName(i),
+                    key: "interests",
+                    value: id,
+                });
+                break;
+            }
         }
     });
-    f.value.languages.forEach(code => {
-        const l = LANGUAGES.find(x => x.code === code);
-        if (l) chips.push({ label: l.label, key: 'languages', value: code });
+    f.value.languages.forEach((code) => {
+        const l = LANGUAGES.find((x) => x.code === code);
+        if (l) chips.push({ label: l.label, key: "languages", value: code });
     });
     if (f.value.timezone)
-        chips.push({ label: f.value.timezone, key: 'timezone' });
-    f.value.service_categories.forEach(id => {
-        const c = props.serviceCategories.find(x => x.id === id);
-        if (c) chips.push({ label: localName(c), key: 'service_categories', value: id });
+        chips.push({ label: f.value.timezone, key: "timezone" });
+    f.value.service_categories.forEach((id) => {
+        const c = props.serviceCategories.find((x) => x.id === id);
+        if (c)
+            chips.push({
+                label: localName(c),
+                key: "service_categories",
+                value: id,
+            });
     });
     return chips;
 });
 
 function resetChip(chip) {
-    if (chip.key === 'name') f.value.name = '';
-    else if (chip.key === 'gender') f.value.gender = '';
-    else if (chip.key === 'age') { f.value.age_from = ''; f.value.age_to = ''; }
-    else if (chip.key === 'is_idol') f.value.is_idol = '';
-    else if (chip.key === 'rating') { f.value.rating_from = ''; f.value.rating_to = ''; }
-    else if (chip.key === 'timezone') f.value.timezone = '';
-    else if (['traits', 'interests', 'languages', 'service_categories'].includes(chip.key))
-        f.value[chip.key] = f.value[chip.key].filter(v => v !== chip.value);
+    if (chip.key === "name") f.value.name = "";
+    else if (chip.key === "gender") f.value.gender = "";
+    else if (chip.key === "age") {
+        f.value.age_from = "";
+        f.value.age_to = "";
+    } else if (chip.key === "is_idol") f.value.is_idol = "";
+    else if (chip.key === "rating") {
+        f.value.rating_from = "";
+        f.value.rating_to = "";
+    } else if (chip.key === "timezone") f.value.timezone = "";
+    else if (
+        ["traits", "interests", "languages", "service_categories"].includes(
+            chip.key,
+        )
+    )
+        f.value[chip.key] = f.value[chip.key].filter((v) => v !== chip.value);
 }
 
 function interestCountForCat(cat) {
-    return cat.interests.filter(i => f.value.interests.includes(i.id)).length;
+    return cat.interests.filter((i) => f.value.interests.includes(i.id)).length;
 }
 
 // ── Windowed pagination ──────────────────────────────────────
 const visiblePageLinks = computed(() => {
     const pages = props.users.links.slice(1, -1);
-    if (pages.length <= 7) return pages.map(p => ({ ...p, isEllipsis: false }));
+    if (pages.length <= 7)
+        return pages.map((p) => ({ ...p, isEllipsis: false }));
 
-    const currentIdx = pages.findIndex(p => p.active);
+    const currentIdx = pages.findIndex((p) => p.active);
     const delta = 1;
     const result = [];
 
     pages.forEach((page, i) => {
-        const keep = i === 0 || i === pages.length - 1 || Math.abs(i - currentIdx) <= delta;
+        const keep =
+            i === 0 ||
+            i === pages.length - 1 ||
+            Math.abs(i - currentIdx) <= delta;
         if (keep) {
             result.push({ ...page, isEllipsis: false });
         } else if (result.length && !result[result.length - 1].isEllipsis) {
-            result.push({ label: '…', url: null, active: false, isEllipsis: true });
+            result.push({
+                label: "…",
+                url: null,
+                active: false,
+                isEllipsis: true,
+            });
         }
     });
 
@@ -230,24 +374,22 @@ function calcAge(birthDate) {
 }
 
 function genderLabel(g) {
-    if (g === 'male') return __('gender.abbr.male');
-    if (g === 'female') return __('gender.abbr.female');
-    return '';
+    if (g === "male") return __("gender.abbr.male");
+    if (g === "female") return __("gender.abbr.female");
+    return "";
 }
 
 function avatarUrl(user) {
     if (!user.avatar_path) return null;
-    return '/storage/' + user.avatar_path;
+    return "/storage/" + user.avatar_path;
 }
 
 function initial(name) {
-    return name?.charAt(0).toUpperCase() ?? '?';
+    return name?.charAt(0).toUpperCase() ?? "?";
 }
-
 </script>
 
 <template>
-
     <Head :title="__('search.title')" />
     <AppLayout>
         <div class="search-page">
@@ -256,22 +398,65 @@ function initial(name) {
                 <!-- Sort bar -->
                 <div class="sort-bar">
                     <div class="sort-controls">
-                        <span class="sort-label">{{ __('search.sort_by') }}</span>
-                        <button :class="['sort-btn', { active: f.sort_by === 'rating' }]"
-                            @click="f.sort_by = 'rating'">{{ __('search.sort.rating') }}</button>
-                        <button :class="['sort-btn', { active: f.sort_by === 'created_at' }]"
-                            @click="f.sort_by = 'created_at'">{{ __('search.sort.date') }}</button>
-                        <button @click="toggleSortDir" class="sort-dir-btn"
-                            :title="f.sort_dir === 'desc' ? __('search.sort.desc') : __('search.sort.asc')">
-                            <el-icon><ArrowDown v-if="f.sort_dir === 'desc'" /><ArrowUp v-else /></el-icon>
+                        <span class="sort-label">{{
+                            __("search.sort_by")
+                        }}</span>
+                        <button
+                            :class="[
+                                'sort-btn',
+                                { active: f.sort_by === 'rating' },
+                            ]"
+                            @click="f.sort_by = 'rating'"
+                        >
+                            {{ __("search.sort.rating") }}
+                        </button>
+                        <button
+                            :class="[
+                                'sort-btn',
+                                { active: f.sort_by === 'created_at' },
+                            ]"
+                            @click="f.sort_by = 'created_at'"
+                        >
+                            {{ __("search.sort.date") }}
+                        </button>
+                        <button
+                            @click="toggleSortDir"
+                            class="sort-dir-btn"
+                            :title="
+                                f.sort_dir === 'desc'
+                                    ? __('search.sort.desc')
+                                    : __('search.sort.asc')
+                            "
+                        >
+                            <el-icon
+                                ><ArrowDown
+                                    v-if="f.sort_dir === 'desc'" /><ArrowUp
+                                    v-else
+                            /></el-icon>
                         </button>
                     </div>
-                    <div class="found-count">{{ __('search.found', { count: users.total }) }}</div>
-                    <button class="mobile-filters-toggle" @click="mobileFiltersOpen = !mobileFiltersOpen">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/>
+                    <div class="found-count">
+                        {{ __("search.found", { count: users.total }) }}
+                    </div>
+                    <button
+                        class="mobile-filters-toggle"
+                        @click="mobileFiltersOpen = !mobileFiltersOpen"
+                    >
+                        <svg
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <line x1="4" y1="6" x2="20" y2="6" />
+                            <line x1="8" y1="12" x2="16" y2="12" />
+                            <line x1="10" y1="18" x2="14" y2="18" />
                         </svg>
-                        {{ __('search.filters.title') }}
+                        {{ __("search.filters.title") }}
                         <span v-if="isDirty" class="mobile-filters-dot"></span>
                     </button>
                 </div>
@@ -279,39 +464,87 @@ function initial(name) {
                 <!-- Cards -->
                 <div class="results-body">
                     <div v-if="users.data.length > 0" class="user-grid">
-                        <Link v-for="user in users.data" :key="user.id"
-                            :href="route('profile.show', { user: user.id }) + '#about'" class="user-card">
-                            <div class="card-avatar">
-                                <img v-if="avatarUrl(user)" :src="avatarUrl(user)" :alt="__('common.avatar')"
-                                    class="card-avatar__img" />
-                                <span v-else class="card-avatar__initials">{{ initial(user.name) }}</span>
+                        <Link
+                            v-for="user in users.data"
+                            :key="user.id"
+                            :href="
+                                route('profile.show', { user: user.id }) +
+                                '#about'
+                            "
+                            class="user-card"
+                        >
+                            <div class="card-avatar-wrap">
+                                <div class="card-avatar">
+                                    <img
+                                        v-if="avatarUrl(user)"
+                                        :src="avatarUrl(user)"
+                                        :alt="__('common.avatar')"
+                                        class="card-avatar__img"
+                                    />
+                                    <span
+                                        v-else
+                                        class="card-avatar__initials"
+                                        >{{ initial(user.name) }}</span
+                                    >
+                                </div>
+                                <div class="card-avatar-badges">
+                                    <IdolBadge
+                                        v-if="user.is_idol"
+                                        class="card-idol-badge"
+                                    />
+                                    <span v-if="user.rating" class="card-rating"
+                                        >★ {{ user.rating }}</span
+                                    >
+                                </div>
                             </div>
-                            <span v-if="user.rating" class="card-rating">★ {{ user.rating }}</span>
                             <div class="card-body">
                                 <div class="card-name-row">
                                     <div class="card-name">{{ user.name }}</div>
                                 </div>
                                 <div class="card-badges">
-                                    <IdolBadge v-if="user.is_idol" />
-                                    <span v-if="user.gender" class="card-badge"
-                                        :class="user.gender === 'female' ? 'card-badge--female' : 'card-badge--male'">{{
-                                            user.gender === 'female' ? '\u2640\uFE0F' : '\u2642\uFE0F' }}</span>
-                                    <span v-if="calcAge(user.birth_date)" class="card-badge card-badge--age">{{
-                                        calcAge(user.birth_date) }} {{ transChoice('search.age.years', calcAge(user.birth_date)) }}</span>
+                                    <span
+                                        v-if="user.gender"
+                                        class="card-badge"
+                                        :class="
+                                            user.gender === 'female'
+                                                ? 'card-badge--female'
+                                                : 'card-badge--male'
+                                        "
+                                        >{{
+                                            user.gender === "female"
+                                                ? "\u2640\uFE0F"
+                                                : "\u2642\uFE0F"
+                                        }}</span
+                                    >
+                                    <span
+                                        v-if="calcAge(user.birth_date)"
+                                        class="card-badge card-badge--age"
+                                        >{{ calcAge(user.birth_date) }}
+                                        {{
+                                            transChoice(
+                                                "search.age.years",
+                                                calcAge(user.birth_date),
+                                            )
+                                        }}</span
+                                    >
                                 </div>
                             </div>
                         </Link>
                     </div>
 
                     <div v-else class="no-results">
-                        <p>{{ __('search.empty') }}</p>
+                        <p>{{ __("search.empty") }}</p>
                     </div>
                 </div>
 
                 <!-- Pagination -->
                 <div v-if="users.last_page > 1" class="pagination">
                     <!-- Prev -->
-                    <Link v-if="users.links[0]?.url" :href="users.links[0].url" class="page-btn">
+                    <Link
+                        v-if="users.links[0]?.url"
+                        :href="users.links[0].url"
+                        class="page-btn"
+                    >
                         <el-icon><ArrowLeft /></el-icon>
                     </Link>
                     <span v-else class="page-btn page-btn--disabled">
@@ -320,13 +553,34 @@ function initial(name) {
 
                     <!-- Page numbers -->
                     <template v-for="(link, i) in visiblePageLinks" :key="i">
-                        <span v-if="link.isEllipsis" class="page-ellipsis">…</span>
-                        <Link v-else-if="link.url && !link.active" :href="link.url" class="page-btn">{{ link.label }}</Link>
-                        <span v-else :class="['page-btn', { 'page-btn--active': link.active, 'page-btn--disabled': !link.url }]">{{ link.label }}</span>
+                        <span v-if="link.isEllipsis" class="page-ellipsis"
+                            >…</span
+                        >
+                        <Link
+                            v-else-if="link.url && !link.active"
+                            :href="link.url"
+                            class="page-btn"
+                            >{{ link.label }}</Link
+                        >
+                        <span
+                            v-else
+                            :class="[
+                                'page-btn',
+                                {
+                                    'page-btn--active': link.active,
+                                    'page-btn--disabled': !link.url,
+                                },
+                            ]"
+                            >{{ link.label }}</span
+                        >
                     </template>
 
                     <!-- Next -->
-                    <Link v-if="users.links[users.links.length - 1]?.url" :href="users.links[users.links.length - 1].url" class="page-btn">
+                    <Link
+                        v-if="users.links[users.links.length - 1]?.url"
+                        :href="users.links[users.links.length - 1].url"
+                        class="page-btn"
+                    >
                         <el-icon><ArrowRight /></el-icon>
                     </Link>
                     <span v-else class="page-btn page-btn--disabled">
@@ -336,192 +590,470 @@ function initial(name) {
             </div>
 
             <!-- Sidebar (right) -->
-            <aside class="search-sidebar" :class="{ 'search-sidebar--mobile-open': mobileFiltersOpen }">
+            <aside
+                class="search-sidebar"
+                :class="{ 'search-sidebar--mobile-open': mobileFiltersOpen }"
+            >
                 <div class="sidebar-inner">
-                    <h2 class="sidebar-title">{{ __('search.filters.title') }}</h2>
+                    <h2 class="sidebar-title">
+                        {{ __("search.filters.title") }}
+                    </h2>
 
                     <!-- Active chips -->
                     <Transition name="chips-fade">
                         <div v-if="activeChips.length" class="active-chips">
-                            <span v-for="chip in activeChips" :key="chip.key + (chip.value ?? '')" class="active-chip">
+                            <span
+                                v-for="chip in activeChips"
+                                :key="chip.key + (chip.value ?? '')"
+                                class="active-chip"
+                            >
                                 {{ chip.label }}
-                                <button class="active-chip__remove" @click="resetChip(chip)">×</button>
+                                <button
+                                    class="active-chip__remove"
+                                    @click="resetChip(chip)"
+                                >
+                                    ×
+                                </button>
                             </span>
                         </div>
                     </Transition>
 
                     <!-- Имя -->
                     <div class="filter-group">
-                        <label class="filter-label">{{ __('auth.name') }}</label>
-                        <input v-model="f.name" type="text" class="filter-input" :placeholder="__('search.name')" />
+                        <label class="filter-label">{{
+                            __("auth.name")
+                        }}</label>
+                        <input
+                            v-model="f.name"
+                            type="text"
+                            class="filter-input"
+                            :placeholder="__('search.name')"
+                        />
                     </div>
 
                     <!-- Пол -->
                     <div class="filter-group">
-                        <label class="filter-label">{{ __('auth.gender') }}</label>
+                        <label class="filter-label">{{
+                            __("auth.gender")
+                        }}</label>
                         <div class="btn-group">
-                            <button :class="['btn-toggle', { active: f.gender === '' }]"
-                                @click="f.gender = ''">{{ __('gender.any') }}</button>
-                            <button :class="['btn-toggle', { active: f.gender === 'male' }]"
-                                @click="f.gender = 'male'">{{ __('gender.male') }}</button>
-                            <button :class="['btn-toggle', { active: f.gender === 'female' }]"
-                                @click="f.gender = 'female'">{{ __('gender.female') }}</button>
+                            <button
+                                :class="[
+                                    'btn-toggle',
+                                    { active: f.gender === '' },
+                                ]"
+                                @click="f.gender = ''"
+                            >
+                                {{ __("gender.any") }}
+                            </button>
+                            <button
+                                :class="[
+                                    'btn-toggle',
+                                    { active: f.gender === 'male' },
+                                ]"
+                                @click="f.gender = 'male'"
+                            >
+                                {{ __("gender.male") }}
+                            </button>
+                            <button
+                                :class="[
+                                    'btn-toggle',
+                                    { active: f.gender === 'female' },
+                                ]"
+                                @click="f.gender = 'female'"
+                            >
+                                {{ __("gender.female") }}
+                            </button>
                         </div>
                     </div>
 
                     <!-- Возраст -->
                     <div class="filter-group">
-                        <label class="filter-label">{{ __('search.filters.age') }}</label>
+                        <label class="filter-label">{{
+                            __("search.filters.age")
+                        }}</label>
                         <div class="range-row">
-                            <input v-model="f.age_from" type="number" min="18" max="120"
-                                class="filter-input filter-input--sm" :placeholder="__('search.price.from')" />
+                            <input
+                                v-model="f.age_from"
+                                type="number"
+                                min="18"
+                                max="120"
+                                class="filter-input filter-input--sm"
+                                :placeholder="__('search.price.from')"
+                            />
                             <span class="range-sep">—</span>
-                            <input v-model="f.age_to" type="number" min="18" max="120"
-                                class="filter-input filter-input--sm" :placeholder="__('search.price.to')" />
+                            <input
+                                v-model="f.age_to"
+                                type="number"
+                                min="18"
+                                max="120"
+                                class="filter-input filter-input--sm"
+                                :placeholder="__('search.price.to')"
+                            />
                         </div>
                     </div>
 
                     <!-- Айдол -->
                     <div class="filter-group">
-                        <label class="filter-label">{{ __('search.filters.idol') }}</label>
+                        <label class="filter-label">{{
+                            __("search.filters.idol")
+                        }}</label>
                         <div class="btn-group">
-                            <button :class="['btn-toggle', { active: f.is_idol === '' }]"
-                                @click="f.is_idol = ''">{{ __('common.any') }}</button>
-                            <button :class="['btn-toggle', { active: f.is_idol === '1' }]"
-                                @click="f.is_idol = '1'">{{ __('common.yes') }}</button>
-                            <button :class="['btn-toggle', { active: f.is_idol === '0' }]"
-                                @click="f.is_idol = '0'">{{ __('common.no') }}</button>
+                            <button
+                                :class="[
+                                    'btn-toggle',
+                                    { active: f.is_idol === '' },
+                                ]"
+                                @click="f.is_idol = ''"
+                            >
+                                {{ __("common.any") }}
+                            </button>
+                            <button
+                                :class="[
+                                    'btn-toggle',
+                                    { active: f.is_idol === '1' },
+                                ]"
+                                @click="f.is_idol = '1'"
+                            >
+                                {{ __("common.yes") }}
+                            </button>
+                            <button
+                                :class="[
+                                    'btn-toggle',
+                                    { active: f.is_idol === '0' },
+                                ]"
+                                @click="f.is_idol = '0'"
+                            >
+                                {{ __("common.no") }}
+                            </button>
                         </div>
                     </div>
 
                     <!-- Рейтинг -->
                     <div class="filter-group">
-                        <label class="filter-label">{{ __('search.filters.rating') }}</label>
+                        <label class="filter-label">{{
+                            __("search.filters.rating")
+                        }}</label>
                         <div class="range-row">
-                            <input v-model="f.rating_from" type="number" min="0" max="100"
-                                class="filter-input filter-input--sm" :placeholder="__('search.price.from')" />
+                            <input
+                                v-model="f.rating_from"
+                                type="number"
+                                min="0"
+                                max="100"
+                                class="filter-input filter-input--sm"
+                                :placeholder="__('search.price.from')"
+                            />
                             <span class="range-sep">—</span>
-                            <input v-model="f.rating_to" type="number" min="0" max="100"
-                                class="filter-input filter-input--sm" :placeholder="__('search.price.to')" />
+                            <input
+                                v-model="f.rating_to"
+                                type="number"
+                                min="0"
+                                max="100"
+                                class="filter-input filter-input--sm"
+                                :placeholder="__('search.price.to')"
+                            />
                         </div>
                     </div>
 
                     <!-- Divider -->
-                    <div class="filter-divider"><span>{{ __('search.filters.advanced') }}</span></div>
+                    <div class="filter-divider">
+                        <span>{{ __("search.filters.advanced") }}</span>
+                    </div>
 
                     <!-- Черты характера -->
                     <div class="filter-group">
-                        <div class="filter-section-header" @click="toggleSection('traits')">
-                            <label class="filter-label">{{ __('search.filters.traits') }}</label>
-                            <span v-if="!openSections.has('traits') && f.traits.length" class="section-badge">{{
-                                f.traits.length
-                                }}</span>
-                            <svg class="section-chevron" :class="{ open: openSections.has('traits') }"
-                                viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M2.5 5L7 9.5L11.5 5" stroke="currentColor" stroke-width="1.5"
-                                    stroke-linecap="round" stroke-linejoin="round" />
-                            </svg>
+                        <div
+                            class="filter-section-header"
+                            @click="toggleSection('traits')"
+                        >
+                            <label class="filter-label">{{
+                                __("search.filters.traits")
+                            }}</label>
+                            <div class="header-indicators">
+                                <span v-if="f.traits.length" class="active-dot"></span>
+                                <span
+                                    v-if="openSection !== 'traits' && f.traits.length"
+                                    class="section-badge"
+                                    >{{ f.traits.length }}</span
+                                >
+                                <svg
+                                    class="section-chevron"
+                                    :class="{ open: openSection === 'traits' }"
+                                    viewBox="0 0 14 14"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                >
+                                    <path
+                                        d="M2.5 5L7 9.5L11.5 5"
+                                        stroke="currentColor"
+                                        stroke-width="1.5"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    />
+                                </svg>
+                            </div>
                         </div>
-                        <input v-if="openSections.has('traits')" class="section-search" v-model="sectionSearch.traits"
-                            :placeholder="__('search.filter')" />
-                        <div v-if="openSections.has('traits')" class="checkbox-list">
-                            <label v-for="trait in filteredTraits" :key="trait.id" class="checkbox-item">
-                                <input type="checkbox" :value="trait.id" v-model="f.traits" class="checkbox-input" />
-                                <span class="checkbox-label">{{ localName(trait) }}</span>
-                            </label>
-                        </div>
+                        <Transition name="filter-section">
+                            <div v-if="openSection === 'traits'" class="section-content">
+                                <input
+                                    class="section-search"
+                                    v-model="sectionSearch.traits"
+                                    :placeholder="__('search.filter')"
+                                />
+                                <div class="checkbox-list">
+                                    <button
+                                        v-for="trait in filteredTraits"
+                                        :key="trait.id"
+                                        class="filter-toggle-btn"
+                                        :class="{ active: f.traits.includes(trait.id) }"
+                                        @click="toggleFilterId('traits', trait.id)"
+                                    >
+                                        {{ localName(trait) }}
+                                    </button>
+                                </div>
+                            </div>
+                        </Transition>
                     </div>
 
                     <!-- Интересы -->
                     <div class="filter-group">
-                        <label class="filter-label">{{ __('search.filters.interests') }}</label>
-                        <div v-for="cat in interestCategories" :key="cat.id" class="interest-cat">
-                            <div class="filter-section-header" @click="toggleSection(`interest_cat_${cat.id}`)">
-                                <div class="interest-cat__name">{{ localName(cat) }}</div>
-                                <span v-if="!openSections.has(`interest_cat_${cat.id}`) && interestCountForCat(cat)"
-                                    class="section-badge">{{ interestCountForCat(cat) }}</span>
-                                <svg class="section-chevron"
-                                    :class="{ open: openSections.has(`interest_cat_${cat.id}`) }" viewBox="0 0 14 14"
-                                    fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M2.5 5L7 9.5L11.5 5" stroke="currentColor" stroke-width="1.5"
-                                        stroke-linecap="round" stroke-linejoin="round" />
-                                </svg>
+                        <label class="filter-label">{{
+                            __("search.filters.interests")
+                        }}</label>
+                        <div
+                            v-for="cat in interestCategories"
+                            :key="cat.id"
+                            class="interest-cat"
+                        >
+                            <div
+                                class="filter-section-header"
+                                @click="toggleSection(`interest_cat_${cat.id}`)"
+                            >
+                                <div class="interest-cat__name">
+                                    {{ localName(cat) }}
+                                </div>
+                                <div class="header-indicators">
+                                    <span v-if="interestCountForCat(cat)" class="active-dot"></span>
+                                    <span
+                                        v-if="
+                                            openSection !== `interest_cat_${cat.id}` &&
+                                            interestCountForCat(cat)
+                                        "
+                                        class="section-badge"
+                                        >{{ interestCountForCat(cat) }}</span
+                                    >
+                                    <svg
+                                        class="section-chevron"
+                                        :class="{
+                                            open: openSection === `interest_cat_${cat.id}`,
+                                        }"
+                                        viewBox="0 0 14 14"
+                                        fill="none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                        <path
+                                            d="M2.5 5L7 9.5L11.5 5"
+                                            stroke="currentColor"
+                                            stroke-width="1.5"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        />
+                                    </svg>
+                                </div>
                             </div>
-                            <input v-if="openSections.has(`interest_cat_${cat.id}`)" class="section-search"
-                                v-model="sectionSearch[`interest_cat_${cat.id}`]" :placeholder="__('search.filter')" />
-                            <div v-if="openSections.has(`interest_cat_${cat.id}`)" class="checkbox-list">
-                                <label v-for="interest in filteredInterests(cat)" :key="interest.id"
-                                    class="checkbox-item">
-                                    <input type="checkbox" :value="interest.id" v-model="f.interests"
-                                        class="checkbox-input" />
-                                    <span class="checkbox-label">{{ localName(interest) }}</span>
-                                </label>
-                            </div>
+                            <Transition name="filter-section">
+                                <div v-if="openSection === `interest_cat_${cat.id}`" class="section-content">
+                                    <input
+                                        class="section-search"
+                                        v-model="
+                                            sectionSearch[`interest_cat_${cat.id}`]
+                                        "
+                                        :placeholder="__('search.filter')"
+                                    />
+                                    <div class="checkbox-list">
+                                        <button
+                                            v-for="interest in filteredInterests(cat)"
+                                            :key="interest.id"
+                                            class="filter-toggle-btn"
+                                            :class="{
+                                                active: f.interests.includes(
+                                                    interest.id,
+                                                ),
+                                            }"
+                                            @click="
+                                                toggleFilterId('interests', interest.id)
+                                            "
+                                        >
+                                            {{ localName(interest) }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </Transition>
                         </div>
                     </div>
 
                     <!-- Языки -->
                     <div class="filter-group">
-                        <div class="filter-section-header" @click="toggleSection('languages')">
-                            <label class="filter-label">{{ __('search.filters.languages') }}</label>
-                            <span v-if="!openSections.has('languages') && f.languages.length" class="section-badge">{{
-                                f.languages.length }}</span>
-                            <svg class="section-chevron" :class="{ open: openSections.has('languages') }"
-                                viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M2.5 5L7 9.5L11.5 5" stroke="currentColor" stroke-width="1.5"
-                                    stroke-linecap="round" stroke-linejoin="round" />
-                            </svg>
+                        <div
+                            class="filter-section-header"
+                            @click="toggleSection('languages')"
+                        >
+                            <label class="filter-label">{{
+                                __("search.filters.languages")
+                            }}</label>
+                            <div class="header-indicators">
+                                <span v-if="f.languages.length" class="active-dot"></span>
+                                <span
+                                    v-if="
+                                        openSection !== 'languages' &&
+                                        f.languages.length
+                                    "
+                                    class="section-badge"
+                                    >{{ f.languages.length }}</span
+                                >
+                                <svg
+                                    class="section-chevron"
+                                    :class="{ open: openSection === 'languages' }"
+                                    viewBox="0 0 14 14"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                >
+                                    <path
+                                        d="M2.5 5L7 9.5L11.5 5"
+                                        stroke="currentColor"
+                                        stroke-width="1.5"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    />
+                                </svg>
+                            </div>
                         </div>
-                        <input v-if="openSections.has('languages')" class="section-search"
-                            v-model="sectionSearch.languages" :placeholder="__('search.filter')" />
-                        <div v-if="openSections.has('languages')" class="checkbox-list">
-                            <label v-for="lang in filteredLanguages" :key="lang.code" class="checkbox-item">
-                                <input type="checkbox" :value="lang.code" v-model="f.languages"
-                                    class="checkbox-input" />
-                                <span class="checkbox-label">{{ lang.label }}</span>
-                            </label>
-                        </div>
+                        <Transition name="filter-section">
+                            <div v-if="openSection === 'languages'" class="section-content">
+                                <input
+                                    class="section-search"
+                                    v-model="sectionSearch.languages"
+                                    :placeholder="__('search.filter')"
+                                />
+                                <div class="checkbox-list">
+                                    <button
+                                        v-for="lang in filteredLanguages"
+                                        :key="lang.code"
+                                        class="filter-toggle-btn"
+                                        :class="{
+                                            active: f.languages.includes(lang.code),
+                                        }"
+                                        @click="toggleFilterId('languages', lang.code)"
+                                    >
+                                        {{ lang.label }}
+                                    </button>
+                                </div>
+                            </div>
+                        </Transition>
                     </div>
 
                     <!-- Часовой пояс -->
                     <div class="filter-group">
-                        <label class="filter-label">{{ __('search.filters.timezone') }}</label>
-                        <select v-model="f.timezone" class="filter-input filter-select">
-                            <option value="">{{ __('search.filters.any_tz') }}</option>
-                            <option v-for="tz in TIMEZONES" :key="tz" :value="tz">{{ tz }}</option>
+                        <label class="filter-label">{{
+                            __("search.filters.timezone")
+                        }}</label>
+                        <select
+                            v-model="f.timezone"
+                            class="filter-input filter-select"
+                        >
+                            <option value="">
+                                {{ __("search.filters.any_tz") }}
+                            </option>
+                            <option
+                                v-for="tz in TIMEZONES"
+                                :key="tz"
+                                :value="tz"
+                            >
+                                {{ tz }}
+                            </option>
                         </select>
                     </div>
 
                     <!-- Категории услуг -->
                     <div class="filter-group">
-                        <div class="filter-section-header" @click="toggleSection('service_categories')">
-                            <label class="filter-label">{{ __('search.filters.services') }}</label>
-                            <span v-if="!openSections.has('service_categories') && f.service_categories.length"
-                                class="section-badge">{{ f.service_categories.length }}</span>
-                            <svg class="section-chevron" :class="{ open: openSections.has('service_categories') }"
-                                viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M2.5 5L7 9.5L11.5 5" stroke="currentColor" stroke-width="1.5"
-                                    stroke-linecap="round" stroke-linejoin="round" />
-                            </svg>
+                        <div
+                            class="filter-section-header"
+                            @click="toggleSection('service_categories')"
+                        >
+                            <label class="filter-label">{{
+                                __("search.filters.services")
+                            }}</label>
+                            <div class="header-indicators">
+                                <span v-if="f.service_categories.length" class="active-dot"></span>
+                                <span
+                                    v-if="
+                                        openSection !== 'service_categories' &&
+                                        f.service_categories.length
+                                    "
+                                    class="section-badge"
+                                    >{{ f.service_categories.length }}</span
+                                >
+                                <svg
+                                    class="section-chevron"
+                                    :class="{
+                                        open: openSection === 'service_categories',
+                                    }"
+                                    viewBox="0 0 14 14"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                >
+                                    <path
+                                        d="M2.5 5L7 9.5L11.5 5"
+                                        stroke="currentColor"
+                                        stroke-width="1.5"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    />
+                                </svg>
+                            </div>
                         </div>
-                        <input v-if="openSections.has('service_categories')" class="section-search"
-                            v-model="sectionSearch.service_categories" :placeholder="__('search.filter')" />
-                        <div v-if="openSections.has('service_categories')" class="checkbox-list">
-                            <label v-for="cat in filteredServiceCategories" :key="cat.id" class="checkbox-item">
-                                <input type="checkbox" :value="cat.id" v-model="f.service_categories"
-                                    class="checkbox-input" />
-                                <span class="checkbox-label">{{ localName(cat) }}</span>
-                            </label>
-                        </div>
+                        <Transition name="filter-section">
+                            <div v-if="openSection === 'service_categories'" class="section-content">
+                                <input
+                                    class="section-search"
+                                    v-model="sectionSearch.service_categories"
+                                    :placeholder="__('search.filter')"
+                                />
+                                <div class="checkbox-list">
+                                    <button
+                                        v-for="cat in filteredServiceCategories"
+                                        :key="cat.id"
+                                        class="filter-toggle-btn"
+                                        :class="{
+                                            active: f.service_categories.includes(
+                                                cat.id,
+                                            ),
+                                        }"
+                                        @click="
+                                            toggleFilterId(
+                                                'service_categories',
+                                                cat.id,
+                                            )
+                                        "
+                                    >
+                                        {{ localName(cat) }}
+                                    </button>
+                                </div>
+                            </div>
+                        </Transition>
                     </div>
 
                     <!-- Сбросить -->
-                    <button @click="resetFilters" class="reset-btn">{{ __('search.filters.reset') }}</button>
+                    <button @click="resetFilters" class="reset-btn">
+                        {{ __("search.filters.reset") }}
+                    </button>
                 </div>
 
                 <Transition name="slide-up">
                     <div v-if="isDirty" class="sidebar-footer">
-                        <button class="apply-btn" @click="applyFilters">{{ __('search.filters.apply') }}</button>
+                        <button class="apply-btn" @click="applyFilters">
+                            {{ __("search.filters.apply") }}
+                        </button>
                     </div>
                 </Transition>
             </aside>
@@ -529,157 +1061,398 @@ function initial(name) {
     </AppLayout>
 
     <!-- Mobile filters modal -->
-    <SiteModal :show="mobileFiltersOpen" variant="pink" @close="mobileFiltersOpen = false">
+    <SiteModal
+        :show="mobileFiltersOpen"
+        variant="pink"
+        @close="mobileFiltersOpen = false"
+    >
         <div class="mf-wrap">
-            <h2 class="mf-title">{{ __('search.filters.title') }}</h2>
+            <h2 class="mf-title">{{ __("search.filters.title") }}</h2>
 
             <!-- Active chips -->
             <Transition name="chips-fade">
                 <div v-if="activeChips.length" class="active-chips">
-                    <span v-for="chip in activeChips" :key="chip.key + (chip.value ?? '')" class="active-chip">
+                    <span
+                        v-for="chip in activeChips"
+                        :key="chip.key + (chip.value ?? '')"
+                        class="active-chip"
+                    >
                         {{ chip.label }}
-                        <button class="active-chip__remove" @click="resetChip(chip)">×</button>
+                        <button
+                            class="active-chip__remove"
+                            @click="resetChip(chip)"
+                        >
+                            ×
+                        </button>
                     </span>
                 </div>
             </Transition>
 
             <!-- Имя -->
             <div class="filter-group">
-                <label class="filter-label">{{ __('auth.name') }}</label>
-                <input v-model="f.name" type="text" class="filter-input" :placeholder="__('search.name')" />
+                <label class="filter-label">{{ __("auth.name") }}</label>
+                <input
+                    v-model="f.name"
+                    type="text"
+                    class="filter-input"
+                    :placeholder="__('search.name')"
+                />
             </div>
 
             <!-- Пол -->
             <div class="filter-group">
-                <label class="filter-label">{{ __('auth.gender') }}</label>
+                <label class="filter-label">{{ __("auth.gender") }}</label>
                 <div class="btn-group">
-                    <button :class="['btn-toggle', { active: f.gender === '' }]" @click="f.gender = ''">{{ __('gender.any') }}</button>
-                    <button :class="['btn-toggle', { active: f.gender === 'male' }]" @click="f.gender = 'male'">{{ __('gender.male') }}</button>
-                    <button :class="['btn-toggle', { active: f.gender === 'female' }]" @click="f.gender = 'female'">{{ __('gender.female') }}</button>
+                    <button
+                        :class="['btn-toggle', { active: f.gender === '' }]"
+                        @click="f.gender = ''"
+                    >
+                        {{ __("gender.any") }}
+                    </button>
+                    <button
+                        :class="['btn-toggle', { active: f.gender === 'male' }]"
+                        @click="f.gender = 'male'"
+                    >
+                        {{ __("gender.male") }}
+                    </button>
+                    <button
+                        :class="[
+                            'btn-toggle',
+                            { active: f.gender === 'female' },
+                        ]"
+                        @click="f.gender = 'female'"
+                    >
+                        {{ __("gender.female") }}
+                    </button>
                 </div>
             </div>
 
             <!-- Возраст -->
             <div class="filter-group">
-                <label class="filter-label">{{ __('search.filters.age') }}</label>
+                <label class="filter-label">{{
+                    __("search.filters.age")
+                }}</label>
                 <div class="range-row">
-                    <input v-model="f.age_from" type="number" min="18" max="120" class="filter-input filter-input--sm" :placeholder="__('search.price.from')" />
+                    <input
+                        v-model="f.age_from"
+                        type="number"
+                        min="18"
+                        max="120"
+                        class="filter-input filter-input--sm"
+                        :placeholder="__('search.price.from')"
+                    />
                     <span class="range-sep">—</span>
-                    <input v-model="f.age_to" type="number" min="18" max="120" class="filter-input filter-input--sm" :placeholder="__('search.price.to')" />
+                    <input
+                        v-model="f.age_to"
+                        type="number"
+                        min="18"
+                        max="120"
+                        class="filter-input filter-input--sm"
+                        :placeholder="__('search.price.to')"
+                    />
                 </div>
             </div>
 
             <!-- Айдол -->
             <div class="filter-group">
-                <label class="filter-label">{{ __('search.filters.idol') }}</label>
+                <label class="filter-label">{{
+                    __("search.filters.idol")
+                }}</label>
                 <div class="btn-group">
-                    <button :class="['btn-toggle', { active: f.is_idol === '' }]" @click="f.is_idol = ''">{{ __('common.any') }}</button>
-                    <button :class="['btn-toggle', { active: f.is_idol === '1' }]" @click="f.is_idol = '1'">{{ __('common.yes') }}</button>
-                    <button :class="['btn-toggle', { active: f.is_idol === '0' }]" @click="f.is_idol = '0'">{{ __('common.no') }}</button>
+                    <button
+                        :class="['btn-toggle', { active: f.is_idol === '' }]"
+                        @click="f.is_idol = ''"
+                    >
+                        {{ __("common.any") }}
+                    </button>
+                    <button
+                        :class="['btn-toggle', { active: f.is_idol === '1' }]"
+                        @click="f.is_idol = '1'"
+                    >
+                        {{ __("common.yes") }}
+                    </button>
+                    <button
+                        :class="['btn-toggle', { active: f.is_idol === '0' }]"
+                        @click="f.is_idol = '0'"
+                    >
+                        {{ __("common.no") }}
+                    </button>
                 </div>
             </div>
 
             <!-- Рейтинг -->
             <div class="filter-group">
-                <label class="filter-label">{{ __('search.filters.rating') }}</label>
+                <label class="filter-label">{{
+                    __("search.filters.rating")
+                }}</label>
                 <div class="range-row">
-                    <input v-model="f.rating_from" type="number" min="0" max="100" class="filter-input filter-input--sm" :placeholder="__('search.price.from')" />
+                    <input
+                        v-model="f.rating_from"
+                        type="number"
+                        min="0"
+                        max="100"
+                        class="filter-input filter-input--sm"
+                        :placeholder="__('search.price.from')"
+                    />
                     <span class="range-sep">—</span>
-                    <input v-model="f.rating_to" type="number" min="0" max="100" class="filter-input filter-input--sm" :placeholder="__('search.price.to')" />
+                    <input
+                        v-model="f.rating_to"
+                        type="number"
+                        min="0"
+                        max="100"
+                        class="filter-input filter-input--sm"
+                        :placeholder="__('search.price.to')"
+                    />
                 </div>
             </div>
 
             <!-- Divider -->
-            <div class="filter-divider"><span>{{ __('search.filters.advanced') }}</span></div>
+            <div class="filter-divider">
+                <span>{{ __("search.filters.advanced") }}</span>
+            </div>
 
             <!-- Черты характера -->
             <div class="filter-group">
-                <div class="filter-section-header" @click="toggleSection('traits')">
-                    <label class="filter-label">{{ __('search.filters.traits') }}</label>
-                    <span v-if="!openSections.has('traits') && f.traits.length" class="section-badge">{{ f.traits.length }}</span>
-                    <svg class="section-chevron" :class="{ open: openSections.has('traits') }" viewBox="0 0 14 14" fill="none">
-                        <path d="M2.5 5L7 9.5L11.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                <div
+                    class="filter-section-header"
+                    @click="toggleSection('traits')"
+                >
+                    <label class="filter-label">{{
+                        __("search.filters.traits")
+                    }}</label>
+                    <span
+                        v-if="openSection !== 'traits' && f.traits.length"
+                        class="section-badge"
+                        >{{ f.traits.length }}</span
+                    >
+                    <svg
+                        class="section-chevron"
+                        :class="{ open: openSection === 'traits' }"
+                        viewBox="0 0 14 14"
+                        fill="none"
+                    >
+                        <path
+                            d="M2.5 5L7 9.5L11.5 5"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
                     </svg>
                 </div>
-                <input v-if="openSections.has('traits')" class="section-search" v-model="sectionSearch.traits" :placeholder="__('search.filter')" />
-                <div v-if="openSections.has('traits')" class="checkbox-list">
-                    <label v-for="trait in filteredTraits" :key="trait.id" class="checkbox-item">
-                        <input type="checkbox" :value="trait.id" v-model="f.traits" class="checkbox-input" />
-                        <span class="checkbox-label">{{ localName(trait) }}</span>
-                    </label>
+                <input
+                    v-if="openSection === 'traits'"
+                    class="section-search"
+                    v-model="sectionSearch.traits"
+                    :placeholder="__('search.filter')"
+                />
+                <div v-if="openSection === 'traits'" class="checkbox-list">
+                    <button
+                        v-for="trait in filteredTraits"
+                        :key="trait.id"
+                        class="filter-toggle-btn"
+                        :class="{ active: f.traits.includes(trait.id) }"
+                        @click="toggleFilterId('traits', trait.id)"
+                    >
+                        {{ localName(trait) }}
+                    </button>
                 </div>
             </div>
 
             <!-- Интересы -->
             <div class="filter-group">
-                <label class="filter-label">{{ __('search.filters.interests') }}</label>
-                <div v-for="cat in interestCategories" :key="cat.id" class="interest-cat">
-                    <div class="filter-section-header" @click="toggleSection(`interest_cat_${cat.id}`)">
-                        <div class="interest-cat__name">{{ localName(cat) }}</div>
-                        <span v-if="!openSections.has(`interest_cat_${cat.id}`) && interestCountForCat(cat)" class="section-badge">{{ interestCountForCat(cat) }}</span>
-                        <svg class="section-chevron" :class="{ open: openSections.has(`interest_cat_${cat.id}`) }" viewBox="0 0 14 14" fill="none">
-                            <path d="M2.5 5L7 9.5L11.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                <label class="filter-label">{{
+                    __("search.filters.interests")
+                }}</label>
+                <div
+                    v-for="cat in interestCategories"
+                    :key="cat.id"
+                    class="interest-cat"
+                >
+                    <div
+                        class="filter-section-header"
+                        @click="toggleSection(`interest_cat_${cat.id}`)"
+                    >
+                        <div class="interest-cat__name">
+                            {{ localName(cat) }}
+                        </div>
+                        <span
+                            v-if="
+                                openSection !== `interest_cat_${cat.id}` &&
+                                interestCountForCat(cat)
+                            "
+                            class="section-badge"
+                            >{{ interestCountForCat(cat) }}</span
+                        >
+                        <svg
+                            class="section-chevron"
+                            :class="{
+                                open: openSection === `interest_cat_${cat.id}`,
+                            }"
+                            viewBox="0 0 14 14"
+                            fill="none"
+                        >
+                            <path
+                                d="M2.5 5L7 9.5L11.5 5"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            />
                         </svg>
                     </div>
-                    <input v-if="openSections.has(`interest_cat_${cat.id}`)" class="section-search" v-model="sectionSearch[`interest_cat_${cat.id}`]" :placeholder="__('search.filter')" />
-                    <div v-if="openSections.has(`interest_cat_${cat.id}`)" class="checkbox-list">
-                        <label v-for="interest in filteredInterests(cat)" :key="interest.id" class="checkbox-item">
-                            <input type="checkbox" :value="interest.id" v-model="f.interests" class="checkbox-input" />
-                            <span class="checkbox-label">{{ localName(interest) }}</span>
-                        </label>
+                    <input
+                        v-if="openSection === `interest_cat_${cat.id}`"
+                        class="section-search"
+                        v-model="sectionSearch[`interest_cat_${cat.id}`]"
+                        :placeholder="__('search.filter')"
+                    />
+                    <div
+                        v-if="openSection === `interest_cat_${cat.id}`"
+                        class="checkbox-list"
+                    >
+                        <button
+                            v-for="interest in filteredInterests(cat)"
+                            :key="interest.id"
+                            class="filter-toggle-btn"
+                            :class="{
+                                active: f.interests.includes(interest.id),
+                            }"
+                            @click="toggleFilterId('interests', interest.id)"
+                        >
+                            {{ localName(interest) }}
+                        </button>
                     </div>
                 </div>
             </div>
 
             <!-- Языки -->
             <div class="filter-group">
-                <div class="filter-section-header" @click="toggleSection('languages')">
-                    <label class="filter-label">{{ __('search.filters.languages') }}</label>
-                    <span v-if="!openSections.has('languages') && f.languages.length" class="section-badge">{{ f.languages.length }}</span>
-                    <svg class="section-chevron" :class="{ open: openSections.has('languages') }" viewBox="0 0 14 14" fill="none">
-                        <path d="M2.5 5L7 9.5L11.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                <div
+                    class="filter-section-header"
+                    @click="toggleSection('languages')"
+                >
+                    <label class="filter-label">{{
+                        __("search.filters.languages")
+                    }}</label>
+                    <span
+                        v-if="
+                            openSection !== 'languages' && f.languages.length
+                        "
+                        class="section-badge"
+                        >{{ f.languages.length }}</span
+                    >
+                    <svg
+                        class="section-chevron"
+                        :class="{ open: openSection === 'languages' }"
+                        viewBox="0 0 14 14"
+                        fill="none"
+                    >
+                        <path
+                            d="M2.5 5L7 9.5L11.5 5"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
                     </svg>
                 </div>
-                <input v-if="openSections.has('languages')" class="section-search" v-model="sectionSearch.languages" :placeholder="__('search.filter')" />
-                <div v-if="openSections.has('languages')" class="checkbox-list">
-                    <label v-for="lang in filteredLanguages" :key="lang.code" class="checkbox-item">
-                        <input type="checkbox" :value="lang.code" v-model="f.languages" class="checkbox-input" />
-                        <span class="checkbox-label">{{ lang.label }}</span>
-                    </label>
+                <input
+                    v-if="openSection === 'languages'"
+                    class="section-search"
+                    v-model="sectionSearch.languages"
+                    :placeholder="__('search.filter')"
+                />
+                <div v-if="openSection === 'languages'" class="checkbox-list">
+                    <button
+                        v-for="lang in filteredLanguages"
+                        :key="lang.code"
+                        class="filter-toggle-btn"
+                        :class="{ active: f.languages.includes(lang.code) }"
+                        @click="toggleFilterId('languages', lang.code)"
+                    >
+                        {{ lang.label }}
+                    </button>
                 </div>
             </div>
 
             <!-- Часовой пояс -->
             <div class="filter-group">
-                <label class="filter-label">{{ __('search.filters.timezone') }}</label>
+                <label class="filter-label">{{
+                    __("search.filters.timezone")
+                }}</label>
                 <select v-model="f.timezone" class="filter-input filter-select">
-                    <option value="">{{ __('search.filters.any_tz') }}</option>
-                    <option v-for="tz in TIMEZONES" :key="tz" :value="tz">{{ tz }}</option>
+                    <option value="">{{ __("search.filters.any_tz") }}</option>
+                    <option v-for="tz in TIMEZONES" :key="tz" :value="tz">
+                        {{ tz }}
+                    </option>
                 </select>
             </div>
 
             <!-- Категории услуг -->
             <div class="filter-group">
-                <div class="filter-section-header" @click="toggleSection('service_categories')">
-                    <label class="filter-label">{{ __('search.filters.services') }}</label>
-                    <span v-if="!openSections.has('service_categories') && f.service_categories.length" class="section-badge">{{ f.service_categories.length }}</span>
-                    <svg class="section-chevron" :class="{ open: openSections.has('service_categories') }" viewBox="0 0 14 14" fill="none">
-                        <path d="M2.5 5L7 9.5L11.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                <div
+                    class="filter-section-header"
+                    @click="toggleSection('service_categories')"
+                >
+                    <label class="filter-label">{{
+                        __("search.filters.services")
+                    }}</label>
+                    <span
+                        v-if="
+                            openSection !== 'service_categories' &&
+                            f.service_categories.length
+                        "
+                        class="section-badge"
+                        >{{ f.service_categories.length }}</span
+                    >
+                    <svg
+                        class="section-chevron"
+                        :class="{
+                            open: openSection === 'service_categories',
+                        }"
+                        viewBox="0 0 14 14"
+                        fill="none"
+                    >
+                        <path
+                            d="M2.5 5L7 9.5L11.5 5"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
                     </svg>
                 </div>
-                <input v-if="openSections.has('service_categories')" class="section-search" v-model="sectionSearch.service_categories" :placeholder="__('search.filter')" />
-                <div v-if="openSections.has('service_categories')" class="checkbox-list">
-                    <label v-for="cat in filteredServiceCategories" :key="cat.id" class="checkbox-item">
-                        <input type="checkbox" :value="cat.id" v-model="f.service_categories" class="checkbox-input" />
-                        <span class="checkbox-label">{{ localName(cat) }}</span>
-                    </label>
+                <input
+                    v-if="openSection === 'service_categories'"
+                    class="section-search"
+                    v-model="sectionSearch.service_categories"
+                    :placeholder="__('search.filter')"
+                />
+                <div
+                    v-if="openSection === 'service_categories'"
+                    class="checkbox-list"
+                >
+                    <button
+                        v-for="cat in filteredServiceCategories"
+                        :key="cat.id"
+                        class="filter-toggle-btn"
+                        :class="{ active: f.service_categories.includes(cat.id) }"
+                        @click="toggleFilterId('service_categories', cat.id)"
+                    >
+                        {{ localName(cat) }}
+                    </button>
                 </div>
             </div>
 
             <!-- Сбросить / Применить -->
             <div class="mf-actions">
-                <button @click="resetFilters" class="reset-btn">{{ __('search.filters.reset') }}</button>
-                <button class="apply-btn" @click="applyAndClose">{{ __('search.filters.apply') }}</button>
+                <button @click="resetFilters" class="reset-btn">
+                    {{ __("search.filters.reset") }}
+                </button>
+                <button class="apply-btn" @click="applyAndClose">
+                    {{ __("search.filters.apply") }}
+                </button>
             </div>
         </div>
     </SiteModal>
@@ -734,7 +1507,7 @@ function initial(name) {
 .sidebar-inner {
     flex: 1;
     overflow-y: auto;
-    padding: 1.75rem 1.5rem;
+    padding: 1.75rem 1rem;
     display: flex;
     flex-direction: column;
     gap: 1.4rem;
@@ -765,12 +1538,16 @@ function initial(name) {
 .apply-btn:hover {
     background: rgba(255, 178, 239, 0.28);
     border-color: rgba(255, 178, 239, 0.8);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .slide-up-enter-active,
 .slide-up-leave-active {
-    transition: opacity 0.2s, transform 0.2s;
+    transition:
+        opacity 0.2s,
+        transform 0.2s;
 }
 
 .slide-up-enter-from,
@@ -857,7 +1634,7 @@ function initial(name) {
 
 .filter-divider::before,
 .filter-divider::after {
-    content: '';
+    content: "";
     flex: 1;
     border-top: 1px solid rgba(255, 178, 239, 0.15);
 }
@@ -956,13 +1733,13 @@ function initial(name) {
     border-color: rgba(255, 178, 239, 0.6);
     background: rgba(255, 178, 239, 0.15);
     color: var(--color-base-1);
-    box-shadow: 0 0 10px rgba(255, 178, 239, 0.2);
 }
 
 /* ── Collapsible section headers ─────────────────────────── */
 .filter-section-header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 0.5rem;
     cursor: pointer;
     user-select: none;
@@ -984,6 +1761,40 @@ function initial(name) {
 
 .filter-section-header .interest-cat__name {
     flex: 1;
+}
+
+.header-indicators {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.active-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--color-base-1);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--color-base-1);
+    flex-shrink: 0;
+}
+
+/* ── Transitions ─────────────────────────────────────────── */
+.filter-section-enter-active,
+.filter-section-leave-active {
+    transition: all 0.3s ease-in-out;
+    max-height: 500px;
+    overflow: hidden;
+}
+
+.filter-section-enter-from,
+.filter-section-leave-to {
+    max-height: 0 !important;
+    opacity: 0;
+}
+
+.section-content {
+    display: flex;
+    flex-direction: column;
 }
 
 .section-search {
@@ -1019,21 +1830,18 @@ function initial(name) {
 
 /* ── Checkboxes ──────────────────────────────────────────── */
 .checkbox-list {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 0.4rem;
-    max-height: 220px;
+    max-height: 250px;
     overflow-y: auto;
-    padding: 0.5rem 0.25rem 0.25rem 0.5rem;
-}
-
-.checkbox-list {
+    padding: 0.5rem 0.4rem 0.5rem 0;
     scrollbar-width: thin;
-    scrollbar-color: rgba(224, 85, 143, 0.6) rgba(255, 255, 255, 0.04);
+    scrollbar-color: rgba(255, 178, 239, 0.3) transparent;
 }
 
 .checkbox-list::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
 }
 
 .checkbox-list::-webkit-scrollbar-track {
@@ -1042,61 +1850,52 @@ function initial(name) {
 }
 
 .checkbox-list::-webkit-scrollbar-thumb {
-    background: rgba(224, 85, 143, 0.5);
+    background: rgba(255, 178, 239, 0.2);
     border-radius: 3px;
 }
 
-.checkbox-list::-webkit-scrollbar-thumb:hover {
-    background: rgba(224, 85, 143, 0.8);
+.filter-toggle-btn {
+    width: 100%;
+    text-align: left;
+    padding: 0.6rem 0.8rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.filter-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.filter-toggle-btn.active {
+    background: rgba(255, 178, 239, 0.12);
+    border-color: rgba(255, 178, 239, 0.45);
+    color: var(--color-base-1);
+    font-weight: 600;
+}
+
+.filter-toggle-btn.active::after {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--color-base-1);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--color-base-1);
+    flex-shrink: 0;
 }
 
 .checkbox-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-}
-
-.checkbox-input {
-    appearance: none;
-    -webkit-appearance: none;
-    width: 15px;
-    height: 15px;
-    border: 1.5px solid rgba(255, 178, 239, 0.35);
-    border-radius: 3px;
-    background: transparent;
-    cursor: pointer;
-    position: relative;
-    flex-shrink: 0;
-    transition: border-color 0.15s, background 0.15s;
-}
-
-.checkbox-input:checked {
-    background: rgba(255, 178, 239, 0.5);
-    border-color: rgba(255, 178, 239, 0.7);
-}
-
-.checkbox-input:checked::after {
-    content: '';
-    position: absolute;
-    left: 3px;
-    top: 0px;
-    width: 5px;
-    height: 9px;
-    border: 2px solid #fff;
-    border-top: none;
-    border-left: none;
-    transform: rotate(45deg);
-}
-
-.checkbox-label {
-    font-size: 0.92rem;
-    color: rgba(255, 255, 255, 0.6);
-    transition: color 0.15s;
-}
-
-.checkbox-item:hover .checkbox-label {
-    color: rgba(255, 255, 255, 0.9);
+    display: none;
 }
 
 .interest-cat {
@@ -1237,70 +2036,92 @@ function initial(name) {
     color: rgba(255, 255, 255, 0.35);
 }
 
-
 /* ── User grid ───────────────────────────────────────────── */
 /* Сайдбар ~540px, учитываем оставшееся пространство */
 .user-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1.25rem;
+    padding: 1rem;
 }
 
-/* ~1600px и меньше → 3 колонки */
+/* ~1600px и меньше → 4 колонки */
 @media (max-width: 1600px) {
+    .user-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* ~1200px и меньше → 3 колонки */
+@media (max-width: 1200px) {
     .user-grid {
         grid-template-columns: repeat(3, 1fr);
     }
 }
 
-/* ~1200px и меньше → 2 колонки */
-@media (max-width: 1200px) {
+/* ~900px и меньше → 2 колонки */
+@media (max-width: 900px) {
     .user-grid {
         grid-template-columns: repeat(2, 1fr);
     }
 }
 
-/* ~900px и меньше → 1 колонка */
-@media (max-width: 900px) {
+/* ~500px и меньше → 2 колонки (оставляем компактными) */
+@media (max-width: 500px) {
     .user-grid {
-        grid-template-columns: repeat(1, 1fr);
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
     }
 }
-
 
 .user-card {
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 178, 239, 0.12);
-    border-radius: 8px;
-    padding: 1rem;
+    gap: 1rem;
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.03) 0%,
+        rgba(255, 255, 255, 0.01) 100%
+    );
+    border: 1px solid rgba(255, 178, 239, 0.08);
+    border-radius: 12px;
+    padding: 1.25rem 1rem;
     text-decoration: none;
-    transition: border-color 0.18s, background 0.18s, transform 0.15s;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     min-width: 0;
     overflow: hidden;
 }
 
 .user-card:hover {
-    border-color: rgba(255, 178, 239, 0.35);
-    background: rgba(255, 178, 239, 0.06);
-    transform: translateY(-2px);
+    border-color: rgba(255, 178, 239, 0.25);
+    box-shadow:
+        0 6px 16px -4px rgba(0, 0, 0, 0.4),
+        0 0 10px rgba(255, 178, 239, 0.05);
+}
+
+.card-avatar-wrap {
+    position: relative;
+    align-self: center;
+    margin-bottom: 0.25rem;
 }
 
 .card-avatar {
-    width: 96px;
-    height: 96px;
+    width: 110px;
+    height: 110px;
     border-radius: 50%;
     overflow: hidden;
-    background: rgba(255, 178, 239, 0.15);
-    border: 1.5px solid rgba(255, 178, 239, 0.4);
+    background: rgba(255, 178, 239, 0.12);
+    border: 2px solid rgba(255, 178, 239, 0.3);
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    align-self: center;
+    transition: all 0.4s ease;
+}
+
+.user-card:hover .card-avatar {
+    border-color: rgba(255, 178, 239, 0.5);
 }
 
 .card-avatar__img {
@@ -1310,15 +2131,62 @@ function initial(name) {
 }
 
 .card-avatar__initials {
-    font-size: 2rem;
+    font-size: 2.5rem;
     font-weight: 600;
     color: var(--color-base-1);
+    text-shadow: 0 0 20px rgba(255, 178, 239, 0.4);
+}
+
+.card-avatar-badges {
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    white-space: nowrap;
+}
+
+.card-rating {
+    background: rgba(20, 15, 30, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 178, 239, 0.4);
+    border-radius: 4px;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.75rem;
+    color: var(--color-base-1);
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    line-height: 1;
+}
+
+:deep(.card-idol-badge) {
+    background: rgba(20, 15, 30, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 178, 239, 0.4);
+    border-radius: 4px;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.75rem;
+    color: var(--color-base-1);
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    line-height: 1;
 }
 
 .card-body {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    gap: 0.4rem;
     min-width: 0;
     align-items: center;
     text-align: center;
@@ -1333,74 +2201,58 @@ function initial(name) {
 }
 
 .card-name {
-    font-size: 1.2rem;
+    font-size: 1.15rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.9);
+    color: #fff;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
-}
-
-.card-rating {
-    position: absolute;
-    top: 0.6rem;
-    right: 0.75rem;
-    font-size: 0.85rem;
-    color: var(--color-base-1);
-    font-weight: 600;
-    white-space: nowrap;
+    letter-spacing: 0.01em;
 }
 
 .card-badges {
     display: flex;
-    flex-wrap: nowrap;
-    gap: 0.35rem;
+    flex-wrap: wrap;
+    gap: 0.4rem;
     justify-content: center;
-    overflow: hidden;
-    margin-top: 0.15rem;
+    margin-top: 0.25rem;
 }
 
 .card-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    padding: 0.3rem 0.85rem;
-    border-radius: 3px;
-    font-size: 0.92rem;
-    letter-spacing: 0.04em;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.04);
-    color: rgba(255, 255, 255, 0.55);
+    gap: 0.3rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.5);
     white-space: nowrap;
+    transition: all 0.2s;
 }
 
+.user-card:hover .card-badge {
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.7);
+}
 
 .card-badge--female {
-    border-color: rgba(255, 178, 239, 0.3);
-    background: rgba(255, 178, 239, 0.06);
-    color: rgba(255, 178, 239, 0.85);
+    border-color: rgba(255, 178, 239, 0.25);
+    background: rgba(255, 178, 239, 0.05);
+    color: rgba(255, 178, 239, 0.8);
 }
 
 .card-badge--male {
-    border-color: rgba(255, 178, 239, 0.3);
-    background: rgba(255, 178, 239, 0.06);
-    color: rgba(255, 178, 239, 0.85);
+    border-color: rgba(100, 210, 255, 0.25);
+    background: rgba(100, 210, 255, 0.05);
+    color: rgba(100, 210, 255, 0.8);
 }
 
 .card-badge--age {
-    color: rgba(255, 255, 255, 0.45);
-}
-
-.card-about {
-    font-size: 0.92rem;
-    color: rgba(255, 255, 255, 0.4);
-    line-height: 1.4;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    margin: 0;
+    background: rgba(255, 255, 255, 0.02);
 }
 
 /* ── No results ──────────────────────────────────────────── */
@@ -1426,15 +2278,21 @@ function initial(name) {
 
 .pagination::before,
 .pagination::after {
-    content: '';
+    content: "";
     flex: 1;
     height: 1.5px;
-    background: linear-gradient(to var(--dir), rgba(140, 100, 230, 0.7), transparent);
+    background: linear-gradient(
+        to var(--dir),
+        rgba(140, 100, 230, 0.7),
+        transparent
+    );
     min-width: 0;
 }
 
 @media (max-width: 600px) {
-    .pagination { gap: 0.2rem; }
+    .pagination {
+        gap: 0.2rem;
+    }
     .page-btn {
         min-width: 34px;
         height: 34px;
@@ -1512,7 +2370,9 @@ function initial(name) {
     font-size: 0.82rem;
     font-family: inherit;
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
+    transition:
+        border-color 0.15s,
+        background 0.15s;
 }
 .mobile-filters-toggle:hover {
     border-color: rgba(255, 178, 239, 0.55);
@@ -1527,7 +2387,9 @@ function initial(name) {
 }
 
 @media (max-width: 768px) {
-    .mobile-filters-toggle { display: flex; }
+    .mobile-filters-toggle {
+        display: flex;
+    }
 
     .search-page {
         flex-direction: column;
