@@ -104,7 +104,7 @@ function applyCrop() {
     <SiteModal :show="avatarModal" variant="pink" :compact="true" @close="avatarModal = false">
         <div class="au-upload-form">
             <h3 class="au-title">{{ __('upload.avatar.title') }}</h3>
-            <ImageDropzone :max-size-mb="5" @change="processAvatarFile" />
+            <ImageDropzone :max-size-mb="10" @change="processAvatarFile" />
         </div>
     </SiteModal>
 

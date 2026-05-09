@@ -10,7 +10,7 @@
 
 ## Требования
 
-- PHP 8.4+ с расширениями: `bcmath`, `pgsql`, `gd`
+- PHP 8.4+ с расширениями: `bcmath`, `pgsql`, `gd`, `exif`
 - PostgreSQL
 - Node.js + npm
 - Composer
@@ -18,7 +18,7 @@
 > Установка расширений на Fedora/RHEL:
 >
 > ```bash
-> sudo dnf install php-bcmath php-pgsql php-gd
+> sudo dnf install php-bcmath php-pgsql php-gd php-exif
 > sudo systemctl restart php-fpm
 > ```
 

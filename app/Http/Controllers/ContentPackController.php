@@ -155,7 +155,7 @@ class ContentPackController extends Controller
         $coverPath  = null;
 
         foreach ($request->file('photos', []) as $index => $file) {
-            $path = $file->store('content-packs/' . $pack->id, 'local');
+            $path = $this->compressAndStorePhoto($file, $pack->id);
             ContentPackPhoto::create([
                 'content_pack_id'   => $pack->id,
                 'path'              => $path,
@@ -249,8 +249,8 @@ class ContentPackController extends Controller
                 }
                 // Delete old file
                 Storage::disk('local')->delete($photo->path);
-                // Store new
-                $path = $file->store('content-packs/' . $pack->id, 'local');
+                // Store new with compression
+                $path = $this->compressAndStorePhoto($file, $pack->id);
                 $photo->update(['path' => $path, 'original_filename' => $file->getClientOriginalName()]);
             }
         }
@@ -541,5 +541,60 @@ class ContentPackController extends Controller
         }
 
         return $base;
+    }
+
+    private function compressAndStorePhoto($file, $packId)
+    {
+        $realPath = $file->getRealPath();
+        $img = imagecreatefromstring(file_get_contents($realPath));
+
+        if ($img) {
+            // Fix orientation from EXIF
+            $exif = @exif_read_data($realPath);
+            if (!empty($exif['Orientation'])) {
+                switch ($exif['Orientation']) {
+                    case 3: $img = imagerotate($img, 180, 0); break;
+                    case 6: $img = imagerotate($img, -90, 0); break;
+                    case 8: $img = imagerotate($img, 90, 0); break;
+                }
+            }
+
+            $width  = imagesx($img);
+            $height = imagesy($img);
+            $maxDim = 1600;
+
+            if ($width > $maxDim || $height > $maxDim) {
+                $ratio = $width / $height;
+                if ($ratio > 1) {
+                    $newWidth  = $maxDim;
+                    $newHeight = (int)($maxDim / $ratio);
+                } else {
+                    $newHeight = $maxDim;
+                    $newWidth  = (int)($maxDim * $ratio);
+                }
+            } else {
+                $newWidth  = $width;
+                $newHeight = $height;
+            }
+
+            $newImg = imagecreatetruecolor($newWidth, $newHeight);
+            $white  = imagecolorallocate($newImg, 255, 255, 255);
+            imagefill($newImg, 0, 0, $white);
+            imagecopyresampled($newImg, $img, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+
+            $path = 'content-packs/' . $packId . '/' . time() . '_' . uniqid() . '.jpg';
+            ob_start();
+            imagejpeg($newImg, null, 70);
+            $imageData = ob_get_clean();
+
+            Storage::disk('local')->put($path, $imageData);
+            imagedestroy($img);
+            imagedestroy($newImg);
+
+            return $path;
+        }
+
+        // Fallback to regular store if GD fails
+        return $file->store('content-packs/' . $packId, 'local');
     }
 }

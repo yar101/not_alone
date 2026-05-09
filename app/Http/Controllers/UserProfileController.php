@@ -397,7 +397,7 @@ class UserProfileController extends Controller
 
     public function updateAvatar(Request $request): RedirectResponse
     {
-        $request->validate(['avatar' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120']]);
+        $request->validate(['avatar' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240']]);
         $user = $request->user();
 
         if ($user->avatar_path) {
@@ -405,10 +405,21 @@ class UserProfileController extends Controller
         }
 
         $file = $request->file('avatar');
-        $img = imagecreatefromstring(file_get_contents($file->getRealPath()));
+        $realPath = $file->getRealPath();
+        $img = imagecreatefromstring(file_get_contents($realPath));
 
         if (!$img) {
             return back()->withErrors(['avatar' => 'Could not process image.']);
+        }
+
+        // Fix orientation from EXIF
+        $exif = @exif_read_data($realPath);
+        if (!empty($exif['Orientation'])) {
+            switch ($exif['Orientation']) {
+                case 3: $img = imagerotate($img, 180, 0); break;
+                case 6: $img = imagerotate($img, -90, 0); break;
+                case 8: $img = imagerotate($img, 90, 0); break;
+            }
         }
 
         $width  = imagesx($img);
@@ -439,7 +450,7 @@ class UserProfileController extends Controller
         $path = "avatars/{$user->id}_" . time() . ".jpg";
         
         ob_start();
-        imagejpeg($newImg, null, 90);
+        imagejpeg($newImg, null, 70);
         $imageData = ob_get_clean();
         
         Storage::disk('public')->put($path, $imageData);
@@ -484,9 +495,20 @@ class UserProfileController extends Controller
         $photoPath = null;
         if ($request->hasFile('photo')) {
             $file = $request->file('photo');
-            $img = imagecreatefromstring(file_get_contents($file->getRealPath()));
+            $realPath = $file->getRealPath();
+            $img = imagecreatefromstring(file_get_contents($realPath));
 
             if ($img) {
+                // Fix orientation from EXIF
+                $exif = @exif_read_data($realPath);
+                if (!empty($exif['Orientation'])) {
+                    switch ($exif['Orientation']) {
+                        case 3: $img = imagerotate($img, 180, 0); break;
+                        case 6: $img = imagerotate($img, -90, 0); break;
+                        case 8: $img = imagerotate($img, 90, 0); break;
+                    }
+                }
+
                 $width  = imagesx($img);
                 $height = imagesy($img);
                 $maxDim = 1600;
