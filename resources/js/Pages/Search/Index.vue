@@ -99,7 +99,7 @@ const f = ref({
 });
 
 // Snapshot of last applied state (excluding sort_*)
-const appliedFilters = ref({ ...f.value });
+const appliedFilters = ref(JSON.parse(JSON.stringify(f.value)));
 
 const DIRTY_KEYS = [
     "name",
@@ -138,7 +138,7 @@ function apply() {
 }
 
 function applyFilters() {
-    appliedFilters.value = { ...f.value };
+    appliedFilters.value = JSON.parse(JSON.stringify(f.value));
     apply();
 }
 
@@ -163,7 +163,7 @@ function resetFilters() {
         sort_by: "rating",
         sort_dir: "desc",
     };
-    appliedFilters.value = { ...f.value };
+    appliedFilters.value = JSON.parse(JSON.stringify(f.value));
     router.get(
         route("users.search"),
         {},
