@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, provide, watch, onMounted, onUnmounted, h } from 'vue';
+import { ref, computed, provide, watch, onMounted, onUnmounted } from 'vue';
 import { Link, usePage, router } from '@inertiajs/vue3';
 import { ElNotification } from 'element-plus';
 import NotificationBell from '@/Components/NotificationBell.vue';
@@ -10,6 +10,7 @@ import CartDropdown from '@/Components/Cart/CartDropdown.vue';
 import AuthModal from '@/Components/Site/AuthModal.vue';
 import UserSidebar from '@/Components/UserSidebar.vue';
 import LocaleLoader from '@/Components/LocaleLoader.vue';
+import PwaUpdateModal from '@/Components/PwaUpdateModal.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
 const { __ } = useTranslations();
@@ -34,6 +35,7 @@ const cartOpen      = ref(false);
 const cartDropdown  = ref(null);
 const cartInitialTab = ref('services');
 const sidebarOpen = ref(false);
+const pwaUpdateAvailable = ref(false);
 
 function onCartClick() {
     if (cartOpen.value) { cartOpen.value = false; return; }
@@ -206,22 +208,7 @@ onMounted(() => {
         navigator.serviceWorker.addEventListener('controllerchange', () => {
             if (refreshing) return;
             refreshing = true;
-            ElNotification({
-                title: __('app.update.title'),
-                message: h('div', null, [
-                    h('p', null, __('app.update.message')),
-                    h('button', {
-                        class: 'cm-btn cm-btn--primary',
-                        style: 'margin-top: 10px; width: 100%;',
-                        onClick: () => window.location.reload()
-                    }, __('app.update.button'))
-                ]),
-                duration: 0,
-                position: 'top-right',
-                offset: 70,
-                customClass: 'app-notif app-notif--info',
-                showClose: true,
-            });
+            pwaUpdateAvailable.value = true;
         });
     }
 });
@@ -236,8 +223,8 @@ onUnmounted(() => {
 
 <template>
     <LocaleLoader />
-    <div class="app-wrap">
-        <header class="app-header">
+    <PwaUpdateModal :show="pwaUpdateAvailable" />
+    <div class="app-wrap">        <header class="app-header">
             <Link href="/" class="app-logo">NoAlone</Link>
 
             <nav v-if="user" class="header-nav">
