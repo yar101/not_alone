@@ -1216,6 +1216,7 @@ function initial(name) {
         flex-direction: column;
         height: auto;
         overflow: visible;
+        align-items: stretch;
     }
 
     .search-sidebar {
