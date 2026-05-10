@@ -383,6 +383,7 @@
     "chat.msg.order_placed": "ORDER PLACED",
     "chat.msg.total": "TOTAL",
     "chat.msg.order_paid": "ORDER PAID",
+    "chat.msg.order_accepted": "ORDER ACCEPTED",
     "chat.msg.order_cancelled": "ORDER CANCELLED",
     "chat.msg.order_updated": "ORDER UPDATED",
     "chat.msg.completed": "COMPLETION CONFIRMED",

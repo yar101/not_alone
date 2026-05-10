@@ -383,6 +383,7 @@
     "chat.msg.order_placed": "ЗАКАЗ ОФОРМЛЕН",
     "chat.msg.total": "ИТОГО",
     "chat.msg.order_paid": "ЗАКАЗ ОПЛАЧЕН",
+    "chat.msg.order_accepted": "ЗАКАЗ ПРИНЯТ",
     "chat.msg.order_cancelled": "ЗАКАЗ ОТМЕНЁН",
     "chat.msg.order_updated": "ЗАКАЗ ОБНОВЛЕНО",
     "chat.msg.completed": "ВЫПОЛНЕНИЕ ПОДТВЕРЖДЕНО",

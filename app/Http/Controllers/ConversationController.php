@@ -102,7 +102,9 @@ class ConversationController extends Controller
                     'is_idol'    => $other->is_idol,
                     'gender'     => $other->gender,
                     ] : null,                'last_message' => $conversation->lastMessage ? [
-                    'body'       => $conversation->lastMessage->type === 'image' ? '[фото]' : $conversation->lastMessage->body,
+                    'body'       => $conversation->lastMessage->body,
+                    'type'       => $conversation->lastMessage->type,
+                    'metadata'   => $conversation->lastMessage->metadata,
                     'sender_id'  => $conversation->lastMessage->sender_id,
                     'created_at' => $conversation->lastMessage->created_at?->toISOString(),
                 ] : null,
@@ -219,6 +221,42 @@ class ConversationController extends Controller
             'is_support'         => (bool) $conversation->is_support,
             'closed_at'          => $conversation->closed_at?->toISOString(),
             'has_review'         => $hasReview,
+        ]);
+    }
+
+    public function check(Request $request, User $user): JsonResponse
+    {
+        $auth = $request->user();
+        abort_unless($auth->is_idol, 403);
+        abort_if($user->is_idol, 422, 'target_is_idol');
+
+        $conversation = Conversation::whereNull('order_id')
+            ->whereHas('participants', fn($q) => $q->where('user_id', $auth->id))
+            ->whereHas('participants', fn($q) => $q->where('user_id', $user->id))
+            ->first();
+
+        $block = ChatBlock::active()->where(function ($q) use ($auth, $user) {
+            $q->where(['blocker_id' => $auth->id, 'blocked_id' => $user->id])
+              ->orWhere(['blocker_id' => $user->id, 'blocked_id' => $auth->id]);
+        })->first();
+
+        $blockData = $block ? [
+            'active'       => true,
+            'i_am_blocker' => $block->blocker_id === $auth->id,
+            'reason'       => $block->reason,
+            'blocked_until'=> $block->blocked_until?->toISOString(),
+        ] : null;
+
+        return response()->json([
+            'conversation_id' => $conversation?->id,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'avatar_url' => $user->avatar_url,
+                'is_idol' => $user->is_idol,
+                'gender' => $user->gender,
+            ],
+            'block' => $blockData
         ]);
     }
 

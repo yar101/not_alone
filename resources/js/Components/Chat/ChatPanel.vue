@@ -377,7 +377,7 @@ const filteredConversations = computed(() => conversations.value);
 
 // ── Open a conversation ──────────────────────────────────
 async function openConversation(conv) {
-    if (activeConversation.value?.id === conv.id) return;
+    if (activeConversation.value?.id === conv.id && conv.id !== "draft") return;
     leaveEcho();
     loadingMsgs.value = true;
     activeConversation.value = conv;
@@ -386,6 +386,13 @@ async function openConversation(conv) {
     isTyping.value = false;
     otherLastReadAt.value = null;
     hasMore.value = false;
+
+    if (conv.is_draft) {
+        loadingMsgs.value = false;
+        coverMessages.value = true;
+        setTimeout(() => (coverMessages.value = false), 80);
+        return;
+    }
 
     try {
         const res = await axios.get(route("conversations.show", conv.id));
@@ -419,7 +426,7 @@ async function openConversation(conv) {
         loadingMsgs.value = false;
     }
 
-    subscribeEcho(conv.id);
+    if (!conv.is_draft) subscribeEcho(conv.id);
     await nextTick();
     messagesEnd.value?.scrollIntoView({ behavior: "instant" });
     setTimeout(() => {
@@ -430,16 +437,37 @@ async function openConversation(conv) {
 // ── Start conversation with user (called from outside) ───
 async function startWith(userId) {
     isOpen.value = true;
-    const res = await axios.post(route("conversations.store"), {
-        target_user_id: userId,
-    });
-    const convId = res.data.conversation_id;
+    try {
+        const res = await axios.get(route("conversations.check", userId));
+        const { conversation_id, user, block } = res.data;
 
-    await fetchConversations();
-    const conv = conversations.value.find((c) => c.id === convId);
-    await openConversation(
-        conv ?? { id: convId, other_user: null, unread_count: 0 },
-    );
+        if (conversation_id) {
+            // Already exists, just open
+            let conv = conversations.value.find((c) => c.id === conversation_id);
+            if (!conv) {
+                await fetchConversations();
+                conv = conversations.value.find((c) => c.id === conversation_id);
+            }
+            await openConversation(
+                conv ?? {
+                    id: conversation_id,
+                    other_user: user,
+                    unread_count: 0,
+                },
+            );
+        } else {
+            // Open as draft
+            activeBlock.value = block ?? null;
+            await openConversation({
+                id: "draft",
+                other_user: user,
+                unread_count: 0,
+                is_draft: true,
+            });
+        }
+    } catch (e) {
+        console.error("Failed to check conversation", e);
+    }
 }
 
 async function startConversation(convId) {
@@ -456,20 +484,52 @@ async function startConversation(convId) {
 }
 
 // ── Send message ─────────────────────────────────────────
+async function ensureRealConversation() {
+    if (!activeConversation.value?.is_draft) return true;
+
+    try {
+        const res = await axios.post(route("conversations.store"), {
+            target_user_id: activeConversation.value.other_user.id,
+        });
+        const realId = res.data.conversation_id;
+
+        // Update active conversation state
+        activeConversation.value.id = realId;
+        activeConversation.value.is_draft = false;
+
+        // Subscribe to Echo for the real ID
+        subscribeEcho(realId);
+
+        // Refresh the list so it appears in the sidebar
+        fetchConversations();
+
+        return true;
+    } catch (e) {
+        console.error("Failed to create conversation", e);
+        return false;
+    }
+}
+
 async function sendMessage() {
     const body = newMessage.value.trim();
     if (!body || sending.value || !activeConversation.value) return;
 
     sending.value = true;
+
+    if (!(await ensureRealConversation())) {
+        sending.value = false;
+        return;
+    }
+
+    const convId = activeConversation.value.id;
     newMessage.value = "";
     try {
-        const res = await axios.post(
-            route("conversations.message", activeConversation.value.id),
-            { body },
-        );
+        const res = await axios.post(route("conversations.message", convId), {
+            body,
+        });
         messages.value.push(res.data);
         scrollToBottom();
-        updateLastMessage(activeConversation.value.id, res.data);
+        updateLastMessage(convId, res.data);
     } finally {
         sending.value = false;
     }
@@ -649,15 +709,7 @@ function handleIncomingMessageForList(data) {
     } else {
         const conv = conversations.value.find((c) => c.id === conversation_id);
         if (conv) {
-            const body =
-                last_message?.type === "image"
-                    ? `[${__("chat.photo.label")}]`
-                    : (last_message?.body ?? "");
-            conv.last_message = {
-                body,
-                sender_id: last_message?.sender_id,
-                created_at: last_message?.created_at,
-            };
+            conv.last_message = last_message;
             conv.updated_at = last_message?.created_at;
             conv.unread_count = (conv.unread_count ?? 0) + 1;
         }
@@ -678,13 +730,7 @@ async function markRead(conversationId) {
 function updateLastMessage(convId, msg) {
     const conv = conversations.value.find((c) => c.id === convId);
     if (conv) {
-        const body =
-            msg.type === "image" ? `[${__("chat.photo.label")}]` : msg.body;
-        conv.last_message = {
-            body,
-            sender_id: msg.sender_id,
-            created_at: msg.created_at,
-        };
+        conv.last_message = msg;
         conv.updated_at = msg.created_at;
     }
 }
@@ -882,21 +928,29 @@ async function confirmAddToOrder() {
 async function uploadAndSendImage(file) {
     if (!file || uploading.value || !activeConversation.value) return;
     uploading.value = true;
+
+    if (!(await ensureRealConversation())) {
+        uploading.value = false;
+        return;
+    }
+
+    const convId = activeConversation.value.id;
     try {
         const form = new FormData();
         form.append("file", file);
         const up = await axios.post(
-            route("conversations.upload", activeConversation.value.id),
+            route("conversations.upload", convId),
             form,
             { headers: { "Content-Type": "multipart/form-data" } },
         );
-        const res = await axios.post(
-            route("conversations.message", activeConversation.value.id),
-            { body: "", type: "image", metadata: { image_url: up.data.url } },
-        );
+        const res = await axios.post(route("conversations.message", convId), {
+            body: "",
+            type: "image",
+            metadata: { image_url: up.data.url },
+        });
         messages.value.push(res.data);
         scrollToBottom();
-        updateLastMessage(activeConversation.value.id, res.data);
+        updateLastMessage(convId, res.data);
     } finally {
         uploading.value = false;
     }
@@ -1201,6 +1255,26 @@ function silentClose() {
 defineExpose({ startWith, startConversation, openOrder, silentClose });
 
 // ── Helpers ──────────────────────────────────────────────
+function getMsgPreview(msg) {
+    if (!msg) return "";
+    if (msg.type === "image")
+        return `[${__("chat.photo.label") || "фото"}]`;
+    if (msg.type === "service_offer") return __("chat.msg.offer_label");
+    if (msg.type === "system") {
+        const ev = msg.metadata?.event;
+        if (ev === "order_created") return __("chat.msg.order_placed");
+        if (ev === "order_accepted") return __("chat.msg.order_accepted");
+        if (ev === "order_paid") return __("chat.msg.order_paid");
+        if (ev === "order_cancelled") return __("chat.msg.order_cancelled");
+        if (ev === "item_added") return __("chat.msg.order_updated");
+        if (ev === "chat_closed") return __("chat.status.closed");
+        if (ev === "chat_opened") return __("chat.status.open");
+        if (ev === "review_submitted") return __("chat.status.reviewed");
+        return "";
+    }
+    return msg.body || "";
+}
+
 function formatTime(iso) {
     if (!iso) return "";
     const loc = locale.value?.current === "ru" ? "ru-RU" : "en-US";
@@ -1472,7 +1546,9 @@ function formatDate(iso) {
                                             }}
                                         </div>
                                         <div class="chat-conv-preview">
-                                            {{ conv.last_message?.body ?? "" }}
+                                            {{
+                                                getMsgPreview(conv.last_message)
+                                            }}
                                         </div>
                                     </div>
                                     <div class="chat-conv-meta">
@@ -2089,10 +2165,10 @@ function formatDate(iso) {
                             <button
                                 v-if="
                                     !isSupport &&
+                                    !activeConversation.is_draft &&
                                     (!activeBlock?.active ||
                                         activeBlock?.i_am_blocker)
-                                "
-                                class="chat-lock-btn"
+                                "                                class="chat-lock-btn"
                                 :class="{
                                     'chat-lock-btn--active':
                                         activeBlock?.active &&
@@ -2423,23 +2499,9 @@ function formatDate(iso) {
                                                             class="sc-title sc-title--accept"
                                                         >
                                                             {{
-                                                                item.msg
-                                                                    .metadata
-                                                                    .idol_gender ===
-                                                                "male"
-                                                                    ? __(
-                                                                          "chat.msg.accept.male",
-                                                                      )
-                                                                    : item.msg
-                                                                            .metadata
-                                                                            .idol_gender ===
-                                                                        "female"
-                                                                      ? __(
-                                                                            "chat.msg.accept.female",
-                                                                        )
-                                                                      : __(
-                                                                            "chat.msg.accept.neutral",
-                                                                        )
+                                                                __(
+                                                                    "chat.msg.order_accepted",
+                                                                )
                                                             }}
                                                         </p>
                                                         <p class="sc-date">
