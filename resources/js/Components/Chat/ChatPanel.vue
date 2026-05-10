@@ -996,8 +996,9 @@ function clearConvSearch() {
 watch(
     () => page.url,
     (newUrl, oldUrl) => {
-        const stripQuery = (url) => url.split("?")[0].split("#")[0];
-        if (stripQuery(newUrl) !== stripQuery(oldUrl)) isOpen.value = false;
+        const normalize = (url) =>
+            url.split("?")[0].split("#")[0].replace(/\/+$/, "");
+        if (normalize(newUrl) !== normalize(oldUrl)) isOpen.value = false;
     },
 );
 

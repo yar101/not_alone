@@ -5,13 +5,32 @@ const modalStack = [];
 
 /**
  * Counter to ignore popstate events triggered by our own history.back() calls.
- * This prevents the global listener from incorrectly unwinding the stack
- * when returning to a state that was corrupted (e.g. by Inertia's router.reload).
  */
 let ignoreNextPopCount = 0;
 
-// Single global listener for browser back navigation
+/**
+ * Robust popstate listener.
+ */
 if (typeof window !== 'undefined') {
+    // ── Patch history.replaceState ──────────────────────────────────────────
+    // This is crucial. Inertia.js (and other SPA routers) frequently 
+    // call replaceState, which wipes our custom metadata from history.state.
+    // We intercept these calls and merge our data back in.
+    if (!window.__modalHistoryPatched) {
+        const originalReplaceState = history.replaceState;
+        history.replaceState = function (state, title, url) {
+            const currentState = history.state;
+            if (currentState?.__modalId && state && typeof state === 'object' && !state.__modalId) {
+                Object.assign(state, {
+                    __modalId: currentState.__modalId,
+                    modal: currentState.modal
+                });
+            }
+            return originalReplaceState.apply(this, [state, title, url]);
+        };
+        window.__modalHistoryPatched = true;
+    }
+
     window.addEventListener('popstate', (event) => {
         // If this navigation was triggered by our own manual close (history.back),
         // we just decrement the counter and skip our logic.
@@ -50,6 +69,10 @@ if (typeof window !== 'undefined') {
  * @param {string} [name='modal'] - Optional name for the history state.
  */
 export function useModalHistory(isOpen, name = 'modal') {
+    // Check if we are on mobile. History management is usually 
+    // only expected/safe on mobile devices for UI overlays.
+    const isMobile = () => typeof window !== 'undefined' && window.innerWidth <= 768;
+
     // Unique ID for this modal instance
     const id = Math.random().toString(36).substring(2, 11);
 
@@ -61,8 +84,9 @@ export function useModalHistory(isOpen, name = 'modal') {
     };
 
     const pushState = () => {
-        if (!modalContext.isPushed) {
-            // Push state with unique ID
+        // ONLY push state on mobile. Desktop users prefer the back button 
+        // to go to the previous page, not close an overlay.
+        if (!modalContext.isPushed && isMobile()) {
             history.pushState({ modal: name, __modalId: id }, '');
             modalContext.isPushed = true;
             modalStack.push(modalContext);
@@ -79,12 +103,13 @@ export function useModalHistory(isOpen, name = 'modal') {
                 modalStack.splice(index, 1);
             }
             
-            // Increment ignore counter so the upcoming popstate event
-            // doesn't trigger our global listener.
-            ignoreNextPopCount++;
-            
-            // Go back in history to remove the pushed state.
-            history.back();
+            // Only call history.back() if we are actually at the state we pushed.
+            // This prevents background navigation if Inertia or another script
+            // already replaced the state or navigated away.
+            if (history.state?.__modalId === id) {
+                ignoreNextPopCount++;
+                history.back();
+            }
         }
     };
 
