@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { router, usePage, Link } from "@inertiajs/vue3";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import { Head } from "@inertiajs/vue3";
@@ -201,6 +201,35 @@ function resetFilters() {
 }
 
 const mobileFiltersOpen = ref(false);
+const loading = ref(false);
+let startTime = 0;
+const MIN_LOADING_MS = 400;
+
+let removeStartHook = null;
+let removeFinishHook = null;
+
+onMounted(() => {
+    removeStartHook = router.on("start", (event) => {
+        const url = event.detail.visit.url;
+        // Если это поиск и это НЕ переход по страницам (пагинация)
+        if (url.pathname.includes("/search") && !url.searchParams.has("page")) {
+            loading.value = true;
+            startTime = Date.now();
+        }
+    });
+    removeFinishHook = router.on("finish", () => {
+        const elapsed = Date.now() - startTime;
+        const delay = Math.max(0, MIN_LOADING_MS - elapsed);
+        setTimeout(() => {
+            loading.value = false;
+        }, delay);
+    });
+});
+
+onUnmounted(() => {
+    if (removeStartHook) removeStartHook();
+    if (removeFinishHook) removeFinishHook();
+});
 
 function applyAndClose() {
     mobileFiltersOpen.value = false;
@@ -428,70 +457,80 @@ function initial(name) {
 
                 <!-- Cards -->
                 <div class="results-body">
-                    <div v-if="users.data.length > 0" class="user-grid">
-                        <Link
-                            v-for="user in users.data"
-                            :key="user.id"
-                            :href="
-                                route('profile.show', { user: user.id }) +
-                                '#about'
-                            "
-                            class="user-card"
-                        >
-                            <div class="card-avatar-wrap">
-                                <div class="card-avatar" :class="{ 'is-male': user.gender === 'male' }">
-                                    <img v-if="avatarUrl(user)" :src="avatarUrl(user)" :alt="__('common.avatar')"
-                                        class="card-avatar__img" />
-                                    <span v-else class="card-avatar__initials">{{ initial(user.name) }}</span>
-                                </div>
-                                <div class="card-avatar-badges">
-                                    <IdolBadge
-                                        v-if="user.is_idol"
-                                        class="card-idol-badge"
-                                    />
-                                    <span v-if="user.rating" class="card-rating"
-                                        >★ {{ user.rating }}</span
-                                    >
-                                </div>
+                    <Transition name="results-fade" mode="out-in">
+                        <div v-if="loading" key="loader" class="results-loading">
+                            <div class="glass-loader">
+                                <span class="dot"></span>
+                                <span class="dot"></span>
+                                <span class="dot"></span>
                             </div>
-                            <div class="card-body">
-                                <div class="card-name-row">
-                                    <div class="card-name">{{ user.name }}</div>
-                                </div>
-                                <div class="card-badges">
-                                    <span
-                                        v-if="user.gender"
-                                        class="card-badge"
-                                        :class="
-                                            user.gender === 'female'
-                                                ? 'card-badge--female'
-                                                : 'card-badge--male'
-                                        "
-                                        >{{
-                                            user.gender === "female"
-                                                ? "\u2640\uFE0F"
-                                                : "\u2642\uFE0F"
-                                        }}</span
-                                    >
-                                    <span
-                                        v-if="calcAge(user.birth_date)"
-                                        class="card-badge card-badge--age"
-                                        >{{ calcAge(user.birth_date) }}
-                                        {{
-                                            transChoice(
-                                                "search.age.years",
-                                                calcAge(user.birth_date),
-                                            )
-                                        }}</span
-                                    >
-                                </div>
-                            </div>
-                        </Link>
-                    </div>
+                        </div>
 
-                    <div v-else class="no-results">
-                        <p>{{ __("search.empty") }}</p>
-                    </div>
+                        <div v-else-if="users.data.length > 0" key="grid" class="user-grid">
+                            <Link
+                                v-for="user in users.data"
+                                :key="user.id"
+                                :href="
+                                    route('profile.show', { user: user.id }) +
+                                    '#about'
+                                "
+                                class="user-card"
+                            >
+                                <div class="card-avatar-wrap">
+                                    <div class="card-avatar" :class="{ 'is-male': user.gender === 'male' }">
+                                        <img v-if="avatarUrl(user)" :src="avatarUrl(user)" :alt="__('common.avatar')"
+                                            class="card-avatar__img" />
+                                        <span v-else class="card-avatar__initials">{{ initial(user.name) }}</span>
+                                    </div>
+                                    <div class="card-avatar-badges">
+                                        <IdolBadge
+                                            v-if="user.is_idol"
+                                            class="card-idol-badge"
+                                        />
+                                        <span v-if="user.rating" class="card-rating"
+                                            >★ {{ user.rating }}</span
+                                        >
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="card-name-row">
+                                        <div class="card-name">{{ user.name }}</div>
+                                    </div>
+                                    <div class="card-badges">
+                                        <span
+                                            v-if="user.gender"
+                                            class="card-badge"
+                                            :class="
+                                                user.gender === 'female'
+                                                    ? 'card-badge--female'
+                                                    : 'card-badge--male'
+                                            "
+                                            >{{
+                                                user.gender === "female"
+                                                    ? "\u2640\uFE0F"
+                                                    : "\u2642\uFE0F"
+                                            }}</span
+                                        >
+                                        <span
+                                            v-if="calcAge(user.birth_date)"
+                                            class="card-badge card-badge--age"
+                                            >{{ calcAge(user.birth_date) }}
+                                            {{
+                                                transChoice(
+                                                    "search.age.years",
+                                                    calcAge(user.birth_date),
+                                                )
+                                            }}</span
+                                        >
+                                    </div>
+                                </div>
+                            </Link>
+                        </div>
+
+                        <div v-else key="empty" class="no-results">
+                            <p>{{ __("search.empty") }}</p>
+                        </div>
+                    </Transition>
                 </div>
 
                 <!-- Pagination -->
@@ -796,6 +835,67 @@ function initial(name) {
     display: flex;
     flex-direction: column;
     justify-content: start;
+    position: relative;
+}
+
+/* ── Loading state ── */
+.results-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6rem 0;
+}
+
+.glass-loader {
+    display: flex;
+    gap: 8px;
+    padding: 1.5rem 2.5rem;
+    background: rgba(255, 178, 239, 0.05);
+    border: 1px solid rgba(255, 178, 239, 0.12);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.glass-loader .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--color-base-1);
+    box-shadow: 0 0 10px var(--color-base-1);
+    animation: dot-pulse 1.4s infinite ease-in-out both;
+}
+
+.glass-loader .dot:nth-child(2) {
+    animation-delay: 0.2s;
+    background: var(--color-base-2);
+    box-shadow: 0 0 10px var(--color-base-2);
+}
+
+.glass-loader .dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes dot-pulse {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+    40% { transform: scale(1.1); opacity: 1; }
+}
+
+/* ── Transitions ── */
+.results-fade-enter-active,
+.results-fade-leave-active {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.results-fade-enter-from {
+    opacity: 0;
+    transform: translateY(12px);
+}
+
+.results-fade-leave-to {
+    opacity: 0;
+    transform: translateY(-12px);
 }
 
 /* ── Sort bar ────────────────────────────────────────────── */
