@@ -1086,13 +1086,6 @@ async function openOrderConversation(order) {
     });
 }
 
-const acceptBtnText = computed(() => {
-    const gender = activeOrderData.value?.idol?.gender;
-    if (gender === "male") return __("chat.msg.accept.male");
-    if (gender === "female") return __("chat.msg.accept.female");
-    return __("chat.msg.accept.neutral");
-});
-
 function orderTotal(order) {
     return order.items.reduce(
         (s, i) => s + (i.service?.price ?? 0) * (i.quantity ?? 1),
@@ -3290,7 +3283,7 @@ function formatDate(iso) {
                                         :disabled="!!orderAction"
                                         @click="acceptModal = true"
                                     >
-                                        {{ acceptBtnText.toUpperCase() }}
+                                        {{ __("chat.btn.accept") }}
                                     </button>
                                     <button
                                         v-if="
@@ -3744,7 +3737,7 @@ function formatDate(iso) {
         @close="acceptModal = false"
     >
         <div class="cm-title cm-title--cyan">
-            {{ acceptBtnText.toUpperCase() }}
+            {{ __("chat.btn.accept") }}
         </div>
         <div class="cm-body">{{ __("chat.order.accept_confirm") }}</div>
         <div class="cm-perf">
