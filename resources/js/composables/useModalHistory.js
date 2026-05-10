@@ -33,7 +33,6 @@ if (typeof window !== 'undefined') {
 
     window.addEventListener('popstate', (event) => {
         const currentStateId = event.state?.__modalId;
-        const currentPath = window.location.pathname;
         
         // Unwind the stack until we find the modal matching the current state
         while (modalStack.length > 0) {
@@ -41,14 +40,6 @@ if (typeof window !== 'undefined') {
             
             // If the top modal matches the state ID we just arrived at, we found our place.
             if (topModal.id === currentStateId) {
-                break;
-            }
-            
-            // ── The Path-Aware Safety Net ───────────────────────────────────
-            // If the ID is missing (Inertia reload wiped it) but we are still 
-            // on the same page, DO NOT close the modals. The user didn't 
-            // actually navigate back; it was just a data reload.
-            if (!currentStateId && currentPath === topModal.path) {
                 break;
             }
             

@@ -5,6 +5,7 @@ import AvatarUploader from '@/Components/AvatarUploader.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
 import HelpModal from '@/Components/Site/HelpModal.vue';
 import { useTranslations } from '@/composables/useTranslations';
+import { useModalHistory } from '@/composables/useModalHistory';
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -15,6 +16,13 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const page = usePage();
+
+const isOpen = computed({
+    get: () => props.modelValue,
+    set: (v) => emit('update:modelValue', v),
+});
+
+useModalHistory(isOpen, 'usb');
 
 const ratingValue = computed(() => {
     const r = props.rating ?? props.user?.rating;
