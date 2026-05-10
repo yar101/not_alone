@@ -1479,7 +1479,7 @@ watch(selectedCategory, (cat) => {
                                     :options="
                                         (serviceCategories ?? []).map((c) => ({
                                             value: c.id,
-                                            label: c.name,
+                                            label: catName(c),
                                         }))
                                     "
                                     :placeholder="
