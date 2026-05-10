@@ -1165,11 +1165,33 @@ async function openOrder(orderId) {
     isOpen.value = true;
     activeTab.value = "orders";
     orderStatusFilter.value = "all";
-    await fetchOrders();
-    const order = orders.value.find((o) => o.id === orderId);
-    _skipSubTabFetch = true;
-    ordersSubTab.value = order?.is_customer === false ? "incoming" : "mine";
-    if (order) await openOrderConversation(order);
+
+    // Try current tab first
+    await fetchOrders(true);
+    let order = orders.value.find((o) => o.id == orderId);
+
+    // If not found and we are an idol, try the other tab
+    if (!order && authUser.value?.is_idol) {
+        const otherTab = ordersSubTab.value === "mine" ? "incoming" : "mine";
+        _skipSubTabFetch = true;
+        ordersSubTab.value = otherTab;
+        await fetchOrders(true);
+        order = orders.value.find((o) => o.id == orderId);
+    }
+
+    if (order) {
+        const targetTab = order.is_customer === false ? "incoming" : "mine";
+        if (ordersSubTab.value !== targetTab) {
+            _skipSubTabFetch = true;
+            ordersSubTab.value = targetTab;
+        } else {
+            // Ensure any previous poison is cleared
+            _skipSubTabFetch = false;
+        }
+        await openOrderConversation(order);
+    } else {
+        _skipSubTabFetch = false;
+    }
 }
 
 function silentClose() {
