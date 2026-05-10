@@ -22,30 +22,20 @@ class NewMessageNotification extends Notification
 
     public function toDatabase(object $notifiable): array
     {
+        $event      = $this->message->metadata['event'] ?? null;
         $senderName = $this->getSenderName();
-        $event = $this->message->metadata['event'] ?? null;
 
-        if ($this->message->type === 'system' && in_array($event, ['chat_opened', 'chat_closed'])) {
-            return [
-                'type'            => 'new_message',
-                'message_id'      => $this->message->id,
-                'conversation_id' => $this->message->conversation_id,
-                'sender_id'       => null,
-                'sender_name'     => __('chat.support'),
-                'message'         => __("notification.msg.$event"),
-                'title'           => __('notification.type.chat_status'),
-            ];
-        }
-
-        return [
+        $data = [
             'type'            => 'new_message',
             'message_id'      => $this->message->id,
             'conversation_id' => $this->message->conversation_id,
             'sender_id'       => $this->message->sender_id,
             'sender_name'     => $senderName,
-            'message'         => __('notification.msg.new_message', ['name' => $senderName]),
-            'title'           => __('notification.type.new_message'),
+            'message_type'    => $this->message->type,
+            'event'           => $event,
         ];
+
+        return $data;
     }
 
     public function toArray(object $notifiable): array
@@ -59,6 +49,9 @@ class NewMessageNotification extends Notification
         if ($this->message->type === 'system' && in_array($event, ['chat_opened', 'chat_closed'])) {
             return __('notification.type.chat_status');
         }
+        if ($this->message->type === 'support') {
+            return __('notification.type.support_message');
+        }
         return __('push.title.new_message');
     }
 
@@ -68,7 +61,8 @@ class NewMessageNotification extends Notification
         if ($this->message->type === 'system' && in_array($event, ['chat_opened', 'chat_closed'])) {
             return __("notification.msg.$event");
         }
-        return __('push.new_message', ['name' => $this->getSenderName()]);
+        $name = $this->message->type === 'support' ? 'NOT ALONE' : $this->getSenderName();
+        return __('push.new_message', ['name' => $name]);
     }
 
     protected function webPushUrl(): string
@@ -79,7 +73,7 @@ class NewMessageNotification extends Notification
     private function getSenderName(): string
     {
         if ($this->message->type === 'support') {
-            return __('chat.support');
+            return 'NOT ALONE';
         }
 
         return $this->message->sender?->name ?? __('nav.user');

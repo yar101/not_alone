@@ -22,9 +22,8 @@ class LowRatingWarningNotification extends Notification
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'    => 'low_rating_warning',
-            'title'   => 'Рейтинг упал ниже порога',
-            'message' => 'Ваш рейтинг упал ниже ' . $this->threshold . '. Рекомендуем снизить цены на услуги.',
+            'type'      => 'low_rating_warning',
+            'threshold' => $this->threshold,
         ];
     }
 

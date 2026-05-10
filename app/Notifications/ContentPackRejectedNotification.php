@@ -23,9 +23,9 @@ class ContentPackRejectedNotification extends Notification
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'    => 'content_pack_rejected',
-            'pack_id' => $this->pack->id,
-            'message' => 'Ваш пак «' . $this->pack->title . '» был отклонён администрацией.',
+            'type'       => 'content_pack_rejected',
+            'pack_id'    => $this->pack->id,
+            'pack_title' => $this->pack->title,
         ];
     }
 

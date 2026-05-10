@@ -24,11 +24,9 @@ class NewReviewNotification extends Notification
 
     public function toDatabase(object $notifiable): array
     {
-        $stars = str_repeat('★', $this->review->rating) . str_repeat('☆', 5 - $this->review->rating);
-
         return [
-            'type'    => 'new_review',
-            'message' => 'Вам оставили отзыв ' . $stars,
+            'type'   => 'new_review',
+            'rating' => $this->review->rating,
         ];
     }
 

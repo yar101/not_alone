@@ -23,9 +23,9 @@ class ContentPackApprovedNotification extends Notification
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'    => 'content_pack_approved',
-            'pack_id' => $this->pack->id,
-            'message' => 'Ваш пак «' . $this->pack->title . '» одобрен! Можно опубликовать.',
+            'type'       => 'content_pack_approved',
+            'pack_id'    => $this->pack->id,
+            'pack_title' => $this->pack->title,
         ];
     }
 

@@ -8,7 +8,7 @@ import {
     Promotion, Trophy, CircleClose,
     DocumentAdd, CircleCheckFilled, CircleCloseFilled,
     Coin, SuccessFilled, WarningFilled, Rank, Bell,
-    PictureFilled, StarFilled, ChatDotRound,
+    PictureFilled, StarFilled, ChatDotRound, Service,
 } from '@element-plus/icons-vue';
 
 import { useTranslations } from '@/composables/useTranslations';
@@ -82,9 +82,10 @@ async function markAllRead() {
         axios.patch(route('notifications.read-all')),
         axios.patch(route('notifications.service.read-all')),
         axios.patch(route('notifications.orders.read-all')),
+        axios.patch(route('notifications.messages.read-all')),
     ]);
     allItems.value.forEach(n => { n.read_at = n.read_at || new Date().toISOString(); });
-    router.reload({ only: ['notifications_unread', 'service_unread', 'order_notifications_unread'] });
+    router.reload({ only: ['notifications_unread', 'service_unread', 'order_notifications_unread', 'messages_notifications_unread'] });
 }
 
 function toggleDropdown() {
@@ -145,11 +146,40 @@ function closeOnOutside(e) {
     }
 }
 
-const activeFilter = ref('all');
+const STORAGE_KEY = 'notif_active_filters';
+const savedFilters = localStorage.getItem(STORAGE_KEY);
+const activeFilters = ref(savedFilters ? JSON.parse(savedFilters) : ['service', 'order']);
+
+watch(activeFilters, (val) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(val));
+}, { deep: true });
+
+function toggleFilter(filter) {
+    if (filter === 'all') {
+        activeFilters.value = ['all'];
+        return;
+    }
+
+    const index = activeFilters.value.indexOf('all');
+    if (index !== -1) {
+        activeFilters.value.splice(index, 1);
+    }
+
+    const filterIndex = activeFilters.value.indexOf(filter);
+    if (filterIndex === -1) {
+        activeFilters.value.push(filter);
+    } else {
+        activeFilters.value.splice(filterIndex, 1);
+    }
+
+    if (activeFilters.value.length === 0) {
+        activeFilters.value = ['all'];
+    }
+}
 
 const filteredItems = computed(() => {
-    if (activeFilter.value === 'all') return allItems.value;
-    return allItems.value.filter(n => n._cat === activeFilter.value);
+    if (activeFilters.value.includes('all')) return allItems.value;
+    return allItems.value.filter(n => activeFilters.value.includes(n._cat));
 });
 
 // Подгружаем следующие окна, пока в текущем фильтре нет элементов
@@ -159,27 +189,28 @@ async function autoFetchIfEmpty() {
     }
 }
 
-watch(activeFilter, autoFetchIfEmpty);
+watch(activeFilters, autoFetchIfEmpty, { deep: true });
 
 const totalUnread = computed(() =>
     (page.props.notifications_unread ?? 0) +
     (page.props.service_unread ?? 0) +
-    (page.props.order_notifications_unread ?? 0)
+    (page.props.order_notifications_unread ?? 0) +
+    (page.props.messages_notifications_unread ?? 0)
 );
 
-const serviceUnread = computed(() =>
-    (page.props.notifications_unread ?? 0) + (page.props.service_unread ?? 0)
-);
+const serviceUnread = computed(() => page.props.service_unread ?? 0);
 const orderUnread = computed(() => page.props.order_notifications_unread ?? 0);
+const messagesUnread = computed(() => page.props.messages_notifications_unread ?? 0);
+const personalUnread = computed(() => page.props.notifications_unread ?? 0);
 
 function reloadCounts() {
-    router.reload({ only: ['notifications_unread', 'service_unread', 'order_notifications_unread'] });
+    router.reload({ only: ['notifications_unread', 'service_unread', 'order_notifications_unread', 'messages_notifications_unread'] });
 }
 
 // ── Popup notifications ───────────────────────────────────
 const latestKnownAt = ref(null);
 
-function notifPopupTitle(item) {
+function getNotificationTitle(item) {
     if (item._cat === 'order') {
         return {
             order_created: __('notification.type.order_created'),
@@ -189,7 +220,14 @@ function notifPopupTitle(item) {
             order_completed: __('notification.type.order_completed'),
         }[item.type] ?? __('notification.type.order_created');
     }
-    if (item.title) return item.title;
+
+    const type = item.type;
+    const data = item.data || {};
+
+    if (type === 'admin_broadcast') {
+        return data.title_raw || item.title || __('notification.type.broadcast');
+    }
+
     return {
         content_pack_approved: __('notification.type.pack_approved'),
         content_pack_remarks: __('notification.type.pack_remarks'),
@@ -205,19 +243,95 @@ function notifPopupTitle(item) {
         review_dispute_approved: __('notification.type.dispute_approved'),
         review_dispute_rejected: __('notification.type.review_dispute_rejected'),
         new_review: __('notification.type.new_review'),
-        new_message: __('notification.type.new_message'),
-        }[item.type] ?? __('notification.type.default');
+        new_message: data.sender_id ? __('notification.type.new_message') : __('notification.type.support_message'),
+        chat_status: __('notification.type.chat_status'),
+    }[type] ?? __('notification.type.default');
+}
+
+function getNotificationMessage(item) {
+    if (item._cat === 'order') return orderMessage(item);
+
+    const type = item.type;
+    const data = item.data || {};
+    const params = { ...data };
+
+    if (type === 'admin_broadcast') {
+        return data.message_raw || item.message || '';
+    }
+
+    if (type === 'new_message') {
+        if (data.message_type === 'system' && data.event) {
+            return __(`notification.msg.${data.event}`);
+        }
+        return __('notification.msg.new_message', { name: data.sender_name || 'NOT ALONE' });
+    }
+
+    if (type === 'new_review') {
+        const rating = data.rating || 5;
+        params.stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+    }
+
+    if (type === 'admin_rating') {
+        params.delta = (data.delta > 0 ? '+' : '') + data.delta;
+        params.rating = data.new_rating;
+        params.note = data.note ? `${__('common.reason')}: ${data.note}` : '';
+    }
+
+    if (type === 'service_rejected') {
+        params.name = data.service_name;
+        params.reason = data.rejection_reason;
+    }
+
+    if (type === 'service_approved') {
+        params.name = data.service_name;
+    }
+
+    if (type === 'content_pack_approved' || type === 'content_pack_rejected' || type === 'content_pack_remarks' || type === 'content_pack_change_remarks') {
+        params.title = data.pack_title;
+    }
+
+    if (type === 'content_pack_change_approved') {
+        params.title = data.pack_title;
+        const fieldNames = (data.approved_fields || []).map(f => __('pack.field.' + f));
+        params.fields = fieldNames.join(', ');
+    }
+
+    if (type === 'content_pack_change_rejected') {
+        params.title = data.pack_title;
+        params.note = data.admin_comment ? `${__('common.reason')}: ${data.admin_comment}` : '';
+    }
+
+    if (type === 'idol_rejected') {
+        params.reason = data.reason;
+    }
+
+    if (type === 'review_dispute_approved' || type === 'review_dispute_rejected') {
+        params.note = data.admin_note ? `${__('common.reason')}: ${data.admin_note}` : '';
+    }
+
+    if (type === 'test') {
+        params.message = data.message_raw;
+    }
+
+    const msg = __(`notification.msg.${type}`, params);
+
+    // Fallback for old notifications or missing keys
+    if (msg === `notification.msg.${type}` && item.message) {
+        return item.message;
+    }
+
+    return msg;
+}
+
+function notifPopupTitle(item) {
+    return getNotificationTitle(item);
 }
 
 function renderNotif(item) {
     const iconComp = itemIconComponent(item);
     const iconClass = itemIconClass(item);
-    const title = notifPopupTitle(item);
-    let message = item._cat === 'order' ? orderMessage(item) : (item.message ?? '');
-
-    if (!message && item.type === 'new_message') {
-        message = __('notification.msg.new_message', { name: item.data?.sender_name || __('nav.user') });
-    }
+    const title = getNotificationTitle(item);
+    const message = getNotificationMessage(item);
 
     return { iconComp, iconClass, title, message };
 }
@@ -281,7 +395,10 @@ function itemIconComponent(item) {
             order_completed: SuccessFilled,
         }[item.type] ?? DocumentAdd;
     }
-    if (item._cat === 'service') {
+    if (item._cat === 'service' || item._cat === 'message') {
+        if (item.type === 'new_message' && !item.data?.sender_id) {
+            return Service;
+        }
         return {
             admin_broadcast: Promotion,
             idol_approved: Trophy,
@@ -311,7 +428,7 @@ function itemIconClass(item) {
         if (item.type === 'order_created') return 'icon--paid';
         return 'icon--default';
     }
-    if (item._cat === 'service') {
+    if (item._cat === 'service' || item._cat === 'message') {
         if (item.type === 'admin_broadcast') return 'icon--broadcast';
         if (item.type === 'idol_approved' || item.type === 'review_dispute_approved' || item.type === 'content_pack_approved' || item.type === 'content_pack_change_approved') return 'icon--success';
         if (item.type === 'idol_rejected' || item.type === 'review_dispute_rejected' || item.type === 'content_pack_remarks' || item.type === 'content_pack_change_remarks') return 'icon--warning';
@@ -423,23 +540,33 @@ defineExpose({ toggleDropdown });
                 <div class="notif-panel-header">
                     <span class="notif-panel-title">{{ __('notification.title') }}</span>
                     <div class="notif-filters">
-                        <button class="notif-filter-btn" :class="{ 'notif-filter-btn--active': activeFilter === 'all' }"
-                            @click="activeFilter = 'all'">
-                            {{ __('notification.tab.all') }}
-                            <span v-if="totalUnread > 0" class="notif-filter-dot"></span>
-                        </button>
-                        <button class="notif-filter-btn"
-                            :class="{ 'notif-filter-btn--active': activeFilter === 'service' }"
-                            @click="activeFilter = 'service'">
-                            {{ __('notification.tab.service') }}
-                            <span v-if="serviceUnread > 0" class="notif-filter-dot"></span>
-                        </button>
-                        <button class="notif-filter-btn"
-                            :class="{ 'notif-filter-btn--active': activeFilter === 'order' }"
-                            @click="activeFilter = 'order'">
-                            {{ __('notification.tab.orders') }}
-                            <span v-if="orderUnread > 0" class="notif-filter-dot"></span>
-                        </button>
+                        <div class="notif-filter-row">
+                            <button class="notif-filter-btn notif-filter-btn--all" :class="{ 'notif-filter-btn--active': activeFilters.includes('all') }"
+                                @click="toggleFilter('all')">
+                                {{ __('notification.tab.all') }}
+                                <span v-if="personalUnread > 0" class="notif-filter-dot"></span>
+                            </button>
+                        </div>
+                        <div class="notif-filter-row">
+                            <button class="notif-filter-btn"
+                                :class="{ 'notif-filter-btn--active': activeFilters.includes('service') }"
+                                @click="toggleFilter('service')">
+                                {{ __('notification.tab.service') }}
+                                <span v-if="serviceUnread > 0" class="notif-filter-dot"></span>
+                            </button>
+                            <button class="notif-filter-btn"
+                                :class="{ 'notif-filter-btn--active': activeFilters.includes('order') }"
+                                @click="toggleFilter('order')">
+                                {{ __('notification.tab.orders') }}
+                                <span v-if="orderUnread > 0" class="notif-filter-dot"></span>
+                            </button>
+                            <button class="notif-filter-btn"
+                                :class="{ 'notif-filter-btn--active': activeFilters.includes('message') }"
+                                @click="toggleFilter('message')">
+                                {{ __('notification.tab.messages') }}
+                                <span v-if="messagesUnread > 0" class="notif-filter-dot"></span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -496,18 +623,16 @@ defineExpose({ toggleDropdown });
                                             <component :is="itemIconComponent(item)" />
                                         </el-icon>
                                     </div>
-                                    <p v-if="item.title" class="notif-service-title">{{ item.title }}</p>
+                                    <p v-if="getNotificationTitle(item) && !['new_message', 'order_created', 'order_accepted', 'order_cancelled', 'order_paid', 'order_completed'].includes(item.type)" class="notif-service-title">{{ getNotificationTitle(item) }}</p>
                                     <p v-else class="notif-msg notif-msg--headline">
-                                        <template v-if="item._cat === 'order'">{{ orderMessage(item) }}</template>
-                                        <template v-else>{{ item.message }}</template>
+                                        {{ getNotificationMessage(item) }}
                                     </p>
                                     <span class="notif-cat-tag" :class="`cat--${item._cat}`">
-                                        {{ item._cat === 'personal' ? __('notification.tag.personal') : item._cat === 'service' ? __('notification.tag.service') : __('notification.tag.order') }}
+                                        {{ item._cat === 'personal' ? __('notification.tag.personal') : item._cat === 'service' ? __('notification.tag.service') : item._cat === 'order' ? __('notification.tag.order') : __('notification.tag.message') }}
                                     </span>
                                 </div>
-                                <p v-if="item.title" class="notif-msg notif-msg--sub">
-                                    <template v-if="item._cat === 'order'">{{ orderMessage(item) }}</template>
-                                    <template v-else>{{ item.message }}</template>
+                                <p v-if="getNotificationTitle(item) && !['new_message', 'order_created', 'order_accepted', 'order_cancelled', 'order_paid', 'order_completed'].includes(item.type)" class="notif-msg notif-msg--sub">
+                                    {{ getNotificationMessage(item) }}
                                 </p>
                                 <p v-if="item.reason" class="notif-reason">
                                     <span class="notif-reason--sub">{{ __('notification.reason') }}</span> {{ item.reason }}
@@ -542,23 +667,33 @@ defineExpose({ toggleDropdown });
                 <div class="notif-panel-header">
                     <span class="notif-panel-title">{{ __('notification.title') }}</span>
                     <div class="notif-filters">
-                        <button class="notif-filter-btn" :class="{ 'notif-filter-btn--active': activeFilter === 'all' }"
-                            @click="activeFilter = 'all'">
-                            {{ __('notification.tab.all') }}
-                            <span v-if="totalUnread > 0" class="notif-filter-dot"></span>
-                        </button>
-                        <button class="notif-filter-btn"
-                            :class="{ 'notif-filter-btn--active': activeFilter === 'service' }"
-                            @click="activeFilter = 'service'">
-                            {{ __('notification.tab.service') }}
-                            <span v-if="serviceUnread > 0" class="notif-filter-dot"></span>
-                        </button>
-                        <button class="notif-filter-btn"
-                            :class="{ 'notif-filter-btn--active': activeFilter === 'order' }"
-                            @click="activeFilter = 'order'">
-                            {{ __('notification.tab.orders') }}
-                            <span v-if="orderUnread > 0" class="notif-filter-dot"></span>
-                        </button>
+                        <div class="notif-filter-row">
+                            <button class="notif-filter-btn notif-filter-btn--all" :class="{ 'notif-filter-btn--active': activeFilters.includes('all') }"
+                                @click="toggleFilter('all')">
+                                {{ __('notification.tab.all') }}
+                                <span v-if="personalUnread > 0" class="notif-filter-dot"></span>
+                            </button>
+                        </div>
+                        <div class="notif-filter-row">
+                            <button class="notif-filter-btn"
+                                :class="{ 'notif-filter-btn--active': activeFilters.includes('service') }"
+                                @click="toggleFilter('service')">
+                                {{ __('notification.tab.service') }}
+                                <span v-if="serviceUnread > 0" class="notif-filter-dot"></span>
+                            </button>
+                            <button class="notif-filter-btn"
+                                :class="{ 'notif-filter-btn--active': activeFilters.includes('order') }"
+                                @click="toggleFilter('order')">
+                                {{ __('notification.tab.orders') }}
+                                <span v-if="orderUnread > 0" class="notif-filter-dot"></span>
+                            </button>
+                            <button class="notif-filter-btn"
+                                :class="{ 'notif-filter-btn--active': activeFilters.includes('message') }"
+                                @click="toggleFilter('message')">
+                                {{ __('notification.tab.messages') }}
+                                <span v-if="messagesUnread > 0" class="notif-filter-dot"></span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -609,18 +744,16 @@ defineExpose({ toggleDropdown });
                                         <div class="notif-icon-wrap" :class="itemIconClass(item)">
                                             <el-icon><component :is="itemIconComponent(item)" /></el-icon>
                                         </div>
-                                        <p v-if="item.title" class="notif-service-title">{{ item.title }}</p>
+                                        <p v-if="getNotificationTitle(item) && !['new_message', 'order_created', 'order_accepted', 'order_cancelled', 'order_paid', 'order_completed'].includes(item.type)" class="notif-service-title">{{ getNotificationTitle(item) }}</p>
                                         <p v-else class="notif-msg notif-msg--headline">
-                                            <template v-if="item._cat === 'order'">{{ orderMessage(item) }}</template>
-                                            <template v-else>{{ item.message }}</template>
+                                            {{ getNotificationMessage(item) }}
                                         </p>
                                         <span class="notif-cat-tag" :class="`cat--${item._cat}`">
-                                            {{ item._cat === 'personal' ? __('notification.tag.personal') : item._cat === 'service' ? __('notification.tag.service') : __('notification.tag.order') }}
+                                            {{ item._cat === 'personal' ? __('notification.tag.personal') : item._cat === 'service' ? __('notification.tag.service') : item._cat === 'order' ? __('notification.tag.order') : __('notification.tag.message') }}
                                         </span>
                                     </div>
-                                    <p v-if="item.title" class="notif-msg notif-msg--sub">
-                                        <template v-if="item._cat === 'order'">{{ orderMessage(item) }}</template>
-                                        <template v-else>{{ item.message }}</template>
+                                    <p v-if="getNotificationTitle(item) && !['new_message', 'order_created', 'order_accepted', 'order_cancelled', 'order_paid', 'order_completed'].includes(item.type)" class="notif-msg notif-msg--sub">
+                                        {{ getNotificationMessage(item) }}
                                     </p>
                                     <p v-if="item.reason" class="notif-reason">
                                         <span class="notif-reason--sub">{{ __('notification.reason') }}</span> {{ item.reason }}
@@ -748,24 +881,34 @@ defineExpose({ toggleDropdown });
 /* ── Panel header ── */
 .notif-panel-header {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    padding: 1rem 1.25rem 0.75rem;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
     border-bottom: 1px solid rgba(255, 178, 239, 0.15);
 }
 
 .notif-panel-title {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: rgba(255, 178, 239, 0.75);
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
 }
 
 /* ── Filter buttons ── */
 .notif-filters {
     display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.notif-filter-row {
+    display: flex;
+    justify-content: center;
     gap: 7px;
+    flex-wrap: wrap;
 }
 
 .notif-filter-btn {
@@ -776,23 +919,12 @@ defineExpose({ toggleDropdown });
     padding: 0.25rem 0.75rem;
     border-radius: 6px;
     background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     font-size: 0.88rem;
     color: rgba(255, 255, 255, 0.4);
     cursor: pointer;
     transition: all 0.15s;
     overflow: hidden;
-}
-
-.notif-filter-btn::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    border-radius: 6px 6px 0 0;
-    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.22) 50%, transparent 100%);
 }
 
 @media (hover: hover) {
@@ -806,12 +938,7 @@ defineExpose({ toggleDropdown });
     background: rgba(255, 178, 239, 0.22);
     border-color: rgba(255, 178, 239, 0.55);
     color: var(--color-base-1);
-    font-weight: 600;
     box-shadow: inset 0 1px 0 rgba(255, 178, 239, 0.25);
-}
-
-.notif-filter-btn--active::after {
-    background: linear-gradient(90deg, transparent 0%, rgba(255, 178, 239, 0.8) 50%, transparent 100%);
 }
 
 .notif-filter-dot {
@@ -1033,6 +1160,11 @@ defineExpose({ toggleDropdown });
 .cat--order {
     background: rgba(96, 165, 250, 0.1);
     color: rgba(96, 165, 250, 0.6);
+}
+
+.cat--message {
+    background: rgba(255, 178, 239, 0.12);
+    color: rgba(255, 178, 239, 0.7);
 }
 
 /* ── Empty state ── */
@@ -1304,8 +1436,7 @@ defineExpose({ toggleDropdown });
 
 .notif-fill-wrap > .notif-panel-header {
     flex-shrink: 0;
-    padding: 1rem 1.25rem 0.75rem;
-    padding-top: 2.5rem;
+    padding: 1rem 1.25rem;
 }
 
 .notif-fill-wrap > .push-banner {

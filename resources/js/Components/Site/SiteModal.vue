@@ -337,7 +337,7 @@ onUnmounted(() => {
     scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
     min-height: 0;
     padding: 2rem;
-    padding-top: 3rem;
+    padding-top: 1.5rem;
 }
 
 .site-modal-body--fill {
@@ -352,8 +352,7 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
     .site-modal-body {
-        padding: 1.25rem;
-        padding-top: 3rem;
+        padding: 0;
     }
     .site-modal-body--no-padding {
         padding: 0;

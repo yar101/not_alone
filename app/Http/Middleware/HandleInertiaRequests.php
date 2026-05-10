@@ -17,8 +17,9 @@ class HandleInertiaRequests extends Middleware
 {
     protected $rootView = 'app';
 
-    private const SERVICE_TYPES = ['idol_approved', 'idol_rejected', 'admin_broadcast', 'low_rating_warning', 'admin_rating', 'review_dispute_approved', 'review_dispute_rejected'];
-    private const ORDER_TYPES   = ['order_created', 'order_accepted', 'order_cancelled'];
+    private const SERVICE_TYPES = ['idol_approved', 'idol_rejected', 'admin_broadcast', 'low_rating_warning', 'admin_rating', 'review_dispute_approved', 'review_dispute_rejected', 'content_pack_approved', 'content_pack_remarks', 'content_pack_rejected', 'content_pack_change_approved', 'content_pack_change_remarks', 'content_pack_change_rejected'];
+    private const ORDER_TYPES   = ['order_created', 'order_accepted', 'order_cancelled', 'order_paid', 'order_completed'];
+    private const MESSAGE_TYPES = ['new_message'];
 
     public function version(Request $request): ?string
     {
@@ -44,6 +45,7 @@ class HandleInertiaRequests extends Middleware
             'notifications_unread' => $user ? $this->countUnreadNotifications($user) : 0,
             'service_unread' => $user ? $this->countUnreadService($user) : 0,
             'order_notifications_unread' => $user ? $this->countUnreadOrders($user) : 0,
+            'messages_notifications_unread' => $user ? $this->countUnreadMessages($user) : 0,
             'is_idol' => $user?->is_idol ?? false,
             'idol_status' => $idolStatus,
             'pending_applications_count' => fn() => auth('admin')->check()
@@ -99,7 +101,7 @@ class HandleInertiaRequests extends Middleware
 
     private function countUnreadNotifications($user): int
     {
-        $excluded = array_merge(self::SERVICE_TYPES, self::ORDER_TYPES);
+        $excluded = array_merge(self::SERVICE_TYPES, self::ORDER_TYPES, self::MESSAGE_TYPES);
         $placeholders = implode(',', array_fill(0, count($excluded), '?'));
         return $user->unreadNotifications()
             ->whereRaw("(data::jsonb->>'type') NOT IN ($placeholders)", $excluded)
@@ -108,9 +110,17 @@ class HandleInertiaRequests extends Middleware
 
     private function countUnreadService($user): int
     {
-        $placeholders = implode(',', array_fill(0, count(self::SERVICE_TYPES), '?'));
+        $servicePlaceholders = implode(',', array_fill(0, count(self::SERVICE_TYPES), '?'));
+        $messagePlaceholders = implode(',', array_fill(0, count(self::MESSAGE_TYPES), '?'));
+        
         return $user->unreadNotifications()
-            ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::SERVICE_TYPES)
+            ->where(function($q) use ($servicePlaceholders, $messagePlaceholders) {
+                $q->whereRaw("(data::jsonb->>'type') IN ($servicePlaceholders)", self::SERVICE_TYPES)
+                  ->orWhere(function($sq) use ($messagePlaceholders) {
+                      $sq->whereRaw("(data::jsonb->>'type') IN ($messagePlaceholders)", self::MESSAGE_TYPES)
+                         ->whereRaw("data::jsonb->>'sender_id' IS NULL");
+                  });
+            })
             ->count();
     }
 
@@ -119,6 +129,15 @@ class HandleInertiaRequests extends Middleware
         $placeholders = implode(',', array_fill(0, count(self::ORDER_TYPES), '?'));
         return $user->unreadNotifications()
             ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::ORDER_TYPES)
+            ->count();
+    }
+
+    private function countUnreadMessages($user): int
+    {
+        $placeholders = implode(',', array_fill(0, count(self::MESSAGE_TYPES), '?'));
+        return $user->unreadNotifications()
+            ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::MESSAGE_TYPES)
+            ->whereRaw("data::jsonb->>'sender_id' IS NOT NULL")
             ->count();
     }
 }

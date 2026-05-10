@@ -21,15 +21,9 @@ class ReviewDisputeRejectedNotification extends Notification
 
     public function toDatabase(object $notifiable): array
     {
-        $message = 'Ваша жалоба на отзыв отклонена.';
-        if ($this->adminNote) {
-            $message .= ' Комментарий администратора: ' . $this->adminNote;
-        }
-
         return [
-            'type'    => 'review_dispute_rejected',
-            'title'   => 'Жалоба на отзыв отклонена',
-            'message' => $message,
+            'type'       => 'review_dispute_rejected',
+            'admin_note' => $this->adminNote,
         ];
     }
 

@@ -26,7 +26,6 @@ class IdolRejectedNotification extends Notification
     {
         return [
             'type' => 'idol_rejected',
-            'message' => 'Ваша заявка на статус Айдола отклонена.',
             'reason' => $this->reason,
         ];
     }

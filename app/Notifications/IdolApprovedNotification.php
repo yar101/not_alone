@@ -22,7 +22,6 @@ class IdolApprovedNotification extends Notification
     {
         return [
             'type' => 'idol_approved',
-            'message' => 'Ваша заявка одобрена! Вы стали Айдолом 🎉',
         ];
     }
 

@@ -160,6 +160,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/notifications/service/read-all', [NotificationController::class, 'markAllServiceRead'])->name('notifications.service.read-all');
     Route::get('/notifications/orders', [NotificationController::class, 'orders'])->name('notifications.orders');
     Route::patch('/notifications/orders/read-all', [NotificationController::class, 'markAllOrdersRead'])->name('notifications.orders.read-all');
+    Route::patch('/notifications/messages/read-all', [NotificationController::class, 'markAllMessagesRead'])->name('notifications.messages.read-all');
     Route::get('/notifications/combined', [NotificationController::class, 'combined'])->name('notifications.combined');
     Route::patch('/broadcasts/{id}/read', [NotificationController::class, 'markBroadcastRead'])->name('broadcasts.read');
 });
@@ -167,6 +168,7 @@ Route::middleware('auth')->group(function () {
 // Chat / Conversations
 Route::middleware('auth')->group(function () {
     Route::get('/conversations', [ConversationController::class, 'index'])->name('conversations.index');
+    Route::get('/conversations/check/{user}', [ConversationController::class, 'check'])->name('conversations.check');
     Route::get('/conversations/{conversation}', [ConversationController::class, 'show'])->name('conversations.show');
 });
 Route::middleware(['auth', 'not_banned'])->group(function () {

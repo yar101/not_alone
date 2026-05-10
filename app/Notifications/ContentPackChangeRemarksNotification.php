@@ -25,9 +25,9 @@ class ContentPackChangeRemarksNotification extends Notification
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'    => 'content_pack_change_remarks',
-            'pack_id' => $this->pack->id,
-            'message' => 'По изменениям в паке «' . $this->pack->title . '» есть замечания — проверьте и исправьте.',
+            'type'       => 'content_pack_change_remarks',
+            'pack_id'    => $this->pack->id,
+            'pack_title' => $this->pack->title,
         ];
     }
 

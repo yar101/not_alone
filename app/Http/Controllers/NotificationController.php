@@ -7,8 +7,9 @@ use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
-    private const SERVICE_TYPES = ['idol_approved', 'idol_rejected', 'admin_broadcast', 'low_rating_warning', 'admin_rating', 'review_dispute_approved', 'review_dispute_rejected', 'content_pack_approved', 'content_pack_remarks', 'content_pack_rejected'];
+    private const SERVICE_TYPES = ['idol_approved', 'idol_rejected', 'admin_broadcast', 'low_rating_warning', 'admin_rating', 'review_dispute_approved', 'review_dispute_rejected', 'content_pack_approved', 'content_pack_remarks', 'content_pack_rejected', 'content_pack_change_approved', 'content_pack_change_remarks', 'content_pack_change_rejected'];
     private const ORDER_TYPES   = ['order_created', 'order_accepted', 'order_cancelled', 'order_paid', 'order_completed'];
+    private const MESSAGE_TYPES = ['new_message'];
     private const PER_PAGE      = 20;
 
     private function parseBefore(Request $request): ?Carbon
@@ -22,7 +23,7 @@ class NotificationController extends Controller
         $user   = $request->user();
         $before = $this->parseBefore($request);
 
-        $excluded     = array_merge(self::SERVICE_TYPES, self::ORDER_TYPES);
+        $excluded     = array_merge(self::SERVICE_TYPES, self::ORDER_TYPES, self::MESSAGE_TYPES);
         $placeholders = implode(',', array_fill(0, count($excluded), '?'));
 
         $rows = $user->notifications()
@@ -105,7 +106,15 @@ class NotificationController extends Controller
         $hasMore = $rows->count() > self::PER_PAGE;
         $items   = $rows->take(self::PER_PAGE)->map(function ($n) {
             $type = $n->data['type'] ?? 'info';
-            $cat  = in_array($type, self::ORDER_TYPES) ? 'order' : 'service';
+            
+            $cat = 'personal';
+            if (in_array($type, self::ORDER_TYPES)) {
+                $cat = 'order';
+            } elseif (in_array($type, self::MESSAGE_TYPES) && ($n->data['sender_id'] ?? null)) {
+                $cat = 'message';
+            } elseif (in_array($type, self::SERVICE_TYPES) || in_array($type, self::MESSAGE_TYPES)) {
+                $cat = 'service';
+            }
 
             $base = [
                 'id'         => $n->id,
@@ -179,7 +188,7 @@ class NotificationController extends Controller
     public function markAllRead(Request $request)
     {
         $user         = $request->user();
-        $excluded     = array_merge(self::SERVICE_TYPES, self::ORDER_TYPES);
+        $excluded     = array_merge(self::SERVICE_TYPES, self::ORDER_TYPES, self::MESSAGE_TYPES);
         $placeholders = implode(',', array_fill(0, count($excluded), '?'));
         $user->unreadNotifications()
             ->whereRaw("(data::jsonb->>'type') NOT IN ($placeholders)", $excluded)
@@ -203,10 +212,31 @@ class NotificationController extends Controller
 
     public function markAllServiceRead(Request $request)
     {
-        $user         = $request->user();
-        $placeholders = implode(',', array_fill(0, count(self::SERVICE_TYPES), '?'));
+        $user                = $request->user();
+        $servicePlaceholders = implode(',', array_fill(0, count(self::SERVICE_TYPES), '?'));
+        $messagePlaceholders = implode(',', array_fill(0, count(self::MESSAGE_TYPES), '?'));
+
         $user->unreadNotifications()
-            ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::SERVICE_TYPES)
+            ->where(function ($q) use ($servicePlaceholders, $messagePlaceholders) {
+                $q->whereRaw("(data::jsonb->>'type') IN ($servicePlaceholders)", self::SERVICE_TYPES)
+                    ->orWhere(function ($sq) use ($messagePlaceholders) {
+                        $sq->whereRaw("(data::jsonb->>'type') IN ($messagePlaceholders)", self::MESSAGE_TYPES)
+                            ->whereRaw("data::jsonb->>'sender_id' IS NULL");
+                    });
+            })
+            ->get()
+            ->each->markAsRead();
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function markAllMessagesRead(Request $request)
+    {
+        $user = $request->user();
+        $placeholders = implode(',', array_fill(0, count(self::MESSAGE_TYPES), '?'));
+        $user->unreadNotifications()
+            ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::MESSAGE_TYPES)
+            ->whereRaw("data::jsonb->>'sender_id' IS NOT NULL")
             ->get()
             ->each->markAsRead();
 

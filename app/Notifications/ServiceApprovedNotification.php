@@ -23,9 +23,9 @@ class ServiceApprovedNotification extends Notification
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'       => 'service_approved',
-            'service_id' => $this->service->id,
-            'message'    => 'Ваша услуга «' . $this->service->name . '» одобрена!',
+            'type'         => 'service_approved',
+            'service_id'   => $this->service->id,
+            'service_name' => $this->service->name,
         ];
     }
 

@@ -21,15 +21,9 @@ class ReviewDisputeApprovedNotification extends Notification
 
     public function toDatabase(object $notifiable): array
     {
-        $message = 'Ваша жалоба на отзыв одобрена — отзыв скрыт.';
-        if ($this->adminNote) {
-            $message .= ' Комментарий администратора: ' . $this->adminNote;
-        }
-
         return [
-            'type'    => 'review_dispute_approved',
-            'title'   => 'Жалоба на отзыв одобрена',
-            'message' => $message,
+            'type'       => 'review_dispute_approved',
+            'admin_note' => $this->adminNote,
         ];
     }
 

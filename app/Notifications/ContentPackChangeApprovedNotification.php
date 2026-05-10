@@ -25,19 +25,11 @@ class ContentPackChangeApprovedNotification extends Notification
 
     public function toDatabase(object $notifiable): array
     {
-        $fieldNames = array_map(fn ($f) => match ($f) {
-            'title'       => 'название',
-            'description' => 'описание',
-            'price'       => 'цена',
-            default       => $f,
-        }, $this->approvedFields);
-
-        $fieldsStr = implode(', ', $fieldNames);
-
         return [
-            'type'    => 'content_pack_change_approved',
-            'pack_id' => $this->pack->id,
-            'message' => 'Изменения в паке «' . $this->pack->title . '» одобрены: ' . $fieldsStr . '.',
+            'type'            => 'content_pack_change_approved',
+            'pack_id'         => $this->pack->id,
+            'pack_title'      => $this->pack->title,
+            'approved_fields' => $this->approvedFields,
         ];
     }
 

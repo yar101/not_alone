@@ -23,7 +23,7 @@ class TestNotification extends Notification
     {
         return [
             'type'    => 'test',
-            'message' => $this->message,
+            'message_raw' => $this->message,
         ];
     }
 

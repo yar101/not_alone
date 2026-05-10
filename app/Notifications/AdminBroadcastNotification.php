@@ -25,8 +25,8 @@ class AdminBroadcastNotification extends Notification
         return [
             'type'         => 'admin_broadcast',
             'broadcast_id' => $this->broadcast->id,
-            'title'        => $this->broadcast->title,
-            'message'      => $this->broadcast->body,
+            'title_raw'    => $this->broadcast->title,
+            'message_raw'  => $this->broadcast->body,
         ];
     }
 

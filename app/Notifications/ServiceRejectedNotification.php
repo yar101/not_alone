@@ -25,8 +25,8 @@ class ServiceRejectedNotification extends Notification
         return [
             'type'             => 'service_rejected',
             'service_id'       => $this->service->id,
+            'service_name'     => $this->service->name,
             'rejection_reason' => $this->service->rejection_reason,
-            'message'          => 'Ваша услуга «' . $this->service->name . '» была отклонена администрацией.',
         ];
     }
 

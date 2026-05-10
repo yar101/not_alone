@@ -25,15 +25,11 @@ class ContentPackChangeRejectedNotification extends Notification
 
     public function toDatabase(object $notifiable): array
     {
-        $message = 'Изменения в паке «' . $this->pack->title . '» отклонены.';
-        if ($this->adminComment) {
-            $message .= ' Комментарий: ' . $this->adminComment;
-        }
-
         return [
-            'type'    => 'content_pack_change_rejected',
-            'pack_id' => $this->pack->id,
-            'message' => $message,
+            'type'          => 'content_pack_change_rejected',
+            'pack_id'       => $this->pack->id,
+            'pack_title'    => $this->pack->title,
+            'admin_comment' => $this->adminComment,
         ];
     }
 
