@@ -4,11 +4,22 @@ import { watch, onUnmounted } from 'vue';
 const modalStack = [];
 
 /**
- * Robust popstate listener.
- * It ensures that when we navigate back, we only close modals that are no longer in the history.
+ * Counter to ignore popstate events triggered by our own history.back() calls.
+ * This prevents the global listener from incorrectly unwinding the stack
+ * when returning to a state that was corrupted (e.g. by Inertia's router.reload).
  */
+let ignoreNextPopCount = 0;
+
+// Single global listener for browser back navigation
 if (typeof window !== 'undefined') {
     window.addEventListener('popstate', (event) => {
+        // If this navigation was triggered by our own manual close (history.back),
+        // we just decrement the counter and skip our logic.
+        if (ignoreNextPopCount > 0) {
+            ignoreNextPopCount--;
+            return;
+        }
+
         const currentStateId = event.state?.__modalId;
         
         // Unwind the stack until we find the modal matching the current state
@@ -68,9 +79,11 @@ export function useModalHistory(isOpen, name = 'modal') {
                 modalStack.splice(index, 1);
             }
             
+            // Increment ignore counter so the upcoming popstate event
+            // doesn't trigger our global listener.
+            ignoreNextPopCount++;
+            
             // Go back in history to remove the pushed state.
-            // Note: This will trigger the global popstate listener, 
-            // but since we've already removed it from modalStack, it will be safe.
             history.back();
         }
     };
