@@ -2,6 +2,8 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useTranslations } from "@/composables/useTranslations";
 
+defineOptions({ inheritAttrs: false });
+
 const { __ } = useTranslations();
 
 const props = defineProps({
@@ -86,6 +88,7 @@ onUnmounted(() => document.removeEventListener("mousedown", onOutsideClick));
 <template>
     <div
         ref="triggerRef"
+        v-bind="$attrs"
         class="app-select"
         :class="{
             'app-select--open': isOpen,

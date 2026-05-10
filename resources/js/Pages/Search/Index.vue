@@ -6,11 +6,12 @@ import { Head } from "@inertiajs/vue3";
 import IdolBadge from "@/Components/IdolBadge.vue";
 import SiteModal from "@/Components/Site/SiteModal.vue";
 import SearchFilters from "@/Components/Search/SearchFilters.vue";
+import AppSelect from "@/Components/AppSelect.vue";
 import {
     ArrowLeft,
     ArrowRight,
-    ArrowUp,
-    ArrowDown,
+    SortUp,
+    SortDown,
 } from "@element-plus/icons-vue";
 import { useTranslations } from "@/composables/useTranslations";
 
@@ -219,6 +220,11 @@ function toggleSortDir() {
     f.value.sort_dir = f.value.sort_dir === "desc" ? "asc" : "desc";
 }
 
+const sortOptions = computed(() => [
+    { value: "rating", label: __("search.sort.rating") },
+    { value: "created_at", label: __("search.sort.date") },
+]);
+
 // ── Active chips ─────────────────────────────────────────────
 const activeChips = computed(() => {
     const chips = [];
@@ -379,27 +385,12 @@ function initial(name) {
                 <!-- Sort bar -->
                 <div class="sort-bar">
                     <div class="sort-controls">
-                        <span class="sort-label">{{
-                            __("search.sort_by")
-                        }}</span>
-                        <button
-                            :class="[
-                                'sort-btn',
-                                { active: f.sort_by === 'rating' },
-                            ]"
-                            @click="f.sort_by = 'rating'"
-                        >
-                            {{ __("search.sort.rating") }}
-                        </button>
-                        <button
-                            :class="[
-                                'sort-btn',
-                                { active: f.sort_by === 'created_at' },
-                            ]"
-                            @click="f.sort_by = 'created_at'"
-                        >
-                            {{ __("search.sort.date") }}
-                        </button>
+                        <span class="sort-label">{{ __("search.sort_by") }}</span>
+                        <AppSelect
+                            v-model="f.sort_by"
+                            :options="sortOptions"
+                            class="sort-select"
+                        />
                         <button
                             @click="toggleSortDir"
                             class="sort-dir-btn"
@@ -410,36 +401,29 @@ function initial(name) {
                             "
                         >
                             <el-icon
-                                ><ArrowDown
-                                    v-if="f.sort_dir === 'desc'" /><ArrowUp
+                                ><SortDown
+                                    v-if="f.sort_dir === 'desc'" /><SortUp
                                     v-else
                             /></el-icon>
                         </button>
                     </div>
-                    <div class="found-count">
-                        {{ __("search.found", { count: users.total }) }}
-                    </div>
-                    <button
-                        class="mobile-filters-toggle"
-                        @click="mobileFiltersOpen = !mobileFiltersOpen"
-                    >
-                        <svg
-                            width="15"
-                            height="15"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
+                    <div class="sort-bar-right">
+                        <div class="found-count">
+                            {{ __("search.found", { count: users.total }) }}
+                        </div>
+                        <button
+                            class="mobile-filters-toggle"
+                            @click="mobileFiltersOpen = !mobileFiltersOpen"
                         >
-                            <line x1="4" y1="6" x2="20" y2="6" />
-                            <line x1="8" y1="12" x2="16" y2="12" />
-                            <line x1="10" y1="18" x2="14" y2="18" />
-                        </svg>
-                        {{ __("search.filters.title") }}
-                        <span v-if="isDirty" class="mobile-filters-dot"></span>
-                    </button>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="4" y1="6" x2="20" y2="6" />
+                                <line x1="8" y1="12" x2="16" y2="12" />
+                                <line x1="10" y1="18" x2="14" y2="18" />
+                            </svg>
+                            {{ __("search.filters.title") }}
+                            <span v-if="isDirty" class="mobile-filters-dot"></span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Cards -->
@@ -803,7 +787,7 @@ function initial(name) {
     min-width: 0;
     height: 100%;
     overflow: hidden;
-    padding: 1.5rem;
+    padding: 0.5rem;
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
@@ -823,14 +807,14 @@ function initial(name) {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 0.75rem;
+    gap: 1rem;
+    padding: 1rem 1.25rem 0;
 }
 
 .sort-controls {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
 }
 
 .sort-label {
@@ -838,41 +822,34 @@ function initial(name) {
     color: rgba(255, 255, 255, 0.4);
 }
 
-.sort-btn {
-    padding: 0.35rem 0.75rem;
-    border-radius: 3px;
-    border: 1px solid rgba(255, 178, 239, 0.2);
-    background: transparent;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 0.88rem;
-    cursor: pointer;
-    transition: all 0.15s;
-    font-family: inherit;
-}
-
-.sort-btn:hover,
-.sort-btn.active {
-    border-color: rgba(255, 178, 239, 0.5);
-    color: #ffb2ef;
-    background: rgba(255, 178, 239, 0.1);
+.sort-select {
+    width: 180px;
 }
 
 .sort-dir-btn {
-    padding: 0.35rem 0.75rem;
+    padding: 0.58rem 0.75rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 3px;
-    border: 1px solid rgba(255, 178, 239, 0.2);
-    background: transparent;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 1.1rem;
     cursor: pointer;
     transition: all 0.15s;
-    font-family: inherit;
-    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 
 .sort-dir-btn:hover {
-    border-color: rgba(255, 178, 239, 0.5);
-    color: rgba(255, 255, 255, 0.9);
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.sort-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
 }
 
 .found-count {
@@ -1257,6 +1234,44 @@ function initial(name) {
 
     .user-grid {
         grid-template-columns: 1fr;
+    }
+
+    /* ── Mobile Sort Bar Redesign ── */
+    .sort-bar {
+        flex-direction: column-reverse;
+        align-items: stretch;
+        gap: 1rem;
+        padding: 1rem 1rem 0;
+    }
+
+    .sort-bar-right {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+    }
+
+    .sort-controls {
+        width: 100%;
+        flex-direction: row;
+        gap: 0.35rem;
+    }
+
+    .sort-label {
+        display: none;
+    }
+
+    .sort-select {
+        flex: 1;
+        width: auto;
+        padding: 0.5rem 0.4rem !important;
+        font-size: 0.82rem !important;
+    }
+
+    .sort-dir-btn {
+        flex: 0 0 44px;
+        padding: 0.5rem 0;
+        height: 38px;
     }
 }
 
