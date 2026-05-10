@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-import { Link } from '@inertiajs/vue3';
+import { usePage, Link } from '@inertiajs/vue3';
 import AvatarUploader from '@/Components/AvatarUploader.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
 import HelpModal from '@/Components/Site/HelpModal.vue';
@@ -13,6 +13,17 @@ const props = defineProps({
     rating:      { default: null },
 });
 const emit = defineEmits(['update:modelValue']);
+
+const page = usePage();
+
+const ratingValue = computed(() => {
+    const r = props.rating ?? props.user?.rating;
+    return r != null ? Number(r) : null;
+});
+const ratingLabel = computed(() => ratingValue.value ? Math.round(ratingValue.value).toString() : '0');
+
+const idolStatus = computed(() => page.props.idol_status);
+const showBecomeIdol = computed(() => !props.isIdol && idolStatus.value !== 'pending');
 
 function close() { emit('update:modelValue', false); }
 
@@ -64,22 +75,25 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
                         </svg>
                     </button>
 
-                    <AvatarUploader :user="user" :size="88" :editable="true" />
+                    <div class="usb-avatar-wrap">
+                        <AvatarUploader :user="user" :size="88" :editable="true" />
+                        
+                        <!-- Rating badge — only for idols -->
+                        <div v-if="isIdol && ratingValue != null" class="usb-rating-badge">
+                            <svg class="usb-rating-badge__star" width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                            </svg>
+                            <span class="usb-rating-badge__value">{{ ratingLabel }}</span>
+                        </div>
+                    </div>
 
                     <div class="usb-name">{{ user.name }}</div>
+
                     <div class="usb-badges">
                         <IdolBadge v-if="isIdol" />
                         <span v-if="user.gender" class="usb-badge" :class="'usb-badge--' + user.gender">{{ user.gender === 'female' ? '\u2640\uFE0F' : '\u2642\uFE0F' }}</span>
                         <span v-if="user.age" class="usb-badge usb-badge--age">{{ ageLabel(user.age) }}</span>
                         <span v-if="!isIdol && !user.gender && !user.age" class="usb-badge usb-badge--default">{{ __('nav.user') }}</span>
-                    </div>
-
-                    <!-- Rating block — only for idols -->
-                    <div v-if="isIdol && ratingValue != null" class="usb-rating">
-                        <svg class="usb-rating__star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                        </svg>
-                        <span class="usb-rating__value">{{ ratingLabel }}</span>
                     </div>
                 </div>
 
@@ -138,6 +152,13 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
                             </svg>
                         </div>
                         <span class="usb-feature-card__label">{{ __('nav.orders') }}</span>
+                    </Link>
+                </div>
+
+                <!-- Become idol button for non-idols -->
+                <div v-if="showBecomeIdol" class="usb-become-footer">
+                    <Link :href="route('idol.apply')" class="usb-become-btn" @click="closeForNav">
+                        {{ __('layout.become_idol') }}
                     </Link>
                 </div>
 
@@ -288,33 +309,79 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
     background: rgba(255, 178, 239, 0.06);
 }
 
-/* ── Rating ───────────────────────────────────────────────── */
-.usb-rating {
+/* Avatar wrap */
+.usb-avatar-wrap {
+    position: relative;
+    margin-bottom: 0.9rem;
+}
+
+/* ── Rating badge ── */
+.usb-rating-badge {
     position: absolute;
-    top: 1.15rem;
-    right: 1.15rem;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    padding: 0.22rem 0.6rem;
-    border-radius: 6px;
-    background: rgba(255, 178, 239, 0.08);
-    border: 1px solid rgba(255, 178, 239, 0.2);
+    gap: 0.2rem;
+    padding: 0.2rem 0.6rem;
+    background: rgba(20, 15, 30, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 178, 239, 0.4);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: var(--color-base-1);
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
     z-index: 1;
 }
 
-.usb-rating__star {
+.usb-rating-badge__star {
     color: var(--color-base-1);
-    flex-shrink: 0;
-    filter: drop-shadow(0 0 4px rgba(255, 178, 239, 0.3));
 }
 
-.usb-rating__value {
-    font-size: 0.88rem;
-    font-weight: 700;
-    color: var(--color-base-1);
-    letter-spacing: 0.02em;
+.usb-rating-badge__value {
     line-height: 1;
+}
+
+/* ── Become an idol button ── */
+.usb-become-footer {
+    padding: 0.5rem 1.5rem;
+    margin-top: auto;
+}
+
+.usb-become-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 0.55rem;
+    background: linear-gradient(135deg, rgba(255, 178, 239, 0.12) 0%, rgba(255, 178, 239, 0.05) 100%);
+    color: var(--color-base-1);
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-radius: 8px;
+    text-decoration: none;
+    border: none;
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transition: all 0.2s;
+}
+
+@media (hover: hover) {
+    .usb-become-btn:hover {
+        background: linear-gradient(135deg, rgba(255, 178, 239, 0.22) 0%, rgba(255, 178, 239, 0.1) 100%);
+        color: #fff;
+    }
+}
+
+.usb-become-btn:active {
+    transform: scale(0.98);
 }
 
 /* ── Nav ──────────────────────────────────────────────────── */
@@ -462,7 +529,6 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
     gap: 0.4rem;
     padding: 1rem 1.5rem;
     border-top: 1px solid rgba(255, 178, 239, 0.12);
-    margin-top: auto;
 }
 
 .usb-locale__btn {

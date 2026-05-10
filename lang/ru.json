@@ -404,7 +404,7 @@
     "chat.msg.order_paid": "ЗАКАЗ ОПЛАЧЕН",
     "chat.msg.order_accepted": "ЗАКАЗ ПРИНЯТ",
     "chat.msg.order_cancelled": "ЗАКАЗ ОТМЕНЁН",
-    "chat.msg.order_updated": "ЗАКАЗ ОБНОВЛЕНО",
+    "chat.msg.order_updated": "ЗАКАЗ ОБНОВЛЁН",
     "chat.msg.completed": "ВЫПОЛНЕНИЕ ПОДТВЕРЖДЕНО",
     "chat.msg.completed.idol": "Айдол подтвердил завершение заказа",
     "chat.msg.completed.customer": "Заказчик подтвердил завершение заказа",
