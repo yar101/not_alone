@@ -19,16 +19,25 @@ const page = usePage();
 const authUser = computed(() => page.props.auth?.user ?? null);
 
 const tab = ref(props.initialTab);
+const showLogoutConfirm = ref(false);
 
 watch(
     () => props.show,
     (val) => {
-        if (val) tab.value = props.initialTab;
+        if (val) {
+            tab.value = props.initialTab;
+            showLogoutConfirm.value = false;
+        }
     },
 );
 
 function switchTab(t) {
     tab.value = t;
+}
+
+function handleLogout() {
+    showLogoutConfirm.value = false;
+    router.post(route("logout"));
 }
 
 // ── Login Form ────────────────────────────────────────────
@@ -123,7 +132,7 @@ function submitRegister() {
                     <button
                         type="button"
                         class="auth-known-logout"
-                        @click="router.post(route('logout'))"
+                        @click="showLogoutConfirm = true"
                     >
                         {{ __("auth.logout") }}
                     </button>
@@ -654,6 +663,39 @@ function submitRegister() {
                 </div>
                 <!-- /.auth-tabs-wrapper -->
             </Transition>
+
+            <!-- Logout confirmation modal -->
+            <SiteModal
+                :show="showLogoutConfirm"
+                variant="pink"
+                :compact="true"
+                @close="showLogoutConfirm = false"
+            >
+                <div class="logout-confirm">
+                    <h3 class="logout-confirm__title">
+                        {{ __("auth.logout.confirm_title") }}
+                    </h3>
+                    <p class="logout-confirm__msg">
+                        {{ __("auth.logout.confirm_message") }}
+                    </p>
+
+                    <div class="logout-confirm__actions">
+                        <button
+                            class="logout-confirm__btn logout-confirm__btn--cancel"
+                            @click="showLogoutConfirm = false"
+                        >
+                            {{ __("common.cancel") }}
+                        </button>
+                        <button
+                            class="logout-confirm__btn logout-confirm__btn--danger"
+                            @click="handleLogout"
+                        >
+                            {{ __("auth.logout.confirm_btn") }}
+                        </button>
+                    </div>
+                </div>
+            </SiteModal>
+
             <div class="auth-locale-wrap">
                 <LocaleSwitcher />
             </div>
@@ -730,18 +772,96 @@ function submitRegister() {
 }
 
 .auth-known-logout {
-    background: none;
-    border: none;
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.25);
+    background: rgba(239, 68, 68, 0.04);
+    border: 1px solid rgba(239, 68, 68, 0.15);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: rgba(239, 68, 68, 0.5);
     cursor: pointer;
     font-family: inherit;
-    transition: color 0.2s ease;
-    padding: 0.25rem 0;
+    transition: all 0.25s ease;
+    padding: 0.4rem 1.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 500;
+    margin-top: 0.5rem;
 }
 
 .auth-known-logout:hover {
-    color: rgba(220, 100, 140, 0.7);
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: rgba(239, 68, 68, 0.8);
+}
+
+/* ── Logout confirm modal ── */
+.logout-confirm {
+    padding: 2rem 1.5rem;
+    text-align: center;
+}
+
+.logout-confirm__title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+    margin-bottom: 0.6rem;
+    letter-spacing: 0.02em;
+}
+
+.logout-confirm__msg {
+    font-size: 0.92rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 2rem;
+    line-height: 1.5;
+}
+
+.logout-confirm__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.logout-confirm__btn {
+    width: 100%;
+    padding: 0.8rem;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
+    border: 1px solid transparent;
+}
+
+.logout-confirm__btn--cancel {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.logout-confirm__btn--cancel:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.logout-confirm__btn--danger {
+    background: rgba(239, 68, 68, 0.06);
+    border-color: rgba(239, 68, 68, 0.2);
+    color: rgba(239, 68, 68, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.logout-confirm__btn--danger:hover {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: rgba(239, 68, 68, 0.9);
+    box-shadow: 0 8px 24px rgba(239, 68, 68, 0.15);
+}
+
+.logout-confirm__btn--danger:active {
+    transform: scale(0.98);
+    background: rgba(239, 68, 68, 0.15);
 }
 
 /* ── Tab switcher ──────────────────────────────────────── */
