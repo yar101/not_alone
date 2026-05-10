@@ -352,10 +352,11 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
     .site-modal-body {
-        padding: 0;
+        padding: 1.25rem;
+        padding-top: 1.5rem;
     }
     .site-modal-body--no-padding {
-        padding: 0;
+        padding: 0 !important;
     }
 }
 

@@ -662,7 +662,7 @@ defineExpose({ toggleDropdown });
         </Transition>
 
         <!-- Mobile: modal -->
-        <SiteModal v-if="isMobile" :show="open" variant="pink" compact fill @close="open = false">
+        <SiteModal v-if="isMobile" :show="open" variant="pink" compact fill no-padding @close="open = false">
             <div class="notif-fill-wrap">
                 <div class="notif-panel-header">
                     <span class="notif-panel-title">{{ __('notification.title') }}</span>
