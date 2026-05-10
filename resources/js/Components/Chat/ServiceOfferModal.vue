@@ -132,8 +132,24 @@ watch(() => props.modelValue, (val) => {
 
         <div class="sof-title">{{ __('chat.offer.title') }}</div>
 
-        <!-- Loading -->
-        <div v-if="loading" class="sof-empty">{{ __('common.loading') }}</div>
+        <!-- Skeleton Loading -->
+        <div v-if="loading" class="sof-skeleton">
+            <div v-if="!isMobile" class="sof-skeleton__desktop">
+                <div class="sof-skeleton__cats">
+                    <div v-for="i in 5" :key="i" class="sof-skeleton__cat skel-pulse" />
+                </div>
+                <div class="sof-skeleton__services">
+                    <div v-for="i in 4" :key="i" class="sof-skeleton__svc">
+                        <div class="sof-skeleton__check skel-pulse" />
+                        <div class="sof-skeleton__name skel-pulse" />
+                        <div class="sof-skeleton__price skel-pulse" />
+                    </div>
+                </div>
+            </div>
+            <div v-else class="sof-skeleton__mobile">
+                <div v-for="i in 6" :key="i" class="sof-skeleton__acc skel-pulse" />
+            </div>
+        </div>
 
         <!-- No services -->
         <div v-else-if="!categories.length" class="sof-empty">
@@ -298,6 +314,69 @@ watch(() => props.modelValue, (val) => {
     padding: 2rem 0;
     line-height: 1.7;
 }
+
+/* ── Skeleton ────────────────────────────────────────── */
+.sof-skeleton { margin-bottom: 1rem; }
+.sof-skeleton__desktop {
+    display: flex;
+    border: 1px solid rgba(255, 178, 239, 0.08);
+    border-radius: 8px;
+    height: 260px;
+    overflow: hidden;
+}
+.sof-skeleton__cats {
+    width: 180px;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 0.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.sof-skeleton__cat { height: 32px; width: 100%; border-radius: 4px; }
+.sof-skeleton__services {
+    flex: 1;
+    padding: 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.sof-skeleton__svc {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+.sof-skeleton__check { width: 18px; height: 18px; border-radius: 4px; flex-shrink: 0; }
+.sof-skeleton__name { height: 18px; flex: 1; border-radius: 4px; }
+.sof-skeleton__price { height: 18px; width: 60px; border-radius: 4px; }
+
+.sof-skeleton__mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    border: 1px solid rgba(255, 178, 239, 0.08);
+    border-radius: 8px;
+    overflow: hidden;
+}
+.sof-skeleton__acc { height: 48px; width: 100%; }
+
+.skel-pulse {
+    background: rgba(255, 255, 255, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+.skel-pulse::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.06) 50%, transparent 100%);
+    transform: translateX(-100%);
+    animation: skel-slide 1.5s ease-in-out infinite;
+}
+@keyframes skel-slide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
 .sof-empty__hint { font-size: 0.75rem; color: rgba(255,255,255,0.18); }
 
 /* ── Picker ──────────────────────────────────────────── */
