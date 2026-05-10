@@ -3,7 +3,6 @@ import { ref, computed, watch, inject, onMounted, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useTranslations } from '@/composables/useTranslations';
-import { useModalHistory } from '@/composables/useModalHistory';
 
 const { __ } = useTranslations();
 
@@ -39,8 +38,6 @@ const isOpen = computed({
     get: () => props.modelValue,
     set: (v) => emit('update:modelValue', v),
 });
-
-useModalHistory(isOpen, 'cart');
 
 const servicesTotal = computed(() =>
     servicesItems.value.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0)
@@ -88,10 +85,8 @@ async function createOrder() {
         });
         emit('clear-services');
         isOpen.value = false;
-        setTimeout(() => {
-            if (openOrder) openOrder(res.data.order_id);
-            router.reload({ only: ['order_notifications_unread'] });
-        }, 50);
+        if (openOrder) openOrder(res.data.order_id);
+        router.reload({ only: ['order_notifications_unread'] });
     } catch (e) {
         serviceError.value = e.response?.data?.error ?? __('cart.order.error');
     } finally {

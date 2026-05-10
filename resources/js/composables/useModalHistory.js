@@ -3,19 +3,28 @@ import { watch, onUnmounted } from 'vue';
 // Global stack to keep track of active modals (LIFO)
 const modalStack = [];
 
-// Single global listener for browser back navigation
+/**
+ * Robust popstate listener.
+ * It ensures that when we navigate back, we only close modals that are no longer in the history.
+ */
 if (typeof window !== 'undefined') {
     window.addEventListener('popstate', (event) => {
-        if (modalStack.length > 0) {
-            // Pop the top modal
-            const topModal = modalStack.pop();
+        const currentStateId = event.state?.__modalId;
+        
+        // Unwind the stack until we find the modal matching the current state
+        while (modalStack.length > 0) {
+            const topModal = modalStack[modalStack.length - 1];
             
-            // Mark it as not pushed so its watcher doesn't trigger history.back()
-            topModal.isPushed = false;
+            // If the top modal matches the state we just arrived at, stop.
+            if (topModal.id === currentStateId) {
+                break;
+            }
             
-            // Update the component's state to close it
-            if (topModal.setOpen) {
-                topModal.setOpen(false);
+            // Otherwise, this modal is no longer in the current history branch, so close it.
+            const modal = modalStack.pop();
+            modal.isPushed = false;
+            if (modal.setOpen) {
+                modal.setOpen(false);
             }
         }
     });
@@ -30,7 +39,11 @@ if (typeof window !== 'undefined') {
  * @param {string} [name='modal'] - Optional name for the history state.
  */
 export function useModalHistory(isOpen, name = 'modal') {
+    // Unique ID for this modal instance
+    const id = Math.random().toString(36).substring(2, 11);
+
     const modalContext = {
+        id,
         name,
         isPushed: false,
         setOpen: (val) => { isOpen.value = val; }
@@ -38,7 +51,8 @@ export function useModalHistory(isOpen, name = 'modal') {
 
     const pushState = () => {
         if (!modalContext.isPushed) {
-            history.pushState({ modal: name }, '');
+            // Push state with unique ID
+            history.pushState({ modal: name, __modalId: id }, '');
             modalContext.isPushed = true;
             modalStack.push(modalContext);
         }
@@ -48,13 +62,15 @@ export function useModalHistory(isOpen, name = 'modal') {
         if (modalContext.isPushed) {
             modalContext.isPushed = false;
             
-            // Remove from stack
+            // Remove from stack if it's still there
             const index = modalStack.indexOf(modalContext);
             if (index !== -1) {
                 modalStack.splice(index, 1);
             }
             
-            // Go back in history to remove the pushed state
+            // Go back in history to remove the pushed state.
+            // Note: This will trigger the global popstate listener, 
+            // but since we've already removed it from modalStack, it will be safe.
             history.back();
         }
     };
