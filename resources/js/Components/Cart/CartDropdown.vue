@@ -88,8 +88,10 @@ async function createOrder() {
         });
         emit('clear-services');
         isOpen.value = false;
-        if (openOrder) openOrder(res.data.order_id);
-        router.reload({ only: ['order_notifications_unread'] });
+        setTimeout(() => {
+            if (openOrder) openOrder(res.data.order_id);
+            router.reload({ only: ['order_notifications_unread'] });
+        }, 50);
     } catch (e) {
         serviceError.value = e.response?.data?.error ?? __('cart.order.error');
     } finally {
