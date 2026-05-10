@@ -603,23 +603,27 @@ function initial(name) {
                 @reset-chip="resetChip"
             />
 
-            <!-- Сбросить / Применить -->
-            <div class="mf-actions">
-                <button
-                    type="button"
-                    @click.stop="resetAndClose"
-                    class="reset-btn"
-                >
-                    {{ __("search.filters.reset") }}
-                </button>
-                <button
-                    type="button"
-                    class="apply-btn"
-                    @click.stop="applyAndClose"
-                >
-                    {{ __("search.filters.apply") }}
-                </button>
-            </div>
+            <!-- Сброс (всегда в контенте) -->
+            <button
+                type="button"
+                @click.stop="resetAndClose"
+                class="reset-btn mf-reset-btn"
+            >
+                {{ __("search.filters.reset") }}
+            </button>
+
+            <!-- Липкая кнопка Применить -->
+            <Transition name="slide-up">
+                <div v-if="isDirty" class="mf-footer">
+                    <button
+                        type="button"
+                        class="apply-btn"
+                        @click.stop="applyAndClose"
+                    >
+                        {{ __("search.filters.apply") }}
+                    </button>
+                </div>
+            </Transition>
         </div>
     </SiteModal>
 </template>
@@ -1321,17 +1325,24 @@ function initial(name) {
     text-transform: uppercase;
 }
 
-.mf-actions {
+.mf-reset-btn {
+    margin-top: 0.5rem;
+}
+
+.mf-footer {
+    position: sticky;
+    bottom: -1.25rem;
+    margin: 1rem -1.25rem -1.25rem;
+    padding: 1rem 1.25rem;
+    background: rgba(10, 10, 20, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255, 178, 239, 0.15);
+    z-index: 10;
     display: flex;
-    gap: 0.75rem;
-    padding-top: 0.5rem;
 }
 
-.mf-actions .apply-btn {
+.mf-footer .apply-btn {
     flex: 1;
-}
-
-.mf-actions .reset-btn {
-    align-self: auto;
 }
 </style>
