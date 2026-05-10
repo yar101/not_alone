@@ -1420,7 +1420,10 @@ function formatDate(iso) {
                                     }"
                                     @click="openConversation(conv)"
                                 >
-                                    <div class="chat-conv-avatar">
+                                    <div
+                                        class="chat-conv-avatar"
+                                        :class="{ 'is-male': conv.other_user?.gender === 'male' }"
+                                    >
                                         <template v-if="conv.is_support">
                                             <span class="chat-support-icon"
                                                 >✦</span
@@ -1810,14 +1813,9 @@ function formatDate(iso) {
                                         <div class="order-stub__head">
                                             <div
                                                 class="chat-conv-avatar chat-conv-avatar--sm"
+                                                :class="{ 'is-male': (order.is_customer ? order.idol : order.customer).gender === 'male' }"
                                             >
-                                                <img
-                                                    v-if="
-                                                        (order.is_customer
-                                                            ? order.idol
-                                                            : order.customer
-                                                        ).avatar_url
-                                                    "
+                                                <img v-if="(order.is_customer ? order.idol : order.customer).avatar_url"
                                                     :src="
                                                         (order.is_customer
                                                             ? order.idol
@@ -1988,6 +1986,7 @@ function formatDate(iso) {
                                     :class="{
                                         'chat-conv-avatar--clickable':
                                             !isSupport,
+                                        'is-male': activeConversation?.other_user?.gender === 'male'
                                     }"
                                     @click="
                                         !isSupport && (avatarFullscreen = true)
@@ -3851,7 +3850,7 @@ function formatDate(iso) {
                         class="avatar-fs-img"
                         :alt="activeConversation.other_user?.name"
                     />
-                    <div v-else class="avatar-fs-placeholder">
+                    <div v-else class="avatar-fs-placeholder" :class="{ 'is-male': activeConversation?.other_user?.gender === 'male' }">
                         <span class="avatar-fs-initial">{{
                             activeConversation?.other_user?.name
                                 ?.charAt(0)
@@ -4213,6 +4212,12 @@ function formatDate(iso) {
     color: #ffb2ef;
     font-weight: 700;
     font-size: 1.05rem;
+}
+
+.chat-conv-avatar.is-male {
+    background: rgba(100, 210, 255, 0.15);
+    border-color: rgba(100, 210, 255, 0.3);
+    color: var(--color-base-2);
 }
 
 .chat-conv-avatar--sm {
@@ -4920,11 +4925,20 @@ function formatDate(iso) {
     gap: 0.75rem;
 }
 
+.avatar-fs-placeholder.is-male {
+    background: rgba(100, 210, 255, 0.15);
+    border-color: rgba(100, 210, 255, 0.3);
+}
+
 .avatar-fs-initial {
     font-size: clamp(4rem, 15vw, 8rem);
     font-weight: 700;
     color: rgba(255, 178, 239, 0.85);
     line-height: 1;
+}
+
+.avatar-fs-placeholder.is-male .avatar-fs-initial {
+    color: rgba(100, 210, 255, 0.85);
 }
 
 .avatar-fs-noavatar {

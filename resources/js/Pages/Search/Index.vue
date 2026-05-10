@@ -439,18 +439,10 @@ function initial(name) {
                             class="user-card"
                         >
                             <div class="card-avatar-wrap">
-                                <div class="card-avatar">
-                                    <img
-                                        v-if="avatarUrl(user)"
-                                        :src="avatarUrl(user)"
-                                        :alt="__('common.avatar')"
-                                        class="card-avatar__img"
-                                    />
-                                    <span
-                                        v-else
-                                        class="card-avatar__initials"
-                                        >{{ initial(user.name) }}</span
-                                    >
+                                <div class="card-avatar" :class="{ 'is-male': user.gender === 'male' }">
+                                    <img v-if="avatarUrl(user)" :src="avatarUrl(user)" :alt="__('common.avatar')"
+                                        class="card-avatar__img" />
+                                    <span v-else class="card-avatar__initials">{{ initial(user.name) }}</span>
                                 </div>
                                 <div class="card-avatar-badges">
                                     <IdolBadge
@@ -945,6 +937,15 @@ function initial(name) {
     border-color: rgba(255, 178, 239, 0.5);
 }
 
+.card-avatar.is-male {
+    background: rgba(100, 210, 255, 0.12);
+    border-color: rgba(100, 210, 255, 0.3);
+}
+
+.user-card:hover .card-avatar.is-male {
+    border-color: rgba(100, 210, 255, 0.5);
+}
+
 .card-avatar__img {
     width: 100%;
     height: 100%;
@@ -956,6 +957,11 @@ function initial(name) {
     font-weight: 600;
     color: var(--color-base-1);
     text-shadow: 0 0 20px rgba(255, 178, 239, 0.4);
+}
+
+.card-avatar.is-male .card-avatar__initials {
+    color: var(--color-base-2);
+    text-shadow: 0 0 20px rgba(100, 210, 255, 0.4);
 }
 
 .card-avatar-badges {

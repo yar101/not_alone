@@ -80,7 +80,7 @@ function applyCrop() {
     <div
         class="au-wrap"
         :style="{ width: size + 'px', height: size + 'px' }"
-        :class="{ 'au-wrap--editable': editable }"
+        :class="{ 'au-wrap--editable': editable, 'is-male': user?.gender === 'male' }"
         @click="openUpload"
     >
         <template v-if="user.avatar_url">
@@ -150,6 +150,10 @@ function applyCrop() {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.au-wrap.is-male {
+    --color-base-1: var(--color-base-2);
 }
 
 .au-wrap--editable {

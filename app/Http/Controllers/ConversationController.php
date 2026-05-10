@@ -100,8 +100,8 @@ class ConversationController extends Controller
                     'name'       => $other->name,
                     'avatar_url' => $other->avatar_url,
                     'is_idol'    => $other->is_idol,
-                ] : null,
-                'last_message' => $conversation->lastMessage ? [
+                    'gender'     => $other->gender,
+                    ] : null,                'last_message' => $conversation->lastMessage ? [
                     'body'       => $conversation->lastMessage->type === 'image' ? '[фото]' : $conversation->lastMessage->body,
                     'sender_id'  => $conversation->lastMessage->sender_id,
                     'created_at' => $conversation->lastMessage->created_at?->toISOString(),
@@ -211,8 +211,8 @@ class ConversationController extends Controller
                 'name'       => $other->name,
                 'avatar_url' => $other->avatar_url,
                 'is_idol'    => $other->is_idol,
-            ] : null,
-            'other_last_read_at' => $otherParticipant?->last_read_at?->toISOString(),
+                'gender'     => $other->gender,
+                ] : null,            'other_last_read_at' => $otherParticipant?->last_read_at?->toISOString(),
             'has_more'           => $hasMore,
             'block'              => $this->blockStatus($conversation, $user),
             'order'              => $orderData,

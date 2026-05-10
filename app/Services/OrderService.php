@@ -275,6 +275,7 @@ class OrderService
                 'id'         => $order->customer->id,
                 'name'       => $order->customer->name,
                 'avatar_url' => $order->customer->avatar_url,
+                'gender'     => $order->customer->gender,
             ],
             'idol' => [
                 'id'         => $order->idol->id,

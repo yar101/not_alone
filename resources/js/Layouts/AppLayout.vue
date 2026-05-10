@@ -264,7 +264,7 @@ onUnmounted(() => {
 
                 <template v-if="user">
                     <button @click="sidebarOpen = true" class="user-chip">
-                        <div class="user-avatar">
+                        <div class="user-avatar" :class="{ 'is-male': user.gender === 'male' }">
                             <template v-if="user.avatar_url">
                                 <div v-if="!avatarLoaded" class="user-avatar__shimmer" />
                                 <img
@@ -379,14 +379,18 @@ onUnmounted(() => {
     position: relative;
     width: 36px;
     height: 36px;
-    border-radius: 50%;
+    border-radius: 8px;
     overflow: hidden;
-    flex-shrink: 0;
     background: color-mix(in srgb, var(--color-base-1), transparent 85%);
     border: 1.5px solid color-mix(in srgb, var(--color-base-1), transparent 50%);
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
+}
+
+.user-avatar.is-male {
+    --color-base-1: var(--color-base-2);
 }
 
 .user-avatar__img {
