@@ -1273,6 +1273,29 @@ function initial(name) {
         padding: 0.5rem 0;
         height: 38px;
     }
+
+    .pagination {
+        gap: 0.25rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .page-btn {
+        min-width: 32px;
+        height: 32px;
+        font-size: 0.82rem;
+        padding: 0 0.2rem;
+    }
+    .page-btn .el-icon {
+        font-size: 1.1rem;
+    }
+    .page-btn:first-child,
+    .page-btn:last-child {
+        min-width: 44px;
+    }
+    .page-ellipsis {
+        min-width: 24px;
+        height: 32px;
+    }
 }
 
 /* ── Mobile filters modal content ────────────────────────── */
