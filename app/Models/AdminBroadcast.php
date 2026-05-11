@@ -3,10 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Translatable\HasTranslations;
 
 class AdminBroadcast extends Model
 {
+    use HasTranslations;
+
     protected $fillable = ['admin_id', 'title', 'body', 'target', 'target_user_id', 'target_filters'];
+
+    public array $translatable = ['title', 'body'];
 
     protected function casts(): array
     {

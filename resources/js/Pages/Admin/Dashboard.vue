@@ -119,7 +119,7 @@ const targetLabel = {
                     </thead>
                     <tbody>
                         <tr v-for="b in recent_broadcasts" :key="b.id">
-                            <td class="broadcast-title">{{ b.title }}</td>
+                            <td class="broadcast-title">{{ b.title_text }}</td>
                             <td class="muted">{{ targetLabel[b.target] ?? b.target }}</td>
                             <td class="muted">{{ formatDate(b.created_at) }}</td>
                         </tr>

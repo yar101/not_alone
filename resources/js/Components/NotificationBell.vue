@@ -225,7 +225,9 @@ function getNotificationTitle(item) {
     const data = item.data || {};
 
     if (type === 'admin_broadcast') {
-        return data.title_raw || item.title || __('notification.type.broadcast');
+        const currentLocale = locale.value?.current ?? 'ru';
+        const fallbackLocale = 'ru';
+        return data.title_locales?.[currentLocale] || data.title_locales?.[fallbackLocale] || data.title_raw || item.title || __('notification.type.broadcast');
     }
 
     return {
@@ -256,7 +258,9 @@ function getNotificationMessage(item) {
     const params = { ...data };
 
     if (type === 'admin_broadcast') {
-        return data.message_raw || item.message || '';
+        const currentLocale = locale.value?.current ?? 'ru';
+        const fallbackLocale = 'ru';
+        return data.body_locales?.[currentLocale] || data.body_locales?.[fallbackLocale] || data.message_raw || item.message || '';
     }
 
     if (type === 'new_message') {
@@ -384,6 +388,7 @@ function relativeTime(dateStr) {
     const loc = locale.value?.current === 'ru' ? 'ru' : 'en';
     return new Date(dateStr).toLocaleDateString(loc, { day: 'numeric', month: 'short' });
 }
+
 
 function itemIconComponent(item) {
     if (item._cat === 'order') {

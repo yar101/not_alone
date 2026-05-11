@@ -15,6 +15,9 @@ class LocaleController extends Controller
 
         if (in_array($locale, $available)) {
             Session::put('locale', $locale);
+            if (auth()->check()) {
+                auth()->user()->update(['locale' => $locale]);
+            }
         }
 
         return Redirect::back();

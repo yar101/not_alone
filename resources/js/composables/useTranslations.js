@@ -66,9 +66,13 @@ export function useTranslations() {
         if (locale.value?.available?.[newLocale]) {
             localeLoading.value = true;
             router.post('/locale', { locale: newLocale }, {
-                preserveState: true,
                 preserveScroll: true,
-                onFinish: () => { setTimeout(() => { localeLoading.value = false; }, 900); },
+                onSuccess: () => {
+                    window.location.reload();
+                },
+                onError: () => {
+                    localeLoading.value = false;
+                },
             });
         }
     };

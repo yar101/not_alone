@@ -4,6 +4,7 @@ import { useForm } from '@inertiajs/vue3';
 import AppSelect from '@/Components/AppSelect.vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import UserPickerModal from '@/Components/Admin/UserPickerModal.vue';
+import AdminModal from '@/Components/Admin/AdminModal.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
 const { transChoice } = useTranslations();
@@ -15,12 +16,14 @@ const props = defineProps({
 });
 
 const form = useForm({
-    title: '',
-    body: '',
+    title: { ru: '', en: '' },
+    body: { ru: '', en: '' },
     target: 'all',
     target_user_id: '',
     target_filters: null,
 });
+
+const activeLang = ref('ru');
 
 const targetOptions = [
     { value: 'all',      label: 'Все пользователи' },
@@ -113,17 +116,39 @@ function targetLabel(b) {
         <!-- Create form -->
         <div class="compose-card">
             <h2 class="compose-title">Новая рассылка</h2>
+
+            <div class="lang-switcher">
+                <button type="button" class="lang-tab" :class="{ active: activeLang === 'ru' }" @click="activeLang = 'ru'">RU</button>
+                <button type="button" class="lang-tab" :class="{ active: activeLang === 'en' }" @click="activeLang = 'en'">EN</button>
+            </div>
+
             <form @submit.prevent="submit" class="compose-form">
-                <div class="field">
-                    <label class="field-label">Заголовок</label>
-                    <input v-model="form.title" class="field-input" placeholder="Заголовок сообщения" required />
-                    <p v-if="form.errors.title" class="field-error">{{ form.errors.title }}</p>
+                <div v-show="activeLang === 'ru'" class="lang-section">
+                    <div class="field">
+                        <label class="field-label">Заголовок (RU)</label>
+                        <input v-model="form.title.ru" class="field-input" placeholder="Заголовок на русском" :required="activeLang === 'ru'" />
+                        <p v-if="form.errors['title.ru']" class="field-error">{{ form.errors['title.ru'] }}</p>
+                    </div>
+                    <div class="field">
+                        <label class="field-label">Сообщение (RU)</label>
+                        <textarea v-model="form.body.ru" class="field-textarea" rows="5" placeholder="Текст на русском..." :required="activeLang === 'ru'" />
+                        <p v-if="form.errors['body.ru']" class="field-error">{{ form.errors['body.ru'] }}</p>
+                    </div>
                 </div>
-                <div class="field">
-                    <label class="field-label">Сообщение</label>
-                    <textarea v-model="form.body" class="field-textarea" rows="5" placeholder="Текст сообщения..." required />
-                    <p v-if="form.errors.body" class="field-error">{{ form.errors.body }}</p>
+
+                <div v-show="activeLang === 'en'" class="lang-section">
+                    <div class="field">
+                        <label class="field-label">Заголовок (EN)</label>
+                        <input v-model="form.title.en" class="field-input" placeholder="Title in English" :required="activeLang === 'en'" />
+                        <p v-if="form.errors['title.en']" class="field-error">{{ form.errors['title.en'] }}</p>
+                    </div>
+                    <div class="field">
+                        <label class="field-label">Сообщение (EN)</label>
+                        <textarea v-model="form.body.en" class="field-textarea" rows="5" placeholder="Message in English..." :required="activeLang === 'en'" />
+                        <p v-if="form.errors['body.en']" class="field-error">{{ form.errors['body.en'] }}</p>
+                    </div>
                 </div>
+
                 <div class="field">
                     <label class="field-label">Получатели</label>
                     <AppSelect
@@ -195,7 +220,12 @@ function targetLabel(b) {
                         <tr v-for="b in broadcasts" :key="b.id" class="bcast-row">
                             <td class="col-num bcast-id">{{ b.id }}</td>
                             <td class="col-date bcast-date">{{ formatDateShort(b.created_at) }}</td>
-                            <td class="col-title bcast-title">{{ b.title }}</td>
+                            <td class="col-title bcast-title">
+                                <div class="bcast-title-langs">
+                                    <span class="bcast-title-ru">{{ b.title.ru }}</span>
+                                    <span class="bcast-title-en">{{ b.title.en }}</span>
+                                </div>
+                            </td>
                             <td class="col-target">
                                 <span class="sent-target" :class="{
                                     'target--all': b.target === 'all',
@@ -214,61 +244,75 @@ function targetLabel(b) {
         </div>
 
         <!-- Detail Modal -->
-        <Teleport to="body">
-            <div v-if="detailBroadcast" class="modal-backdrop" @click.self="detailBroadcast = null">
-                <div class="modal modal--detail">
-                    <div class="modal-header">
-                        <h3 class="modal-title">Рассылка #{{ detailBroadcast.id }}</h3>
-                        <button class="modal-close" @click="detailBroadcast = null">✕</button>
+        <AdminModal
+            :show="!!detailBroadcast"
+            :title="detailBroadcast ? `Рассылка #${detailBroadcast.id}` : ''"
+            @close="detailBroadcast = null"
+            :max-width="'800px'"
+            :no-padding="true"
+        >
+            <div class="detail-body" v-if="detailBroadcast">
+                <div class="detail-langs">
+                    <div class="detail-lang-col">
+                        <div class="detail-section">
+                            <p class="detail-label">Заголовок (RU)</p>
+                            <p class="detail-value detail-headline">{{ detailBroadcast.title.ru }}</p>
+                        </div>
+                        <div class="detail-section">
+                            <p class="detail-label">Текст (RU)</p>
+                            <p class="detail-value detail-text">{{ detailBroadcast.body.ru }}</p>
+                        </div>
                     </div>
-                    <div class="detail-body">
+                    <div class="detail-lang-divider"></div>
+                    <div class="detail-lang-col">
                         <div class="detail-section">
-                            <p class="detail-label">Заголовок</p>
-                            <p class="detail-value detail-headline">{{ detailBroadcast.title }}</p>
+                            <p class="detail-label">Заголовок (EN)</p>
+                            <p class="detail-value detail-headline">{{ detailBroadcast.title.en }}</p>
                         </div>
                         <div class="detail-section">
-                            <p class="detail-label">Текст</p>
-                            <p class="detail-value detail-text">{{ detailBroadcast.body }}</p>
-                        </div>
-                        <div class="detail-section">
-                            <p class="detail-label">Получатели</p>
-                            <div class="detail-value">
-                                <template v-if="detailBroadcast.target === 'all'">
-                                    <span class="sent-target target--all">Все пользователи</span>
-                                </template>
-                                <template v-else-if="detailBroadcast.target === 'user'">
-                                    <div v-if="detailBroadcast.target_user" class="detail-user">
-                                        <span class="detail-user-name">{{ detailBroadcast.target_user.name || '—' }}</span>
-                                        <span class="detail-user-email">{{ detailBroadcast.target_user.email }}</span>
-                                    </div>
-                                    <span v-else class="sent-target target--user">#{{ detailBroadcast.target_user_id }}</span>
-                                </template>
-                                <template v-else-if="detailBroadcast.target === 'filtered'">
-                                    <div v-if="detailBroadcast.target_filters && Object.keys(detailBroadcast.target_filters).length" class="filter-tags">
-                                        <span
-                                            v-for="(val, key) in detailBroadcast.target_filters"
-                                            :key="key"
-                                            class="filter-tag"
-                                        >{{ filterLabel(key, val) }}</span>
-                                    </div>
-                                    <span v-else class="detail-muted">без фильтров — все пользователи</span>
-                                </template>
-                            </div>
-                        </div>
-                        <div class="detail-section detail-meta-row">
-                            <div>
-                                <p class="detail-label">Отправил</p>
-                                <p class="detail-value">{{ detailBroadcast.admin.name }}</p>
-                            </div>
-                            <div>
-                                <p class="detail-label">Дата отправки</p>
-                                <p class="detail-value">{{ formatDate(detailBroadcast.created_at) }}</p>
-                            </div>
+                            <p class="detail-label">Текст (EN)</p>
+                            <p class="detail-value detail-text">{{ detailBroadcast.body.en }}</p>
                         </div>
                     </div>
                 </div>
+
+                <div class="detail-section">
+                    <p class="detail-label">Получатели</p>
+                    <div class="detail-value">
+                        <template v-if="detailBroadcast.target === 'all'">
+                            <span class="sent-target target--all">Все пользователи</span>
+                        </template>
+                        <template v-else-if="detailBroadcast.target === 'user'">
+                            <div v-if="detailBroadcast.target_user" class="detail-user">
+                                <span class="detail-user-name">{{ detailBroadcast.target_user.name || '—' }}</span>
+                                <span class="detail-user-email">{{ detailBroadcast.target_user.email }}</span>
+                            </div>
+                            <span v-else class="sent-target target--user">#{{ detailBroadcast.target_user_id }}</span>
+                        </template>
+                        <template v-else-if="detailBroadcast.target === 'filtered'">
+                            <div v-if="detailBroadcast.target_filters && Object.keys(detailBroadcast.target_filters).length" class="filter-tags">
+                                <span
+                                    v-for="(val, key) in detailBroadcast.target_filters"
+                                    :key="key"
+                                    class="filter-tag"
+                                >{{ filterLabel(key, val) }}</span>
+                            </div>
+                            <span v-else class="detail-muted">без фильтров — все пользователи</span>
+                        </template>
+                    </div>
+                </div>
+                <div class="detail-section detail-meta-row">
+                    <div>
+                        <p class="detail-label">Отправил</p>
+                        <p class="detail-value">{{ detailBroadcast.admin.name }}</p>
+                    </div>
+                    <div>
+                        <p class="detail-label">Дата отправки</p>
+                        <p class="detail-value">{{ formatDate(detailBroadcast.created_at) }}</p>
+                    </div>
+                </div>
             </div>
-        </Teleport>
+        </AdminModal>
 
         <!-- Пикер: конкретный пользователь -->
         <UserPickerModal
@@ -299,6 +343,16 @@ function targetLabel(b) {
     max-width: 600px;
 }
 .compose-title { font-size: 1rem; color: rgba(255,255,255,0.8); margin: 0 0 1.25rem; font-weight: 600; }
+
+.lang-switcher { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; }
+.lang-tab {
+    padding: 0.35rem 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.4); font-size: 0.75rem; font-weight: 700; cursor: pointer; border-radius: 4px;
+}
+.lang-tab.active { background: rgba(155,110,232,0.15); border-color: rgba(155,110,232,0.4); color: #9B6EE8; }
+
+.lang-section { display: flex; flex-direction: column; gap: 1rem; }
+
 .compose-form { display: flex; flex-direction: column; gap: 1rem; }
 .field { display: flex; flex-direction: column; gap: 0.3rem; }
 .field-label { font-size: 0.78rem; color: rgba(255,255,255,0.4); letter-spacing: 0.04em; text-transform: uppercase; }
@@ -374,7 +428,7 @@ function targetLabel(b) {
 .btn-pick:hover { background: rgba(155,110,232,0.22); }
 
 /* Sent section */
-.sent-section { max-width: 900px; }
+.sent-section { max-width: 1000px; }
 .sent-title { font-size: 1rem; color: rgba(255,255,255,0.6); margin: 0 0 1rem; }
 .sent-empty { color: rgba(255,255,255,0.3); font-size: 0.85rem; }
 
@@ -394,13 +448,15 @@ function targetLabel(b) {
 .broadcasts-table td { padding: 0.6rem 0.9rem; color: rgba(255,255,255,0.75); vertical-align: middle; }
 .col-num { width: 48px; }
 .col-date { width: 90px; white-space: nowrap; }
-.col-title { max-width: 220px; }
+.col-title { max-width: 300px; }
 .col-target { width: 140px; }
 .col-admin { width: 120px; white-space: nowrap; }
 .col-action { width: 48px; text-align: center; }
 .bcast-id { color: rgba(255,255,255,0.25); font-size: 0.78rem; }
 .bcast-date { color: rgba(255,255,255,0.35); font-size: 0.78rem; }
-.bcast-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bcast-title-langs { display: flex; flex-direction: column; gap: 0.2rem; }
+.bcast-title-ru { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bcast-title-en { display: block; font-size: 0.75rem; color: rgba(255,255,255,0.35); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bcast-admin { color: rgba(255,255,255,0.4); font-size: 0.8rem; }
 
 .sent-target { font-size: 0.72rem; padding: 0.12rem 0.5rem; white-space: nowrap; display: inline-block; font-weight: 600; letter-spacing: 0.03em; }
@@ -417,18 +473,63 @@ function targetLabel(b) {
 }
 .btn-detail:hover { background: rgba(155,110,232,0.15); border-color: rgba(155,110,232,0.45); color: #9B6EE8; }
 
-/* Detail modal */
-.modal--detail { max-width: 520px; }
-.detail-body { padding: 1.25rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.25rem; }
-.detail-section { display: flex; flex-direction: column; gap: 0.3rem; }
-.detail-label { font-size: 0.7rem; color: rgba(255,255,255,0.3); margin: 0; text-transform: uppercase; letter-spacing: 0.06em; }
-.detail-value { font-size: 0.9rem; color: rgba(255,255,255,0.85); margin: 0; }
-.detail-headline { font-weight: 600; }
-.detail-text { white-space: pre-wrap; line-height: 1.6; color: rgba(255,255,255,0.65); font-size: 0.85rem; }
-.detail-meta-row { flex-direction: row; gap: 2rem; }
-.detail-muted { font-size: 0.82rem; color: rgba(255,255,255,0.3); }
+/* Detail Modal Content */
+.detail-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+.detail-langs { display: flex; gap: 2rem; }
+.detail-lang-col { flex: 1; display: flex; flex-direction: column; gap: 1.25rem; }
+.detail-lang-divider { width: 1px; background: rgba(255, 255, 255, 0.08); }
+
+.detail-section { display: flex; flex-direction: column; gap: 0.35rem; }
+.detail-label { 
+    font-size: 0.72rem; 
+    color: rgba(255, 255, 255, 0.35); 
+    margin: 0; 
+    text-transform: uppercase; 
+    letter-spacing: 0.06em; 
+    font-weight: 600;
+}
+.detail-value { font-size: 0.92rem; color: rgba(255, 255, 255, 0.85); margin: 0; }
+.detail-headline { 
+    font-weight: 700; 
+    font-size: 1.05rem; 
+    color: #fff;
+    line-height: 1.4;
+}
+.detail-text { 
+    white-space: pre-wrap; 
+    line-height: 1.6; 
+    color: rgba(255, 255, 255, 0.7); 
+    font-size: 0.88rem;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.detail-meta-row { 
+    display: flex;
+    flex-direction: row; 
+    gap: 2.5rem; 
+    border-top: 1px solid rgba(255, 255, 255, 0.08); 
+    padding-top: 1.25rem; 
+    margin-top: 0.5rem;
+}
+.detail-muted { font-size: 0.82rem; color: rgba(255, 255, 255, 0.3); }
 .detail-user { display: flex; flex-direction: column; gap: 0.15rem; }
-.detail-user-name { font-size: 0.88rem; color: #fff; }
-.detail-user-email { font-size: 0.78rem; color: rgba(255,255,255,0.4); }
+.detail-user-name { font-size: 0.92rem; color: #fff; font-weight: 600; }
+.detail-user-email { font-size: 0.8rem; color: rgba(255, 255, 255, 0.4); }
+
+@media (max-width: 640px) {
+    .detail-langs { flex-direction: column; gap: 1.5rem; }
+    .detail-lang-divider { height: 1px; width: 100%; }
+    .detail-body { padding: 1rem; }
+    .detail-meta-row { gap: 1.5rem; flex-wrap: wrap; }
+}
 
 </style>
+

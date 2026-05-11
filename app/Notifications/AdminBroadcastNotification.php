@@ -22,21 +22,26 @@ class AdminBroadcastNotification extends Notification
 
     public function toDatabase($notifiable): array
     {
+        $locale = $notifiable->locale ?? config('app.locale');
         return [
-            'type'         => 'admin_broadcast',
-            'broadcast_id' => $this->broadcast->id,
-            'title_raw'    => $this->broadcast->title,
-            'message_raw'  => $this->broadcast->body,
+            'type'          => 'admin_broadcast',
+            'broadcast_id'  => $this->broadcast->id,
+            'title_raw'     => $this->broadcast->getTranslation('title', $locale),
+            'message_raw'   => $this->broadcast->getTranslation('body', $locale),
+            'title_locales' => $this->broadcast->getTranslations('title'),
+            'body_locales'  => $this->broadcast->getTranslations('body'),
         ];
     }
 
     protected function webPushTitle(): string
     {
-        return $this->broadcast->title;
+        $locale = $this->notifiable->locale ?? config('app.locale');
+        return $this->broadcast->getTranslation('title', $locale);
     }
 
     protected function webPushBody(): string
     {
-        return __('push.admin_broadcast', ['message' => $this->broadcast->body]);
+        $locale = $this->notifiable->locale ?? config('app.locale');
+        return __('push.admin_broadcast', ['message' => $this->broadcast->getTranslation('body', $locale)], $locale);
     }
 }

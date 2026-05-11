@@ -31,6 +31,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'timezone',
         'profile_checklist_snoozed_until',
         'email',
+        'locale',
         'password',
         'is_idol',
         'rating',
