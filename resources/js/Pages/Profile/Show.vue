@@ -1107,6 +1107,23 @@ onMounted(async () => {
     transform: translateY(-1px);
 }
 
+@media (max-width: 600px) {
+    .idol-cta-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1.25rem;
+        padding: 1.5rem;
+        min-height: auto;
+    }
+    .idol-cta-title {
+        font-size: 1.15rem;
+    }
+    .idol-cta-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
 
 .sidebar-actions {
     display: flex;

@@ -2586,5 +2586,22 @@ const ownerSortOptions = computed(() => [
         0 4px 18px rgba(0, 0, 0, 0.25);
     transform: translateY(-1px);
 }
+
+@media (max-width: 600px) {
+    .pc-idol-cta-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1.25rem;
+        padding: 1.5rem;
+        min-height: auto;
+    }
+    .pc-idol-cta-title {
+        font-size: 1.15rem;
+    }
+    .pc-idol-cta-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
 </style>
 
