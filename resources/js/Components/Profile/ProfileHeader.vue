@@ -483,9 +483,9 @@ function deleteAvatar() {
 }
 
 .meta-badge--male {
-    border-color: color-mix(in srgb, var(--color-base-1), transparent 70%);
-    background: color-mix(in srgb, var(--color-base-1), transparent 94%);
-    color: color-mix(in srgb, var(--color-base-1), white 10%);
+    border-color: rgba(100, 210, 255, 0.25);
+    background: rgba(100, 210, 255, 0.05);
+    color: rgba(100, 210, 255, 0.8);
 }
 
 .meta-badge--age {
@@ -507,10 +507,7 @@ function deleteAvatar() {
     display: flex;
     align-items: center;
     gap: 0.3rem;
-    padding: 0.4rem 0.75rem 0.4rem 0.55rem;
-    background: color-mix(in srgb, var(--color-base-1), transparent 94%);
-    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 72%);
-    border-radius: 3px;
+    padding: 0;
 }
 
 .star-img {
