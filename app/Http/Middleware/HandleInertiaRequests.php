@@ -17,7 +17,13 @@ class HandleInertiaRequests extends Middleware
 {
     protected $rootView = 'app';
 
-    private const SERVICE_TYPES = ['idol_approved', 'idol_rejected', 'admin_broadcast', 'low_rating_warning', 'admin_rating', 'review_dispute_approved', 'review_dispute_rejected', 'content_pack_approved', 'content_pack_remarks', 'content_pack_rejected', 'content_pack_change_approved', 'content_pack_change_remarks', 'content_pack_change_rejected'];
+    private const SERVICE_TYPES = [
+        'idol_approved', 'idol_rejected', 'admin_broadcast', 'low_rating_warning', 'admin_rating',
+        'review_dispute_approved', 'review_dispute_rejected', 'content_pack_approved',
+        'content_pack_remarks', 'content_pack_rejected', 'content_pack_change_approved',
+        'content_pack_change_remarks', 'content_pack_change_rejected',
+        'service_approved', 'service_rejected', 'test', 'chat_status', 'new_review'
+    ];
     private const ORDER_TYPES   = ['order_created', 'order_accepted', 'order_cancelled', 'order_paid', 'order_completed'];
     private const MESSAGE_TYPES = ['new_message'];
 
@@ -113,7 +119,8 @@ class HandleInertiaRequests extends Middleware
         $servicePlaceholders = implode(',', array_fill(0, count(self::SERVICE_TYPES), '?'));
         $messagePlaceholders = implode(',', array_fill(0, count(self::MESSAGE_TYPES), '?'));
         
-        return $user->unreadNotifications()
+        // 1. Считаем персональные уведомления
+        $count = $user->unreadNotifications()
             ->where(function($q) use ($servicePlaceholders, $messagePlaceholders) {
                 $q->whereRaw("(data::jsonb->>'type') IN ($servicePlaceholders)", self::SERVICE_TYPES)
                   ->orWhere(function($sq) use ($messagePlaceholders) {
@@ -122,6 +129,14 @@ class HandleInertiaRequests extends Middleware
                   });
             })
             ->count();
+
+        // 2. Считаем общие рассылки, которые пользователь еще не читал
+        $broadcastsCount = \App\Models\AdminBroadcast::where('target', '!=', 'user')
+            ->forUser($user)
+            ->whereDoesntHave('reads', fn($q) => $q->where('user_id', $user->id))
+            ->count();
+
+        return $count + $broadcastsCount;
     }
 
     private function countUnreadOrders($user): int

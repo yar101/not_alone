@@ -76,25 +76,37 @@ async function fetchMore() {
 }
 
 async function markAllRead() {
-    const hasUnread = allItems.value.some(n => !n.read_at);
-    if (!hasUnread) return;
-    await Promise.all([
-        axios.patch(route('notifications.read-all')),
-        axios.patch(route('notifications.service.read-all')),
-        axios.patch(route('notifications.orders.read-all')),
-        axios.patch(route('notifications.messages.read-all')),
-    ]);
-    allItems.value.forEach(n => { n.read_at = n.read_at || new Date().toISOString(); });
-    router.reload({ only: ['notifications_unread', 'service_unread', 'order_notifications_unread', 'messages_notifications_unread'] });
+    // Помечаем всё как прочитанное локально сразу для визуального отклика
+    allItems.value.forEach(n => { 
+        if (!n.read_at) n.read_at = new Date().toISOString(); 
+    });
+
+    try {
+        await Promise.all([
+            axios.patch(route('notifications.read-all')),
+            axios.patch(route('notifications.service.read-all')),
+            axios.patch(route('notifications.orders.read-all')),
+            axios.patch(route('notifications.messages.read-all')),
+        ]);
+    } catch (e) {
+        console.error('Failed to mark all read', e);
+    }
+    
+    // Перезагружаем счетчики с сервера
+    router.reload({ 
+        only: ['notifications_unread', 'service_unread', 'order_notifications_unread', 'messages_notifications_unread'],
+        preserveScroll: true,
+        preserveState: true
+    });
 }
 
 function toggleDropdown() {
     open.value = !open.value;
     if (open.value) {
         fetchAll();
-        autoReadTimer = setTimeout(markAllRead, 900);
-    } else {
-        clearTimeout(autoReadTimer);
+        if (totalUnread.value > 0) {
+            markAllRead();
+        }
     }
 }
 
@@ -365,18 +377,26 @@ async function handleNewNotification() {
     try {
         const { data } = await axios.get(route('notifications.combined'));
         if (data.items.length > 0) {
-            if (latestKnownAt.value) {
-                const fresh = data.items.filter(n => n.created_at > latestKnownAt.value);
-                for (const item of fresh.slice(0, 3)) {
-                    showNotifPopup(item);
-                    await new Promise(r => setTimeout(r, 50));
-                }
+            // Ищем новые уведомления, которых мы еще не видели
+            const fresh = data.items.filter(n => !latestKnownAt.value || n.created_at > latestKnownAt.value);
+            
+            for (const item of fresh.slice(0, 3)) {
+                showNotifPopup(item);
+                await new Promise(r => setTimeout(r, 50));
             }
+            
             latestKnownAt.value = data.items[0].created_at;
+            
+            if (open.value) {
+                // Если колокольчик открыт, обновляем список и сразу помечаем как прочитанное
+                allItems.value = data.items;
+                markAllRead();
+            }
         }
-    } catch { /* ignore */ }
+    } catch (e) { 
+        console.error('Error handling new notification', e);
+    }
     reloadCounts();
-    if (open.value) loadWindow(null);
 }
 
 function relativeTime(dateStr) {

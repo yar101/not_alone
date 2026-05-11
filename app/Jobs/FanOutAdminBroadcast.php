@@ -22,25 +22,26 @@ class FanOutAdminBroadcast implements ShouldQueue
     {
         $broadcast = $this->broadcast;
 
-        $this->buildUserQuery($broadcast)->chunkById(100, function ($users) use ($broadcast) {
-            foreach ($users as $user) {
+        // Для персональной рассылки (один пользователь) продолжаем использовать Fan-out,
+        // так как это удобно для пуш-уведомлений и личной истории.
+        if ($broadcast->target === 'user') {
+            $user = User::find($broadcast->target_user_id);
+            if ($user) {
                 $alreadyNotified = $user->notifications()
                     ->whereRaw("(data::jsonb->>'broadcast_id')::int = ?", [$broadcast->id])
                     ->exists();
 
-                if ($alreadyNotified) {
-                    continue;
+                if (!$alreadyNotified) {
+                    $user->notify(new AdminBroadcastNotification($broadcast));
                 }
-
-                $user->notify(new AdminBroadcastNotification($broadcast));
             }
-        });
-
-        if ($broadcast->target === 'user') {
             broadcast(new NewNotification('private', (int) $broadcast->target_user_id));
-        } else {
-            broadcast(new NewNotification('public'));
+            return;
         }
+
+        // Для массовых рассылок (все или фильтр) мы больше не создаем тысячи записей в БД.
+        // Мы просто сигнализируем по вебсокету, что есть «что-то новое» для всех.
+        broadcast(new NewNotification('public'));
     }
 
     private function buildUserQuery(AdminBroadcast $broadcast)
