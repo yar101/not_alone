@@ -32,9 +32,6 @@ const profileHref = computed(() =>
 );
 const isIdol = computed(() => page.props.is_idol);
 const idolStatus = computed(() => page.props.idol_status);
-const showIdolBtn = computed(
-    () => user.value && !isIdol.value && idolStatus.value !== "pending",
-);
 
 const showAuthModal = ref(false);
 const authModalTab = ref("login");
@@ -291,13 +288,6 @@ onUnmounted(() => {
             </nav>
 
             <div class="header-right">
-                <Link
-                    v-if="showIdolBtn"
-                    href="/idol/apply"
-                    class="become-idol-btn"
-                    >{{ __("layout.become_idol") }}</Link
-                >
-
                 <!-- Иконка поиска — только на мобиле вместо nav -->
                 <Link
                     v-if="user"
@@ -593,56 +583,6 @@ onUnmounted(() => {
     gap: 0.5rem;
 }
 
-/* ── Become Idol button ───────────────────────────────────── */
-.become-idol-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.3rem 0.85rem;
-    border-radius: 3px;
-    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 55%);
-    position: relative;
-    background-image: linear-gradient(
-        135deg,
-        color-mix(in srgb, var(--color-base-1), white 40%) 0%,
-        var(--color-base-1) 50%,
-        color-mix(in srgb, var(--color-base-1), black 20%) 100%
-    );
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    text-decoration: none;
-    transition:
-        box-shadow 0.2s,
-        transform 0.15s,
-        border-color 0.2s;
-    white-space: nowrap;
-}
-.become-idol-btn::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 3px;
-    background: linear-gradient(
-        135deg,
-        color-mix(in srgb, var(--color-base-1), transparent 82%) 0%,
-        color-mix(in srgb, var(--color-base-1), transparent 88%) 100%
-    );
-    z-index: -1;
-}
-.become-idol-btn:hover {
-    border-color: color-mix(in srgb, var(--color-base-1), transparent 25%);
-    box-shadow:
-        0 0 16px color-mix(in srgb, var(--color-base-1), transparent 60%),
-        0 2px 8px rgba(0, 0, 0, 0.25);
-    transform: translateY(-1px);
-}
-
 /* ── Guest auth buttons ──────────────────────────────────── */
 .guest-btn {
     display: inline-flex;
@@ -840,8 +780,5 @@ onUnmounted(() => {
 
 /* ── Very small screens (≤480px) ────────────────────────── */
 @media (max-width: 480px) {
-    .become-idol-btn {
-        display: none;
-    }
 }
 </style>

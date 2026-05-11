@@ -42,12 +42,13 @@ const count = computed(() => {
     background: transparent;
     color: rgba(255,255,255,0.4);
     cursor: pointer;
-    transition: color 0.18s, background 0.18s, border-color 0.18s;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
 }
 @media (hover: hover) {
     .cart-icon-btn:hover {
-        color: rgba(255,255,255,0.8);
-        background: rgba(255, 178, 239,0.08);
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.8);
     }
 }
 .cart-icon-btn--active {
