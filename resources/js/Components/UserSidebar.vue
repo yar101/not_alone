@@ -163,25 +163,28 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
                     </Link>
                 </div>
 
-                <!-- Become idol button for non-idols -->
-                <div v-if="showBecomeIdol" class="usb-become-footer">
-                    <Link :href="route('idol.apply')" class="usb-become-btn" @click="closeForNav">
-                        {{ __('layout.become_idol') }}
-                    </Link>
-                </div>
+                <!-- Footer -->
+                <div class="usb-footer">
+                    <!-- Become idol button for non-idols -->
+                    <div v-if="showBecomeIdol" class="usb-become-footer">
+                        <Link :href="route('idol.apply')" class="usb-become-btn" @click="closeForNav">
+                            {{ __('layout.become_idol') }}
+                        </Link>
+                    </div>
 
-                <!-- Language switcher -->
-                <div class="usb-locale">
-                    <button
-                        v-for="(label, code) in locale?.available"
-                        :key="code"
-                        class="usb-locale__btn"
-                        :class="{ 'usb-locale__btn--active': locale?.current === code }"
-                        @click="switchLocale(code)"
-                    >
-                        <span class="usb-locale__flag">{{ code === 'ru' ? '🇷🇺' : '🇬🇧' }}</span>
-                        {{ label }}
-                    </button>
+                    <!-- Language switcher -->
+                    <div class="usb-locale">
+                        <button
+                            v-for="(label, code) in locale?.available"
+                            :key="code"
+                            class="usb-locale__btn"
+                            :class="{ 'usb-locale__btn--active': locale?.current === code }"
+                            @click="switchLocale(code)"
+                        >
+                            <span class="usb-locale__flag">{{ code === 'ru' ? '🇷🇺' : '🇬🇧' }}</span>
+                            {{ label }}
+                        </button>
+                    </div>
                 </div>
 
             </div>
@@ -354,10 +357,14 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
     line-height: 1;
 }
 
+/* ── Footer ── */
+.usb-footer {
+    margin-top: auto;
+}
+
 /* ── Become an idol button ── */
 .usb-become-footer {
     padding: 0.5rem 1.5rem;
-    margin-top: auto;
 }
 
 .usb-become-btn {
