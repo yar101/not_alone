@@ -22,7 +22,7 @@ const isOpen = computed({
     set: (v) => emit('update:modelValue', v),
 });
 
-useModalHistory(isOpen, 'usb');
+const modalHistory = useModalHistory(isOpen, 'usb');
 
 const ratingValue = computed(() => {
     const r = props.rating ?? props.user?.rating;
@@ -36,6 +36,9 @@ const showBecomeIdol = computed(() => !props.isIdol && idolStatus.value !== 'pen
 function close() { emit('update:modelValue', false); }
 
 function closeForNav() {
+    if (modalHistory?.skipHistoryBack) {
+        modalHistory.skipHistoryBack();
+    }
     emit('update:modelValue', false);
 }
 

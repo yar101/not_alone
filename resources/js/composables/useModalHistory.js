@@ -63,6 +63,7 @@ export function useModalHistory(isOpen, name = 'modal') {
     const isMobile = () => typeof window !== 'undefined' && window.innerWidth <= 768;
 
     const id = Math.random().toString(36).substring(2, 11);
+    let skipNextHistoryPop = false;
     const modalContext = {
         id,
         name,
@@ -91,6 +92,11 @@ export function useModalHistory(isOpen, name = 'modal') {
                 modalStack.splice(index, 1);
             }
             
+            if (skipNextHistoryPop) {
+                skipNextHistoryPop = false;
+                return;
+            }
+            
             // Only call history.back() if we are actually at the browser state that matches this modal.
             // This prevents "overshooting" and navigating the background page.
             if (history.state?.__modalId === id) {
@@ -113,4 +119,8 @@ export function useModalHistory(isOpen, name = 'modal') {
             popState();
         }
     });
+
+    return {
+        skipHistoryBack: () => { skipNextHistoryPop = true; }
+    };
 }

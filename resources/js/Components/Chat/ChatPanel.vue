@@ -8,7 +8,7 @@ import {
     nextTick,
     inject,
 } from "vue";
-import { usePage, router } from "@inertiajs/vue3";
+import { usePage, router, Link } from "@inertiajs/vue3";
 import SiteModal from "@/Components/Site/SiteModal.vue";
 import axios from "axios";
 import { Check, Lock } from "@element-plus/icons-vue";
@@ -175,8 +175,8 @@ const isDetailOpen = computed({
     },
 });
 
-useModalHistory(isOpen, "chat");
-useModalHistory(isDetailOpen, "chat-detail");
+const modalHistory = useModalHistory(isOpen, "chat");
+const detailHistory = useModalHistory(isDetailOpen, "chat-detail");
 
 const myConfirmation = computed(() => {
     if (!activeOrderData.value) return false;
@@ -1052,7 +1052,11 @@ watch(
     (newUrl, oldUrl) => {
         const normalize = (url) =>
             url.split("?")[0].split("#")[0].replace(/\/+$/, "");
-        if (normalize(newUrl) !== normalize(oldUrl)) isOpen.value = false;
+        if (normalize(newUrl) !== normalize(oldUrl)) {
+            if (modalHistory?.skipHistoryBack) modalHistory.skipHistoryBack();
+            if (detailHistory?.skipHistoryBack) detailHistory.skipHistoryBack();
+            isOpen.value = false;
+        }
     },
 );
 
@@ -2137,7 +2141,7 @@ function formatDate(iso) {
                                         }}</span>
                                     </template>
                                     <template v-else>
-                                        <a
+                                        <Link
                                             v-if="
                                                 activeConversation.other_user?.id
                                             "
@@ -2147,13 +2151,11 @@ function formatDate(iso) {
                                                         .other_user.id,
                                                 })
                                             "
-                                            target="_blank"
-                                            rel="noopener"
                                             class="chat-main__name"
                                             >{{
                                                 activeConversation.other_user
                                                     ?.name ?? "…"
-                                            }}</a
+                                            }}</Link
                                         >
                                         <span v-else class="chat-main__name">{{
                                             activeConversation.other_user
