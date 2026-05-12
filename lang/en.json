@@ -124,6 +124,7 @@
     "pack.create_title": "Create pack",
     "pack.field.title": "Title",
     "pack.field.desc": "Description",
+    "pack.field.description": "Description",
     "pack.field.price": "Price, ₽",
     "pack.field.photos": "Photos",
     "pack.field.photos_hint": "up to :max files, :total MB total",
@@ -700,10 +701,6 @@
     "auth.confirm.hint": "This is a secure area of the application. Please confirm your password before continuing.",
     "auth.confirm.submit": "Confirm",
     "auth.confirm.sending": "Confirming…",
-
-    "pack.field.title": "title",
-    "pack.field.description": "description",
-    "pack.field.price": "price",
 
     "push.order_created": "New order from :name",
     "push.order_accepted": "Idol :name accepted your order",

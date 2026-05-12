@@ -700,7 +700,7 @@ const ownerSortOptions = computed(() => [
 
         <!-- Pack detail modal -->
         <SiteModal :show="showDetailModal" @close="closeDetail" compact max-width="560px"
-            variant="pink">
+            variant="pink" no-padding>
             <template v-if="detailPack">
             <div class="pcd-wrap">
 
@@ -1605,18 +1605,18 @@ const ownerSortOptions = computed(() => [
 
 /* Top bar: bleeds to sides, sits where padding-top was */
 .pcd-topbar {
-    margin: -3rem -2rem 0;
     padding: 0.6rem 0.75rem 0.6rem 1rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     background: rgba(10, 8, 18, 0.6);
+    border-radius: 3px 3px 0 0;
 }
 
 @media (max-width: 768px) {
     .pcd-topbar {
-        margin: -3rem -1.25rem 0;
+        margin: 0;
     }
 }
 
@@ -1647,7 +1647,6 @@ const ownerSortOptions = computed(() => [
 
 /* Hero cover — full-bleed 4:3, directly below topbar */
 .pcd-hero {
-    margin: 0 -2rem;
     position: relative;
     overflow: hidden;
     background: rgba(255, 255, 255, 0.03);
@@ -1656,7 +1655,7 @@ const ownerSortOptions = computed(() => [
 
 @media (max-width: 768px) {
     .pcd-hero {
-        margin: 0 -1.25rem;
+        margin: 0;
     }
 }
 
@@ -1766,8 +1765,14 @@ const ownerSortOptions = computed(() => [
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    padding-top: 1.1rem;
+    padding: 1.1rem 1.5rem 1.5rem;
     flex: 1;
+}
+
+@media (max-width: 768px) {
+    .pcd-body {
+        padding: 1.1rem 1.25rem 1.25rem;
+    }
 }
 
 /* Title */
@@ -2016,9 +2021,8 @@ const ownerSortOptions = computed(() => [
 /* Fixed footer */
 .pcd-footer {
     position: sticky;
-    bottom: -2rem;
-    margin: 0 -2rem -2rem;
-    padding: 0.85rem 2rem;
+    bottom: 0;
+    padding: 0.85rem 1.5rem;
     display: flex;
     flex-direction: column;
     gap: 0.65rem;
@@ -2031,8 +2035,6 @@ const ownerSortOptions = computed(() => [
 
 @media (max-width: 768px) {
     .pcd-footer {
-        bottom: -1.25rem;
-        margin: 0 -1.25rem -1.25rem;
         padding: 0.85rem 1.25rem;
     }
 }

@@ -21,9 +21,13 @@ class LowRatingWarningNotification extends Notification
 
     public function toDatabase(object $notifiable): array
     {
+        $locale = $notifiable->locale ?? config('app.locale');
+
         return [
             'type'      => 'low_rating_warning',
             'threshold' => $this->threshold,
+            'title'     => __('notification.type.low_rating', [], $locale),
+            'message'   => __('notification.msg.low_rating_warning', ['threshold' => $this->threshold], $locale),
         ];
     }
 

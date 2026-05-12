@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
@@ -66,6 +66,44 @@ function unban() {
     if (!confirm('Разбанить пользователя?')) return;
     router.delete(route('admin.users.unban', props.user.id), { preserveScroll: false });
 }
+
+// Rating adjustment form
+const showRatingForm = ref(false);
+const ratingDelta = ref(0);
+const ratingNote = ref('');
+const ratingErrors = ref({});
+
+const projectedRating = computed(() => {
+    const current = Number(props.user.rating ?? 20);
+    const delta = Number(ratingDelta.value || 0);
+    
+    if (delta === 0) return current;
+    
+    let finalDelta = delta;
+    if (delta > 0) {
+        // Apply system dampening logic for positive deltas
+        // Formula from IdolRatingService.php: delta * (100 - oldRating) / 80
+        finalDelta = Math.max(0.01, (delta * (100 - current)) / 80);
+    }
+    
+    return Math.max(0, Math.min(100, Number((current + finalDelta).toFixed(2))));
+});
+
+function submitRating() {
+    ratingErrors.value = {};
+    router.patch(route('admin.users.rating.update', props.user.id), {
+        delta: ratingDelta.value,
+        note: ratingNote.value,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            showRatingForm.value = false;
+            ratingDelta.value = 0;
+            ratingNote.value = '';
+        },
+        onError: (errors) => { ratingErrors.value = errors; },
+    });
+}
 </script>
 
 <template>
@@ -86,8 +124,8 @@ function unban() {
                         <span v-else class="badge badge--user">Пользователь</span>
                         <span v-if="user.is_banned" class="badge badge--banned">Заблокирован</span>
                     </div>
-                    <div v-if="user.is_idol" class="rating-display">
-                        Рейтинг: <strong>{{ user.rating ?? 50 }}</strong>
+                    <div class="rating-display">
+                        Рейтинг: <strong>{{ user.rating ?? 20 }}</strong>
                     </div>
                     <a :href="route('profile.show', user.id)" class="btn-profile-link" target="_blank" rel="noopener">
                         Страница пользователя ↗
@@ -97,6 +135,53 @@ function unban() {
         </div>
 
         <div class="sections">
+            <!-- Rating Management -->
+            <div class="section">
+                <h2 class="section-title">Управление рейтингом</h2>
+                <div v-if="!showRatingForm">
+                    <button class="btn-action" @click="showRatingForm = true">Изменить рейтинг вручную</button>
+                </div>
+                <form v-else @submit.prevent="submitRating" class="rating-form">
+                    <div class="field">
+                        <label>Изменение (Delta) *</label>
+                        <div class="delta-input-wrap">
+                            <input
+                                v-model.number="ratingDelta"
+                                type="number"
+                                class="input"
+                                min="-100"
+                                max="100"
+                                required
+                                :class="{ 'input--err': ratingErrors.delta }"
+                            />
+                            <div class="projected-info">
+                                <span class="muted-small">Итоговый рейтинг:</span>
+                                <strong :class="['projected-value', projectedRating > user.rating ? 'text-success' : projectedRating < user.rating ? 'text-danger' : '']">
+                                    {{ projectedRating }}
+                                </strong>
+                            </div>
+                        </div>
+                        <p v-if="ratingErrors.delta" class="err">{{ ratingErrors.delta }}</p>
+                    </div>
+                    <div class="field">
+                        <label>Заметка (опционально)</label>
+                        <textarea
+                            v-model="ratingNote"
+                            class="input input--textarea"
+                            rows="2"
+                            maxlength="255"
+                            placeholder="Причина изменения..."
+                            :class="{ 'input--err': ratingErrors.note }"
+                        />
+                        <p v-if="ratingErrors.note" class="err">{{ ratingErrors.note }}</p>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-cancel" @click="showRatingForm = false">Отмена</button>
+                        <button type="submit" class="btn-primary">Обновить рейтинг</button>
+                    </div>
+                </form>
+            </div>
+
             <!-- Ban status -->
             <div class="section">
                 <h2 class="section-title">Блокировка</h2>
@@ -291,7 +376,19 @@ function unban() {
 
 .btn-danger { padding: 0.38rem 0.85rem; border: 1px solid rgba(239,68,68,0.45); background: rgba(239,68,68,0.1); color: rgba(239,68,68,0.9); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
 .btn-danger:hover { background: rgba(239,68,68,0.2); }
+.btn-primary { padding: 0.38rem 0.85rem; border: 1px solid rgba(155,110,232,0.45); background: rgba(155,110,232,0.15); color: #fff; font-family: inherit; font-size: 0.82rem; cursor: pointer; transition: all 0.15s; }
+.btn-primary:hover { background: rgba(155,110,232,0.25); border-color: rgba(155,110,232,0.6); }
+.btn-action { padding: 0.4rem 0.9rem; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.8); font-family: inherit; font-size: 0.85rem; cursor: pointer; transition: all 0.15s; }
+.btn-action:hover { border-color: rgba(155,110,232,0.4); background: rgba(155,110,232,0.1); }
 .btn-cancel { padding: 0.38rem 0.85rem; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: rgba(255,255,255,0.4); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
+
+.rating-form { display: flex; flex-direction: column; gap: 0.75rem; max-width: 480px; }
+.delta-input-wrap { display: flex; align-items: center; gap: 1.5rem; }
+.projected-info { display: flex; flex-direction: column; gap: 0.1rem; }
+.projected-value { font-size: 1.1rem; }
+.text-success { color: #4ade80; }
+.text-danger { color: #f87171; }
+.muted-small { font-size: 0.75rem; color: rgba(255,255,255,0.3); }
 
 .ban-reason-presets { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.4rem; }
 .preset-tag { padding: 0.22rem 0.6rem; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.5); font-family: inherit; font-size: 0.78rem; cursor: pointer; transition: all 0.15s; }

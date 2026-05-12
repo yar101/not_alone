@@ -130,8 +130,14 @@ function handleItemClick(item) {
         router.visit(route('profile.show', { user: authUser.id }) + '#reviews');
         return;
     }
+    if (item.type === 'low_rating_warning' && authUser?.id) {
+        open.value = false;
+        router.visit(route('profile.show', { user: authUser.id }) + '#services');
+        return;
+    }
+
     const profileTypes = [
-        'idol_approved', 'idol_rejected', 'low_rating_warning',
+        'idol_approved', 'idol_rejected',
         'admin_rating', 'review_dispute_approved', 'review_dispute_rejected',
         'content_pack_approved', 'content_pack_remarks', 'content_pack_rejected',
     ];
