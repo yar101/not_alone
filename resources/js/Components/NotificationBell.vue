@@ -76,6 +76,8 @@ async function fetchMore() {
 }
 
 async function markAllRead() {
+    forceZeroUnread.value = true;
+
     // Помечаем всё как прочитанное локально сразу для визуального отклика
     allItems.value.forEach(n => { 
         if (!n.read_at) n.read_at = new Date().toISOString(); 
@@ -203,17 +205,24 @@ async function autoFetchIfEmpty() {
 
 watch(activeFilters, autoFetchIfEmpty, { deep: true });
 
-const totalUnread = computed(() =>
-    (page.props.notifications_unread ?? 0) +
-    (page.props.service_unread ?? 0) +
-    (page.props.order_notifications_unread ?? 0) +
-    (page.props.messages_notifications_unread ?? 0)
-);
+const forceZeroUnread = ref(false);
 
-const serviceUnread = computed(() => page.props.service_unread ?? 0);
-const orderUnread = computed(() => page.props.order_notifications_unread ?? 0);
-const messagesUnread = computed(() => page.props.messages_notifications_unread ?? 0);
-const personalUnread = computed(() => page.props.notifications_unread ?? 0);
+const totalUnread = computed(() => {
+    if (forceZeroUnread.value) return 0;
+    return (page.props.notifications_unread ?? 0) +
+        (page.props.service_unread ?? 0) +
+        (page.props.order_notifications_unread ?? 0) +
+        (page.props.messages_notifications_unread ?? 0);
+});
+
+const serviceUnread = computed(() => forceZeroUnread.value ? 0 : (page.props.service_unread ?? 0));
+const orderUnread = computed(() => forceZeroUnread.value ? 0 : (page.props.order_notifications_unread ?? 0));
+const messagesUnread = computed(() => forceZeroUnread.value ? 0 : (page.props.messages_notifications_unread ?? 0));
+const personalUnread = computed(() => forceZeroUnread.value ? 0 : (page.props.notifications_unread ?? 0));
+
+watch(() => page.url, () => {
+    forceZeroUnread.value = false;
+});
 
 function reloadCounts() {
     router.reload({ only: ['notifications_unread', 'service_unread', 'order_notifications_unread', 'messages_notifications_unread'] });
@@ -374,6 +383,7 @@ function showNotifPopup(item) {
 }
 
 async function handleNewNotification() {
+    forceZeroUnread.value = false;
     try {
         const { data } = await axios.get(route('notifications.combined'));
         if (data.items.length > 0) {
@@ -552,7 +562,7 @@ defineExpose({ toggleDropdown });
             </svg>
             <Transition name="badge-pop">
                 <span v-if="totalUnread > 0" class="badge" :key="totalUnread">
-                    {{ totalUnread > 9 ? '9+' : totalUnread }}
+                    {{ totalUnread > 99 ? '99+' : totalUnread }}
                 </span>
             </Transition>
         </button>
@@ -860,21 +870,39 @@ defineExpose({ toggleDropdown });
 
 .badge {
     position: absolute;
-    top: 4px;
-    right: 4px;
-    min-width: 15px;
-    height: 15px;
-    background: var(--color-base-1);
+    top: -2px;
+    right: -2px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    background: rgba(255, 178, 239, 0.6); /* Semi-transparent color-base-1 */
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 178, 239, 0.4);
     border-radius: 999px;
-    font-size: 0.6rem;
+    
+    font-size: 0.65rem;
     font-weight: 700;
-    color: #fff;
+    color: #ffffff;
+    
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 3px;
     line-height: 1;
-    border: 1.5px solid #0a0a14;
+    
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+    z-index: 10;
+}
+
+@media (max-width: 768px) {
+    .badge {
+        top: -3px;
+        right: -3px;
+        min-width: 20px;
+        height: 20px;
+        font-size: 0.7rem;
+    }
 }
 
 /* ── Dropdown panel ── */
