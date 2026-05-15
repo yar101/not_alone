@@ -259,7 +259,9 @@ onUnmounted(() => {
     <PwaUpdateModal :show="pwaUpdateAvailable" />
     <div class="app-wrap">
         <header class="app-header">
-            <Link href="/" class="app-logo">NoAlone</Link>
+            <Link href="/" class="app-logo">
+                <img src="/app-logo-v3.png" alt="NoAlone" class="app-logo__img" />
+            </Link>
 
             <nav v-if="user" class="header-nav">
                 <Link
@@ -433,7 +435,7 @@ onUnmounted(() => {
     position: sticky;
     top: 0;
     z-index: 1101;
-    height: 60px;
+    height: 70px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -441,41 +443,36 @@ onUnmounted(() => {
     background: rgba(10, 10, 20, 0.96);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(255, 178, 239, 0.18);
-    box-shadow:
-        0 1px 0 rgba(255, 178, 239, 0.06),
-        0 4px 24px rgba(0, 0, 0, 0.4);
     flex-shrink: 0;
 }
 
 /* ── Logo ────────────────────────────────────────────────── */
 .app-logo {
-    font-family: "Imbue", serif;
-    font-size: 1.35rem;
-    font-weight: 400;
-    color: color-mix(in srgb, var(--color-base-1), white 15%);
+    display: flex;
+    align-items: center;
     text-decoration: none;
-    letter-spacing: 0.04em;
-    text-shadow: 0 0 24px
-        color-mix(in srgb, var(--color-base-1), transparent 55%);
-    transition:
-        text-shadow 0.2s,
-        color 0.2s;
+    transition: opacity 0.2s;
+    overflow: visible;
 }
 .app-logo:hover {
-    color: color-mix(in srgb, var(--color-base-1), #e0558f 30%);
-    text-shadow: 0 0 32px
-        color-mix(in srgb, var(--color-base-1), transparent 30%);
+    opacity: 0.8;
+}
+.app-logo__img {
+    height: 64px;
+    width: auto;
+    display: block;
+    position: relative;
+    top: 0;
 }
 
 /* ── User chip ───────────────────────────────────────────── */
 .user-chip {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.7rem;
     text-decoration: none;
-    border-radius: 8px;
-    padding: 0.22rem 1.1rem 0.22rem 0.5rem;
+    border-radius: 9px;
+    padding: 0.35rem 1.1rem 0.35rem 0.55rem;
     border: 1px solid transparent;
     transition:
         background 0.18s,
@@ -491,8 +488,8 @@ onUnmounted(() => {
 /* ── Avatar ──────────────────────────────────────────────── */
 .user-avatar {
     position: relative;
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     border-radius: 999px;
     overflow: hidden;
     background: color-mix(in srgb, var(--color-base-1), transparent 85%);
@@ -555,7 +552,7 @@ onUnmounted(() => {
 }
 
 .user-name {
-    font-size: 0.875rem;
+    font-size: 0.95rem;
     color: rgba(255, 255, 255, 0.65);
     font-family: "Rubik", sans-serif;
     white-space: nowrap;
@@ -645,10 +642,10 @@ onUnmounted(() => {
 .header-nav__item {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.3rem 0.75rem;
-    border-radius: 3px;
-    font-size: 0.8rem;
+    gap: 0.45rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.5);
     text-decoration: none;
@@ -714,25 +711,8 @@ onUnmounted(() => {
         padding: 0 1rem;
         border-bottom-color: transparent;
     }
-    /* Gradient light bar replacing solid border */
-    .app-header::after {
-        content: "";
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: linear-gradient(
-            90deg,
-            transparent 0%,
-            rgba(255, 178, 239, 0.55) 25%,
-            rgba(100, 210, 255, 0.35) 65%,
-            transparent 100%
-        );
-        pointer-events: none;
-    }
-    .app-logo {
-        font-size: 1.5rem;
+    .app-logo__img {
+        height: 48px;
     }
     /* Frosted glass icon containers */
     .mobile-search-btn {

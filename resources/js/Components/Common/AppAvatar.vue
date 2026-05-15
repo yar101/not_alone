@@ -4,6 +4,7 @@ import { ref, watch } from "vue";
 const props = defineProps({
     src: { default: null },
     name: { type: String, default: "" },
+    gender: { type: String, default: "female" },
     size: { type: String, default: "md" }, // 'sm' | 'md' | 'lg'
 });
 
@@ -20,7 +21,7 @@ watch(
 </script>
 
 <template>
-    <div class="app-avatar" :class="`app-avatar--${size}`">
+    <div class="app-avatar" :class="[`app-avatar--${size}`, { 'is-male': gender === 'male' }]">
         <div v-if="src && !loaded && !error" class="app-avatar__shimmer" />
         <div v-if="!src || error" class="app-avatar__fb">
             {{ name?.[0]?.toUpperCase() }}
@@ -43,6 +44,11 @@ watch(
     overflow: hidden;
     flex-shrink: 0;
 }
+.app-avatar.is-male .app-avatar__fb {
+    background: rgba(100, 210, 255, 0.15);
+    color: var(--color-base-2);
+}
+
 .app-avatar--sm {
     width: 20px;
     height: 20px;

@@ -65,6 +65,7 @@ onMounted(async () => {
                 <AppAvatar
                     :src="post.author?.avatar_url"
                     :name="post.author?.name ?? ''"
+                    :gender="post.author?.gender"
                     size="lg"
                 />
                 <span class="feed-card__author-name">{{

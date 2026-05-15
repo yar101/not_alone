@@ -65,7 +65,7 @@ function isActive(routeName) {
         <div v-if="sidebarOpen" class="sidebar-backdrop" @click="sidebarOpen = false"></div>
         <aside class="sidebar" :class="{ 'sidebar--open': sidebarOpen }">
             <div class="sidebar__logo">
-                <span class="logo-brand">NoAlone</span>
+                <img src="/app-logo-v3.png" alt="NoAlone" class="sidebar__logo-img" />
                 <span class="logo-sub">Admin</span>
             </div>
 
@@ -380,14 +380,14 @@ function isActive(routeName) {
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     display: flex;
     flex-direction: column;
-    gap: 0.1rem;
+    gap: 0.25rem;
 }
 
-.logo-brand {
-    font-family: 'Imbue', serif;
-    font-size: 1rem;
-    color: #9B6EE8;
-    letter-spacing: 0.02em;
+.sidebar__logo-img {
+    height: 20px;
+    width: auto;
+    object-fit: contain;
+    align-self: flex-start;
 }
 
 .logo-sub {

@@ -568,7 +568,7 @@ class UserProfileController extends Controller
     public function getPosts(Request $request, User $user): JsonResponse
     {
         $paginated = $user->posts()
-            ->with('user:id,name,avatar_path')
+            ->with('user:id,name,avatar_path,gender')
             ->withCount(['likes', 'comments'])
             ->latest()
             ->paginate(10);
@@ -596,6 +596,7 @@ class UserProfileController extends Controller
                 'id'         => $p->user->id,
                 'name'       => $p->user->name,
                 'avatar_url' => $p->user->avatar_url,
+                'gender'     => $p->user->gender,
             ],
         ]);
 
@@ -613,7 +614,7 @@ class UserProfileController extends Controller
         $perPage = 15;
 
         $paginator = $post->comments()
-            ->with(['user:id,name,avatar_path'])
+            ->with(['user:id,name,avatar_path,gender'])
             ->withCount('replies')
             ->orderBy('created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
@@ -623,7 +624,7 @@ class UserProfileController extends Controller
         // For comments with exactly 1 reply, load it inline so it displays without a toggle button
         $singleIds = $comments->filter(fn ($c) => $c->replies_count === 1)->pluck('id');
         if ($singleIds->isNotEmpty()) {
-            $singleReplies = PostComment::with('user:id,name,avatar_path')
+            $singleReplies = PostComment::with('user:id,name,avatar_path,gender')
                 ->whereIn('parent_id', $singleIds)
                 ->orderBy('created_at')
                 ->get()
@@ -640,14 +641,24 @@ class UserProfileController extends Controller
             'id'         => $r->id,
             'body'       => $r->body,
             'created_at' => $r->created_at->diffForHumans(),
-            'user'       => ['id' => $r->user->id, 'name' => $r->user->name, 'avatar_url' => $r->user->avatar_url],
+            'user'       => [
+                'id'         => $r->user->id,
+                'name'       => $r->user->name,
+                'avatar_url' => $r->user->avatar_url,
+                'gender'     => $r->user->gender,
+            ],
         ];
 
         $data = $comments->map(fn (PostComment $c) => [
             'id'            => $c->id,
             'body'          => $c->body,
             'created_at'    => $c->created_at->diffForHumans(),
-            'user'          => ['id' => $c->user->id, 'name' => $c->user->name, 'avatar_url' => $c->user->avatar_url],
+            'user'          => [
+                'id'         => $c->user->id,
+                'name'       => $c->user->name,
+                'avatar_url' => $c->user->avatar_url,
+                'gender'     => $c->user->gender,
+            ],
             'replies_count' => $c->replies_count,
             'replies'       => $c->replies_count === 1
                 ? $c->replies->map($mapReply)->values()
@@ -669,7 +680,7 @@ class UserProfileController extends Controller
         $perPage = 50;
 
         $paginator = PostComment::where('parent_id', $comment->id)
-            ->with('user:id,name,avatar_path')
+            ->with('user:id,name,avatar_path,gender')
             ->orderBy('created_at')
             ->paginate($perPage, ['*'], 'page', $page);
 
@@ -678,7 +689,12 @@ class UserProfileController extends Controller
                 'id'         => $r->id,
                 'body'       => $r->body,
                 'created_at' => $r->created_at->diffForHumans(),
-                'user'       => ['id' => $r->user->id, 'name' => $r->user->name, 'avatar_url' => $r->user->avatar_url],
+                'user'       => [
+                    'id'         => $r->user->id,
+                    'name'       => $r->user->name,
+                    'avatar_url' => $r->user->avatar_url,
+                    'gender'     => $r->user->gender,
+                ],
             ])->values(),
             'total'     => $paginator->total(),
             'has_more'  => $paginator->hasMorePages(),

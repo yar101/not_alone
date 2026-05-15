@@ -451,6 +451,7 @@ async function deleteComment(commentId, parentId) {
                                         <AppAvatar
                                             :src="cmt.user.avatar_url"
                                             :name="cmt.user.name"
+                                            :gender="cmt.user.gender"
                                             size="md"
                                         />
                                     </a>
@@ -604,6 +605,10 @@ async function deleteComment(commentId, parentId) {
                                                     "
                                                     :name="
                                                         cmt.replies[0].user.name
+                                                    "
+                                                    :gender="
+                                                        cmt.replies[0].user
+                                                            .gender
                                                     "
                                                     size="sm"
                                                 />
@@ -840,6 +845,10 @@ async function deleteComment(commentId, parentId) {
                                                             "
                                                             :name="
                                                                 reply.user.name
+                                                            "
+                                                            :gender="
+                                                                reply.user
+                                                                    .gender
                                                             "
                                                             size="sm"
                                                         />
