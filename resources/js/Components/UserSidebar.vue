@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { usePage, Link } from '@inertiajs/vue3';
-import { User, Search, Picture, Star } from '@element-plus/icons-vue';
+import { User, UserFilled, Search, Picture, Star } from '@element-plus/icons-vue';
 import AvatarUploader from '@/Components/AvatarUploader.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
 import HelpModal from '@/Components/Site/HelpModal.vue';
@@ -113,18 +113,19 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
                 <nav class="usb-nav">
                     <!-- Профиль -->
                     <Link :href="route('profile.show', { user: user.id })" class="usb-item" @click="closeForNav">
-                        <svg class="usb-item__icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-                        </svg>
+                        <el-icon class="usb-item__icon"><User /></el-icon>
                         {{ __('nav.profile') }}
                     </Link>
 
                     <!-- Поиск -->
                     <Link :href="route('users.search')" class="usb-item" @click="closeForNav">
                         <div class="usb-item__icon search-user-icon">
-                            <el-icon><User /></el-icon>
+                            <el-icon><UserFilled /></el-icon>
                             <div class="search-user-icon__badge">
-                                <el-icon><Search /></el-icon>
+                                <svg class="custom-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="8.5" cy="8.5" r="7.5" />
+                                    <line x1="22" y1="22" x2="14.5" y2="14.5" />
+                                </svg>
                             </div>
                         </div>
                         {{ __('common.search') }}
@@ -461,7 +462,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 .usb-nav-divider {
     height: 1px;
     background: rgba(255, 255, 255, 0.05);
-    margin: 0.4rem 0.85rem;
+    margin: 0.4rem -0.75rem;
 }
 
 /* ── Custom combined icon ─────────────────────────────────── */
@@ -470,25 +471,33 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 1.15rem;
-    height: 1.15rem;
+    width: 1.25rem;
+    height: 1.25rem;
 }
 .search-user-icon .el-icon {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
 }
 .search-user-icon__badge {
     position: absolute;
-    bottom: -3px;
+    bottom: -1px;
     right: -4px;
     display: flex;
     align-items: center;
     justify-content: center;
     pointer-events: none;
+    background: #111126; /* Цвет, близкий к фону сайдбара */
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+    transition: background 0.15s;
 }
-.search-user-icon__badge .el-icon {
-    font-size: 10px !important;
-    color: var(--color-base-1);
-    stroke-width: 2.5;
+.usb-item:hover .search-user-icon__badge {
+    background: color-mix(in srgb, #111126, var(--color-base-1) 12%);
+}
+.custom-search-icon {
+    width: 10px;
+    height: 10px;
+    color: rgba(255, 255, 255, 0.45);
 }
 
 /* ── Feature cards ────────────────────────────────────────── */

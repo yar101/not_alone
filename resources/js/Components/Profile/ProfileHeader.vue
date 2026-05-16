@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
-import { Edit, Setting } from '@element-plus/icons-vue';
+import { Edit, Setting, MoreFilled } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppSelect from '@/Components/AppSelect.vue';
 import AvatarUploader from '@/Components/AvatarUploader.vue';
@@ -167,9 +167,7 @@ function deleteAvatar() {
         <div v-if="isOwner" class="header-actions">
             <div class="owner-menu">
                 <button class="action-pill" @click.stop="showOwnerMenu = !showOwnerMenu">
-                    <span class="owner-menu__dot"></span>
-                    <span class="owner-menu__dot"></span>
-                    <span class="owner-menu__dot"></span>
+                    <el-icon><MoreFilled /></el-icon>
                 </button>
                 <Transition name="owner-menu-pop">
                     <div v-if="showOwnerMenu" class="owner-menu__dropdown">
@@ -342,24 +340,19 @@ function deleteAvatar() {
 .owner-menu > .action-pill {
     border: none;
     background: transparent;
+    color: rgba(200, 70, 126, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s;
 }
 
-.owner-menu__dot {
-    display: block;
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: rgba(200, 70, 126, 0.75);
-    flex-shrink: 0;
-    transition: background 0.15s;
+.owner-menu > .action-pill:hover {
+    color: rgba(200, 70, 126, 1);
 }
 
-.owner-menu > .action-pill:hover .owner-menu__dot {
-    background: rgba(200, 70, 126, 1);
-}
-
-.action-pill .owner-menu__dot + .owner-menu__dot {
-    margin-left: 3px;
+.owner-menu > .action-pill .el-icon {
+    font-size: 1.15rem;
 }
 
 .owner-menu__dropdown {

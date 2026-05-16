@@ -1989,7 +1989,7 @@ watch(selectedCategory, (cat) => {
 }
 
 .cat-tile__desc {
-    font-size: 1rem;
+    font-size: 0.9rem;
     color: rgba(255, 255, 255, 0.5);
     line-height: 1.45;
     margin: auto 0;
