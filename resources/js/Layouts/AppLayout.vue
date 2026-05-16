@@ -263,59 +263,7 @@ onUnmounted(() => {
                 <img src="/app-logo-v3.png" alt="NoAlone" class="app-logo__img" />
             </Link>
 
-            <nav v-if="user" class="header-nav">
-                <Link
-                    :href="route('users.search')"
-                    class="header-nav__item"
-                    :class="{
-                        'header-nav__item--active':
-                            $page.url.startsWith('/search'),
-                    }"
-                >
-                    <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.8"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <circle cx="11" cy="11" r="8" />
-                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                    </svg>
-                    {{ __("common.search") }}
-                </Link>
-            </nav>
-
             <div class="header-right">
-                <!-- Иконка поиска — только на мобиле вместо nav -->
-                <Link
-                    v-if="user"
-                    :href="route('users.search')"
-                    class="mobile-search-btn"
-                    :class="{
-                        'mobile-search-btn--active':
-                            $page.url.startsWith('/search'),
-                    }"
-                    :aria-label="__('common.search')"
-                >
-                    <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.8"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <circle cx="11" cy="11" r="8" />
-                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                    </svg>
-                </Link>
-
                 <CartIcon
                     v-if="user"
                     :cart="cart"
@@ -434,7 +382,7 @@ onUnmounted(() => {
 .app-header {
     position: sticky;
     top: 0;
-    z-index: 1101;
+    z-index: 900;
     height: 70px;
     display: flex;
     align-items: center;
@@ -629,76 +577,8 @@ onUnmounted(() => {
     color: color-mix(in srgb, var(--color-base-1), white 50%);
 }
 
-/* ── Central nav ─────────────────────────────────────────── */
-.header-nav {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-}
-
-.header-nav__item {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    padding: 0.4rem 0.8rem;
-    border-radius: 4px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.5);
-    text-decoration: none;
-    transition:
-        color 0.18s,
-        background 0.18s;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
-}
-.header-nav__item:hover {
-    color: rgba(255, 255, 255, 0.85);
-    background: rgba(255, 178, 239, 0.08);
-}
-.header-nav__item--active {
-    color: #ffb2ef;
-}
-
-/* ── Mobile search button (hidden on desktop) ────────────── */
-.mobile-search-btn {
-    display: none;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    border: 1px solid transparent;
-    color: rgba(255, 255, 255, 0.45);
-    text-decoration: none;
-    transition:
-        color 0.15s,
-        background 0.15s,
-        border-color 0.15s;
-    flex-shrink: 0;
-}
-.mobile-search-btn:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.8);
-}
-.mobile-search-btn--active {
-    background: rgba(255, 178, 239, 0.1);
-    border-color: rgba(255, 178, 239, 0.3);
-    color: var(--color-base-1);
-}
-
 /* ── Tablet (640–899px) ──────────────────────────────────── */
 @media (max-width: 899px) {
-    .header-nav {
-        display: none;
-    }
-    .mobile-search-btn {
-        display: inline-flex;
-    }
     .app-header {
         padding: 0 1.25rem;
     }
@@ -713,20 +593,6 @@ onUnmounted(() => {
     }
     .app-logo__img {
         height: 48px;
-    }
-    /* Frosted glass icon containers */
-    .mobile-search-btn {
-        width: 42px;
-        height: 42px;
-        border-radius: 12px;
-        background: rgba(255, 255, 255, 0.05);
-        border-color: rgba(255, 255, 255, 0.08);
-        color: rgba(255, 255, 255, 0.55);
-    }
-    .mobile-search-btn--active {
-        background: rgba(255, 178, 239, 0.12);
-        border-color: rgba(255, 178, 239, 0.28);
-        color: var(--color-base-1);
     }
 }
 

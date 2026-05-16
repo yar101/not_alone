@@ -58,7 +58,7 @@ function handleAddToCart() {
 </script>
 
 <template>
-    <SiteModal :show="show" variant="cyan" :max-width="canViewPhotos ? '760px' : '520px'" compact no-padding @close="emit('close')">
+    <SiteModal :show="show" variant="blue" :max-width="canViewPhotos ? '760px' : '520px'" compact no-padding @close="emit('close')">
         <div class="cdm-wrap">
             <!-- Photo grid for owner / purchased -->
             <template v-if="canViewPhotos">

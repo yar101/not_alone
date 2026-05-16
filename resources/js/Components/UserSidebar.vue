@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { usePage, Link } from '@inertiajs/vue3';
+import { User, Search, Picture, Star } from '@element-plus/icons-vue';
 import AvatarUploader from '@/Components/AvatarUploader.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
 import HelpModal from '@/Components/Site/HelpModal.vue';
@@ -110,12 +111,40 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 
                 <!-- Nav -->
                 <nav class="usb-nav">
+                    <!-- Профиль -->
                     <Link :href="route('profile.show', { user: user.id })" class="usb-item" @click="closeForNav">
                         <svg class="usb-item__icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
                         </svg>
                         {{ __('nav.profile') }}
                     </Link>
+
+                    <!-- Поиск -->
+                    <Link :href="route('users.search')" class="usb-item" @click="closeForNav">
+                        <div class="usb-item__icon search-user-icon">
+                            <el-icon><User /></el-icon>
+                            <div class="search-user-icon__badge">
+                                <el-icon><Search /></el-icon>
+                            </div>
+                        </div>
+                        {{ __('common.search') }}
+                    </Link>
+
+                    <!-- Галерея -->
+                    <Link :href="route('gallery.index')" class="usb-item" @click="closeForNav">
+                        <el-icon class="usb-item__icon"><Picture /></el-icon>
+                        {{ __('common.gallery') }}
+                    </Link>
+
+                    <!-- Избранное -->
+                    <Link href="#" class="usb-item" @click="closeForNav">
+                        <el-icon class="usb-item__icon"><Star /></el-icon>
+                        {{ __('common.favorites') }}
+                    </Link>
+
+                    <div class="usb-nav-divider" />
+
+                    <!-- Настройки -->
                     <Link :href="route('settings.edit')" class="usb-item" @click="closeForNav">
                         <svg class="usb-item__icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="3"/>
@@ -123,13 +152,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
                         </svg>
                         {{ __('nav.settings') }}
                     </Link>
-                    <Link :href="route('gallery.index')" class="usb-item" @click="closeForNav">
-                        <svg class="usb-item__icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-                            <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-                        </svg>
-                        {{ __('nav.gallery') }}
-                    </Link>
+
                     <button class="usb-item" @click="openHelp">
                         <svg class="usb-item__icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10"/>
@@ -433,6 +456,40 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 .usb-item__icon { flex-shrink: 0; opacity: 0.65; }
+.usb-item__icon.el-icon { font-size: 1.15rem; }
+
+.usb-nav-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.05);
+    margin: 0.4rem 0.85rem;
+}
+
+/* ── Custom combined icon ─────────────────────────────────── */
+.search-user-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.15rem;
+    height: 1.15rem;
+}
+.search-user-icon .el-icon {
+    font-size: 1.1rem;
+}
+.search-user-icon__badge {
+    position: absolute;
+    bottom: -3px;
+    right: -4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+.search-user-icon__badge .el-icon {
+    font-size: 10px !important;
+    color: var(--color-base-1);
+    stroke-width: 2.5;
+}
 
 /* ── Feature cards ────────────────────────────────────────── */
 .usb-features {

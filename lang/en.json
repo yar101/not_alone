@@ -16,6 +16,8 @@
     "welcome.enter": "ENTER",
     "welcome.help": "Help",
 
+    "common.favorites": "Favorites",
+    "common.gallery": "Gallery",
     "common.close": "Close",
     "common.search": "Search",
     "common.all": "All",

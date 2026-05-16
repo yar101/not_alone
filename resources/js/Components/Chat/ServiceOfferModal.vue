@@ -128,7 +128,7 @@ watch(() => props.modelValue, (val) => {
 </script>
 
 <template>
-    <SiteModal :show="modelValue" variant="cyan" compact max-width="min(910px, 63vw)" @close="close">
+    <SiteModal :show="modelValue" variant="blue" compact max-width="min(1000px, 70vw)" @close="close">
 
         <div class="sof-title">{{ __('chat.offer.title') }}</div>
 
@@ -325,7 +325,7 @@ watch(() => props.modelValue, (val) => {
     overflow: hidden;
 }
 .sof-skeleton__cats {
-    width: 180px;
+    width: 240px;
     border-right: 1px solid rgba(255, 255, 255, 0.05);
     padding: 0.6rem;
     display: flex;
@@ -392,8 +392,8 @@ watch(() => props.modelValue, (val) => {
 .sof-cats-wrap {
     position: relative;
     width: max-content;
-    min-width: 160px;
-    max-width: 260px;
+    min-width: 220px;
+    max-width: 340px;
     flex-shrink: 0;
     border-right: 1px solid rgba(255,255,255,0.05);
 }
@@ -412,7 +412,7 @@ watch(() => props.modelValue, (val) => {
     pointer-events: none;
     display: flex;
     justify-content: center;
-    color: rgba(100,200,255,0.7);
+    color: color-mix(in srgb, var(--color-base-2), transparent 30%);
 }
 .sof-cats-fade--bottom {
     bottom: 0;
@@ -428,8 +428,8 @@ watch(() => props.modelValue, (val) => {
 }
 .sof-cats::-webkit-scrollbar { width: 5px; }
 .sof-cats::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); }
-.sof-cats::-webkit-scrollbar-thumb { background: rgba(100,200,255,0.35); border-radius: 3px; }
-.sof-cats::-webkit-scrollbar-thumb:hover { background: rgba(100,200,255,0.55); }
+.sof-cats::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--color-base-2), transparent 65%); border-radius: 3px; }
+.sof-cats::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--color-base-2), transparent 45%); }
 .sof-cat {
     width: 100%;
     display: flex;
@@ -439,7 +439,7 @@ watch(() => props.modelValue, (val) => {
     background: transparent;
     border: none;
     color: rgba(255,255,255,0.45);
-    font-size: 1.05rem;
+    font-size: 0.95rem;
     text-align: left;
     cursor: pointer;
     transition: background 0.13s, color 0.13s;
@@ -447,14 +447,18 @@ watch(() => props.modelValue, (val) => {
     gap: 0.4rem;
     white-space: nowrap;
 }
-.sof-cat:hover { background: rgba(100,200,255,0.06); color: rgba(255,255,255,0.75); }
+.sof-cat > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sof-cat:hover { background: color-mix(in srgb, var(--color-base-2), transparent 94%); color: rgba(255,255,255,0.75); }
 .sof-cat--active {
-    background: rgba(100,200,255,0.1);
-    color: rgba(130,220,255,0.95);
+    background: color-mix(in srgb, var(--color-base-2), transparent 90%);
+    color: var(--color-base-2);
 }
 .sof-cat__dot {
     width: 6px; height: 6px; border-radius: 50%;
-    background: #64c8ff;
+    background: var(--color-base-2);
     flex-shrink: 0;
 }
 
@@ -475,16 +479,16 @@ watch(() => props.modelValue, (val) => {
     border-bottom: 1px solid rgba(255,255,255,0.03);
     user-select: none;
 }
-.sof-svc:hover:not(.sof-svc--disabled) { background: rgba(100,200,255,0.06); }
-.sof-svc--checked { background: rgba(100,200,255,0.08); }
+.sof-svc:hover:not(.sof-svc--disabled) { background: color-mix(in srgb, var(--color-base-2), transparent 94%); }
+.sof-svc--checked { background: color-mix(in srgb, var(--color-base-2), transparent 92%); }
 .sof-svc--disabled { opacity: 0.38; cursor: not-allowed; }
 
-.sof-svc__name { flex: 1 1 auto; min-width: 0; font-size: 1.1rem; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sof-svc__name { flex: 1 1 auto; min-width: 0; font-size: 1rem; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sof-svc__price {
     flex-shrink: 0;
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-family: 'Courier New', monospace;
-    color: rgba(100,200,255,0.75);
+    color: color-mix(in srgb, var(--color-base-2), transparent 25%);
 }
 
 /* ── Selected islands ────────────────────────────────── */
@@ -508,15 +512,15 @@ watch(() => props.modelValue, (val) => {
     align-items: center;
     gap: 0.45rem;
     padding: 0.35rem 0.65rem;
-    background: rgba(100,200,255,0.08);
-    border: 1px solid rgba(100,200,255,0.25);
+    background: color-mix(in srgb, var(--color-base-2), transparent 92%);
+    border: 1px solid color-mix(in srgb, var(--color-base-2), transparent 75%);
     border-radius: 6px;
 }
 .sof-island__name { font-size: 0.9rem; color: rgba(255,255,255,0.82); }
 .sof-island__price {
     font-size: 0.85rem;
     font-family: 'Courier New', monospace;
-    color: rgba(100,200,255,0.7);
+    color: color-mix(in srgb, var(--color-base-2), transparent 30%);
 }
 .sof-island__remove {
     background: transparent;
@@ -535,10 +539,10 @@ watch(() => props.modelValue, (val) => {
 .sof-submit {
     width: 100%;
     padding: 0.75rem 1rem;
-    background: rgba(100,200,255,0.1);
-    border: 1px solid rgba(100,200,255,0.3);
+    background: color-mix(in srgb, var(--color-base-2), transparent 90%);
+    border: 1px solid color-mix(in srgb, var(--color-base-2), transparent 70%);
     border-radius: 7px;
-    color: rgba(130,220,255,0.95);
+    color: var(--color-base-2);
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
@@ -546,7 +550,7 @@ watch(() => props.modelValue, (val) => {
     transition: background 0.15s;
     letter-spacing: 0.04em;
 }
-.sof-submit:hover:not(:disabled) { background: rgba(100,200,255,0.18); }
+.sof-submit:hover:not(:disabled) { background: color-mix(in srgb, var(--color-base-2), transparent 82%); }
 .sof-submit:disabled { opacity: 0.35; cursor: default; }
 
 /* ── Transitions ─────────────────────────────────── */
@@ -583,8 +587,8 @@ watch(() => props.modelValue, (val) => {
     cursor: pointer;
     transition: background 0.13s, color 0.13s;
 }
-.sof-acc-header:hover { background: rgba(100,200,255,0.05); color: rgba(255,255,255,0.8); }
-.sof-acc-header--open { background: rgba(100,200,255,0.08); color: rgba(130,220,255,0.95); }
+.sof-acc-header:hover { background: color-mix(in srgb, var(--color-base-2), transparent 95%); color: rgba(255,255,255,0.8); }
+.sof-acc-header--open { background: color-mix(in srgb, var(--color-base-2), transparent 92%); color: var(--color-base-2); }
 
 .sof-acc-header__title { flex: 1; }
 

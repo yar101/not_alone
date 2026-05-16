@@ -17,7 +17,7 @@ const props = defineProps({
     variant: {
         type: String,
         default: "pink",
-        validator: (v) => ["pink", "cyan"].includes(v),
+        validator: (v) => ["pink", "blue"].includes(v),
     },
     compact: {
         type: Boolean,
@@ -132,7 +132,7 @@ onUnmounted(() => {
                     :class="[
                         variant === 'pink'
                             ? 'site-modal-pink'
-                            : 'site-modal-cyan',
+                            : 'site-modal-blue',
                         compact ? 'site-modal-sheet--compact' : '',
                     ]"
                     :style="{
@@ -144,7 +144,7 @@ onUnmounted(() => {
                     <div
                         class="site-modal-ambient"
                         :class="
-                            variant === 'pink' ? 'ambient-pink' : 'ambient-cyan'
+                            variant === 'pink' ? 'ambient-pink' : 'ambient-blue'
                         "
                     />
 
@@ -230,18 +230,18 @@ onUnmounted(() => {
     border-top-color: rgba(255, 178, 239, 0.3);
 }
 
-.site-modal-cyan {
-    border-top-color: rgba(42, 255, 220, 0.25);
+.site-modal-blue {
+    border-top-color: color-mix(in srgb, var(--color-base-2), transparent 45%);
     box-shadow:
-        0 0 0 1px rgba(42, 255, 220, 0.06),
-        0 -30px 80px rgba(42, 255, 220, 0.08),
+        0 0 0 1px color-mix(in srgb, var(--color-base-2), transparent 94%),
+        0 -30px 80px color-mix(in srgb, var(--color-base-2), transparent 92%),
         0 40px 100px rgba(0, 0, 0, 0.6),
-        inset 0 1px 0 rgba(42, 255, 220, 0.15),
-        inset 0 0 80px rgba(42, 255, 220, 0.03);
+        inset 0 1px 0 color-mix(in srgb, var(--color-base-2), transparent 85%),
+        inset 0 0 80px color-mix(in srgb, var(--color-base-2), transparent 97%);
 }
 
 /* ── Ambient orbs ──────────────────────────────────── */
-/*.site-modal-ambient {
+.site-modal-ambient {
     position: absolute;
     inset: 0;
     pointer-events: none;
@@ -282,31 +282,31 @@ onUnmounted(() => {
     animation: orb-drift-b 13s ease-in-out infinite alternate;
 }
 
-.ambient-cyan::before {
+.ambient-blue::before {
     top: -80px;
     right: -60px;
     width: 300px;
     height: 300px;
     background: radial-gradient(
         circle,
-        rgba(42, 255, 220, 0.1) 0%,
+        color-mix(in srgb, var(--color-base-2), transparent 90%) 0%,
         transparent 70%
     );
     animation: orb-drift-a 9s ease-in-out infinite alternate;
 }
 
-.ambient-cyan::after {
+.ambient-blue::after {
     bottom: -100px;
     left: -80px;
     width: 360px;
     height: 360px;
     background: radial-gradient(
         circle,
-        rgba(0, 120, 200, 0.1) 0%,
+        color-mix(in srgb, var(--color-base-2), transparent 90%) 0%,
         transparent 70%
     );
     animation: orb-drift-b 13s ease-in-out infinite alternate;
-}*/
+}
 
 @keyframes orb-drift-a {
     from {

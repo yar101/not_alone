@@ -12,7 +12,7 @@ const emit = defineEmits(['close']);
 </script>
 
 <template>
-    <SiteModal :show="show" variant="cyan" @close="emit('close')">
+    <SiteModal :show="show" variant="blue" @close="emit('close')">
         <div class="modal-content">
             <h2 class="modal-title">Заголовок</h2>
             <p class="modal-text">

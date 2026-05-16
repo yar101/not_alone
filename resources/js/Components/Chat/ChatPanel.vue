@@ -3777,7 +3777,7 @@ function formatDate(iso) {
     <!-- ── Подтверждение добавления услуги к заказу ────────── -->
     <SiteModal
         :show="confirmAddModal"
-        variant="cyan"
+        variant="blue"
         compact
         max-width="420px"
         @close="confirmAddModal = false"
@@ -3818,7 +3818,7 @@ function formatDate(iso) {
     <!-- ── Модалка подтверждения принятия заказа ────────── -->
     <SiteModal
         :show="acceptModal"
-        variant="cyan"
+        variant="blue"
         compact
         max-width="420px"
         @close="acceptModal = false"
@@ -3855,7 +3855,7 @@ function formatDate(iso) {
     <!-- ── Модалка подтверждения выполнения заказа ─────── -->
     <SiteModal
         :show="completeModal"
-        variant="cyan"
+        variant="blue"
         compact
         max-width="420px"
         @close="completeModal = false"

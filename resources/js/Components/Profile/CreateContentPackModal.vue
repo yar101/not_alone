@@ -162,7 +162,7 @@ async function submit() {
 </script>
 
 <template>
-    <SiteModal :show="show" variant="cyan" :max-width="'640px'" @close="close">
+    <SiteModal :show="show" variant="blue" :max-width="'640px'" @close="close">
         <div class="cpm-outer">
         <div class="cpm-wrap">
             <h2 class="cpm-title">{{ __('pack.create_title') }}</h2>

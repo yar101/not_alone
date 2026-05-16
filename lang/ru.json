@@ -16,6 +16,8 @@
     "welcome.enter": "ВОЙТИ",
     "welcome.help": "Справка",
 
+    "common.favorites": "Избранное",
+    "common.gallery": "Галерея",
     "common.close": "Закрыть",
     "common.search": "Поиск",
     "common.all": "Все",
