@@ -139,7 +139,15 @@ onUnmounted(() => document.removeEventListener('paste', onPaste));
             </div>
             <p class="dz-zone__text">
                 <span v-if="isDragging">{{ __('upload.drop') }}</span>
-                <span v-else>{{ __('upload.hint') }} <kbd>Ctrl+V</kbd><br><span class="dz-zone__link">{{ __('upload.hint.select') }}</span></span>
+                <span v-else>
+                    <span class="dz-desktop-only">
+                        {{ __('upload.hint') }} <kbd>Ctrl+V</kbd><br>
+                        <span class="dz-zone__link">{{ __('upload.hint.select') }}</span>
+                    </span>
+                    <span class="dz-mobile-only">
+                        <span class="dz-zone__link">{{ __('upload.hint.mobile') }}</span>
+                    </span>
+                </span>
             </p>
             <p class="dz-zone__hint">{{ ACCEPT.map(t => t.split('/')[1].toUpperCase()).join(', ') }} · {{ __('upload.hint.up_to') }} {{ maxSizeMb }} {{ __('upload.size.suffix') }}</p>
         </div>
@@ -161,6 +169,10 @@ onUnmounted(() => document.removeEventListener('paste', onPaste));
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
+}
+
+.dz-mobile-only {
+    display: none;
 }
 
 /* ── Drop zone ─────────────────────────────────────────────── */
@@ -310,5 +322,24 @@ kbd {
 
 .dz-input {
     display: none;
+}
+
+@media (max-width: 768px) {
+    .dz-desktop-only {
+        display: none;
+    }
+
+    .dz-mobile-only {
+        display: inline;
+    }
+
+    .dz-zone {
+        padding: 1.25rem 0.5rem;
+    }
+
+    .dz-preview__overlay {
+        opacity: 1;
+        background: rgba(0, 0, 0, 0.45);
+    }
 }
 </style>

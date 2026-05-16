@@ -21,7 +21,8 @@ const avatarLoaded = ref(false);
 watch(() => props.user?.avatar_url, () => { avatarLoaded.value = false; });
 
 // ── Upload modal ───────────────────────────────────────────
-const avatarModal = ref(false);
+const avatarModal    = ref(false);
+const avatarModalRef = ref(null);
 
 // ── Crop modal ─────────────────────────────────────────────
 const cropModal      = ref(false);
@@ -36,6 +37,9 @@ function openUpload() {
 }
 
 function processAvatarFile(file) {
+    if (avatarModalRef.value) {
+        avatarModalRef.value.skipHistoryBack();
+    }
     avatarModal.value = false;
     cropError.value = '';
     const url = URL.createObjectURL(file);
@@ -101,7 +105,7 @@ function applyCrop() {
     </div>
 
     <!-- Upload modal -->
-    <SiteModal :show="avatarModal" variant="pink" :compact="true" @close="avatarModal = false">
+    <SiteModal ref="avatarModalRef" :show="avatarModal" variant="pink" :compact="true" @close="avatarModal = false">
         <div class="au-upload-form">
             <h3 class="au-title">{{ __('upload.avatar.title') }}</h3>
             <ImageDropzone :max-size-mb="10" @change="processAvatarFile" />

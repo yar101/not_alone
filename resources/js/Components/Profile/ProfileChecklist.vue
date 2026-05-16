@@ -165,17 +165,19 @@ const sortedItems = computed(() => [
 /* ── Check icon wrap ── */
 .pcl__check-wrap {
     flex-shrink: 0;
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    transition: background 0.2s;
+    transition: all 0.2s;
+    border: 1.5px solid rgba(255, 255, 255, 0.12);
 }
 
 .pcl__check-wrap--done {
-    background: rgba(224, 24, 108, 0.1);
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.35);
 }
 
 .pcl__check {
@@ -184,8 +186,8 @@ const sortedItems = computed(() => [
 }
 
 .pcl__item--done .pcl__check {
-    color: rgba(236, 72, 153, 0.9);
-    filter: drop-shadow(0 0 4px rgba(224, 24, 108, 0.45));
+    color: rgba(16, 185, 129, 0.85);
+    filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.3));
 }
 
 .pcl__item:not(.pcl__item--done) .pcl__check {

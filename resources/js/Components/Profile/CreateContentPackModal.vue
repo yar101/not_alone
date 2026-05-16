@@ -241,7 +241,8 @@ async function submit() {
                         <polyline points="21 15 16 10 5 21"/>
                     </svg>
                     <span class="cpm-dropzone__text">
-                        {{ __('pack.dropzone_text') }}
+                        <span class="cpm-desktop-only">{{ __('pack.dropzone_text') }}</span>
+                        <span class="cpm-mobile-only">{{ __('pack.dropzone_text.mobile') }}</span>
                         <br/><small>({{ photos.length }}/{{ MAX_FILES }})</small>
                     </span>
                 </div>
@@ -469,6 +470,19 @@ async function submit() {
     font-size: 0.78rem;
     color: rgba(255,255,255,0.25);
     margin: 0.25rem 0 0;
+}
+
+.cpm-mobile-only {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .cpm-desktop-only {
+        display: none;
+    }
+    .cpm-mobile-only {
+        display: inline;
+    }
 }
 
 .cpm-footer {

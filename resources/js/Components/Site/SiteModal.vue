@@ -52,7 +52,11 @@ const isOpen = computed({
     },
 });
 
-useModalHistory(isOpen, "sm");
+const modalHistory = useModalHistory(isOpen, "sm");
+
+defineExpose({
+    skipHistoryBack: () => modalHistory?.skipHistoryBack?.(),
+});
 
 watch(
     () => props.show,

@@ -18,7 +18,7 @@ use Inertia\Response;
 
 class SupportChatController extends Controller
 {
-    private const ADMIN_NAME = 'Поддержка no alone';
+    private const ADMIN_NAME = 'Поддержка Not Alone';
     private const PER_PAGE   = 20;
 
     public function index(): Response
