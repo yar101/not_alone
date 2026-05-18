@@ -1,10 +1,17 @@
 <script setup>
 import { useTranslations } from '@/composables/useTranslations';
 const { __ } = useTranslations();
+
+defineProps({
+    gender: {
+        type: String,
+        default: 'female'
+    }
+});
 </script>
 
 <template>
-    <span class="idol-badge">{{ __('common.idol') }}</span>
+    <span class="idol-badge" :class="{ 'is-male': gender === 'male' }">{{ __('common.idol') }}</span>
 </template>
 
 <style scoped>
@@ -20,5 +27,11 @@ const { __ } = useTranslations();
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 70%);
     white-space: nowrap;
     line-height: 1;
+}
+
+.idol-badge.is-male {
+    background: color-mix(in srgb, var(--color-base-2), transparent 92%);
+    color: var(--color-base-2);
+    border-color: color-mix(in srgb, var(--color-base-2), transparent 70%);
 }
 </style>

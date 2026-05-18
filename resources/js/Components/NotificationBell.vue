@@ -1093,19 +1093,6 @@ defineExpose({ toggleDropdown });
     cursor: pointer;
 }
 
-/* unread left accent */
-.notif-item--unread::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 20%;
-    bottom: 20%;
-    width: 2px;
-    background: var(--color-base-1);
-    border-radius: 0 2px 2px 0;
-}
-
-/* ── Icon ── */
 .notif-icon-wrap {
     width: 32px;
     height: 32px;
