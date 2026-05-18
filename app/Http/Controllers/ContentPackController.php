@@ -7,6 +7,7 @@ use App\Models\ContentPackChangeRequest;
 use App\Models\ContentPackPhoto;
 use App\Models\PlatformSetting;
 use App\Models\User;
+use App\Jobs\NotifyFollowersJob;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -399,6 +400,8 @@ class ContentPackController extends Controller
             'status'       => 'published',
             'published_at' => now(),
         ]);
+
+        NotifyFollowersJob::dispatch($pack->user, $pack);
 
         return back();
     }

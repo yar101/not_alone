@@ -157,6 +157,31 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(ContentPackPurchase::class);
     }
 
+    public function following(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'follows', 'follower_id', 'idol_id')->withTimestamps();
+    }
+
+    public function followers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'follows', 'idol_id', 'follower_id')->withTimestamps();
+    }
+
+    public function follow(int $userId): void
+    {
+        $this->following()->syncWithoutDetaching([$userId]);
+    }
+
+    public function unfollow(int $userId): void
+    {
+        $this->following()->detach($userId);
+    }
+
+    public function isFollowing(int $userId): bool
+    {
+        return $this->following()->where('idol_id', $userId)->exists();
+    }
+
     public function unreadMessagesCount(): int
     {
         return $this->unreadConversationCount();

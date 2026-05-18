@@ -138,9 +138,9 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
                     </Link>
 
                     <!-- Избранное -->
-                    <Link href="#" class="usb-item" @click="closeForNav">
+                    <Link :href="route('tracked.index')" class="usb-item" @click="closeForNav">
                         <el-icon class="usb-item__icon"><Star /></el-icon>
-                        {{ __('common.favorites') }}
+                        {{ __('nav.tracked') }}
                     </Link>
 
                     <div class="usb-nav-divider" />

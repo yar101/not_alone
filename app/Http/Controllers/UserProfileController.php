@@ -15,6 +15,7 @@ use App\Models\PostLike;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\ServiceTimeUnit;
+use App\Jobs\NotifyFollowersJob;
 
 use App\Models\ChatBlock;
 use App\Models\User;
@@ -53,6 +54,7 @@ class UserProfileController extends Controller
             'isOwner'          => auth()->id() === $user->id,
             'isIdol'           => (bool) $user->is_idol,
             'rating'           => $user->rating,
+            'isFollowing'      => auth()->check() ? auth()->user()->isFollowing($user->id) : false,
             'isBlockedByIdol'  => auth()->check()
                 ? ChatBlock::active()
                     ->where('blocker_id', $user->id)
@@ -546,11 +548,13 @@ class UserProfileController extends Controller
                 $photoPath = $file->storeAs("posts/{$user->id}", time() . '.' . $ext, 'public');
             }
         }
-        Post::create([
+        $post = Post::create([
             'user_id'    => $user->id,
             'body'       => $request->input('body'),
             'photo_path' => $photoPath,
         ]);
+
+        NotifyFollowersJob::dispatch($user, $post);
 
         return back();
     }

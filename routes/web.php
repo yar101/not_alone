@@ -13,6 +13,7 @@ use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\AboutController;
 use App\Http\Controllers\ContentPackController;
 use App\Http\Controllers\ContentPackPurchaseController;
+use App\Http\Controllers\FollowController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\LocaleController;
@@ -85,6 +86,8 @@ Route::middleware(['auth', 'verified', 'not_banned'])->group(function () {
 // User search
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/search', [UserSearchController::class, 'index'])->name('users.search');
+    Route::get('/tracked', [FollowController::class, 'index'])->name('tracked.index');
+    Route::post('/users/{user}/follow', [FollowController::class, 'toggle'])->name('users.follow');
 });
 
 // Account settings (email, password, delete)

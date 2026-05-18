@@ -16,6 +16,7 @@ const props = defineProps({
     user: { type: Object, required: true },
     isOwner: { type: Boolean, default: false },
     isIdol: { type: Boolean, default: false },
+    isFollowing: { type: Boolean, default: false },
     rating: { default: null },
     canReport: { type: Boolean, default: false },
 });
@@ -164,8 +165,15 @@ function deleteAvatar() {
         </div>
 
         <!-- Кнопки сверху справа -->
-        <div v-if="isOwner" class="header-actions">
-            <div class="owner-menu">
+        <div class="header-actions">
+            <button v-if="!isOwner && canReport" class="action-pill action-pill--report" @click="emit('report')" :title="__('profile.header.report')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                    <line x1="4" y1="22" x2="4" y2="15"/>
+                </svg>
+            </button>
+
+            <div v-if="isOwner" class="owner-menu">
                 <button class="action-pill" @click.stop="showOwnerMenu = !showOwnerMenu">
                     <el-icon><MoreFilled /></el-icon>
                 </button>
@@ -182,14 +190,6 @@ function deleteAvatar() {
                     </div>
                 </Transition>
             </div>
-        </div>
-        <div v-else-if="canReport" class="header-actions">
-            <button class="action-pill action-pill--report" @click="emit('report')" :title="__('profile.header.report')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
-                    <line x1="4" y1="22" x2="4" y2="15"/>
-                </svg>
-            </button>
         </div>
 
         <!-- Аватар по центру -->

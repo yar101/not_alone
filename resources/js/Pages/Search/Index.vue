@@ -4,6 +4,8 @@ import { router, usePage, Link } from "@inertiajs/vue3";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import { Head } from "@inertiajs/vue3";
 import IdolBadge from "@/Components/IdolBadge.vue";
+import UserCardAvatar from "@/Components/UserCardAvatar.vue";
+import UserCard from "@/Components/UserCard.vue";
 import SiteModal from "@/Components/Site/SiteModal.vue";
 import SearchFilters from "@/Components/Search/SearchFilters.vue";
 import AppSelect from "@/Components/AppSelect.vue";
@@ -394,15 +396,6 @@ function genderLabel(g) {
     if (g === "female") return __("gender.abbr.female");
     return "";
 }
-
-function avatarUrl(user) {
-    if (!user.avatar_path) return null;
-    return "/storage/" + user.avatar_path;
-}
-
-function initial(name) {
-    return name?.charAt(0).toUpperCase() ?? "?";
-}
 </script>
 
 <template>
@@ -467,64 +460,11 @@ function initial(name) {
                         </div>
 
                         <div v-else-if="users.data.length > 0" key="grid" class="user-grid">
-                            <Link
+                            <UserCard
                                 v-for="user in users.data"
                                 :key="user.id"
-                                :href="
-                                    route('profile.show', { user: user.id }) +
-                                    '#about'
-                                "
-                                class="user-card"
-                            >
-                                <div class="card-avatar-wrap">
-                                    <div class="card-avatar" :class="{ 'is-male': user.gender === 'male' }">
-                                        <img v-if="avatarUrl(user)" :src="avatarUrl(user)" :alt="__('common.avatar')"
-                                            class="card-avatar__img" />
-                                        <span v-else class="card-avatar__initials">{{ initial(user.name) }}</span>
-                                    </div>
-                                    <div class="card-avatar-badges">
-                                        <IdolBadge
-                                            v-if="user.is_idol"
-                                            class="card-idol-badge"
-                                        />
-                                        <span v-if="user.rating" class="card-rating"
-                                            >★ {{ user.rating }}</span
-                                        >
-                                    </div>
-                                </div>
-                                <div class="card-body">
-                                    <div class="card-name-row">
-                                        <div class="card-name">{{ user.name }}</div>
-                                    </div>
-                                    <div class="card-badges">
-                                        <span
-                                            v-if="user.gender"
-                                            class="card-badge"
-                                            :class="
-                                                user.gender === 'female'
-                                                    ? 'card-badge--female'
-                                                    : 'card-badge--male'
-                                            "
-                                            >{{
-                                                user.gender === "female"
-                                                    ? "\u2640\uFE0F"
-                                                    : "\u2642\uFE0F"
-                                            }}</span
-                                        >
-                                        <span
-                                            v-if="calcAge(user.birth_date)"
-                                            class="card-badge card-badge--age"
-                                            >{{ calcAge(user.birth_date) }}
-                                            {{
-                                                transChoice(
-                                                    "search.age.years",
-                                                    calcAge(user.birth_date),
-                                                )
-                                            }}</span
-                                        >
-                                    </div>
-                                </div>
-                            </Link>
+                                :user="user"
+                            />
                         </div>
 
                         <div v-else key="empty" class="no-results">
@@ -1017,101 +957,12 @@ function initial(name) {
         0 0 10px rgba(255, 178, 239, 0.05);
 }
 
-.card-avatar-wrap {
-    position: relative;
-    align-self: center;
-    margin-bottom: 0.25rem;
-}
-
-.card-avatar {
-    width: 110px;
-    height: 110px;
-    border-radius: 50%;
-    overflow: hidden;
-    background: rgba(255, 178, 239, 0.12);
-    border: 2px solid rgba(255, 178, 239, 0.3);
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.4s ease;
-}
-
-.user-card:hover .card-avatar {
+.user-card:hover :deep(.card-avatar) {
     border-color: rgba(255, 178, 239, 0.5);
 }
 
-.card-avatar.is-male {
-    background: rgba(100, 210, 255, 0.12);
-    border-color: rgba(100, 210, 255, 0.3);
-}
-
-.user-card:hover .card-avatar.is-male {
+.user-card:hover :deep(.card-avatar.is-male) {
     border-color: rgba(100, 210, 255, 0.5);
-}
-
-.card-avatar__img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.card-avatar__initials {
-    font-size: 2.5rem;
-    font-weight: 600;
-    color: var(--color-base-1);
-    text-shadow: 0 0 20px rgba(255, 178, 239, 0.4);
-}
-
-.card-avatar.is-male .card-avatar__initials {
-    color: var(--color-base-2);
-    text-shadow: 0 0 20px rgba(100, 210, 255, 0.4);
-}
-
-.card-avatar-badges {
-    position: absolute;
-    bottom: -4px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    white-space: nowrap;
-}
-
-.card-rating {
-    background: rgba(20, 15, 30, 0.85);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 178, 239, 0.4);
-    border-radius: 4px;
-    padding: 0.2rem 0.6rem;
-    font-size: 0.75rem;
-    color: var(--color-base-1);
-    font-weight: 700;
-    white-space: nowrap;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    display: flex;
-    align-items: center;
-    gap: 0.2rem;
-    line-height: 1;
-}
-
-:deep(.card-idol-badge) {
-    background: rgba(20, 15, 30, 0.85);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 178, 239, 0.4);
-    border-radius: 4px;
-    padding: 0.2rem 0.6rem;
-    font-size: 0.75rem;
-    color: var(--color-base-1);
-    font-weight: 700;
-    white-space: nowrap;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    display: flex;
-    align-items: center;
-    line-height: 1;
 }
 
 .card-body {

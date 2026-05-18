@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Service;
 use App\Models\ServiceCategory;
+use App\Jobs\NotifyFollowersJob;
 use App\Notifications\ServiceApprovedNotification;
 use App\Notifications\ServiceRejectedNotification;
 use App\Services\AdminLogService;
@@ -76,7 +77,10 @@ class ServiceModerationController extends Controller
             'moderated_at' => now(),
         ]);
 
-        $service->user?->notify(new ServiceApprovedNotification($service));
+        if ($service->user) {
+            $service->user->notify(new ServiceApprovedNotification($service));
+            NotifyFollowersJob::dispatch($service->user, $service);
+        }
 
         AdminLogService::log(auth('admin')->id(), 'approve_service', 'service', $service->id);
 
@@ -128,7 +132,11 @@ class ServiceModerationController extends Controller
                 'moderated_by' => $adminId,
                 'moderated_at' => now(),
             ]);
-            $service->user?->notify(new ServiceApprovedNotification($service));
+            
+            if ($service->user) {
+                $service->user->notify(new ServiceApprovedNotification($service));
+                NotifyFollowersJob::dispatch($service->user, $service);
+            }
         }
 
         AdminLogService::log($adminId, 'bulk_approve_services', 'service', null, ['count' => $ids->count()]);
