@@ -452,6 +452,7 @@ onMounted(async () => {
                             }}</span>
                         </button>
                         <button
+                            v-if="isIdol"
                             class="tab-btn"
                             :class="{ active: tab === 'posts' }"
                             @click="switchTab('posts')"
@@ -608,6 +609,7 @@ onMounted(async () => {
                                     <ProfilePosts
                                         :profile-user-id="profileUser.id"
                                         :is-owner="isOwner"
+                                        :is-idol="isIdol"
                                         :auth-user="page.props.auth.user"
                                     />
                                 </div>

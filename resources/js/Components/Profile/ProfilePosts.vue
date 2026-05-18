@@ -13,6 +13,7 @@ import PostDetailModal from "@/Components/Profile/PostDetailModal.vue";
 const props = defineProps({
     profileUserId: { type: Number, required: true },
     isOwner: { type: Boolean, default: false },
+    isIdol: { type: Boolean, default: false },
     authUser: { default: null },
 });
 
@@ -169,8 +170,8 @@ function deletePost() {
 
 <template>
     <div class="posts-section">
-        <!-- Toolbar: create button for owner -->
-        <div v-if="isOwner" class="posts-toolbar">
+        <!-- Toolbar: create button for owner (only if idol) -->
+        <div v-if="isOwner && isIdol" class="posts-toolbar">
             <CreateButton @click="createModal = true">{{
                 __("post.new")
             }}</CreateButton>

@@ -489,6 +489,9 @@ class UserProfileController extends Controller
 
     public function storePost(Request $request): RedirectResponse
     {
+        $user = $request->user();
+        abort_unless($user->is_idol, 403, 'Только айдолы могут создавать публикации.');
+
         $request->validate([
             'body'  => ['required', 'string', 'max:377'],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
