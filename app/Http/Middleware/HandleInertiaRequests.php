@@ -26,6 +26,7 @@ class HandleInertiaRequests extends Middleware
     ];
     private const ORDER_TYPES   = ['order_created', 'order_accepted', 'order_cancelled', 'order_paid', 'order_completed'];
     private const MESSAGE_TYPES = ['new_message'];
+    private const FOLLOW_TYPES  = ['new_post', 'new_service', 'new_content_pack'];
 
     public function version(Request $request): ?string
     {
@@ -52,6 +53,7 @@ class HandleInertiaRequests extends Middleware
             'service_unread' => $user ? $this->countUnreadService($user) : 0,
             'order_notifications_unread' => $user ? $this->countUnreadOrders($user) : 0,
             'messages_notifications_unread' => $user ? $this->countUnreadMessages($user) : 0,
+            'follows_unread' => $user ? $this->countUnreadFollows($user) : 0,
             'is_idol' => $user?->is_idol ?? false,
             'idol_status' => $idolStatus,
             'pending_applications_count' => fn() => auth('admin')->check()
@@ -107,10 +109,18 @@ class HandleInertiaRequests extends Middleware
 
     private function countUnreadNotifications($user): int
     {
-        $excluded = array_merge(self::SERVICE_TYPES, self::ORDER_TYPES, self::MESSAGE_TYPES);
+        $excluded = array_merge(self::SERVICE_TYPES, self::ORDER_TYPES, self::MESSAGE_TYPES, self::FOLLOW_TYPES);
         $placeholders = implode(',', array_fill(0, count($excluded), '?'));
         return $user->unreadNotifications()
             ->whereRaw("(data::jsonb->>'type') NOT IN ($placeholders)", $excluded)
+            ->count();
+    }
+
+    private function countUnreadFollows($user): int
+    {
+        $placeholders = implode(',', array_fill(0, count(self::FOLLOW_TYPES), '?'));
+        return $user->unreadNotifications()
+            ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::FOLLOW_TYPES)
             ->count();
     }
 

@@ -18,6 +18,7 @@ class NotificationController extends Controller
     ];
     private const ORDER_TYPES   = ['order_created', 'order_accepted', 'order_cancelled', 'order_paid', 'order_completed'];
     private const MESSAGE_TYPES = ['new_message'];
+    private const FOLLOW_TYPES  = ['new_post', 'new_service', 'new_content_pack'];
     private const PER_PAGE      = 20;
 
     private function parseBefore(Request $request): ?Carbon
@@ -168,6 +169,9 @@ class NotificationController extends Controller
         if (in_array($type, self::MESSAGE_TYPES) && $senderId) {
             return 'message';
         } 
+        if (in_array($type, self::FOLLOW_TYPES)) {
+            return 'follow';
+        }
         if (in_array($type, self::SERVICE_TYPES) || in_array($type, self::MESSAGE_TYPES)) {
             return 'service';
         }
@@ -225,7 +229,7 @@ class NotificationController extends Controller
     public function markAllRead(Request $request)
     {
         $user         = $request->user();
-        $excluded     = array_merge(self::SERVICE_TYPES, self::ORDER_TYPES, self::MESSAGE_TYPES);
+        $excluded     = array_merge(self::SERVICE_TYPES, self::ORDER_TYPES, self::MESSAGE_TYPES, self::FOLLOW_TYPES);
         $placeholders = implode(',', array_fill(0, count($excluded), '?'));
         
         $user->unreadNotifications()
@@ -272,6 +276,18 @@ class NotificationController extends Controller
                 ['read_at' => now()]
             );
         }
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function markAllFollowsRead(Request $request)
+    {
+        $user         = $request->user();
+        $placeholders = implode(',', array_fill(0, count(self::FOLLOW_TYPES), '?'));
+        
+        $user->unreadNotifications()
+            ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::FOLLOW_TYPES)
+            ->update(['read_at' => now()]);
 
         return response()->json(['ok' => true]);
     }

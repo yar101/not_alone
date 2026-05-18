@@ -46,6 +46,9 @@ class NotifyFollowersJob implements ShouldQueue
 
         $this->author->followers()->chunk(200, function ($followers) use ($notification) {
             Notification::send($followers, $notification);
+            foreach ($followers as $follower) {
+                broadcast(new \App\Events\NewNotification('private', $follower->id));
+            }
         });
     }
 }

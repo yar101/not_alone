@@ -206,9 +206,9 @@ routes/
 Для корректной работы загрузки и сжатия изображений (аватары до 5МБ, посты до 10МБ), на сервере должны быть установлены следующие лимиты:
 
 ```ini
-post_max_size = 15M
-upload_max_filesize = 12M
-max_file_uploads = 50
+post_max_size = 100M
+upload_max_filesize = 100M
+max_file_uploads = 100
 ```
 
 *После изменения настроек необходимо перезапустить PHP-FPM или Apache.*

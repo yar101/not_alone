@@ -1263,9 +1263,8 @@ onMounted(async () => {
         color-mix(in srgb, var(--color-base-1), transparent 90%) 100%
     );
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 85%);
-    box-shadow:
-        inset 0 1px 0 color-mix(in srgb, var(--color-base-1), transparent 60%),
-        0 2px 12px color-mix(in srgb, var(--color-base-1), transparent 88%);
+    box-shadow: inset 0 1px 0
+        color-mix(in srgb, var(--color-base-1), transparent 60%);
 }
 .tab-btn:hover:not(.active) {
     background: rgba(255, 255, 255, 0.04);

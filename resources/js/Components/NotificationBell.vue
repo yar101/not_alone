@@ -8,7 +8,7 @@ import {
     Promotion, Trophy, CircleClose,
     DocumentAdd, CircleCheckFilled, CircleCloseFilled,
     Coin, SuccessFilled, WarningFilled, Rank, Bell,
-    PictureFilled, StarFilled, ChatDotRound, Service,
+    PictureFilled, StarFilled, ChatDotRound, Service, Van,
 } from '@element-plus/icons-vue';
 
 import { useTranslations } from '@/composables/useTranslations';
@@ -89,6 +89,7 @@ async function markAllRead() {
             axios.patch(route('notifications.service.read-all')),
             axios.patch(route('notifications.orders.read-all')),
             axios.patch(route('notifications.messages.read-all')),
+            axios.patch(route('notifications.follows.read-all')),
         ]);
     } catch (e) {
         console.error('Failed to mark all read', e);
@@ -96,7 +97,7 @@ async function markAllRead() {
     
     // Перезагружаем счетчики с сервера
     router.reload({ 
-        only: ['notifications_unread', 'service_unread', 'order_notifications_unread', 'messages_notifications_unread'],
+        only: ['notifications_unread', 'service_unread', 'order_notifications_unread', 'messages_notifications_unread', 'follows_unread'],
         preserveScroll: true,
         preserveState: true
     });
@@ -135,6 +136,11 @@ function handleItemClick(item) {
         router.visit(route('profile.show', { user: authUser.id }) + '#services');
         return;
     }
+    if (item._cat === 'follow' && item.data?.user_id) {
+        open.value = false;
+        router.visit(route('profile.show', { user: item.data.user_id }));
+        return;
+    }
 
     const profileTypes = [
         'idol_approved', 'idol_rejected',
@@ -150,6 +156,7 @@ function handleItemClick(item) {
 function isClickable(item) {
     if (item.type === 'new_message' && item.data?.conversation_id) return true;
     if (item._cat === 'order' && item.order_id) return true;
+    if (item._cat === 'follow' && item.data?.user_id) return true;
     const profileTypes = [
         'idol_approved', 'idol_rejected', 'low_rating_warning',
         'admin_rating', 'review_dispute_approved', 'review_dispute_rejected',
@@ -218,12 +225,14 @@ const totalUnread = computed(() => {
     return (page.props.notifications_unread ?? 0) +
         (page.props.service_unread ?? 0) +
         (page.props.order_notifications_unread ?? 0) +
-        (page.props.messages_notifications_unread ?? 0);
+        (page.props.messages_notifications_unread ?? 0) +
+        (page.props.follows_unread ?? 0);
 });
 
 const serviceUnread = computed(() => forceZeroUnread.value ? 0 : (page.props.service_unread ?? 0));
 const orderUnread = computed(() => forceZeroUnread.value ? 0 : (page.props.order_notifications_unread ?? 0));
 const messagesUnread = computed(() => forceZeroUnread.value ? 0 : (page.props.messages_notifications_unread ?? 0));
+const followsUnread = computed(() => forceZeroUnread.value ? 0 : (page.props.follows_unread ?? 0));
 const personalUnread = computed(() => forceZeroUnread.value ? 0 : (page.props.notifications_unread ?? 0));
 
 watch(() => page.url, () => {
@@ -231,7 +240,7 @@ watch(() => page.url, () => {
 });
 
 function reloadCounts() {
-    router.reload({ only: ['notifications_unread', 'service_unread', 'order_notifications_unread', 'messages_notifications_unread'] });
+    router.reload({ only: ['notifications_unread', 'service_unread', 'order_notifications_unread', 'messages_notifications_unread', 'follows_unread'] });
 }
 
 // ── Popup notifications ───────────────────────────────────
@@ -272,6 +281,9 @@ function getNotificationTitle(item) {
         review_dispute_approved: __('notification.type.dispute_approved'),
         review_dispute_rejected: __('notification.type.review_dispute_rejected'),
         new_review: __('notification.type.new_review'),
+        new_post: __('notification.type.new_post'),
+        new_service: __('notification.type.new_service'),
+        new_content_pack: __('notification.type.new_content_pack'),
         new_message: data.sender_id ? __('notification.type.new_message') : __('notification.type.support_message'),
         chat_status: __('notification.type.chat_status'),
     }[type] ?? __('notification.type.default');
@@ -300,6 +312,10 @@ function getNotificationMessage(item) {
     if (type === 'new_review') {
         const rating = data.rating || 5;
         params.stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+    }
+
+    if (type === 'new_post' || type === 'new_service' || type === 'new_content_pack') {
+        params.name = data.user_name;
     }
 
     if (type === 'admin_rating') {
@@ -436,6 +452,9 @@ function itemIconComponent(item) {
             order_completed: SuccessFilled,
         }[item.type] ?? DocumentAdd;
     }
+    if (item._cat === 'follow') {
+        return Van;
+    }
     if (item._cat === 'service' || item._cat === 'message') {
         if (item.type === 'new_message' && !item.data?.sender_id) {
             return Service;
@@ -476,6 +495,7 @@ function itemIconClass(item) {
         if (item.type === 'content_pack_rejected' || item.type === 'content_pack_change_rejected') return 'icon--danger';
         if (item.type === 'new_review') return 'icon--success';
         if (item.type === 'new_message') return 'icon--personal';
+        if (item.type === 'new_post' || item.type === 'new_service' || item.type === 'new_content_pack') return 'icon--success';
         if (item.type === 'low_rating_warning') return 'icon--warning';
         if (item.type === 'admin_rating') return 'icon--paid';
         return 'icon--default';
@@ -607,6 +627,12 @@ defineExpose({ toggleDropdown });
                                 {{ __('notification.tab.messages') }}
                                 <span v-if="messagesUnread > 0" class="notif-filter-dot"></span>
                             </button>
+                            <button class="notif-filter-btn"
+                                :class="{ 'notif-filter-btn--active': activeFilters.includes('follow') }"
+                                @click="toggleFilter('follow')">
+                                {{ __('notification.tab.follows') }}
+                                <span v-if="followsUnread > 0" class="notif-filter-dot"></span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -669,7 +695,7 @@ defineExpose({ toggleDropdown });
                                         {{ getNotificationMessage(item) }}
                                     </p>
                                     <span class="notif-cat-tag" :class="`cat--${item._cat}`">
-                                        {{ item._cat === 'personal' ? __('notification.tag.personal') : item._cat === 'service' ? __('notification.tag.service') : item._cat === 'order' ? __('notification.tag.order') : __('notification.tag.message') }}
+                                        {{ item._cat === 'personal' ? __('notification.tag.personal') : item._cat === 'service' ? __('notification.tag.service') : item._cat === 'order' ? __('notification.tag.order') : item._cat === 'follow' ? __('notification.tag.follow') : __('notification.tag.message') }}
                                     </span>
                                 </div>
                                 <p v-if="getNotificationTitle(item) && !['new_message', 'order_created', 'order_accepted', 'order_cancelled', 'order_paid', 'order_completed'].includes(item.type)" class="notif-msg notif-msg--sub">
@@ -734,6 +760,12 @@ defineExpose({ toggleDropdown });
                                 {{ __('notification.tab.messages') }}
                                 <span v-if="messagesUnread > 0" class="notif-filter-dot"></span>
                             </button>
+                            <button class="notif-filter-btn"
+                                :class="{ 'notif-filter-btn--active': activeFilters.includes('follow') }"
+                                @click="toggleFilter('follow')">
+                                {{ __('notification.tab.follows') }}
+                                <span v-if="followsUnread > 0" class="notif-filter-dot"></span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -790,7 +822,7 @@ defineExpose({ toggleDropdown });
                                             {{ getNotificationMessage(item) }}
                                         </p>
                                         <span class="notif-cat-tag" :class="`cat--${item._cat}`">
-                                            {{ item._cat === 'personal' ? __('notification.tag.personal') : item._cat === 'service' ? __('notification.tag.service') : item._cat === 'order' ? __('notification.tag.order') : __('notification.tag.message') }}
+                                            {{ item._cat === 'personal' ? __('notification.tag.personal') : item._cat === 'service' ? __('notification.tag.service') : item._cat === 'order' ? __('notification.tag.order') : item._cat === 'follow' ? __('notification.tag.follow') : __('notification.tag.message') }}
                                         </span>
                                     </div>
                                     <p v-if="getNotificationTitle(item) && !['new_message', 'order_created', 'order_accepted', 'order_cancelled', 'order_paid', 'order_completed'].includes(item.type)" class="notif-msg notif-msg--sub">
@@ -1222,6 +1254,11 @@ defineExpose({ toggleDropdown });
 }
 
 .cat--message {
+    background: rgba(255, 178, 239, 0.12);
+    color: rgba(255, 178, 239, 0.7);
+}
+
+.cat--follow {
     background: rgba(255, 178, 239, 0.12);
     color: rgba(255, 178, 239, 0.7);
 }
