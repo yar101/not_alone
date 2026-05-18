@@ -464,6 +464,7 @@ function genderLabel(g) {
                                 v-for="user in users.data"
                                 :key="user.id"
                                 :user="user"
+                                compact
                             />
                         </div>
 
@@ -612,7 +613,7 @@ function genderLabel(g) {
 .search-page {
     display: flex;
     gap: 0;
-    height: calc(100vh - 60px);
+    height: calc(100vh - 70px);
     overflow: hidden;
     align-items: flex-start;
 }
@@ -898,8 +899,8 @@ function genderLabel(g) {
 .user-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    gap: 1.25rem;
-    padding: 1rem;
+    gap: 1rem;
+    padding: 0.75rem;
 }
 
 /* ~1600px и меньше → 4 колонки */
@@ -929,112 +930,6 @@ function genderLabel(g) {
         grid-template-columns: repeat(2, 1fr);
         gap: 0.75rem;
     }
-}
-
-.user-card {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    background: linear-gradient(
-        180deg,
-        rgba(255, 255, 255, 0.03) 0%,
-        rgba(255, 255, 255, 0.01) 100%
-    );
-    border: 1px solid rgba(255, 178, 239, 0.08);
-    border-radius: 12px;
-    padding: 1.25rem 1rem;
-    text-decoration: none;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    min-width: 0;
-    overflow: hidden;
-}
-
-.user-card:hover {
-    border-color: rgba(255, 178, 239, 0.25);
-    box-shadow:
-        0 6px 16px -4px rgba(0, 0, 0, 0.4),
-        0 0 10px rgba(255, 178, 239, 0.05);
-}
-
-.user-card:hover :deep(.card-avatar) {
-    border-color: rgba(255, 178, 239, 0.5);
-}
-
-.user-card:hover :deep(.card-avatar.is-male) {
-    border-color: rgba(100, 210, 255, 0.5);
-}
-
-.card-body {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    min-width: 0;
-    align-items: center;
-    text-align: center;
-}
-
-.card-name-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 0;
-    width: 100%;
-}
-
-.card-name {
-    font-size: 1.15rem;
-    font-weight: 600;
-    color: #fff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    min-width: 0;
-    letter-spacing: 0.01em;
-}
-
-.card-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    justify-content: center;
-    margin-top: 0.25rem;
-}
-
-.card-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.25rem 0.6rem;
-    border-radius: 6px;
-    font-size: 0.82rem;
-    font-weight: 500;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.03);
-    color: rgba(255, 255, 255, 0.5);
-    white-space: nowrap;
-    transition: all 0.2s;
-}
-
-.user-card:hover .card-badge {
-    border-color: rgba(255, 255, 255, 0.15);
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.card-badge--female {
-    border-color: rgba(255, 178, 239, 0.25);
-    background: rgba(255, 178, 239, 0.05);
-    color: rgba(255, 178, 239, 0.8);
-}
-
-.card-badge--male {
-    border-color: rgba(100, 210, 255, 0.25);
-    background: rgba(100, 210, 255, 0.05);
-    color: rgba(100, 210, 255, 0.8);
-}
-
-.card-badge--age {
-    background: rgba(255, 255, 255, 0.02);
 }
 
 /* ── No results ──────────────────────────────────────────── */

@@ -15,6 +15,10 @@ const props = defineProps({
     showIdolBadge: {
         type: Boolean,
         default: true
+    },
+    compact: {
+        type: Boolean,
+        default: false
     }
 });
 
@@ -31,7 +35,7 @@ const initial = computed(() => {
 </script>
 
 <template>
-    <div class="card-avatar-wrap">
+    <div class="card-avatar-wrap" :class="{ 'is-compact': compact }">
         <div class="card-avatar" :class="{ 'is-male': user.gender === 'male' }">
             <img v-if="avatarUrl" :src="avatarUrl" :alt="__('common.avatar')"
                 class="card-avatar__img" />
@@ -70,6 +74,11 @@ const initial = computed(() => {
     transition: all 0.4s ease;
 }
 
+.is-compact .card-avatar {
+    width: 90px;
+    height: 90px;
+}
+
 .card-avatar.is-male {
     background: rgba(100, 210, 255, 0.12);
     border-color: rgba(100, 210, 255, 0.3);
@@ -86,6 +95,10 @@ const initial = computed(() => {
     font-weight: 600;
     color: var(--color-base-1);
     text-shadow: 0 0 20px rgba(255, 178, 239, 0.4);
+}
+
+.is-compact .card-avatar__initials {
+    font-size: 2rem;
 }
 
 .card-avatar.is-male .card-avatar__initials {
@@ -105,6 +118,11 @@ const initial = computed(() => {
     z-index: 2;
 }
 
+.is-compact .card-avatar-badges {
+    bottom: -6px;
+    gap: 0.25rem;
+}
+
 .card-rating {
     background: rgba(20, 15, 30, 0.85);
     backdrop-filter: blur(8px);
@@ -121,6 +139,11 @@ const initial = computed(() => {
     align-items: center;
     gap: 0.2rem;
     line-height: 1;
+}
+
+.is-compact .card-rating {
+    padding: 0.15rem 0.45rem;
+    font-size: 0.7rem;
 }
 
 .card-avatar.is-male + .card-avatar-badges .card-rating {
@@ -143,6 +166,11 @@ const initial = computed(() => {
     display: flex;
     align-items: center;
     line-height: 1;
+}
+
+.is-compact :deep(.card-idol-badge) {
+    padding: 0.15rem 0.45rem;
+    font-size: 0.7rem;
 }
 
 .card-avatar.is-male + .card-avatar-badges :deep(.card-idol-badge) {

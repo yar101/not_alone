@@ -8,6 +8,10 @@ const props = defineProps({
     user: {
         type: Object,
         required: true
+    },
+    compact: {
+        type: Boolean,
+        default: false
     }
 });
 
@@ -24,8 +28,9 @@ function calcAge(birthDate) {
     <Link
         :href="route('profile.show', { user: user.id }) + '#about'"
         class="user-card"
+        :class="{ 'is-compact': compact }"
     >
-        <UserCardAvatar :user="user" />
+        <UserCardAvatar :user="user" :compact="compact" />
         <div class="card-body">
             <div class="card-name-row">
                 <div class="card-name">{{ user.name }}</div>
@@ -81,6 +86,10 @@ function calcAge(birthDate) {
     text-align: center;
 }
 
+.user-card.is-compact {
+    padding: 0.75rem 0.5rem;
+}
+
 .user-card:hover {
     border-color: rgba(255, 178, 239, 0.3);
     box-shadow:
@@ -108,6 +117,11 @@ function calcAge(birthDate) {
     padding-top: 0.4rem;
 }
 
+.is-compact .card-body {
+    gap: 0.2rem;
+    padding-top: 0.25rem;
+}
+
 .card-name-row {
     display: flex;
     align-items: center;
@@ -127,11 +141,19 @@ function calcAge(birthDate) {
     letter-spacing: 0.01em;
 }
 
+.is-compact .card-name {
+    font-size: 0.88rem;
+}
+
 .card-badges {
     display: flex;
     flex-wrap: wrap;
     gap: 0.35rem;
     justify-content: center;
+}
+
+.is-compact .card-badges {
+    gap: 0.25rem;
 }
 
 .card-badge {
@@ -147,6 +169,11 @@ function calcAge(birthDate) {
     color: rgba(255, 255, 255, 0.5);
     white-space: nowrap;
     transition: all 0.2s;
+}
+
+.is-compact .card-badge {
+    padding: 0.15rem 0.4rem;
+    font-size: 0.7rem;
 }
 
 .user-card:hover .card-badge {
