@@ -38,8 +38,8 @@ class ServiceModerationController extends Controller
             'status'           => $s->status,
             'rejection_reason' => $s->rejection_reason,
             'created_at'       => $s->created_at,
-            'category'         => $s->category?->name,
-            'time_unit'        => $s->timeUnit?->name,
+            'category'         => $s->category?->getTranslation('name', 'ru'),
+            'time_unit'        => $s->timeUnit?->getTranslation('name', 'ru'),
             'user'             => $s->user ? [
                 'id'         => $s->user->id,
                 'name'       => $s->user->name,
@@ -54,7 +54,10 @@ class ServiceModerationController extends Controller
             'rejected' => Service::where('status', 'rejected')->count(),
         ];
 
-        $categories = ServiceCategory::orderBy('sort_order')->get(['id', 'name']);
+        $categories = ServiceCategory::orderBy('sort_order')->get()->map(fn($c) => [
+            'id'      => $c->id,
+            'name_ru' => $c->getTranslation('name', 'ru'),
+        ]);
 
         return Inertia::render('Admin/Services/Index', [
             'moderation_services'    => $services,

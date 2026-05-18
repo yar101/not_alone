@@ -272,18 +272,41 @@ function applyCrop() {
 }
 
 .au-save-btn {
-    padding: 0.45rem 1.2rem;
-    border-radius: 6px;
-    font-size: 0.875rem;
-    font-weight: 600;
-    border: none;
+    padding: 0.6rem 1.5rem;
+    border-radius: 3px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 65%);
     cursor: pointer;
-    background: linear-gradient(135deg, color-mix(in srgb, var(--color-base-1), transparent 20%), color-mix(in srgb, var(--color-base-1), black 20%));
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--color-base-1), transparent 75%),
+        color-mix(in srgb, var(--color-base-1), transparent 90%)
+    );
     color: #fff;
-    transition: opacity 0.15s;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    letter-spacing: 0.02em;
 }
-.au-save-btn:disabled { opacity: 0.5; cursor: default; }
-.au-save-btn:not(:disabled):hover { opacity: 0.85; }
+
+.au-save-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.au-save-btn:not(:disabled):hover {
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--color-base-1), transparent 62%),
+        color-mix(in srgb, var(--color-base-1), transparent 82%)
+    );
+    border-color: color-mix(in srgb, var(--color-base-1), transparent 45%);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--color-base-1), transparent 80%);
+}
+
+.au-save-btn:not(:disabled):active {
+    transform: scale(0.98);
+}
 
 .au-upload-form :deep(.dz-zone) { min-height: 140px; }
 </style>
