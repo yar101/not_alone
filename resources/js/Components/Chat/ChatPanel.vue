@@ -4231,40 +4231,33 @@ function formatDate(iso) {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    width: 100%;
+    width: calc(100% - 16px);
+    margin: 4px 8px;
     padding: 0.7rem 0.85rem;
     background: transparent;
     border: none;
     cursor: pointer;
     text-align: left;
-    transition: background 0.15s;
-    border-radius: 0;
+    transition: background 0.15s, box-shadow 0.15s;
+    border-radius: 8px;
     position: relative;
 }
 
 .chat-conv-item:hover {
-    background: rgba(255, 178, 239, 0.06);
+    background: rgba(255, 178, 239, 0.05);
 }
 
 .chat-conv-item--active {
-    background: rgba(120, 90, 255, 0.1);
-}
-
-.chat-conv-item--active::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 20%;
-    bottom: 20%;
-    width: 3px;
-    border-radius: 0 3px 3px 0;
-    background: linear-gradient(to bottom, #ffb2ef, #ffb2ef);
+    background: rgba(255, 178, 239, 0.09);
+    box-shadow: inset 0 0 0 1px rgba(255, 178, 239, 0.15);
 }
 
 .chat-conv-item--active:hover {
-    background: rgba(120, 90, 255, 0.14);
+    background: rgba(255, 178, 239, 0.13);
+    box-shadow: inset 0 0 0 1px rgba(255, 178, 239, 0.25);
     transform: none;
 }
+
 
 .chat-conv-item--unread .chat-conv-name {
     font-weight: 700;
