@@ -1,4 +1,5 @@
 import { router, usePage } from '@inertiajs/vue3';
+import axios from 'axios';
 import { computed, ref } from 'vue';
 
 export const localeLoading = ref(false);
@@ -65,15 +66,13 @@ export function useTranslations() {
     const switchLocale = (newLocale) => {
         if (locale.value?.available?.[newLocale]) {
             localeLoading.value = true;
-            router.post('/locale', { locale: newLocale }, {
-                preserveScroll: true,
-                onSuccess: () => {
+            axios.post('/locale', { locale: newLocale })
+                .then(() => {
                     window.location.reload();
-                },
-                onError: () => {
+                })
+                .catch(() => {
                     localeLoading.value = false;
-                },
-            });
+                });
         }
     };
 
