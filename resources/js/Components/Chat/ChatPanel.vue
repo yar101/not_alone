@@ -3270,7 +3270,7 @@ function formatDate(iso) {
                                         ================================
                                     </p>
                                     <p class="chat-blocked-reason">
-                                        {{ activeBlock.reason }}
+                                        {{ __(activeBlock.reason) }}
                                     </p>
                                     <p class="chat-blocked-header">
                                         --------------------------------
@@ -3675,7 +3675,7 @@ function formatDate(iso) {
                 :class="{ 'bm-reason-tag--selected': blockReason === r }"
                 @click="blockReason = r"
             >
-                {{ r }}
+                {{ __(r) }}
             </button>
         </div>
 

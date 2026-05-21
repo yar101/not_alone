@@ -11,29 +11,33 @@ const props = defineProps({
 });
 
 // ─── Editing ──────────────────────────────────────────────────────────────────
-const editingId    = ref(null);
-const editingLabel = ref('');
+const editingId      = ref(null);
+const editingLabelRu = ref('');
+const editingLabelEn = ref('');
 
 function startEdit(item) {
-    editingId.value    = item.id;
-    editingLabel.value = item.label;
+    editingId.value      = item.id;
+    editingLabelRu.value = item.label_ru;
+    editingLabelEn.value = item.label_en ?? '';
 }
 
 function cancelEdit() {
-    editingId.value    = null;
-    editingLabel.value = '';
+    editingId.value      = null;
+    editingLabelRu.value = '';
+    editingLabelEn.value = '';
 }
 
 function saveEdit(item) {
-    if (!editingLabel.value.trim()) return;
+    if (!editingLabelRu.value.trim()) return;
     router.patch(route('admin.ban-reasons.update', item.id), {
-        label: editingLabel.value.trim(),
+        label_ru: editingLabelRu.value.trim(),
+        label_en: editingLabelEn.value.trim(),
     }, { preserveScroll: true, onSuccess: cancelEdit });
 }
 
 // ─── Delete ───────────────────────────────────────────────────────────────────
 function deleteReason(item) {
-    if (!confirm(`Удалить «${item.label}»?`)) return;
+    if (!confirm(`Удалить «${item.label_ru}»?`)) return;
     router.delete(route('admin.ban-reasons.destroy', item.id), { preserveScroll: true });
 }
 
@@ -47,23 +51,27 @@ function move(list, index, direction) {
 }
 
 // ─── Add ──────────────────────────────────────────────────────────────────────
-const newChatLabel = ref('');
-const newBanLabel  = ref('');
+const newChatLabelRu = ref('');
+const newChatLabelEn = ref('');
+const newBanLabelRu  = ref('');
+const newBanLabelEn  = ref('');
 
 function addChatReason() {
-    if (!newChatLabel.value.trim()) return;
+    if (!newChatLabelRu.value.trim()) return;
     router.post(route('admin.ban-reasons.store'), {
-        label: newChatLabel.value.trim(),
+        label_ru: newChatLabelRu.value.trim(),
+        label_en: newChatLabelEn.value.trim(),
         type: 'chat_block',
-    }, { preserveScroll: true, onSuccess: () => { newChatLabel.value = ''; } });
+    }, { preserveScroll: true, onSuccess: () => { newChatLabelRu.value = ''; newChatLabelEn.value = ''; } });
 }
 
 function addBanReason() {
-    if (!newBanLabel.value.trim()) return;
+    if (!newBanLabelRu.value.trim()) return;
     router.post(route('admin.ban-reasons.store'), {
-        label: newBanLabel.value.trim(),
+        label_ru: newBanLabelRu.value.trim(),
+        label_en: newBanLabelEn.value.trim(),
         type: 'user_ban',
-    }, { preserveScroll: true, onSuccess: () => { newBanLabel.value = ''; } });
+    }, { preserveScroll: true, onSuccess: () => { newBanLabelRu.value = ''; newBanLabelEn.value = ''; } });
 }
 </script>
 
@@ -85,12 +93,18 @@ function addBanReason() {
                             <button class="order-btn" :disabled="index === chat_block_reasons.length - 1" @click="move(chat_block_reasons, index, 1)">↓</button>
                         </div>
                         <template v-if="editingId === item.id">
-                            <input v-model="editingLabel" class="edit-input" @keydown.enter="saveEdit(item)" @keydown.escape="cancelEdit" />
+                            <div class="edit-fields">
+                                <input v-model="editingLabelRu" class="edit-input" placeholder="Название (RU)" @keydown.enter="saveEdit(item)" @keydown.escape="cancelEdit" />
+                                <input v-model="editingLabelEn" class="edit-input" placeholder="Название (EN)" @keydown.enter="saveEdit(item)" @keydown.escape="cancelEdit" />
+                            </div>
                             <button class="btn-save" @click="saveEdit(item)">Сохранить</button>
                             <button class="btn-cancel" @click="cancelEdit">Отмена</button>
                         </template>
                         <template v-else>
-                            <span class="reason-label">{{ item.label }}</span>
+                            <span class="reason-label">
+                                {{ item.label_ru }}
+                                <span v-if="item.label_en" class="reason-label-en">({{ item.label_en }})</span>
+                            </span>
                             <button class="btn-edit" @click="startEdit(item)">Изменить</button>
                             <button class="btn-delete" @click="deleteReason(item)">Удалить</button>
                         </template>
@@ -100,16 +114,23 @@ function addBanReason() {
 
                 <div class="add-row">
                     <input
-                        v-model="newChatLabel"
+                        v-model="newChatLabelRu"
                         class="add-input"
-                        placeholder="Новая причина..."
+                        placeholder="Причина (RU)..."
+                        maxlength="255"
+                        @keydown.enter.prevent="addChatReason"
+                    />
+                    <input
+                        v-model="newChatLabelEn"
+                        class="add-input"
+                        placeholder="Причина (EN)..."
                         maxlength="255"
                         @keydown.enter.prevent="addChatReason"
                     />
                     <button
                         type="button"
                         class="btn-add"
-                        :disabled="!newChatLabel.trim()"
+                        :disabled="!newChatLabelRu.trim()"
                         @click="addChatReason"
                     >Добавить</button>
                 </div>
@@ -126,12 +147,18 @@ function addBanReason() {
                             <button class="order-btn" :disabled="index === user_ban_reasons.length - 1" @click="move(user_ban_reasons, index, 1)">↓</button>
                         </div>
                         <template v-if="editingId === item.id">
-                            <input v-model="editingLabel" class="edit-input" @keydown.enter="saveEdit(item)" @keydown.escape="cancelEdit" />
+                            <div class="edit-fields">
+                                <input v-model="editingLabelRu" class="edit-input" placeholder="Название (RU)" @keydown.enter="saveEdit(item)" @keydown.escape="cancelEdit" />
+                                <input v-model="editingLabelEn" class="edit-input" placeholder="Название (EN)" @keydown.enter="saveEdit(item)" @keydown.escape="cancelEdit" />
+                            </div>
                             <button class="btn-save" @click="saveEdit(item)">Сохранить</button>
                             <button class="btn-cancel" @click="cancelEdit">Отмена</button>
                         </template>
                         <template v-else>
-                            <span class="reason-label">{{ item.label }}</span>
+                            <span class="reason-label">
+                                {{ item.label_ru }}
+                                <span v-if="item.label_en" class="reason-label-en">({{ item.label_en }})</span>
+                            </span>
                             <button class="btn-edit" @click="startEdit(item)">Изменить</button>
                             <button class="btn-delete" @click="deleteReason(item)">Удалить</button>
                         </template>
@@ -141,16 +168,23 @@ function addBanReason() {
 
                 <div class="add-row">
                     <input
-                        v-model="newBanLabel"
+                        v-model="newBanLabelRu"
                         class="add-input"
-                        placeholder="Новая причина..."
+                        placeholder="Причина (RU)..."
+                        maxlength="255"
+                        @keydown.enter.prevent="addBanReason"
+                    />
+                    <input
+                        v-model="newBanLabelEn"
+                        class="add-input"
+                        placeholder="Причина (EN)..."
                         maxlength="255"
                         @keydown.enter.prevent="addBanReason"
                     />
                     <button
                         type="button"
                         class="btn-add"
-                        :disabled="!newBanLabel.trim()"
+                        :disabled="!newBanLabelRu.trim()"
                         @click="addBanReason"
                     >Добавить</button>
                 </div>
@@ -203,6 +237,18 @@ function addBanReason() {
     font-family: inherit;
     font-size: 0.88rem;
     outline: none;
+}
+
+.edit-fields {
+    display: flex;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.reason-label-en {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.8rem;
+    margin-left: 0.25rem;
 }
 
 .btn-edit   { padding: 0.22rem 0.6rem; border: 1px solid rgba(155,110,232,0.3); background: transparent; color: rgba(190,145,255,0.7); font-family: inherit; font-size: 0.78rem; cursor: pointer; }

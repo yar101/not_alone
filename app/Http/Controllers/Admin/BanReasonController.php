@@ -11,23 +11,38 @@ class BanReasonController extends Controller
 {
     public function index()
     {
+        $mapFn = fn ($reason) => array_merge(
+            $reason->toArray(),
+            [
+                'label_ru' => $reason->getTranslation('label', 'ru'),
+                'label_en' => $reason->getTranslation('label', 'en', false) ?: '',
+            ]
+        );
+
         return Inertia::render('Admin/BanReasons/Index', [
-            'chat_block_reasons' => BanReason::forChatBlock()->get(),
-            'user_ban_reasons'   => BanReason::forUserBan()->get(),
+            'chat_block_reasons' => BanReason::forChatBlock()->get()->map($mapFn),
+            'user_ban_reasons'   => BanReason::forUserBan()->get()->map($mapFn),
         ]);
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'label' => 'required|string|max:255',
-            'type'  => 'required|in:chat_block,user_ban',
+            'label_ru' => 'required|string|max:255',
+            'label_en' => 'nullable|string|max:255',
+            'type'     => 'required|in:chat_block,user_ban',
         ]);
 
         $maxOrder = BanReason::where('type', $data['type'])->max('sort_order') ?? -1;
-        $data['sort_order'] = $maxOrder + 1;
 
-        BanReason::create($data);
+        $reason = new BanReason();
+        $reason->type = $data['type'];
+        $reason->sort_order = $maxOrder + 1;
+        $reason->setTranslation('label', 'ru', $data['label_ru']);
+        if (!empty($data['label_en'])) {
+            $reason->setTranslation('label', 'en', $data['label_en']);
+        }
+        $reason->save();
 
         return back();
     }
@@ -35,10 +50,17 @@ class BanReasonController extends Controller
     public function update(Request $request, BanReason $banReason)
     {
         $data = $request->validate([
-            'label' => 'required|string|max:255',
+            'label_ru' => 'required|string|max:255',
+            'label_en' => 'nullable|string|max:255',
         ]);
 
-        $banReason->update($data);
+        $banReason->setTranslation('label', 'ru', $data['label_ru']);
+        if (isset($data['label_en']) && $data['label_en'] !== '') {
+            $banReason->setTranslation('label', 'en', $data['label_en']);
+        } else {
+            $banReason->forgetTranslation('label', 'en');
+        }
+        $banReason->save();
 
         return back();
     }

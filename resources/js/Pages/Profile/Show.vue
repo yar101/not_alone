@@ -147,13 +147,13 @@ const reportForm = ref({ reason: "", details: "" });
 const reportErrors = ref({});
 const reportSent = ref(false);
 
-const reportReasons = [
-    { value: "spam", label: "Спам" },
-    { value: "inappropriate", label: "Неприемлемый контент" },
-    { value: "fraud", label: "Мошенничество" },
-    { value: "harassment", label: "Харассмент" },
-    { value: "other", label: "Другое" },
-];
+const reportReasons = computed(() => [
+    { value: "spam", label: __("profile.report.reasons.spam") },
+    { value: "inappropriate", label: __("profile.report.reasons.inappropriate") },
+    { value: "fraud", label: __("profile.report.reasons.fraud") },
+    { value: "harassment", label: __("profile.report.reasons.harassment") },
+    { value: "other", label: __("profile.report.reasons.other") },
+]);
 
 function openReportModal() {
     reportForm.value = { reason: "", details: "" };
@@ -795,17 +795,19 @@ onMounted(async () => {
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                 <polyline points="22 4 12 14.01 9 11.01" />
             </svg>
-            <p>Жалоба отправлена. Мы рассмотрим её в ближайшее время.</p>
+            <p>{{ __("profile.report.success") }}</p>
             <button class="report-btn-close" @click="showReportModal = false">
-                Закрыть
+                {{ __("profile.report.close") }}
             </button>
         </div>
 
         <form v-else @submit.prevent="submitReport" class="report-form">
-            <h3 class="report-title">Пожаловаться на {{ profileUser.name }}</h3>
+            <h3 class="report-title">
+                {{ __("profile.report.title", { name: profileUser.name }) }}
+            </h3>
 
             <div class="report-field">
-                <label class="report-label">Причина *</label>
+                <label class="report-label">{{ __("profile.report.reason_label") }}</label>
                 <div class="report-reasons">
                     <button
                         v-for="r in reportReasons"
@@ -828,9 +830,9 @@ onMounted(async () => {
 
             <div class="report-field">
                 <label class="report-label"
-                    >Описание ситуации *
+                    >{{ __("profile.report.details_label") }}
                     <span class="report-optional"
-                        >(мин. 10 символов)</span
+                        >({{ __("profile.report.min_symbols") }})</span
                     ></label
                 >
                 <textarea
@@ -838,7 +840,7 @@ onMounted(async () => {
                     class="report-textarea"
                     rows="4"
                     maxlength="1000"
-                    placeholder="Минимум 10 символов..."
+                    :placeholder="__('profile.report.details_placeholder')"
                     required
                     minlength="10"
                     :class="{ 'report-textarea--err': reportErrors.details }"
@@ -854,7 +856,7 @@ onMounted(async () => {
                     class="report-btn-cancel"
                     @click="showReportModal = false"
                 >
-                    Отмена
+                    {{ __("profile.report.cancel") }}
                 </button>
                 <button
                     type="submit"
@@ -864,7 +866,7 @@ onMounted(async () => {
                         reportForm.details.trim().length < 10
                     "
                 >
-                    Отправить жалобу
+                    {{ __("profile.report.submit") }}
                 </button>
             </div>
         </form>
