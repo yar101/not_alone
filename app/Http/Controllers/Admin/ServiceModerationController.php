@@ -156,6 +156,7 @@ class ServiceModerationController extends Controller
 
             if ($service->user) {
                 $service->user->notify(new ServiceApprovedNotification($service));
+                broadcast(new NewNotification('private', $service->user->id));
                 NotifyFollowersJob::dispatch($service->user, $service);
             }
         } elseif ($data['decision'] === 'rejected') {
