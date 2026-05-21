@@ -7336,4 +7336,21 @@ function formatDate(iso) {
     width: 30px;
     flex-shrink: 0;
 }
+
+@media (min-width: 768px) {
+    .chat-panel {
+        top: 76px;
+        right: 16px;
+        bottom: 16px;
+        max-width: calc(100vw - 32px);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 178, 239, 0.28);
+        box-shadow: 0 12px 48px rgba(0, 0, 0, 0.85);
+        overflow: hidden;
+    }
+    .slide-enter-from,
+    .slide-leave-to {
+        transform: translateX(calc(100% + 24px));
+    }
+}
 </style>

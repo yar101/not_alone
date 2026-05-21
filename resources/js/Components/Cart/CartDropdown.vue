@@ -736,4 +736,20 @@ async function purchaseContent() {
 @media (max-width: 768px) {
     .rc-panel { top: 60px; }
 }
+
+@media (min-width: 769px) {
+    .rc-panel {
+        top: 76px;
+        right: 16px;
+        bottom: 16px;
+        max-width: calc(100vw - 32px);
+        border-radius: 12px;
+        border: 1px solid rgba(120, 220, 255, 0.18);
+        box-shadow: 0 12px 48px rgba(0, 0, 0, 0.85);
+    }
+    .rc-slide-enter-from,
+    .rc-slide-leave-to {
+        transform: translateX(calc(100% + 24px));
+    }
+}
 </style>
