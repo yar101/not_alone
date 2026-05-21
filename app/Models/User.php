@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 use NotificationChannels\WebPush\HasPushSubscriptions;
 
 class User extends Authenticatable implements MustVerifyEmail
@@ -20,6 +22,7 @@ class User extends Authenticatable implements MustVerifyEmail
     use HasFactory;
     use Notifiable;
     use HasPushSubscriptions;
+    use SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -232,5 +235,39 @@ class User extends Authenticatable implements MustVerifyEmail
     public function sendEmailVerificationNotification(): void
     {
         $this->notify(new VerifyEmailNotification);
+    }
+
+    public function anonymize(): void
+    {
+        if ($this->avatar_path) {
+            Storage::delete($this->avatar_path);
+        }
+        if ($this->voice_path) {
+            Storage::delete($this->voice_path);
+        }
+
+        $this->traits()->detach();
+        $this->interests()->detach();
+        $this->languages()->delete();
+
+        $this->fill([
+            'name' => 'Удалённый пользователь',
+            'email' => 'deleted_' . $this->id . '@deleted.ru',
+            'password' => bcrypt(Str::random(40)),
+            'avatar_path' => null,
+            'voice_path' => null,
+            'about' => null,
+            'birth_date' => null,
+            'timezone' => null,
+            'rating' => 0,
+            'is_banned' => false,
+            'banned_at' => null,
+            'banned_until' => null,
+            'ban_reason' => null,
+            'banned_by' => null,
+            'gender' => null,
+        ]);
+
+        $this->save();
     }
 }

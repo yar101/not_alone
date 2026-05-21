@@ -27,12 +27,12 @@ class Order extends Model
 
     public function customer(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'customer_id');
+        return $this->belongsTo(User::class, 'customer_id')->withTrashed();
     }
 
     public function idol(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'idol_id');
+        return $this->belongsTo(User::class, 'idol_id')->withTrashed();
     }
 
     public function conversation(): BelongsTo
@@ -47,7 +47,7 @@ class Order extends Model
 
     public function cancelledBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'cancelled_by');
+        return $this->belongsTo(User::class, 'cancelled_by')->withTrashed();
     }
 
     public function disputes(): HasMany

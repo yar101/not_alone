@@ -39,7 +39,7 @@ class Conversation extends Model
 
     public function users(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'conversation_participants');
+        return $this->belongsToMany(User::class, 'conversation_participants')->withTrashed();
     }
 
     public function lastMessage(): HasOne
