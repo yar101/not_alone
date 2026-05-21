@@ -47,7 +47,7 @@ class ServiceChangeRequestController extends Controller
 
     public function show(ServiceChangeRequest $changeRequest): Response
     {
-        $changeRequest->load(['service.user', 'service.category', 'service.timeUnit', 'pendingCategory', 'pendingTimeUnit']);
+        $changeRequest->load(['service.user', 'service.category', 'service.timeUnit', 'service.reviews.admin', 'service.changeRequests.reviewedBy', 'pendingCategory', 'pendingTimeUnit']);
 
         $service = $changeRequest->service;
 
@@ -101,6 +101,29 @@ class ServiceChangeRequestController extends Controller
                     'name'       => $service->user->name,
                     'avatar_url' => $service->user->avatar_url,
                 ],
+                'history' => $service->reviews->map(fn($r) => [
+                    'id'             => 'review_' . $r->id,
+                    'type'           => 'initial',
+                    'decision'       => $r->decision,
+                    'flagged_fields' => $r->flagged_fields ?? [],
+                    'field_comments' => $r->field_comments ?? [],
+                    'created_at'     => $r->created_at->toIso8601String(),
+                    'admin'          => $r->admin ? ['name' => $r->admin->name] : null,
+                ])->concat(
+                    $service->changeRequests
+                        ->where('id', '!=', $changeRequest->id)
+                        ->whereNotNull('reviewed_at')
+                        ->map(fn($cr) => [
+                            'id'             => 'cr_' . $cr->id,
+                            'type'           => 'change_request',
+                            'decision'       => $cr->status,
+                            'flagged_fields' => $cr->flagged_fields ?? [],
+                            'field_comments' => $cr->field_comments ?? [],
+                            'admin_comment'  => $cr->admin_comment,
+                            'created_at'     => $cr->reviewed_at->toIso8601String(),
+                            'admin'          => $cr->reviewedBy ? ['name' => $cr->reviewedBy->name] : null,
+                        ])
+                )->sortByDesc('created_at')->values(),
             ],
             'fields' => $fields,
         ]);

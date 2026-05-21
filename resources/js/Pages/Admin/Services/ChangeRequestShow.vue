@@ -13,6 +13,8 @@ const props = defineProps({
 
 const FIELD_LABELS = {
     name:         'Название',
+    name_ru:      'Название (RU)',
+    name_en:      'Название (EN)',
     price:        'Цена',
     category_id:  'Категория',
     time_unit_id: 'Единица времени',
@@ -134,6 +136,36 @@ function reject() {
                                     {{ STATUS_LABELS[service.status] || service.status }}
                                 </span>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Review history -->
+                <div v-if="service.history?.length" class="scr-card">
+                    <h2 class="scr-card__title">История проверок</h2>
+                    <div v-for="item in service.history" :key="item.id" class="scr-review-item">
+                        <div class="scr-review-item__header">
+                            <span :class="item.decision === 'approved' ? 'scr-dec--ok' : item.decision === 'rejected' ? 'scr-dec--reject' : 'scr-dec--bad'">
+                                {{ item.decision === 'approved' ? '✓ Одобрено' : item.decision === 'rejected' ? '✗ Отклонено' : '⚑ Замечания' }}
+                            </span>
+                            <span class="scr-review-item__type">
+                                {{ item.type === 'initial' ? '(Модерация)' : '(Изменения)' }}
+                            </span>
+                            <span class="scr-review-item__date">{{ new Date(item.created_at).toLocaleDateString('ru-RU') }}</span>
+                            <span v-if="item.admin" class="scr-review-item__admin">{{ item.admin.name }}</span>
+                        </div>
+                        <div v-if="item.flagged_fields?.length" class="scr-review-item__detail">
+                            Помечено: {{ item.flagged_fields.map(f => FIELD_LABELS[f] || f).join(', ') }}
+                        </div>
+                        <div v-if="item.field_comments && Object.keys(item.field_comments).length" class="scr-review-item__comments">
+                            <div v-for="(comment, field) in item.field_comments" :key="field" class="scr-review-item__comment">
+                                <span class="scr-review-item__comment-field">{{ FIELD_LABELS[field] || field }}:</span>
+                                {{ comment }}
+                            </div>
+                        </div>
+                        <div v-if="item.admin_comment" class="scr-review-item__comment">
+                            <span class="scr-review-item__comment-field">Причина:</span>
+                            {{ item.admin_comment }}
                         </div>
                     </div>
                 </div>
@@ -388,4 +420,19 @@ function reject() {
     transition: background 0.15s;
 }
 .scr-cancel:hover { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.65); }
+
+/* Review history styles */
+.scr-review-item { padding: 0.6rem 0; border-top: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
+.scr-review-item:first-child { border-top: none; }
+.scr-review-item__header { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.scr-review-item__date { color: rgba(255,255,255,0.3); font-size: 0.8rem; }
+.scr-review-item__admin { color: rgba(255,255,255,0.35); font-size: 0.8rem; margin-left: auto; }
+.scr-review-item__detail { margin-top: 0.3rem; color: rgba(255,255,255,0.4); font-size: 0.8rem; }
+.scr-review-item__comments { margin-top: 0.35rem; display: flex; flex-direction: column; gap: 0.2rem; }
+.scr-review-item__comment { font-size: 0.8rem; color: rgba(255,255,255,0.45); }
+.scr-review-item__comment-field { color: rgba(255,178,239,0.6); font-weight: 600; margin-right: 0.3rem; }
+.scr-review-item__type { color: rgba(255,255,255,0.25); font-size: 0.78rem; font-weight: 500; }
+.scr-dec--ok     { color: #64d2a0; }
+.scr-dec--bad    { color: #ff7b7b; }
+.scr-dec--reject { color: #ef4444; }
 </style>

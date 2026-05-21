@@ -137,24 +137,31 @@ function reject() {
                 </div>
 
                 <!-- Review history -->
-                <div v-if="service.reviews?.length" class="sps-card">
+                <div v-if="service.history?.length" class="sps-card">
                     <h2 class="sps-card__title">История проверок</h2>
-                    <div v-for="r in service.reviews" :key="r.id" class="sps-review-item">
+                    <div v-for="item in service.history" :key="item.id" class="sps-review-item">
                         <div class="sps-review-item__header">
-                            <span :class="r.decision === 'approved' ? 'sps-dec--ok' : r.decision === 'rejected' ? 'sps-dec--reject' : 'sps-dec--bad'">
-                                {{ r.decision === 'approved' ? '✓ Одобрено' : r.decision === 'rejected' ? '✗ Отклонено' : '⚑ Замечания' }}
+                            <span :class="item.decision === 'approved' ? 'sps-dec--ok' : item.decision === 'rejected' ? 'sps-dec--reject' : 'sps-dec--bad'">
+                                {{ item.decision === 'approved' ? '✓ Одобрено' : item.decision === 'rejected' ? '✗ Отклонено' : '⚑ Замечания' }}
                             </span>
-                            <span class="sps-review-item__date">{{ new Date(r.created_at).toLocaleDateString('ru-RU') }}</span>
-                            <span v-if="r.admin" class="sps-review-item__admin">{{ r.admin.name }}</span>
+                            <span class="sps-review-item__type">
+                                {{ item.type === 'initial' ? '(Модерация)' : '(Изменения)' }}
+                            </span>
+                            <span class="sps-review-item__date">{{ new Date(item.created_at).toLocaleDateString('ru-RU') }}</span>
+                            <span v-if="item.admin" class="sps-review-item__admin">{{ item.admin.name }}</span>
                         </div>
-                        <div v-if="r.flagged_fields?.length" class="sps-review-item__detail">
-                            Помечено: {{ r.flagged_fields.map(f => FIELD_LABELS[f] || f).join(', ') }}
+                        <div v-if="item.flagged_fields?.length" class="sps-review-item__detail">
+                            Помечено: {{ item.flagged_fields.map(f => FIELD_LABELS[f] || f).join(', ') }}
                         </div>
-                        <div v-if="r.field_comments && Object.keys(r.field_comments).length" class="sps-review-item__comments">
-                            <div v-for="(comment, field) in r.field_comments" :key="field" class="sps-review-item__comment">
+                        <div v-if="item.field_comments && Object.keys(item.field_comments).length" class="sps-review-item__comments">
+                            <div v-for="(comment, field) in item.field_comments" :key="field" class="sps-review-item__comment">
                                 <span class="sps-review-item__comment-field">{{ FIELD_LABELS[field] || field }}:</span>
                                 {{ comment }}
                             </div>
+                        </div>
+                        <div v-if="item.admin_comment" class="sps-review-item__comment">
+                            <span class="sps-review-item__comment-field">Причина:</span>
+                            {{ item.admin_comment }}
                         </div>
                     </div>
                 </div>
@@ -290,6 +297,7 @@ function reject() {
 .sps-review-item__comments { margin-top: 0.35rem; display: flex; flex-direction: column; gap: 0.2rem; }
 .sps-review-item__comment { font-size: 0.8rem; color: rgba(255,255,255,0.45); }
 .sps-review-item__comment-field { color: rgba(255,178,239,0.6); font-weight: 600; margin-right: 0.3rem; }
+.sps-review-item__type { color: rgba(255,255,255,0.25); font-size: 0.78rem; font-weight: 500; }
 .sps-dec--ok     { color: #64d2a0; }
 .sps-dec--bad    { color: #ff7b7b; }
 .sps-dec--reject { color: #ef4444; }

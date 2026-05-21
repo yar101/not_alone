@@ -56,6 +56,11 @@ class Service extends Model
         return $this->hasOne(ServiceReview::class)->latestOfMany();
     }
 
+    public function changeRequests(): HasMany
+    {
+        return $this->hasMany(ServiceChangeRequest::class);
+    }
+
     public function pendingChangeRequest(): HasOne
     {
         return $this->hasOne(ServiceChangeRequest::class)->whereIn('status', ['pending', 'has_remarks']);

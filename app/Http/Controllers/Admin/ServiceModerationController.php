@@ -83,7 +83,7 @@ class ServiceModerationController extends Controller
 
     public function show(Service $service): Response
     {
-        $service->load(['user', 'category', 'timeUnit', 'reviews.admin']);
+        $service->load(['user', 'category', 'timeUnit', 'reviews.admin', 'changeRequests.reviewedBy']);
 
         return Inertia::render('Admin/Services/Show', [
             'service' => [
@@ -101,14 +101,28 @@ class ServiceModerationController extends Controller
                     'email'      => $service->user->email,
                     'avatar_url' => $service->user->avatar_url,
                 ],
-                'reviews' => $service->reviews->map(fn($r) => [
-                    'id'             => $r->id,
+                'history' => $service->reviews->map(fn($r) => [
+                    'id'             => 'review_' . $r->id,
+                    'type'           => 'initial',
                     'decision'       => $r->decision,
                     'flagged_fields' => $r->flagged_fields ?? [],
                     'field_comments' => $r->field_comments ?? [],
-                    'created_at'     => $r->created_at,
+                    'created_at'     => $r->created_at->toIso8601String(),
                     'admin'          => $r->admin ? ['name' => $r->admin->name] : null,
-                ]),
+                ])->concat(
+                    $service->changeRequests
+                        ->whereNotNull('reviewed_at')
+                        ->map(fn($cr) => [
+                            'id'             => 'cr_' . $cr->id,
+                            'type'           => 'change_request',
+                            'decision'       => $cr->status,
+                            'flagged_fields' => $cr->flagged_fields ?? [],
+                            'field_comments' => $cr->field_comments ?? [],
+                            'admin_comment'  => $cr->admin_comment,
+                            'created_at'     => $cr->reviewed_at->toIso8601String(),
+                            'admin'          => $cr->reviewedBy ? ['name' => $cr->reviewedBy->name] : null,
+                        ])
+                )->sortByDesc('created_at')->values(),
             ],
         ]);
     }
