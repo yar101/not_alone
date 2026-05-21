@@ -48,22 +48,14 @@ onUnmounted(() => window.removeEventListener('resize', measureNameScroll));
 function onEsc(e) {
     if (e.key === 'Escape') {
         lightboxOpen.value = false;
-        showOwnerMenu.value = false;
     }
-}
-function onOutsideClick(e) {
-    if (!e.target.closest('.owner-menu')) showOwnerMenu.value = false;
 }
 onMounted(() => {
     document.addEventListener('keydown', onEsc);
-    document.addEventListener('click', onOutsideClick);
 });
 onUnmounted(() => {
     document.removeEventListener('keydown', onEsc);
-    document.removeEventListener('click', onOutsideClick);
 });
-
-const showOwnerMenu = ref(false);
 
 const form = useForm({
     name: props.user.name ?? '',
@@ -158,12 +150,6 @@ function deleteAvatar() {
 <template>
     <div id="tour-header" class="profile-header">
 
-        <!-- Рейтинг — верхний левый угол -->
-        <div v-if="rating !== null" class="header-rating">
-            <img src="/stars/10.png" class="star-img" alt="rating" />
-            <span class="rating-num">{{ rating }}</span>
-        </div>
-
         <!-- Кнопки сверху справа -->
         <div class="header-actions">
             <button v-if="!isOwner && canReport" class="action-pill action-pill--report" @click="emit('report')" :title="__('profile.header.report')">
@@ -174,21 +160,9 @@ function deleteAvatar() {
             </button>
 
             <div v-if="isOwner" class="owner-menu">
-                <button class="action-pill" @click.stop="showOwnerMenu = !showOwnerMenu">
-                    <el-icon><MoreFilled /></el-icon>
+                <button class="action-pill" @click="editModal = true" :title="__('profile.header.edit')">
+                    <el-icon><Edit /></el-icon>
                 </button>
-                <Transition name="owner-menu-pop">
-                    <div v-if="showOwnerMenu" class="owner-menu__dropdown">
-                        <button class="owner-menu__item" @click="editModal = true; showOwnerMenu = false">
-                            <el-icon><Edit /></el-icon>
-                            {{ __('profile.header.edit') }}
-                        </button>
-                        <a :href="route('settings.edit')" class="owner-menu__item" @click="showOwnerMenu = false">
-                            <el-icon><Setting /></el-icon>
-                            {{ __('profile.header.settings_btn') }}
-                        </a>
-                    </div>
-                </Transition>
             </div>
         </div>
 

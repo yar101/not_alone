@@ -43,6 +43,14 @@ const cartInitialTab = ref("services");
 const sidebarOpen = ref(false);
 const pwaUpdateAvailable = ref(false);
 
+function handleToggleChatEvent(e) {
+    cartOpen.value = false;
+    chatOpen.value = e.detail;
+}
+function handleToggleSidebarEvent(e) {
+    sidebarOpen.value = e.detail;
+}
+
 function onCartClick() {
     if (cartOpen.value) {
         cartOpen.value = false;
@@ -235,6 +243,8 @@ function handleUserBannedEvent() {
 onMounted(() => {
     window.addEventListener("noalone:open-order", handleOpenOrderEvent);
     window.addEventListener("noalone:user-banned", handleUserBannedEvent);
+    window.addEventListener("noalone:toggle-chat", handleToggleChatEvent);
+    window.addEventListener("noalone:toggle-sidebar", handleToggleSidebarEvent);
 
     if ("serviceWorker" in navigator) {
         let refreshing = false;
@@ -249,6 +259,8 @@ onMounted(() => {
 onUnmounted(() => {
     window.removeEventListener("noalone:open-order", handleOpenOrderEvent);
     window.removeEventListener("noalone:user-banned", handleUserBannedEvent);
+    window.removeEventListener("noalone:toggle-chat", handleToggleChatEvent);
+    window.removeEventListener("noalone:toggle-sidebar", handleToggleSidebarEvent);
     if (msgChannel) msgChannel.stopListening(".message.received");
     if (window.Echo) window.Echo.leave("presence-online");
 });
@@ -266,19 +278,21 @@ onUnmounted(() => {
             <div class="header-right">
                 <CartIcon
                     v-if="user"
+                    id="tour-cart"
                     :cart="cart"
                     :active="cartOpen"
                     @click="onCartClick"
                 />
                 <ChatButton
                     v-if="user"
+                    id="tour-chat"
                     :active="chatOpen"
                     @click="onChatClick"
                 />
-                <NotificationBell v-if="user" />
+                <NotificationBell v-if="user" id="tour-notifications" />
 
                 <template v-if="user">
-                    <button @click="sidebarOpen = true" class="user-chip">
+                    <button @click="sidebarOpen = true" id="tour-user-chip" class="user-chip">
                         <div
                             class="user-avatar"
                             :class="{ 'is-male': user.gender === 'male' }"

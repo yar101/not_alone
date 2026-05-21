@@ -331,9 +331,9 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
     color: rgba(255, 178, 239, 0.85);
 }
 .usb-badge--male {
-    border-color: rgba(255, 178, 239, 0.3);
-    background: rgba(255, 178, 239, 0.06);
-    color: rgba(255, 178, 239, 0.85);
+    border-color: rgba(100, 210, 255, 0.3);
+    background: rgba(100, 210, 255, 0.06);
+    color: rgba(100, 210, 255, 0.85);
 }
 .usb-badge--age {
     color: rgba(255, 255, 255, 0.45);

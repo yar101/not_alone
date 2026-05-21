@@ -185,6 +185,7 @@ function submitReport() {
 
 // ── driver.js Tour ─────────────────────────────────────────
 const TOUR_KEY = "profile_tour_done";
+let activeDriverObj = null;
 
 onMounted(async () => {
     if (!props.isOwner) return;
@@ -193,77 +194,186 @@ onMounted(async () => {
     const { driver } = await import("driver.js");
     await import("driver.js/dist/driver.css");
 
-    const driverObj = driver({
+    activeDriverObj = driver({
         showProgress: true,
-        nextBtnText: "Далее →",
-        prevBtnText: "← Назад",
-        doneBtnText: "Готово",
+        progressText: __("profile.tour.progressText"),
+        nextBtnText: __("profile.tour.next"),
+        prevBtnText: __("profile.tour.prev"),
+        doneBtnText: __("profile.tour.done"),
         steps: [
             {
                 element: "#tour-header",
                 popover: {
-                    title: "Твой профиль",
-                    description: "Нажми кнопку редактирования чтобы изменить.",
+                    title: __("profile.tour.header.title"),
+                    description: __("profile.tour.header.desc"),
                     side: "bottom",
                 },
             },
             {
                 element: ".profile-tabs",
                 popover: {
-                    title: "Навигация",
-                    description: "Переключайся между разделами профиля.",
+                    title: __("profile.tour.tabs.title"),
+                    description: __("profile.tour.tabs.desc"),
                     side: "bottom",
                 },
             },
             {
                 element: "#tour-about",
                 popover: {
-                    title: "Обо мне",
-                    description: "Расскажи о себе.",
+                    title: __("profile.tour.about.title"),
+                    description: __("profile.tour.about.desc"),
                     side: "bottom",
                 },
             },
             {
                 element: "#tour-voice",
                 popover: {
-                    title: "Аудио",
-                    description: "Запиши приветствие до 27 секунд.",
+                    title: __("profile.tour.voice.title"),
+                    description: __("profile.tour.voice.desc"),
                     side: "bottom",
                 },
             },
             {
                 element: "#tour-traits",
                 popover: {
-                    title: "Черты характера",
-                    description: "До 10 вариантов.",
+                    title: __("profile.tour.traits.title"),
+                    description: __("profile.tour.traits.desc"),
                     side: "bottom",
                 },
             },
             {
                 element: "#tour-interests",
                 popover: {
-                    title: "Интересы",
-                    description: "Добавь свои увлечения.",
+                    title: __("profile.tour.interests.title"),
+                    description: __("profile.tour.interests.desc"),
                     side: "bottom",
                 },
             },
             {
                 element: ".pcl",
                 popover: {
-                    title: "Чеклист",
-                    description: "Прогресс заполнения профиля.",
+                    title: __("profile.tour.checklist.title"),
+                    description: __("profile.tour.checklist.desc"),
                     side: "bottom",
                     align: "start",
                 },
             },
+            {
+                element: "#tour-cart",
+                popover: {
+                    title: __("profile.tour.cart.title"),
+                    description: __("profile.tour.cart.desc"),
+                    side: "bottom",
+                },
+            },
+            {
+                element: "#tour-notifications",
+                popover: {
+                    title: __("profile.tour.notifications.title"),
+                    description: __("profile.tour.notifications.desc"),
+                    side: "bottom",
+                },
+            },
+            {
+                element: "#tour-chat",
+                popover: {
+                    title: __("profile.tour.chat.title"),
+                    description: __("profile.tour.chat.desc"),
+                    side: "bottom",
+                },
+                onHighlightStarted: () => {
+                    window.dispatchEvent(new CustomEvent("noalone:toggle-chat", { detail: false }));
+                },
+            },
+            {
+                element: ".chat-sidebar",
+                popover: {
+                    title: __("profile.tour.chat_sidebar.title"),
+                    description: __("profile.tour.chat_sidebar.desc"),
+                    side: "left",
+                },
+                onHighlightStarted: () => {
+                    window.dispatchEvent(new CustomEvent("noalone:toggle-chat", { detail: true }));
+                },
+            },
+            {
+                element: ".chat-tabs",
+                popover: {
+                    title: __("profile.tour.chat_tabs.title"),
+                    description: __("profile.tour.chat_tabs.desc"),
+                    side: "left",
+                },
+            },
+            {
+                element: ".chat-sidebar__search",
+                popover: {
+                    title: __("profile.tour.chat_search.title"),
+                    description: __("profile.tour.chat_search.desc"),
+                    side: "left",
+                },
+            },
+            {
+                element: "#tour-user-chip",
+                popover: {
+                    title: __("profile.tour.user_chip.title"),
+                    description: __("profile.tour.user_chip.desc"),
+                    side: "bottom",
+                },
+                onHighlightStarted: () => {
+                    window.dispatchEvent(new CustomEvent("noalone:toggle-chat", { detail: false }));
+                    window.dispatchEvent(new CustomEvent("noalone:toggle-sidebar", { detail: false }));
+                },
+            },
+            {
+                element: ".usb-hero",
+                popover: {
+                    title: __("profile.tour.usb_hero.title"),
+                    description: __("profile.tour.usb_hero.desc"),
+                    side: "left",
+                },
+                onHighlightStarted: () => {
+                    window.dispatchEvent(new CustomEvent("noalone:toggle-sidebar", { detail: true }));
+                },
+            },
+            {
+                element: ".usb-nav",
+                popover: {
+                    title: __("profile.tour.usb_nav.title"),
+                    description: __("profile.tour.usb_nav.desc"),
+                    side: "left",
+                },
+            },
+            {
+                element: ".usb-features",
+                popover: {
+                    title: __("profile.tour.usb_features.title"),
+                    description: __("profile.tour.usb_features.desc"),
+                    side: "left",
+                },
+            },
+            {
+                element: ".usb-locale",
+                popover: {
+                    title: __("profile.tour.usb_locale.title"),
+                    description: __("profile.tour.usb_locale.desc"),
+                    side: "left",
+                    onNextClick: () => {
+                        activeDriverObj.destroy();
+                    },
+                },
+                onHighlightStarted: () => {
+                    window.dispatchEvent(new CustomEvent("noalone:toggle-sidebar", { detail: true }));
+                },
+            },
         ],
-        onDestroyStarted: () => {
+        onDestroyed: () => {
             localStorage.setItem(TOUR_KEY, "1");
-            driverObj.destroy();
+            window.dispatchEvent(new CustomEvent("noalone:toggle-chat", { detail: false }));
+            window.dispatchEvent(new CustomEvent("noalone:toggle-sidebar", { detail: false }));
         },
     });
 
-    driverObj.drive();
+    activeDriverObj.drive();
 });
 </script>
 
@@ -876,12 +986,16 @@ onMounted(async () => {
 <!-- driver.js dark theme override (non-scoped) -->
 <style>
 .driver-popover {
-    background: #0a0a0f !important;
-    border: 1px solid rgba(224, 24, 108, 0.3) !important;
+    background: #0c0c14 !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
     color: rgba(255, 255, 255, 0.9) !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8) !important;
-    border-radius: 3px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8),
+                0 0 16px color-mix(in srgb, var(--color-base-1), transparent 92%),
+                0 0 24px color-mix(in srgb, var(--color-base-2), transparent 94%) !important;
+    border-radius: 8px !important;
     font-family: "Rubik", sans-serif !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
 }
 .driver-popover-title {
     color: #ffffff !important;
@@ -895,39 +1009,61 @@ onMounted(async () => {
 .driver-popover-footer {
     border-top: 1px solid rgba(255, 255, 255, 0.07) !important;
 }
-.driver-popover-prev-btn,
+.driver-popover-prev-btn {
+    background: color-mix(in srgb, var(--color-base-1), transparent 90%) !important;
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 60%) !important;
+    color: var(--color-base-1) !important;
+    border-radius: 4px !important;
+    text-shadow: none !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+}
+.driver-popover-prev-btn:hover {
+    background: color-mix(in srgb, var(--color-base-1), transparent 75%) !important;
+    border-color: var(--color-base-1) !important;
+    color: #fff !important;
+    box-shadow: 0 0 10px color-mix(in srgb, var(--color-base-1), transparent 50%) !important;
+}
 .driver-popover-next-btn,
 .driver-popover-done-btn {
-    background: transparent !important;
-    border: 1px solid rgba(224, 24, 108, 0.4) !important;
-    color: rgba(255, 255, 255, 0.8) !important;
-    border-radius: 3px !important;
+    background: color-mix(in srgb, var(--color-base-2), transparent 90%) !important;
+    border: 1px solid color-mix(in srgb, var(--color-base-2), transparent 60%) !important;
+    color: var(--color-base-2) !important;
+    border-radius: 4px !important;
     text-shadow: none !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
 }
-.driver-popover-prev-btn:hover,
 .driver-popover-next-btn:hover,
 .driver-popover-done-btn:hover {
-    border-color: #ffb2ef !important;
+    background: color-mix(in srgb, var(--color-base-2), transparent 75%) !important;
+    border-color: var(--color-base-2) !important;
     color: #fff !important;
+    box-shadow: 0 0 10px color-mix(in srgb, var(--color-base-2), transparent 50%) !important;
+}
+.driver-popover-navigation-btns {
+    margin-top: 10px !important;
 }
 .driver-popover-progress-text {
     color: rgba(255, 255, 255, 0.3) !important;
 }
 .driver-popover-arrow-side-left.driver-popover-arrow {
-    border-left-color: #0a0a0f !important;
+    border-right-color: #0c0c14 !important;
 }
 .driver-popover-arrow-side-right.driver-popover-arrow {
-    border-right-color: #0a0a0f !important;
+    border-left-color: #0c0c14 !important;
 }
 .driver-popover-arrow-side-top.driver-popover-arrow {
-    border-top-color: #0a0a0f !important;
+    border-bottom-color: #0c0c14 !important;
 }
 .driver-popover-arrow-side-bottom.driver-popover-arrow {
-    border-bottom-color: #0a0a0f !important;
+    border-top-color: #0c0c14 !important;
 }
 </style>
 
 <style scoped>
+
+
 /* ── Verification banner ──────────────────────────────────── */
 .verify-banner {
     display: flex;
