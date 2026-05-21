@@ -83,6 +83,14 @@ async function markAllRead() {
         if (!n.read_at) n.read_at = new Date().toISOString(); 
     });
 
+    if (page.props) {
+        page.props.notifications_unread = 0;
+        page.props.service_unread = 0;
+        page.props.order_notifications_unread = 0;
+        page.props.messages_notifications_unread = 0;
+        page.props.follows_unread = 0;
+    }
+
     try {
         await Promise.all([
             axios.patch(route('notifications.read-all')),
@@ -93,14 +101,10 @@ async function markAllRead() {
         ]);
     } catch (e) {
         console.error('Failed to mark all read', e);
+        // В случае ошибки сбрасываем forceZeroUnread и запрашиваем реальное состояние с сервера
+        forceZeroUnread.value = false;
+        reloadCounts();
     }
-    
-    // Перезагружаем счетчики с сервера
-    router.reload({ 
-        only: ['notifications_unread', 'service_unread', 'order_notifications_unread', 'messages_notifications_unread', 'follows_unread'],
-        preserveScroll: true,
-        preserveState: true
-    });
 }
 
 function toggleDropdown() {
@@ -252,6 +256,26 @@ const personalUnread = computed(() => forceZeroUnread.value ? 0 : (page.props.no
 
 watch(() => page.url, () => {
     forceZeroUnread.value = false;
+});
+
+watch(open, (newVal) => {
+    if (!newVal) {
+        forceZeroUnread.value = false;
+        
+        // На мобильных устройствах закрытие модалки SiteModal выполняет history.back(),
+        // восстанавливая Inertia-стейт страницы до открытия модалки (со старыми счетчиками).
+        // С небольшой задержкой сбрасываем счетчики локально и запрашиваем актуальные данные с бэкенда.
+        setTimeout(() => {
+            if (page.props) {
+                page.props.notifications_unread = 0;
+                page.props.service_unread = 0;
+                page.props.order_notifications_unread = 0;
+                page.props.messages_notifications_unread = 0;
+                page.props.follows_unread = 0;
+            }
+            reloadCounts();
+        }, 200);
+    }
 });
 
 function reloadCounts() {
@@ -462,7 +486,8 @@ async function handleNewNotification() {
             if (open.value) {
                 // Если колокольчик открыт, обновляем список и сразу помечаем как прочитанное
                 allItems.value = data.items;
-                markAllRead();
+                await markAllRead();
+                return;
             }
         }
     } catch (e) { 
