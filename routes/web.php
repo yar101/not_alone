@@ -114,6 +114,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         [UserProfileController::class, 'updateCategoryDescription']
     )->name('profile.services.category.description');
     Route::patch('/profile/services/{service}',     [ServiceController::class, 'update'])->name('profile.services.update');
+    Route::post('/profile/services/{service}/fix-change-request', [ServiceController::class, 'fixChangeRequest'])->name('profile.services.fix-change-request');
+    Route::delete('/profile/services/{service}/dismiss-change-request', [ServiceController::class, 'dismissChangeRequest'])->name('profile.services.dismiss-change-request');
     Route::delete('/profile/services/{service}',    [ServiceController::class, 'destroy'])->name('profile.services.destroy');
 });
 
@@ -134,6 +136,8 @@ Route::middleware(['auth', 'verified', 'not_banned'])->group(function () {
 
 // Public content pack profile feed
 Route::get('/users/{user}/content-packs', [ContentPackController::class, 'indexForProfile'])->name('profile.content-packs.index');
+Route::get('/users/{user}/services',       [ServiceController::class,     'indexForProfile'])->name('profile.services.index-for-profile');
+
 
 // Gallery
 Route::middleware(['auth', 'verified'])->group(function () {

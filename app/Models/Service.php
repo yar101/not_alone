@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Spatie\Translatable\HasTranslations;
 
 class Service extends Model
@@ -12,14 +14,15 @@ class Service extends Model
 
     public array $translatable = ['name'];
 
-    protected $fillable = ['name', 'user_id', 'category_id', 'time_unit_id', 'price', 'is_active', 'status', 'rejection_reason', 'moderated_by', 'moderated_at'];
+    protected $fillable = ['name', 'user_id', 'category_id', 'time_unit_id', 'price', 'is_active', 'status', 'rejection_reason', 'moderated_by', 'moderated_at', 'resubmitted_at'];
 
     protected function casts(): array
     {
         return [
-            'is_active'    => 'boolean',
-            'price'        => 'integer',
-            'moderated_at' => 'datetime',
+            'is_active'      => 'boolean',
+            'price'          => 'integer',
+            'moderated_at'   => 'datetime',
+            'resubmitted_at' => 'datetime',
         ];
     }
 
@@ -41,5 +44,20 @@ class Service extends Model
     public function moderatedBy(): BelongsTo
     {
         return $this->belongsTo(Admin::class, 'moderated_by');
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(ServiceReview::class);
+    }
+
+    public function latestReview(): HasOne
+    {
+        return $this->hasOne(ServiceReview::class)->latestOfMany();
+    }
+
+    public function pendingChangeRequest(): HasOne
+    {
+        return $this->hasOne(ServiceChangeRequest::class)->whereIn('status', ['pending', 'has_remarks']);
     }
 }

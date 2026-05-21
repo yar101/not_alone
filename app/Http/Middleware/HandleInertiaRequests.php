@@ -22,7 +22,9 @@ class HandleInertiaRequests extends Middleware
         'review_dispute_approved', 'review_dispute_rejected', 'content_pack_approved',
         'content_pack_remarks', 'content_pack_rejected', 'content_pack_change_approved',
         'content_pack_change_remarks', 'content_pack_change_rejected',
-        'service_approved', 'service_rejected', 'test', 'chat_status', 'new_review'
+        'service_approved', 'service_rejected', 'service_remarks',
+        'service_change_approved', 'service_change_remarks', 'service_change_rejected',
+        'test', 'chat_status', 'new_review'
     ];
     private const ORDER_TYPES   = ['order_created', 'order_accepted', 'order_cancelled', 'order_paid', 'order_completed'];
     private const MESSAGE_TYPES = ['new_message'];

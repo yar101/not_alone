@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\InterestSuggestionController;
 use App\Http\Controllers\Admin\PersonalityTraitController;
 use App\Http\Controllers\Admin\TraitSuggestionController;
 use App\Http\Controllers\Admin\ServiceCategoryController;
+use App\Http\Controllers\Admin\ServiceChangeRequestController;
 use App\Http\Controllers\Admin\ServiceModerationController;
 use App\Http\Controllers\Admin\ServicePriceLimitController;
 use App\Http\Controllers\Admin\ServiceTimeUnitController;
@@ -91,6 +92,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('services')->name('services.')->group(function () {
             // Static routes first
             Route::get('/moderation', [ServiceModerationController::class, 'index'])->name('moderation.index');
+            Route::get('/moderation/{service}', [ServiceModerationController::class, 'show'])->name('moderation.show');
+            Route::post('/moderation/{service}/decide', [ServiceModerationController::class, 'decide'])->name('moderation.decide');
+            
+            // Change requests
+            Route::prefix('change-requests')->name('change-requests.')->group(function () {
+                Route::get('/', [ServiceChangeRequestController::class, 'index'])->name('index');
+                Route::get('/{changeRequest}', [ServiceChangeRequestController::class, 'show'])->name('show');
+                Route::post('/{changeRequest}/decide', [ServiceChangeRequestController::class, 'decide'])->name('decide');
+            });
+
             Route::patch('/{service}/approve', [ServiceModerationController::class, 'approve'])->name('moderation.approve');
             Route::patch('/{service}/reject', [ServiceModerationController::class, 'reject'])->name('moderation.reject');
             Route::post('/bulk-approve', [ServiceModerationController::class, 'bulkApprove'])->name('moderation.bulk-approve');

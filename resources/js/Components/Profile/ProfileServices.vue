@@ -9,9 +9,12 @@ import {
     inject,
 } from "vue";
 import { useForm, router, usePage } from "@inertiajs/vue3";
+import axios from "axios";
 import AppSelect from "@/Components/AppSelect.vue";
 import CreateButton from "@/Components/CreateButton.vue";
 import SiteModal from "@/Components/Site/SiteModal.vue";
+import ServiceRemarksModal from "@/Components/Profile/ServiceRemarksModal.vue";
+import ServiceStatusBadge from "@/Components/Profile/ServiceStatusBadge.vue";
 import { useTranslations, localeLoading } from "@/composables/useTranslations";
 
 const { __, transChoice, locale } = useTranslations();
@@ -38,6 +41,26 @@ function localServiceName(item) {
     return locale.value?.current === "en" && item?.name_en
         ? item.name_en
         : (item?.name_ru ?? item?.name ?? "");
+}
+
+function isFlagged(item, field) {
+    if (item.status === 'has_remarks' && item.latest_review) {
+        return (item.latest_review.flagged_fields || []).includes(field);
+    }
+    if (item.pending_change?.status === 'has_remarks') {
+        return (item.pending_change.flagged_fields || []).includes(field);
+    }
+    return false;
+}
+
+function getFieldComment(item, field) {
+    if (item.status === 'has_remarks' && item.latest_review) {
+        return (item.latest_review.field_comments || {})[field];
+    }
+    if (item.pending_change?.status === 'has_remarks') {
+        return (item.pending_change.field_comments || {})[field];
+    }
+    return null;
 }
 
 const page = usePage();
@@ -78,6 +101,14 @@ function showBlockError() {
     blockErrorTimer = setTimeout(() => {
         blockError.value = false;
     }, 3500);
+}
+
+// ── Remarks Modal ────────────────────────────────────────────────
+const fixingService = ref(null);
+const remarksMode = ref("review");
+function openFix(service) {
+    fixingService.value = service;
+    remarksMode.value = service.status === "has_remarks" ? "review" : "change-request";
 }
 
 function isInCart(serviceId) {
@@ -270,17 +301,30 @@ function openAdd() {
 
 function openEdit(item) {
     editingId.value = item.id;
-    form.name_ru = item.name_ru ?? "";
-    form.name_en = item.name_en ?? "";
-    showNameRu.value = !!item.name_ru;
-    showNameEn.value = !!item.name_en;
+    
+    // If there is a pending change request with remarks, use its values
+    const source = (item.pending_change?.status === 'has_remarks') ? item.pending_change : null;
+    
+    if (source) {
+        form.name_ru = source.pending_name?.ru ?? "";
+        form.name_en = source.pending_name?.en ?? "";
+        form.category_id = source.pending_category?.id ?? item.category_id;
+        form.time_unit_id = source.pending_time_unit?.id ?? item.time_unit?.id;
+        form.price = source.pending_price ?? item.price;
+    } else {
+        form.name_ru = item.name_ru ?? "";
+        form.name_en = item.name_en ?? "";
+        form.category_id = item.category_id ?? null;
+        form.time_unit_id = item.time_unit?.id ?? null;
+        form.price = item.price;
+    }
+    
+    showNameRu.value = !!form.name_ru;
+    showNameEn.value = !!form.name_en;
     if (!showNameRu.value && !showNameEn.value) {
         if (locale.value?.current === "en") showNameEn.value = true;
         else showNameRu.value = true;
     }
-    form.category_id = item.category_id ?? null;
-    form.time_unit_id = item.time_unit?.id ?? null;
-    form.price = item.price;
     showForm.value = true;
 }
 
@@ -296,8 +340,16 @@ function closeForm() {
 
 function submitForm() {
     if (editingId.value) {
+        const item = localServices.value.flatMap(g => g.items).find(i => i.id === editingId.value);
+        const isFixingCR = item?.pending_change?.status === 'has_remarks';
+
         localeLoading.value = true;
-        form.patch(route("profile.services.update", editingId.value), {
+        const method = isFixingCR ? 'post' : 'patch';
+        const url = isFixingCR
+            ? route("profile.services.fix-change-request", editingId.value)
+            : route("profile.services.update", editingId.value);
+
+        form.submit(method, url, {
             preserveScroll: true,
             preserveState: true,
             onSuccess() {
@@ -319,7 +371,6 @@ function submitForm() {
         });
     }
 }
-
 const showCancelConfirm = ref(false);
 
 function tryCloseForm() {
@@ -339,6 +390,16 @@ function removeNameRu() {
     showNameRu.value = false;
     form.name_ru = "";
 }
+
+const dismissChangeRequest = (item) => {
+    router.delete(route("profile.services.dismiss-change-request", item.id), {
+        onSuccess: () => {
+            resyncSelectedCategory();
+            toast.success(__("profile.services.dismiss_success", "Отклоненные изменения скрыты"));
+        },
+    });
+};
+
 function removeNameEn() {
     showNameEn.value = false;
     form.name_en = "";
@@ -517,9 +578,39 @@ function onDocClick(e) {
     if (!e.target.closest(".svc-menu")) closeMenu();
 }
 
-onMounted(() => document.addEventListener("click", onDocClick, true));
+let svcNotifyChannel = null;
+
+async function fetchServicesFromApi() {
+    if (!props.profileUser?.id) return;
+    try {
+        const res = await axios.get(route('profile.services.index-for-profile', props.profileUser.id));
+        localServices.value = res.data.groups;
+        // Resync selected category if open
+        if (selectedCategory.value) {
+            const catId = selectedCategory.value.category.id;
+            const updated = res.data.groups.find(g => g.category.id === catId);
+            if (updated) selectedCategory.value = updated;
+        }
+    } catch (e) {
+        // silent fail — stale data is better than a crash
+    }
+}
+
+onMounted(() => {
+    document.addEventListener("click", onDocClick, true);
+    if (props.isOwner && window.Echo && props.profileUser?.id) {
+        svcNotifyChannel = window.Echo.private(`App.Models.User.${props.profileUser.id}`)
+            .listen('.new-notification', () => {
+                fetchServicesFromApi();
+            });
+    }
+});
+
 onUnmounted(() => {
     document.removeEventListener("click", onDocClick, true);
+    if (svcNotifyChannel && props.profileUser?.id) {
+        svcNotifyChannel.stopListening('.new-notification');
+    }
     selectedCategory.value = null;
     sessionStorage.removeItem(SESSION_KEY.value);
     if (serviceNav) serviceNav.inCategory = false;
@@ -954,82 +1045,68 @@ watch(selectedCategory, (cat) => {
                             class="svc-card"
                             :class="{
                                 'svc-card--inactive': !item.is_active,
-                                'svc-card--pending':
-                                    isOwner && item.status === 'pending',
-                                'svc-card--rejected':
-                                    isOwner && item.status === 'rejected',
+                                'svc-card--pending': isOwner && (item.status === 'pending' || item.pending_change?.status === 'pending'),
+                                'svc-card--remarks': isOwner && (item.status === 'has_remarks' || item.pending_change?.status === 'has_remarks'),
+                                'svc-card--rejected': isOwner && item.status === 'rejected',
                             }"
                         >
                             <!-- Badges: top-right corner -->
                             <div v-if="isOwner" class="svc-card__badges">
-                                <span
+                                <ServiceStatusBadge
                                     v-if="!item.is_active"
-                                    class="svc-pill svc-pill--hidden"
-                                >
-                                    <svg
-                                        width="11"
-                                        height="11"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <path
-                                            d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"
-                                        />
-                                        <path
-                                            d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"
-                                        />
-                                        <line x1="1" y1="1" x2="23" y2="23" />
-                                    </svg>
-                                    {{ __("profile.services.status.hidden") }}
-                                </span>
-                                <span
-                                    v-if="item.status === 'pending'"
-                                    class="svc-pill svc-pill--pending"
-                                >
-                                    <i class="svc-pill__dot"></i
-                                    >{{ __("profile.services.status.pending") }}
-                                </span>
-                                <span
+                                    status="hidden"
+                                />
+                                <ServiceStatusBadge
                                     v-else-if="item.status === 'rejected'"
-                                    class="svc-pill svc-pill--rejected"
-                                >
-                                    {{ __("profile.services.status.rejected") }}
-                                </span>
+                                    status="rejected"
+                                />
+                                <ServiceStatusBadge
+                                    v-else-if="item.status === 'has_remarks' || item.pending_change?.status === 'has_remarks'"
+                                    status="has_remarks"
+                                    :is-change-request="item.pending_change?.status === 'has_remarks'"
+                                />
+                                <ServiceStatusBadge
+                                    v-else-if="item.pending_change?.status === 'pending'"
+                                    status="pending"
+                                    :is-change-request="true"
+                                />
+                                <ServiceStatusBadge
+                                    v-else-if="item.pending_change?.status === 'rejected'"
+                                    status="rejected"
+                                    :is-change-request="true"
+                                />
+                                <ServiceStatusBadge
+                                    v-else-if="item.status === 'pending'"
+                                    status="pending"
+                                />
                             </div>
 
                             <!-- Info column -->
                             <div class="svc-card__info">
                                 <div class="svc-card__name-row">
-                                    <span class="svc-card__name">{{
-                                        localServiceName(item)
-                                    }}</span>
+                                    <span class="svc-card__name" :class="{ 'svc-card__name--flagged': isFlagged(item, 'name_ru') || isFlagged(item, 'name_en') }">
+                                        {{ localServiceName(item) }}
+                                        <span v-if="isFlagged(item, 'name_ru') || isFlagged(item, 'name_en')" class="svc-card__flag-icon" :title="getFieldComment(item, 'name_ru') || getFieldComment(item, 'name_en') || 'Замечание модератора'">⚠️</span>
+                                    </span>
                                 </div>
                                 <span
                                     v-if="
                                         isOwner &&
-                                        item.status === 'rejected' &&
-                                        item.rejection_reason
+                                        ((item.status === 'rejected' && item.rejection_reason) ||
+                                        (item.pending_change?.status === 'rejected' && item.pending_change?.admin_comment))
                                     "
                                     class="svc-card__reason"
-                                    >{{ item.rejection_reason }}</span
+                                    >{{ item.status === 'rejected' ? item.rejection_reason : item.pending_change.admin_comment }}</span
                                 >
                             </div>
 
                             <!-- Footer: price + actions -->
                             <div class="svc-card__footer">
                                 <div class="svc-card__price-block">
-                                    <span class="svc-card__amount">{{
-                                        item.price.toLocaleString("ru")
-                                    }}</span
+                                    <span class="svc-card__amount">{{ item.price.toLocaleString("ru") }}</span
                                     ><span class="svc-card__rub">₽</span
                                     ><span class="svc-card__sep">/</span
-                                    ><span class="svc-card__unit">{{
-                                        localUnitName(item.time_unit)
-                                    }}</span>
+                                    ><span class="svc-card__unit">{{ localUnitName(item.time_unit) }}</span>
                                 </div>
 
                                 <!-- Actions column -->
@@ -1112,8 +1189,9 @@ watch(selectedCategory, (cat) => {
                                             >
                                                 <template
                                                     v-if="
-                                                        item.status ===
-                                                        'approved'
+                                                        item.status === 'approved' &&
+                                                        item.pending_change?.status !== 'has_remarks' &&
+                                                        item.pending_change?.status !== 'pending'
                                                     "
                                                 >
                                                     <button
@@ -1187,6 +1265,36 @@ watch(selectedCategory, (cat) => {
                                                         class="svc-menu__divider"
                                                     ></div>
                                                 </template>
+                                                <template
+                                                    v-if="
+                                                        item.status === 'has_remarks' ||
+                                                        item.pending_change?.status === 'has_remarks'
+                                                    "
+                                                >
+                                                    <button
+                                                        class="svc-menu__item"
+                                                        @click="
+                                                            openFix(item);
+                                                            closeMenu();
+                                                        "
+                                                    >
+                                                        <svg
+                                                            width="13"
+                                                            height="13"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            stroke-width="2"
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                        >
+                                                            <path d="M12 20h9"/>
+                                                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                                                        </svg>
+                                                        {{ __("profile.services.fix_btn") }}
+                                                    </button>
+                                                    <div class="svc-menu__divider"></div>
+                                                </template>
                                                 <button
                                                     class="svc-menu__item svc-menu__item--danger"
                                                     @click="
@@ -1218,6 +1326,21 @@ watch(selectedCategory, (cat) => {
                                                         <path d="M9 6V4h6v2" />
                                                     </svg>
                                                     {{ __("common.delete") }}
+                                                </button>
+
+                                                <button
+                                                    v-if="item.pending_change?.status === 'rejected'"
+                                                    class="svc-menu__item svc-menu__item--danger"
+                                                    @click="
+                                                        dismissChangeRequest(item);
+                                                        closeMenu();
+                                                    "
+                                                >
+                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                    </svg>
+                                                    {{ __("profile.services.dismiss_cr", "Скрыть отклонение") }}
                                                 </button>
                                             </div>
                                         </Transition>
@@ -1734,6 +1857,18 @@ watch(selectedCategory, (cat) => {
                 </Transition>
             </div>
         </SiteModal>
+
+        <ServiceRemarksModal
+            v-if="fixingService"
+            :show="!!fixingService"
+            :service="fixingService"
+            :mode="remarksMode"
+            :service-categories="serviceCategories"
+            :service-time-units="serviceTimeUnits"
+            @close="fixingService = null"
+            @submitted="resyncSelectedCategory"
+            @fixed="resyncSelectedCategory"
+        />
     </div>
 </template>
 
@@ -2570,7 +2705,11 @@ watch(selectedCategory, (cat) => {
     background: rgba(239, 68, 68, 0.025);
 }
 
-/* Info column */
+.svc-card--remarks {
+    border-color: rgba(255, 230, 0, 0.25);
+    background: rgba(255, 230, 0, 0.02);
+}
+
 .svc-card__info {
     flex: 1;
     min-width: 0;
@@ -2578,6 +2717,20 @@ watch(selectedCategory, (cat) => {
     flex-direction: column;
     gap: 0.3rem;
 }
+
+.svc-card__flag-icon {
+    display: inline-flex;
+    margin-left: 0.25rem;
+    cursor: help;
+    font-size: 0.85rem;
+    vertical-align: middle;
+}
+
+.svc-card__name--flagged {
+    color: #ffd900 !important;
+}
+
+
 
 .svc-card__name-row {
     display: flex;
@@ -2657,6 +2810,12 @@ watch(selectedCategory, (cat) => {
     background: rgba(251, 146, 60, 0.12);
     color: rgba(251, 146, 60, 0.9);
     border: 1px solid rgba(251, 146, 60, 0.2);
+}
+
+.svc-pill--remarks {
+    background: rgba(255, 204, 0, 0.12);
+    color: #ffcc00;
+    border: 1px solid rgba(255, 204, 0, 0.25);
 }
 
 .svc-pill--rejected {

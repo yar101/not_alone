@@ -142,14 +142,26 @@ function handleItemClick(item) {
         return;
     }
 
-    const profileTypes = [
+    const contentProfileTypes = [
         'idol_approved', 'idol_rejected',
         'admin_rating', 'review_dispute_approved', 'review_dispute_rejected',
         'content_pack_approved', 'content_pack_remarks', 'content_pack_rejected',
+        'content_pack_change_approved', 'content_pack_change_remarks', 'content_pack_change_rejected',
     ];
-    if (profileTypes.includes(item.type) && authUser?.id) {
+    if (contentProfileTypes.includes(item.type) && authUser?.id) {
         open.value = false;
         router.visit(route('profile.show', { user: authUser.id }) + '#content');
+        return;
+    }
+
+    const serviceProfileTypes = [
+        'service_approved', 'service_remarks', 'service_rejected',
+        'service_change_approved', 'service_change_remarks', 'service_change_rejected',
+    ];
+    if (serviceProfileTypes.includes(item.type) && authUser?.id) {
+        open.value = false;
+        router.visit(route('profile.show', { user: authUser.id }) + '#services');
+        return;
     }
 }
 
@@ -161,7 +173,10 @@ function isClickable(item) {
         'idol_approved', 'idol_rejected', 'low_rating_warning',
         'admin_rating', 'review_dispute_approved', 'review_dispute_rejected',
         'content_pack_approved', 'content_pack_remarks', 'content_pack_rejected',
+        'content_pack_change_approved', 'content_pack_change_remarks', 'content_pack_change_rejected',
         'new_review',
+        'service_approved', 'service_remarks', 'service_rejected',
+        'service_change_approved', 'service_change_remarks', 'service_change_rejected',
     ];
     return profileTypes.includes(item.type);
 }
@@ -267,6 +282,12 @@ function getNotificationTitle(item) {
     }
 
     return {
+        service_approved: __('notification.type.service_approved'),
+        service_remarks: __('notification.type.service_remarks'),
+        service_rejected: __('notification.type.service_rejected'),
+        service_change_approved: __('notification.type.service_change_approved'),
+        service_change_remarks: __('notification.type.service_change_remarks'),
+        service_change_rejected: __('notification.type.service_change_rejected'),
         content_pack_approved: __('notification.type.pack_approved'),
         content_pack_remarks: __('notification.type.pack_remarks'),
         content_pack_rejected: __('notification.type.pack_rejected'),
@@ -331,6 +352,25 @@ function getNotificationMessage(item) {
 
     if (type === 'service_approved') {
         params.name = data.service_name;
+    }
+
+    if (type === 'service_remarks') {
+        params.name = data.service_name;
+    }
+
+    if (type === 'service_change_approved') {
+        params.name = data.service_name;
+        const fieldNames = (data.fields || []).map(f => __('service.field.' + f));
+        params.fields = fieldNames.join(', ');
+    }
+
+    if (type === 'service_change_remarks') {
+        params.name = data.service_name;
+    }
+
+    if (type === 'service_change_rejected') {
+        params.name = data.service_name;
+        params.note = data.reason ? `${__('common.reason')}: ${data.reason}` : '';
     }
 
     if (type === 'content_pack_approved' || type === 'content_pack_rejected' || type === 'content_pack_remarks' || type === 'content_pack_change_remarks') {
@@ -460,6 +500,12 @@ function itemIconComponent(item) {
             return Service;
         }
         return {
+            service_approved: Service,
+            service_remarks: Service,
+            service_rejected: Service,
+            service_change_approved: Service,
+            service_change_remarks: Service,
+            service_change_rejected: Service,
             admin_broadcast: Promotion,
             idol_approved: Trophy,
             idol_rejected: CircleClose,
@@ -490,9 +536,28 @@ function itemIconClass(item) {
     }
     if (item._cat === 'service' || item._cat === 'message') {
         if (item.type === 'admin_broadcast') return 'icon--broadcast';
-        if (item.type === 'idol_approved' || item.type === 'review_dispute_approved' || item.type === 'content_pack_approved' || item.type === 'content_pack_change_approved') return 'icon--success';
-        if (item.type === 'idol_rejected' || item.type === 'review_dispute_rejected' || item.type === 'content_pack_remarks' || item.type === 'content_pack_change_remarks') return 'icon--warning';
-        if (item.type === 'content_pack_rejected' || item.type === 'content_pack_change_rejected') return 'icon--danger';
+        if (
+            item.type === 'idol_approved' ||
+            item.type === 'review_dispute_approved' ||
+            item.type === 'content_pack_approved' ||
+            item.type === 'content_pack_change_approved' ||
+            item.type === 'service_approved' ||
+            item.type === 'service_change_approved'
+        ) return 'icon--success';
+        if (
+            item.type === 'idol_rejected' ||
+            item.type === 'review_dispute_rejected' ||
+            item.type === 'content_pack_remarks' ||
+            item.type === 'content_pack_change_remarks' ||
+            item.type === 'service_remarks' ||
+            item.type === 'service_change_remarks'
+        ) return 'icon--warning';
+        if (
+            item.type === 'content_pack_rejected' ||
+            item.type === 'content_pack_change_rejected' ||
+            item.type === 'service_rejected' ||
+            item.type === 'service_change_rejected'
+        ) return 'icon--danger';
         if (item.type === 'new_review') return 'icon--success';
         if (item.type === 'new_message') return 'icon--personal';
         if (item.type === 'new_post' || item.type === 'new_service' || item.type === 'new_content_pack') return 'icon--success';

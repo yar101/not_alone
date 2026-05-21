@@ -107,7 +107,7 @@ class UserProfileController extends Controller
                     ->get(['id', 'name', 'description', 'image_path', 'accent_color', 'sort_order', 'is_active']);
 
                 // Services for this user
-                $query = $user->services()->with(['timeUnit:id,name']);
+                $query = $user->services()->with(['timeUnit:id,name', 'latestReview', 'pendingChangeRequest.pendingCategory', 'pendingChangeRequest.pendingTimeUnit']);
                 if (!$isOwner) {
                     $query->where('is_active', true)->where('status', 'approved');
                 }
@@ -121,7 +121,7 @@ class UserProfileController extends Controller
 
                 $servicesByCategory = $services->groupBy('category_id');
 
-                return $allCategories->map(function ($cat) use ($servicesByCategory, $descriptions) {
+                return $allCategories->map(function ($cat) use ($servicesByCategory, $descriptions, $isOwner) {
                     $group = $servicesByCategory->get($cat->id, collect());
                     return [
                         'category' => [
@@ -136,21 +136,51 @@ class UserProfileController extends Controller
                             'sort_order'   => $cat->sort_order,
                         ],
                         'idol_description' => $descriptions[$cat->id] ?? null,
-                        'items'            => $group->map(fn (Service $s) => [
-                            'id'               => $s->id,
-                            'name_ru'          => $s->getTranslation('name', 'ru'),
-                            'name_en'          => $s->getTranslation('name', 'en', false) ?: null,
-                            'price'            => $s->price,
-                            'is_active'        => $s->is_active,
-                            'status'           => $s->status,
-                            'rejection_reason' => $s->rejection_reason,
-                            'category_id'      => $s->category_id,
-                            'time_unit'        => [
-                                'id'      => $s->timeUnit->id,
-                                'name_ru' => $s->timeUnit->getTranslation('name', 'ru'),
-                                'name_en' => $s->timeUnit->getTranslation('name', 'en', false) ?: null,
-                            ],
-                        ])->values(),
+                        'items'            => $group->map(function (Service $s) use ($isOwner) {
+                            $base = [
+                                'id'               => $s->id,
+                                'name_ru'          => $s->getTranslation('name', 'ru'),
+                                'name_en'          => $s->getTranslation('name', 'en', false) ?: null,
+                                'price'            => $s->price,
+                                'is_active'        => $s->is_active,
+                                'status'           => $s->status,
+                                'rejection_reason' => $s->rejection_reason,
+                                'category_id'      => $s->category_id,
+                                'time_unit'        => [
+                                    'id'      => $s->timeUnit->id,
+                                    'name_ru' => $s->timeUnit->getTranslation('name', 'ru'),
+                                    'name_en' => $s->timeUnit->getTranslation('name', 'en', false) ?: null,
+                                ],
+                            ];
+
+                            if ($isOwner) {
+                                $base['latest_review'] = $s->latestReview ? [
+                                    'decision'       => $s->latestReview->decision,
+                                    'flagged_fields' => $s->latestReview->flagged_fields ?? [],
+                                    'field_comments' => $s->latestReview->field_comments ?? [],
+                                ] : null;
+
+                                $base['pending_change'] = $s->pendingChangeRequest ? [
+                                    'changed_fields'   => $s->pendingChangeRequest->changed_fields,
+                                    'pending_name'     => $s->pendingChangeRequest->pending_name,
+                                    'pending_price'    => $s->pendingChangeRequest->pending_price,
+                                    'pending_category' => $s->pendingChangeRequest->pendingCategory ? [
+                                        'id'      => $s->pendingChangeRequest->pendingCategory->id,
+                                        'name_ru' => $s->pendingChangeRequest->pendingCategory->getTranslation('name', 'ru'),
+                                    ] : null,
+                                    'pending_time_unit' => $s->pendingChangeRequest->pendingTimeUnit ? [
+                                        'id'      => $s->pendingChangeRequest->pendingTimeUnit->id,
+                                        'name_ru' => $s->pendingChangeRequest->pendingTimeUnit->getTranslation('name', 'ru'),
+                                    ] : null,
+                                    'status'           => $s->pendingChangeRequest->status,
+                                    'flagged_fields'   => $s->pendingChangeRequest->flagged_fields ?? [],
+                                    'field_comments'   => $s->pendingChangeRequest->field_comments ?? [],
+                                    'admin_comment'    => $s->pendingChangeRequest->admin_comment,
+                                ] : null;
+                            }
+
+                            return $base;
+                        })->values(),
                     ];
                 })->values();
             }, 'services'),

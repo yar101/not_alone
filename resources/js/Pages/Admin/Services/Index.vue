@@ -26,6 +26,7 @@ function switchTab(tab) {
     if (tab === 'time-units')   router.visit(route('admin.services.time-units.index'),   { preserveState: false });
     if (tab === 'price-limits') router.visit(route('admin.services.price-limits.index'), { preserveState: false });
     if (tab === 'moderation')   router.visit(route('admin.services.moderation.index'),   { preserveState: false });
+    if (tab === 'change-requests') router.visit(route('admin.services.change-requests.index'), { preserveState: false });
 }
 
 // ─── Moderation ──────────────────────────────────────────────────────────────
@@ -465,6 +466,11 @@ function destroyLimit(id) {
                 Модерация
                 <span v-if="moderation_counts?.pending > 0" class="tab-count">{{ moderation_counts?.pending }}</span>
             </button>
+            <button
+                class="tab-btn"
+                :class="{ 'tab-btn--active': active_tab === 'change-requests' }"
+                @click="switchTab('change-requests')"
+            >Изменения</button>
         </div>
 
         <!-- ═══ Categories tab ═══ -->
@@ -794,9 +800,11 @@ function destroyLimit(id) {
             <div class="mod-status-tabs">
                 <button
                     v-for="tab in [
-                        { key: 'pending',  label: 'Ожидают',  count: moderation_counts?.pending },
-                        { key: 'approved', label: 'Одобрены', count: moderation_counts?.approved },
-                        { key: 'rejected', label: 'Отклонены', count: moderation_counts?.rejected },
+                        { key: 'pending',     label: 'Ожидают',      count: moderation_counts?.pending },
+                        { key: 'resubmitted', label: 'Переподано',   count: moderation_counts?.resubmitted },
+                        { key: 'has_remarks', label: 'Замечания',    count: moderation_counts?.has_remarks },
+                        { key: 'approved',    label: 'Одобрены',     count: moderation_counts?.approved },
+                        { key: 'rejected',    label: 'Отклонены',    count: moderation_counts?.rejected },
                     ]"
                     :key="tab.key"
                     class="mod-status-tab"
@@ -1110,6 +1118,19 @@ function destroyLimit(id) {
 .badge--rejected { background: rgba(239,68,68,0.1);   color: rgba(239,68,68,0.7); }
 
 .mod-reject-reason { font-size: 0.72rem; color: rgba(239,68,68,0.55); margin-top: 0.2rem; cursor: help; }
+
+.mod-resub-hint {
+    font-size: 0.75rem;
+    color: #ff9800;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.badge--has_remarks {
+    background: #fff3e0;
+    color: #ef6c00;
+    border: 1px solid #ffe0b2;
+}
 
 .mod-user-cell { display: flex; align-items: center; gap: 0.6rem; }
 .mod-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; background: rgba(155,110,232,0.15); flex-shrink: 0; }
