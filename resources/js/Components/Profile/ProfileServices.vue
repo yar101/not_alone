@@ -405,8 +405,11 @@ function removeNameEn() {
     form.name_en = "";
 }
 function addSecondary() {
-    if (locale.value?.current === "en") showNameRu.value = true;
-    else showNameEn.value = true;
+    if (!showNameRu.value) {
+        showNameRu.value = true;
+    } else if (!showNameEn.value) {
+        showNameEn.value = true;
+    }
 }
 
 const deleteConfirmId = ref(null);
