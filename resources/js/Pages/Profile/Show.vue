@@ -353,7 +353,7 @@ onMounted(async () => {
                             compact
                             max-width="500px"
                             variant="pink"
-                            noPadding="true"
+                            :no-padding="true"
                         >
                             <div class="unfollow-confirm">
                                 <div class="unfollow-confirm__body">
