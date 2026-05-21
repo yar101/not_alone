@@ -210,6 +210,8 @@ Route::middleware(['auth', 'not_banned'])->group(function () {
 Route::get('/reviews/epithets', [ReviewController::class, 'epithets'])->name('reviews.epithets');
 Route::get('/users/{user}/reviews', [ReviewController::class, 'index'])->name('users.reviews');
 
+Route::get('/api/help-center', [App\Http\Controllers\HelpController::class, 'index'])->name('help.data');
+
 Route::get('/media/{path}', [MediaController::class, 'serve'])
     ->where('path', '.+')
     ->name('media.serve');

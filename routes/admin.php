@@ -33,6 +33,8 @@ use App\Http\Controllers\Admin\ReviewDisputeController;
 use App\Http\Controllers\Admin\ReviewEpithetController;
 use App\Http\Controllers\Admin\SupportChatController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\HelpCategoryController;
+use App\Http\Controllers\Admin\HelpArticleController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -205,6 +207,22 @@ Route::patch('/{trait}', [PersonalityTraitController::class, 'update'])->name('u
             Route::post('/',         [NewsController::class, 'store'])->name('store');
             Route::patch('/{news}',  [NewsController::class, 'update'])->name('update');
             Route::delete('/{news}', [NewsController::class, 'destroy'])->name('destroy');
+        });
+
+        // Help / FAQ CRUD
+        Route::prefix('help-categories')->name('help-categories.')->group(function () {
+            Route::get('/',             [HelpCategoryController::class, 'index'])->name('index');
+            Route::post('/',            [HelpCategoryController::class, 'store'])->name('store');
+            Route::patch('/{category}', [HelpCategoryController::class, 'update'])->name('update');
+            Route::delete('/{category}', [HelpCategoryController::class, 'destroy'])->name('destroy');
+            Route::post('/reorder',     [HelpCategoryController::class, 'reorder'])->name('reorder');
+        });
+
+        Route::prefix('help-articles')->name('help-articles.')->group(function () {
+            Route::post('/',            [HelpArticleController::class, 'store'])->name('store');
+            Route::patch('/{article}',  [HelpArticleController::class, 'update'])->name('update');
+            Route::delete('/{article}', [HelpArticleController::class, 'destroy'])->name('destroy');
+            Route::post('/reorder',     [HelpArticleController::class, 'reorder'])->name('reorder');
         });
 
         // Orders

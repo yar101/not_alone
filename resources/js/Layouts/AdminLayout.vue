@@ -291,6 +291,14 @@ function isActive(routeName) {
                 </Link>
 
                 <Link
+                    :href="route('admin.help-categories.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.help-categories.*') }"
+                >
+                    Справка
+                </Link>
+
+                <Link
                     :href="route('admin.reports.index')"
                     class="nav-item"
                     :class="{ 'nav-item--active': isActive('admin.reports.*') }"

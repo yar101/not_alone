@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             BanReasonSeeder::class,
             NewsSeeder::class,
             ReviewEpithetSeeder::class,
+            HelpCenterSeeder::class,
         ]);
     }
 }

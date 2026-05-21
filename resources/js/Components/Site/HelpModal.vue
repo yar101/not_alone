@@ -1,23 +1,14 @@
 <script setup>
-import { computed, ref, shallowRef, onMounted, onUnmounted } from "vue";
+import { computed, ref, watch, onMounted, onUnmounted } from "vue";
+import { Link } from "@inertiajs/vue3";
 import { useTranslations } from "@/composables/useTranslations";
 import { useModalHistory } from "@/composables/useModalHistory";
 
 const { __, locale } = useTranslations();
 import axios from "axios";
-import {
-    QuestionFilled,
-    User,
-    ChatDotRound,
-    Setting,
-    Lock,
-    InfoFilled,
-} from "@element-plus/icons-vue";
 import SiteModal from "./SiteModal.vue";
-import FaqItem from "./FaqItem.vue";
-import FaqDetail from "./FaqDetail.vue";
 
-defineProps({
+const props = defineProps({
     show: {
         type: Boolean,
         default: false,
@@ -30,205 +21,64 @@ defineProps({
 
 const emit = defineEmits(["close"]);
 
-const faqCategories = [
-    {
-        id: 1,
-        title: "Что такое no alone?",
-        icon: QuestionFilled,
-        questions: [
-            {
-                id: 1,
-                q: "О сервисе",
-                a: "<p>no alone — это сервис для поиска собеседников и живого общения. Здесь вы можете найти людей со схожими интересами и просто поговорить.</p><p>Мы верим, что каждый человек заслуживает внимания и живого общения.</p>",
-            },
-            {
-                id: 2,
-                q: "Для кого это?",
-                a: "<p>Сервис подходит для всех, кто хочет найти нового собеседника, поделиться мыслями или просто не быть одному. Неважно, сколько вам лет и где вы находитесь.</p>",
-            },
-            {
-                id: 3,
-                q: "Это бесплатно?",
-                a: "<p>Базовые функции сервиса полностью бесплатны. Вы можете общаться без ограничений и без скрытых платежей.</p><p>Расширенные возможности могут быть доступны по подписке.</p>",
-            },
-            {
-                id: 4,
-                q: "Нужно ли устанавливать приложение?",
-                a: "<p>Нет, no alone работает прямо в браузере. Для удобства вы также можете установить мобильное приложение — оно доступно в App Store и Google Play.</p>",
-            },
-        ],
-    },
-    {
-        id: 2,
-        title: "Регистрация",
-        icon: User,
-        questions: [
-            {
-                id: 1,
-                q: "Как создать аккаунт?",
-                a: "<p>Нажмите кнопку «Начать» на главной странице. Введите email и придумайте пароль. После подтверждения email ваш аккаунт будет активирован — это займёт меньше минуты.</p>",
-            },
-            {
-                id: 2,
-                q: "Забыл пароль — что делать?",
-                a: "<p>На странице входа нажмите «Забыл пароль». Введите email, привязанный к аккаунту, и мы отправим вам ссылку для сброса пароля.</p>",
-            },
-            {
-                id: 3,
-                q: "Как удалить аккаунт?",
-                a: "<p>Вы можете удалить аккаунт в разделе «Настройки → Аккаунт → Удалить аккаунт». После удаления все данные будут безвозвратно стёрты в течение 30 дней.</p>",
-            },
-        ],
-    },
-    {
-        id: 3,
-        title: "Общение",
-        icon: ChatDotRound,
-        questions: [
-            {
-                id: 1,
-                q: "Как найти собеседника?",
-                a: "<p>После входа перейдите в раздел «Поиск». Можно фильтровать по интересам, возрасту и другим параметрам. Отправьте запрос на общение — и начните разговор!</p>",
-            },
-            {
-                id: 2,
-                q: "Можно ли отказать собеседнику?",
-                a: "<p>Да, общение добровольно. Вы можете завершить беседу в любой момент или отклонить входящий запрос без объяснения причин.</p>",
-            },
-            {
-                id: 3,
-                q: "Что если собеседник нарушает правила?",
-                a: "<p>Нажмите на профиль пользователя и выберите «Пожаловаться». Мы рассмотрим жалобу в течение 24 часов. Вы также можете сразу заблокировать этого человека.</p>",
-            },
-            {
-                id: 4,
-                q: "Сколько человек можно добавить в контакты?",
-                a: "<p>На бесплатном тарифе — до 50 контактов. С подпиской лимит снимается, и вы можете добавлять неограниченное количество людей.</p>",
-            },
-        ],
-    },
-    {
-        id: 4,
-        title: "Настройки",
-        icon: Setting,
-        questions: [
-            {
-                id: 1,
-                q: "Как изменить профиль?",
-                a: "<p>Перейдите в «Настройки → Профиль». Здесь можно изменить аватар, имя, описание и список интересов. Изменения сохраняются автоматически.</p>",
-            },
-            {
-                id: 2,
-                q: "Как настроить уведомления?",
-                a: "<p>В разделе «Настройки → Уведомления» выберите, о чём хотите получать оповещения: новые сообщения, запросы на общение, системные новости.</p>",
-            },
-            {
-                id: 3,
-                q: "Как управлять приватностью?",
-                a: "<p>В «Настройки → Приватность» вы управляете видимостью профиля: кто может вас найти, видеть онлайн-статус и отправлять запросы на общение.</p>",
-            },
-        ],
-    },
-    {
-        id: 5,
-        title: "Безопасность",
-        icon: Lock,
-        questions: [
-            {
-                id: 1,
-                q: "Как защищены мои данные?",
-                a: "<p>Все данные передаются по зашифрованному соединению (HTTPS/TLS). Мы не продаём личные данные третьим лицам и соблюдаем требования GDPR.</p>",
-            },
-            {
-                id: 2,
-                q: "Как заблокировать пользователя?",
-                a: "<p>Откройте профиль пользователя и нажмите «Заблокировать». После этого он не сможет видеть ваш профиль, писать вам или добавлять вас в контакты.</p>",
-            },
-            {
-                id: 3,
-                q: "Как подать жалобу?",
-                a: "<p>На странице профиля пользователя или в активном чате нажмите «⋯ → Пожаловаться». Выберите причину и при желании добавьте комментарий. Мы рассмотрим в течение 24 часов.</p>",
-            },
-        ],
-    },
-    {
-        id: 6,
-        title: "Контакты",
-        icon: InfoFilled,
-        questions: [
-            {
-                id: 1,
-                q: "Как связаться с поддержкой?",
-                a: "<p>Напишите нам на <strong>support@noalone.app</strong> — мы отвечаем в течение 24 часов в рабочие дни. Также можно воспользоваться формой обратной связи внутри приложения.</p>",
-            },
-            {
-                id: 2,
-                q: "Где вы в соцсетях?",
-                a: "<p>Мы есть в Telegram, ВКонтакте и Instagram. Ссылки на актуальные страницы можно найти в подвале сайта.</p>",
-            },
-            {
-                id: 3,
-                q: "Как стать партнёром?",
-                a: "<p>По вопросам сотрудничества и партнёрства пишите на <strong>partners@noalone.app</strong>. Расскажите о вашем проекте, и мы рассмотрим предложение.</p>",
-            },
-        ],
-    },
-];
+// ── Dynamic Help Center data ───────────────────────────────
+const faqCategories = ref([]);
+const helpLoading = ref(false);
+let helpLoaded = false;
 
-const activeCategory = shallowRef(faqCategories[0]);
-const activeQuestion = ref(null);
-const activeIndex = computed(
-    () => faqCategories.findIndex((c) => c === activeCategory.value) + 1,
-);
-
-const isMobile = computed(() => window.innerWidth <= 767);
-
-// ── Mobile drill-down navigation ──────────────────────────
-const mobileNav = ref("cats"); // 'cats' | 'questions' | 'answer'
-
-const isQuestionsOpen = computed({
-    get: () => mobileNav.value !== "cats" && isMobile.value,
-    set: (v) => {
-        if (!v) backToCategories();
-    },
-});
-
-const isAnswerOpen = computed({
-    get: () => mobileNav.value === "answer" && isMobile.value,
-    set: (v) => {
-        if (!v) backToList();
-    },
-});
-
-useModalHistory(isQuestionsOpen, "help-q");
-useModalHistory(isAnswerOpen, "help-a");
-
-function setCategory(cat) {
-    disputeView.value = false;
-    activeCategory.value = cat;
-    activeQuestion.value = null;
-    if (mobileNav.value === "cats") {
-        mobileNav.value = "questions";
+async function loadHelpData() {
+    if (helpLoaded || helpLoading.value) return;
+    helpLoading.value = true;
+    try {
+        const res = await axios.get(route('help.data'));
+        faqCategories.value = res.data.categories ?? [];
+        // Auto-select first article
+        const firstArticle = faqCategories.value[0]?.questions?.[0] ?? null;
+        if (firstArticle && !activeArticle.value) {
+            activeArticle.value = firstArticle;
+        }
+        helpLoaded = true;
+    } catch (e) {
+        console.error('Failed to load help data', e);
+    } finally {
+        helpLoading.value = false;
     }
 }
 
-function openQuestion(item) {
-    activeQuestion.value = item;
+watch(() => props.show, (val) => {
+    if (val) loadHelpData();
+});
+
+// ── Doc-style navigation ───────────────────────────────────
+// activeArticle = selected article object { id, q, a }
+const activeArticle = ref(null);
+
+// Mobile: 'cats' = sidebar visible, 'answer' = article content visible
+const mobileNav = ref('cats');
+
+const isMobileAnswerOpen = computed({
+    get: () => mobileNav.value === 'answer',
+    set: (v) => { if (!v) mobileNav.value = 'cats'; },
+});
+
+useModalHistory(isMobileAnswerOpen, 'help-a');
+
+function selectArticle(item) {
+    disputeView.value = false;
+    activeArticle.value = item;
     if (window.innerWidth <= 767) {
-        mobileNav.value = "answer";
+        mobileNav.value = 'answer';
     }
 }
 
-function backToList() {
-    activeQuestion.value = null;
-    mobileNav.value = "questions";
+function backToSidebar() {
+    disputeView.value = false;
+    mobileNav.value = 'cats';
 }
 
-function backToCategories() {
-    disputeView.value = false;
-    activeQuestion.value = null;
-    mobileNav.value = "cats";
-    if (!activeCategory.value) activeCategory.value = faqCategories[0];
+function openDisputeFromSidebar() {
+    mobileNav.value = 'answer';
+    openDisputeForm();
 }
 
 // ── Dispute form ──────────────────────────────────────────
@@ -256,12 +106,8 @@ const nowTick = ref(Date.now());
 let tickInterval = null;
 
 async function openDisputeForm() {
-    activeCategory.value = null;
     disputeLoading.value = true;
     disputeView.value = true;
-    if (mobileNav.value === "cats") {
-        mobileNav.value = "questions";
-    }
     disputeSuccess.value = false;
     disputeErrors.value = {};
     disputeReason.value = "";
@@ -350,6 +196,7 @@ async function submitDispute() {
 <template>
     <SiteModal :show="show" variant="pink" @close="emit('close')">
         <div class="faq-layout">
+
             <!-- ── Sidebar ── -->
             <nav
                 class="faq-sidebar"
@@ -358,54 +205,49 @@ async function submitDispute() {
                 <div class="faq-sidebar__label">
                     {{ __("help.sections.label") }}
                 </div>
-                <FaqItem
-                    v-for="cat in faqCategories"
-                    :key="cat.id"
-                    :title="cat.title"
-                    :active="cat === activeCategory"
-                    @click="setCategory(cat)"
-                >
-                    <template #icon>
-                        <component :is="cat.icon" class="faq-cat-icon" />
-                    </template>
-                </FaqItem>
 
+                <!-- Loading skeleton -->
+                <div v-if="helpLoading" class="faq-loading">
+                    <span>{{ __("help.loading") || "Загрузка..." }}</span>
+                </div>
+
+                <!-- Doc tree: section header → articles -->
+                <template v-for="cat in faqCategories" :key="cat.id">
+                    <!-- Section header — некликабельный -->
+                    <div class="faq-section-header">{{ cat.title }}</div>
+
+                    <!-- Articles under this section -->
+                    <button
+                        v-for="article in cat.questions"
+                        :key="article.id"
+                        class="faq-article-btn"
+                        :class="{ 'faq-article-btn--active': article.id === activeArticle?.id && !disputeView }"
+                        @click="selectArticle(article)"
+                    >
+                        <span class="faq-article-btn__dot" />
+                        <span class="faq-article-btn__title">{{ article.q }}</span>
+                    </button>
+                </template>
+
+                <!-- Sidebar action buttons -->
                 <div class="faq-sidebar__actions">
-                    <button class="faq-action-btn faq-action-btn--support">
-                        <svg
-                            width="13"
-                            height="13"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        >
-                            <path
-                                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-                            />
+                    <Link
+                        :href="route('contacts')"
+                        class="faq-action-btn faq-action-btn--support"
+                        @click="emit('close')"
+                    >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                         </svg>
                         {{ __("help.support.btn") }}
-                    </button>
+                    </Link>
                     <button
                         v-if="showDispute"
                         class="faq-action-btn faq-action-btn--dispute"
-                        :class="{
-                            'faq-action-btn--dispute-active': disputeView,
-                        }"
-                        @click="openDisputeForm"
+                        :class="{ 'faq-action-btn--dispute-active': disputeView }"
+                        @click="openDisputeFromSidebar"
                     >
-                        <svg
-                            width="13"
-                            height="13"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10" />
                             <line x1="12" y1="8" x2="12" y2="12" />
                             <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -418,364 +260,123 @@ async function submitDispute() {
             <!-- ── Divider ── -->
             <div class="faq-divider" />
 
-            <!-- ── Content ── -->
+            <!-- ── Right: Article content / Dispute ── -->
             <div
                 class="faq-content"
-                :class="{
-                    'faq-content--mob-visible': mobileNav === 'questions',
-                    'faq-content--mob-left': mobileNav === 'answer',
-                }"
+                :class="{ 'faq-content--mob-visible': mobileNav === 'answer' }"
             >
-                <!-- Мобильная шапка «назад» -->
-                <div v-if="!activeQuestion" class="faq-mob-header">
-                    <button class="faq-mob-back" @click="backToCategories">
-                        <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        >
+                <!-- Mobile back to sidebar -->
+                <div class="faq-mob-header">
+                    <button class="faq-mob-back" @click="backToSidebar">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M15 18l-6-6 6-6" />
                         </svg>
                         {{ __("help.back_to_sections") }}
                     </button>
                 </div>
+
                 <Transition name="panel-fade" mode="out-in">
-                    <!-- Dispute form view -->
-                    <div
-                        v-if="disputeView"
-                        key="dispute"
-                        class="faq-content-inner"
-                    >
+
+                    <!-- Dispute form -->
+                    <div v-if="disputeView" key="dispute" class="faq-content-inner">
                         <div class="faq-content__header">
-                            <span class="faq-content__counter">— / —</span>
-                            <h3 class="faq-content__title">
-                                {{ __("help.dispute.title") }}
-                            </h3>
+                            <h3 class="faq-content__title">{{ __("help.dispute.title") }}</h3>
                         </div>
-
-                        <div v-if="disputeLoading" class="dispute-loading">
-                            {{ __("help.dispute.loading") }}
+                        <div v-if="disputeLoading" class="dispute-loading">{{ __("help.dispute.loading") }}</div>
+                        <div v-else-if="disputeSuccess" class="dispute-success"><p>{{ __("help.dispute.sent") }}</p></div>
+                        <div v-else-if="disputableOrders.length === 0" class="dispute-empty">
+                            <p>{{ __("help.dispute.no_orders") }}<br />{{ __("help.dispute.time_limit") }}</p>
                         </div>
-
-                        <div v-else-if="disputeSuccess" class="dispute-success">
-                            <p>{{ __("help.dispute.sent") }}</p>
-                        </div>
-
-                        <div
-                            v-else-if="disputableOrders.length === 0"
-                            class="dispute-empty"
-                        >
-                            <p>
-                                {{ __("help.dispute.no_orders") }}<br />
-                                {{ __("help.dispute.time_limit") }}
-                            </p>
-                        </div>
-
                         <div v-else class="dispute-form">
-                            <p
-                                v-if="disputeErrors._general"
-                                class="dispute-field-error"
-                            >
-                                {{ disputeErrors._general }}
-                            </p>
+                            <p v-if="disputeErrors._general" class="dispute-field-error">{{ disputeErrors._general }}</p>
 
-                            <label class="dispute-label">{{
-                                __("help.dispute.order_label")
-                            }}</label>
+                            <label class="dispute-label">{{ __("help.dispute.order_label") }}</label>
                             <div class="dispute-orders-list">
                                 <div
-                                    v-for="o in disputableOrders"
-                                    :key="o.id"
+                                    v-for="o in disputableOrders" :key="o.id"
                                     class="dispute-order-card"
-                                    :class="{
-                                        'dispute-order-card--active':
-                                            disputeOrderId === o.id,
-                                    }"
+                                    :class="{ 'dispute-order-card--active': disputeOrderId === o.id }"
                                     @click="disputeOrderId = o.id"
                                 >
                                     <div class="dispute-order-card__top">
-                                        <span class="dispute-order-card__num"
-                                            >#{{ o.id }}</span
-                                        >
-                                        <span
-                                            class="dispute-order-card__idol"
-                                            >{{ o.idol_name }}</span
-                                        >
-                                        <span class="dispute-order-card__total"
-                                            >{{ o.total }} ₽</span
-                                        >
-                                        <span
-                                            class="dispute-order-card__timer"
-                                            >{{
-                                                orderTimeLeft(o.completed_at)
-                                            }}</span
-                                        >
+                                        <span class="dispute-order-card__num">#{{ o.id }}</span>
+                                        <span class="dispute-order-card__idol">{{ o.idol_name }}</span>
+                                        <span class="dispute-order-card__total">{{ o.total }} ₽</span>
+                                        <span class="dispute-order-card__timer">{{ orderTimeLeft(o.completed_at) }}</span>
                                     </div>
                                     <div class="dispute-order-card__dates">
-                                        <span
-                                            >{{
-                                                __("help.dispute.date.created")
-                                            }}
-                                            {{ fmtDate(o.created_at) }}</span
-                                        >
-                                        <span
-                                            >{{
-                                                __(
-                                                    "help.dispute.date.completed",
-                                                )
-                                            }}
-                                            {{ fmtDate(o.completed_at) }}</span
-                                        >
+                                        <span>{{ __("help.dispute.date.created") }} {{ fmtDate(o.created_at) }}</span>
+                                        <span>{{ __("help.dispute.date.completed") }} {{ fmtDate(o.completed_at) }}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <label
-                                class="dispute-label"
-                                style="margin-top: 0.5rem"
-                                >{{ __("help.dispute.reason_label") }}</label
-                            >
-                            <select
-                                v-model="disputeReason"
-                                class="dispute-select"
-                                @change="delete disputeErrors.reason"
-                            >
-                                <option value="">
-                                    {{ __("help.dispute.reason_select") }}
-                                </option>
-                                <option
-                                    v-for="r in DISPUTE_REASONS"
-                                    :key="r"
-                                    :value="r"
-                                >
-                                    {{ r }}
-                                </option>
+                            <label class="dispute-label" style="margin-top: 0.5rem">{{ __("help.dispute.reason_label") }}</label>
+                            <select v-model="disputeReason" class="dispute-select" @change="delete disputeErrors.reason">
+                                <option value="">{{ __("help.dispute.reason_select") }}</option>
+                                <option v-for="r in DISPUTE_REASONS" :key="r" :value="r">{{ r }}</option>
                             </select>
-                            <p
-                                v-if="disputeErrors.reason"
-                                class="dispute-field-error"
-                            >
-                                {{ disputeErrors.reason }}
-                            </p>
+                            <p v-if="disputeErrors.reason" class="dispute-field-error">{{ disputeErrors.reason }}</p>
 
-                            <label class="dispute-label">{{
-                                __("help.dispute.details_label")
-                            }}</label>
-                            <textarea
-                                v-model="disputeDetails"
-                                class="dispute-textarea"
-                                :placeholder="__('help.dispute.details_ph')"
-                                rows="4"
-                                maxlength="2000"
-                                @input="delete disputeErrors.details"
-                            ></textarea>
-                            <span
-                                class="dispute-charcount"
-                                :class="{
-                                    'dispute-charcount--warn':
-                                        disputeDetails.trim().length > 0 &&
-                                        disputeDetails.trim().length < 100,
-                                }"
-                            >
-                                {{
-                                    __("help.char_count", {
-                                        current: disputeDetails.trim().length,
-                                        min: 100,
-                                    })
-                                }}
+                            <label class="dispute-label">{{ __("help.dispute.details_label") }}</label>
+                            <textarea v-model="disputeDetails" class="dispute-textarea" :placeholder="__('help.dispute.details_ph')" rows="4" maxlength="2000" @input="delete disputeErrors.details"></textarea>
+                            <span class="dispute-charcount" :class="{ 'dispute-charcount--warn': disputeDetails.trim().length > 0 && disputeDetails.trim().length < 100 }">
+                                {{ __("help.char_count", { current: disputeDetails.trim().length, min: 100 }) }}
                             </span>
-                            <p
-                                v-if="disputeErrors.details"
-                                class="dispute-field-error"
-                            >
-                                {{ disputeErrors.details }}
-                            </p>
+                            <p v-if="disputeErrors.details" class="dispute-field-error">{{ disputeErrors.details }}</p>
 
-                            <button
-                                class="dispute-submit"
-                                :disabled="
-                                    !disputeOrderId ||
-                                    !disputeReason ||
-                                    disputeDetails.trim().length < 100 ||
-                                    disputeSubmitting
-                                "
-                                @click="submitDispute"
-                            >
-                                {{
-                                    disputeSubmitting
-                                        ? __("help.dispute.submitting")
-                                        : __("help.dispute.submit")
-                                }}
+                            <button class="dispute-submit" :disabled="!disputeOrderId || !disputeReason || disputeDetails.trim().length < 100 || disputeSubmitting" @click="submitDispute">
+                                {{ disputeSubmitting ? __("help.dispute.submitting") : __("help.dispute.submit") }}
                             </button>
                         </div>
                     </div>
 
-                    <!-- FAQ view — список подразделов -->
-                    <div
-                        v-else-if="!activeQuestion || mobileNav === 'answer'"
-                        :key="`cat-${activeCategory?.id ?? 'list'}`"
-                        class="faq-content-inner"
-                    >
+                    <!-- Empty state: no article selected yet -->
+                    <div v-else-if="!activeArticle" key="empty" class="faq-content-inner faq-empty-state">
+                        <p class="faq-empty-state__text">{{ __("help.select_article") || "Выберите раздел слева" }}</p>
+                    </div>
+
+                    <!-- Article content -->
+                    <div v-else :key="`article-${activeArticle.id}`" class="faq-content-inner">
                         <div class="faq-content__header">
-                            <span class="faq-content__counter">
-                                {{ String(activeIndex).padStart(2, "0") }} /
-                                {{
-                                    String(faqCategories.length).padStart(
-                                        2,
-                                        "0",
-                                    )
-                                }}
-                            </span>
-                            <h3 class="faq-content__title">
-                                {{ activeCategory.title }}
-                            </h3>
+                            <h3 class="faq-content__title">{{ activeArticle.q }}</h3>
                         </div>
-                        <div class="faq-subsections">
-                            <button
-                                v-for="item in activeCategory.questions"
-                                :key="item.id"
-                                class="faq-subsection-item"
-                                @click="openQuestion(item)"
-                            >
-                                <span class="faq-subsection-item__title">{{
-                                    item.q
-                                }}</span>
-                                <svg
-                                    class="faq-subsection-item__arrow"
-                                    width="14"
-                                    height="14"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                >
-                                    <path d="M9 18l6-6-6-6" />
-                                </svg>
-                            </button>
-                        </div>
+                        <div class="faq-answer-body" v-html="activeArticle.a" />
                     </div>
 
-                    <!-- FAQ view — содержимое подраздела -->
-                    <div
-                        v-else
-                        :key="`q-${activeQuestion.id}`"
-                        class="faq-content-inner"
-                    >
-                        <div
-                            class="faq-content__header faq-content__header--with-back"
-                        >
-                            <button class="faq-back-btn" @click="backToList">
-                                <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2.5"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                >
-                                    <path d="M15 18l-6-6 6-6" />
-                                </svg>
-                                {{ __("help.back") }}
-                            </button>
-                            <h3 class="faq-content__title">
-                                {{ activeQuestion.q }}
-                            </h3>
-                        </div>
-                        <div
-                            class="faq-answer-body"
-                            v-html="activeQuestion.a"
-                        />
-                    </div>
                 </Transition>
-            </div>
 
-            <!-- ── Mobile answer panel ── -->
-            <div
-                class="faq-answer-mob"
-                :class="{ 'faq-answer-mob--visible': mobileNav === 'answer' }"
-            >
-                <div class="faq-mob-header">
-                    <button class="faq-mob-back" @click="backToList">
-                        <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        >
-                            <path d="M15 18l-6-6 6-6" />
+                <!-- Mobile footer actions -->
+                <div class="faq-footer-actions">
+                    <Link
+                        :href="route('contacts')"
+                        class="faq-action-btn faq-action-btn--support"
+                        @click="emit('close')"
+                    >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                         </svg>
-                        {{ __("help.back") }}
+                        {{ __("help.support.btn") }}
+                    </Link>
+                    <button v-if="showDispute" class="faq-action-btn faq-action-btn--dispute" @click="openDisputeFromSidebar">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                        {{ __("help.dispute.btn") }}
                     </button>
                 </div>
-                <div v-if="activeQuestion" class="faq-content-inner">
-                    <div class="faq-content__header">
-                        <h3 class="faq-content__title">
-                            {{ activeQuestion.q }}
-                        </h3>
-                    </div>
-                    <div class="faq-answer-body" v-html="activeQuestion.a" />
-                </div>
             </div>
 
-            <!-- ── Mobile footer actions ── -->
-            <div class="faq-footer-actions">
-                <button class="faq-action-btn faq-action-btn--support">
-                    <svg
-                        width="13"
-                        height="13"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <path
-                            d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-                        />
-                    </svg>
-                    {{ __("help.support.btn") }}
-                </button>
-                <button
-                    v-if="showDispute"
-                    class="faq-action-btn faq-action-btn--dispute"
-                    @click="openDisputeForm"
-                >
-                    <svg
-                        width="13"
-                        height="13"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                    </svg>
-                    {{ __("help.dispute.btn") }}
-                </button>
-            </div>
         </div>
     </SiteModal>
 </template>
 
 <style scoped>
+/* ═══════════════════════════════════════════════
+   Layout
+   ═══════════════════════════════════════════════ */
 .faq-layout {
     display: flex;
     flex-direction: row;
@@ -784,59 +385,179 @@ async function submitDispute() {
     min-height: 0;
 }
 
-/* ── Sidebar ─────────────────────────────────── */
+/* ═══════════════════════════════════════════════
+   Sidebar
+   ═══════════════════════════════════════════════ */
 .faq-sidebar {
-    width: 37%;
+    width: 36%;
+    min-width: 200px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.1rem;
     overflow-y: auto;
-    padding: 0 0 0.5rem;
-    background: linear-gradient(
-        180deg,
-        rgba(255, 178, 239, 0.06) 0%,
-        rgba(255, 178, 239, 0.02) 40%,
-        transparent 100%
-    );
-    border-radius: 3px 0 0 3px;
+    padding-bottom: 0.5rem;
+    background: rgba(255, 255, 255, 0.025);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px 0 0 12px;
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.06) transparent;
+    scrollbar-color: rgba(255, 255, 255, 0.07) transparent;
 }
-
-.faq-sidebar::-webkit-scrollbar {
-    width: 3px;
-}
+.faq-sidebar::-webkit-scrollbar { width: 3px; }
 .faq-sidebar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.07);
     border-radius: 3px;
 }
 
 .faq-sidebar__label {
-    font-size: 0.62rem;
-    font-weight: 600;
-    letter-spacing: 0.18em;
+    padding: 1rem 1rem 0.5rem;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: rgba(255, 178, 239, 0.45);
-    padding: 0.5rem 0.9rem;
-    margin-bottom: 0.15rem;
+    color: rgba(255, 178, 239, 0.38);
+    flex-shrink: 0;
 }
 
-/* ── Divider ─────────────────────────────────── */
+.faq-loading {
+    padding: 0.75rem 1rem;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.25);
+    font-style: italic;
+}
+
+/* ═══════════════════════════════════════════════
+   Sidebar doc tree
+   ═══════════════════════════════════════════════ */
+.faq-section-header {
+    padding: 0.9rem 1rem 0.3rem;
+    font-size: 0.59rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255, 178, 239, 0.35);
+    pointer-events: none;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.faq-article-btn {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.42rem 0.9rem 0.42rem 1.25rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    color: rgba(255, 255, 255, 0.42);
+    font-family: inherit;
+    transition: color 0.15s ease, background 0.15s ease;
+    position: relative;
+    border-radius: 0;
+}
+.faq-article-btn:hover {
+    color: rgba(255, 255, 255, 0.78);
+    background: rgba(255, 178, 239, 0.05);
+}
+.faq-article-btn--active {
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 178, 239, 0.07);
+}
+.faq-article-btn--active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: rgba(255, 178, 239, 0.7);
+    border-radius: 0 2px 2px 0;
+}
+.faq-article-btn__dot {
+    flex-shrink: 0;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+    transition: background 0.15s;
+    align-self: flex-start;
+    margin-top: 0.45em;
+}
+.faq-article-btn--active .faq-article-btn__dot {
+    background: rgba(255, 178, 239, 0.75);
+}
+.faq-article-btn__title {
+    font-size: 0.79rem;
+    line-height: 1.45;
+}
+
+/* ═══════════════════════════════════════════════
+   Sidebar action buttons
+   ═══════════════════════════════════════════════ */
+.faq-sidebar__actions {
+    margin-top: auto;
+    padding: 0.6rem 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    flex-shrink: 0;
+}
+
+.faq-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.48rem 0.7rem;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.38);
+    font-family: inherit;
+    font-size: 0.79rem;
+    cursor: pointer;
+    text-align: left;
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.faq-action-btn svg {
+    flex-shrink: 0;
+    opacity: 0.55;
+    transition: opacity 0.15s;
+}
+.faq-action-btn:hover svg { opacity: 0.9; }
+
+.faq-action-btn--support:hover {
+    background: rgba(255, 178, 239, 0.07);
+    border-color: rgba(255, 178, 239, 0.15);
+    color: rgba(255, 210, 245, 0.88);
+}
+.faq-action-btn--dispute:hover {
+    background: rgba(255, 110, 110, 0.06);
+    border-color: rgba(255, 110, 110, 0.18);
+    color: rgba(255, 140, 140, 0.88);
+}
+.faq-action-btn--dispute-active {
+    background: rgba(255, 110, 110, 0.06);
+    border-color: rgba(255, 110, 110, 0.2);
+    color: rgba(255, 140, 140, 0.88);
+}
+
+/* ═══════════════════════════════════════════════
+   Divider
+   ═══════════════════════════════════════════════ */
 .faq-divider {
     width: 1px;
     flex-shrink: 0;
-    margin: 0 0.6rem;
-    background: linear-gradient(
-        to bottom,
-        transparent,
-        rgba(255, 255, 255, 0.08) 15%,
-        rgba(255, 255, 255, 0.08) 85%,
-        transparent
-    );
+    background: rgba(255, 255, 255, 0.06);
+    align-self: stretch;
 }
 
-/* ── Content ─────────────────────────────────── */
+/* ═══════════════════════════════════════════════
+   Right content panel
+   ═══════════════════════════════════════════════ */
 .faq-content {
     flex: 1;
     overflow-y: auto;
@@ -844,677 +565,331 @@ async function submitDispute() {
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.06) transparent;
 }
-
-.faq-content::-webkit-scrollbar {
-    width: 3px;
-}
+.faq-content::-webkit-scrollbar { width: 3px; }
 .faq-content::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.06);
     border-radius: 3px;
 }
 
-.faq-content-inner {
-    padding: 0 0.5rem 0.5rem;
-}
+.faq-content-inner { padding: 1.25rem 1.4rem 1rem; }
 
 .faq-content__header {
     margin-bottom: 1rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.faq-content__counter {
-    display: block;
-    font-family: "Courier New", "Courier", monospace;
-    font-size: 0.65rem;
-    letter-spacing: 0.14em;
-    color: rgba(255, 178, 239, 0.55);
-    margin-bottom: 0.3rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .faq-content__title {
     font-family: "Imbue", serif;
-    font-size: 1.55rem;
+    font-size: 1.4rem;
     font-weight: 200;
-    letter-spacing: 0.02em;
-    line-height: 1.2;
-    color: rgba(255, 255, 255, 0.92);
-    text-shadow:
-        0 0 25px rgba(255, 178, 239, 0.35),
-        0 0 60px rgba(255, 178, 239, 0.15);
-}
-
-.faq-accordions {
-    display: flex;
-    flex-direction: column;
-}
-
-/* Subsections list */
-.faq-subsections {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-}
-
-.faq-subsection-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    width: 100%;
-    padding: 0.8rem 0.75rem;
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    cursor: pointer;
-    text-align: left;
-    transition:
-        background 0.15s,
-        color 0.15s;
-    border-radius: 4px;
-}
-.faq-subsection-item:last-child {
-    border-bottom: none;
-}
-.faq-subsection-item:hover {
-    background: rgba(255, 178, 239, 0.06);
-}
-.faq-subsection-item:hover .faq-subsection-item__arrow {
-    color: rgba(255, 178, 239, 0.8);
-    transform: translateX(2px);
-}
-
-.faq-subsection-item__title {
-    font-size: 0.875rem;
-    color: rgba(255, 255, 255, 0.65);
-    line-height: 1.4;
-    transition: color 0.15s;
-}
-.faq-subsection-item:hover .faq-subsection-item__title {
+    letter-spacing: 0.01em;
+    line-height: 1.25;
     color: rgba(255, 255, 255, 0.9);
 }
 
-.faq-subsection-item__arrow {
-    color: rgba(255, 255, 255, 0.2);
-    flex-shrink: 0;
-    transition:
-        color 0.15s,
-        transform 0.15s;
-}
-
-/* Back button + answer */
-.faq-content__header--with-back {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-}
-
-.faq-back-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: rgba(255, 255, 255, 0.3);
-    font-size: 0.75rem;
-    font-family: inherit;
-    padding: 0;
-    transition: color 0.15s;
-}
-.faq-back-btn:hover {
-    color: rgba(255, 178, 239, 0.85);
-}
-
 .faq-answer-body {
-    font-size: 1rem;
-    color: rgba(255, 255, 255, 0.6);
-    line-height: 1.75;
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.52);
+    line-height: 1.8;
 }
-.faq-answer-body :deep(p) {
-    margin-bottom: 0.65rem;
-}
-.faq-answer-body :deep(p:last-child) {
-    margin-bottom: 0;
-}
+.faq-answer-body :deep(p) { margin-bottom: 0.7rem; }
+.faq-answer-body :deep(p:last-child) { margin-bottom: 0; }
 .faq-answer-body :deep(strong) {
-    color: rgba(255, 255, 255, 0.75);
+    color: rgba(255, 255, 255, 0.72);
     font-weight: 500;
 }
+.faq-answer-body :deep(ul),
+.faq-answer-body :deep(ol) {
+    padding-left: 1.25rem;
+    margin-bottom: 0.7rem;
+}
+.faq-answer-body :deep(li) { margin-bottom: 0.28rem; }
 .faq-answer-body :deep(a) {
-    color: rgba(255, 178, 239, 0.85);
+    color: rgba(255, 178, 239, 0.82);
     text-decoration: none;
     transition: color 0.15s;
 }
 .faq-answer-body :deep(a:hover) {
-    color: rgba(160, 150, 255, 0.9);
+    color: rgba(200, 160, 255, 0.9);
     text-decoration: underline;
 }
+.faq-answer-body :deep(h2),
+.faq-answer-body :deep(h3) {
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.72);
+    margin: 1rem 0 0.35rem;
+    line-height: 1.3;
+}
+.faq-answer-body :deep(h2) { font-size: 0.95rem; }
+.faq-answer-body :deep(h3) { font-size: 0.875rem; }
 
-.faq-cat-icon {
-    width: 16px;
-    height: 16px;
-}
-
-/* ── Panel fade ──────────────────────────────── */
-.panel-fade-enter-active,
-.panel-fade-leave-active {
-    transition:
-        opacity 0.18s ease,
-        transform 0.18s ease;
-}
-.panel-fade-leave-to {
-    opacity: 0;
-    transform: translateX(-10px);
-}
-.panel-fade-enter-from {
-    opacity: 0;
-    transform: translateX(10px);
-}
-
-/* ── Action buttons ──────────────────────────── */
-.faq-sidebar__actions {
-    padding: 0.75rem 0.5rem 0.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.faq-action-btn {
+.faq-empty-state {
     display: flex;
     align-items: center;
-    gap: 0.55rem;
-    width: 100%;
-    padding: 0.55rem 0.75rem;
-    border-radius: 3px;
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    background: rgba(255, 255, 255, 0.03);
-    color: rgba(255, 255, 255, 0.45);
-    font-family: inherit;
-    font-size: 0.88rem;
-    cursor: pointer;
-    text-align: left;
-    transition:
-        background 0.15s,
-        border-color 0.15s,
-        color 0.15s;
+    justify-content: center;
+    height: 100%;
+    min-height: 140px;
+    padding: 2rem;
 }
-.faq-action-btn svg {
-    flex-shrink: 0;
-    opacity: 0.7;
+.faq-empty-state__text {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.16);
+    font-style: italic;
+    text-align: center;
 }
 
-.faq-action-btn--support:hover {
-    background: rgba(255, 178, 239, 0.1);
-    border-color: rgba(255, 178, 239, 0.3);
-    color: var(--color-base-1);
+/* ═══════════════════════════════════════════════
+   Transition
+   ═══════════════════════════════════════════════ */
+.panel-fade-enter-active,
+.panel-fade-leave-active {
+    transition: opacity 0.16s ease, transform 0.16s ease;
 }
-.faq-action-btn--dispute:hover {
-    background: rgba(255, 110, 110, 0.07);
-    border-color: rgba(255, 110, 110, 0.25);
-    color: rgba(255, 130, 130, 0.85);
-}
-.faq-action-btn--dispute-active {
-    background: rgba(255, 110, 110, 0.09);
-    border-color: rgba(255, 110, 110, 0.35);
-    color: rgba(255, 130, 130, 0.9);
-}
+.panel-fade-leave-to { opacity: 0; transform: translateX(-8px); }
+.panel-fade-enter-from { opacity: 0; transform: translateX(8px); }
 
-/* ── Large screens ───────────────────────────── */
+/* ═══════════════════════════════════════════════
+   Large screens
+   ═══════════════════════════════════════════════ */
 @media (min-width: 1440px) {
-    .faq-cat-icon {
-        width: 19px;
-        height: 19px;
-    }
-    .faq-content__title {
-        font-size: 1.85rem;
-    }
-    .faq-content__counter {
-        font-size: 0.72rem;
-    }
-    .faq-sidebar__label {
-        font-size: 0.68rem;
-    }
-    .faq-divider {
-        margin: 0 0.85rem;
-    }
+    .faq-content__title { font-size: 1.6rem; }
+    .faq-content-inner { padding: 1.5rem 1.75rem 1.25rem; }
+    .faq-article-btn__title { font-size: 0.82rem; }
 }
-
 @media (min-width: 2000px) {
-    .faq-cat-icon {
-        width: 22px;
-        height: 22px;
-    }
-    .faq-content__title {
-        font-size: 2.1rem;
-    }
-    .faq-content__counter {
-        font-size: 0.78rem;
-    }
-    .faq-divider {
-        margin: 0 1rem;
-    }
+    .faq-content__title { font-size: 1.8rem; }
+    .faq-article-btn__title { font-size: 0.87rem; }
+    .faq-content-inner { padding: 1.75rem 2rem 1.5rem; }
 }
 
-/* ── Mobile ──────────────────────────────────── */
+/* ═══════════════════════════════════════════════
+   Mobile (<=767px)
+   ═══════════════════════════════════════════════ */
+.faq-footer-actions { display: none; }
+.faq-mob-header { display: none; }
+
 @media (max-width: 767px) {
     .faq-layout {
-        flex-direction: row;
         position: relative;
         overflow: hidden;
-        gap: 0;
     }
-
-    /* Sidebar панель — список категорий */
     .faq-sidebar {
         position: absolute;
         inset: 0;
         width: 100%;
-        flex-direction: column;
-        overflow-y: auto;
-        overflow-x: hidden;
-        gap: 0;
-        padding: 0 0 0.5rem;
+        border-right: none;
+        border-radius: 0;
         background: transparent;
-        border-radius: 3px;
         z-index: 2;
         transform: translateX(0);
-        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .faq-sidebar--mob-hidden {
         transform: translateX(-100%);
         pointer-events: none;
     }
-
-    .faq-sidebar__label {
-        display: block;
-        font-size: 0.65rem;
-        padding: 0.5rem 1.1rem 0.65rem;
-        margin-bottom: 0;
+    .faq-sidebar__label { padding: 0.75rem 1.1rem 0.5rem; }
+    .faq-sidebar__actions { padding: 0.6rem 1rem; }
+    .faq-section-header {
+        padding: 0.9rem 1.1rem 0.3rem;
+        font-size: 0.6rem;
     }
-
-    /* Кнопки внизу панели категорий */
-    .faq-sidebar__actions {
-        display: flex;
-        padding: 0.75rem 1rem;
-        margin-top: auto;
-        flex-direction: column;
-        gap: 0.35rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
+    .faq-article-btn {
+        padding: 0.65rem 1.1rem 0.65rem 1.4rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     }
-
-    .faq-divider {
-        display: none;
+    .faq-article-btn__title { font-size: 0.88rem; }
+    .faq-article-btn--active {
+        background: transparent;
+        color: rgba(255, 255, 255, 0.65);
     }
+    .faq-article-btn--active::before { display: none; }
 
-    /* Content панель */
+    .faq-divider { display: none; }
     .faq-content {
         position: absolute;
         inset: 0;
         width: 100%;
         z-index: 1;
-        overflow-y: auto;
-        overflow-x: hidden;
         transform: translateX(100%);
-        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .faq-content--mob-visible {
-        transform: translateX(0);
-    }
-    .faq-content--mob-left {
-        transform: translateX(-100%);
-        pointer-events: none;
-    }
+    .faq-content--mob-visible { transform: translateX(0); }
+    .faq-content-inner { padding: 0 1rem 1rem; }
+    .faq-content__title { font-size: 1.2rem; }
 
-    .faq-content-inner {
-        padding: 0;
-    }
-
-    .faq-content__title {
-        font-size: 1.25rem;
-        text-shadow: 0 0 18px rgba(255, 178, 239, 0.3);
-    }
-
-    /* Footer actions скрыт — actions живут внизу sidebar */
-    .faq-footer-actions {
-        display: none;
-    }
-
-    /* FaqItem: полноширинные строки вместо pills */
-    :deep(.faq-nav-item) {
-        width: 100%;
-        flex-shrink: 1;
-        border: none;
-        border-radius: 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-        padding: 0.9rem 1.1rem;
-        gap: 0.8rem;
-    }
-    :deep(.faq-nav-item:last-child) {
-        border-bottom: none;
-    }
-    /* На мобиле нет одновременного показа sidebar + контента — active не нужен */
-    :deep(.faq-nav-item--active) {
-        background: transparent;
-        box-shadow: none;
-        color: rgba(255, 255, 255, 0.45);
-    }
-    :deep(.faq-nav-item:hover),
-    :deep(.faq-nav-item:active) {
-        background: rgba(255, 178, 239, 0.07);
-    }
-    :deep(.faq-nav-item__icon-wrap) {
-        width: 36px;
-        height: 36px;
-        background: rgba(255, 255, 255, 0.05);
-    }
-    :deep(.faq-nav-item--active .faq-nav-item__icon-wrap) {
-        background: rgba(255, 255, 255, 0.05);
-        color: rgba(255, 255, 255, 0.4);
-        box-shadow: none;
-    }
-    :deep(.faq-nav-item__title) {
-        font-size: 0.9rem;
-    }
-
-    /* Chevron справа на каждой категории */
-    :deep(.faq-nav-item)::after {
-        content: "";
-        display: block;
-        width: 6px;
-        height: 6px;
-        border-right: 1.5px solid rgba(255, 255, 255, 0.2);
-        border-top: 1.5px solid rgba(255, 255, 255, 0.2);
-        transform: rotate(45deg);
-        margin-left: auto;
-        flex-shrink: 0;
-    }
-}
-
-/* hide mobile footer on desktop */
-.faq-footer-actions {
-    display: none;
-}
-
-/* ── Mobile answer panel ─────────────────────────────────── */
-.faq-answer-mob {
-    display: none;
-}
-
-@media (max-width: 767px) {
-    .faq-answer-mob {
-        display: block;
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        z-index: 3;
-        overflow-y: auto;
-        overflow-x: hidden;
-        transform: translateX(100%);
-        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .faq-answer-mob--visible {
-        transform: translateX(0);
-    }
-}
-
-/* ── Mobile back button ──────────────────────────────────── */
-.faq-mob-header {
-    display: none;
-}
-
-@media (max-width: 767px) {
     .faq-mob-header {
         display: flex;
-        padding-bottom: 1rem;
-        margin-bottom: 0.25rem;
+        align-items: center;
+        padding: 0.85rem 0 0.65rem;
         flex-shrink: 0;
     }
     .faq-mob-back {
         display: inline-flex;
         align-items: center;
-        gap: 0.55rem;
-        min-height: 44px;
-        padding: 0 1rem;
-        border-radius: 6px;
-        border: 1px solid rgba(255, 178, 239, 0.2);
-        background: rgba(255, 178, 239, 0.07);
-        color: rgba(255, 255, 255, 0.55);
-        font-size: 0.85rem;
+        gap: 0.4rem;
+        padding: 0.38rem 0.65rem 0.38rem 0.4rem;
+        border-radius: 7px;
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(255, 255, 255, 0.48);
+        font-size: 0.8rem;
         font-family: inherit;
         cursor: pointer;
-        transition:
-            background 0.15s,
-            border-color 0.15s,
-            color 0.15s;
+        transition: background 0.15s, color 0.15s;
+        min-height: 36px;
     }
     .faq-mob-back:active {
-        background: rgba(255, 178, 239, 0.15);
-        border-color: rgba(255, 178, 239, 0.4);
-        color: rgba(255, 255, 255, 0.85);
-    }
-
-    /* «Назад» внутри ответа */
-    .faq-back-btn {
-        min-height: 44px;
-        padding: 0 1rem;
-        gap: 0.55rem;
-        border-radius: 6px;
-        border: 1px solid rgba(255, 178, 239, 0.2);
-        background: rgba(255, 178, 239, 0.07);
-        color: rgba(255, 255, 255, 0.55);
-        font-size: 0.85rem;
-        transition:
-            background 0.15s,
-            border-color 0.15s,
-            color 0.15s;
-    }
-    .faq-back-btn:active {
-        background: rgba(255, 178, 239, 0.15);
-        border-color: rgba(255, 178, 239, 0.4);
-        color: rgba(255, 255, 255, 0.85);
-    }
-
-    .faq-content__header--with-back {
-        gap: 1.1rem;
-        margin-bottom: 1.5rem;
-        padding-bottom: 1rem;
+        background: rgba(255, 178, 239, 0.09);
+        color: rgba(255, 255, 255, 0.82);
     }
 }
 
-/* ── Dispute form ─────────────────────────── */
+/* ═══════════════════════════════════════════════
+   Dispute form
+   ═══════════════════════════════════════════════ */
 .dispute-loading,
 .dispute-empty {
-    font-size: 0.82rem;
-    color: rgba(255, 255, 255, 0.45);
-    padding: 1rem 0;
-    line-height: 1.6;
-}
-
-.dispute-success {
-    font-size: 0.85rem;
-    color: rgba(80, 240, 160, 0.88);
-    padding: 1rem 0;
-    line-height: 1.6;
-}
-
-.dispute-error {
     font-size: 0.8rem;
-    color: rgba(255, 110, 110, 0.85);
-    margin-bottom: 0.75rem;
+    color: rgba(255, 255, 255, 0.38);
+    padding: 0.75rem 0;
+    line-height: 1.65;
 }
-
+.dispute-success {
+    font-size: 0.82rem;
+    color: rgba(100, 230, 160, 0.85);
+    padding: 0.75rem 0;
+    line-height: 1.65;
+}
 .dispute-form {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.45rem;
 }
-
 .dispute-label {
-    font-size: 0.72rem;
+    font-size: 0.67rem;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.07em;
-    color: rgba(255, 255, 255, 0.4);
-    margin-top: 0.25rem;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.33);
+    margin-top: 0.35rem;
 }
-
 .dispute-select,
 .dispute-textarea {
     width: 100%;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 178, 239, 0.25);
-    border-radius: 3px;
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 0.82rem;
-    padding: 0.5rem 0.65rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.8rem;
+    padding: 0.48rem 0.65rem;
     outline: none;
     font-family: inherit;
     transition: border-color 0.15s;
 }
-
 .dispute-select:focus,
 .dispute-textarea:focus {
-    border-color: rgba(255, 178, 239, 0.55);
+    border-color: rgba(255, 178, 239, 0.4);
 }
+.dispute-select option { background: #1a1a2e; }
+.dispute-textarea { resize: vertical; min-height: 78px; }
 
-.dispute-select option {
-    background: #1a1a2e;
-    color: rgba(255, 255, 255, 0.85);
-}
-
-/* Order cards list */
 .dispute-orders-list {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
-    max-height: 220px;
+    gap: 0.32rem;
+    max-height: 200px;
     overflow-y: auto;
-    padding-right: 8px;
-    padding-bottom: 4px;
+    padding-right: 3px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
-.dispute-orders-list::-webkit-scrollbar {
-    width: 4px;
-}
-.dispute-orders-list::-webkit-scrollbar-track {
-    background: transparent;
-}
-.dispute-orders-list::-webkit-scrollbar-thumb {
-    background: rgba(255, 178, 239, 0.3);
-    border-radius: 2px;
-}
-
 .dispute-order-card {
-    padding: 0.55rem 0.75rem;
-    border: 1px solid rgba(255, 178, 239, 0.2);
-    border-radius: 4px;
+    padding: 0.48rem 0.65rem;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 8px;
     cursor: pointer;
-    background: rgba(255, 255, 255, 0.03);
-    transition:
-        border-color 0.15s,
-        background 0.15s;
+    background: rgba(255, 255, 255, 0.02);
+    transition: border-color 0.15s, background 0.15s;
     flex-shrink: 0;
 }
 .dispute-order-card:hover {
-    background: rgba(255, 178, 239, 0.05);
-    border-color: rgba(255, 178, 239, 0.4);
+    background: rgba(255, 178, 239, 0.04);
+    border-color: rgba(255, 178, 239, 0.22);
 }
 .dispute-order-card--active {
-    border-color: rgba(255, 178, 239, 0.65);
-    background: rgba(255, 178, 239, 0.09);
+    border-color: rgba(255, 178, 239, 0.45);
+    background: rgba(255, 178, 239, 0.06);
 }
-
 .dispute-order-card__top {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.18rem;
 }
 .dispute-order-card__num {
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.45);
-    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.38);
+    font-size: 0.73rem;
     flex-shrink: 0;
 }
 .dispute-order-card__idol {
     flex: 1;
-    font-size: 0.84rem;
-    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.8);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 .dispute-order-card__total {
-    font-size: 0.78rem;
+    font-size: 0.74rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.52);
     white-space: nowrap;
     flex-shrink: 0;
 }
 .dispute-order-card__timer {
-    font-size: 0.7rem;
-    color: rgba(251, 191, 36, 0.85);
+    font-size: 0.66rem;
+    color: rgba(251, 191, 36, 0.82);
     white-space: nowrap;
     flex-shrink: 0;
 }
-
 .dispute-order-card__dates {
     display: flex;
     gap: 1rem;
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.3);
+    font-size: 0.66rem;
+    color: rgba(255, 255, 255, 0.26);
 }
-
-/* Field errors */
 .dispute-field-error {
-    font-size: 0.72rem;
-    color: rgba(255, 100, 100, 0.85);
-    margin: -0.1rem 0 0.1rem;
+    font-size: 0.69rem;
+    color: rgba(255, 100, 100, 0.82);
+    margin: -0.05rem 0 0.1rem;
 }
-
-.dispute-textarea {
-    resize: vertical;
-    min-height: 80px;
-}
-
 .dispute-charcount {
-    font-size: 0.72rem;
-    color: rgba(255, 255, 255, 0.3);
+    font-size: 0.67rem;
+    color: rgba(255, 255, 255, 0.26);
     text-align: right;
-    margin-top: -0.25rem;
+    margin-top: -0.18rem;
 }
-
-.dispute-charcount--warn {
-    color: rgba(255, 180, 60, 0.75);
-}
-
+.dispute-charcount--warn { color: rgba(255, 185, 60, 0.78); }
 .dispute-submit {
-    margin-top: 0.5rem;
-    padding: 0.55rem 1rem;
-    background: rgba(255, 178, 239, 0.1);
-    border: 1px solid rgba(255, 178, 239, 0.35);
-    color: rgba(160, 150, 255, 0.9);
-    font-size: 0.8rem;
+    margin-top: 0.4rem;
+    padding: 0.48rem 1.1rem;
+    background: rgba(255, 178, 239, 0.07);
+    border: 1px solid rgba(255, 178, 239, 0.24);
+    color: rgba(220, 180, 255, 0.88);
+    font-size: 0.77rem;
     font-weight: 600;
-    letter-spacing: 0.06em;
-    border-radius: 3px;
+    letter-spacing: 0.05em;
+    border-radius: 8px;
     cursor: pointer;
-    transition:
-        background 0.15s,
-        border-color 0.15s;
     font-family: inherit;
+    transition: background 0.15s, border-color 0.15s;
 }
-
 .dispute-submit:hover:not(:disabled) {
-    background: rgba(255, 178, 239, 0.17);
-    border-color: rgba(255, 178, 239, 0.6);
+    background: rgba(255, 178, 239, 0.13);
+    border-color: rgba(255, 178, 239, 0.45);
 }
-
-.dispute-submit:disabled {
-    opacity: 0.4;
-    cursor: default;
-}
+.dispute-submit:disabled { opacity: 0.35; cursor: default; }
 </style>
