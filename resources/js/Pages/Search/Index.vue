@@ -613,7 +613,7 @@ function genderLabel(g) {
 .search-page {
     display: flex;
     gap: 0;
-    height: calc(100vh - 70px);
+    height: calc(100vh - 60px);
     overflow: hidden;
     align-items: flex-start;
 }

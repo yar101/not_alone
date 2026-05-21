@@ -3953,12 +3953,9 @@ function formatDate(iso) {
 /* ── Backdrop ─────────────────────────────────────────── */
 .chat-backdrop {
     position: fixed;
-    top: 60px;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 999;
-    background: rgba(0, 0, 0, 0.4);
+    inset: 0;
+    z-index: 1100;
+    background: rgba(0, 0, 0, 0.55);
 }
 
 .backdrop-enter-active,
@@ -3979,7 +3976,7 @@ function formatDate(iso) {
     bottom: 0;
     width: 1100px;
     max-width: 100vw;
-    z-index: 1000;
+    z-index: 1101;
     display: flex;
     background: linear-gradient(160deg, #0f0f22 0%, #0a0a16 100%);
     border-left: 1px solid rgba(255, 178, 239, 0.22);

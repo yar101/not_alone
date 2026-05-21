@@ -734,6 +734,6 @@ async function purchaseContent() {
 }
 
 @media (max-width: 768px) {
-    .rc-panel { top: 68px; }
+    .rc-panel { top: 60px; }
 }
 </style>

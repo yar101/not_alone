@@ -1062,7 +1062,7 @@ function selectPack(id) {
         background: #0a0a14;
         border-bottom: 1px solid rgba(255,255,255,0.05);
         position: sticky;
-        top: 68px; /* mobile header height */
+        top: 60px; /* mobile header height */
         z-index: 10;
         flex-shrink: 0;
     }

@@ -383,7 +383,7 @@ onUnmounted(() => {
     position: sticky;
     top: 0;
     z-index: 900;
-    height: 70px;
+    height: 60px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -406,7 +406,7 @@ onUnmounted(() => {
     opacity: 0.8;
 }
 .app-logo__img {
-    height: 64px;
+    height: 44px;
     width: auto;
     display: block;
     position: relative;
@@ -587,12 +587,12 @@ onUnmounted(() => {
 /* ── Mobile header upgrade (≤768px) ─────────────────────── */
 @media (max-width: 768px) {
     .app-header {
-        height: 68px;
+        height: 60px;
         padding: 0 1rem;
         border-bottom-color: transparent;
     }
     .app-logo__img {
-        height: 48px;
+        height: 36px;
     }
 }
 
