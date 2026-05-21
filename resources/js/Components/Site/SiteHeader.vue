@@ -71,6 +71,16 @@ a.site-header__logo:hover {
 .site-header__nav > * {
     pointer-events: auto;
 }
+.site-header__nav .pub-tab {
+    font-size: 0.9rem;
+    padding: 0.45rem 0.95rem;
+}
+@media (min-width: 2000px) {
+    .site-header__nav .pub-tab {
+        font-size: 1rem;
+        padding: 0.5rem 1.1rem;
+    }
+}
 
 @media (max-width: 768px) {
     .site-header__contacts {

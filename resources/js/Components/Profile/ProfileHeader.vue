@@ -150,6 +150,12 @@ function deleteAvatar() {
 <template>
     <div id="tour-header" class="profile-header">
 
+        <!-- Рейтинг — верхний левый угол -->
+        <div v-if="isIdol && rating !== null" class="header-rating">
+            <img src="/stars/10.png" class="star-img" alt="rating" />
+            <span class="rating-num">{{ rating }}</span>
+        </div>
+
         <!-- Кнопки сверху справа -->
         <div class="header-actions">
             <button v-if="!isOwner && canReport" class="action-pill action-pill--report" @click="emit('report')" :title="__('profile.header.report')">
