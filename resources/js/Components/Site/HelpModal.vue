@@ -1,6 +1,5 @@
 <script setup>
 import { computed, ref, watch, onMounted, onUnmounted } from "vue";
-import { Link } from "@inertiajs/vue3";
 import { useTranslations } from "@/composables/useTranslations";
 import { useModalHistory } from "@/composables/useModalHistory";
 
@@ -52,6 +51,24 @@ watch(() => props.show, (val) => {
 // ── Doc-style navigation ───────────────────────────────────
 // activeArticle = selected article object { id, q, a }
 const activeArticle = ref(null);
+const contactsView = ref(false);
+
+const contacts = [
+    {
+        title: "Telegram",
+        value: "@no_alone",
+        link: "https://t.me/no_alone",
+        icon: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.67-.52.36-.99.53-1.42.52-.47-.01-1.37-.26-2.03-.48-.82-.27-1.47-.42-1.42-.88.03-.24.37-.48 1.02-.73 3.99-1.74 6.66-2.89 8-3.45 3.81-1.58 4.6-1.85 5.12-1.86.11 0 .37.03.53.16.14.11.18.26.2.37.01.08.03.29.01.45z",
+        color: "#24A1DE",
+    },
+    {
+        title: "Email",
+        value: "adm@na.ru",
+        link: "mailto:adm@na.ru",
+        icon: "M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z",
+        color: "#ffb2ef",
+    },
+];
 
 // Mobile: 'cats' = sidebar visible, 'answer' = article content visible
 const mobileNav = ref('cats');
@@ -65,6 +82,7 @@ useModalHistory(isMobileAnswerOpen, 'help-a');
 
 function selectArticle(item) {
     disputeView.value = false;
+    contactsView.value = false;
     activeArticle.value = item;
     if (window.innerWidth <= 767) {
         mobileNav.value = 'answer';
@@ -73,11 +91,21 @@ function selectArticle(item) {
 
 function backToSidebar() {
     disputeView.value = false;
+    contactsView.value = false;
     mobileNav.value = 'cats';
+}
+
+function openContactsFromSidebar() {
+    disputeView.value = false;
+    contactsView.value = true;
+    if (window.innerWidth <= 767) {
+        mobileNav.value = 'answer';
+    }
 }
 
 function openDisputeFromSidebar() {
     mobileNav.value = 'answer';
+    contactsView.value = false;
     openDisputeForm();
 }
 
@@ -221,7 +249,7 @@ async function submitDispute() {
                         v-for="article in cat.questions"
                         :key="article.id"
                         class="faq-article-btn"
-                        :class="{ 'faq-article-btn--active': article.id === activeArticle?.id && !disputeView }"
+                        :class="{ 'faq-article-btn--active': article.id === activeArticle?.id && !disputeView && !contactsView }"
                         @click="selectArticle(article)"
                     >
                         <span class="faq-article-btn__dot" />
@@ -231,16 +259,17 @@ async function submitDispute() {
 
                 <!-- Sidebar action buttons -->
                 <div class="faq-sidebar__actions">
-                    <Link
-                        :href="route('contacts')"
+                    <button
+                        type="button"
                         class="faq-action-btn faq-action-btn--support"
-                        @click="emit('close')"
+                        :class="{ 'faq-action-btn--support-active': contactsView }"
+                        @click="openContactsFromSidebar"
                     >
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                         </svg>
                         {{ __("help.support.btn") }}
-                    </Link>
+                    </button>
                     <button
                         v-if="showDispute"
                         class="faq-action-btn faq-action-btn--dispute"
@@ -331,6 +360,32 @@ async function submitDispute() {
                         </div>
                     </div>
 
+                    <!-- Contacts View -->
+                    <div v-else-if="contactsView" key="contacts" class="faq-content-inner">
+                        <div class="faq-content__header">
+                            <h3 class="faq-content__title">{{ __("help.support.title") || "Поддержка" }}</h3>
+                        </div>
+                        <div class="faq-contacts-list">
+                            <a
+                                v-for="c in contacts"
+                                :key="c.title"
+                                :href="c.link"
+                                target="_blank"
+                                class="faq-contact-card"
+                            >
+                                <div class="faq-contact-card__icon" :style="{ color: c.color }">
+                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                        <path :d="c.icon" />
+                                    </svg>
+                                </div>
+                                <div class="faq-contact-card__content">
+                                    <span class="faq-contact-card__value">{{ c.value }}</span>
+                                    <span class="faq-contact-card__label">{{ c.title }}</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+
                     <!-- Empty state: no article selected yet -->
                     <div v-else-if="!activeArticle" key="empty" class="faq-content-inner faq-empty-state">
                         <p class="faq-empty-state__text">{{ __("help.select_article") || "Выберите раздел слева" }}</p>
@@ -348,16 +403,17 @@ async function submitDispute() {
 
                 <!-- Mobile footer actions -->
                 <div class="faq-footer-actions">
-                    <Link
-                        :href="route('contacts')"
+                    <button
+                        type="button"
                         class="faq-action-btn faq-action-btn--support"
-                        @click="emit('close')"
+                        :class="{ 'faq-action-btn--support-active': contactsView }"
+                        @click="openContactsFromSidebar"
                     >
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                         </svg>
                         {{ __("help.support.btn") }}
-                    </Link>
+                    </button>
                     <button v-if="showDispute" class="faq-action-btn faq-action-btn--dispute" @click="openDisputeFromSidebar">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10" />
@@ -529,10 +585,14 @@ async function submitDispute() {
 }
 .faq-action-btn:hover svg { opacity: 0.9; }
 
-.faq-action-btn--support:hover {
+.faq-action-btn--support:hover,
+.faq-action-btn--support-active {
     background: rgba(255, 178, 239, 0.07);
     border-color: rgba(255, 178, 239, 0.15);
     color: rgba(255, 210, 245, 0.88);
+}
+.faq-action-btn--support-active svg {
+    opacity: 0.9;
 }
 .faq-action-btn--dispute:hover {
     background: rgba(255, 110, 110, 0.06);
@@ -892,4 +952,78 @@ async function submitDispute() {
     border-color: rgba(255, 178, 239, 0.45);
 }
 .dispute-submit:disabled { opacity: 0.35; cursor: default; }
+
+/* ═══════════════════════════════════════════════
+   Contacts View
+   ═══════════════════════════════════════════════ */
+.faq-contacts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+}
+
+.faq-contact-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.9rem 1.1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 8px;
+    transition: border-color 0.15s, background 0.15s, transform 0.15s;
+    text-decoration: none;
+}
+
+.faq-contact-card:hover {
+    background: rgba(255, 178, 239, 0.04);
+    border-color: rgba(255, 178, 239, 0.22);
+    transform: translateX(4px);
+}
+
+.faq-contact-card__icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    opacity: 0.68;
+    transition: opacity 0.15s;
+}
+
+.faq-contact-card:hover .faq-contact-card__icon {
+    opacity: 1;
+}
+
+.faq-contact-card__icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.faq-contact-card__content {
+    display: flex;
+    flex-direction: column;
+}
+
+.faq-contact-card__value {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 1.15rem;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.2;
+}
+
+.faq-contact-card__label {
+    font-size: 0.62rem;
+    color: rgba(255, 255, 255, 0.25);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    margin-top: 0.1rem;
+}
+
+@media (max-width: 767px) {
+    .faq-contact-card {
+        padding: 0.8rem 1rem;
+    }
+    .faq-contact-card__value {
+        font-size: 1rem;
+    }
+}
 </style>
