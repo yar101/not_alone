@@ -3,23 +3,30 @@
  * Компонент элегантной кнопки в стиле "Start"
  * Использует шрифт Brygada 1918 и внутренние тени для создания эффекта обводки
  */
-defineProps({
+import { computed } from "vue";
+import { useTranslations } from "@/composables/useTranslations";
+
+const { __ } = useTranslations();
+
+const props = defineProps({
     label: {
         type: String,
-        default: 'НАЧАТЬ'
-    }
+        default: null,
+    },
 });
 
-const emit = defineEmits(['click']);
+const effectiveLabel = computed(() => props.label ?? __("welcome.start"));
+
+const emit = defineEmits(["click"]);
 
 const handleClick = (event) => {
-    emit('click', event);
+    emit("click", event);
 };
 </script>
 
 <template>
     <button class="start-button" @click="handleClick">
-        <span class="label">{{ label }}</span>
+        <span class="label">{{ effectiveLabel }}</span>
     </button>
 </template>
 
@@ -41,7 +48,12 @@ const handleClick = (event) => {
     height: 140px;
 
     /* Яркий фон: насыщенный градиент для глубины */
-    background: linear-gradient(135deg, #2a1b2d 0%, #121212 50%, rgba(64, 166, 166, 0.18) 100%);
+    background: linear-gradient(
+        135deg,
+        #2a1b2d 0%,
+        #121212 50%,
+        rgba(64, 166, 166, 0.18) 100%
+    );
 
     /* Эффект внутренней обводки через spread (spread = 2px) */
     box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 3%);
@@ -56,7 +68,7 @@ const handleClick = (event) => {
 
 .label {
     color: #ffffff;
-    font-size: 80px;
+    font-size: 5rem;
     letter-spacing: 0.02em;
     text-transform: uppercase;
 
@@ -65,8 +77,9 @@ const handleClick = (event) => {
     font-weight: 100;
 
     /* Усиленное свечение букв */
-    text-shadow: 0 0 15px rgba(255, 255, 255, 0.3),
-    0 0 2px rgba(255, 255, 255, 0.5);
+    text-shadow:
+        0 0 15px rgba(255, 255, 255, 0.3),
+        0 0 2px rgba(255, 255, 255, 0.5);
 
     /* Центровка (компенсация letter-spacing) */
     padding-left: 0.02em;
@@ -78,30 +91,36 @@ const handleClick = (event) => {
 
 /* Эффект мягкого блика по центру */
 .start-button::after {
-    content: '';
+    content: "";
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: radial-gradient(circle at center, rgba(255,255,255,0.05) 0%, transparent 70%);
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(
+        circle at center,
+        rgba(255, 255, 255, 0.05) 0%,
+        transparent 70%
+    );
     pointer-events: none;
 }
 
 /* Состояния при взаимодействии */
 .start-button:hover {
     /* Усиливаем яркость обводки и фона */
-    box-shadow: inset 0 0 0 2px rgba(110, 110, 210, 0.1);
-    //background: linear-gradient(135deg, #3a263d 0%, #1a1a1a 50%, #1e2d2d 100%);
-    transform: translateY(-15px);
+    box-shadow: inset 0 0 0 2px rgba(255, 178, 239, 0.1);
+    /* transform: translateY(-15px); */
 }
 
 .start-button:hover .label {
     opacity: 1;
-    text-shadow: 0 0 25px rgba(110, 110, 210, 1);
-    color: rgba(110, 110, 210, 1);
+    text-shadow: 0 0 25px rgba(255, 178, 239, 1);
+    color: rgba(255, 178, 239, 1);
 }
 
 .start-button:active {
     transform: scale(0.97);
-    box-shadow: inset 0 0 0 2px rgba(110, 110, 210, 0.3);
+    box-shadow: inset 0 0 0 2px rgba(255, 178, 239, 0.3);
     transition: all 0.1s ease;
 }
 
@@ -111,8 +130,9 @@ const handleClick = (event) => {
         width: 280px;
         height: 90px;
     }
+
     .label {
-        font-size: 70px;
+        font-size: 3rem;
     }
 }
 </style>

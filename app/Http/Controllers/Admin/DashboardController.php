@@ -39,7 +39,8 @@ class DashboardController extends Controller
                 ->get()
                 ->map(fn($b) => [
                     'id'         => $b->id,
-                    'title'      => $b->title,
+                    'title'      => $b->getTranslations('title'),
+                    'title_text' => $b->title,
                     'target'     => $b->target,
                     'created_at' => $b->created_at->toIso8601String(),
                     'admin'      => ['name' => $b->admin->name],

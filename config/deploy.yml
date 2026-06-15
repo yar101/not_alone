@@ -1,0 +1,86 @@
+service: no-alone
+image: ghcr.io/yar101/no-alone
+
+servers:
+  web:
+    hosts:
+      - <%= ENV['DEPLOY_HOST'] %>
+    env:
+      CONTAINER_ROLE: web
+  worker:
+    hosts:
+      - <%= ENV['DEPLOY_HOST'] %>
+    env:
+      CONTAINER_ROLE: worker
+  scheduler:
+    hosts:
+      - <%= ENV['DEPLOY_HOST'] %>
+    env:
+      CONTAINER_ROLE: scheduler
+  reverb:
+    hosts:
+      - <%= ENV['DEPLOY_HOST'] %>
+    env:
+      CONTAINER_ROLE: reverb
+
+proxy:
+  ssl: true
+  host: <%= ENV['APP_DOMAIN'] %>
+
+registry:
+  server: ghcr.io
+  username: yar101
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+env:
+  clear:
+    APP_NAME: "No Alone"
+    APP_ENV: production
+    APP_DEBUG: false
+    APP_LOCALE: ru
+    DB_CONNECTION: pgsql
+    DB_HOST: <%= ENV['DEPLOY_HOST'] %>
+    DB_PORT: 5432
+    DB_DATABASE: no_alone
+    QUEUE_CONNECTION: database
+    SESSION_DRIVER: database
+    CACHE_STORE: database
+    BROADCAST_CONNECTION: reverb
+    REVERB_HOST: <%= ENV['APP_DOMAIN'] %>
+    REVERB_PORT: 443
+    REVERB_SCHEME: https
+    MAIL_MAILER: smtp
+    MAIL_PORT: 587
+  secret:
+    - APP_KEY
+    - APP_URL
+    - DB_USERNAME
+    - DB_PASSWORD
+    - REVERB_APP_ID
+    - REVERB_APP_KEY
+    - REVERB_APP_SECRET
+    - MAIL_HOST
+    - MAIL_USERNAME
+    - MAIL_PASSWORD
+
+volumes:
+  - /var/www/no-alone/storage:/var/www/html/storage
+
+accessories:
+  postgres:
+    image: postgres:17-alpine
+    host: <%= ENV['DEPLOY_HOST'] %>
+    port: 5432
+    env:
+      clear:
+        POSTGRES_DB: no_alone
+      secret:
+        - POSTGRES_USER
+        - POSTGRES_PASSWORD
+    volumes:
+      - /var/www/no-alone/postgres:/var/lib/postgresql/data
+
+healthcheck:
+  path: /up
+  port: 80

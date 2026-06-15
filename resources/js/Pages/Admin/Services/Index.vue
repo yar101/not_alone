@@ -26,6 +26,7 @@ function switchTab(tab) {
     if (tab === 'time-units')   router.visit(route('admin.services.time-units.index'),   { preserveState: false });
     if (tab === 'price-limits') router.visit(route('admin.services.price-limits.index'), { preserveState: false });
     if (tab === 'moderation')   router.visit(route('admin.services.moderation.index'),   { preserveState: false });
+    if (tab === 'change-requests') router.visit(route('admin.services.change-requests.index'), { preserveState: false });
 }
 
 // ─── Moderation ──────────────────────────────────────────────────────────────
@@ -193,37 +194,47 @@ const rejectModalTitle = computed(() => {
 const showCatForm     = ref(false);
 const catEditingId    = ref(null);
 const catImagePreview = ref(null);
-const newSuggestion   = ref('');
+const newSuggestionRu = ref('');
+const newSuggestionEn = ref('');
 
 const catForm = useForm({
-    name:             '',
-    description:      '',
-    name_suggestions: [],
-    accent_color:     '#a0a0ff',
-    sort_order:       0,
-    is_active:        true,
-    image:            null,
-    remove_image:     false,
+    name_ru:             '',
+    name_en:             '',
+    description_ru:      '',
+    description_en:      '',
+    name_suggestions_ru: [],
+    name_suggestions_en: [],
+    accent_color:        '#ffb2ef',
+    sort_order:          0,
+    is_active:           true,
+    image:               null,
+    remove_image:        false,
 });
 
 function openCatAdd() {
     catEditingId.value    = null;
     catImagePreview.value = null;
-    newSuggestion.value   = '';
+    newSuggestionRu.value = '';
+    newSuggestionEn.value = '';
     catForm.reset();
     catForm.is_active = true;
-    catForm.name_suggestions = [];
+    catForm.name_suggestions_ru = [];
+    catForm.name_suggestions_en = [];
     showCatForm.value = true;
 }
 
 function openCatEdit(cat) {
     catEditingId.value    = cat.id;
     catImagePreview.value = cat.image_path ? `/storage/${cat.image_path}` : null;
-    newSuggestion.value   = '';
-    catForm.name             = cat.name;
-    catForm.description      = cat.description ?? '';
-    catForm.name_suggestions = cat.name_suggestions ?? [];
-    catForm.accent_color     = cat.accent_color ?? '#a0a0ff';
+    newSuggestionRu.value = '';
+    newSuggestionEn.value = '';
+    catForm.name_ru             = cat.name_ru ?? '';
+    catForm.name_en             = cat.name_en ?? '';
+    catForm.description_ru      = cat.description_ru ?? '';
+    catForm.description_en      = cat.description_en ?? '';
+    catForm.name_suggestions_ru = cat.name_suggestions_ru ?? [];
+    catForm.name_suggestions_en = cat.name_suggestions_en ?? [];
+    catForm.accent_color     = cat.accent_color ?? '#ffb2ef';
     catForm.sort_order       = cat.sort_order;
     catForm.is_active        = cat.is_active;
     catForm.image            = null;
@@ -234,20 +245,32 @@ function closeCatForm() {
     showCatForm.value     = false;
     catEditingId.value    = null;
     catImagePreview.value = null;
-    newSuggestion.value   = '';
+    newSuggestionRu.value = '';
+    newSuggestionEn.value = '';
     catForm.reset();
     catForm.clearErrors();
 }
 
-function addSuggestion() {
-    const s = newSuggestion.value.trim();
-    if (!s || catForm.name_suggestions.includes(s)) return;
-    catForm.name_suggestions.push(s);
-    newSuggestion.value = '';
+function addSuggestionRu() {
+    const s = newSuggestionRu.value.trim();
+    if (!s || catForm.name_suggestions_ru.includes(s)) return;
+    catForm.name_suggestions_ru.push(s);
+    newSuggestionRu.value = '';
 }
 
-function removeSuggestion(index) {
-    catForm.name_suggestions.splice(index, 1);
+function removeSuggestionRu(index) {
+    catForm.name_suggestions_ru.splice(index, 1);
+}
+
+function addSuggestionEn() {
+    const s = newSuggestionEn.value.trim();
+    if (!s || catForm.name_suggestions_en.includes(s)) return;
+    catForm.name_suggestions_en.push(s);
+    newSuggestionEn.value = '';
+}
+
+function removeSuggestionEn(index) {
+    catForm.name_suggestions_en.splice(index, 1);
 }
 
 function onCatImageChange(file, url) {
@@ -318,7 +341,8 @@ const showUnitForm  = ref(false);
 const unitEditingId = ref(null);
 
 const unitForm = useForm({
-    name:       '',
+    name_ru:    '',
+    name_en:    '',
     sort_order: 0,
     is_active:  true,
 });
@@ -332,7 +356,8 @@ function openUnitAdd() {
 
 function openUnitEdit(unit) {
     unitEditingId.value = unit.id;
-    unitForm.name       = unit.name;
+    unitForm.name_ru    = unit.name_ru ?? '';
+    unitForm.name_en    = unit.name_en ?? '';
     unitForm.sort_order = unit.sort_order;
     unitForm.is_active  = unit.is_active;
     showUnitForm.value  = true;
@@ -441,6 +466,11 @@ function destroyLimit(id) {
                 Модерация
                 <span v-if="moderation_counts?.pending > 0" class="tab-count">{{ moderation_counts?.pending }}</span>
             </button>
+            <button
+                class="tab-btn"
+                :class="{ 'tab-btn--active': active_tab === 'change-requests' }"
+                @click="switchTab('change-requests')"
+            >Изменения</button>
         </div>
 
         <!-- ═══ Categories tab ═══ -->
@@ -472,8 +502,8 @@ function destroyLimit(id) {
                     <tbody>
                         <tr v-for="cat in categories" :key="cat.id">
                             <td>{{ cat.sort_order }}</td>
-                            <td>{{ cat.name }}</td>
-                            <td class="td-desc">{{ cat.description ? cat.description.slice(0, 60) + (cat.description.length > 60 ? '…' : '') : '—' }}</td>
+                            <td>{{ cat.name_ru }}</td>
+                            <td class="td-desc">{{ cat.description_ru ? cat.description_ru.slice(0, 60) + (cat.description_ru.length > 60 ? '…' : '') : '—' }}</td>
                             <td class="td-suggestions">
                                 <span v-if="cat.name_suggestions && cat.name_suggestions.length">
                                     {{ cat.name_suggestions.slice(0, 2).join(', ') }}{{ cat.name_suggestions.length > 2 ? ` +${cat.name_suggestions.length - 2}` : '' }}
@@ -508,34 +538,52 @@ function destroyLimit(id) {
                         </div>
                         <form @submit.prevent="submitCat" class="modal__body">
                             <div class="field">
-                                <label>Название</label>
-                                <input v-model="catForm.name" class="input" :class="{ 'input--err': catForm.errors.name }" />
-                                <p v-if="catForm.errors.name" class="err">{{ catForm.errors.name }}</p>
+                                <label>Название (RU)</label>
+                                <input v-model="catForm.name_ru" class="input" :class="{ 'input--err': catForm.errors.name_ru }" />
+                                <p v-if="catForm.errors.name_ru" class="err">{{ catForm.errors.name_ru }}</p>
                             </div>
                             <div class="field">
-                                <label>Описание (глобальное)</label>
-                                <textarea v-model="catForm.description" class="input input--textarea" rows="3" maxlength="1000" placeholder="Описание категории для профиля айдола" />
+                                <label>Название (EN)</label>
+                                <input v-model="catForm.name_en" class="input" :class="{ 'input--err': catForm.errors.name_en }" placeholder="Casual Chat" />
+                                <p v-if="catForm.errors.name_en" class="err">{{ catForm.errors.name_en }}</p>
+                            </div>
+                            <div class="field">
+                                <label>Описание (RU)</label>
+                                <textarea v-model="catForm.description_ru" class="input input--textarea" rows="3" maxlength="1000" placeholder="Описание категории для профиля айдола" />
+                            </div>
+                            <div class="field">
+                                <label>Описание (EN)</label>
+                                <textarea v-model="catForm.description_en" class="input input--textarea" rows="3" maxlength="1000" placeholder="Description for idol profile" />
                             </div>
                             <div class="field">
                                 <label>Акцентный цвет</label>
                                 <input v-model="catForm.accent_color" type="color" class="input input--color" />
                             </div>
                             <div class="field">
-                                <label>Варианты названий</label>
+                                <label>Варианты названий (RU)</label>
                                 <div class="sug-input-row">
-                                    <input
-                                        v-model="newSuggestion"
-                                        class="input"
-                                        placeholder="Введите вариант…"
-                                        maxlength="120"
-                                        @keydown.enter.prevent="addSuggestion"
-                                    />
-                                    <button type="button" class="sug-add-btn" @click="addSuggestion">+</button>
+                                    <input v-model="newSuggestionRu" class="input" placeholder="Введите вариант…"
+                                        maxlength="120" @keydown.enter.prevent="addSuggestionRu" />
+                                    <button type="button" class="sug-add-btn" @click="addSuggestionRu">+</button>
                                 </div>
-                                <div v-if="catForm.name_suggestions.length" class="sug-chips">
-                                    <span v-for="(s, i) in catForm.name_suggestions" :key="i" class="sug-chip">
+                                <div v-if="catForm.name_suggestions_ru.length" class="sug-chips">
+                                    <span v-for="(s, i) in catForm.name_suggestions_ru" :key="i" class="sug-chip">
                                         {{ s }}
-                                        <button type="button" class="sug-chip__remove" @click="removeSuggestion(i)">×</button>
+                                        <button type="button" class="sug-chip__remove" @click="removeSuggestionRu(i)">×</button>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label>Варианты названий (EN)</label>
+                                <div class="sug-input-row">
+                                    <input v-model="newSuggestionEn" class="input" placeholder="Enter suggestion…"
+                                        maxlength="120" @keydown.enter.prevent="addSuggestionEn" />
+                                    <button type="button" class="sug-add-btn" @click="addSuggestionEn">+</button>
+                                </div>
+                                <div v-if="catForm.name_suggestions_en.length" class="sug-chips">
+                                    <span v-for="(s, i) in catForm.name_suggestions_en" :key="i" class="sug-chip">
+                                        {{ s }}
+                                        <button type="button" class="sug-chip__remove" @click="removeSuggestionEn(i)">×</button>
                                     </span>
                                 </div>
                             </div>
@@ -582,9 +630,9 @@ function destroyLimit(id) {
                                         </div>
                                         <div class="sort-card__img-wrap">
                                             <img v-if="cat.image_path" :src="`/storage/${cat.image_path}`" class="sort-card__img" alt="" />
-                                            <div v-else class="sort-card__no-img">{{ cat.name.slice(0, 2) }}</div>
+                                            <div v-else class="sort-card__no-img">{{ (cat.name_ru ?? '').slice(0, 2) }}</div>
                                         </div>
-                                        <div class="sort-card__name">{{ cat.name }}</div>
+                                        <div class="sort-card__name">{{ cat.name_ru }}</div>
                                     </div>
                                 </template>
                             </draggable>
@@ -621,7 +669,7 @@ function destroyLimit(id) {
                     <tbody>
                         <tr v-for="unit in timeUnits" :key="unit.id">
                             <td>{{ unit.sort_order }}</td>
-                            <td>{{ unit.name }}</td>
+                            <td>{{ unit.name_ru }}<span v-if="unit.name_en" style="color:#888;font-size:0.82em"> / {{ unit.name_en }}</span></td>
                             <td><span :class="['badge', unit.is_active ? 'badge--on' : 'badge--off']">{{ unit.is_active ? 'Да' : 'Нет' }}</span></td>
                             <td>
                                 <div class="actions">
@@ -646,9 +694,14 @@ function destroyLimit(id) {
                         </div>
                         <form @submit.prevent="submitUnit" class="modal__body">
                             <div class="field">
-                                <label>Название</label>
-                                <input v-model="unitForm.name" class="input" :class="{ 'input--err': unitForm.errors.name }" placeholder="15 минут" />
-                                <p v-if="unitForm.errors.name" class="err">{{ unitForm.errors.name }}</p>
+                                <label>Название (RU)</label>
+                                <input v-model="unitForm.name_ru" class="input" :class="{ 'input--err': unitForm.errors.name_ru }" placeholder="15 минут" />
+                                <p v-if="unitForm.errors.name_ru" class="err">{{ unitForm.errors.name_ru }}</p>
+                            </div>
+                            <div class="field">
+                                <label>Название (EN)</label>
+                                <input v-model="unitForm.name_en" class="input" :class="{ 'input--err': unitForm.errors.name_en }" placeholder="15 minutes" />
+                                <p v-if="unitForm.errors.name_en" class="err">{{ unitForm.errors.name_en }}</p>
                             </div>
                             <div class="field">
                                 <label>Порядок сортировки</label>
@@ -691,7 +744,7 @@ function destroyLimit(id) {
                     </thead>
                     <tbody>
                         <tr v-for="limit in limits" :key="limit.id">
-                            <td>{{ limit.time_unit?.name ?? '—' }}</td>
+                            <td>{{ limit.time_unit?.name_ru ?? '—' }}</td>
                             <td>{{ limit.max_price.toLocaleString('ru') }} ₽</td>
                             <td>
                                 <div class="actions">
@@ -719,7 +772,7 @@ function destroyLimit(id) {
                                 <label>Единица времени</label>
                                 <AppSelect
                                     v-model="limitForm.time_unit_id"
-                                    :options="timeUnits.map(u => ({ value: u.id, label: u.name }))"
+                                    :options="timeUnits.map(u => ({ value: u.id, label: u.name_ru }))"
                                     placeholder="Выберите..."
                                     :error="!!limitForm.errors.time_unit_id"
                                 />
@@ -747,9 +800,11 @@ function destroyLimit(id) {
             <div class="mod-status-tabs">
                 <button
                     v-for="tab in [
-                        { key: 'pending',  label: 'Ожидают',  count: moderation_counts?.pending },
-                        { key: 'approved', label: 'Одобрены', count: moderation_counts?.approved },
-                        { key: 'rejected', label: 'Отклонены', count: moderation_counts?.rejected },
+                        { key: 'pending',     label: 'Ожидают',      count: moderation_counts?.pending },
+                        { key: 'resubmitted', label: 'Переподано',   count: moderation_counts?.resubmitted },
+                        { key: 'has_remarks', label: 'Замечания',    count: moderation_counts?.has_remarks },
+                        { key: 'approved',    label: 'Одобрены',     count: moderation_counts?.approved },
+                        { key: 'rejected',    label: 'Отклонены',    count: moderation_counts?.rejected },
                     ]"
                     :key="tab.key"
                     class="mod-status-tab"
@@ -776,7 +831,7 @@ function destroyLimit(id) {
                 >
                     <option :value="null">Все категории</option>
                     <option v-for="cat in moderation_categories" :key="cat.id" :value="cat.id">
-                        {{ cat.name }}
+                        {{ cat.name_ru ?? cat.name }}
                     </option>
                 </select>
             </div>
@@ -1063,6 +1118,19 @@ function destroyLimit(id) {
 .badge--rejected { background: rgba(239,68,68,0.1);   color: rgba(239,68,68,0.7); }
 
 .mod-reject-reason { font-size: 0.72rem; color: rgba(239,68,68,0.55); margin-top: 0.2rem; cursor: help; }
+
+.mod-resub-hint {
+    font-size: 0.75rem;
+    color: #ff9800;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.badge--has_remarks {
+    background: #fff3e0;
+    color: #ef6c00;
+    border: 1px solid #ffe0b2;
+}
 
 .mod-user-cell { display: flex; align-items: center; gap: 0.6rem; }
 .mod-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; background: rgba(155,110,232,0.15); flex-shrink: 0; }

@@ -1,0 +1,26 @@
+#!/bin/sh
+set -e
+
+# Только web-контейнер запускает миграции
+if [ "${CONTAINER_ROLE}" = "web" ] || [ -z "${CONTAINER_ROLE}" ]; then
+    php artisan migrate --force
+    php artisan config:cache
+    php artisan route:cache
+    php artisan view:cache
+    php artisan storage:link 2>/dev/null || true
+    exec supervisord -c /etc/supervisor/supervisord.conf
+fi
+
+if [ "${CONTAINER_ROLE}" = "worker" ]; then
+    exec php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+fi
+
+if [ "${CONTAINER_ROLE}" = "scheduler" ]; then
+    exec php artisan schedule:work
+fi
+
+if [ "${CONTAINER_ROLE}" = "reverb" ]; then
+    exec php artisan reverb:start --host=0.0.0.0 --port=8080
+fi
+
+exec "$@"

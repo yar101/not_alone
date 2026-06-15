@@ -1,0 +1,38 @@
+{
+    auto_https off
+}
+
+https://192.168.1.100:8443 {
+    tls 192.168.1.100.pem 192.168.1.100-key.pem
+
+    # Service Worker scope header
+    handle /build/sw.js {
+        header Service-Worker-Allowed /
+        reverse_proxy localhost:8000 {
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Port 8443
+        }
+    }
+
+    # WebSocket (Reverb)
+    handle /app/* {
+        reverse_proxy localhost:8080 {
+            transport http {
+                versions 1.1
+            }
+        }
+    }
+    handle /apps/* {
+        reverse_proxy localhost:8080 {
+            transport http {
+                versions 1.1
+            }
+        }
+    }
+
+    # Laravel
+    reverse_proxy localhost:8000 {
+        header_up X-Forwarded-Proto https
+        header_up X-Forwarded-Port 8443
+    }
+}

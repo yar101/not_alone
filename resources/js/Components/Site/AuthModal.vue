@@ -1,63 +1,74 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
-import { useForm, usePage, router } from '@inertiajs/vue3';
-import SiteModal from '@/Components/Site/SiteModal.vue';
-import AppSelect from '@/Components/AppSelect.vue';
+import { ref, computed, watch } from "vue";
+import { useForm, usePage, router } from "@inertiajs/vue3";
+import SiteModal from "@/Components/Site/SiteModal.vue";
+import AppSelect from "@/Components/AppSelect.vue";
+import LocaleSwitcher from "@/Components/Site/LocaleSwitcher.vue";
+import { useTranslations } from "@/composables/useTranslations";
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     show: { type: Boolean, default: false },
-    initialTab: { type: String, default: 'login' },
+    initialTab: { type: String, default: "login" },
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(["close"]);
 
 const page = usePage();
 const authUser = computed(() => page.props.auth?.user ?? null);
 
 const tab = ref(props.initialTab);
+const showLogoutConfirm = ref(false);
 
-watch(() => props.show, (val) => {
-    if (val) tab.value = props.initialTab;
-});
+watch(
+    () => props.show,
+    (val) => {
+        if (val) {
+            tab.value = props.initialTab;
+            showLogoutConfirm.value = false;
+        }
+    },
+);
 
 function switchTab(t) {
     tab.value = t;
 }
 
+function handleLogout() {
+    showLogoutConfirm.value = false;
+    router.post(route("logout"));
+}
+
 // ── Login Form ────────────────────────────────────────────
 const loginForm = useForm({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
     remember: false,
 });
 
 function submitLogin() {
-    loginForm.post(route('login'), {
-        onFinish: () => loginForm.reset('password'),
+    loginForm.post(route("login"), {
+        onFinish: () => loginForm.reset("password"),
     });
 }
 
 // ── Register Form ─────────────────────────────────────────
 const registerForm = useForm({
-    name: '',
-    gender: '',
-    birth_date: '',
-    email: '',
-    password: '',
-    password_confirmation: '',
+    name: "",
+    gender: "",
+    birth_date: "",
+    email: "",
+    password: "",
+    password_confirmation: "",
 });
 
 // ── Birth date selects ─────────────────────────────────────
-const bdDay   = ref('');
-const bdMonth = ref('');
-const bdYear  = ref('');
+const bdDay = ref("");
+const bdMonth = ref("");
+const bdYear = ref("");
 
 const currentYear = new Date().getFullYear();
-
-const monthNames = [
-    'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
-];
 
 const yearOptions = computed(() => {
     const years = [];
@@ -70,29 +81,39 @@ const yearOptions = computed(() => {
 const dayOptions = computed(() => {
     if (!bdMonth.value) return Array.from({ length: 31 }, (_, i) => i + 1);
     const month = parseInt(bdMonth.value);
-    const year  = bdYear.value ? parseInt(bdYear.value) : 2000;
-    const days  = new Date(year, month, 0).getDate();
+    const year = bdYear.value ? parseInt(bdYear.value) : 2000;
+    const days = new Date(year, month, 0).getDate();
     return Array.from({ length: days }, (_, i) => i + 1);
 });
 
-const monthOptions = computed(() => monthNames.map((n, i) => ({ value: i + 1, label: n })));
+const monthOptions = computed(() =>
+    Array.from({ length: 12 }, (_, i) => ({
+        value: i + 1,
+        label: __(`auth.month.${i + 1}`),
+    })),
+);
 
 function submitRegister() {
     if (bdDay.value && bdMonth.value && bdYear.value) {
-        const mm = String(bdMonth.value).padStart(2, '0');
-        const dd = String(bdDay.value).padStart(2, '0');
+        const mm = String(bdMonth.value).padStart(2, "0");
+        const dd = String(bdDay.value).padStart(2, "0");
         registerForm.birth_date = `${bdYear.value}-${mm}-${dd}`;
     } else {
-        registerForm.birth_date = '';
+        registerForm.birth_date = "";
     }
-    registerForm.post(route('register'), {
-        onFinish: () => registerForm.reset('password', 'password_confirmation'),
+    registerForm.post(route("register"), {
+        onFinish: () => registerForm.reset("password", "password_confirmation"),
     });
 }
 </script>
 
 <template>
-    <SiteModal :show="show" variant="pink" :compact="true" @close="emit('close')">
+    <SiteModal
+        :show="show"
+        variant="pink"
+        :compact="true"
+        @close="emit('close')"
+    >
         <div class="auth-modal">
             <!-- Already logged in -->
             <Transition name="tab-slide" mode="out-in">
@@ -100,256 +121,584 @@ function submitRegister() {
                     <div class="auth-known-avatar">
                         {{ authUser.email.charAt(0).toUpperCase() }}
                     </div>
-                    <p class="auth-known-greeting">Добро пожаловать</p>
+                    <p class="auth-known-greeting">{{ __("auth.welcome") }}</p>
                     <p class="auth-known-email">{{ authUser.email }}</p>
-                    <a :href="route('profile')" class="auth-submit auth-known-continue">
-                        Продолжить
+                    <a
+                        :href="route('profile')"
+                        class="auth-submit auth-known-continue"
+                    >
+                        {{ __("auth.continue") }}
                     </a>
                     <button
                         type="button"
                         class="auth-known-logout"
-                        @click="router.post(route('logout'))"
+                        @click="showLogoutConfirm = true"
                     >
-                        Выйти из аккаунта
+                        {{ __("auth.logout") }}
                     </button>
                 </div>
 
                 <!-- Tab switcher (shown only when not logged in) -->
                 <div v-else class="auth-tabs-wrapper">
                     <div class="auth-tabs">
-                <button
-                    class="auth-tab"
-                    :class="{ 'auth-tab--active': tab === 'login' }"
-                    @click="switchTab('login')"
-                >
-                    Войти
-                </button>
-                <button
-                    class="auth-tab"
-                    :class="{ 'auth-tab--active': tab === 'register' }"
-                    @click="switchTab('register')"
-                >
-                    Зарегистрироваться
-                </button>
+                        <button
+                            class="auth-tab"
+                            :class="{ 'auth-tab--active': tab === 'login' }"
+                            @click="switchTab('login')"
+                        >
+                            {{ __("auth.tab.login") }}
+                        </button>
+                        <button
+                            class="auth-tab"
+                            :class="{ 'auth-tab--active': tab === 'register' }"
+                            @click="switchTab('register')"
+                        >
+                            {{ __("auth.tab.register") }}
+                        </button>
+                    </div>
+
+                    <!-- Forms with transition -->
+                    <Transition name="tab-slide" mode="out-in">
+                        <!-- Login Form -->
+                        <form
+                            v-if="tab === 'login'"
+                            key="login"
+                            @submit.prevent="submitLogin"
+                            class="auth-form"
+                        >
+                            <div class="auth-field">
+                                <label class="auth-field-label">{{
+                                    __("auth.email")
+                                }}</label>
+                                <input
+                                    v-model="loginForm.email"
+                                    type="email"
+                                    class="auth-input"
+                                    :class="{
+                                        'auth-input--error':
+                                            loginForm.errors.email,
+                                    }"
+                                    autocomplete="username"
+                                    :placeholder="__('auth.email.placeholder')"
+                                />
+                                <Transition name="err-fade">
+                                    <p
+                                        v-show="loginForm.errors.email"
+                                        class="auth-error"
+                                    >
+                                        {{ loginForm.errors.email }}
+                                    </p>
+                                </Transition>
+                            </div>
+
+                            <div class="auth-field">
+                                <label class="auth-field-label">{{
+                                    __("auth.password")
+                                }}</label>
+                                <input
+                                    v-model="loginForm.password"
+                                    type="password"
+                                    class="auth-input"
+                                    :class="{
+                                        'auth-input--error':
+                                            loginForm.errors.password,
+                                    }"
+                                    autocomplete="current-password"
+                                    :placeholder="
+                                        __('auth.password.placeholder')
+                                    "
+                                />
+                                <Transition name="err-fade">
+                                    <p
+                                        v-show="loginForm.errors.password"
+                                        class="auth-error"
+                                    >
+                                        <svg
+                                            width="12"
+                                            height="12"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2.5"
+                                        >
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line
+                                                x1="12"
+                                                y1="8"
+                                                x2="12"
+                                                y2="12"
+                                            />
+                                            <line
+                                                x1="12"
+                                                y1="16"
+                                                x2="12.01"
+                                                y2="16"
+                                            />
+                                        </svg>
+                                        {{ loginForm.errors.password }}
+                                    </p>
+                                </Transition>
+                            </div>
+
+                            <div class="auth-forgot-wrap">
+                                <a
+                                    :href="route('password.request')"
+                                    class="auth-forgot-link"
+                                    >{{ __("auth.forgot") }}</a
+                                >
+                            </div>
+
+                            <div class="auth-remember">
+                                <label class="auth-remember-label">
+                                    <input
+                                        v-model="loginForm.remember"
+                                        type="checkbox"
+                                        class="auth-checkbox-native"
+                                    />
+                                    <span class="auth-checkbox-box">
+                                        <svg
+                                            class="auth-checkbox-check"
+                                            viewBox="0 0 10 8"
+                                            fill="none"
+                                        >
+                                            <path
+                                                d="M1 4L3.5 6.5L9 1"
+                                                stroke="currentColor"
+                                                stroke-width="1.5"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            />
+                                        </svg>
+                                    </span>
+                                    <span class="auth-remember-text">{{
+                                        __("auth.remember")
+                                    }}</span>
+                                </label>
+                            </div>
+
+                            <button
+                                type="submit"
+                                class="auth-submit"
+                                :disabled="loginForm.processing"
+                            >
+                                {{
+                                    loginForm.processing
+                                        ? __("auth.login.loading")
+                                        : __("auth.login.submit")
+                                }}
+                            </button>
+
+                            <p class="auth-footer">
+                                {{ __("auth.no_account") }}
+                                <button
+                                    type="button"
+                                    class="auth-switch-link"
+                                    @click="switchTab('register')"
+                                >
+                                    {{ __("auth.tab.register") }}
+                                </button>
+                            </p>
+                        </form>
+
+                        <!-- Register Form -->
+                        <form
+                            v-else
+                            key="register"
+                            @submit.prevent="submitRegister"
+                            class="auth-form"
+                        >
+                            <div class="auth-field">
+                                <label class="auth-field-label">{{
+                                    __("auth.name")
+                                }}</label>
+                                <input
+                                    v-model="registerForm.name"
+                                    type="text"
+                                    class="auth-input"
+                                    :class="{
+                                        'auth-input--error':
+                                            registerForm.errors.name,
+                                    }"
+                                    autocomplete="name"
+                                    :placeholder="__('auth.name.placeholder')"
+                                />
+                                <Transition name="err-fade">
+                                    <p
+                                        v-show="registerForm.errors.name"
+                                        class="auth-error"
+                                    >
+                                        <svg
+                                            width="12"
+                                            height="12"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2.5"
+                                        >
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line
+                                                x1="12"
+                                                y1="8"
+                                                x2="12"
+                                                y2="12"
+                                            />
+                                            <line
+                                                x1="12"
+                                                y1="16"
+                                                x2="12.01"
+                                                y2="16"
+                                            />
+                                        </svg>
+                                        {{ registerForm.errors.name }}
+                                    </p>
+                                </Transition>
+                            </div>
+
+                            <div class="auth-field">
+                                <label class="auth-field-label">{{
+                                    __("auth.gender")
+                                }}</label>
+                                <div class="auth-gender-group">
+                                    <button
+                                        type="button"
+                                        class="auth-gender-btn"
+                                        :class="{
+                                            'auth-gender-btn--active':
+                                                registerForm.gender === 'male',
+                                        }"
+                                        @click="registerForm.gender = 'male'"
+                                    >
+                                        {{ __("auth.gender.male") }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="auth-gender-btn"
+                                        :class="{
+                                            'auth-gender-btn--active':
+                                                registerForm.gender ===
+                                                'female',
+                                        }"
+                                        @click="registerForm.gender = 'female'"
+                                    >
+                                        {{ __("auth.gender.female") }}
+                                    </button>
+                                </div>
+                                <Transition name="err-fade">
+                                    <p
+                                        v-show="registerForm.errors.gender"
+                                        class="auth-error"
+                                    >
+                                        <svg
+                                            width="12"
+                                            height="12"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2.5"
+                                        >
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line
+                                                x1="12"
+                                                y1="8"
+                                                x2="12"
+                                                y2="12"
+                                            />
+                                            <line
+                                                x1="12"
+                                                y1="16"
+                                                x2="12.01"
+                                                y2="16"
+                                            />
+                                        </svg>
+                                        {{ registerForm.errors.gender }}
+                                    </p>
+                                </Transition>
+                            </div>
+
+                            <div class="auth-field">
+                                <label class="auth-field-label">{{
+                                    __("auth.birth_date")
+                                }}</label>
+                                <div class="auth-dob-group">
+                                    <AppSelect
+                                        v-model="bdDay"
+                                        :options="dayOptions"
+                                        :placeholder="__('auth.birth_date.day')"
+                                        :error="
+                                            !!registerForm.errors.birth_date
+                                        "
+                                        style="flex: 1; min-width: 0"
+                                    />
+                                    <AppSelect
+                                        v-model="bdMonth"
+                                        :options="monthOptions"
+                                        :placeholder="
+                                            __('auth.birth_date.month')
+                                        "
+                                        :error="
+                                            !!registerForm.errors.birth_date
+                                        "
+                                        style="flex: 1; min-width: 0"
+                                    />
+                                    <AppSelect
+                                        v-model="bdYear"
+                                        :options="yearOptions"
+                                        :placeholder="
+                                            __('auth.birth_date.year')
+                                        "
+                                        :error="
+                                            !!registerForm.errors.birth_date
+                                        "
+                                        style="flex: 1; min-width: 0"
+                                    />
+                                </div>
+                                <Transition name="err-fade">
+                                    <p
+                                        v-show="registerForm.errors.birth_date"
+                                        class="auth-error"
+                                    >
+                                        <svg
+                                            width="12"
+                                            height="12"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2.5"
+                                        >
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line
+                                                x1="12"
+                                                y1="8"
+                                                x2="12"
+                                                y2="12"
+                                            />
+                                            <line
+                                                x1="12"
+                                                y1="16"
+                                                x2="12.01"
+                                                y2="16"
+                                            />
+                                        </svg>
+                                        {{ registerForm.errors.birth_date }}
+                                    </p>
+                                </Transition>
+                            </div>
+
+                            <div class="auth-field">
+                                <label class="auth-field-label">{{
+                                    __("auth.email")
+                                }}</label>
+                                <input
+                                    v-model="registerForm.email"
+                                    type="email"
+                                    class="auth-input"
+                                    :class="{
+                                        'auth-input--error':
+                                            registerForm.errors.email,
+                                    }"
+                                    autocomplete="username"
+                                    :placeholder="__('auth.email.placeholder')"
+                                />
+                                <Transition name="err-fade">
+                                    <p
+                                        v-show="registerForm.errors.email"
+                                        class="auth-error"
+                                    >
+                                        <svg
+                                            width="12"
+                                            height="12"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2.5"
+                                        >
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line
+                                                x1="12"
+                                                y1="8"
+                                                x2="12"
+                                                y2="12"
+                                            />
+                                            <line
+                                                x1="12"
+                                                y1="16"
+                                                x2="12.01"
+                                                y2="16"
+                                            />
+                                        </svg>
+                                        {{ registerForm.errors.email }}
+                                    </p>
+                                </Transition>
+                            </div>
+
+                            <div class="auth-field">
+                                <label class="auth-field-label">{{
+                                    __("auth.password")
+                                }}</label>
+                                <input
+                                    v-model="registerForm.password"
+                                    type="password"
+                                    class="auth-input"
+                                    :class="{
+                                        'auth-input--error':
+                                            registerForm.errors.password,
+                                    }"
+                                    autocomplete="new-password"
+                                    :placeholder="
+                                        __('auth.password.placeholder')
+                                    "
+                                />
+                                <Transition name="err-fade">
+                                    <p
+                                        v-show="registerForm.errors.password"
+                                        class="auth-error"
+                                    >
+                                        <svg
+                                            width="12"
+                                            height="12"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2.5"
+                                        >
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line
+                                                x1="12"
+                                                y1="8"
+                                                x2="12"
+                                                y2="12"
+                                            />
+                                            <line
+                                                x1="12"
+                                                y1="16"
+                                                x2="12.01"
+                                                y2="16"
+                                            />
+                                        </svg>
+                                        {{ registerForm.errors.password }}
+                                    </p>
+                                </Transition>
+                            </div>
+
+                            <div class="auth-field">
+                                <label class="auth-field-label">{{
+                                    __("auth.password.confirm")
+                                }}</label>
+                                <input
+                                    v-model="registerForm.password_confirmation"
+                                    type="password"
+                                    class="auth-input"
+                                    :class="{
+                                        'auth-input--error':
+                                            registerForm.errors
+                                                .password_confirmation,
+                                    }"
+                                    autocomplete="new-password"
+                                    :placeholder="
+                                        __('auth.password.placeholder')
+                                    "
+                                />
+                                <Transition name="err-fade">
+                                    <p
+                                        v-show="
+                                            registerForm.errors
+                                                .password_confirmation
+                                        "
+                                        class="auth-error"
+                                    >
+                                        <svg
+                                            width="12"
+                                            height="12"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2.5"
+                                        >
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line
+                                                x1="12"
+                                                y1="8"
+                                                x2="12"
+                                                y2="12"
+                                            />
+                                            <line
+                                                x1="12"
+                                                y1="16"
+                                                x2="12.01"
+                                                y2="16"
+                                            />
+                                        </svg>
+                                        {{
+                                            registerForm.errors
+                                                .password_confirmation
+                                        }}
+                                    </p>
+                                </Transition>
+                            </div>
+
+                            <button
+                                type="submit"
+                                class="auth-submit"
+                                :disabled="registerForm.processing"
+                            >
+                                {{
+                                    registerForm.processing
+                                        ? __("auth.register.loading")
+                                        : __("auth.register.submit")
+                                }}
+                            </button>
+
+                            <p class="auth-footer">
+                                {{ __("auth.have_account") }}
+                                <button
+                                    type="button"
+                                    class="auth-switch-link"
+                                    @click="switchTab('login')"
+                                >
+                                    {{ __("auth.tab.login") }}
+                                </button>
+                            </p>
+                        </form>
+                    </Transition>
+                </div>
+                <!-- /.auth-tabs-wrapper -->
+            </Transition>
+
+            <!-- Logout confirmation modal -->
+            <SiteModal
+                :show="showLogoutConfirm"
+                variant="pink"
+                :compact="true"
+                @close="showLogoutConfirm = false"
+            >
+                <div class="logout-confirm">
+                    <h3 class="logout-confirm__title">
+                        {{ __("auth.logout.confirm_title") }}
+                    </h3>
+                    <p class="logout-confirm__msg">
+                        {{ __("auth.logout.confirm_message") }}
+                    </p>
+
+                    <div class="logout-confirm__actions">
+                        <button
+                            class="logout-confirm__btn logout-confirm__btn--cancel"
+                            @click="showLogoutConfirm = false"
+                        >
+                            {{ __("common.cancel") }}
+                        </button>
+                        <button
+                            class="logout-confirm__btn logout-confirm__btn--danger"
+                            @click="handleLogout"
+                        >
+                            {{ __("auth.logout.confirm_btn") }}
+                        </button>
+                    </div>
+                </div>
+            </SiteModal>
+
+            <div class="auth-locale-wrap">
+                <LocaleSwitcher />
             </div>
-
-            <!-- Forms with transition -->
-            <Transition name="tab-slide" mode="out-in">
-                <!-- Login Form -->
-                <form v-if="tab === 'login'" key="login" @submit.prevent="submitLogin" class="auth-form">
-                    <div class="auth-field">
-                        <label class="auth-field-label">Email</label>
-                        <input
-                            v-model="loginForm.email"
-                            type="email"
-                            class="auth-input"
-                            :class="{ 'auth-input--error': loginForm.errors.email }"
-                            autocomplete="username"
-                            placeholder="you@example.com"
-                        />
-                        <Transition name="err-fade">
-                            <p v-show="loginForm.errors.email" class="auth-error">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                {{ loginForm.errors.email }}
-                            </p>
-                        </Transition>
-                    </div>
-
-                    <div class="auth-field">
-                        <label class="auth-field-label">Пароль</label>
-                        <input
-                            v-model="loginForm.password"
-                            type="password"
-                            class="auth-input"
-                            :class="{ 'auth-input--error': loginForm.errors.password }"
-                            autocomplete="current-password"
-                            placeholder="••••••••"
-                        />
-                        <Transition name="err-fade">
-                            <p v-show="loginForm.errors.password" class="auth-error">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                {{ loginForm.errors.password }}
-                            </p>
-                        </Transition>
-                    </div>
-
-                    <div class="auth-remember">
-                        <label class="auth-remember-label">
-                            <input
-                                v-model="loginForm.remember"
-                                type="checkbox"
-                                class="auth-checkbox-native"
-                            />
-                            <span class="auth-checkbox-box">
-                                <svg class="auth-checkbox-check" viewBox="0 0 10 8" fill="none">
-                                    <path d="M1 4L3.5 6.5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                            </span>
-                            <span class="auth-remember-text">Запомнить меня</span>
-                        </label>
-                    </div>
-
-                    <button
-                        type="submit"
-                        class="auth-submit"
-                        :disabled="loginForm.processing"
-                    >
-                        {{ loginForm.processing ? 'Вхожу…' : 'Войти' }}
-                    </button>
-
-                    <p class="auth-footer">
-                        Нет аккаунта?
-                        <button type="button" class="auth-switch-link" @click="switchTab('register')">Зарегистрироваться</button>
-                    </p>
-                </form>
-
-                <!-- Register Form -->
-                <form v-else key="register" @submit.prevent="submitRegister" class="auth-form">
-                    <div class="auth-field">
-                        <label class="auth-field-label">Имя</label>
-                        <input
-                            v-model="registerForm.name"
-                            type="text"
-                            class="auth-input"
-                            :class="{ 'auth-input--error': registerForm.errors.name }"
-                            autocomplete="name"
-                            placeholder="ivan_petrov"
-                        />
-                        <Transition name="err-fade">
-                            <p v-show="registerForm.errors.name" class="auth-error">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                {{ registerForm.errors.name }}
-                            </p>
-                        </Transition>
-                    </div>
-
-                    <div class="auth-field">
-                        <label class="auth-field-label">Пол</label>
-                        <div class="auth-gender-group">
-                            <button
-                                type="button"
-                                class="auth-gender-btn"
-                                :class="{ 'auth-gender-btn--active': registerForm.gender === 'male' }"
-                                @click="registerForm.gender = 'male'"
-                            >Мужской</button>
-                            <button
-                                type="button"
-                                class="auth-gender-btn"
-                                :class="{ 'auth-gender-btn--active': registerForm.gender === 'female' }"
-                                @click="registerForm.gender = 'female'"
-                            >Женский</button>
-                        </div>
-                        <Transition name="err-fade">
-                            <p v-show="registerForm.errors.gender" class="auth-error">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                {{ registerForm.errors.gender }}
-                            </p>
-                        </Transition>
-                    </div>
-
-                    <div class="auth-field">
-                        <label class="auth-field-label">Дата рождения</label>
-                        <div class="auth-dob-group">
-                            <AppSelect
-                                v-model="bdDay"
-                                :options="dayOptions"
-                                placeholder="День"
-                                :error="!!registerForm.errors.birth_date"
-                                style="flex:1;min-width:0"
-                            />
-                            <AppSelect
-                                v-model="bdMonth"
-                                :options="monthOptions"
-                                placeholder="Месяц"
-                                :error="!!registerForm.errors.birth_date"
-                                style="flex:1;min-width:0"
-                            />
-                            <AppSelect
-                                v-model="bdYear"
-                                :options="yearOptions"
-                                placeholder="Год"
-                                :error="!!registerForm.errors.birth_date"
-                                style="flex:1;min-width:0"
-                            />
-                        </div>
-                        <Transition name="err-fade">
-                            <p v-show="registerForm.errors.birth_date" class="auth-error">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                {{ registerForm.errors.birth_date }}
-                            </p>
-                        </Transition>
-                    </div>
-
-                    <div class="auth-field">
-                        <label class="auth-field-label">Email</label>
-                        <input
-                            v-model="registerForm.email"
-                            type="email"
-                            class="auth-input"
-                            :class="{ 'auth-input--error': registerForm.errors.email }"
-                            autocomplete="username"
-                            placeholder="you@example.com"
-                        />
-                        <Transition name="err-fade">
-                            <p v-show="registerForm.errors.email" class="auth-error">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                {{ registerForm.errors.email }}
-                            </p>
-                        </Transition>
-                    </div>
-
-                    <div class="auth-field">
-                        <label class="auth-field-label">Пароль</label>
-                        <input
-                            v-model="registerForm.password"
-                            type="password"
-                            class="auth-input"
-                            :class="{ 'auth-input--error': registerForm.errors.password }"
-                            autocomplete="new-password"
-                            placeholder="••••••••"
-                        />
-                        <Transition name="err-fade">
-                            <p v-show="registerForm.errors.password" class="auth-error">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                {{ registerForm.errors.password }}
-                            </p>
-                        </Transition>
-                    </div>
-
-                    <div class="auth-field">
-                        <label class="auth-field-label">Подтверждение пароля</label>
-                        <input
-                            v-model="registerForm.password_confirmation"
-                            type="password"
-                            class="auth-input"
-                            :class="{ 'auth-input--error': registerForm.errors.password_confirmation }"
-                            autocomplete="new-password"
-                            placeholder="••••••••"
-                        />
-                        <Transition name="err-fade">
-                            <p v-show="registerForm.errors.password_confirmation" class="auth-error">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                {{ registerForm.errors.password_confirmation }}
-                            </p>
-                        </Transition>
-                    </div>
-
-                    <button
-                        type="submit"
-                        class="auth-submit"
-                        :disabled="registerForm.processing"
-                    >
-                        {{ registerForm.processing ? 'Регистрируюсь…' : 'Зарегистрироваться' }}
-                    </button>
-
-                    <p class="auth-footer">
-                        Уже есть аккаунт?
-                        <button type="button" class="auth-switch-link" @click="switchTab('login')">Войти</button>
-                    </p>
-                </form>
-            </Transition>
-                </div><!-- /.auth-tabs-wrapper -->
-            </Transition>
         </div>
     </SiteModal>
 </template>
@@ -361,6 +710,13 @@ function submitRegister() {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
+    position: relative;
+}
+
+.auth-locale-wrap {
+    display: flex;
+    justify-content: center;
+    padding-top: 0.5rem;
 }
 
 /* ── Already logged in ────────────────────────────────── */
@@ -377,9 +733,13 @@ function submitRegister() {
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: linear-gradient(135deg, rgba(110, 110, 210, 0.35), rgba(110, 110, 210, 0.1));
-    border: 1px solid rgba(110, 110, 210, 0.4);
-    box-shadow: 0 0 20px rgba(110, 110, 210, 0.18);
+    background: linear-gradient(
+        135deg,
+        rgba(255, 178, 239, 0.35),
+        rgba(255, 178, 239, 0.1)
+    );
+    border: 1px solid rgba(255, 178, 239, 0.4);
+    box-shadow: 0 0 20px rgba(255, 178, 239, 0.18);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -393,7 +753,8 @@ function submitRegister() {
     font-size: 0.72rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: rgba(110, 110, 210, 0.55);
+    color: var(--color-base-1);
+    opacity: 0.55;
     margin: 0;
 }
 
@@ -411,18 +772,96 @@ function submitRegister() {
 }
 
 .auth-known-logout {
-    background: none;
-    border: none;
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.25);
+    background: rgba(239, 68, 68, 0.04);
+    border: 1px solid rgba(239, 68, 68, 0.15);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: rgba(239, 68, 68, 0.5);
     cursor: pointer;
     font-family: inherit;
-    transition: color 0.2s ease;
-    padding: 0.25rem 0;
+    transition: all 0.25s ease;
+    padding: 0.4rem 1.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 500;
+    margin-top: 0.5rem;
 }
 
 .auth-known-logout:hover {
-    color: rgba(220, 100, 140, 0.7);
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: rgba(239, 68, 68, 0.8);
+}
+
+/* ── Logout confirm modal ── */
+.logout-confirm {
+    padding: 2rem 1.5rem;
+    text-align: center;
+}
+
+.logout-confirm__title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+    margin-bottom: 0.6rem;
+    letter-spacing: 0.02em;
+}
+
+.logout-confirm__msg {
+    font-size: 0.92rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 2rem;
+    line-height: 1.5;
+}
+
+.logout-confirm__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.logout-confirm__btn {
+    width: 100%;
+    padding: 0.8rem;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
+    border: 1px solid transparent;
+}
+
+.logout-confirm__btn--cancel {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.logout-confirm__btn--cancel:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.logout-confirm__btn--danger {
+    background: rgba(239, 68, 68, 0.06);
+    border-color: rgba(239, 68, 68, 0.2);
+    color: rgba(239, 68, 68, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.logout-confirm__btn--danger:hover {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: rgba(239, 68, 68, 0.9);
+    box-shadow: 0 8px 24px rgba(239, 68, 68, 0.15);
+}
+
+.logout-confirm__btn--danger:active {
+    transform: scale(0.98);
+    background: rgba(239, 68, 68, 0.15);
 }
 
 /* ── Tab switcher ──────────────────────────────────────── */
@@ -444,12 +883,14 @@ function submitRegister() {
     background: transparent;
     color: rgba(255, 255, 255, 0.45);
     cursor: pointer;
-    transition: background 0.2s ease, color 0.2s ease;
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
     font-family: inherit;
 }
 
 .auth-tab--active {
-    background: rgba(110, 110, 210, 0.15);
+    background: rgba(255, 178, 239, 0.15);
     color: #fff;
 }
 
@@ -470,7 +911,8 @@ function submitRegister() {
     font-size: 0.82rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: rgba(110, 110, 210, 0.5);
+    color: var(--color-base-1);
+    opacity: 0.5;
 }
 
 .auth-input {
@@ -482,17 +924,19 @@ function submitRegister() {
     color: rgba(255, 255, 255, 0.88);
     font-size: 1.05rem;
     outline: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
     font-family: inherit;
 }
 
 .auth-input:focus {
-    border-color: rgba(110, 110, 210, 0.45);
-    box-shadow: 0 0 0 3px rgba(110, 110, 210, 0.08);
+    border-color: rgba(255, 178, 239, 0.45);
+    box-shadow: 0 0 0 3px rgba(255, 178, 239, 0.08);
 }
 
 .auth-input--error {
-    border-color: rgba(110, 110, 210, 0.6);
+    border-color: rgba(255, 178, 239, 0.6);
 }
 
 /* ── Date of birth selects ────────────────────────────── */
@@ -512,7 +956,9 @@ function submitRegister() {
     font-size: 1.05rem;
     outline: none;
     cursor: pointer;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
     font-family: inherit;
     appearance: none;
     -webkit-appearance: none;
@@ -523,8 +969,8 @@ function submitRegister() {
 }
 
 .auth-select:focus {
-    border-color: rgba(110, 110, 210, 0.45);
-    box-shadow: 0 0 0 3px rgba(110, 110, 210, 0.08);
+    border-color: rgba(255, 178, 239, 0.45);
+    box-shadow: 0 0 0 3px rgba(255, 178, 239, 0.08);
 }
 
 .auth-select option {
@@ -534,7 +980,7 @@ function submitRegister() {
 
 /* ── Error messages ───────────────────────────────────── */
 .auth-error {
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     color: rgba(220, 100, 140, 0.9);
     display: flex;
     align-items: center;
@@ -557,13 +1003,16 @@ function submitRegister() {
     color: rgba(255, 255, 255, 0.45);
     font-size: 0.88rem;
     cursor: pointer;
-    transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+    transition:
+        border-color 0.2s ease,
+        background 0.2s ease,
+        color 0.2s ease;
     font-family: inherit;
 }
 
 .auth-gender-btn--active {
-    border-color: rgba(110, 110, 210, 0.5);
-    background: rgba(110, 110, 210, 0.12);
+    border-color: rgba(255, 178, 239, 0.5);
+    background: rgba(255, 178, 239, 0.12);
     color: #fff;
 }
 
@@ -599,7 +1048,10 @@ function submitRegister() {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+    transition:
+        border-color 0.18s ease,
+        background 0.18s ease,
+        box-shadow 0.18s ease;
 }
 
 .auth-checkbox-check {
@@ -608,13 +1060,15 @@ function submitRegister() {
     color: #fff;
     opacity: 0;
     transform: scale(0.6);
-    transition: opacity 0.15s ease, transform 0.15s ease;
+    transition:
+        opacity 0.15s ease,
+        transform 0.15s ease;
 }
 
 .auth-checkbox-native:checked ~ .auth-checkbox-box {
-    background: rgba(110, 110, 210, 0.65);
-    border-color: rgba(110, 110, 210, 0.8);
-    box-shadow: 0 0 8px rgba(110, 110, 210, 0.3);
+    background: rgba(255, 178, 239, 0.65);
+    border-color: rgba(255, 178, 239, 0.8);
+    box-shadow: 0 0 8px rgba(255, 178, 239, 0.3);
 }
 
 .auth-checkbox-native:checked ~ .auth-checkbox-box .auth-checkbox-check {
@@ -623,7 +1077,7 @@ function submitRegister() {
 }
 
 .auth-remember-label:hover .auth-checkbox-box {
-    border-color: rgba(110, 110, 210, 0.45);
+    border-color: rgba(255, 178, 239, 0.45);
 }
 
 .auth-remember-text {
@@ -641,19 +1095,30 @@ function submitRegister() {
     width: 100%;
     padding: 0.85rem;
     border-radius: 3px;
-    border: 1px solid rgba(110, 110, 210, 0.35);
-    background: linear-gradient(135deg, rgba(110, 110, 210, 0.25), rgba(110, 110, 210, 0.1));
+    border: 1px solid rgba(255, 178, 239, 0.35);
+    background: linear-gradient(
+        135deg,
+        rgba(255, 178, 239, 0.25),
+        rgba(255, 178, 239, 0.1)
+    );
     color: #fff;
     font-size: 0.95rem;
     cursor: pointer;
-    transition: background 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    transition:
+        background 0.2s ease,
+        box-shadow 0.2s ease,
+        opacity 0.2s ease;
     font-family: inherit;
     margin-top: 0.25rem;
 }
 
 .auth-submit:hover:not(:disabled) {
-    background: linear-gradient(135deg, rgba(110, 110, 210, 0.38), rgba(110, 110, 210, 0.18));
-    box-shadow: 0 0 20px rgba(110, 110, 210, 0.2);
+    background: linear-gradient(
+        135deg,
+        rgba(255, 178, 239, 0.38),
+        rgba(255, 178, 239, 0.18)
+    );
+    box-shadow: 0 0 20px rgba(255, 178, 239, 0.2);
 }
 
 .auth-submit:disabled {
@@ -672,27 +1137,34 @@ function submitRegister() {
 .auth-switch-link {
     background: none;
     border: none;
-    color: rgba(110, 110, 210, 0.7);
+    color: var(--color-base-1);
+    opacity: 0.7;
     cursor: pointer;
     font-size: inherit;
     font-family: inherit;
     padding: 0;
-    transition: color 0.2s ease;
+    transition:
+        color 0.2s ease,
+        opacity 0.2s ease;
 }
 
 .auth-switch-link:hover {
-    color: rgba(110, 110, 210, 1);
+    opacity: 1;
 }
 
 /* ── Transitions ─────────────────────────────────────── */
 .tab-slide-enter-active,
 .tab-slide-leave-active {
-    transition: opacity 0.18s ease, transform 0.18s ease;
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease;
 }
+
 .tab-slide-enter-from {
     opacity: 0;
     transform: translateX(12px);
 }
+
 .tab-slide-leave-to {
     opacity: 0;
     transform: translateX(-12px);
@@ -700,11 +1172,29 @@ function submitRegister() {
 
 .err-fade-enter-active,
 .err-fade-leave-active {
-    transition: opacity 0.15s ease, transform 0.15s ease;
+    transition:
+        opacity 0.15s ease,
+        transform 0.15s ease;
 }
+
 .err-fade-enter-from,
 .err-fade-leave-to {
     opacity: 0;
     transform: translateY(-4px);
+}
+.auth-forgot-wrap {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: -0.25rem;
+}
+.auth-forgot-link {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.3);
+    text-decoration: none;
+    transition: color 0.15s;
+}
+.auth-forgot-link:hover {
+    color: var(--color-base-1);
+    opacity: 0.7;
 }
 </style>

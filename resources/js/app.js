@@ -1,5 +1,12 @@
 import '../css/app.css';
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/build/sw.js', { scope: '/' });
+    });
+}
 import 'element-plus/theme-chalk/dark/css-vars.css';
+import 'element-plus/theme-chalk/el-notification.css';
 import './bootstrap';
 import 'element-plus/theme-chalk/dark/css-vars.css'
 

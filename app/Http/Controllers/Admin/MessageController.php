@@ -18,8 +18,8 @@ class MessageController extends Controller
             ->get()
             ->map(fn($b) => [
                 'id'             => $b->id,
-                'title'          => $b->title,
-                'body'           => $b->body,
+                'title'          => $b->getTranslations('title'),
+                'body'           => $b->getTranslations('body'),
                 'target'         => $b->target,
                 'target_user'    => $b->target_user_id ? User::find($b->target_user_id)?->only('id', 'name', 'email') : null,
                 'target_filters' => $b->target_filters,
@@ -35,8 +35,12 @@ class MessageController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'title'          => 'required|string|max:255',
-            'body'           => 'required|string|max:10000',
+            'title'          => 'required|array',
+            'title.ru'       => 'required|string|max:255',
+            'title.en'       => 'required|string|max:255',
+            'body'           => 'required|array',
+            'body.ru'        => 'required|string|max:10000',
+            'body.en'        => 'required|string|max:10000',
             'target'         => 'required|in:all,user,filtered',
             'target_user_id' => 'nullable|required_if:target,user|exists:users,id',
             'target_filters' => 'nullable|required_if:target,filtered|array',

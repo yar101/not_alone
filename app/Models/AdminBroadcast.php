@@ -3,10 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Translatable\HasTranslations;
 
 class AdminBroadcast extends Model
 {
+    use HasTranslations;
+
     protected $fillable = ['admin_id', 'title', 'body', 'target', 'target_user_id', 'target_filters'];
+
+    public array $translatable = ['title', 'body'];
 
     protected function casts(): array
     {
@@ -27,10 +32,11 @@ class AdminBroadcast extends Model
 
     public function scopeForUser($query, $user)
     {
-        return $query
-            ->where('target', 'all')
-            ->orWhere(fn($q) => $q->where('target', 'user')->where('target_user_id', $user->id))
-            ->orWhere(fn($q) => $this->scopeFiltered($q, $user));
+        return $query->where(function ($q) use ($user) {
+            $q->where('target', 'all')
+                ->orWhere(fn($sq) => $sq->where('target', 'user')->where('target_user_id', $user->id))
+                ->orWhere(fn($sq) => $this->scopeFiltered($sq, $user));
+        });
     }
 
     private function scopeFiltered($q, $user): void

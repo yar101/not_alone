@@ -1,21 +1,22 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
-import { Edit, Setting } from '@element-plus/icons-vue';
+import { Edit, Setting, MoreFilled } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppSelect from '@/Components/AppSelect.vue';
 import AvatarUploader from '@/Components/AvatarUploader.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
+import { useTranslations } from '@/composables/useTranslations';
 
-// ── Pluralization ──────────────────────────────────────────────
-const agePR = new Intl.PluralRules('ru');
-const ageForms = { one: 'год', few: 'года', many: 'лет', other: 'лет' };
-function ageLabel(n) { return `${n} ${ageForms[agePR.select(n)]}`; }
+const { __, transChoice } = useTranslations();
+
+function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 
 const props = defineProps({
     user: { type: Object, required: true },
     isOwner: { type: Boolean, default: false },
     isIdol: { type: Boolean, default: false },
+    isFollowing: { type: Boolean, default: false },
     rating: { default: null },
     canReport: { type: Boolean, default: false },
 });
@@ -47,22 +48,14 @@ onUnmounted(() => window.removeEventListener('resize', measureNameScroll));
 function onEsc(e) {
     if (e.key === 'Escape') {
         lightboxOpen.value = false;
-        showOwnerMenu.value = false;
     }
-}
-function onOutsideClick(e) {
-    if (!e.target.closest('.owner-menu')) showOwnerMenu.value = false;
 }
 onMounted(() => {
     document.addEventListener('keydown', onEsc);
-    document.addEventListener('click', onOutsideClick);
 });
 onUnmounted(() => {
     document.removeEventListener('keydown', onEsc);
-    document.removeEventListener('click', onOutsideClick);
 });
-
-const showOwnerMenu = ref(false);
 
 const form = useForm({
     name: props.user.name ?? '',
@@ -75,10 +68,10 @@ const NAME_RE = /^\p{L}+(\s\p{L}+)?$/u;
 const nameError = ref('');
 
 function validateName(value) {
-    if (!value.trim()) return 'Имя обязательно.';
-    if (value.trim().length < 2) return 'Имя слишком короткое.';
-    if (value.trim().length > 100) return 'Имя слишком длинное.';
-    if (!NAME_RE.test(value.trim())) return 'Одно или два слова, только буквы.';
+    if (!value.trim()) return __('profile.header.err.required');
+    if (value.trim().length < 2) return __('profile.header.err.too_short');
+    if (value.trim().length > 100) return __('profile.header.err.too_long');
+    if (!NAME_RE.test(value.trim())) return __('profile.header.err.invalid');
     return '';
 }
 
@@ -92,7 +85,6 @@ const TIMEZONES = [
 ];
 
 const currentYear = new Date().getFullYear();
-const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
 function parseBd(dateStr) {
     if (!dateStr) return { y: '', m: '', d: '' };
@@ -117,9 +109,11 @@ const dayOptions = computed(() => {
     return Array.from({ length: days }, (_, i) => i + 1);
 });
 
-const monthOptions = computed(() => monthNames.map((n, i) => ({ value: i + 1, label: n })));
+const monthOptions = computed(() =>
+    Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: __(`auth.month.${i + 1}`) }))
+);
 const timezoneOptions = computed(() => [
-    { value: '', label: 'Не указан' },
+    { value: '', label: __('common.not_specified') },
     ...TIMEZONES.map(tz => ({ value: tz, label: tz })),
 ]);
 
@@ -157,40 +151,25 @@ function deleteAvatar() {
     <div id="tour-header" class="profile-header">
 
         <!-- Рейтинг — верхний левый угол -->
-        <div v-if="rating !== null" class="header-rating">
+        <div v-if="isIdol && rating !== null" class="header-rating">
             <img src="/stars/10.png" class="star-img" alt="rating" />
             <span class="rating-num">{{ rating }}</span>
         </div>
 
         <!-- Кнопки сверху справа -->
-        <div v-if="isOwner" class="header-actions">
-            <div class="owner-menu">
-                <button class="action-pill" @click.stop="showOwnerMenu = !showOwnerMenu">
-                    <span class="owner-menu__dot"></span>
-                    <span class="owner-menu__dot"></span>
-                    <span class="owner-menu__dot"></span>
-                </button>
-                <Transition name="owner-menu-pop">
-                    <div v-if="showOwnerMenu" class="owner-menu__dropdown">
-                        <button class="owner-menu__item" @click="editModal = true; showOwnerMenu = false">
-                            <el-icon><Edit /></el-icon>
-                            Редактировать профиль
-                        </button>
-                        <a :href="route('settings.edit')" class="owner-menu__item" @click="showOwnerMenu = false">
-                            <el-icon><Setting /></el-icon>
-                            Настройки
-                        </a>
-                    </div>
-                </Transition>
-            </div>
-        </div>
-        <div v-else-if="canReport" class="header-actions">
-            <button class="action-pill action-pill--report" @click="emit('report')" title="Пожаловаться">
+        <div class="header-actions">
+            <button v-if="!isOwner && canReport" class="action-pill action-pill--report" @click="emit('report')" :title="__('profile.header.report')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
                     <line x1="4" y1="22" x2="4" y2="15"/>
                 </svg>
             </button>
+
+            <div v-if="isOwner" class="owner-menu">
+                <button class="action-pill" @click="editModal = true" :title="__('profile.header.edit')">
+                    <el-icon><Edit /></el-icon>
+                </button>
+            </div>
         </div>
 
         <!-- Аватар по центру -->
@@ -207,7 +186,7 @@ function deleteAvatar() {
                 <h1 ref="nameRef" class="header-name">{{ user.name }}</h1>
             </div>
             <div v-if="isIdol || user.gender || user.age" class="header-meta">
-                <IdolBadge v-if="isIdol" />
+                <IdolBadge v-if="isIdol" :gender="user.gender" />
                 <span v-if="user.gender" class="meta-badge" :class="'meta-badge--' + user.gender">{{ user.gender === 'female' ? '\u2640\uFE0F' : '\u2642\uFE0F' }}</span>
                 <span v-if="user.age" class="meta-badge meta-badge--age">{{ ageLabel(user.age) }}</span>
             </div>
@@ -226,11 +205,11 @@ function deleteAvatar() {
         <!-- Edit modal -->
         <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
             <div class="edit-form">
-                <h3 class="edit-title">Редактировать профиль</h3>
+                <h3 class="edit-title">{{ __('profile.header.edit') }}</h3>
 
                 <div class="edit-field">
-                    <label class="edit-label">Имя</label>
-                    <input v-model="form.name" class="edit-input" type="text" placeholder="Имя или Имя Фамилия"
+                    <label class="edit-label">{{ __('auth.name') }}</label>
+                    <input v-model="form.name" class="edit-input" type="text" :placeholder="__('profile.header.name_ph')"
                         @input="nameError = ''" />
                     <span v-if="nameError || form.errors.name" class="edit-field-error">
                         {{ nameError || form.errors.name }}
@@ -238,38 +217,38 @@ function deleteAvatar() {
                 </div>
 
                 <div class="edit-field">
-                    <label class="edit-label">Пол</label>
+                    <label class="edit-label">{{ __('auth.gender') }}</label>
                     <div class="gender-group">
                         <button type="button" class="gender-btn" :class="{ active: form.gender === 'male' }"
-                            @click="form.gender = 'male'">Мужской</button>
+                            @click="form.gender = 'male'">{{ __('auth.gender.male') }}</button>
                         <button type="button" class="gender-btn" :class="{ active: form.gender === 'female' }"
-                            @click="form.gender = 'female'">Женский</button>
+                            @click="form.gender = 'female'">{{ __('auth.gender.female') }}</button>
                     </div>
                 </div>
 
                 <div class="edit-field">
-                    <label class="edit-label">Дата рождения</label>
+                    <label class="edit-label">{{ __('auth.birth_date') }}</label>
                     <div class="dob-row">
-                        <AppSelect v-model="bdDay" :options="dayOptions" placeholder="День"
+                        <AppSelect v-model="bdDay" :options="dayOptions" :placeholder="__('auth.birth_date.day')"
                             style="flex:1;min-width:0" />
-                        <AppSelect v-model="bdMonth" :options="monthOptions" placeholder="Месяц"
+                        <AppSelect v-model="bdMonth" :options="monthOptions" :placeholder="__('auth.birth_date.month')"
                             style="flex:1;min-width:0" />
-                        <AppSelect v-model="bdYear" :options="yearOptions" placeholder="Год"
+                        <AppSelect v-model="bdYear" :options="yearOptions" :placeholder="__('auth.birth_date.year')"
                             style="flex:1;min-width:0" />
                     </div>
                 </div>
 
                 <div class="edit-field">
-                    <label class="edit-label">Часовой пояс</label>
-                    <AppSelect v-model="form.timezone" :options="timezoneOptions" placeholder="Не указан" />
+                    <label class="edit-label">{{ __('search.filters.timezone') }}</label>
+                    <AppSelect v-model="form.timezone" :options="timezoneOptions" :placeholder="__('profile.header.tz_ph')" />
                 </div>
 
                 <div v-if="user.avatar_url" class="edit-field">
-                    <label class="edit-label">Аватар</label>
-                    <button class="delete-avatar-btn" type="button" @click="deleteAvatar">Удалить фото</button>
+                    <label class="edit-label">{{ __('common.avatar') }}</label>
+                    <button class="delete-avatar-btn" type="button" @click="deleteAvatar">{{ __('profile.header.delete_avatar') }}</button>
                 </div>
 
-                <button class="save-btn" :disabled="form.processing" @click="submitEdit">Сохранить</button>
+                <button class="save-btn" :disabled="form.processing" @click="submitEdit">{{ __('common.save') }}</button>
             </div>
         </SiteModal>
     </div>
@@ -288,7 +267,7 @@ function deleteAvatar() {
     flex-direction: column;
     align-items: center;
     padding: 0.75rem 1rem 1.5rem;
-    font-family: 'Figtree', sans-serif;
+    font-family: 'Rubik', sans-serif;
 }
 
 /* Кнопки — абсолютно в правом верхнем углу */
@@ -319,9 +298,9 @@ function deleteAvatar() {
 }
 
 .action-pill:hover {
-    color: #a0a0ff;
-    border-color: rgba(160, 160, 255, 0.5);
-    background: rgba(160, 160, 255, 0.05);
+    color: var(--color-base-1);
+    border-color: color-mix(in srgb, var(--color-base-1), transparent 50%);
+    background: color-mix(in srgb, var(--color-base-1), transparent 95%);
 }
 
 .action-pill--report {
@@ -341,24 +320,19 @@ function deleteAvatar() {
 .owner-menu > .action-pill {
     border: none;
     background: transparent;
+    color: rgba(200, 70, 126, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s;
 }
 
-.owner-menu__dot {
-    display: block;
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: rgba(200, 70, 126, 0.75);
-    flex-shrink: 0;
-    transition: background 0.15s;
+.owner-menu > .action-pill:hover {
+    color: rgba(200, 70, 126, 1);
 }
 
-.owner-menu > .action-pill:hover .owner-menu__dot {
-    background: rgba(200, 70, 126, 1);
-}
-
-.action-pill .owner-menu__dot + .owner-menu__dot {
-    margin-left: 3px;
+.owner-menu > .action-pill .el-icon {
+    font-size: 1.15rem;
 }
 
 .owner-menu__dropdown {
@@ -393,7 +367,7 @@ function deleteAvatar() {
 }
 
 .owner-menu__item:hover {
-    background: rgba(160, 160, 255, 0.07);
+    background: color-mix(in srgb, var(--color-base-1), transparent 93%);
     color: rgba(255, 255, 255, 0.9);
 }
 
@@ -436,41 +410,21 @@ function deleteAvatar() {
 
 .header-name-scroller {
     width: 100%;
-    overflow: hidden;
     display: flex;
     justify-content: center;
-}
-
-.header-name-scroller.name-overflows {
-    justify-content: flex-start;
-}
-
-.header-name-scroller.name-overflows:hover .header-name {
-    animation: header-name-scroll 3s ease-in-out infinite alternate;
-    animation-delay: 0.3s;
-}
-
-@keyframes header-name-scroll {
-
-    0%,
-    20% {
-        transform: translateX(0);
-    }
-
-    80%,
-    100% {
-        transform: translateX(var(--name-offset, 0px));
-    }
+    container-type: inline-size;
 }
 
 .header-name {
-    font-size: 1.7rem;
+    font-size: clamp(1rem, 8cqi, 1.7rem);
     font-weight: 700;
     margin: 0;
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-word;
+    text-align: center;
     color: #fff;
     letter-spacing: -0.01em;
-    flex-shrink: 0;
+    line-height: 1.2;
 }
 
 .header-meta {
@@ -496,15 +450,15 @@ function deleteAvatar() {
 }
 
 .meta-badge--female {
-    border-color: rgba(160, 160, 255, 0.3);
-    background: rgba(160, 160, 255, 0.06);
-    color: rgba(160, 160, 255, 0.85);
+    border-color: color-mix(in srgb, var(--color-base-1), transparent 70%);
+    background: color-mix(in srgb, var(--color-base-1), transparent 94%);
+    color: color-mix(in srgb, var(--color-base-1), white 10%);
 }
 
 .meta-badge--male {
-    border-color: rgba(167, 139, 250, 0.3);
-    background: rgba(167, 139, 250, 0.06);
-    color: rgba(167, 139, 250, 0.85);
+    border-color: rgba(100, 210, 255, 0.25);
+    background: rgba(100, 210, 255, 0.05);
+    color: rgba(100, 210, 255, 0.8);
 }
 
 .meta-badge--age {
@@ -526,10 +480,7 @@ function deleteAvatar() {
     display: flex;
     align-items: center;
     gap: 0.3rem;
-    padding: 0.4rem 0.75rem 0.4rem 0.55rem;
-    background: rgba(160, 160, 255, 0.06);
-    border: 1px solid rgba(160, 160, 255, 0.28);
-    border-radius: 3px;
+    padding: 0;
 }
 
 .star-img {
@@ -562,7 +513,7 @@ function deleteAvatar() {
     font-weight: 600;
     color: #fff;
     margin: 0 0 1.25rem;
-    font-family: 'Figtree', sans-serif;
+    font-family: 'Rubik', sans-serif;
 }
 
 .edit-field {
@@ -576,7 +527,7 @@ function deleteAvatar() {
     font-size: 0.68rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: rgba(160, 160, 255, 0.6);
+    color: color-mix(in srgb, var(--color-base-1), transparent 40%);
 }
 
 .edit-input {
@@ -594,12 +545,12 @@ function deleteAvatar() {
 }
 
 .edit-input:focus {
-    border-color: rgba(160, 160, 255, 0.4);
+    border-color: color-mix(in srgb, var(--color-base-1), transparent 60%);
 }
 
 .edit-field-error {
     font-size: 0.75rem;
-    color: rgba(160, 160, 255, 0.85);
+    color: color-mix(in srgb, var(--color-base-1), white 10%);
     margin-top: -0.1rem;
 }
 
@@ -646,17 +597,17 @@ function deleteAvatar() {
 }
 
 .gender-btn.active {
-    border-color: #a0a0ff;
+    border-color: var(--color-base-1);
     color: #fff;
 }
 
 .delete-avatar-btn {
     padding: 0.4rem 0.85rem;
     font-size: 0.85rem;
-    border: 1px solid rgba(160, 160, 255, 0.35);
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 65%);
     border-radius: 3px;
     background: transparent;
-    color: rgba(160, 160, 255, 0.8);
+    color: color-mix(in srgb, var(--color-base-1), white 20%);
     cursor: pointer;
     font-family: inherit;
     transition: all 0.15s;
@@ -664,17 +615,17 @@ function deleteAvatar() {
 }
 
 .delete-avatar-btn:hover {
-    border-color: #a0a0ff;
-    color: #a0a0ff;
+    border-color: var(--color-base-1);
+    color: var(--color-base-1);
 }
 
 .save-btn {
     width: 100%;
     margin-top: 0.5rem;
     padding: 0.8rem;
-    border: 1px solid rgba(160, 160, 255, 0.45);
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 55%);
     border-radius: 3px;
-    background: rgba(160, 160, 255, 0.08);
+    background: color-mix(in srgb, var(--color-base-1), transparent 92%);
     color: #fff;
     font-size: 0.95rem;
     cursor: pointer;
@@ -683,7 +634,7 @@ function deleteAvatar() {
 }
 
 .save-btn:hover:not(:disabled) {
-    background: rgba(160, 160, 255, 0.16);
+    background: color-mix(in srgb, var(--color-base-1), transparent 84%);
 }
 
 .save-btn:disabled {
@@ -764,17 +715,17 @@ function deleteAvatar() {
 }
 
 .crop-rotate-btn:hover {
-    color: #a0a0ff;
-    border-color: rgba(160, 160, 255, 0.4);
+    color: var(--color-base-1);
+    border-color: color-mix(in srgb, var(--color-base-1), transparent 40%);
 }
 
 .crop-error {
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
-    border: 1px solid rgba(160, 160, 255, 0.4);
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 60%);
     border-radius: 3px;
-    background: rgba(160, 160, 255, 0.06);
-    color: rgba(160, 160, 255, 0.9);
+    background: color-mix(in srgb, var(--color-base-1), transparent 94%);
+    color: color-mix(in srgb, var(--color-base-1), white 10%);
     font-size: 0.9rem;
 }
 
@@ -799,9 +750,9 @@ function deleteAvatar() {
     max-width: min(80vw, 640px);
     max-height: 80vh;
     object-fit: contain;
-    border-radius: 50%;
-    border: 1px solid rgba(160, 160, 255, 0.4);
-    box-shadow: 0 0 60px rgba(160, 160, 255, 0.15);
+    border-radius: 8px;
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 60%);
+    box-shadow: 0 0 60px color-mix(in srgb, var(--color-base-1), transparent 85%);
     cursor: default;
 }
 

@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Enums\OrderStatus;
+use App\Events\NewNotification;
 use App\Models\Order;
 use App\Models\Review;
 use App\Models\ReviewEpithet;
 use App\Models\User;
+use App\Notifications\NewReviewNotification;
+use App\Services\IdolRatingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -28,6 +31,9 @@ class ReviewController extends Controller
             422,
             'already_reviewed'
         );
+
+        $order->loadMissing('idol');
+        abort_if($order->idol->isActiveBanned(), 422, 'user_banned');
 
         $request->validate([
             'rating'   => 'required|integer|min:1|max:5',
@@ -57,6 +63,11 @@ class ReviewController extends Controller
 
         $review->epithets()->sync($request->epithets ?? []);
 
+        IdolRatingService::adjust($order->idol, 'review_' . $review->rating . 'star');
+
+        $order->idol->notify(new NewReviewNotification($review));
+        broadcast(new NewNotification('private', $order->idol_id));
+
         return response()->json(['success' => true]);
     }
 
@@ -82,8 +93,6 @@ class ReviewController extends Controller
         };
 
         $reviews = $query->paginate(10);
-
-        $avg = Review::where('idol_id', $user->id)->where('is_hidden', false)->avg('rating');
 
         $reviewIds = Review::where('idol_id', $user->id)->where('is_hidden', false)->pluck('id');
         $epithetCounts = \DB::table('review_epithet_review')
@@ -111,7 +120,6 @@ class ReviewController extends Controller
             ])->values(),
             'total'      => $reviews->total(),
             'has_more'   => $reviews->hasMorePages(),
-            'avg_rating' => $avg ? round($avg, 1) : null,
             'epithet_counts' => $epithetCounts->map(fn($e) => [
                 'id'    => $e->id,
                 'label' => $e->label,

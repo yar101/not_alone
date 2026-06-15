@@ -12,15 +12,15 @@ class ServiceTimeUnitSeeder extends Seeder
         ServiceTimeUnit::truncate();
 
         $units = [
-            '1 раз',
-            '15 минут',
-            '30 минут',
-            '1 час',
-            '1,5 часа',
-            '2 часа',
-            '1 игра',
-            '1 серия',
-            '1 песня',
+            ['ru' => '1 раз',     'en' => '1 time'],
+            ['ru' => '15 минут',  'en' => '15 minutes'],
+            ['ru' => '30 минут',  'en' => '30 minutes'],
+            ['ru' => '1 час',     'en' => '1 hour'],
+            ['ru' => '1,5 часа',  'en' => '1.5 hours'],
+            ['ru' => '2 часа',    'en' => '2 hours'],
+            ['ru' => '1 игра',    'en' => '1 game'],
+            ['ru' => '1 серия',   'en' => '1 episode'],
+            ['ru' => '1 песня',   'en' => '1 song'],
         ];
 
         foreach ($units as $i => $name) {

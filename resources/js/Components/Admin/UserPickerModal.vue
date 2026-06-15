@@ -2,6 +2,9 @@
 import { ref, watch, computed, nextTick } from 'vue';
 import axios from 'axios';
 import IdolBadge from '@/Components/IdolBadge.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { transChoice } = useTranslations();
 
 const props = defineProps({
     modelValue:    { type: Boolean, default: false },
@@ -212,7 +215,7 @@ function selectAll() {
                                 <IdolBadge v-if="user.is_idol" />
                                 <span v-if="user.gender === 'male'"   class="upm-badge upm-badge--male">М</span>
                                 <span v-if="user.gender === 'female'" class="upm-badge upm-badge--female">Ж</span>
-                                <span v-if="user.age"                 class="upm-badge upm-badge--age">{{ user.age }} лет</span>
+                                <span v-if="user.age" class="upm-badge upm-badge--age">{{ user.age }} {{ transChoice('search.age.years', user.age) }}</span>
                             </div>
                         </div>
 

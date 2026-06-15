@@ -3,6 +3,9 @@ import { ref, computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { EditPen } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __, locale } = useTranslations();
 
 const props = defineProps({
     interests:     { default: null },
@@ -22,6 +25,10 @@ const suggestionText = ref('');
 const suggSuccess = ref(false);
 const suggForm = useForm({ name: '' });
 
+function localName(item) {
+    return locale.value?.current === 'en' && item.name_en ? item.name_en : item.name_ru;
+}
+
 const filteredCategories = computed(() => {
     if (!Array.isArray(props.allCategories)) return [];
     const q = interestSearch.value.trim().toLowerCase();
@@ -31,7 +38,9 @@ const filteredCategories = computed(() => {
             ...cat,
             interests: cat.interests.filter(i =>
                 i.name_ru.toLowerCase().includes(q) ||
-                cat.name_ru.toLowerCase().includes(q)
+                (i.name_en && i.name_en.toLowerCase().includes(q)) ||
+                cat.name_ru.toLowerCase().includes(q) ||
+                (cat.name_en && cat.name_en.toLowerCase().includes(q))
             )
         }))
         .filter(cat => cat.interests.length > 0);
@@ -89,38 +98,38 @@ function submitSuggestion() {
 <template>
     <div id="tour-interests" class="block-section">
         <div class="section-header">
-            <span class="section-title">Интересы</span>
-            <button v-if="isOwner" class="edit-btn" @click="openEdit" title="Редактировать">
+            <span class="section-title">{{ __('profile.interests.title') }}</span>
+            <button v-if="isOwner" class="edit-btn" @click="openEdit" :title="__('common.edit')">
                 <el-icon><EditPen /></el-icon>
             </button>
         </div>
 
         <div v-if="interests?.length" class="tags-row">
-            <span v-for="i in interests" :key="i.id" class="tag">{{ i.name_ru }}</span>
+            <span v-for="i in interests" :key="i.id" class="tag">{{ localName(i) }}</span>
         </div>
-        <p v-else-if="isOwner" class="empty">Добавь свои интересы</p>
-        <p v-else class="empty">Не указано</p>
+        <p v-else-if="isOwner" class="empty">{{ __('profile.interests.empty') }}</p>
+        <p v-else class="empty">{{ __('profile.interests.not_specified') }}</p>
 
         <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
             <div class="edit-form">
-                <h3 class="edit-title">Интересы</h3>
+                <h3 class="edit-title">{{ __('profile.interests.title') }}</h3>
 
                 <Transition name="view-slide" mode="out-in">
                 <div v-if="view === 'list'" key="list">
-                    <p class="edit-hint">Выбери по категориям (до 10)</p>
+                    <p class="edit-hint">{{ __('profile.interests.subtitle') }}</p>
 
                     <input
                         v-model="interestSearch"
                         type="text"
                         class="search-input"
-                        placeholder="Поиск по интересам..."
+                        :placeholder="__('profile.interests.search')"
                     />
 
                     <div class="categories">
                         <template v-if="filteredCategories.length">
                             <div v-for="cat in filteredCategories" :key="cat.id" class="cat-block">
                                 <button type="button" class="cat-header" @click="toggleCat(cat.id)">
-                                    <span>{{ cat.name_ru }}</span>
+                                    <span>{{ localName(cat) }}</span>
                                     <span class="cat-count" v-if="cat.interests.some(i => selected.has(i.id))">
                                         ({{ cat.interests.filter(i => selected.has(i.id)).length }})
                                     </span>
@@ -135,39 +144,39 @@ function submitSuggestion() {
                                         :class="{ active: selected.has(i.id) }"
                                         @click="toggleInterest(i.id)"
                                         :disabled="!selected.has(i.id) && selected.size >= 10"
-                                    >{{ i.name_ru }}</button>
+                                    >{{ localName(i) }}</button>
                                 </div>
                             </div>
                         </template>
-                        <p v-else class="no-results">Ничего не найдено</p>
+                        <p v-else class="no-results">{{ __('common.not_found') }}</p>
                     </div>
 
                     <div class="list-footer">
-                        <button class="suggest-btn" @click="view = 'suggest'">Предложить свой</button>
+                        <button class="suggest-btn" @click="view = 'suggest'">{{ __('profile.interests.suggest_btn') }}</button>
                         <button class="save-btn save-btn--inline" :disabled="form.processing" @click="submit">
-                            Сохранить ({{ selected.size }}/10)
+                            {{ __('common.save') }} ({{ selected.size }}/10)
                         </button>
                     </div>
                 </div>
 
                 <div v-else key="suggest" class="suggest-form">
-                    <button class="back-btn" @click="view = 'list'">← Назад</button>
-                    <h4 class="suggest-title">Предложить интерес</h4>
-                    <p class="suggest-hint">Напиши название — мы рассмотрим его и добавим, если подойдёт</p>
+                    <button class="back-btn" @click="view = 'list'">{{ __('profile.interests.back') }}</button>
+                    <h4 class="suggest-title">{{ __('profile.interests.suggest.title') }}</h4>
+                    <p class="suggest-hint">{{ __('profile.interests.suggest.hint') }}</p>
                     <textarea
                         v-model="suggestionText"
                         class="suggestion-textarea"
                         maxlength="100"
                         rows="3"
-                        placeholder="Например: Настольные игры..."
+                        :placeholder="__('profile.interests.suggest.ph')"
                     />
                     <div class="suggest-footer">
                         <span class="char-count">{{ suggestionText.length }}/100</span>
                         <button class="save-btn suggest-submit-btn" :disabled="!suggestionText.trim() || suggForm.processing" @click="submitSuggestion">
-                            Отправить
+                            {{ __('common.send') }}
                         </button>
                     </div>
-                    <p v-if="suggSuccess" class="sugg-success">Предложение отправлено!</p>
+                    <p v-if="suggSuccess" class="sugg-success">{{ __('profile.interests.sent') }}</p>
                 </div>
                 </Transition>
             </div>
@@ -194,7 +203,7 @@ function submitSuggestion() {
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #a0a0ff;
+    color: var(--color-base-1);
 }
 
 .edit-btn {
@@ -214,15 +223,15 @@ function submitSuggestion() {
 }
 .block-section:hover .edit-btn {
     opacity: 1;
-    color: rgba(160, 160, 255, 0.8);
-    border-color: rgba(160, 160, 255, 0.35);
-    background: rgba(160, 160, 255, 0.08);
+    color: color-mix(in srgb, var(--color-base-1), transparent 20%);
+    border-color: color-mix(in srgb, var(--color-base-1), transparent 65%);
+    background: color-mix(in srgb, var(--color-base-1), transparent 92%);
 }
 .edit-btn:hover {
-    color: #be91ff;
-    border-color: rgba(160, 160, 255, 0.7);
-    background: rgba(160, 160, 255, 0.16);
-    box-shadow: 0 0 8px rgba(160, 160, 255, 0.35);
+    color: var(--color-base-1);
+    border-color: color-mix(in srgb, var(--color-base-1), transparent 30%);
+    background: color-mix(in srgb, var(--color-base-1), transparent 84%);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--color-base-1), transparent 65%);
 }
 
 .tags-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
@@ -247,7 +256,7 @@ function submitSuggestion() {
     box-sizing: border-box; outline: none; transition: border-color 0.15s;
 }
 .search-input::placeholder { color: rgba(255,255,255,0.25); }
-.search-input:focus { border-color: rgba(190,145,255,0.5); }
+.search-input:focus { border-color: color-mix(in srgb, var(--color-base-1), transparent 50%); }
 .categories { display: flex; flex-direction: column; gap: 0.2rem; margin-bottom: 1rem; }
 .cat-block { border: 1px solid rgba(255,255,255,0.07); border-radius: 3px; }
 .cat-header {
@@ -257,7 +266,7 @@ function submitSuggestion() {
     font-size: 0.9rem; cursor: pointer; font-family: inherit; text-align: left;
     border-radius: 3px;
 }
-.cat-count { color: rgba(190,145,255,0.75); font-size: 0.8rem; margin-left: 0.4rem; }
+.cat-count { color: color-mix(in srgb, var(--color-base-1), transparent 25%); font-size: 0.8rem; margin-left: 0.4rem; }
 .cat-arrow { color: rgba(255,255,255,0.35); font-size: 1.1rem; transition: transform 0.2s; margin-left: auto; }
 .cat-arrow.open { transform: rotate(90deg); }
 .cat-interests { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0.6rem 0.9rem; background: rgba(0,0,0,0.12); border-radius: 0 0 3px 3px; }
@@ -267,16 +276,16 @@ function submitSuggestion() {
     border: 1px solid rgba(255,255,255,0.1); background: transparent;
     color: rgba(255,255,255,0.5); font-size: 0.88rem; cursor: pointer; font-family: inherit; transition: all 0.15s;
 }
-.interest-btn.active { border-color: rgba(190,145,255,0.55); background: rgba(190,145,255,0.1); color: #fff; }
+.interest-btn.active { border-color: color-mix(in srgb, var(--color-base-1), transparent 45%); background: color-mix(in srgb, var(--color-base-1), transparent 90%); color: #fff; }
 .interest-btn:disabled:not(.active) { opacity: 0.3; cursor: not-allowed; }
 .no-results { color: rgba(255,255,255,0.3); font-size: 0.9rem; text-align: center; padding: 1rem 0; margin: 0; }
 .save-btn {
     width: 100%; padding: 0.75rem;
-    border-radius: 3px; border: 1px solid rgba(190,145,255,0.4);
-    background: rgba(190,145,255,0.1);
+    border-radius: 3px; border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 60%);
+    background: color-mix(in srgb, var(--color-base-1), transparent 90%);
     color: #fff; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: background 0.15s;
 }
-.save-btn:hover:not(:disabled) { background: rgba(190,145,255,0.2); }
+.save-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--color-base-1), transparent 80%); }
 .save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .list-footer { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
@@ -284,16 +293,16 @@ function submitSuggestion() {
     flex-shrink: 0;
     padding: 0.5rem 0.85rem;
     border-radius: 3px;
-    border: 1px solid rgba(190,145,255,0.3);
-    background: rgba(190,145,255,0.07);
-    color: rgba(190,145,255,0.85);
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 70%);
+    background: color-mix(in srgb, var(--color-base-1), transparent 93%);
+    color: color-mix(in srgb, var(--color-base-1), transparent 15%);
     font-size: 0.85rem;
     cursor: pointer;
     font-family: inherit;
     transition: background 0.15s, border-color 0.15s;
     white-space: nowrap;
 }
-.suggest-btn:hover { background: rgba(190,145,255,0.15); border-color: rgba(190,145,255,0.5); }
+.suggest-btn:hover { background: color-mix(in srgb, var(--color-base-1), transparent 85%); border-color: color-mix(in srgb, var(--color-base-1), transparent 50%); }
 .save-btn--inline { width: auto; padding: 0.55rem 1.25rem; }
 
 /* ── Форма предложения интереса ──────────────────────────── */
@@ -327,7 +336,7 @@ function submitSuggestion() {
     transition: border-color 0.15s;
 }
 .suggestion-textarea::placeholder { color: rgba(255,255,255,0.25); }
-.suggestion-textarea:focus { border-color: rgba(160,160,255,0.4); }
+.suggestion-textarea:focus { border-color: color-mix(in srgb, var(--color-base-1), transparent 60%); }
 .suggest-footer { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
 .char-count { font-size: 0.78rem; color: rgba(255,255,255,0.3); }
 .suggest-submit-btn { width: auto; padding: 0.55rem 1.25rem; }

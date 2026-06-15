@@ -6,9 +6,12 @@ use App\Enums\OrderStatus;
 use App\Events\MessageRead;
 use App\Events\MessageSent;
 use App\Events\NewMessageReceived;
+use App\Events\NewNotification;
 use App\Models\ChatBlock;
 use App\Models\Conversation;
+use App\Models\PlatformSetting;
 use App\Models\User;
+use App\Notifications\NewMessageNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -17,55 +20,101 @@ class ConversationController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $user     = $request->user();
+        $search   = trim($request->input('search', ''));
+        $cursorAt = $request->input('cursor_at');
+        $cursorId = (int) $request->input('cursor_id', 0);
+        $perPage  = 10;
 
-        $conversations = Conversation::whereNull('order_id')
+        $query = Conversation::whereNull('order_id')
             ->whereHas('participants', fn($q) => $q->where('user_id', $user->id))
-            ->with([
-                'participants.user',
-                'lastMessage.sender',
-            ])
-            ->get()
-            ->map(function (Conversation $conversation) use ($user) {
-                $other = $conversation->participants
-                    ->firstWhere('user_id', '!=', $user->id)?->user;
+            ->with(['participants.user', 'lastMessage.sender'])
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id');
 
-                $participantMe = $conversation->participants
-                    ->firstWhere('user_id', $user->id);
+        if ($search !== '') {
+            $like = '%' . $search . '%';
+            $query->where(function ($q) use ($user, $like) {
+                $q->where('is_support', true)
+                  ->orWhereHas('participants', function ($pq) use ($user, $like) {
+                      $pq->where('user_id', '!=', $user->id)
+                         ->whereHas('user', fn($uq) => $uq->whereRaw('LOWER(name) LIKE LOWER(?)', [$like]));
+                  });
+            });
+        }
 
-                $unread = 0;
-                if ($participantMe) {
-                    $query = $conversation->messages()->where('sender_id', '!=', $user->id);
-                    if ($participantMe->last_read_at) {
-                        $query->where('created_at', '>', $participantMe->last_read_at);
-                    }
-                    $unread = $query->count();
+        if ($request->boolean('unread')) {
+            $userId = $user->id;
+            $query->whereExists(function ($sub) use ($userId) {
+                $sub->from('messages as m')
+                    ->join('conversation_participants as cp', function ($j) use ($userId) {
+                        $j->on('cp.conversation_id', '=', 'm.conversation_id')
+                          ->where('cp.user_id', $userId);
+                    })
+                    ->whereColumn('m.conversation_id', 'conversations.id')
+                    ->where(function ($q) use ($userId) {
+                        $q->where('m.sender_id', '!=', $userId)->orWhereNull('m.sender_id');
+                    })
+                    ->where(function ($q) {
+                        $q->whereNull('cp.last_read_at')
+                          ->orWhereColumn('m.created_at', '>', 'cp.last_read_at');
+                    });
+            });
+        }
+
+        if ($cursorAt && $cursorId) {
+            $query->where(function ($q) use ($cursorAt, $cursorId) {
+                $q->where('updated_at', '<', $cursorAt)
+                  ->orWhere(fn($q) => $q->where('updated_at', $cursorAt)->where('id', '<', $cursorId));
+            });
+        }
+
+        $items   = $query->limit($perPage + 1)->get();
+        $hasMore = $items->count() > $perPage;
+        if ($hasMore) $items = $items->take($perPage);
+
+        $conversations = $items->map(function (Conversation $conversation) use ($user) {
+            $other = $conversation->participants
+                ->firstWhere('user_id', '!=', $user->id)?->user;
+
+            $participantMe = $conversation->participants
+                ->firstWhere('user_id', $user->id);
+
+            $unread = 0;
+            if ($participantMe) {
+                $query = $conversation->messages()->where(function ($q) use ($user) {
+                    $q->where('sender_id', '!=', $user->id)->orWhereNull('sender_id');
+                });
+                if ($participantMe->last_read_at) {
+                    $query->where('created_at', '>', $participantMe->last_read_at);
                 }
+                $unread = $query->count();
+            }
 
-                return [
-                    'id'           => $conversation->id,
-                    'is_support'   => (bool) $conversation->is_support,
-                    'closed_at'    => $conversation->closed_at?->toISOString(),
-                    'other_user'   => $other ? [
-                        'id'         => $other->id,
-                        'name'       => $other->name,
-                        'avatar_url' => $other->avatar_url,
-                        'is_idol'    => $other->is_idol,
-                    ] : null,
-                    'last_message' => $conversation->lastMessage ? [
-                        'body'       => $conversation->lastMessage->type === 'image' ? '[фото]' : $conversation->lastMessage->body,
-                        'sender_id'  => $conversation->lastMessage->sender_id,
-                        'created_at' => $conversation->lastMessage->created_at?->toISOString(),
-                    ] : null,
-                    'unread_count' => $unread,
-                    'updated_at'   => $conversation->updated_at?->toISOString(),
-                    'block'        => $this->blockStatus($conversation, $user),
-                ];
-            })
-            ->sortByDesc('updated_at')
-            ->values();
+            return [
+                'id'           => $conversation->id,
+                'is_support'   => (bool) $conversation->is_support,
+                'closed_at'    => $conversation->closed_at?->toISOString(),
+                'other_user'   => $other ? [
+                    'id'         => $other->id,
+                    'name'       => $other->name,
+                    'avatar_url' => $other->avatar_url,
+                    'is_idol'    => $other->is_idol,
+                    'gender'     => $other->gender,
+                    ] : null,                'last_message' => $conversation->lastMessage ? [
+                    'body'       => $conversation->lastMessage->body,
+                    'type'       => $conversation->lastMessage->type,
+                    'metadata'   => $conversation->lastMessage->metadata,
+                    'sender_id'  => $conversation->lastMessage->sender_id,
+                    'created_at' => $conversation->lastMessage->created_at?->toISOString(),
+                ] : null,
+                'unread_count' => $unread,
+                'updated_at'   => $conversation->updated_at?->toISOString(),
+                'block'        => $this->blockStatus($conversation, $user),
+            ];
+        })->values();
 
-        return response()->json(['conversations' => $conversations]);
+        return response()->json(['conversations' => $conversations, 'has_more' => $hasMore]);
     }
 
     public function show(Request $request, Conversation $conversation): JsonResponse
@@ -131,6 +180,7 @@ class ConversationController extends Controller
                     'cancelled_by_name' => $o->cancelledBy?->name,
                     'is_customer'   => $o->customer_id === $user->id,
                     'paid_at'       => $o->paid_at?->toISOString(),
+                    'auto_complete_at' => $o->paid_at ? $o->paid_at->addSeconds((int)((float)PlatformSetting::get('order_auto_complete_delay', 72) * 3600))->toISOString() : null,
                     'completed_at'  => $o->completed_at?->toISOString(),
                     'completion_confirmed_by_idol'     => $o->completion_confirmed_by_idol,
                     'completion_confirmed_by_customer' => $o->completion_confirmed_by_customer,
@@ -163,14 +213,50 @@ class ConversationController extends Controller
                 'name'       => $other->name,
                 'avatar_url' => $other->avatar_url,
                 'is_idol'    => $other->is_idol,
-            ] : null,
-            'other_last_read_at' => $otherParticipant?->last_read_at?->toISOString(),
+                'gender'     => $other->gender,
+                ] : null,            'other_last_read_at' => $otherParticipant?->last_read_at?->toISOString(),
             'has_more'           => $hasMore,
             'block'              => $this->blockStatus($conversation, $user),
             'order'              => $orderData,
             'is_support'         => (bool) $conversation->is_support,
             'closed_at'          => $conversation->closed_at?->toISOString(),
             'has_review'         => $hasReview,
+        ]);
+    }
+
+    public function check(Request $request, User $user): JsonResponse
+    {
+        $auth = $request->user();
+        abort_unless($auth->is_idol, 403);
+        abort_if($user->is_idol, 422, 'target_is_idol');
+
+        $conversation = Conversation::whereNull('order_id')
+            ->whereHas('participants', fn($q) => $q->where('user_id', $auth->id))
+            ->whereHas('participants', fn($q) => $q->where('user_id', $user->id))
+            ->first();
+
+        $block = ChatBlock::active()->where(function ($q) use ($auth, $user) {
+            $q->where(['blocker_id' => $auth->id, 'blocked_id' => $user->id])
+              ->orWhere(['blocker_id' => $user->id, 'blocked_id' => $auth->id]);
+        })->first();
+
+        $blockData = $block ? [
+            'active'       => true,
+            'i_am_blocker' => $block->blocker_id === $auth->id,
+            'reason'       => $block->reason,
+            'blocked_until'=> $block->blocked_until?->toISOString(),
+        ] : null;
+
+        return response()->json([
+            'conversation_id' => $conversation?->id,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'avatar_url' => $user->avatar_url,
+                'is_idol' => $user->is_idol,
+                'gender' => $user->gender,
+            ],
+            'block' => $blockData
         ]);
     }
 
@@ -181,6 +267,8 @@ class ConversationController extends Controller
         $request->validate(['target_user_id' => 'required|exists:users,id']);
 
         $target = User::findOrFail($request->target_user_id);
+        abort_if($target->isActiveBanned(), 422, 'user_banned');
+        abort_if($target->is_idol, 422, 'target_is_idol');
         $conversation = Conversation::findOrCreateBetween($request->user(), $target);
 
         return response()->json(['conversation_id' => $conversation->id]);
@@ -228,6 +316,11 @@ class ConversationController extends Controller
             abort(403, 'blocked');
         }
 
+        $other = User::select(['id', 'is_banned', 'banned_until'])->find($otherId);
+        if ($other && $other->isActiveBanned()) {
+            abort(422, 'user_banned');
+        }
+
         $type = $request->input('type', 'user');
 
         $request->validate([
@@ -252,13 +345,19 @@ class ConversationController extends Controller
         // Notify each recipient via their private user channel (for badge update)
         $conversation->participants()
             ->where('user_id', '!=', $user->id)
-            ->pluck('user_id')
-            ->each(fn($recipientId) => broadcast(new NewMessageReceived(
-                $recipientId,
-                $conversation->id,
-                $msg,
-                $conversation->order_id,
-            )));
+            ->with('user')
+            ->get()
+            ->each(function ($participant) use ($conversation, $msg) {
+                broadcast(new NewMessageReceived(
+                    $participant->user_id,
+                    $conversation->id,
+                    $msg,
+                    $conversation->order_id,
+                ));
+
+                $participant->user->notify(new NewMessageNotification($msg));
+                broadcast(new NewNotification('private', $participant->user_id));
+            });
 
         return response()->json([
             'id'             => $msg->id,
@@ -327,13 +426,17 @@ class ConversationController extends Controller
 
         $conversation->participants()
             ->where('user_id', '!=', $user->id)
-            ->pluck('user_id')
-            ->each(function ($recipientId) use ($conversation) {
+            ->with('user')
+            ->get()
+            ->each(function ($participant) use ($conversation, $msg) {
                 try {
-                    broadcast(new NewMessageReceived($recipientId, $conversation->id));
+                    broadcast(new NewMessageReceived($participant->user_id, $conversation->id, $msg));
                 } catch (\Throwable $e) {
                     \Log::warning('Broadcast NewMessageReceived failed: ' . $e->getMessage());
                 }
+
+                $participant->user->notify(new NewMessageNotification($msg));
+                broadcast(new NewNotification('private', $participant->user_id));
             });
 
         return response()->json([

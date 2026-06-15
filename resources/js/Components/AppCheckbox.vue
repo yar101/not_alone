@@ -45,7 +45,7 @@ defineEmits(['update:checked']);
 .app-checkbox__box {
     width: 15px;
     height: 15px;
-    border: 1.5px solid rgba(110,110,210,0.35);
+    border: 1.5px solid rgba(255, 178, 239,0.35);
     border-radius: 3px;
     background: transparent;
     display: flex;
@@ -56,8 +56,8 @@ defineEmits(['update:checked']);
 }
 
 .app-checkbox--checked .app-checkbox__box {
-    background: rgba(110,110,210,0.5);
-    border-color: rgba(160,160,255,0.7);
+    background: rgba(255, 178, 239,0.5);
+    border-color: rgba(255, 178, 239,0.7);
 }
 
 .app-checkbox__tick {
@@ -67,6 +67,6 @@ defineEmits(['update:checked']);
 }
 
 .app-checkbox:hover:not(.app-checkbox--disabled) .app-checkbox__box {
-    border-color: rgba(160,160,255,0.55);
+    border-color: rgba(255, 178, 239,0.55);
 }
 </style>

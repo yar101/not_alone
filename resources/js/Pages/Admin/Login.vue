@@ -15,7 +15,10 @@ function submit() {
 <template>
     <div class="login-wrap">
         <div class="login-card">
-            <h1 class="login-title">NoAlone Admin</h1>
+            <div class="login-logo-wrap">
+                <img src="/app-logo-v3.png" alt="NoAlone" class="login-logo" />
+            </div>
+            <h1 class="login-title">Admin</h1>
             <p class="login-sub">Панель управления</p>
 
             <form @submit.prevent="submit" class="login-form">
@@ -57,11 +60,11 @@ function submit() {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Figtree', sans-serif;
+    font-family: 'Rubik', sans-serif;
 }
 
 .login-card {
-    width: 380px;
+    width: min(380px, calc(100vw - 2rem));
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(155, 110, 232, 0.2);
     border-radius: 16px;
@@ -69,13 +72,26 @@ function submit() {
     box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
 }
 
+.login-logo-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.login-logo {
+    height: 48px;
+    width: auto;
+}
+
 .login-title {
     font-family: 'Imbue', serif;
-    font-size: 1.6rem;
+    font-size: 1.2rem;
     color: #9B6EE8;
     text-align: center;
     margin: 0 0 0.25rem;
     text-shadow: 0 0 24px rgba(155, 110, 232, 0.4);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
 }
 
 .login-sub {

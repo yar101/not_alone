@@ -1,8 +1,12 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 import UserAvatar from '@/Components/UserAvatar.vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import SortDropdown from '@/Components/SortDropdown.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __, transChoice } = useTranslations();
 
 const props = defineProps({
     profileUserId: { type: Number, required: true },
@@ -12,7 +16,6 @@ const props = defineProps({
 
 const reviews       = ref([]);
 const total         = ref(0);
-const avgRating     = ref(null);
 const epithetCounts = ref([]);
 const loading       = ref(true);
 const loadingList   = ref(false);
@@ -20,11 +23,7 @@ const loadingMore   = ref(false);
 const hasMore       = ref(false);
 const page          = ref(1);
 const sort          = ref('latest');
-const sortOpen      = ref(false);
-const sortWrapEl    = ref(null);
-const sentinel      = ref(null);
 const showBackTop   = ref(false);
-let observer        = null;
 let scrollContainer = null;
 
 // ── Dispute modal ─────────────────────────────────────────────
@@ -61,30 +60,21 @@ async function submitDispute() {
     } catch (e) {
         const msg = e.response?.data?.message;
         if (msg === 'dispute_pending') {
-            disputeError.value = 'Жалоба уже отправлена и ожидает рассмотрения.';
+            disputeError.value = __('reviews.error.reported');
         } else {
-            disputeError.value = 'Не удалось отправить жалобу. Попробуйте ещё раз.';
+            disputeError.value = __('reviews.error.failed');
         }
     } finally {
         disputeSubmitting.value = false;
     }
 }
 
-const sortOptions = [
-    { value: 'latest',      label: 'сначала новые' },
-    { value: 'oldest',      label: 'сначала старые' },
-    { value: 'rating_desc', label: 'с высокой оценкой' },
-    { value: 'rating_asc',  label: 'с низкой оценкой' },
-];
-const sortLabel = computed(() => sortOptions.find(o => o.value === sort.value)?.label ?? 'сначала новые');
-
-function onSortDocClick(e) {
-    if (sortOpen.value && sortWrapEl.value && !sortWrapEl.value.contains(e.target)) {
-        sortOpen.value = false;
-    }
-}
-onMounted(() => document.addEventListener('click', onSortDocClick, true));
-onUnmounted(() => document.removeEventListener('click', onSortDocClick, true));
+const sortOptions = computed(() => [
+    { value: 'latest',      label: __('reviews.sort.newest') },
+    { value: 'oldest',      label: __('reviews.sort.oldest') },
+    { value: 'rating_desc', label: __('reviews.sort.highest') },
+    { value: 'rating_asc',  label: __('reviews.sort.lowest') },
+]);
 
 async function fetchPage(p = 1) {
     const res = await axios.get(route('users.reviews', props.profileUserId), {
@@ -94,11 +84,8 @@ async function fetchPage(p = 1) {
 }
 
 async function setSort(value) {
-    sortOpen.value = false;
     if (sort.value === value) return;
     sort.value = value;
-    observer?.disconnect();
-    observer = null;
     page.value = 1;
     reviews.value = [];
     loadingList.value = true;
@@ -108,8 +95,19 @@ async function setSort(value) {
         hasMore.value = data.has_more;
     } finally {
         loadingList.value = false;
-        await nextTick();
-        setupObserver();
+    }
+}
+
+async function loadMore() {
+    if (loadingMore.value || !hasMore.value) return;
+    loadingMore.value = true;
+    try {
+        page.value++;
+        const data = await fetchPage(page.value);
+        reviews.value.push(...data.reviews);
+        hasMore.value = data.has_more;
+    } finally {
+        loadingMore.value = false;
     }
 }
 
@@ -118,18 +116,15 @@ onMounted(async () => {
         const data = await fetchPage(1);
         reviews.value       = data.reviews;
         total.value         = data.total;
-        avgRating.value     = data.avg_rating;
         hasMore.value       = data.has_more;
         epithetCounts.value = data.epithet_counts ?? [];
     } finally {
         loading.value = false;
-        await nextTick();
-        setupObserver();
+        setupScrollContainer();
     }
 });
 
 onUnmounted(() => {
-    observer?.disconnect();
     scrollContainer?.removeEventListener('scroll', onScroll);
 });
 
@@ -150,26 +145,13 @@ function getScrollParent(el) {
     return null;
 }
 
-function setupObserver() {
-    if (!sentinel.value) return;
-    const root = getScrollParent(sentinel.value);
+function setupScrollContainer() {
+    const el = document.querySelector('.pr-wrap');
+    const root = el ? getScrollParent(el) : null;
     if (root && !scrollContainer) {
         scrollContainer = root;
         scrollContainer.addEventListener('scroll', onScroll, { passive: true });
     }
-    observer = new IntersectionObserver(async ([entry]) => {
-        if (!entry.isIntersecting || loadingMore.value || !hasMore.value) return;
-        loadingMore.value = true;
-        try {
-            page.value++;
-            const data = await fetchPage(page.value);
-            reviews.value.push(...data.reviews);
-            hasMore.value = data.has_more;
-        } finally {
-            loadingMore.value = false;
-        }
-    }, { root, rootMargin: '120px' });
-    observer.observe(sentinel.value);
 }
 
 function formatDate(iso) {
@@ -216,41 +198,13 @@ function formatDate(iso) {
             <svg class="pr-empty__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
             </svg>
-            <p class="pr-empty__title">Отзывов пока нет</p>
-            <p class="pr-empty__hint">Отзывы появятся после завершения заказов</p>
+            <p class="pr-empty__title">{{ __('reviews.empty') }}</p>
+            <p class="pr-empty__hint">{{ __('reviews.after_orders') }}</p>
         </div>
 
         <template v-else>
             <!-- Summary -->
             <div class="pr-summary">
-                <div class="pr-summary__top">
-                    <div class="pr-summary__hearts">
-                        <svg
-                            v-for="i in 5"
-                            :key="i"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="pr-summary__heart"
-                        >
-                            <defs>
-                                <radialGradient :id="`sg-${i}`" cx="50%" cy="35%" r="65%">
-                                    <stop offset="0%" stop-color="rgba(255,190,210,0.95)" />
-                                    <stop offset="100%" stop-color="rgba(210,50,100,0.9)" />
-                                </radialGradient>
-                            </defs>
-                            <path
-                                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                                :fill="(avgRating && i <= Math.round(avgRating)) ? `url(#sg-${i})` : 'none'"
-                                :stroke="(avgRating && i <= Math.round(avgRating)) ? 'rgba(210,60,100,0.5)' : 'rgba(255,160,180,0.3)'"
-                                stroke-width="1.5"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            />
-                        </svg>
-                    </div>
-                    <span v-if="avgRating" class="pr-summary__score">{{ avgRating }}</span>
-                </div>
-
                 <!-- Epithet cloud -->
                 <div v-if="epithetCounts.length" class="pr-summary__epithets">
                     <span
@@ -265,29 +219,9 @@ function formatDate(iso) {
             </div>
 
             <!-- Sort dropdown -->
-            <div class="pr-sort" ref="sortWrapEl">
-                <span class="pr-sort__label">Сортировка:</span>
-                <div class="pr-sort__trigger">
-                    <button class="pr-sort__btn" @click="sortOpen = !sortOpen" type="button">
-                        {{ sortLabel }}
-                        <svg class="pr-sort__arrow" :class="{ 'pr-sort__arrow--open': sortOpen }" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="6 9 12 15 18 9"/>
-                        </svg>
-                    </button>
-                    <Transition name="pr-drop">
-                        <div v-if="sortOpen" class="pr-sort__dropdown">
-                            <button
-                                v-for="opt in sortOptions"
-                                :key="opt.value"
-                                class="pr-sort__option"
-                                :class="{ 'pr-sort__option--active': sort === opt.value }"
-                                @click="setSort(opt.value)"
-                                type="button"
-                            >{{ opt.label }}</button>
-                        </div>
-                    </Transition>
-                </div>
-                <span class="pr-sort__total">{{ total }} {{ total === 1 ? 'отзыв' : total < 5 ? 'отзыва' : 'отзывов' }}</span>
+            <div class="pr-sort">
+                <SortDropdown :options="sortOptions" :model-value="sort" @update:modelValue="setSort" />
+                <span class="pr-sort__total">{{ transChoice('reviews.total', total, { count: total }) }}</span>
             </div>
 
             <!-- List -->
@@ -324,15 +258,15 @@ function formatDate(iso) {
                         class="pr-card__dispute-overlay"
                         @click.stop="openDisputeModal(r)"
                     >
-                        <button class="pr-card__dispute-btn" type="button">Оспорить</button>
+                        <button class="pr-card__dispute-btn" type="button">{{ __('reviews.dispute.btn') }}</button>
                     </div>
                     <!-- Dispute status badges -->
                     <div v-else-if="isOwner && isIdol && r.dispute_status === 'pending'" class="pr-card__dispute-badge pr-card__dispute-badge--pending">
-                        На рассмотрении
+                        {{ __('reviews.dispute.pending') }}
                     </div>
                     <div v-else-if="isOwner && isIdol && r.dispute_status === 'rejected'" class="pr-card__dispute-overlay">
                         <div class="pr-card__dispute-rejected">
-                            Предыдущая жалоба отклонена — <span class="pr-card__dispute-retry" @click.stop="openDisputeModal(r)">оспорить повторно</span>
+                            {{ __('reviews.dispute.rejected') }} <span class="pr-card__dispute-retry" @click.stop="openDisputeModal(r)">{{ __('reviews.dispute.retry') }}</span>
                         </div>
                     </div>
 
@@ -385,21 +319,26 @@ function formatDate(iso) {
                     </div>
                 </div>
 
-                <!-- Sentinel for IntersectionObserver -->
-                <template v-if="!loadingList">
-                    <div ref="sentinel" class="pr-sentinel"></div>
-                    <div v-if="loadingMore" class="pr-loading-more">Загрузка…</div>
+                <!-- Load more -->
+                <template v-if="!loadingList && hasMore">
+                    <button class="pr-load-more" :disabled="loadingMore" @click="loadMore">
+                        <svg v-if="loadingMore" class="pr-load-more__spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" width="14" height="14">
+                            <circle cx="12" cy="12" r="9" stroke-width="2.5" stroke-opacity="0.25" />
+                            <path d="M12 3a9 9 0 0 1 9 9" stroke-width="2.5" stroke-linecap="round" />
+                        </svg>
+                        {{ __('reviews.load_more') }}
+                    </button>
                 </template>
             </div>
         </template>
 
     <!-- Back to top -->
     <Transition name="pr-backtop">
-        <button v-if="showBackTop" class="pr-backtop" @click="scrollToTop" type="button" aria-label="Наверх">
+        <button v-if="showBackTop" class="pr-backtop" @click="scrollToTop" type="button" :aria-label="__('reviews.backtop')">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="18 15 12 9 6 15"/>
             </svg>
-            Наверх
+            {{ __('reviews.backtop') }}
         </button>
     </Transition>
     </div>
@@ -416,18 +355,18 @@ function formatDate(iso) {
             <template v-if="disputeSuccess">
                 <div class="pd-success">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    Жалоба отправлена. Мы рассмотрим её в ближайшее время.
+                    {{ __('reviews.dispute.sent') }}
                 </div>
             </template>
             <template v-else>
-                <h3 class="pd-title">Оспорить отзыв</h3>
-                <p class="pd-hint">Объясните, почему этот отзыв должен быть удалён (до 250 символов).</p>
+                <h3 class="pd-title">{{ __('reviews.dispute.title') }}</h3>
+                <p class="pd-hint">{{ __('reviews.dispute.hint') }}</p>
                 <textarea
                     v-model="disputeReason"
                     class="pd-textarea"
                     maxlength="250"
                     rows="5"
-                    placeholder="Опишите причину…"
+                    :placeholder="__('reviews.dispute.ph')"
                 ></textarea>
                 <div class="pd-counter">{{ disputeReason.length }} / 250</div>
                 <p v-if="disputeError" class="pd-error">{{ disputeError }}</p>
@@ -437,7 +376,7 @@ function formatDate(iso) {
                     :disabled="disputeSubmitting || !disputeReason.trim()"
                     @click="submitDispute"
                 >
-                    {{ disputeSubmitting ? 'Отправка…' : 'Отправить жалобу' }}
+                    {{ disputeSubmitting ? __('reviews.dispute.submitting') : __('reviews.dispute.submit') }}
                 </button>
             </template>
         </div>
@@ -534,26 +473,6 @@ function formatDate(iso) {
     gap: 0.85rem;
     padding: 0.9rem 0 0;
 }
-.pr-summary__top {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-}
-.pr-summary__hearts {
-    display: flex;
-    gap: 0.25rem;
-}
-.pr-summary__heart {
-    width: 20px;
-    height: 20px;
-}
-.pr-summary__score {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: rgba(255,190,210,0.9);
-    font-family: 'Courier New', monospace;
-    letter-spacing: 0.05em;
-}
 .pr-summary__epithets {
     display: flex;
     flex-wrap: wrap;
@@ -564,8 +483,8 @@ function formatDate(iso) {
     align-items: center;
     gap: 0.4rem;
     padding: 0.35rem 0.8rem;
-    background: rgba(160,160,255,0.07);
-    border: 1px solid rgba(160,160,255,0.2);
+    background: rgba(255, 178, 239,0.07);
+    border: 1px solid rgba(255, 178, 239,0.2);
     border-radius: 4px;
     line-height: 1;
 }
@@ -598,81 +517,6 @@ function formatDate(iso) {
     color: rgba(255,255,255,0.55);
     white-space: nowrap;
 }
-.pr-sort__label {
-    font-size: 0.92rem;
-    color: rgba(255,255,255,0.55);
-    white-space: nowrap;
-}
-.pr-sort__btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    background: none;
-    border: none;
-    padding: 0;
-    font-size: 0.92rem;
-    font-family: inherit;
-    color: var(--color-base-1);
-    cursor: pointer;
-    white-space: nowrap;
-}
-.pr-sort__btn:hover { opacity: 0.8; }
-.pr-sort__arrow {
-    transition: transform 0.18s ease;
-    opacity: 0.7;
-}
-.pr-sort__arrow--open { transform: rotate(180deg); }
-
-.pr-sort__trigger {
-    position: relative;
-}
-.pr-sort__dropdown {
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    background: rgba(12, 10, 20, 0.97);
-    border: 1px solid rgba(160,160,255,0.2);
-    border-radius: 6px;
-    padding: 0;
-    z-index: 20;
-    min-width: 180px;
-    box-shadow: 0 6px 24px rgba(0,0,0,0.5);
-    overflow: hidden;
-}
-.pr-sort__dropdown::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent 0%, rgba(255,140,175,0.5) 50%, transparent 100%);
-    pointer-events: none;
-}
-.pr-sort__option {
-    display: block;
-    width: 100%;
-    padding: 0.5rem 0.9rem;
-    background: none;
-    border: none;
-    text-align: left;
-    font-size: 0.92rem;
-    font-family: inherit;
-    color: rgba(255,255,255,0.5);
-    cursor: pointer;
-    transition: color 0.12s, background 0.12s;
-}
-.pr-sort__option:hover {
-    background: rgba(160,160,255,0.07);
-    color: rgba(200,200,255,0.9);
-}
-.pr-sort__option--active {
-    color: var(--color-base-1);
-}
-
-.pr-drop-enter-active { transition: opacity 0.15s ease, transform 0.15s ease; }
-.pr-drop-leave-active { transition: opacity 0.1s ease, transform 0.1s ease; }
-.pr-drop-enter-from, .pr-drop-leave-to { opacity: 0; transform: translateY(-4px); }
 
 /* ── List ────────────────────────────────── */
 .pr-list {
@@ -743,8 +587,8 @@ function formatDate(iso) {
     align-items: center;
     gap: 0.35rem;
     padding: 0.4rem 0.9rem;
-    background: rgba(160,160,255,0.08);
-    border: 1px solid rgba(160,160,255,0.2);
+    background: rgba(255, 178, 239,0.08);
+    border: 1px solid rgba(255, 178, 239,0.2);
     border-radius: 4px;
     font-size: 0.9rem;
 }
@@ -793,6 +637,12 @@ function formatDate(iso) {
 .pr-card--disputable {
     cursor: default;
 }
+
+@media (max-width: 600px) {
+    .pr-card--disputable {
+        padding-top: 2.25rem;
+    }
+}
 .pr-card__dispute-overlay {
     position: absolute;
     top: 0;
@@ -812,6 +662,7 @@ function formatDate(iso) {
     background: rgba(220,60,60,0.07);
     border: 1px solid rgba(220,60,60,0.35);
     border-top: none;
+    border-bottom: none;
     border-radius: 0 0 7px 7px;
     color: rgba(255,120,120,0.88);
     font-size: 0.84rem;
@@ -853,8 +704,8 @@ function formatDate(iso) {
     overflow: hidden;
 }
 .pr-card__dispute-badge--pending {
-    background: rgba(160,160,255,0.07);
-    border: 1px solid rgba(160,160,255,0.25);
+    background: rgba(255, 178, 239,0.07);
+    border: 1px solid rgba(255, 178, 239,0.25);
     border-top: none;
     color: rgba(180,180,255,0.85);
 }
@@ -865,7 +716,7 @@ function formatDate(iso) {
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent 0%, rgba(160,160,255,0.6) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 178, 239,0.6) 50%, transparent 100%);
 }
 .pr-card__dispute-rejected {
     margin-top: -1px;
@@ -1009,10 +860,10 @@ function formatDate(iso) {
     align-self: flex-end;
     padding: 0.55rem 1.2rem;
     border-radius: 5px;
-    background: linear-gradient(180deg, rgba(200,45,90,0.97) 0%, rgba(160,25,65,0.97) 100%);
-    border: 1px solid rgba(255,100,140,0.45);
-    box-shadow: 0 2px 12px rgba(180,30,70,0.35), inset 0 1px 0 rgba(255,160,190,0.15);
-    color: rgba(255,220,230,0.95);
+    background: linear-gradient(180deg, rgba(80,70,180,0.97) 0%, rgba(55,48,145,0.97) 100%);
+    border: 1px solid rgba(120,115,220,0.45);
+    box-shadow: 0 2px 12px rgba(55,48,145,0.45), inset 0 1px 0 rgba(160,155,255,0.15);
+    color: rgba(200,200,255,0.95);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1034,32 +885,58 @@ function formatDate(iso) {
     right: 0;
     height: 1px;
     border-radius: 5px 5px 0 0;
-    background: linear-gradient(90deg, transparent 0%, rgba(255,180,200,0.7) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(200,200,255,0.7) 50%, transparent 100%);
 }
 .pr-backtop::before {
     content: '';
     position: absolute;
     inset: 2px;
     border-radius: 3px;
-    border: 1px dashed rgba(255,120,160,0.2);
+    border: 1px dashed rgba(160,155,255,0.2);
     opacity: 0;
     transition: opacity 0.15s;
 }
 .pr-backtop:hover {
-    box-shadow: 0 4px 18px rgba(180,30,70,0.5), inset 0 1px 0 rgba(255,160,190,0.2);
-    border-color: rgba(255,120,160,0.65);
+    box-shadow: 0 4px 18px rgba(55,48,145,0.6), inset 0 1px 0 rgba(160,155,255,0.2);
+    border-color: rgba(120,115,220,0.7);
 }
 .pr-backtop:hover::before { opacity: 1; }
 .pr-backtop-enter-active { transition: opacity 0.2s ease, transform 0.2s ease; }
 .pr-backtop-leave-active { transition: opacity 0.15s ease, transform 0.15s ease; }
 .pr-backtop-enter-from, .pr-backtop-leave-to { opacity: 0; transform: translateY(8px); }
 
-/* Sentinel & loader */
-.pr-sentinel { height: 1px; }
-.pr-loading-more {
-    text-align: center;
-    font-size: 0.8rem;
-    color: rgba(255,255,255,0.25);
-    padding: 0.5rem 0;
+/* Load more button */
+.pr-load-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    width: 100%;
+    padding: 0.65rem 1rem;
+    background: rgba(255, 178, 239, 0.06);
+    border: 1px solid rgba(255, 178, 239, 0.18);
+    border-radius: 6px;
+    color: rgba(200, 200, 255, 0.75);
+    font-size: 0.88rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.pr-load-more:hover:not(:disabled) {
+    background: rgba(255, 178, 239, 0.12);
+    border-color: rgba(255, 178, 239, 0.35);
+    color: rgba(200, 200, 255, 0.95);
+}
+.pr-load-more:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+.pr-load-more__spinner {
+    animation: pr-spin 0.75s linear infinite;
+    flex-shrink: 0;
+}
+@keyframes pr-spin {
+    to { transform: rotate(360deg); }
 }
 </style>

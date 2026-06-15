@@ -2,6 +2,10 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import SiteHeader from '@/Components/Site/SiteHeader.vue';
+import LocaleLoader from '@/Components/LocaleLoader.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     item: Object,
@@ -35,6 +39,8 @@ onUnmounted(() => heroObserver?.disconnect());
         <meta v-if="item.image" property="og:image" :content="item.image" />
     </Head>
 
+    <LocaleLoader />
+
     <!-- Декор -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div class="sh-circle sh-circle--1"/><div class="sh-circle sh-circle--2"/><div class="sh-circle sh-circle--3"/>
@@ -51,7 +57,7 @@ onUnmounted(() => heroObserver?.disconnect());
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 12H5M12 5l-7 7 7 7"/>
                 </svg>
-                <span>Все новости</span>
+                <span>{{ __('news.back') }}</span>
             </Link>
         </Transition>
 
@@ -66,7 +72,7 @@ onUnmounted(() => heroObserver?.disconnect());
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M19 12H5M12 5l-7 7 7 7"/>
                         </svg>
-                        <span>Все новости</span>
+                        <span>{{ __('news.back') }}</span>
                     </Link>
 
                     <!-- Герой -->
@@ -157,7 +163,7 @@ onUnmounted(() => heroObserver?.disconnect());
 /* ── Back ────────────────────────────────────────────────────── */
 .sh-back {
     display: inline-flex; align-items: center; gap: 0.55rem;
-    font-family: "Figtree", sans-serif;
+    font-family: 'Rubik', sans-serif;
     font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase;
     color: rgba(255,255,255,0.3); text-decoration: none;
     margin-bottom: 1.5rem;
@@ -181,7 +187,7 @@ onUnmounted(() => heroObserver?.disconnect());
     border-radius: 4px;
     color: rgba(190,145,255,0.75);
     text-decoration: none;
-    font-family: "Figtree", sans-serif;
+    font-family: 'Rubik', sans-serif;
     font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase;
     z-index: 100;
     transition: color 0.18s, border-color 0.18s, background 0.18s, box-shadow 0.18s;
@@ -248,7 +254,7 @@ onUnmounted(() => heroObserver?.disconnect());
     font-size: 0.65rem; color: rgba(190,145,255,0.45); line-height: 1;
 }
 .sh-meta__date {
-    font-family: "Figtree", sans-serif;
+    font-family: 'Rubik', sans-serif;
     font-size: 0.82rem; color: rgba(255,255,255,0.42);
     letter-spacing: 0.1em; text-transform: uppercase;
 }

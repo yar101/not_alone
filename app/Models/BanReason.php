@@ -3,9 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Translatable\HasTranslations;
 
 class BanReason extends Model
 {
+    use HasTranslations;
+
+    public array $translatable = ['label'];
+
     protected $fillable = ['label', 'type', 'sort_order'];
 
     public function scopeForChatBlock($query)

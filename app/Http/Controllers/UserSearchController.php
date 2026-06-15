@@ -66,15 +66,26 @@ class UserSearchController extends Controller
 
         $users = $query
             ->select(['id','name','avatar_path','gender','birth_date','is_idol','rating','about','timezone','created_at'])
-            ->paginate(12)
+            ->paginate(20)
             ->withQueryString();
 
         return Inertia::render('Search/Index', [
             'users'              => $users,
-            'traits'             => PersonalityTrait::orderBy('sort_order')->get(['id','name_ru']),
+            'traits'             => PersonalityTrait::orderBy('sort_order')->get(['id', 'name'])->map(fn ($t) => [
+                'id' => $t->id, 'name_ru' => $t->getTranslation('name', 'ru'), 'name_en' => $t->getTranslation('name', 'en', false) ?: null,
+            ]),
             'interestCategories' => InterestCategory::with(['interests' => fn($q) => $q->orderBy('sort_order')])
-                                        ->orderBy('sort_order')->get(),
-            'serviceCategories'  => ServiceCategory::where('is_active', true)->orderBy('sort_order')->get(['id','name']),
+                ->orderBy('sort_order')->get()->map(fn ($cat) => [
+                    'id'        => $cat->id,
+                    'name_ru'   => $cat->getTranslation('name', 'ru'),
+                    'name_en'   => $cat->getTranslation('name', 'en', false) ?: null,
+                    'interests' => $cat->interests->map(fn ($i) => [
+                        'id' => $i->id, 'name_ru' => $i->getTranslation('name', 'ru'), 'name_en' => $i->getTranslation('name', 'en', false) ?: null,
+                    ])->values(),
+                ]),
+            'serviceCategories'  => ServiceCategory::where('is_active', true)->orderBy('sort_order')->get(['id', 'name'])->map(fn ($c) => [
+                'id' => $c->id, 'name_ru' => $c->getTranslation('name', 'ru'), 'name_en' => $c->getTranslation('name', 'en', false) ?: null,
+            ]),
             'filters'            => $request->only([
                 'name','gender','age_from','age_to','is_idol',
                 'rating_from','rating_to','traits','interests','languages',

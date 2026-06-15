@@ -8,6 +8,7 @@
     "devDependencies": {
         "@inertiajs/vue3": "^2.0.0",
         "@tailwindcss/forms": "^0.5.3",
+        "@vite-pwa/assets-generator": "^1.0.2",
         "@vitejs/plugin-vue": "^5.0.0",
         "autoprefixer": "^10.4.12",
         "axios": "^1.7.4",
@@ -20,6 +21,7 @@
         "unplugin-auto-import": "^21.0.0",
         "unplugin-vue-components": "^31.0.0",
         "vite": "^6.0.11",
+        "vite-plugin-pwa": "^1.2.0",
         "vue": "^3.4.0"
     },
     "dependencies": {
@@ -27,6 +29,7 @@
         "@fontsource-variable/brygada-1918": "^5.2.8",
         "@fontsource-variable/figtree": "^5.2.10",
         "@fontsource-variable/imbue": "^5.2.8",
+        "@fontsource-variable/rubik": "^5.2.8",
         "@fontsource/dosis": "^5.2.8",
         "@tiptap/extension-underline": "^3.20.0",
         "@tiptap/pm": "^3.20.0",

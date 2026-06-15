@@ -4,11 +4,11 @@ namespace App\Events;
 
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class OrderStatusChanged implements ShouldBroadcastNow
+class OrderStatusChanged implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -21,6 +21,7 @@ class OrderStatusChanged implements ShouldBroadcastNow
         public ?string $cancelReason         = null,
         public ?string $paidAt               = null,
         public ?string $completedAt          = null,
+        public ?string $autoCompleteAt       = null,
         public bool    $confirmedByIdol      = false,
         public bool    $confirmedByCustomer  = false,
     ) {}
@@ -45,6 +46,7 @@ class OrderStatusChanged implements ShouldBroadcastNow
             'cancel_reason'                    => $this->cancelReason,
             'paid_at'                          => $this->paidAt,
             'completed_at'                     => $this->completedAt,
+            'auto_complete_at'                 => $this->autoCompleteAt,
             'completion_confirmed_by_idol'     => $this->confirmedByIdol,
             'completion_confirmed_by_customer' => $this->confirmedByCustomer,
         ];

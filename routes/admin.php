@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminLogController;
+use App\Http\Controllers\Admin\ContentPackChangeRequestController;
+use App\Http\Controllers\Admin\ContentPackModerationController;
+use App\Http\Controllers\Admin\RatingLogController;
 use App\Http\Controllers\Admin\ApplicationController;
 use App\Http\Controllers\Admin\BanReasonController;
 use App\Http\Controllers\Admin\ChatBlockController;
@@ -18,6 +21,7 @@ use App\Http\Controllers\Admin\InterestSuggestionController;
 use App\Http\Controllers\Admin\PersonalityTraitController;
 use App\Http\Controllers\Admin\TraitSuggestionController;
 use App\Http\Controllers\Admin\ServiceCategoryController;
+use App\Http\Controllers\Admin\ServiceChangeRequestController;
 use App\Http\Controllers\Admin\ServiceModerationController;
 use App\Http\Controllers\Admin\ServicePriceLimitController;
 use App\Http\Controllers\Admin\ServiceTimeUnitController;
@@ -29,6 +33,8 @@ use App\Http\Controllers\Admin\ReviewDisputeController;
 use App\Http\Controllers\Admin\ReviewEpithetController;
 use App\Http\Controllers\Admin\SupportChatController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\HelpCategoryController;
+use App\Http\Controllers\Admin\HelpArticleController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -71,10 +77,33 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
         Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
 
+        // Content pack moderation
+        Route::prefix('content-packs')->name('content-packs.')->group(function () {
+            Route::get('/', [ContentPackModerationController::class, 'index'])->name('index');
+            // Change requests (static prefix must come before /{pack})
+            Route::prefix('change-requests')->name('change-requests.')->group(function () {
+                Route::get('/',                              [ContentPackChangeRequestController::class, 'index'])->name('index');
+                Route::get('/{changeRequest}',               [ContentPackChangeRequestController::class, 'show'])->name('show');
+                Route::post('/{changeRequest}/decide',       [ContentPackChangeRequestController::class, 'decide'])->name('decide');
+            });
+            Route::get('/{pack}', [ContentPackModerationController::class, 'show'])->name('show');
+            Route::post('/{pack}/decide', [ContentPackModerationController::class, 'decide'])->name('decide');
+        });
+
         // Services management
         Route::prefix('services')->name('services.')->group(function () {
             // Static routes first
             Route::get('/moderation', [ServiceModerationController::class, 'index'])->name('moderation.index');
+            Route::get('/moderation/{service}', [ServiceModerationController::class, 'show'])->name('moderation.show');
+            Route::post('/moderation/{service}/decide', [ServiceModerationController::class, 'decide'])->name('moderation.decide');
+            
+            // Change requests
+            Route::prefix('change-requests')->name('change-requests.')->group(function () {
+                Route::get('/', [ServiceChangeRequestController::class, 'index'])->name('index');
+                Route::get('/{changeRequest}', [ServiceChangeRequestController::class, 'show'])->name('show');
+                Route::post('/{changeRequest}/decide', [ServiceChangeRequestController::class, 'decide'])->name('decide');
+            });
+
             Route::patch('/{service}/approve', [ServiceModerationController::class, 'approve'])->name('moderation.approve');
             Route::patch('/{service}/reject', [ServiceModerationController::class, 'reject'])->name('moderation.reject');
             Route::post('/bulk-approve', [ServiceModerationController::class, 'bulkApprove'])->name('moderation.bulk-approve');
@@ -103,6 +132,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Logs
         Route::get('/logs', [AdminLogController::class, 'index'])->name('logs.index');
+        Route::get('/rating-logs', [RatingLogController::class, 'index'])->name('rating-logs.index');
 
         // Reports
         Route::prefix('reports')->name('reports.')->group(function () {
@@ -177,6 +207,22 @@ Route::patch('/{trait}', [PersonalityTraitController::class, 'update'])->name('u
             Route::post('/',         [NewsController::class, 'store'])->name('store');
             Route::patch('/{news}',  [NewsController::class, 'update'])->name('update');
             Route::delete('/{news}', [NewsController::class, 'destroy'])->name('destroy');
+        });
+
+        // Help / FAQ CRUD
+        Route::prefix('help-categories')->name('help-categories.')->group(function () {
+            Route::get('/',             [HelpCategoryController::class, 'index'])->name('index');
+            Route::post('/',            [HelpCategoryController::class, 'store'])->name('store');
+            Route::patch('/{category}', [HelpCategoryController::class, 'update'])->name('update');
+            Route::delete('/{category}', [HelpCategoryController::class, 'destroy'])->name('destroy');
+            Route::post('/reorder',     [HelpCategoryController::class, 'reorder'])->name('reorder');
+        });
+
+        Route::prefix('help-articles')->name('help-articles.')->group(function () {
+            Route::post('/',            [HelpArticleController::class, 'store'])->name('store');
+            Route::patch('/{article}',  [HelpArticleController::class, 'update'])->name('update');
+            Route::delete('/{article}', [HelpArticleController::class, 'destroy'])->name('destroy');
+            Route::post('/reorder',     [HelpArticleController::class, 'reorder'])->name('reorder');
         });
 
         // Orders

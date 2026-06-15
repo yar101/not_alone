@@ -1,17 +1,78 @@
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted, nextTick, inject } from 'vue';
-import { useForm, router, usePage } from '@inertiajs/vue3';
-import { Plus } from '@element-plus/icons-vue';
-import AppSelect from '@/Components/AppSelect.vue';
-import CreateButton from '@/Components/CreateButton.vue';
-import SiteModal from '@/Components/Site/SiteModal.vue';
+import {
+    ref,
+    computed,
+    watch,
+    onMounted,
+    onUnmounted,
+    nextTick,
+    inject,
+} from "vue";
+import { useForm, router, usePage } from "@inertiajs/vue3";
+import axios from "axios";
+import AppSelect from "@/Components/AppSelect.vue";
+import CreateButton from "@/Components/CreateButton.vue";
+import SiteModal from "@/Components/Site/SiteModal.vue";
+import ServiceRemarksModal from "@/Components/Profile/ServiceRemarksModal.vue";
+import ServiceStatusBadge from "@/Components/Profile/ServiceStatusBadge.vue";
+import { useTranslations, localeLoading } from "@/composables/useTranslations";
+
+const { __, transChoice, locale } = useTranslations();
+
+function catName(cat) {
+    return locale.value?.current === "en" && cat?.name_en
+        ? cat.name_en
+        : (cat?.name_ru ?? cat?.name ?? "");
+}
+
+function catDesc(cat) {
+    return locale.value?.current === "en" && cat?.description_en
+        ? cat.description_en
+        : (cat?.description_ru ?? null);
+}
+
+function localUnitName(unit) {
+    return locale.value?.current === "en" && unit?.name_en
+        ? unit.name_en
+        : (unit?.name_ru ?? "");
+}
+
+function localServiceName(item) {
+    return locale.value?.current === "en" && item?.name_en
+        ? item.name_en
+        : (item?.name_ru ?? item?.name ?? "");
+}
+
+function isFlagged(item, field) {
+    if (item.status === 'has_remarks' && item.latest_review) {
+        return (item.latest_review.flagged_fields || []).includes(field);
+    }
+    if (item.pending_change?.status === 'has_remarks') {
+        return (item.pending_change.flagged_fields || []).includes(field);
+    }
+    return false;
+}
+
+function getFieldComment(item, field) {
+    if (item.status === 'has_remarks' && item.latest_review) {
+        return (item.latest_review.field_comments || {})[field];
+    }
+    if (item.pending_change?.status === 'has_remarks') {
+        return (item.pending_change.field_comments || {})[field];
+    }
+    return null;
+}
 
 const page = usePage();
 const showPendingModal = ref(false);
 
-watch(() => page.props.flash?.service_pending, (val) => {
-    if (val) showPendingModal.value = true;
-}, { immediate: true });
+watch(
+    () => page.props.flash?.service_pending,
+    (val) => {
+        if (val) showPendingModal.value = true;
+    },
+    { immediate: true },
+);
 
 const props = defineProps({
     services: { default: null },
@@ -27,28 +88,46 @@ const props = defineProps({
 const localServices = ref(null);
 
 // ── Cart ─────────────────────────────────────────────────────────
-const cart = inject('cart', null);
-const openAuth = inject('openAuth', null);
+const cart = inject("cart", null);
+const openAuth = inject("openAuth", null);
 const cartConflictModal = ref(false);
-const pendingCartItem   = ref(null);
-const blockError        = ref(false);
+const pendingCartItem = ref(null);
+const blockError = ref(false);
 let blockErrorTimer = null;
 
 function showBlockError() {
     blockError.value = true;
     clearTimeout(blockErrorTimer);
-    blockErrorTimer = setTimeout(() => { blockError.value = false; }, 3500);
+    blockErrorTimer = setTimeout(() => {
+        blockError.value = false;
+    }, 3500);
+}
+
+// ── Remarks Modal ────────────────────────────────────────────────
+const fixingService = ref(null);
+const remarksMode = ref("review");
+function openFix(service) {
+    fixingService.value = service;
+    remarksMode.value = service.status === "has_remarks" ? "review" : "change-request";
 }
 
 function isInCart(serviceId) {
-    return !!cart?.value?.items.find(i => i.service_id === serviceId);
+    return !!cart?.value?.services?.items.find(
+        (i) => i.service_id === serviceId,
+    );
 }
 
 function addToCart(item) {
-    if (!page.props.auth?.user) { openAuth?.('register'); return; }
-    if (props.isBlockedByIdol) { showBlockError(); return; }
+    if (!page.props.auth?.user) {
+        openAuth?.("register");
+        return;
+    }
+    if (props.isBlockedByIdol) {
+        showBlockError();
+        return;
+    }
     if (!cart) return;
-    const c = cart.value;
+    const c = cart.value.services;
     const idolId = props.profileUser?.id;
     if (c.idol_id && c.idol_id !== idolId && c.items.length > 0) {
         // Different idol — show conflict modal
@@ -61,24 +140,24 @@ function addToCart(item) {
 
 function doAddToCart(item) {
     if (!cart) return;
-    const c = cart.value;
+    const c = cart.value.services;
     if (isInCart(item.id)) return;
-    c.idol_id     = props.profileUser?.id;
-    c.idol_name   = props.profileUser?.name ?? '';
+    c.idol_id = props.profileUser?.id;
+    c.idol_name = props.profileUser?.name ?? "";
     c.idol_avatar = props.profileUser?.avatar_url ?? null;
     c.items.push({
         service_id: item.id,
-        name:       item.name,
-        price:      item.price,
-        time_unit:  item.time_unit?.name ?? null,
-        quantity:   1,
+        name: localServiceName(item),
+        price: item.price,
+        time_unit: localUnitName(item.time_unit) || null,
+        quantity: 1,
     });
 }
 
 function confirmCartReplace() {
     if (!cart) return;
-    cart.value.items = [];
-    cart.value.idol_id = null;
+    cart.value.services.items = [];
+    cart.value.services.idol_id = null;
     doAddToCart(pendingCartItem.value);
     pendingCartItem.value = null;
     cartConflictModal.value = false;
@@ -90,32 +169,34 @@ function cancelCartReplace() {
 }
 
 // ── Two-level navigation ────────────────────────────────────────
-const serviceNav = inject('serviceNav', null);
+const serviceNav = inject("serviceNav", null);
 const selectedCategory = ref(null);
 const pendingResync = ref(false);
-const catTransitionDir = ref('forward'); // 'forward' | 'back'
+const catTransitionDir = ref("forward"); // 'forward' | 'back'
 const catTransitionName = computed(() =>
-    catTransitionDir.value === 'forward' ? 'drill-in' : 'drill-out'
+    catTransitionDir.value === "forward" ? "drill-in" : "drill-out",
 );
 
 const SESSION_KEY = computed(() => `services_cat_${props.profileUser?.id}`);
 
 function openCategory(group) {
-    catTransitionDir.value = 'forward';
+    catTransitionDir.value = "forward";
     selectedCategory.value = group;
     if (serviceNav) {
         serviceNav.inCategory = true;
-        serviceNav.accent = group.category.accent_color || '#a0a0ff';
+        serviceNav.accent = group.category.accent_color || "#ffb2ef";
         serviceNav.onBack = backToList;
     }
 }
 
 function backToList() {
-    catTransitionDir.value = 'back';
+    catTransitionDir.value = "back";
     selectedCategory.value = null;
     sessionStorage.removeItem(SESSION_KEY.value);
     if (serviceNav) serviceNav.inCategory = false;
-    router.reload({ only: ['services', 'serviceCategories', 'serviceTimeUnits'] });
+    router.reload({
+        only: ["services", "serviceCategories", "serviceTimeUnits"],
+    });
 }
 
 // Mark that a resync is needed after the next deferred prop update
@@ -124,33 +205,38 @@ function resyncSelectedCategory() {
 }
 
 // Restore on initial deferred prop load OR after a mutation (pendingResync)
-watch(() => props.services, (services) => {
-    if (!services) return;
-    localServices.value = services;
-    const catId = selectedCategory.value?.category?.id;
-    if (!catId) return;
-    if (!selectedCategory.value || pendingResync.value) {
-        const group = services.find(g => g.category.id == catId);
-        selectedCategory.value = group ?? null;
-        if (!group) sessionStorage.removeItem(SESSION_KEY.value);
-        pendingResync.value = false;
-    }
-}, { immediate: true });
+watch(
+    () => props.services,
+    (services) => {
+        if (!services) return;
+        localServices.value = services;
+        const catId = selectedCategory.value?.category?.id;
+        if (!catId) return;
+        if (!selectedCategory.value || pendingResync.value) {
+            const group = services.find((g) => g.category.id == catId);
+            selectedCategory.value = group ?? null;
+            if (!group) sessionStorage.removeItem(SESSION_KEY.value);
+            pendingResync.value = false;
+        }
+    },
+    { immediate: true },
+);
 
 function navigateToIdolInCategory(idol) {
     const categoryId = selectedCategory.value?.category?.id;
     if (categoryId) {
         sessionStorage.setItem(`services_cat_${idol.id}`, categoryId);
     }
-    window.location.href = route('profile.show', idol.id) + '#services';
+    window.location.href = route("profile.show", idol.id) + "#services";
 }
 
 // ── Inline description edit ─────────────────────────────────────
 const editingDesc = ref(false);
-const descDraft = ref('');
+const descDraft = ref("");
+const descSaving = ref(false);
 
 function startDescEdit() {
-    descDraft.value = selectedCategory.value?.idol_description ?? '';
+    descDraft.value = selectedCategory.value?.idol_description ?? "";
     editingDesc.value = true;
 }
 
@@ -160,9 +246,10 @@ function cancelDescEdit() {
 
 function saveDesc() {
     const catId = selectedCategory.value?.category?.id;
-    if (!catId) return;
+    if (!catId || descSaving.value) return;
+    descSaving.value = true;
     router.patch(
-        route('profile.services.category.description', catId),
+        route("profile.services.category.description", catId),
         { description: descDraft.value },
         {
             preserveScroll: true,
@@ -173,24 +260,37 @@ function saveDesc() {
                 }
                 editingDesc.value = false;
             },
-        }
+            onFinish() {
+                descSaving.value = false;
+            },
+        },
     );
 }
 
 // ── Add / Edit service form ─────────────────────────────────────
 const showForm = ref(false);
 const editingId = ref(null);
+const showNameRu = ref(true);
+const showNameEn = ref(false);
 
 const form = useForm({
-    name: '',
+    name_ru: "",
+    name_en: "",
     category_id: null,
     time_unit_id: null,
-    price: '',
+    price: "",
 });
 
 function openAdd() {
     editingId.value = null;
     form.reset();
+    if (locale.value?.current === "en") {
+        showNameEn.value = true;
+        showNameRu.value = false;
+    } else {
+        showNameRu.value = true;
+        showNameEn.value = false;
+    }
     // Pre-fill category if we're inside a category detail
     if (selectedCategory.value) {
         form.category_id = selectedCategory.value.category.id;
@@ -201,16 +301,38 @@ function openAdd() {
 
 function openEdit(item) {
     editingId.value = item.id;
-    form.name = item.name;
-    form.category_id = item.category_id ?? null;
-    form.time_unit_id = item.time_unit?.id ?? null;
-    form.price = item.price;
+    
+    // If there is a pending change request with remarks, use its values
+    const source = (item.pending_change?.status === 'has_remarks') ? item.pending_change : null;
+    
+    if (source) {
+        form.name_ru = source.pending_name?.ru ?? "";
+        form.name_en = source.pending_name?.en ?? "";
+        form.category_id = source.pending_category?.id ?? item.category_id;
+        form.time_unit_id = source.pending_time_unit?.id ?? item.time_unit?.id;
+        form.price = source.pending_price ?? item.price;
+    } else {
+        form.name_ru = item.name_ru ?? "";
+        form.name_en = item.name_en ?? "";
+        form.category_id = item.category_id ?? null;
+        form.time_unit_id = item.time_unit?.id ?? null;
+        form.price = item.price;
+    }
+    
+    showNameRu.value = !!form.name_ru;
+    showNameEn.value = !!form.name_en;
+    if (!showNameRu.value && !showNameEn.value) {
+        if (locale.value?.current === "en") showNameEn.value = true;
+        else showNameRu.value = true;
+    }
     showForm.value = true;
 }
 
 function closeForm() {
     showForm.value = false;
     editingId.value = null;
+    showNameRu.value = true;
+    showNameEn.value = false;
     form.reset();
     form.clearErrors();
     clearDraft();
@@ -218,24 +340,41 @@ function closeForm() {
 
 function submitForm() {
     if (editingId.value) {
-        form.patch(route('profile.services.update', editingId.value), {
+        const item = localServices.value.flatMap(g => g.items).find(i => i.id === editingId.value);
+        const isFixingCR = item?.pending_change?.status === 'has_remarks';
+
+        localeLoading.value = true;
+        const method = isFixingCR ? 'post' : 'patch';
+        const url = isFixingCR
+            ? route("profile.services.fix-change-request", editingId.value)
+            : route("profile.services.update", editingId.value);
+
+        form.submit(method, url, {
             preserveScroll: true,
             preserveState: true,
-            onSuccess() { closeForm(); resyncSelectedCategory(); },
+            onSuccess() {
+                closeForm();
+                resyncSelectedCategory();
+            },
+            onFinish: () => {
+                localeLoading.value = false;
+            },
         });
     } else {
-        form.post(route('profile.services.store'), {
+        form.post(route("profile.services.store"), {
             preserveScroll: true,
             preserveState: true,
-            onSuccess() { closeForm(); resyncSelectedCategory(); },
+            onSuccess() {
+                closeForm();
+                resyncSelectedCategory();
+            },
         });
     }
 }
-
 const showCancelConfirm = ref(false);
 
 function tryCloseForm() {
-    if (!editingId.value && (form.name || form.price || form.time_unit_id)) {
+    if (!editingId.value && (form.name_ru || form.price || form.time_unit_id)) {
         showCancelConfirm.value = true;
     } else {
         closeForm();
@@ -247,6 +386,32 @@ function confirmCancelForm() {
     closeForm();
 }
 
+function removeNameRu() {
+    showNameRu.value = false;
+    form.name_ru = "";
+}
+
+const dismissChangeRequest = (item) => {
+    router.delete(route("profile.services.dismiss-change-request", item.id), {
+        onSuccess: () => {
+            resyncSelectedCategory();
+            toast.success(__("profile.services.dismiss_success", "Отклоненные изменения скрыты"));
+        },
+    });
+};
+
+function removeNameEn() {
+    showNameEn.value = false;
+    form.name_en = "";
+}
+function addSecondary() {
+    if (!showNameRu.value) {
+        showNameRu.value = true;
+    } else if (!showNameEn.value) {
+        showNameEn.value = true;
+    }
+}
+
 const deleteConfirmId = ref(null);
 
 function askDeleteService(id) {
@@ -256,10 +421,14 @@ function askDeleteService(id) {
 function confirmDeleteService() {
     const id = deleteConfirmId.value;
     deleteConfirmId.value = null;
-    router.delete(route('profile.services.destroy', id), {
+    localeLoading.value = true;
+    router.delete(route("profile.services.destroy", id), {
         preserveScroll: true,
         preserveState: true,
         onSuccess: resyncSelectedCategory,
+        onFinish: () => {
+            localeLoading.value = false;
+        },
     });
 }
 
@@ -268,45 +437,69 @@ function cancelDeleteService() {
 }
 
 function toggleActive(item) {
-    router.patch(route('profile.services.update', item.id), {
-        is_active: !item.is_active,
-    }, {
-        preserveScroll: true,
-        preserveState: true,
-        onSuccess: resyncSelectedCategory,
-    });
+    localeLoading.value = true;
+    router.patch(
+        route("profile.services.update", item.id),
+        {
+            is_active: !item.is_active,
+        },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: resyncSelectedCategory,
+            onFinish: () => {
+                localeLoading.value = false;
+            },
+        },
+    );
 }
 
 // ── Computed ────────────────────────────────────────────────────
 const loaded = computed(() => Array.isArray(localServices.value));
-const isEmpty = computed(() => loaded.value && localServices.value.length === 0);
+const isEmpty = computed(
+    () => loaded.value && localServices.value.length === 0,
+);
 
 const sortedServices = computed(() => {
-    if (!Array.isArray(localServices.value)) return { withItems: [], empty: [] };
+    if (!Array.isArray(localServices.value))
+        return { withItems: [], empty: [] };
     return {
-        withItems: localServices.value.filter(g => g.items.length > 0),
-        empty: localServices.value.filter(g => g.items.length === 0),
+        withItems: localServices.value.filter((g) => g.items.length > 0),
+        empty: localServices.value.filter((g) => g.items.length === 0),
     };
 });
 
-const formCategory = computed(() =>
-    (props.serviceCategories ?? []).find(c => c.id === form.category_id) ?? null
+const formCategory = computed(
+    () =>
+        (props.serviceCategories ?? []).find(
+            (c) => c.id === form.category_id,
+        ) ?? null,
 );
-const formSuggestions = computed(() =>
-    Array.isArray(formCategory.value?.name_suggestions)
-        ? formCategory.value.name_suggestions
-        : []
+const formSuggestionsRu = computed(() =>
+    Array.isArray(formCategory.value?.name_suggestions?.ru)
+        ? formCategory.value.name_suggestions.ru
+        : [],
 );
-const namePlaceholder = computed(() =>
-    formSuggestions.value[0] ?? 'Название услуги'
+const formSuggestionsEn = computed(() =>
+    Array.isArray(formCategory.value?.name_suggestions?.en)
+        ? formCategory.value.name_suggestions.en
+        : [],
+);
+const namePlaceholderRu = computed(
+    () => formSuggestionsRu.value[0] ?? __("profile.services.search_ph"),
+);
+const namePlaceholderEn = computed(
+    () => formSuggestionsEn.value[0] ?? __("profile.services.search_ph_en"),
 );
 
 // ── #1 Price preview ─────────────────────────────────────────
 const pricePreview = computed(() => {
     if (!form.price || !form.time_unit_id) return null;
-    const unit = (props.serviceTimeUnits ?? []).find(u => u.id === form.time_unit_id);
+    const unit = (props.serviceTimeUnits ?? []).find(
+        (u) => u.id === form.time_unit_id,
+    );
     if (!unit) return null;
-    return `${Number(form.price).toLocaleString('ru')} ₽ / ${unit.name}`;
+    return `${Number(form.price).toLocaleString("ru")} ₽ / ${localUnitName(unit)}`;
 });
 
 // ── #4 Draft ─────────────────────────────────────────────────
@@ -317,21 +510,32 @@ function loadDraft() {
         const raw = localStorage.getItem(DRAFT_KEY.value);
         if (!raw) return;
         const d = JSON.parse(raw);
-        if (d.name) form.name = d.name;
+        if (d.name_ru) {
+            form.name_ru = d.name_ru;
+            showNameRu.value = true;
+        }
+        if (d.name_en) {
+            form.name_en = d.name_en;
+            showNameEn.value = true;
+        }
         if (d.category_id) form.category_id = d.category_id;
         if (d.price) form.price = d.price;
         if (d.time_unit_id) form.time_unit_id = d.time_unit_id;
-    } catch { }
+    } catch {}
 }
 
 function saveDraft() {
     if (!editingId.value) {
-        localStorage.setItem(DRAFT_KEY.value, JSON.stringify({
-            name: form.name,
-            category_id: form.category_id,
-            price: form.price,
-            time_unit_id: form.time_unit_id,
-        }));
+        localStorage.setItem(
+            DRAFT_KEY.value,
+            JSON.stringify({
+                name_ru: form.name_ru,
+                name_en: form.name_en,
+                category_id: form.category_id,
+                price: form.price,
+                time_unit_id: form.time_unit_id,
+            }),
+        );
     }
 }
 
@@ -339,15 +543,27 @@ function clearDraft() {
     localStorage.removeItem(DRAFT_KEY.value);
 }
 
-watch([() => form.name, () => form.category_id, () => form.price, () => form.time_unit_id], saveDraft);
+watch(
+    [
+        () => form.name_ru,
+        () => form.name_en,
+        () => form.category_id,
+        () => form.price,
+        () => form.time_unit_id,
+    ],
+    saveDraft,
+);
 
 // ── #6 Chip animation ────────────────────────────────────────
 const animatingChip = ref(null);
 
-function selectChip(s) {
-    form.name = s;
+function selectChip(s, lang) {
+    if (lang === "en") form.name_en = s;
+    else form.name_ru = s;
     animatingChip.value = s;
-    setTimeout(() => { animatingChip.value = null; }, 300);
+    setTimeout(() => {
+        animatingChip.value = null;
+    }, 300);
 }
 
 // ── #9 Dropdown menu ─────────────────────────────────────────
@@ -362,42 +578,91 @@ function closeMenu() {
 }
 
 function onDocClick(e) {
-    if (!e.target.closest('.svc-menu')) closeMenu();
+    if (!e.target.closest(".svc-menu")) closeMenu();
 }
 
-onMounted(() => document.addEventListener('click', onDocClick, true));
+let svcNotifyChannel = null;
+
+async function fetchServicesFromApi() {
+    if (!props.profileUser?.id) return;
+    try {
+        const res = await axios.get(route('profile.services.index-for-profile', props.profileUser.id));
+        localServices.value = res.data.groups;
+        // Resync selected category if open
+        if (selectedCategory.value) {
+            const catId = selectedCategory.value.category.id;
+            const updated = res.data.groups.find(g => g.category.id === catId);
+            if (updated) selectedCategory.value = updated;
+        }
+    } catch (e) {
+        // silent fail — stale data is better than a crash
+    }
+}
+
+onMounted(() => {
+    document.addEventListener("click", onDocClick, true);
+    if (props.isOwner && window.Echo && props.profileUser?.id) {
+        svcNotifyChannel = window.Echo.private(`App.Models.User.${props.profileUser.id}`)
+            .listen('.new-notification', () => {
+                fetchServicesFromApi();
+            });
+    }
+});
+
 onUnmounted(() => {
-    document.removeEventListener('click', onDocClick, true);
+    document.removeEventListener("click", onDocClick, true);
+    if (svcNotifyChannel && props.profileUser?.id) {
+        svcNotifyChannel.stopListening('.new-notification');
+    }
     selectedCategory.value = null;
     sessionStorage.removeItem(SESSION_KEY.value);
     if (serviceNav) serviceNav.inCategory = false;
 });
 
 // ── #8 Form validation ───────────────────────────────────────
-const formValid = computed(() =>
-    form.name.trim().length > 0 &&
-    form.category_id !== null &&
-    Number(form.price) > 0 &&
-    form.time_unit_id !== null
+const formAccentColor = computed(() => {
+    if (selectedCategory.value)
+        return selectedCategory.value.category.accent_color || "#ffb2ef";
+    const cat = (props.serviceCategories ?? []).find(
+        (c) => c.id === form.category_id,
+    );
+    return cat?.accent_color || "#ffb2ef";
+});
+
+const formValid = computed(
+    () =>
+        ((showNameRu.value && form.name_ru.trim().length > 0) ||
+            (showNameEn.value && form.name_en.trim().length > 0)) &&
+        form.category_id !== null &&
+        Number(form.price) > 0 &&
+        form.time_unit_id !== null,
 );
 
 // ── Carousel ─────────────────────────────────────────────────
+const isMobile = ref(window.innerWidth <= 600);
+function onResizeCarousel() {
+    isMobile.value = window.innerWidth <= 600;
+}
+onMounted(() => window.addEventListener("resize", onResizeCarousel));
+onUnmounted(() => window.removeEventListener("resize", onResizeCarousel));
+
 const carouselPage = ref(1);
 const carouselIdols = ref([]);
 const carouselTotal = ref(0);
 const carouselHasMore = ref(false);
 const carouselLoading = ref(false);
 const carouselReady = ref(false);
-const carouselDir = ref('next'); // 'next' | 'prev'
+const carouselDir = ref("next"); // 'next' | 'prev'
 
 async function loadCarousel(page = 1) {
     carouselLoading.value = true;
+    const perPage = isMobile.value ? 2 : 4;
     try {
         const res = await fetch(
-            route('profile.category-idols', {
+            route("profile.category-idols", {
                 user: props.profileUser?.id,
                 category: selectedCategory.value.category.id,
-            }) + `?page=${page}`
+            }) + `?page=${page}&per_page=${perPage}`,
         );
         const data = await res.json();
         carouselPage.value = page;
@@ -412,13 +677,13 @@ async function loadCarousel(page = 1) {
 
 function carouselPrev() {
     if (carouselPage.value > 1) {
-        carouselDir.value = 'prev';
+        carouselDir.value = "prev";
         loadCarousel(carouselPage.value - 1);
     }
 }
 function carouselNext() {
     if (carouselHasMore.value) {
-        carouselDir.value = 'next';
+        carouselDir.value = "next";
         loadCarousel(carouselPage.value + 1);
     }
 }
@@ -437,11 +702,10 @@ watch(selectedCategory, (cat) => {
 
 <template>
     <div class="services-wrap">
-
         <!-- Block error toast -->
         <Transition name="block-err">
             <div v-if="blockError" class="svc-block-error">
-                Вы заблокированы этим пользователем и не можете делать заказы
+                {{ __("profile.services.blocked_error") }}
             </div>
         </Transition>
 
@@ -453,74 +717,147 @@ watch(selectedCategory, (cat) => {
         </template>
 
         <Transition v-else :name="catTransitionName" mode="out-in">
-
             <!-- ── CategoryList ── -->
             <div v-if="!selectedCategory" key="list">
                 <div class="svc-list-header">
-                    <h2 class="svc-list-header__title">Категории</h2>
-                    <CreateButton v-if="isOwner && isIdol" @click="openAdd">
-                        <template #icon><el-icon>
-                                <Plus />
-                            </el-icon></template>
-                        Добавить услугу
+                    <h2 class="svc-list-header__title">
+                        {{ __("profile.services.categories_label") }}
+                    </h2>
+                    <CreateButton v-if="isOwner && isIdol" @click="openAdd"
+                        >{{ __("profile.services.new_btn") }}
                     </CreateButton>
                 </div>
 
                 <!-- Category cards -->
                 <div class="cat-grid">
-                    <button v-for="group in sortedServices.withItems" :key="group.category.id" class="cat-tile"
+                    <button
+                        v-for="group in sortedServices.withItems"
+                        :key="group.category.id"
+                        class="cat-tile"
                         @click="openCategory(group)"
-                        :style="{ '--cat-accent': group.category.accent_color || '#a0a0ff' }">
+                        :style="{
+                            '--cat-accent':
+                                group.category.accent_color || '#ffb2ef',
+                        }"
+                    >
                         <div class="cat-tile__img-wrap">
-                            <img v-if="group.category.image_url" :src="group.category.image_url"
-                                :alt="group.category.name" class="cat-tile__img" />
+                            <img
+                                v-if="group.category.image_url"
+                                :src="group.category.image_url"
+                                :alt="catName(group.category)"
+                                class="cat-tile__img"
+                            />
                             <div v-else class="cat-tile__img-placeholder">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="1.5" opacity="0.25">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                                <svg
+                                    width="22"
+                                    height="22"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.5"
+                                    opacity="0.25"
+                                >
+                                    <rect
+                                        x="3"
+                                        y="3"
+                                        width="18"
+                                        height="18"
+                                        rx="2"
+                                    />
                                     <circle cx="8.5" cy="8.5" r="1.5" />
                                     <path d="M21 15l-5-5L5 21" />
                                 </svg>
                             </div>
                         </div>
                         <div class="cat-tile__body">
-                            <span class="cat-tile__name">{{ group.category.name }}</span>
-                            <p v-if="group.category.description" class="cat-tile__desc">
-                                {{ group.category.description }}
+                            <span class="cat-tile__name">{{
+                                catName(group.category)
+                            }}</span>
+                            <p
+                                v-if="catDesc(group.category)"
+                                class="cat-tile__desc"
+                            >
+                                {{ catDesc(group.category) }}
                             </p>
                             <div class="cat-tile__footer">
                                 <span class="cat-tile__count">
-                                    {{ group.items.length + '\u00a0' + (group.items.length === 1 ? 'услуга' :
-                                        group.items.length
-                                            < 5 ? 'услуги' : 'услуг') }} </span>
+                                    {{
+                                        transChoice(
+                                            "order.service_count",
+                                            group.items.length,
+                                            {
+                                                count: group.items.length,
+                                            },
+                                        )
+                                    }}</span
+                                >
                             </div>
                         </div>
                     </button>
 
-                    <div v-if="sortedServices.empty.length > 0" class="cat-grid__divider"></div>
+                    <div
+                        v-if="sortedServices.empty.length > 0"
+                        class="cat-grid__divider"
+                    ></div>
 
-                    <button v-for="group in sortedServices.empty" :key="group.category.id"
-                        class="cat-tile cat-tile--empty" @click="openCategory(group)"
-                        :style="{ '--cat-accent': group.category.accent_color || '#a0a0ff' }">
+                    <button
+                        v-for="group in sortedServices.empty"
+                        :key="group.category.id"
+                        class="cat-tile cat-tile--empty"
+                        @click="openCategory(group)"
+                        :style="{
+                            '--cat-accent':
+                                group.category.accent_color || '#ffb2ef',
+                        }"
+                    >
                         <div class="cat-tile__img-wrap">
-                            <img v-if="group.category.image_url" :src="group.category.image_url"
-                                :alt="group.category.name" class="cat-tile__img" />
+                            <img
+                                v-if="group.category.image_url"
+                                :src="group.category.image_url"
+                                :alt="catName(group.category)"
+                                class="cat-tile__img"
+                            />
                             <div v-else class="cat-tile__img-placeholder">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="1.5" opacity="0.25">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                                <svg
+                                    width="22"
+                                    height="22"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.5"
+                                    opacity="0.25"
+                                >
+                                    <rect
+                                        x="3"
+                                        y="3"
+                                        width="18"
+                                        height="18"
+                                        rx="2"
+                                    />
                                     <circle cx="8.5" cy="8.5" r="1.5" />
                                     <path d="M21 15l-5-5L5 21" />
                                 </svg>
                             </div>
                         </div>
                         <div class="cat-tile__body">
-                            <span class="cat-tile__name">{{ group.category.name }}</span>
-                            <p v-if="group.category.description" class="cat-tile__desc">
-                                {{ group.category.description }}
+                            <span class="cat-tile__name">{{
+                                catName(group.category)
+                            }}</span>
+                            <p
+                                v-if="catDesc(group.category)"
+                                class="cat-tile__desc"
+                            >
+                                {{ catDesc(group.category) }}
                             </p>
                             <div class="cat-tile__footer">
-                                <span class="cat-tile__count cat-tile__count--empty">0 услуг</span>
+                                <span
+                                    class="cat-tile__count cat-tile__count--empty"
+                                    >{{
+                                        transChoice("order.service_count", 0, {
+                                            count: 0,
+                                        })
+                                    }}</span
+                                >
                             </div>
                         </div>
                     </button>
@@ -528,103 +865,251 @@ watch(selectedCategory, (cat) => {
             </div>
 
             <!-- ── CategoryDetail ── -->
-            <div v-else key="detail" class="cd-detail"
-                :style="{ '--cat-accent': selectedCategory.category.accent_color || '#a0a0ff' }">
-
+            <div
+                v-else
+                key="detail"
+                class="cd-detail"
+                :style="{
+                    '--cat-accent':
+                        selectedCategory.category.accent_color || '#ffb2ef',
+                }"
+            >
                 <!-- Category hero card -->
                 <div class="cd-hero">
                     <div class="cd-hero__body">
                         <div class="cd-hero__top">
-                            <h2 class="cd-hero__title">{{ selectedCategory.category.name }}</h2>
+                            <h2 class="cd-hero__title">
+                                {{ catName(selectedCategory.category) }}
+                            </h2>
                             <div class="cd-hero__top-actions">
-                                <button v-if="isOwner && !editingDesc" class="cd-hero__edit-btn" @click="startDescEdit">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                <button
+                                    v-if="isOwner && !editingDesc"
+                                    class="cd-hero__edit-btn"
+                                    @click="startDescEdit"
+                                >
+                                    <svg
+                                        width="13"
+                                        height="13"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path
+                                            d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                                        />
+                                        <path
+                                            d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+                                        />
                                     </svg>
-                                    Изменить описание
+                                    {{ __("profile.services.desc_edit") }}
                                 </button>
-                                <CreateButton v-if="isOwner && isIdol" @click="openAdd">
-                                    <template #icon><el-icon>
-                                            <Plus />
-                                        </el-icon></template>
-                                    Добавить услугу
+                                <CreateButton
+                                    v-if="isOwner && isIdol"
+                                    @click="openAdd"
+                                    >{{ __("profile.services.new_btn") }}
                                 </CreateButton>
                             </div>
                         </div>
 
                         <Transition name="desc-swap" mode="out-in">
                             <div v-if="!editingDesc" key="view">
-                                <p v-if="selectedCategory.idol_description" class="cd-hero__desc">{{
-                                    selectedCategory.idol_description }}</p>
-                                <p v-else-if="isOwner" class="cd-hero__desc cd-hero__desc--placeholder">
-                                    Напишите описание своих услуг в этой категории…</p>
-                                <p v-else class="cd-hero__desc cd-hero__desc--placeholder">
-                                    Айдол пока не добавил описание</p>
+                                <p
+                                    v-if="selectedCategory.idol_description"
+                                    class="cd-hero__desc"
+                                >
+                                    {{ selectedCategory.idol_description }}
+                                </p>
+                                <p
+                                    v-else-if="isOwner"
+                                    class="cd-hero__desc cd-hero__desc--placeholder"
+                                >
+                                    {{ __("profile.services.desc_ph") }}
+                                </p>
+                                <p
+                                    v-else
+                                    class="cd-hero__desc cd-hero__desc--placeholder"
+                                >
+                                    {{ __("profile.services.desc_empty") }}
+                                </p>
                             </div>
                             <div v-else key="edit">
-                                <textarea v-model="descDraft" class="cd-hero__textarea" rows="3" maxlength="1000"
-                                    placeholder="Расскажите об этой категории услуг…" />
+                                <textarea
+                                    v-model="descDraft"
+                                    class="cd-hero__textarea"
+                                    rows="3"
+                                    maxlength="1000"
+                                    :placeholder="
+                                        __('profile.services.desc_edit_ph')
+                                    "
+                                />
                                 <div class="cd-hero__actions">
-                                    <button class="svc-btn-cancel" @click="cancelDescEdit">Отмена</button>
-                                    <button class="svc-btn-submit" @click="saveDesc">Сохранить</button>
+                                    <button
+                                        class="svc-btn-cancel"
+                                        @click="cancelDescEdit"
+                                    >
+                                        {{ __("common.cancel") }}
+                                    </button>
+                                    <button
+                                        class="svc-btn-submit"
+                                        :class="{
+                                            'svc-btn-submit--saving':
+                                                descSaving,
+                                        }"
+                                        :disabled="descSaving"
+                                        @click="saveDesc"
+                                    >
+                                        <svg
+                                            v-if="descSaving"
+                                            class="svc-btn-spinner"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            width="13"
+                                            height="13"
+                                        >
+                                            <circle
+                                                cx="12"
+                                                cy="12"
+                                                r="9"
+                                                stroke-width="2.5"
+                                                stroke-opacity="0.25"
+                                            />
+                                            <path
+                                                d="M12 3a9 9 0 0 1 9 9"
+                                                stroke-width="2.5"
+                                                stroke-linecap="round"
+                                            />
+                                        </svg>
+                                        {{ __("common.save") }}
+                                    </button>
                                 </div>
                             </div>
                         </Transition>
                     </div>
                 </div>
 
+                <!-- Owner action buttons (mobile only — outside hero) -->
+                <div v-if="isOwner" class="cd-owner-actions">
+                    <button
+                        v-if="!editingDesc"
+                        class="cd-hero__edit-btn"
+                        @click="startDescEdit"
+                    >
+                        <svg
+                            width="13"
+                            height="13"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path
+                                d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                            />
+                            <path
+                                d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+                            />
+                        </svg>
+                        {{ __("profile.services.desc_edit") }}
+                    </button>
+                    <CreateButton v-if="isIdol" @click="openAdd"
+                        >{{ __("profile.services.new_btn") }}
+                    </CreateButton>
+                </div>
+
                 <!-- Services section -->
                 <div class="cd-section cd-section--services">
-                    <span class="cd-section__label">Варианты</span>
+                    <span class="cd-section__label">{{
+                        __("profile.services.variants")
+                    }}</span>
 
-                    <div v-if="selectedCategory.items.length === 0" class="svc-empty">
-                        <p class="svc-empty__title">У этого айдола пока нет услуг в данной категории.</p>
+                    <div
+                        v-if="selectedCategory.items.length === 0"
+                        class="svc-empty"
+                    >
+                        <p class="svc-empty__title">
+                            {{ __("profile.services.empty") }}
+                        </p>
                     </div>
-                    <TransitionGroup v-else name="svc-item" tag="div" class="svc-list">
-                        <div v-for="item in selectedCategory.items" :key="item.id" class="svc-card" :class="{
-                            'svc-card--inactive': !item.is_active,
-                            'svc-card--pending': isOwner && item.status === 'pending',
-                            'svc-card--rejected': isOwner && item.status === 'rejected',
-                        }">
-
+                    <TransitionGroup
+                        v-else
+                        name="svc-item"
+                        tag="div"
+                        class="svc-list"
+                    >
+                        <div
+                            v-for="item in selectedCategory.items"
+                            :key="item.id"
+                            class="svc-card"
+                            :class="{
+                                'svc-card--inactive': !item.is_active,
+                                'svc-card--pending': isOwner && (item.status === 'pending' || item.pending_change?.status === 'pending'),
+                                'svc-card--remarks': isOwner && (item.status === 'has_remarks' || item.pending_change?.status === 'has_remarks'),
+                                'svc-card--rejected': isOwner && item.status === 'rejected',
+                            }"
+                        >
                             <!-- Badges: top-right corner -->
                             <div v-if="isOwner" class="svc-card__badges">
-                                <span v-if="!item.is_active" class="svc-pill svc-pill--hidden">
-                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path
-                                            d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                                        <path
-                                            d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                                        <line x1="1" y1="1" x2="23" y2="23" />
-                                    </svg>
-                                    скрыто
-                                </span>
-                                <span v-if="item.status === 'pending'" class="svc-pill svc-pill--pending">
-                                    <i class="svc-pill__dot"></i>модерация
-                                </span>
-                                <span v-else-if="item.status === 'rejected'" class="svc-pill svc-pill--rejected">
-                                    отклонено
-                                </span>
+                                <ServiceStatusBadge
+                                    v-if="!item.is_active"
+                                    status="hidden"
+                                />
+                                <ServiceStatusBadge
+                                    v-else-if="item.status === 'rejected'"
+                                    status="rejected"
+                                />
+                                <ServiceStatusBadge
+                                    v-else-if="item.status === 'has_remarks' || item.pending_change?.status === 'has_remarks'"
+                                    status="has_remarks"
+                                    :is-change-request="item.pending_change?.status === 'has_remarks'"
+                                />
+                                <ServiceStatusBadge
+                                    v-else-if="item.pending_change?.status === 'pending'"
+                                    status="pending"
+                                    :is-change-request="true"
+                                />
+                                <ServiceStatusBadge
+                                    v-else-if="item.pending_change?.status === 'rejected'"
+                                    status="rejected"
+                                    :is-change-request="true"
+                                />
+                                <ServiceStatusBadge
+                                    v-else-if="item.status === 'pending'"
+                                    status="pending"
+                                />
                             </div>
 
                             <!-- Info column -->
                             <div class="svc-card__info">
                                 <div class="svc-card__name-row">
-                                    <span class="svc-card__name">{{ item.name }}</span>
+                                    <span class="svc-card__name" :class="{ 'svc-card__name--flagged': isFlagged(item, 'name_ru') || isFlagged(item, 'name_en') }">
+                                        {{ localServiceName(item) }}
+                                        <span v-if="isFlagged(item, 'name_ru') || isFlagged(item, 'name_en')" class="svc-card__flag-icon" :title="getFieldComment(item, 'name_ru') || getFieldComment(item, 'name_en') || 'Замечание модератора'">⚠️</span>
+                                    </span>
                                 </div>
-                                <span v-if="isOwner && item.status === 'rejected' && item.rejection_reason"
-                                    class="svc-card__reason">{{ item.rejection_reason }}</span>
+                                <span
+                                    v-if="
+                                        isOwner &&
+                                        ((item.status === 'rejected' && item.rejection_reason) ||
+                                        (item.pending_change?.status === 'rejected' && item.pending_change?.admin_comment))
+                                    "
+                                    class="svc-card__reason"
+                                    >{{ item.status === 'rejected' ? item.rejection_reason : item.pending_change.admin_comment }}</span
+                                >
                             </div>
 
                             <!-- Footer: price + actions -->
                             <div class="svc-card__footer">
                                 <div class="svc-card__price-block">
-                                    <span class="svc-card__amount">{{ item.price.toLocaleString('ru') }}</span><span
-                                        class="svc-card__rub">₽</span><span class="svc-card__sep">/</span><span
-                                        class="svc-card__unit">{{ item.time_unit.name }}</span>
+                                    <span class="svc-card__amount">{{ item.price.toLocaleString("ru") }}</span
+                                    ><span class="svc-card__rub">₽</span
+                                    ><span class="svc-card__sep">/</span
+                                    ><span class="svc-card__unit">{{ localUnitName(item.time_unit) }}</span>
                                 </div>
 
                                 <!-- Actions column -->
@@ -632,235 +1117,762 @@ watch(selectedCategory, (cat) => {
                                     <button
                                         v-if="!isOwner && cart"
                                         class="svc-buy-btn"
-                                        :class="{ 'svc-buy-btn--in-cart': isInCart(item.id) }"
+                                        :class="{
+                                            'svc-buy-btn--in-cart': isInCart(
+                                                item.id,
+                                            ),
+                                        }"
                                         @click="addToCart(item)"
                                     >
                                         <template v-if="isInCart(item.id)">
-                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                                            <span>В корзине</span>
+                                            <svg
+                                                width="11"
+                                                height="11"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2.5"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            >
+                                                <polyline
+                                                    points="20 6 9 17 4 12"
+                                                />
+                                            </svg>
+                                            <span>{{
+                                                __("profile.services.in_cart")
+                                            }}</span>
                                         </template>
                                         <template v-else>
-                                            <span>В корзину</span>
-                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                            <svg
+                                                width="11"
+                                                height="11"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            >
+                                                <path
+                                                    d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"
+                                                />
+                                                <line
+                                                    x1="3"
+                                                    y1="6"
+                                                    x2="21"
+                                                    y2="6"
+                                                />
+                                                <path d="M16 10a4 4 0 01-8 0" />
+                                            </svg>
+                                            <span>{{
+                                                __("profile.services.to_cart")
+                                            }}</span>
                                         </template>
                                     </button>
                                     <div v-if="isOwner" class="svc-menu">
-                                        <button class="svc-menu__trigger"
-                                            :class="{ 'svc-menu__trigger--open': openMenuId === item.id }"
-                                            @click.stop="toggleMenu(item.id)" title="Действия">
-                                            <span></span><span></span><span></span>
+                                        <button
+                                            class="svc-menu__trigger"
+                                            :class="{
+                                                'svc-menu__trigger--open':
+                                                    openMenuId === item.id,
+                                            }"
+                                            @click.stop="toggleMenu(item.id)"
+                                            :title="
+                                                __('profile.services.actions')
+                                            "
+                                        >
+                                            <span></span><span></span
+                                            ><span></span>
                                         </button>
                                         <Transition name="svc-menu-pop">
-                                            <div v-if="openMenuId === item.id" class="svc-menu__dropdown">
-                                                <template v-if="item.status === 'approved'">
-                                                    <button class="svc-menu__item"
-                                                        @click="toggleActive(item); closeMenu()">
-                                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                                                            stroke="currentColor" stroke-width="2"
-                                                            stroke-linecap="round">
-                                                            <circle cx="12" cy="12" r="10" />
-                                                            <line v-if="item.is_active" x1="4.93" y1="4.93" x2="19.07"
-                                                                y2="19.07" />
+                                            <div
+                                                v-if="openMenuId === item.id"
+                                                class="svc-menu__dropdown"
+                                            >
+                                                <template
+                                                    v-if="
+                                                        item.status === 'approved' &&
+                                                        item.pending_change?.status !== 'has_remarks' &&
+                                                        item.pending_change?.status !== 'pending'
+                                                    "
+                                                >
+                                                    <button
+                                                        class="svc-menu__item"
+                                                        @click="
+                                                            toggleActive(item);
+                                                            closeMenu();
+                                                        "
+                                                    >
+                                                        <svg
+                                                            width="13"
+                                                            height="13"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            stroke-width="2"
+                                                            stroke-linecap="round"
+                                                        >
+                                                            <circle
+                                                                cx="12"
+                                                                cy="12"
+                                                                r="10"
+                                                            />
+                                                            <line
+                                                                v-if="
+                                                                    item.is_active
+                                                                "
+                                                                x1="4.93"
+                                                                y1="4.93"
+                                                                x2="19.07"
+                                                                y2="19.07"
+                                                            />
                                                         </svg>
-                                                        {{ item.is_active ? 'Отключить' : 'Включить' }}
+                                                        {{
+                                                            item.is_active
+                                                                ? __(
+                                                                      "common.disable",
+                                                                  )
+                                                                : __(
+                                                                      "common.enable",
+                                                                  )
+                                                        }}
                                                     </button>
-                                                    <button class="svc-menu__item" @click="openEdit(item); closeMenu()">
-                                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                                                            stroke="currentColor" stroke-width="2"
-                                                            stroke-linecap="round" stroke-linejoin="round">
+                                                    <button
+                                                        class="svc-menu__item"
+                                                        @click="
+                                                            openEdit(item);
+                                                            closeMenu();
+                                                        "
+                                                    >
+                                                        <svg
+                                                            width="13"
+                                                            height="13"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            stroke-width="2"
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                        >
                                                             <path
-                                                                d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                                d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                                                            />
                                                             <path
-                                                                d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                                                d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+                                                            />
                                                         </svg>
-                                                        Редактировать
+                                                        {{ __("common.edit") }}
+                                                    </button>
+                                                    <div
+                                                        class="svc-menu__divider"
+                                                    ></div>
+                                                </template>
+                                                <template
+                                                    v-if="
+                                                        item.status === 'has_remarks' ||
+                                                        item.pending_change?.status === 'has_remarks'
+                                                    "
+                                                >
+                                                    <button
+                                                        class="svc-menu__item"
+                                                        @click="
+                                                            openFix(item);
+                                                            closeMenu();
+                                                        "
+                                                    >
+                                                        <svg
+                                                            width="13"
+                                                            height="13"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            stroke-width="2"
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                        >
+                                                            <path d="M12 20h9"/>
+                                                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                                                        </svg>
+                                                        {{ __("profile.services.fix_btn") }}
                                                     </button>
                                                     <div class="svc-menu__divider"></div>
                                                 </template>
-                                                <button class="svc-menu__item svc-menu__item--danger"
-                                                    @click="askDeleteService(item.id); closeMenu()">
-                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                                                        stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                                        stroke-linejoin="round">
-                                                        <polyline points="3 6 5 6 21 6" />
-                                                        <path d="M19 6l-1 14H6L5 6" />
-                                                        <path d="M10 11v6M14 11v6" />
+                                                <button
+                                                    class="svc-menu__item svc-menu__item--danger"
+                                                    @click="
+                                                        askDeleteService(
+                                                            item.id,
+                                                        );
+                                                        closeMenu();
+                                                    "
+                                                >
+                                                    <svg
+                                                        width="13"
+                                                        height="13"
+                                                        viewBox="0 0 24 24"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        stroke-width="2"
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                    >
+                                                        <polyline
+                                                            points="3 6 5 6 21 6"
+                                                        />
+                                                        <path
+                                                            d="M19 6l-1 14H6L5 6"
+                                                        />
+                                                        <path
+                                                            d="M10 11v6M14 11v6"
+                                                        />
                                                         <path d="M9 6V4h6v2" />
                                                     </svg>
-                                                    Удалить
+                                                    {{ __("common.delete") }}
+                                                </button>
+
+                                                <button
+                                                    v-if="item.pending_change?.status === 'rejected'"
+                                                    class="svc-menu__item svc-menu__item--danger"
+                                                    @click="
+                                                        dismissChangeRequest(item);
+                                                        closeMenu();
+                                                    "
+                                                >
+                                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                    </svg>
+                                                    {{ __("profile.services.dismiss_cr", "Скрыть отклонение") }}
                                                 </button>
                                             </div>
                                         </Transition>
                                     </div>
                                 </div>
-                            </div><!-- /.svc-card__footer -->
-
+                            </div>
+                            <!-- /.svc-card__footer -->
                         </div>
                     </TransitionGroup>
                 </div>
 
                 <!-- Carousel of other idols -->
-                <div v-if="!carouselReady || carouselTotal > 0" class="cd-section cd-carousel">
-                    <p class="cd-section__label">Другие айдолы в этой категории</p>
+                <div
+                    v-if="!carouselReady || carouselTotal > 0"
+                    class="cd-section cd-carousel"
+                >
+                    <p class="cd-section__label">
+                        {{ __("profile.services.other_idols") }}
+                    </p>
                     <div class="cd-carousel__row">
-                        <button class="cd-carousel__nav cd-carousel__nav--prev"
-                            :disabled="carouselPage === 1 || carouselLoading" @click="carouselPrev">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <button
+                            class="cd-carousel__nav cd-carousel__nav--prev"
+                            :disabled="carouselPage === 1 || carouselLoading"
+                            @click="carouselPrev"
+                        >
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
                                 <path d="M15 18l-6-6 6-6" />
                             </svg>
                         </button>
                         <div class="cd-carousel__track">
                             <!-- Layer 1: skeletons — always in DOM, provide stable height -->
-                            <div class="cd-carousel__skeletons"
-                                :class="{ 'cd-carousel__skeletons--hidden': !carouselLoading && carouselReady }">
-                                <div v-for="n in 4" :key="n" class="cd-carousel__idol cd-carousel__idol--skel"></div>
+                            <div
+                                class="cd-carousel__skeletons"
+                                :class="{
+                                    'cd-carousel__skeletons--hidden':
+                                        !carouselLoading && carouselReady,
+                                }"
+                            >
+                                <div
+                                    v-for="n in isMobile ? 2 : 4"
+                                    :key="n"
+                                    class="cd-carousel__idol cd-carousel__idol--skel"
+                                ></div>
                             </div>
                             <!-- Layer 2: real cards — absolute on top, only when loaded -->
-                            <Transition :name="carouselDir === 'next' ? 'carousel-next' : 'carousel-prev'"
-                                mode="out-in">
-                                <div v-if="!carouselLoading" class="cd-carousel__idols" :key="carouselPage">
-                                    <a v-for="idol in carouselIdols" :key="idol.id" href="#" class="cd-carousel__idol"
-                                        @click.prevent="navigateToIdolInCategory(idol)">
-                                        <img v-if="idol.avatar_url" :src="idol.avatar_url" :alt="idol.name"
-                                            class="cd-carousel__avatar" />
-                                        <div v-else class="cd-carousel__avatar cd-carousel__avatar--placeholder">{{
-                                            idol.name.charAt(0) }}</div>
-                                        <span v-if="idol.rating" class="cd-carousel__rating">★ {{ idol.rating }}</span>
-                                        <span class="cd-carousel__name">{{ idol.name }}</span>
+                            <Transition
+                                :name="
+                                    carouselDir === 'next'
+                                        ? 'carousel-next'
+                                        : 'carousel-prev'
+                                "
+                                mode="out-in"
+                            >
+                                <div
+                                    v-if="!carouselLoading"
+                                    class="cd-carousel__idols"
+                                    :key="carouselPage"
+                                >
+                                    <a
+                                        v-for="idol in carouselIdols"
+                                        :key="idol.id"
+                                        href="#"
+                                        class="cd-carousel__idol"
+                                        @click.prevent="
+                                            navigateToIdolInCategory(idol)
+                                        "
+                                    >
+                                        <img
+                                            v-if="idol.avatar_url"
+                                            :src="idol.avatar_url"
+                                            :alt="idol.name"
+                                            class="cd-carousel__avatar"
+                                        />
+                                        <div
+                                            v-else
+                                            class="cd-carousel__avatar cd-carousel__avatar--placeholder"
+                                        >
+                                            {{ idol.name.charAt(0) }}
+                                        </div>
+                                        <span
+                                            v-if="idol.rating"
+                                            class="cd-carousel__rating"
+                                            >★ {{ idol.rating }}</span
+                                        >
+                                        <span class="cd-carousel__name">{{
+                                            idol.name
+                                        }}</span>
                                     </a>
                                 </div>
                             </Transition>
                         </div>
-                        <button class="cd-carousel__nav cd-carousel__nav--next"
-                            :disabled="!carouselHasMore || carouselLoading" @click="carouselNext">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <button
+                            class="cd-carousel__nav cd-carousel__nav--next"
+                            :disabled="!carouselHasMore || carouselLoading"
+                            @click="carouselNext"
+                        >
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
                                 <path d="M9 18l6-6-6-6" />
                             </svg>
                         </button>
                     </div>
                 </div>
-
             </div>
-
         </Transition>
 
         <!-- Cart conflict modal -->
-        <SiteModal :show="cartConflictModal" variant="pink" :compact="true" @close="cancelCartReplace">
+        <SiteModal
+            :show="cartConflictModal"
+            variant="pink"
+            :compact="true"
+            @close="cancelCartReplace"
+        >
             <div class="sf-wrap">
-                <div class="sf-title">Очистить корзину?</div>
-                <p class="svc-pending-text">В корзине уже есть услуги другого айдола. Очистить корзину и добавить эту услугу?</p>
+                <div class="sf-title">
+                    {{ __("profile.services.cart_conflict.title") }}
+                </div>
+                <p class="svc-pending-text">
+                    {{ __("profile.services.cart_conflict.body") }}
+                </p>
                 <div class="sf-actions">
-                    <button class="sf-btn-cancel" @click="cancelCartReplace">Отмена</button>
-                    <button class="sf-btn-submit" @click="confirmCartReplace">Очистить и добавить</button>
+                    <button class="sf-btn-cancel" @click="cancelCartReplace">
+                        {{ __("common.cancel") }}
+                    </button>
+                    <button class="sf-btn-submit" @click="confirmCartReplace">
+                        {{ __("profile.services.cart_conflict.confirm") }}
+                    </button>
                 </div>
             </div>
         </SiteModal>
 
         <!-- Service pending modal -->
-        <SiteModal :show="showPendingModal" variant="pink" :compact="true" @close="showPendingModal = false">
+        <SiteModal
+            :show="showPendingModal"
+            variant="pink"
+            :compact="true"
+            @close="showPendingModal = false"
+        >
             <div class="sf-wrap">
-                <div class="sf-title">Услуга отправлена на модерацию</div>
-                <p class="svc-pending-text">Она появится в вашем профиле после проверки администратором.</p>
+                <div class="sf-title">
+                    {{ __("profile.services.moderation.title") }}
+                </div>
+                <p class="svc-pending-text">
+                    {{ __("profile.services.moderation.body") }}
+                </p>
                 <div class="sf-actions">
-                    <button class="sf-btn-submit" @click="showPendingModal = false">Понятно</button>
+                    <button
+                        class="sf-btn-submit"
+                        @click="showPendingModal = false"
+                    >
+                        {{ __("common.got_it") }}
+                    </button>
                 </div>
             </div>
         </SiteModal>
 
         <!-- Delete confirm modal -->
-        <SiteModal :show="deleteConfirmId !== null" variant="pink" :compact="true" @close="cancelDeleteService">
+        <SiteModal
+            :show="deleteConfirmId !== null"
+            variant="pink"
+            :compact="true"
+            @close="cancelDeleteService"
+        >
             <div class="sf-wrap">
-                <div class="sf-title">Удалить услугу?</div>
-                <p class="svc-pending-text">Это действие нельзя отменить.</p>
+                <div class="sf-title">
+                    {{ __("profile.services.delete_confirm.title") }}
+                </div>
+                <p class="svc-pending-text">
+                    {{ __("profile.services.delete_confirm.body") }}
+                </p>
                 <div class="sf-actions">
-                    <button type="button" class="svc-btn-cancel" @click="cancelDeleteService">Отмена</button>
-                    <button type="button" class="sf-btn-danger" @click="confirmDeleteService">Удалить</button>
+                    <button
+                        type="button"
+                        class="svc-btn-cancel"
+                        @click="cancelDeleteService"
+                    >
+                        {{ __("common.cancel") }}
+                    </button>
+                    <button
+                        type="button"
+                        class="sf-btn-danger"
+                        @click="confirmDeleteService"
+                    >
+                        {{ __("common.delete") }}
+                    </button>
                 </div>
             </div>
         </SiteModal>
 
         <!-- Add/Edit modal -->
-        <SiteModal :show="showForm" variant="pink" :compact="true" @close="tryCloseForm">
-            <div class="sf-wrap">
+        <SiteModal
+            :show="showForm"
+            variant="pink"
+            :compact="true"
+            @close="tryCloseForm"
+        >
+            <div class="sf-wrap" :style="{ '--cat-accent': formAccentColor }">
                 <Transition name="sf-screen" mode="out-in">
-                    <div v-if="showCancelConfirm" key="confirm" class="sf-screen">
-                        <div class="sf-title">Выйти без сохранения?</div>
-                        <p class="svc-pending-text">Введённые данные будут потеряны.</p>
+                    <div
+                        v-if="showCancelConfirm"
+                        key="confirm"
+                        class="sf-screen"
+                    >
+                        <div class="sf-title">
+                            {{ __("common.leave_confirm") }}
+                        </div>
+                        <p class="svc-pending-text">
+                            {{ __("common.leave_body") }}
+                        </p>
                         <div class="sf-actions">
-                            <button type="button" class="svc-btn-cancel"
-                                @click="showCancelConfirm = false">Остаться</button>
-                            <button type="button" class="sf-btn-danger" @click="confirmCancelForm">Выйти</button>
+                            <button
+                                type="button"
+                                class="svc-btn-cancel"
+                                @click="showCancelConfirm = false"
+                            >
+                                {{ __("common.stay") }}
+                            </button>
+                            <button
+                                type="button"
+                                class="sf-btn-danger"
+                                @click="confirmCancelForm"
+                            >
+                                {{ __("common.leave") }}
+                            </button>
                         </div>
                     </div>
                     <div v-else key="form" class="sf-screen">
-                        <div class="sf-title">{{ editingId ? 'Редактировать услугу' : 'Новая услуга' }}</div>
+                        <div class="sf-title">
+                            {{
+                                editingId
+                                    ? __("profile.services.form.edit_title")
+                                    : __("profile.services.form.new_title")
+                            }}
+                        </div>
                         <form @submit.prevent="submitForm" class="sf-form">
-
                             <div class="sf-field">
-                                <label class="sf-label">Категория</label>
-                                <AppSelect v-model="form.category_id"
-                                    :options="(serviceCategories ?? []).map(c => ({ value: c.id, label: c.name }))"
-                                    placeholder="Выберите категорию" :error="!!form.errors.category_id"
-                                    :disabled="!editingId && !!selectedCategory" />
-                                <p v-if="form.errors.category_id" class="sf-err">{{ form.errors.category_id }}</p>
+                                <label class="sf-label">{{
+                                    __("profile.services.form.category")
+                                }}</label>
+                                <AppSelect
+                                    v-model="form.category_id"
+                                    :options="
+                                        (serviceCategories ?? []).map((c) => ({
+                                            value: c.id,
+                                            label: catName(c),
+                                        }))
+                                    "
+                                    :placeholder="
+                                        __('profile.services.form.category_ph')
+                                    "
+                                    :error="!!form.errors.category_id"
+                                    :disabled="!editingId && !!selectedCategory"
+                                />
+                                <p
+                                    v-if="form.errors.category_id"
+                                    class="sf-err"
+                                >
+                                    {{ form.errors.category_id }}
+                                </p>
                             </div>
 
-                            <div class="sf-field">
-                                <label class="sf-label">Название</label>
-                                <div class="sf-input-wrap">
-                                    <input v-model="form.name" class="sf-input"
-                                        :class="{ 'sf-input--err': form.errors.name }" :placeholder="namePlaceholder"
-                                        maxlength="45" />
-                                    <span class="sf-char-count"
-                                        :class="{ 'sf-char-count--warn': form.name.length >= 38 }">
-                                        {{ form.name.length }}/45
-                                    </span>
+                            <Transition name="sf-name-fade">
+                                <div v-if="showNameRu" class="sf-field">
+                                    <div class="sf-label-row">
+                                        <label class="sf-label">{{
+                                            __("profile.services.form.name_ru")
+                                        }}</label>
+                                        <button
+                                            v-if="showNameRu && showNameEn"
+                                            type="button"
+                                            class="sf-name-remove"
+                                            @click="removeNameRu"
+                                            aria-label="Remove RU"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                    <div class="sf-input-wrap">
+                                        <input
+                                            v-model="form.name_ru"
+                                            class="sf-input"
+                                            :class="{
+                                                'sf-input--err':
+                                                    form.errors.name_ru,
+                                            }"
+                                            :placeholder="namePlaceholderRu"
+                                            maxlength="45"
+                                        />
+                                        <span
+                                            class="sf-char-count"
+                                            :class="{
+                                                'sf-char-count--warn':
+                                                    form.name_ru.length >= 38,
+                                            }"
+                                        >
+                                            {{ form.name_ru.length }}/45
+                                        </span>
+                                    </div>
+                                    <div
+                                        v-if="formSuggestionsRu.length"
+                                        class="svc-suggestions"
+                                    >
+                                        <button
+                                            v-for="s in formSuggestionsRu"
+                                            :key="s"
+                                            type="button"
+                                            class="svc-chip"
+                                            :class="{
+                                                'svc-chip--active':
+                                                    form.name_ru === s,
+                                                'svc-chip--pop':
+                                                    animatingChip === s,
+                                            }"
+                                            @click="selectChip(s, 'ru')"
+                                        >
+                                            {{ s }}
+                                        </button>
+                                    </div>
+                                    <p
+                                        v-if="form.errors.name_ru"
+                                        class="sf-err"
+                                    >
+                                        {{ form.errors.name_ru }}
+                                    </p>
                                 </div>
-                                <div v-if="formSuggestions.length" class="svc-suggestions">
-                                    <button v-for="s in formSuggestions" :key="s" type="button" class="svc-chip"
-                                        :class="{ 'svc-chip--active': form.name === s, 'svc-chip--pop': animatingChip === s }"
-                                        @click="selectChip(s)">{{ s }}</button>
+                            </Transition>
+
+                            <button
+                                v-if="showNameRu && !showNameEn"
+                                type="button"
+                                class="sf-add-lang"
+                                @click="addSecondary"
+                            >
+                                + {{ __("profile.services.form.add_en") }}
+                            </button>
+                            <button
+                                v-if="showNameEn && !showNameRu"
+                                type="button"
+                                class="sf-add-lang"
+                                @click="addSecondary"
+                            >
+                                + {{ __("profile.services.form.add_ru") }}
+                            </button>
+
+                            <Transition name="sf-name-fade">
+                                <div v-if="showNameEn" class="sf-field">
+                                    <div class="sf-label-row">
+                                        <label class="sf-label">{{
+                                            __("profile.services.form.name_en")
+                                        }}</label>
+                                        <button
+                                            v-if="showNameRu && showNameEn"
+                                            type="button"
+                                            class="sf-name-remove"
+                                            @click="removeNameEn"
+                                            aria-label="Remove EN"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                    <div class="sf-input-wrap">
+                                        <input
+                                            v-model="form.name_en"
+                                            class="sf-input"
+                                            :class="{
+                                                'sf-input--err':
+                                                    form.errors.name_en,
+                                            }"
+                                            :placeholder="namePlaceholderEn"
+                                            maxlength="45"
+                                            @input="
+                                                form.name_en =
+                                                    form.name_en.replace(
+                                                        /[\u0400-\u04FF\u0500-\u052F]/g,
+                                                        '',
+                                                    )
+                                            "
+                                        />
+                                        <span
+                                            class="sf-char-count"
+                                            :class="{
+                                                'sf-char-count--warn':
+                                                    form.name_en.length >= 38,
+                                            }"
+                                        >
+                                            {{ form.name_en.length }}/45
+                                        </span>
+                                    </div>
+                                    <div
+                                        v-if="formSuggestionsEn.length"
+                                        class="svc-suggestions"
+                                    >
+                                        <button
+                                            v-for="s in formSuggestionsEn"
+                                            :key="s"
+                                            type="button"
+                                            class="svc-chip"
+                                            :class="{
+                                                'svc-chip--active':
+                                                    form.name_en === s,
+                                                'svc-chip--pop':
+                                                    animatingChip === s,
+                                            }"
+                                            @click="selectChip(s, 'en')"
+                                        >
+                                            {{ s }}
+                                        </button>
+                                    </div>
+                                    <p
+                                        v-if="form.errors.name_en"
+                                        class="sf-err"
+                                    >
+                                        {{ form.errors.name_en }}
+                                    </p>
                                 </div>
-                                <p v-if="form.errors.name" class="sf-err">{{ form.errors.name }}</p>
-                            </div>
+                            </Transition>
 
                             <div class="sf-row">
                                 <div class="sf-field">
-                                    <label class="sf-label">Цена</label>
+                                    <label class="sf-label">{{
+                                        __("profile.services.form.price")
+                                    }}</label>
                                     <div class="sf-input-wrap">
-                                        <input v-model.number="form.price" type="number" min="1" class="sf-input"
-                                            :class="{ 'sf-input--err': form.errors.price }" placeholder="500" />
+                                        <input
+                                            v-model.number="form.price"
+                                            type="number"
+                                            min="1"
+                                            class="sf-input"
+                                            :class="{
+                                                'sf-input--err':
+                                                    form.errors.price,
+                                            }"
+                                            placeholder="500"
+                                        />
                                         <Transition name="sf-preview-fade">
-                                            <span v-if="pricePreview" class="sf-preview">{{ pricePreview }}</span>
+                                            <span
+                                                v-if="pricePreview"
+                                                class="sf-preview"
+                                                >{{ pricePreview }}</span
+                                            >
                                         </Transition>
                                     </div>
-                                    <p v-if="form.errors.price" class="sf-err">{{ form.errors.price }}</p>
+                                    <p v-if="form.errors.price" class="sf-err">
+                                        {{ form.errors.price }}
+                                    </p>
                                 </div>
                                 <div class="sf-field">
-                                    <label class="sf-label">Единица</label>
-                                    <AppSelect v-model="form.time_unit_id"
-                                        :options="(serviceTimeUnits ?? []).map(u => ({ value: u.id, label: u.name }))"
-                                        placeholder="За..." :error="!!form.errors.time_unit_id" />
-                                    <p v-if="form.errors.time_unit_id" class="sf-err">{{ form.errors.time_unit_id }}</p>
+                                    <label class="sf-label">{{
+                                        __("profile.services.form.unit")
+                                    }}</label>
+                                    <AppSelect
+                                        v-model="form.time_unit_id"
+                                        :options="
+                                            (serviceTimeUnits ?? []).map(
+                                                (u) => ({
+                                                    value: u.id,
+                                                    label: localUnitName(u),
+                                                }),
+                                            )
+                                        "
+                                        :placeholder="
+                                            __('profile.services.form.unit_ph')
+                                        "
+                                        :error="!!form.errors.time_unit_id"
+                                    />
+                                    <p
+                                        v-if="form.errors.time_unit_id"
+                                        class="sf-err"
+                                    >
+                                        {{ form.errors.time_unit_id }}
+                                    </p>
                                 </div>
                             </div>
 
                             <div class="sf-actions">
-                                <button type="button" class="svc-btn-cancel" @click="tryCloseForm">Отмена</button>
-                                <button type="submit" class="sf-btn-submit" :disabled="!formValid || form.processing">
-                                    {{ editingId ? 'Сохранить' : 'Добавить' }}
+                                <button
+                                    type="button"
+                                    class="svc-btn-cancel"
+                                    @click="tryCloseForm"
+                                >
+                                    {{ __("common.cancel") }}
+                                </button>
+                                <button
+                                    type="submit"
+                                    class="sf-btn-submit"
+                                    :disabled="!formValid || form.processing"
+                                >
+                                    {{
+                                        editingId
+                                            ? __("common.save")
+                                            : __("common.add")
+                                    }}
                                 </button>
                             </div>
-
                         </form>
                     </div>
                 </Transition>
             </div>
         </SiteModal>
-    </div>
 
+        <ServiceRemarksModal
+            v-if="fixingService"
+            :show="!!fixingService"
+            :service="fixingService"
+            :mode="remarksMode"
+            :service-categories="serviceCategories"
+            :service-time-units="serviceTimeUnits"
+            @close="fixingService = null"
+            @submitted="resyncSelectedCategory"
+            @fixed="resyncSelectedCategory"
+        />
+    </div>
 </template>
 
 <style scoped>
@@ -882,7 +1894,12 @@ watch(selectedCategory, (cat) => {
 .svc-skeleton__row {
     height: 72px;
     border-radius: 3px;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.04) 75%);
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.04) 25%,
+        rgba(255, 255, 255, 0.08) 50%,
+        rgba(255, 255, 255, 0.04) 75%
+    );
     background-size: 800px 100%;
     animation: shimmer 1.4s infinite linear;
 }
@@ -899,7 +1916,6 @@ watch(selectedCategory, (cat) => {
     display: flex;
     justify-content: flex-end;
 }
-
 
 /* ── Empty ────────────────────────────────────────────────── */
 .svc-empty {
@@ -943,7 +1959,12 @@ watch(selectedCategory, (cat) => {
 .cat-grid__divider {
     width: 100%;
     height: 1px;
-    background: linear-gradient(to right, transparent, rgba(180, 160, 255, 0.4), transparent);
+    background: linear-gradient(
+        to right,
+        transparent,
+        rgba(255, 178, 239, 0.4),
+        transparent
+    );
     margin: 0.25rem 0;
 }
 
@@ -968,7 +1989,14 @@ watch(selectedCategory, (cat) => {
     align-items: stretch;
     overflow: visible;
     background:
-        linear-gradient(to right, transparent, color-mix(in srgb, var(--cat-accent) 80%, white), rgba(255, 255, 255, 0.2), transparent) 0 0 / 100% 1px no-repeat,
+        linear-gradient(
+                to right,
+                transparent,
+                color-mix(in srgb, var(--cat-accent) 80%, white),
+                rgba(255, 255, 255, 0.2),
+                transparent
+            )
+            0 0 / 100% 1px no-repeat,
         rgba(30, 28, 45, 0.55);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
@@ -977,13 +2005,36 @@ watch(selectedCategory, (cat) => {
     cursor: pointer;
     text-align: left;
     overflow: hidden;
-    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    transition:
+        border-color 0.2s,
+        background 0.2s,
+        box-shadow 0.2s;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.28);
+}
+
+.cat-tile::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to right,
+        transparent 5%,
+        color-mix(in srgb, var(--cat-accent) 4%, transparent)
+    );
+    pointer-events: none;
+    z-index: 1;
 }
 
 .cat-tile:hover {
     background:
-        linear-gradient(to right, transparent, color-mix(in srgb, var(--cat-accent) 90%, white), rgba(255, 255, 255, 0.28), transparent) 0 0 / 100% 1px no-repeat,
+        linear-gradient(
+                to right,
+                transparent,
+                color-mix(in srgb, var(--cat-accent) 90%, white),
+                rgba(255, 255, 255, 0.28),
+                transparent
+            )
+            0 0 / 100% 1px no-repeat,
         rgba(38, 35, 55, 0.6);
     border-color: rgba(255, 255, 255, 0.15);
     box-shadow:
@@ -1017,6 +2068,42 @@ watch(selectedCategory, (cat) => {
     height: 100%;
 }
 
+@media (max-width: 600px) {
+    .cat-tile {
+        flex-direction: column;
+    }
+
+    .cat-tile__img-wrap {
+        width: 100%;
+        height: 110px;
+        order: 0;
+        overflow: hidden;
+        background: linear-gradient(
+            135deg,
+            color-mix(in srgb, var(--cat-accent) 12%, transparent),
+            transparent
+        );
+    }
+
+    .cat-tile__img {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        transform: none;
+        object-fit: cover;
+        object-position: center 30%;
+    }
+
+    .cat-tile__img-placeholder {
+        height: 100%;
+    }
+
+    .cat-tile__body {
+        order: 1;
+    }
+}
+
 .cat-tile__body {
     padding: 0.6rem 0.9rem;
     display: flex;
@@ -1034,14 +2121,14 @@ watch(selectedCategory, (cat) => {
     color: rgba(255, 255, 255, 0.88);
     line-height: 1.35;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
 
 .cat-tile__desc {
-    font-size: 1rem;
-    color: rgba(255, 255, 255, 0.50);
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.5);
     line-height: 1.45;
     margin: auto 0;
 }
@@ -1061,7 +2148,9 @@ watch(selectedCategory, (cat) => {
 .cat-tile__arrow {
     color: rgba(255, 255, 255, 0.18);
     flex-shrink: 0;
-    transition: color 0.15s, transform 0.15s;
+    transition:
+        color 0.15s,
+        transform 0.15s;
 }
 
 .cat-tile:hover .cat-tile__arrow {
@@ -1074,7 +2163,34 @@ watch(selectedCategory, (cat) => {
     padding: 0 1rem;
 }
 
+.cd-owner-actions {
+    display: none;
+}
 
+@media (max-width: 600px) {
+    .cd-owner-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+
+    .cd-owner-actions .cd-hero__edit-btn {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .cd-detail {
+        padding: 0 0.75rem;
+    }
+
+    .cd-hero__title {
+        font-size: 1.25rem;
+    }
+
+    .cd-section {
+        gap: 0.75rem;
+    }
+}
 
 /* ── Hero card ────────────────────────────────────────────── */
 .cd-hero {
@@ -1085,7 +2201,6 @@ watch(selectedCategory, (cat) => {
     border-radius: 3px;
     overflow: hidden;
 }
-
 
 .cd-hero__body {
     flex: 1;
@@ -1114,27 +2229,34 @@ watch(selectedCategory, (cat) => {
 }
 
 .cd-hero__edit-btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 0.45rem;
     padding: 0.45rem 1rem;
-    border: 1px solid rgba(155, 110, 232, 0.35);
+    border: 1px solid color-mix(in srgb, var(--cat-accent) 35%, transparent);
+    border-top: none;
     border-radius: 6px;
-    background: rgba(155, 110, 232, 0.08);
-    color: rgba(155, 110, 232, 0.75);
+    background: color-mix(in srgb, var(--cat-accent) 8%, transparent);
+    color: color-mix(in srgb, var(--cat-accent) 80%, white);
     font-size: 0.92rem;
     font-family: inherit;
     font-weight: 500;
     cursor: pointer;
     flex-shrink: 0;
     white-space: nowrap;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    transition:
+        background 0.15s,
+        border-color 0.15s,
+        color 0.15s;
+    box-shadow:
+        inset 0 1px 0 color-mix(in srgb, var(--cat-accent) 25%, transparent),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.18);
 }
 
 .cd-hero__edit-btn:hover {
-    border-color: rgba(155, 110, 232, 0.65);
-    background: rgba(155, 110, 232, 0.15);
-    color: rgba(155, 110, 232, 1);
+    background: color-mix(in srgb, var(--cat-accent) 16%, transparent);
+    border-color: color-mix(in srgb, var(--cat-accent) 55%, transparent);
+    color: var(--cat-accent);
 }
 
 .cd-hero__top-actions {
@@ -1142,6 +2264,12 @@ watch(selectedCategory, (cat) => {
     align-items: center;
     gap: 0.5rem;
     flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+    .cd-hero__top-actions {
+        display: none;
+    }
 }
 
 .cd-hero__desc {
@@ -1152,7 +2280,7 @@ watch(selectedCategory, (cat) => {
     white-space: pre-wrap;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(160, 160, 255, 0.25) transparent;
+    scrollbar-color: var(--color-base-1) transparent;
 }
 
 .cd-hero__desc::-webkit-scrollbar {
@@ -1160,7 +2288,8 @@ watch(selectedCategory, (cat) => {
 }
 
 .cd-hero__desc::-webkit-scrollbar-thumb {
-    background: rgba(160, 160, 255, 0.28);
+    background: var(--color-base-1);
+    opacity: 0.28;
     border-radius: 999px;
 }
 
@@ -1187,7 +2316,7 @@ watch(selectedCategory, (cat) => {
 }
 
 .cd-hero__textarea:focus {
-    border-color: rgba(160, 160, 255, 0.45);
+    border-color: var(--color-base-1);
 }
 
 .cd-hero__actions {
@@ -1257,7 +2386,11 @@ watch(selectedCategory, (cat) => {
     width: 30px;
     border-radius: 3px;
     border: 1px solid rgba(155, 110, 232, 0.18);
-    background: linear-gradient(135deg, rgba(155, 110, 232, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+    background: linear-gradient(
+        135deg,
+        rgba(155, 110, 232, 0.06) 0%,
+        rgba(255, 255, 255, 0.02) 100%
+    );
     color: rgba(190, 145, 255, 0.45);
     display: flex;
     align-items: center;
@@ -1265,9 +2398,12 @@ watch(selectedCategory, (cat) => {
     cursor: pointer;
     position: relative;
     overflow: hidden;
-    transition: border-color 0.18s, background 0.18s, color 0.18s, box-shadow 0.18s;
+    transition:
+        border-color 0.18s,
+        background 0.18s,
+        color 0.18s,
+        box-shadow 0.18s;
 }
-
 
 .cd-carousel__nav svg {
     transition: transform 0.18s;
@@ -1275,7 +2411,11 @@ watch(selectedCategory, (cat) => {
 
 .cd-carousel__nav:hover:not(:disabled) {
     border-color: rgba(155, 110, 232, 0.45);
-    background: linear-gradient(135deg, rgba(155, 110, 232, 0.13) 0%, rgba(255, 255, 255, 0.03) 100%);
+    background: linear-gradient(
+        135deg,
+        rgba(155, 110, 232, 0.13) 0%,
+        rgba(255, 255, 255, 0.03) 100%
+    );
     color: rgba(190, 145, 255, 0.9);
     box-shadow: 0 0 10px rgba(155, 110, 232, 0.18);
 }
@@ -1289,7 +2429,11 @@ watch(selectedCategory, (cat) => {
 }
 
 .cd-carousel__nav:active:not(:disabled) {
-    background: linear-gradient(135deg, rgba(155, 110, 232, 0.2) 0%, rgba(255, 255, 255, 0.04) 100%);
+    background: linear-gradient(
+        135deg,
+        rgba(155, 110, 232, 0.2) 0%,
+        rgba(255, 255, 255, 0.04) 100%
+    );
     transition-duration: 0.06s;
 }
 
@@ -1308,10 +2452,12 @@ watch(selectedCategory, (cat) => {
 }
 
 .cd-carousel__idol--skel {
-    background: linear-gradient(90deg,
-            rgba(255, 255, 255, 0.05) 25%,
-            rgba(255, 255, 255, 0.10) 50%,
-            rgba(255, 255, 255, 0.05) 75%);
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.05) 25%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0.05) 75%
+    );
     background-size: 400px 100%;
     animation: shimmer 1.4s infinite linear;
     pointer-events: none;
@@ -1353,13 +2499,13 @@ watch(selectedCategory, (cat) => {
     inset: 0;
     width: 100%;
     height: 100%;
-    background: rgba(160, 160, 255, 0.1);
+    background: rgba(255, 178, 239, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 2rem;
     font-weight: 600;
-    color: rgba(160, 160, 255, 0.7);
+    color: rgba(255, 178, 239, 0.7);
 }
 
 .cd-carousel__name {
@@ -1374,7 +2520,11 @@ watch(selectedCategory, (cat) => {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.35) 0%, transparent 100%);
+    background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.35) 0%,
+        transparent 100%
+    );
 }
 
 .cd-carousel__rating {
@@ -1389,7 +2539,6 @@ watch(selectedCategory, (cat) => {
     line-height: 1.4;
 }
 
-
 .cd-carousel__pager {
     font-size: 0.75rem;
     color: rgba(255, 255, 255, 0.25);
@@ -1402,7 +2551,9 @@ watch(selectedCategory, (cat) => {
 .carousel-next-leave-active,
 .carousel-prev-enter-active,
 .carousel-prev-leave-active {
-    transition: transform 0.22s ease, opacity 0.22s ease;
+    transition:
+        transform 0.22s ease,
+        opacity 0.22s ease;
     position: absolute;
     width: 100%;
 }
@@ -1456,12 +2607,14 @@ watch(selectedCategory, (cat) => {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 99px;
     text-decoration: none;
-    transition: border-color 0.15s, background 0.15s;
+    transition:
+        border-color 0.15s,
+        background 0.15s;
 }
 
 .cd-idol-chip:hover {
-    border-color: rgba(160, 160, 255, 0.35);
-    background: rgba(160, 160, 255, 0.06);
+    border-color: rgba(255, 178, 239, 0.35);
+    background: rgba(255, 178, 239, 0.06);
 }
 
 .cd-idol-chip__avatar {
@@ -1476,13 +2629,13 @@ watch(selectedCategory, (cat) => {
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: rgba(160, 160, 255, 0.15);
+    background: rgba(255, 178, 239, 0.15);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.75rem;
     font-weight: 600;
-    color: rgba(160, 160, 255, 0.8);
+    color: rgba(255, 178, 239, 0.8);
     flex-shrink: 0;
 }
 
@@ -1499,15 +2652,25 @@ watch(selectedCategory, (cat) => {
     gap: 0.85rem;
 }
 
+@media (max-width: 600px) {
+    .svc-list {
+        grid-template-columns: 1fr;
+    }
+}
+
 .svc-card {
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
-    padding: 1rem 1.1rem;
+    padding: 1.5rem 1.1rem;
     background: rgba(255, 255, 255, 0.025);
-    border: 1px solid color-mix(in srgb, var(--cat-accent, white) 28%, transparent);
+    border: 1px solid
+        color-mix(in srgb, var(--cat-accent, white) 28%, transparent);
     border-radius: 6px;
-    transition: background 0.18s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    transition:
+        background 0.18s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
     position: relative;
 }
 
@@ -1545,7 +2708,11 @@ watch(selectedCategory, (cat) => {
     background: rgba(239, 68, 68, 0.025);
 }
 
-/* Info column */
+.svc-card--remarks {
+    border-color: rgba(255, 230, 0, 0.25);
+    background: rgba(255, 230, 0, 0.02);
+}
+
 .svc-card__info {
     flex: 1;
     min-width: 0;
@@ -1553,6 +2720,20 @@ watch(selectedCategory, (cat) => {
     flex-direction: column;
     gap: 0.3rem;
 }
+
+.svc-card__flag-icon {
+    display: inline-flex;
+    margin-left: 0.25rem;
+    cursor: help;
+    font-size: 0.85rem;
+    vertical-align: middle;
+}
+
+.svc-card__name--flagged {
+    color: #ffd900 !important;
+}
+
+
 
 .svc-card__name-row {
     display: flex;
@@ -1570,7 +2751,6 @@ watch(selectedCategory, (cat) => {
     overflow: hidden;
     letter-spacing: 0;
 }
-
 
 .svc-card__reason {
     font-size: 0.8rem;
@@ -1635,6 +2815,12 @@ watch(selectedCategory, (cat) => {
     border: 1px solid rgba(251, 146, 60, 0.2);
 }
 
+.svc-pill--remarks {
+    background: rgba(255, 204, 0, 0.12);
+    color: #ffcc00;
+    border: 1px solid rgba(255, 204, 0, 0.25);
+}
+
 .svc-pill--rejected {
     background: rgba(239, 68, 68, 0.1);
     color: rgba(239, 68, 68, 0.85);
@@ -1651,7 +2837,6 @@ watch(selectedCategory, (cat) => {
 }
 
 @keyframes svc-pulse {
-
     0%,
     100% {
         opacity: 1;
@@ -1721,10 +2906,11 @@ watch(selectedCategory, (cat) => {
     align-items: center;
     gap: 0.4rem;
     padding: 0.38rem 0.85rem;
-    border: 1px solid color-mix(in srgb, var(--cat-accent, #a0a0ff) 40%, transparent);
+    border: 1px solid
+        color-mix(in srgb, var(--cat-accent, #ffb2ef) 40%, transparent);
     border-radius: 6px;
-    background: color-mix(in srgb, var(--cat-accent, #a0a0ff) 10%, transparent);
-    color: color-mix(in srgb, var(--cat-accent, #a0a0ff) 85%, white);
+    background: color-mix(in srgb, var(--cat-accent, #ffb2ef) 10%, transparent);
+    color: color-mix(in srgb, var(--cat-accent, #ffb2ef) 85%, white);
     font-family: inherit;
     font-size: 0.78rem;
     font-weight: 600;
@@ -1733,17 +2919,23 @@ watch(selectedCategory, (cat) => {
     white-space: nowrap;
     overflow: hidden;
     position: relative;
-    transition: border-color 0.2s, color 0.2s, box-shadow 0.2s, background 0.2s;
+    transition:
+        border-color 0.2s,
+        color 0.2s,
+        box-shadow 0.2s,
+        background 0.2s;
 }
 
 .svc-buy-btn::before {
-    content: '';
+    content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(105deg,
-            transparent 30%,
-            rgba(255, 255, 255, 0.08) 50%,
-            transparent 70%);
+    background: linear-gradient(
+        105deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.08) 50%,
+        transparent 70%
+    );
     transform: translateX(-100%);
     transition: transform 0.5s ease;
 }
@@ -1753,11 +2945,17 @@ watch(selectedCategory, (cat) => {
 }
 
 .svc-buy-btn:hover {
-    border-color: color-mix(in srgb, var(--cat-accent, #a0a0ff) 65%, transparent);
-    background: color-mix(in srgb, var(--cat-accent, #a0a0ff) 18%, transparent);
-    color: var(--cat-accent, #a0a0ff);
-    box-shadow: 0 0 20px color-mix(in srgb, var(--cat-accent, #a0a0ff) 20%, transparent),
-        inset 0 0 12px color-mix(in srgb, var(--cat-accent, #a0a0ff) 8%, transparent);
+    border-color: color-mix(
+        in srgb,
+        var(--cat-accent, #ffb2ef) 65%,
+        transparent
+    );
+    background: color-mix(in srgb, var(--cat-accent, #ffb2ef) 18%, transparent);
+    color: var(--cat-accent, #ffb2ef);
+    box-shadow:
+        0 0 20px color-mix(in srgb, var(--cat-accent, #ffb2ef) 20%, transparent),
+        inset 0 0 12px
+            color-mix(in srgb, var(--cat-accent, #ffb2ef) 8%, transparent);
 }
 
 .svc-buy-btn svg {
@@ -1768,17 +2966,25 @@ watch(selectedCategory, (cat) => {
 .svc-buy-btn:hover svg {
     transform: translateX(2px);
 }
+
 .svc-buy-btn--in-cart {
-    background: rgba(100,200,130,0.08);
-    border-color: rgba(100,200,130,0.3);
-    color: rgba(140,255,180,0.85);
+    background: rgba(100, 200, 130, 0.08);
+    border-color: rgba(100, 200, 130, 0.3);
+    color: rgba(140, 255, 180, 0.85);
 }
+
 .svc-buy-btn--in-cart:hover {
-    background: rgba(100,200,130,0.12);
+    background: rgba(100, 200, 130, 0.12);
     box-shadow: none;
 }
-.svc-buy-btn--in-cart svg { stroke: rgba(140,255,180,0.85); }
-.svc-buy-btn--in-cart:hover svg { transform: none; }
+
+.svc-buy-btn--in-cart svg {
+    stroke: rgba(140, 255, 180, 0.85);
+}
+
+.svc-buy-btn--in-cart:hover svg {
+    transform: none;
+}
 
 /* ── 3-dot menu ───────────────────────────────────────────── */
 .svc-menu {
@@ -1799,7 +3005,9 @@ watch(selectedCategory, (cat) => {
     background: transparent;
     cursor: pointer;
     padding: 0;
-    transition: border-color 0.15s, background 0.15s;
+    transition:
+        border-color 0.15s,
+        background 0.15s;
 }
 
 .svc-menu__trigger span {
@@ -1832,7 +3040,9 @@ watch(selectedCategory, (cat) => {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 6px;
     padding: 0.3rem;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.5),
+        0 2px 8px rgba(0, 0, 0, 0.3);
     transform-origin: top right;
 }
 
@@ -1850,7 +3060,9 @@ watch(selectedCategory, (cat) => {
     font-size: 0.82rem;
     text-align: left;
     cursor: pointer;
-    transition: background 0.12s, color 0.12s;
+    transition:
+        background 0.12s,
+        color 0.12s;
 }
 
 .svc-menu__item svg {
@@ -1893,11 +3105,15 @@ watch(selectedCategory, (cat) => {
 
 /* Dropdown pop animation */
 .svc-menu-pop-enter-active {
-    transition: opacity 0.12s ease, transform 0.14s cubic-bezier(0.2, 0, 0.2, 1.4);
+    transition:
+        opacity 0.12s ease,
+        transform 0.14s cubic-bezier(0.2, 0, 0.2, 1.4);
 }
 
 .svc-menu-pop-leave-active {
-    transition: opacity 0.1s ease, transform 0.1s ease;
+    transition:
+        opacity 0.1s ease,
+        transform 0.1s ease;
 }
 
 .svc-menu-pop-enter-from {
@@ -1920,7 +3136,9 @@ watch(selectedCategory, (cat) => {
     font-family: inherit;
     font-size: 0.82rem;
     cursor: pointer;
-    transition: border-color 0.15s, color 0.15s;
+    transition:
+        border-color 0.15s,
+        color 0.15s;
 }
 
 .svc-btn-cancel:hover {
@@ -1930,19 +3148,44 @@ watch(selectedCategory, (cat) => {
 
 .svc-btn-submit {
     padding: 0.5rem 1.2rem;
-    border: 1px solid rgba(160, 160, 255, 0.45);
+    border: 1px solid rgba(255, 178, 239, 0.45);
     border-radius: 3px;
-    background: linear-gradient(135deg, rgba(110, 110, 210, 0.3) 0%, rgba(124, 45, 126, 0.2) 100%);
+    background: linear-gradient(
+        135deg,
+        rgba(255, 178, 239, 0.3) 0%,
+        rgba(124, 45, 126, 0.2) 100%
+    );
     color: rgba(255, 255, 255, 0.9);
     font-family: inherit;
     font-size: 0.82rem;
     cursor: pointer;
-    transition: box-shadow 0.15s, border-color 0.15s;
+    transition:
+        box-shadow 0.15s,
+        border-color 0.15s;
 }
 
-.svc-btn-submit:hover {
-    border-color: rgba(160, 160, 255, 0.7);
-    box-shadow: 0 0 12px rgba(110, 110, 210, 0.25);
+.svc-btn-submit:hover:not(:disabled) {
+    border-color: rgba(255, 178, 239, 0.7);
+    box-shadow: 0 0 12px rgba(255, 178, 239, 0.25);
+}
+
+.svc-btn-submit--saving {
+    opacity: 0.7;
+    cursor: default;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.svc-btn-spinner {
+    animation: spin 0.75s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .svc-btn-danger {
@@ -1954,7 +3197,9 @@ watch(selectedCategory, (cat) => {
     font-family: inherit;
     font-size: 0.82rem;
     cursor: pointer;
-    transition: box-shadow 0.15s, border-color 0.15s;
+    transition:
+        box-shadow 0.15s,
+        border-color 0.15s;
 }
 
 .svc-btn-danger:hover {
@@ -1999,7 +3244,7 @@ watch(selectedCategory, (cat) => {
 }
 
 .svc-input:focus {
-    border-color: rgba(160, 160, 255, 0.45);
+    border-color: rgba(255, 178, 239, 0.45);
 }
 
 .svc-input--err {
@@ -2012,11 +3257,12 @@ watch(selectedCategory, (cat) => {
     margin: 0;
 }
 
-
 /* ── Category drill-in (list → detail) ───────────────────── */
 .drill-in-enter-active,
 .drill-in-leave-active {
-    transition: transform 0.24s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.2s ease;
+    transition:
+        transform 0.24s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        opacity 0.2s ease;
 }
 
 .drill-in-enter-from {
@@ -2032,7 +3278,9 @@ watch(selectedCategory, (cat) => {
 /* ── Category drill-out (detail → list) ──────────────────── */
 .drill-out-enter-active,
 .drill-out-leave-active {
-    transition: transform 0.24s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.2s ease;
+    transition:
+        transform 0.24s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        opacity 0.2s ease;
 }
 
 .drill-out-enter-from {
@@ -2047,11 +3295,15 @@ watch(selectedCategory, (cat) => {
 
 /* ── Service item add / delete / reorder ─────────────────── */
 .svc-item-enter-active {
-    transition: opacity 0.22s ease, transform 0.22s ease;
+    transition:
+        opacity 0.22s ease,
+        transform 0.22s ease;
 }
 
 .svc-item-leave-active {
-    transition: opacity 0.18s ease, transform 0.18s ease;
+    transition:
+        opacity 0.18s ease,
+        transform 0.18s ease;
 }
 
 .svc-item-enter-from {
@@ -2090,13 +3342,16 @@ watch(selectedCategory, (cat) => {
 .svc-chip {
     padding: 0.45rem 1rem;
     border: 1px solid rgba(200, 70, 126, 0.3);
-    border-radius: 99px;
+    border-radius: 6px;
     background: transparent;
     color: rgba(200, 70, 126, 0.75);
     font-family: inherit;
     font-size: 0.92rem;
     cursor: pointer;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    transition:
+        border-color 0.15s,
+        color 0.15s,
+        background 0.15s;
 }
 
 .svc-chip:hover {
@@ -2124,11 +3379,15 @@ watch(selectedCategory, (cat) => {
 }
 
 .sf-screen-enter-active {
-    transition: opacity 0.2s ease, transform 0.22s ease;
+    transition:
+        opacity 0.2s ease,
+        transform 0.22s ease;
 }
 
 .sf-screen-leave-active {
-    transition: opacity 0.15s ease, transform 0.18s ease;
+    transition:
+        opacity 0.15s ease,
+        transform 0.18s ease;
 }
 
 .sf-screen-enter-from {
@@ -2140,7 +3399,6 @@ watch(selectedCategory, (cat) => {
     opacity: 0;
     transform: translateY(-8px);
 }
-
 
 .sf-title {
     font-size: 1.15rem;
@@ -2174,11 +3432,78 @@ watch(selectedCategory, (cat) => {
     font-size: 0.95rem;
 }
 
+.sf-name-fade-enter-active,
+.sf-name-fade-leave-active {
+    transition: opacity 0.18s ease;
+}
+
+.sf-name-fade-enter-from,
+.sf-name-fade-leave-to {
+    opacity: 0;
+}
+
+.sf-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.3rem;
+}
+
+.sf-label-row .sf-label {
+    margin-bottom: 0;
+}
+
+.sf-name-remove {
+    background: none;
+    border: none;
+    padding: 0 0.1rem;
+    color: rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    font-size: 1.35rem;
+    line-height: 1;
+    transition: color 0.15s;
+    flex-shrink: 0;
+}
+
+.sf-name-remove:hover {
+    color: rgba(239, 68, 68, 0.7);
+}
+
+.sf-add-lang {
+    display: block;
+    width: 100%;
+    padding: 0.55rem 1rem;
+    margin-top: 0.1rem;
+    background: color-mix(in srgb, var(--cat-accent, #ffb2ef) 8%, transparent);
+    border: 1px dashed
+        color-mix(in srgb, var(--cat-accent, #ffb2ef) 35%, transparent);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    color: color-mix(in srgb, var(--cat-accent, #ffb2ef) 65%, white);
+    cursor: pointer;
+    transition:
+        background 0.15s,
+        border-color 0.15s,
+        color 0.15s;
+    text-align: center;
+}
+
+.sf-add-lang:hover {
+    background: color-mix(in srgb, var(--cat-accent, #ffb2ef) 15%, transparent);
+    border-color: color-mix(
+        in srgb,
+        var(--cat-accent, #ffb2ef) 60%,
+        transparent
+    );
+    color: color-mix(in srgb, var(--cat-accent, #ffb2ef) 90%, white);
+}
+
 .sf-label {
     font-size: 0.78rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: rgba(200, 70, 126, 0.85);
+    color: color-mix(in srgb, var(--cat-accent, #ffb2ef) 80%, white);
 }
 
 .sf-input {
@@ -2193,7 +3518,9 @@ watch(selectedCategory, (cat) => {
     font-size: 0.95rem;
     line-height: 1.4;
     outline: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
     appearance: none;
     -moz-appearance: textfield;
 }
@@ -2230,16 +3557,27 @@ watch(selectedCategory, (cat) => {
     padding: 0.65rem 1.4rem;
     border: 1px solid rgba(200, 70, 126, 0.45);
     border-radius: 3px;
-    background: linear-gradient(135deg, rgba(200, 70, 126, 0.25), rgba(200, 70, 126, 0.1));
+    background: linear-gradient(
+        135deg,
+        rgba(200, 70, 126, 0.25),
+        rgba(200, 70, 126, 0.1)
+    );
     color: #fff;
     font-family: inherit;
     font-size: 0.88rem;
     cursor: pointer;
-    transition: background 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    transition:
+        background 0.2s ease,
+        box-shadow 0.2s ease,
+        opacity 0.2s ease;
 }
 
 .sf-btn-submit:hover:not(:disabled) {
-    background: linear-gradient(135deg, rgba(200, 70, 126, 0.4), rgba(200, 70, 126, 0.2));
+    background: linear-gradient(
+        135deg,
+        rgba(200, 70, 126, 0.4),
+        rgba(200, 70, 126, 0.2)
+    );
     box-shadow: 0 0 18px rgba(200, 70, 126, 0.22);
 }
 
@@ -2252,16 +3590,27 @@ watch(selectedCategory, (cat) => {
     padding: 0.65rem 1.4rem;
     border: 1px solid rgba(239, 68, 68, 0.45);
     border-radius: 3px;
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.22), rgba(239, 68, 68, 0.08));
+    background: linear-gradient(
+        135deg,
+        rgba(239, 68, 68, 0.22),
+        rgba(239, 68, 68, 0.08)
+    );
     color: rgba(239, 68, 68, 0.95);
     font-family: inherit;
     font-size: 0.88rem;
     cursor: pointer;
-    transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    transition:
+        background 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
 }
 
 .sf-btn-danger:hover {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.35), rgba(239, 68, 68, 0.15));
+    background: linear-gradient(
+        135deg,
+        rgba(239, 68, 68, 0.35),
+        rgba(239, 68, 68, 0.15)
+    );
     border-color: rgba(239, 68, 68, 0.7);
     box-shadow: 0 0 18px rgba(239, 68, 68, 0.2);
 }
@@ -2341,16 +3690,22 @@ watch(selectedCategory, (cat) => {
 
 .sf-btn-cancel {
     padding: 0.65rem 1.4rem;
-    border: 1px solid rgba(255,255,255,0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 3px;
     background: transparent;
-    color: rgba(255,255,255,0.5);
+    color: rgba(255, 255, 255, 0.5);
     font-family: inherit;
     font-size: 0.88rem;
     cursor: pointer;
-    transition: color 0.18s, border-color 0.18s;
+    transition:
+        color 0.18s,
+        border-color 0.18s;
 }
-.sf-btn-cancel:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.2); }
+
+.sf-btn-cancel:hover {
+    color: rgba(255, 255, 255, 0.8);
+    border-color: rgba(255, 255, 255, 0.2);
+}
 
 .svc-block-error {
     position: sticky;
@@ -2365,8 +3720,19 @@ watch(selectedCategory, (cat) => {
     font-size: 0.9rem;
     text-align: center;
 }
-.block-err-enter-active, .block-err-leave-active { transition: opacity 0.25s, transform 0.25s; }
-.block-err-enter-from, .block-err-leave-to { opacity: 0; transform: translateY(-6px); }
+
+.block-err-enter-active,
+.block-err-leave-active {
+    transition:
+        opacity 0.25s,
+        transform 0.25s;
+}
+
+.block-err-enter-from,
+.block-err-leave-to {
+    opacity: 0;
+    transform: translateY(-6px);
+}
 </style>
 
 <style>
@@ -2374,20 +3740,23 @@ watch(selectedCategory, (cat) => {
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
-    background: rgba(160,160,255,0.08);
-    border: 1px solid rgba(160,160,255,0.28);
+    background: rgba(255, 178, 239, 0.08);
+    border: 1px solid rgba(255, 178, 239, 0.28);
     border-radius: 5px;
-    color: rgba(180,180,255,0.85);
+    color: rgba(180, 180, 255, 0.85);
     font-family: inherit;
     font-size: 0.88rem;
     cursor: pointer;
     padding: 0.35rem 0.75rem;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    transition:
+        background 0.15s,
+        border-color 0.15s,
+        color 0.15s;
 }
 
 .cd-back:hover {
-    background: rgba(160,160,255,0.16);
-    border-color: rgba(160,160,255,0.5);
+    background: rgba(255, 178, 239, 0.16);
+    border-color: rgba(255, 178, 239, 0.5);
     color: var(--color-base-1);
 }
 </style>

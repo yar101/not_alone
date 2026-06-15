@@ -3,6 +3,9 @@ import { ref, computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { EditPen } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __, locale } = useTranslations();
 
 const props = defineProps({
     traits:    { default: null },
@@ -28,11 +31,19 @@ function applyGender(name, gender) {
     return name;
 }
 
+function displayTrait(t) {
+    if (locale.value?.current === 'en' && t.name_en) return t.name_en;
+    return applyGender(t.name_ru, props.gender);
+}
+
 const filteredTraits = computed(() => {
     if (!Array.isArray(props.allTraits)) return [];
     if (!traitSearch.value.trim()) return props.allTraits;
     const q = traitSearch.value.toLowerCase();
-    return props.allTraits.filter(t => t.name_ru.toLowerCase().includes(q));
+    return props.allTraits.filter(t =>
+        t.name_ru.toLowerCase().includes(q) ||
+        (t.name_en && t.name_en.toLowerCase().includes(q))
+    ); // search both langs so user can type in either
 });
 
 function toggleTrait(id) {
@@ -75,24 +86,24 @@ function submitSuggestion() {
 <template>
     <div id="tour-traits" class="block-section">
         <div class="section-header">
-            <span class="section-title">Характер</span>
-            <button v-if="isOwner" class="edit-btn" @click="openEdit" title="Редактировать">
+            <span class="section-title">{{ __('profile.traits.title') }}</span>
+            <button v-if="isOwner" class="edit-btn" @click="openEdit" :title="__('common.edit')">
                 <el-icon><EditPen /></el-icon>
             </button>
         </div>
 
         <div v-if="traits?.length" class="tags-row">
             <span v-for="t in traits" :key="t.id" class="tag">
-                {{ applyGender(t.name_ru, gender) }}
+                {{ displayTrait(t) }}
             </span>
         </div>
-        <p v-else-if="isOwner" class="empty">Добавь свои черты характера</p>
-        <p v-else class="empty">Не указано</p>
+        <p v-else-if="isOwner" class="empty">{{ __('profile.traits.empty') }}</p>
+        <p v-else class="empty">{{ __('profile.traits.not_specified') }}</p>
 
         <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
             <div class="edit-form">
-                <h3 class="edit-title">Характер</h3>
-                <p class="edit-hint">Выбери подходящие (до 10)</p>
+                <h3 class="edit-title">{{ __('profile.traits.title') }}</h3>
+                <p class="edit-hint">{{ __('profile.traits.subtitle') }}</p>
 
                 <Transition name="view-slide" mode="out-in">
                 <div v-if="view === 'list'" key="list">
@@ -101,9 +112,9 @@ function submitSuggestion() {
                             v-model="traitSearch"
                             type="text"
                             class="search-input"
-                            placeholder="Поиск по чертам..."
+                            :placeholder="__('profile.traits.search')"
                         />
-                        <button class="suggest-btn" @click="view = 'suggest'">Свой вариант</button>
+                        <button class="suggest-btn" @click="view = 'suggest'">{{ __('profile.traits.suggest_btn') }}</button>
                     </div>
                     <div class="trait-grid">
                         <button
@@ -114,32 +125,32 @@ function submitSuggestion() {
                             :class="{ active: selected.has(t.id) }"
                             @click="toggleTrait(t.id)"
                             :disabled="!selected.has(t.id) && selected.size >= 10"
-                        >{{ applyGender(t.name_ru, gender) }}</button>
+                        >{{ displayTrait(t) }}</button>
                     </div>
-                    <p v-if="filteredTraits.length === 0" class="no-results">Ничего не найдено</p>
+                    <p v-if="filteredTraits.length === 0" class="no-results">{{ __('profile.traits.not_found') }}</p>
                     <button class="save-btn" :disabled="form.processing" @click="submit">
-                        Сохранить ({{ selected.size }})
+                        {{ __('common.save') }} ({{ selected.size }})
                     </button>
                 </div>
 
                 <div v-else key="suggest" class="suggest-form">
-                    <button class="back-btn" @click="view = 'list'">← Назад</button>
-                    <h4 class="suggest-title">Предложить черту</h4>
-                    <p class="suggest-hint">Напиши название — мы рассмотрим его и добавим, если подойдёт</p>
+                    <button class="back-btn" @click="view = 'list'">{{ __('profile.traits.back') }}</button>
+                    <h4 class="suggest-title">{{ __('profile.traits.suggest.title') }}</h4>
+                    <p class="suggest-hint">{{ __('profile.traits.suggest.hint') }}</p>
                     <textarea
                         v-model="suggestionText"
                         class="suggestion-textarea"
                         maxlength="100"
                         rows="3"
-                        placeholder="Например: Меланхоличный..."
+                        :placeholder="__('profile.traits.suggest.ph')"
                     />
                     <div class="suggest-footer">
                         <span class="char-count">{{ suggestionText.length }}/100</span>
                         <button class="save-btn suggest-submit-btn" :disabled="!suggestionText.trim() || suggForm.processing" @click="submitSuggestion">
-                            Отправить
+                            {{ __('common.send') }}
                         </button>
                     </div>
-                    <p v-if="suggSuccess" class="sugg-success">Предложение отправлено!</p>
+                    <p v-if="suggSuccess" class="sugg-success">{{ __('profile.traits.sent') }}</p>
                 </div>
                 </Transition>
             </div>
@@ -166,7 +177,7 @@ function submitSuggestion() {
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #a0a0ff;
+    color: var(--color-base-1);
 }
 
 .edit-btn {
@@ -186,15 +197,15 @@ function submitSuggestion() {
 }
 .block-section:hover .edit-btn {
     opacity: 1;
-    color: rgba(160, 160, 255, 0.8);
-    border-color: rgba(160, 160, 255, 0.35);
-    background: rgba(160, 160, 255, 0.08);
+    color: color-mix(in srgb, var(--color-base-1), transparent 20%);
+    border-color: color-mix(in srgb, var(--color-base-1), transparent 65%);
+    background: color-mix(in srgb, var(--color-base-1), transparent 92%);
 }
 .edit-btn:hover {
-    color: #be91ff;
-    border-color: rgba(160, 160, 255, 0.7);
-    background: rgba(160, 160, 255, 0.16);
-    box-shadow: 0 0 8px rgba(160, 160, 255, 0.35);
+    color: var(--color-base-1);
+    border-color: color-mix(in srgb, var(--color-base-1), transparent 30%);
+    background: color-mix(in srgb, var(--color-base-1), transparent 84%);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--color-base-1), transparent 65%);
 }
 
 .tags-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
@@ -227,22 +238,22 @@ function submitSuggestion() {
     box-sizing: border-box; outline: none; transition: border-color 0.15s;
 }
 .search-input::placeholder { color: rgba(255,255,255,0.25); }
-.search-input:focus { border-color: rgba(190,145,255,0.5); }
+.search-input:focus { border-color: color-mix(in srgb, var(--color-base-1), transparent 50%); }
 
 .suggest-btn {
     flex-shrink: 0;
     padding: 0.5rem 0.85rem;
     border-radius: 3px;
-    border: 1px solid rgba(190,145,255,0.3);
-    background: rgba(190,145,255,0.07);
-    color: rgba(190,145,255,0.85);
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 70%);
+    background: color-mix(in srgb, var(--color-base-1), transparent 93%);
+    color: color-mix(in srgb, var(--color-base-1), transparent 15%);
     font-size: 0.85rem;
     cursor: pointer;
     font-family: inherit;
     transition: background 0.15s, border-color 0.15s;
     white-space: nowrap;
 }
-.suggest-btn:hover { background: rgba(190,145,255,0.15); border-color: rgba(190,145,255,0.5); }
+.suggest-btn:hover { background: color-mix(in srgb, var(--color-base-1), transparent 85%); border-color: color-mix(in srgb, var(--color-base-1), transparent 50%); }
 
 .trait-grid { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
 .trait-btn {
@@ -256,16 +267,16 @@ function submitSuggestion() {
     font-family: inherit;
     transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
-.trait-btn.active { border-color: rgba(190,145,255,0.55); background: rgba(190,145,255,0.1); color: #fff; }
+.trait-btn.active { border-color: color-mix(in srgb, var(--color-base-1), transparent 45%); background: color-mix(in srgb, var(--color-base-1), transparent 90%); color: #fff; }
 .trait-btn:disabled:not(.active) { opacity: 0.3; cursor: not-allowed; }
 .no-results { color: rgba(255,255,255,0.3); font-size: 0.9rem; text-align: center; padding: 0.5rem 0 1rem; margin: 0; }
 .save-btn {
     width: 100%; padding: 0.75rem;
-    border-radius: 3px; border: 1px solid rgba(190,145,255,0.4);
-    background: rgba(190,145,255,0.1);
+    border-radius: 3px; border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 60%);
+    background: color-mix(in srgb, var(--color-base-1), transparent 90%);
     color: #fff; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: background 0.15s;
 }
-.save-btn:hover:not(:disabled) { background: rgba(190,145,255,0.2); }
+.save-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--color-base-1), transparent 80%); }
 .save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ── Форма предложения черты ─────────────────────────────── */
@@ -302,7 +313,7 @@ function submitSuggestion() {
     transition: border-color 0.15s;
 }
 .suggestion-textarea::placeholder { color: rgba(255,255,255,0.25); }
-.suggestion-textarea:focus { border-color: rgba(160,160,255,0.4); }
+.suggestion-textarea:focus { border-color: color-mix(in srgb, var(--color-base-1), transparent 60%); }
 
 .suggest-footer {
     display: flex;

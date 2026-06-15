@@ -79,7 +79,7 @@
                                             <td style="border-radius:3px;border:1px solid rgba(190,145,255,0.55);background-color:rgba(190,145,255,0.1);">
                                                 <a href="{{ $url }}"
                                                    target="_blank"
-                                                   style="display:inline-block;padding:12px 32px;font-size:0.9rem;font-weight:500;color:#BE91FF;text-decoration:none;letter-spacing:0.02em;">
+                                                   style="display:inline-block;padding:12px 32px;font-size:0.9rem;font-weight:500;color:#ffb2ef;text-decoration:none;letter-spacing:0.02em;">
                                                     Подтвердить email
                                                 </a>
                                             </td>

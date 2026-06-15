@@ -1,5 +1,8 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     preview:   { type: String, default: null },
@@ -18,15 +21,15 @@ const ACCEPT = props.accept.split(',').map(s => s.trim());
 
 function validate(file) {
     if (!file || !file.type.startsWith('image/')) {
-        error.value = 'Файл должен быть изображением';
+        error.value = __('upload.error.not_image');
         return false;
     }
     if (!ACCEPT.includes(file.type)) {
-        error.value = `Допустимые форматы: ${ACCEPT.map(t => t.split('/')[1].toUpperCase()).join(', ')}`;
+        error.value = __('upload.error.format', { formats: ACCEPT.map(t => t.split('/')[1].toUpperCase()).join(', ') });
         return false;
     }
     if (file.size > props.maxSizeMb * 1024 * 1024) {
-        error.value = `Размер не должен превышать ${props.maxSizeMb} МБ`;
+        error.value = __('upload.error.size', { size: props.maxSizeMb });
         return false;
     }
     error.value = '';
@@ -97,7 +100,7 @@ onUnmounted(() => document.removeEventListener('paste', onPaste));
                         <polyline points="17 8 12 3 7 8"/>
                         <line x1="12" y1="3" x2="12" y2="15"/>
                     </svg>
-                    Заменить
+                    {{ __('upload.replace') }}
                 </button>
                 <button type="button" class="dz-preview__remove" @click="emit('remove')">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -106,7 +109,7 @@ onUnmounted(() => document.removeEventListener('paste', onPaste));
                         <path d="M10 11v6M14 11v6"/>
                         <path d="M9 6V4h6v2"/>
                     </svg>
-                    Удалить
+                    {{ __('upload.delete') }}
                 </button>
             </div>
         </div>
@@ -135,10 +138,18 @@ onUnmounted(() => document.removeEventListener('paste', onPaste));
                 </svg>
             </div>
             <p class="dz-zone__text">
-                <span v-if="isDragging">Отпустите для загрузки</span>
-                <span v-else>Перетащите, вставьте из буфера <kbd>Ctrl+V</kbd><br>или <span class="dz-zone__link">выберите файл</span></span>
+                <span v-if="isDragging">{{ __('upload.drop') }}</span>
+                <span v-else>
+                    <span class="dz-desktop-only">
+                        {{ __('upload.hint') }} <kbd>Ctrl+V</kbd><br>
+                        <span class="dz-zone__link">{{ __('upload.hint.select') }}</span>
+                    </span>
+                    <span class="dz-mobile-only">
+                        <span class="dz-zone__link">{{ __('upload.hint.mobile') }}</span>
+                    </span>
+                </span>
             </p>
-            <p class="dz-zone__hint">{{ ACCEPT.map(t => t.split('/')[1].toUpperCase()).join(', ') }} · до {{ maxSizeMb }} МБ</p>
+            <p class="dz-zone__hint">{{ ACCEPT.map(t => t.split('/')[1].toUpperCase()).join(', ') }} · {{ __('upload.hint.up_to') }} {{ maxSizeMb }} {{ __('upload.size.suffix') }}</p>
         </div>
 
         <p v-if="error" class="dz-error">{{ error }}</p>
@@ -160,6 +171,10 @@ onUnmounted(() => document.removeEventListener('paste', onPaste));
     gap: 0.4rem;
 }
 
+.dz-mobile-only {
+    display: none;
+}
+
 /* ── Drop zone ─────────────────────────────────────────────── */
 .dz-zone {
     position: relative;
@@ -179,13 +194,13 @@ onUnmounted(() => document.removeEventListener('paste', onPaste));
 }
 
 .dz-zone:hover {
-    border-color: rgba(160, 160, 255, 0.4);
-    background: rgba(160, 160, 255, 0.04);
+    border-color: rgba(255, 178, 239, 0.4);
+    background: rgba(255, 178, 239, 0.04);
 }
 
 .dz-zone--over {
-    border-color: rgba(160, 160, 255, 0.7);
-    background: rgba(160, 160, 255, 0.08);
+    border-color: rgba(255, 178, 239, 0.7);
+    background: rgba(255, 178, 239, 0.08);
 }
 
 .dz-zone__icon {
@@ -195,7 +210,7 @@ onUnmounted(() => document.removeEventListener('paste', onPaste));
 
 .dz-zone:hover .dz-zone__icon,
 .dz-zone--over .dz-zone__icon {
-    color: rgba(160, 160, 255, 0.6);
+    color: rgba(255, 178, 239, 0.6);
 }
 
 .dz-zone__text {
@@ -206,7 +221,7 @@ onUnmounted(() => document.removeEventListener('paste', onPaste));
 }
 
 .dz-zone__link {
-    color: rgba(160, 160, 255, 0.75);
+    color: rgba(255, 178, 239, 0.75);
     text-decoration: underline;
     text-decoration-style: dotted;
     text-underline-offset: 2px;
@@ -307,5 +322,24 @@ kbd {
 
 .dz-input {
     display: none;
+}
+
+@media (max-width: 768px) {
+    .dz-desktop-only {
+        display: none;
+    }
+
+    .dz-mobile-only {
+        display: inline;
+    }
+
+    .dz-zone {
+        padding: 1.25rem 0.5rem;
+    }
+
+    .dz-preview__overlay {
+        opacity: 1;
+        background: rgba(0, 0, 0, 0.45);
+    }
 }
 </style>

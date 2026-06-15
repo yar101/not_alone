@@ -1,6 +1,7 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { useTranslations } from '@/composables/useTranslations';
 import { Camera } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import ImageDropzone from '@/Components/ImageDropzone.vue';
@@ -13,10 +14,15 @@ const props = defineProps({
     editable: { type: Boolean, default: false },
 });
 
+const { __ } = useTranslations();
+
 const initials = props.user?.name?.charAt(0).toUpperCase() ?? '?';
+const avatarLoaded = ref(false);
+watch(() => props.user?.avatar_url, () => { avatarLoaded.value = false; });
 
 // ── Upload modal ───────────────────────────────────────────
-const avatarModal = ref(false);
+const avatarModal    = ref(false);
+const avatarModalRef = ref(null);
 
 // ── Crop modal ─────────────────────────────────────────────
 const cropModal      = ref(false);
@@ -31,6 +37,9 @@ function openUpload() {
 }
 
 function processAvatarFile(file) {
+    if (avatarModalRef.value) {
+        avatarModalRef.value.skipHistoryBack();
+    }
     avatarModal.value = false;
     cropError.value = '';
     const url = URL.createObjectURL(file);
@@ -75,10 +84,19 @@ function applyCrop() {
     <div
         class="au-wrap"
         :style="{ width: size + 'px', height: size + 'px' }"
-        :class="{ 'au-wrap--editable': editable }"
+        :class="{ 'au-wrap--editable': editable, 'is-male': user?.gender === 'male' }"
         @click="openUpload"
     >
-        <img v-if="user.avatar_url" :src="user.avatar_url" class="au-img" alt="" />
+        <template v-if="user.avatar_url">
+            <div v-if="!avatarLoaded" class="au-shimmer" />
+            <img
+                :src="user.avatar_url"
+                class="au-img"
+                :class="{ 'au-img--loaded': avatarLoaded }"
+                alt=""
+                @load="avatarLoaded = true"
+            />
+        </template>
         <span v-else class="au-initials" :style="{ fontSize: size * 0.28 + 'px' }">{{ initials }}</span>
 
         <div v-if="editable" class="au-overlay">
@@ -87,17 +105,17 @@ function applyCrop() {
     </div>
 
     <!-- Upload modal -->
-    <SiteModal :show="avatarModal" variant="pink" :compact="true" @close="avatarModal = false">
+    <SiteModal ref="avatarModalRef" :show="avatarModal" variant="pink" :compact="true" @close="avatarModal = false">
         <div class="au-upload-form">
-            <h3 class="au-title">Загрузить фото</h3>
-            <ImageDropzone :max-size-mb="5" @change="processAvatarFile" />
+            <h3 class="au-title">{{ __('upload.avatar.title') }}</h3>
+            <ImageDropzone :max-size-mb="10" @change="processAvatarFile" />
         </div>
     </SiteModal>
 
     <!-- Crop modal -->
     <SiteModal :show="cropModal" variant="pink" :compact="true" @close="cancelCrop">
         <div class="au-crop-form">
-            <h3 class="au-title">Обрезка фото</h3>
+            <h3 class="au-title">{{ __('upload.avatar.crop') }}</h3>
             <div v-if="cropError" class="au-crop-error">{{ cropError }}</div>
             <template v-else>
                 <div class="au-crop-wrap" :style="{ height: cropWrapHeight + 'px' }">
@@ -118,7 +136,7 @@ function applyCrop() {
             </template>
             <div class="au-crop-actions">
                 <button class="au-save-btn" type="button" :disabled="!!cropError || cropUploading" @click="applyCrop">
-                    {{ cropUploading ? 'Загрузка...' : 'Сохранить' }}
+                    {{ cropUploading ? __('upload.avatar.saving') : __('common.save') }}
                 </button>
             </div>
         </div>
@@ -131,11 +149,15 @@ function applyCrop() {
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
-    background: rgba(110, 110, 210, 0.15);
-    border: 2px solid rgba(120, 100, 230, 0.45);
+    background: color-mix(in srgb, var(--color-base-1), transparent 85%);
+    border: 2px solid color-mix(in srgb, var(--color-base-1), transparent 55%);
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.au-wrap.is-male {
+    --color-base-1: var(--color-base-2);
 }
 
 .au-wrap--editable {
@@ -147,11 +169,29 @@ function applyCrop() {
     height: 100%;
     object-fit: cover;
     border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.35s;
+}
+.au-img--loaded { opacity: 1; }
+.au-shimmer {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: linear-gradient(90deg,
+        rgba(255,255,255,0.04) 25%,
+        rgba(255,255,255,0.1)  50%,
+        rgba(255,255,255,0.04) 75%);
+    background-size: 200% 100%;
+    animation: au-shimmer 1.5s ease-in-out infinite;
+}
+@keyframes au-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
 
 .au-initials {
     font-weight: 600;
-    color: #9090e0;
+    color: color-mix(in srgb, var(--color-base-1), white 30%);
     line-height: 1;
     user-select: none;
 }
@@ -232,18 +272,41 @@ function applyCrop() {
 }
 
 .au-save-btn {
-    padding: 0.45rem 1.2rem;
-    border-radius: 6px;
-    font-size: 0.875rem;
-    font-weight: 600;
-    border: none;
+    padding: 0.6rem 1.5rem;
+    border-radius: 3px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 65%);
     cursor: pointer;
-    background: linear-gradient(135deg, rgba(155, 110, 232, 0.8), rgba(107, 63, 217, 0.8));
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--color-base-1), transparent 75%),
+        color-mix(in srgb, var(--color-base-1), transparent 90%)
+    );
     color: #fff;
-    transition: opacity 0.15s;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    letter-spacing: 0.02em;
 }
-.au-save-btn:disabled { opacity: 0.5; cursor: default; }
-.au-save-btn:not(:disabled):hover { opacity: 0.85; }
+
+.au-save-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.au-save-btn:not(:disabled):hover {
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--color-base-1), transparent 62%),
+        color-mix(in srgb, var(--color-base-1), transparent 82%)
+    );
+    border-color: color-mix(in srgb, var(--color-base-1), transparent 45%);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--color-base-1), transparent 80%);
+}
+
+.au-save-btn:not(:disabled):active {
+    transform: scale(0.98);
+}
 
 .au-upload-form :deep(.dz-zone) { min-height: 140px; }
 </style>

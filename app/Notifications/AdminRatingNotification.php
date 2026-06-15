@@ -2,12 +2,15 @@
 
 namespace App\Notifications;
 
+use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushChannel;
 
 class AdminRatingNotification extends Notification
 {
     use Queueable;
+    use SendsWebPush;
 
     public function __construct(
         private int $delta,
@@ -17,21 +20,13 @@ class AdminRatingNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', WebPushChannel::class];
     }
 
     public function toDatabase(object $notifiable): array
     {
-        $sign    = $this->delta > 0 ? '+' : '';
-        $message = 'Администратор изменил ваш рейтинг на ' . $sign . $this->delta . '. Текущий рейтинг: ' . $this->newRating . '.';
-
-        if ($this->note) {
-            $message .= ' Причина: ' . $this->note;
-        }
-
         return [
             'type'       => 'admin_rating',
-            'message'    => $message,
             'delta'      => $this->delta,
             'new_rating' => $this->newRating,
             'note'       => $this->note,
@@ -41,5 +36,19 @@ class AdminRatingNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return $this->toDatabase($notifiable);
+    }
+
+    protected function webPushTitle(): string
+    {
+        return __('push.title.admin_rating');
+    }
+
+    protected function webPushBody(): string
+    {
+        $sign = $this->delta > 0 ? '+' : '';
+        return __('push.admin_rating', [
+            'delta'  => $sign . $this->delta,
+            'rating' => $this->newRating,
+        ]);
     }
 }

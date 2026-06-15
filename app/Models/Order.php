@@ -3,12 +3,15 @@
 namespace App\Models;
 
 use App\Enums\OrderStatus;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Order extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'customer_id', 'idol_id', 'conversation_id',
         'status', 'cancel_reason', 'cancelled_by',
@@ -24,12 +27,12 @@ class Order extends Model
 
     public function customer(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'customer_id');
+        return $this->belongsTo(User::class, 'customer_id')->withTrashed();
     }
 
     public function idol(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'idol_id');
+        return $this->belongsTo(User::class, 'idol_id')->withTrashed();
     }
 
     public function conversation(): BelongsTo
@@ -44,7 +47,7 @@ class Order extends Model
 
     public function cancelledBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'cancelled_by');
+        return $this->belongsTo(User::class, 'cancelled_by')->withTrashed();
     }
 
     public function disputes(): HasMany

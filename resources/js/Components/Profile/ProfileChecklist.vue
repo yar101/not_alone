@@ -1,5 +1,8 @@
 <script setup>
 import { computed } from 'vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     user:      { type: Object, required: true },
@@ -9,12 +12,12 @@ const props = defineProps({
 });
 
 const items = computed(() => [
-    { key: 'about',     label: 'Заполните текст «О себе»',  done: !!props.user.about },
-    { key: 'traits',    label: 'Укажите черты характера',  done: (props.traits?.length ?? 0) > 0 },
-    { key: 'interests', label: 'Укажите интересы',         done: (props.interests?.length ?? 0) > 0 },
-    { key: 'voice',     label: 'Запишите аудио',           done: !!props.user.voice_url },
-    { key: 'languages', label: 'Укажите языки',            done: (props.languages?.length ?? 0) > 0 },
-    { key: 'timezone',  label: 'Укажите часовой пояс',     done: !!props.user.timezone },
+    { key: 'about',     label: __('checklist.about'),     done: !!props.user.about },
+    { key: 'traits',    label: __('checklist.traits'),    done: (props.traits?.length ?? 0) > 0 },
+    { key: 'interests', label: __('checklist.interests'), done: (props.interests?.length ?? 0) > 0 },
+    { key: 'voice',     label: __('checklist.audio'),     done: !!props.user.voice_url },
+    { key: 'languages', label: __('checklist.languages'), done: (props.languages?.length ?? 0) > 0 },
+    { key: 'timezone',  label: __('checklist.timezone'),  done: !!props.user.timezone },
 ]);
 
 const done      = computed(() => items.value.filter(i => i.done).length);
@@ -31,7 +34,7 @@ const sortedItems = computed(() => [
     <div v-if="remaining > 0" class="pcl">
         <!-- Header -->
         <div class="pcl__header">
-            <span class="pcl__title">Заполните профиль</span>
+            <span class="pcl__title">{{ __('checklist.title') }}</span>
             <span class="pcl__counter">{{ done }}<span class="pcl__counter-total">/{{ items.length }}</span></span>
         </div>
 
@@ -65,10 +68,10 @@ const sortedItems = computed(() => [
 .pcl {
     margin-top: 0.65rem;
     padding: 0.875rem 1rem 0.75rem;
-    background: linear-gradient(135deg, rgba(155, 110, 232, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
-    border: 1px solid rgba(155, 110, 232, 0.18);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--color-base-1), transparent 94%) 0%, rgba(255, 255, 255, 0.02) 100%);
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 82%);
     border-radius: 3px;
-    font-family: 'Figtree', sans-serif;
+    font-family: 'Rubik', sans-serif;
     position: relative;
     overflow: hidden;
 }
@@ -79,7 +82,7 @@ const sortedItems = computed(() => [
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(190, 145, 255, 0.5), transparent);
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-base-1), transparent 50%), transparent);
 }
 
 /* ── Header ── */
@@ -94,21 +97,21 @@ const sortedItems = computed(() => [
     font-size: 0.65rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: rgba(190, 145, 255, 0.5);
+    color: color-mix(in srgb, var(--color-base-1), transparent 50%);
     font-weight: 600;
 }
 
 .pcl__counter {
     font-size: 0.78rem;
     font-weight: 700;
-    color: rgba(190, 145, 255, 0.9);
+    color: color-mix(in srgb, var(--color-base-1), transparent 10%);
     letter-spacing: 0.02em;
     font-variant-numeric: tabular-nums;
-    text-shadow: 0 0 12px rgba(155, 110, 232, 0.4);
+    text-shadow: 0 0 12px color-mix(in srgb, var(--color-base-1), transparent 60%);
 }
 .pcl__counter-total {
     font-weight: 400;
-    color: rgba(190, 145, 255, 0.4);
+    color: color-mix(in srgb, var(--color-base-1), transparent 60%);
 }
 
 /* ── Progress bar ── */
@@ -123,8 +126,8 @@ const sortedItems = computed(() => [
 .pcl__bar-fill {
     height: 100%;
     border-radius: 99px;
-    background: linear-gradient(90deg, #7c4dcc, #a78bfa);
-    box-shadow: 0 0 8px rgba(155, 110, 232, 0.6);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--color-base-1), black 20%), var(--color-base-1));
+    box-shadow: 0 0 8px color-mix(in srgb, var(--color-base-1), transparent 40%);
     transition: width 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
@@ -162,17 +165,19 @@ const sortedItems = computed(() => [
 /* ── Check icon wrap ── */
 .pcl__check-wrap {
     flex-shrink: 0;
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    transition: background 0.2s;
+    transition: all 0.2s;
+    border: 1.5px solid rgba(255, 255, 255, 0.12);
 }
 
 .pcl__check-wrap--done {
-    background: rgba(224, 24, 108, 0.1);
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.35);
 }
 
 .pcl__check {
@@ -181,8 +186,8 @@ const sortedItems = computed(() => [
 }
 
 .pcl__item--done .pcl__check {
-    color: rgba(236, 72, 153, 0.9);
-    filter: drop-shadow(0 0 4px rgba(224, 24, 108, 0.45));
+    color: rgba(16, 185, 129, 0.85);
+    filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.3));
 }
 
 .pcl__item:not(.pcl__item--done) .pcl__check {

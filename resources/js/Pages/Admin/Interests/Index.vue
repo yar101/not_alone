@@ -17,6 +17,7 @@ const editingId = ref(null);
 const form = useForm({
     category_id: '',
     name_ru:     '',
+    name_en:     '',
 });
 
 function openAdd() {
@@ -29,6 +30,7 @@ function openEdit(interest) {
     editingId.value    = interest.id;
     form.category_id   = interest.category_id;
     form.name_ru       = interest.name_ru;
+    form.name_en       = interest.name_en ?? '';
     showForm.value     = true;
 }
 
@@ -61,7 +63,7 @@ function destroy(id) {
 // Category management
 const showCatForm  = ref(false);
 const editingCatId = ref(null);
-const catForm = useForm({ name_ru: '' });
+const catForm = useForm({ name_ru: '', name_en: '' });
 
 function openAddCat() {
     editingCatId.value = null;
@@ -72,6 +74,7 @@ function openAddCat() {
 function openEditCat(cat) {
     editingCatId.value = cat.id;
     catForm.name_ru    = cat.name_ru;
+    catForm.name_en    = cat.name_en ?? '';
     showCatForm.value  = true;
 }
 
@@ -174,9 +177,14 @@ function destroyCat(id) {
                             <p v-if="form.errors.category_id" class="err">{{ form.errors.category_id }}</p>
                         </div>
                         <div class="field">
-                            <label>Название</label>
+                            <label>Название (RU)</label>
                             <input v-model="form.name_ru" class="input" :class="{ 'input--err': form.errors.name_ru }" placeholder="Аниме" />
                             <p v-if="form.errors.name_ru" class="err">{{ form.errors.name_ru }}</p>
+                        </div>
+                        <div class="field">
+                            <label>Название (EN)</label>
+                            <input v-model="form.name_en" class="input" :class="{ 'input--err': form.errors.name_en }" placeholder="Anime" />
+                            <p v-if="form.errors.name_en" class="err">{{ form.errors.name_en }}</p>
                         </div>
                         <div class="modal__actions">
                             <button type="button" class="btn-cancel" @click="closeForm">Отмена</button>
@@ -194,9 +202,14 @@ function destroyCat(id) {
                     </div>
                     <form @submit.prevent="submitCat" class="modal__body">
                         <div class="field">
-                            <label>Название</label>
+                            <label>Название (RU)</label>
                             <input v-model="catForm.name_ru" class="input" :class="{ 'input--err': catForm.errors.name_ru }" placeholder="Спорт" />
                             <p v-if="catForm.errors.name_ru" class="err">{{ catForm.errors.name_ru }}</p>
+                        </div>
+                        <div class="field">
+                            <label>Название (EN)</label>
+                            <input v-model="catForm.name_en" class="input" :class="{ 'input--err': catForm.errors.name_en }" placeholder="Sports" />
+                            <p v-if="catForm.errors.name_en" class="err">{{ catForm.errors.name_en }}</p>
                         </div>
                         <div class="modal__actions">
                             <button type="button" class="btn-cancel" @click="closeCatForm">Отмена</button>

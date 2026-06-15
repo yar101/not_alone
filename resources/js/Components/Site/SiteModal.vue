@@ -1,5 +1,9 @@
 <script setup>
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { nextTick, onMounted, onUnmounted, ref, watch, computed } from "vue";
+import { useTranslations } from "@/composables/useTranslations";
+import { useModalHistory } from "@/composables/useModalHistory";
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     show: {
@@ -12,8 +16,8 @@ const props = defineProps({
     },
     variant: {
         type: String,
-        default: 'pink',
-        validator: (v) => ['pink', 'cyan'].includes(v),
+        default: "pink",
+        validator: (v) => ["pink", "blue"].includes(v),
     },
     compact: {
         type: Boolean,
@@ -23,38 +27,64 @@ const props = defineProps({
         type: String,
         default: null,
     },
+    minHeight: {
+        type: String,
+        default: null,
+    },
+    fill: {
+        type: Boolean,
+        default: false,
+    },
+    noPadding: {
+        type: Boolean,
+        default: false,
+    },
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(["close"]);
 const showSlot = ref(false);
 const localShow = ref(false);
+
+const isOpen = computed({
+    get: () => props.show,
+    set: (val) => {
+        if (!val) emit("close");
+    },
+});
+
+const modalHistory = useModalHistory(isOpen, "sm");
+
+defineExpose({
+    skipHistoryBack: () => modalHistory?.skipHistoryBack?.(),
+});
 
 watch(
     () => props.show,
     async () => {
         if (props.show) {
-            document.body.style.overflow = 'hidden';
+            document.body.style.overflow = "hidden";
             showSlot.value = true;
             await nextTick();
             localShow.value = true;
         } else {
             localShow.value = false;
-            document.body.style.overflow = '';
+            document.body.style.overflow = "";
             setTimeout(() => {
                 showSlot.value = false;
-            }, 450);
+            }, 180);
         }
     },
+    { immediate: true },
 );
 
 const close = () => {
     if (props.closeable) {
-        emit('close');
+        emit("close");
     }
 };
 
 const closeOnEscape = (e) => {
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
         e.preventDefault();
         if (props.show) {
             close();
@@ -62,11 +92,13 @@ const closeOnEscape = (e) => {
     }
 };
 
-onMounted(() => document.addEventListener('keydown', closeOnEscape));
+onMounted(() => {
+    document.addEventListener("keydown", closeOnEscape);
+});
 
 onUnmounted(() => {
-    document.removeEventListener('keydown', closeOnEscape);
-    document.body.style.overflow = '';
+    document.removeEventListener("keydown", closeOnEscape);
+    document.body.style.overflow = "";
 });
 </script>
 
@@ -102,32 +134,32 @@ onUnmounted(() => {
                     v-if="localShow"
                     class="site-modal-sheet"
                     :class="[
-                        variant === 'pink' ? 'site-modal-pink' : 'site-modal-cyan',
-                        compact ? 'site-modal-sheet--compact' : ''
+                        variant === 'pink'
+                            ? 'site-modal-pink'
+                            : 'site-modal-blue',
+                        compact ? 'site-modal-sheet--compact' : '',
                     ]"
-                    :style="maxWidth ? { width: maxWidth, maxWidth } : {}"
+                    :style="{
+                        ...(maxWidth ? { width: maxWidth, maxWidth } : {}),
+                        ...(minHeight ? { minHeight } : {}),
+                    }"
                 >
                     <!-- Ambient orbs -->
-                    <div class="site-modal-ambient" :class="variant === 'pink' ? 'ambient-pink' : 'ambient-cyan'" />
-
-                    <!-- Mobile drag handle -->
-                    <div class="site-modal-handle" />
-
-                    <!-- Close button -->
-                    <button
-                        v-if="closeable"
-                        @click="close"
-                        class="site-modal-close"
-                        :class="variant === 'pink' ? 'site-modal-close-pink' : 'site-modal-close-cyan'"
-                        aria-label="Закрыть"
-                    >
-                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
+                    <div
+                        class="site-modal-ambient"
+                        :class="
+                            variant === 'pink' ? 'ambient-pink' : 'ambient-blue'
+                        "
+                    />
 
                     <!-- Content -->
-                    <div class="site-modal-body">
+                    <div
+                        class="site-modal-body"
+                        :class="{
+                            'site-modal-body--fill': fill,
+                            'site-modal-body--no-padding': noPadding,
+                        }"
+                    >
                         <slot />
                     </div>
                 </div>
@@ -164,7 +196,7 @@ onUnmounted(() => {
     height: 80%;
     max-height: 90vh;
     background:
-        linear-gradient(135deg, rgba(110, 110, 210, 0.05) 0%, transparent 45%),
+        linear-gradient(135deg, rgba(255, 178, 239, 0.05) 0%, transparent 45%),
         linear-gradient(160deg, rgb(16, 11, 20) 0%, rgb(7, 6, 11) 100%);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 3px;
@@ -180,7 +212,9 @@ onUnmounted(() => {
         left: 0;
         right: 0;
         bottom: 0;
-        width: 100%;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: unset !important;
         height: 88svh;
         max-height: 88svh;
         transform: none;
@@ -197,23 +231,17 @@ onUnmounted(() => {
 }
 
 .site-modal-pink {
-    border-top-color: rgba(110, 110, 210, 0.3);
-    box-shadow:
-        0 0 0 1px rgba(110, 110, 210, 0.08),
-        0 -30px 80px rgba(110, 110, 210, 0.12),
-        0 40px 100px rgba(0, 0, 0, 0.6),
-        inset 0 1px 0 rgba(110, 110, 210, 0.18),
-        inset 0 0 80px rgba(110, 110, 210, 0.04);
+    border-top-color: rgba(255, 178, 239, 0.3);
 }
 
-.site-modal-cyan {
-    border-top-color: rgba(42, 255, 220, 0.25);
+.site-modal-blue {
+    border-top-color: color-mix(in srgb, var(--color-base-2), transparent 45%);
     box-shadow:
-        0 0 0 1px rgba(42, 255, 220, 0.06),
-        0 -30px 80px rgba(42, 255, 220, 0.08),
+        0 0 0 1px color-mix(in srgb, var(--color-base-2), transparent 94%),
+        0 -30px 80px color-mix(in srgb, var(--color-base-2), transparent 92%),
         0 40px 100px rgba(0, 0, 0, 0.6),
-        inset 0 1px 0 rgba(42, 255, 220, 0.15),
-        inset 0 0 80px rgba(42, 255, 220, 0.03);
+        inset 0 1px 0 color-mix(in srgb, var(--color-base-2), transparent 85%),
+        inset 0 0 80px color-mix(in srgb, var(--color-base-2), transparent 97%);
 }
 
 /* ── Ambient orbs ──────────────────────────────────── */
@@ -226,7 +254,7 @@ onUnmounted(() => {
 
 .site-modal-ambient::before,
 .site-modal-ambient::after {
-    content: '';
+    content: "";
     position: absolute;
     border-radius: 50%;
     filter: blur(50px);
@@ -237,7 +265,11 @@ onUnmounted(() => {
     left: -60px;
     width: 320px;
     height: 320px;
-    background: radial-gradient(circle, rgba(110, 110, 210, 0.18) 0%, transparent 70%);
+    background: radial-gradient(
+        circle,
+        rgba(255, 178, 239, 0.18) 0%,
+        transparent 70%
+    );
     animation: orb-drift-a 9s ease-in-out infinite alternate;
 }
 
@@ -246,114 +278,98 @@ onUnmounted(() => {
     right: -80px;
     width: 380px;
     height: 380px;
-    background: radial-gradient(circle, rgba(60, 60, 180, 0.12) 0%, transparent 70%);
+    background: radial-gradient(
+        circle,
+        rgba(255, 178, 239, 0.12) 0%,
+        transparent 70%
+    );
     animation: orb-drift-b 13s ease-in-out infinite alternate;
 }
 
-.ambient-cyan::before {
+.ambient-blue::before {
     top: -80px;
     right: -60px;
     width: 300px;
     height: 300px;
-    background: radial-gradient(circle, rgba(42, 255, 220, 0.1) 0%, transparent 70%);
+    background: radial-gradient(
+        circle,
+        color-mix(in srgb, var(--color-base-2), transparent 90%) 0%,
+        transparent 70%
+    );
     animation: orb-drift-a 9s ease-in-out infinite alternate;
 }
 
-.ambient-cyan::after {
+.ambient-blue::after {
     bottom: -100px;
     left: -80px;
     width: 360px;
     height: 360px;
-    background: radial-gradient(circle, rgba(0, 120, 200, 0.1) 0%, transparent 70%);
+    background: radial-gradient(
+        circle,
+        color-mix(in srgb, var(--color-base-2), transparent 90%) 0%,
+        transparent 70%
+    );
     animation: orb-drift-b 13s ease-in-out infinite alternate;
 }
 
 @keyframes orb-drift-a {
-    from { transform: translate(0, 0) scale(1); }
-    to   { transform: translate(25px, 18px) scale(1.12); }
-}
-
-@keyframes orb-drift-b {
-    from { transform: translate(0, 0) scale(1); }
-    to   { transform: translate(-20px, -25px) scale(1.08); }
-}
-
-/* ── Handle ────────────────────────────────────────── */
-.site-modal-handle {
-    display: none;
-    position: relative;
-    z-index: 2;
-}
-
-@media (max-width: 768px) {
-    .site-modal-handle {
-        display: block;
-        width: 36px;
-        height: 4px;
-        background: rgba(255, 255, 255, 0.15);
-        border-radius: 3px;
-        margin: 0.65rem auto 0;
-        flex-shrink: 0;
+    from {
+        transform: translate(0, 0) scale(1);
+    }
+    to {
+        transform: translate(25px, 18px) scale(1.12);
     }
 }
 
-/* ── Close button ──────────────────────────────────── */
-.site-modal-close {
-    position: absolute;
-    top: 0.75rem;
-    right: 0.75rem;
-    width: 36px;
-    height: 36px;
-    border-radius: 6px;
-    border: none;
-    background: transparent;
-    color: rgba(255, 255, 255, 0.28);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.18s ease, background 0.18s ease, transform 0.22s ease;
-    z-index: 10;
-    flex-shrink: 0;
-}
-
-.site-modal-close:hover {
-    color: rgba(255, 255, 255, 0.75);
-    background: rgba(255, 255, 255, 0.06);
-    transform: rotate(90deg);
-}
-
-.site-modal-close-pink:hover {
-    color: rgba(220, 100, 145, 0.9);
-    background: rgba(110, 110, 210, 0.1);
-}
-
-.site-modal-close-cyan:hover {
-    color: rgba(42, 255, 220, 0.8);
-    background: rgba(42, 255, 220, 0.07);
+@keyframes orb-drift-b {
+    from {
+        transform: translate(0, 0) scale(1);
+    }
+    to {
+        transform: translate(-20px, -25px) scale(1.08);
+    }
 }
 
 /* ── Body ──────────────────────────────────────────── */
 .site-modal-body {
     flex: 1;
     overflow-y: auto;
-    padding: 2rem;
-    padding-top: 3rem;
+    overflow-x: hidden;
     position: relative;
     z-index: 1;
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+    min-height: 0;
+    padding: 2rem;
+    padding-top: 1.5rem;
+}
+
+.site-modal-body--fill {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.site-modal-body--no-padding {
+    padding: 0;
 }
 
 @media (max-width: 768px) {
     .site-modal-body {
         padding: 1.25rem;
-        padding-top: 3rem;
+        padding-top: 1.5rem;
+    }
+    .site-modal-body--no-padding {
+        padding: 0 !important;
     }
 }
 
-.site-modal-body::-webkit-scrollbar { width: 3px; }
-.site-modal-body::-webkit-scrollbar-track { background: transparent; }
+.site-modal-body::-webkit-scrollbar {
+    width: 3px;
+}
+.site-modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
 .site-modal-body::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.08);
     border-radius: 3px;
@@ -361,21 +377,31 @@ onUnmounted(() => {
 
 /* ── Transitions ───────────────────────────────────── */
 .backdrop-enter-active,
-.backdrop-leave-active { transition: opacity 0.18s ease; }
+.backdrop-leave-active {
+    transition: opacity 0.12s ease;
+}
 .backdrop-enter-from,
-.backdrop-leave-to { opacity: 0; }
+.backdrop-leave-to {
+    opacity: 0;
+}
 .backdrop-enter-to,
-.backdrop-leave-from { opacity: 1; }
+.backdrop-leave-from {
+    opacity: 1;
+}
 
 .sheet-enter-active {
-    transition: transform 0.2s cubic-bezier(0.2, 0, 0.2, 1), opacity 0.18s ease;
+    transition:
+        transform 0.14s cubic-bezier(0.2, 0, 0.2, 1),
+        opacity 0.12s ease;
 }
 .sheet-leave-active {
-    transition: transform 0.15s cubic-bezier(0.4, 0, 1, 1), opacity 0.15s ease;
+    transition:
+        transform 0.12s cubic-bezier(0.4, 0, 1, 1),
+        opacity 0.12s ease;
 }
 .sheet-enter-from,
 .sheet-leave-to {
-    transform: translateX(-50%) translateY(calc(-50% + 24px));
+    transform: translateX(-50%) translateY(calc(-50% + 14px));
     opacity: 0;
 }
 .sheet-enter-to,
@@ -386,8 +412,14 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
     .sheet-enter-from,
-    .sheet-leave-to { transform: translateY(100%); opacity: 1; }
+    .sheet-leave-to {
+        transform: translateY(100%);
+        opacity: 1;
+    }
     .sheet-enter-to,
-    .sheet-leave-from { transform: translateY(0); opacity: 1; }
+    .sheet-leave-from {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 </style>

@@ -9,7 +9,14 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ServiceController;
 
+use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\AboutController;
+use App\Http\Controllers\ContentPackController;
+use App\Http\Controllers\ContentPackPurchaseController;
+use App\Http\Controllers\FollowController;
+use App\Http\Controllers\GalleryController;
+use App\Http\Controllers\MediaController;
+use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\NewsPublicController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\ReviewController;
@@ -19,7 +26,12 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+Route::post('/locale', [LocaleController::class, 'switch'])->name('locale.switch');
+
 Route::get('/about', AboutController::class)->name('about');
+Route::get('/contacts', function () {
+    return Inertia::render('Contacts/Index');
+})->name('contacts');
 Route::get('/news',           [NewsPublicController::class, 'index'])->name('news');
 Route::get('/news/feed',      [NewsPublicController::class, 'feed'])->name('news.feed');
 Route::get('/news/{news}',    [NewsPublicController::class, 'show'])->name('news.show');
@@ -39,7 +51,8 @@ Route::get('/users/{user}', [UserProfileController::class, 'show'])->name('profi
 // Public post endpoints (no auth required)
 Route::get('/users/{user}/posts',    [UserProfileController::class, 'getPosts'])->name('profile.posts.feed');
 Route::get('/users/{user}/category/{category}/idols', [UserProfileController::class, 'categoryIdols'])->name('profile.category-idols');
-Route::get('/posts/{post}/comments', [UserProfileController::class, 'getComments'])->name('posts.comments.index');
+Route::get('/posts/{post}/comments',    [UserProfileController::class, 'getComments'])->name('posts.comments.index');
+Route::get('/comments/{comment}/replies', [UserProfileController::class, 'getReplies'])->name('comments.replies');
 
 // /profile redirects to own profile
 Route::get('/profile', function () {
@@ -73,6 +86,8 @@ Route::middleware(['auth', 'verified', 'not_banned'])->group(function () {
 // User search
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/search', [UserSearchController::class, 'index'])->name('users.search');
+    Route::get('/tracked', [FollowController::class, 'index'])->name('tracked.index');
+    Route::post('/users/{user}/follow', [FollowController::class, 'toggle'])->name('users.follow');
 });
 
 // Account settings (email, password, delete)
@@ -99,12 +114,47 @@ Route::middleware(['auth', 'verified'])->group(function () {
         [UserProfileController::class, 'updateCategoryDescription']
     )->name('profile.services.category.description');
     Route::patch('/profile/services/{service}',     [ServiceController::class, 'update'])->name('profile.services.update');
+    Route::post('/profile/services/{service}/fix-change-request', [ServiceController::class, 'fixChangeRequest'])->name('profile.services.fix-change-request');
+    Route::delete('/profile/services/{service}/dismiss-change-request', [ServiceController::class, 'dismissChangeRequest'])->name('profile.services.dismiss-change-request');
     Route::delete('/profile/services/{service}',    [ServiceController::class, 'destroy'])->name('profile.services.destroy');
+});
+
+// Content packs (idol management)
+Route::middleware(['auth', 'verified', 'not_banned'])->group(function () {
+    Route::post('/content-packs',                     [ContentPackController::class, 'store'])->name('content-packs.store');
+    Route::post('/content-packs/purchase',            [ContentPackPurchaseController::class, 'store'])->name('content-packs.purchase');
+    Route::patch('/content-packs/{pack}',             [ContentPackController::class, 'update'])->name('content-packs.update');
+    Route::post('/content-packs/{pack}/publish',             [ContentPackController::class, 'publish'])->name('content-packs.publish');
+    Route::post('/content-packs/{pack}/toggle-visibility',  [ContentPackController::class, 'toggleVisibility'])->name('content-packs.toggle-visibility');
+    Route::post('/content-packs/{pack}/fix-change-request', [ContentPackController::class, 'fixChangeRequest'])->name('content-packs.fix-change-request');
+    Route::patch('/content-packs/{pack}/cover',       [ContentPackController::class, 'updateCover'])->name('content-packs.cover');
+    Route::patch('/content-packs/{pack}/title',       [ContentPackController::class, 'updateTitle'])->name('content-packs.title');
+    Route::patch('/content-packs/{pack}/description', [ContentPackController::class, 'updateDescription'])->name('content-packs.description');
+    Route::patch('/content-packs/{pack}/price',       [ContentPackController::class, 'updatePrice'])->name('content-packs.price');
+    Route::delete('/content-packs/{pack}',            [ContentPackController::class, 'destroy'])->name('content-packs.destroy');
+});
+
+// Public content pack profile feed
+Route::get('/users/{user}/content-packs', [ContentPackController::class, 'indexForProfile'])->name('profile.content-packs.index');
+Route::get('/users/{user}/services',       [ServiceController::class,     'indexForProfile'])->name('profile.services.index-for-profile');
+
+
+// Gallery
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/gallery',        [GalleryController::class, 'index'])->name('gallery.index');
+    Route::get('/gallery/photos', [GalleryController::class, 'photos'])->name('gallery.photos');
+    Route::get('/gallery/packs',  [GalleryController::class, 'packs'])->name('gallery.packs');
 });
 
 // Reports
 Route::middleware(['auth', 'not_banned'])->group(function () {
     Route::post('/reports', [ReportController::class, 'store'])->name('reports.store');
+});
+
+// Push subscriptions
+Route::middleware('auth')->group(function () {
+    Route::post('/push/subscribe',   [PushSubscriptionController::class, 'store'])->name('push.subscribe');
+    Route::delete('/push/subscribe', [PushSubscriptionController::class, 'destroy'])->name('push.unsubscribe');
 });
 
 // Notification routes
@@ -117,14 +167,21 @@ Route::middleware('auth')->group(function () {
     Route::patch('/notifications/service/read-all', [NotificationController::class, 'markAllServiceRead'])->name('notifications.service.read-all');
     Route::get('/notifications/orders', [NotificationController::class, 'orders'])->name('notifications.orders');
     Route::patch('/notifications/orders/read-all', [NotificationController::class, 'markAllOrdersRead'])->name('notifications.orders.read-all');
+    Route::patch('/notifications/messages/read-all', [NotificationController::class, 'markAllMessagesRead'])->name('notifications.messages.read-all');
+    Route::patch('/notifications/follows/read-all', [NotificationController::class, 'markAllFollowsRead'])->name('notifications.follows.read-all');
+    Route::get('/notifications/combined', [NotificationController::class, 'combined'])->name('notifications.combined');
+
     Route::patch('/broadcasts/{id}/read', [NotificationController::class, 'markBroadcastRead'])->name('broadcasts.read');
 });
 
 // Chat / Conversations
 Route::middleware('auth')->group(function () {
     Route::get('/conversations', [ConversationController::class, 'index'])->name('conversations.index');
-    Route::post('/conversations', [ConversationController::class, 'store'])->name('conversations.store');
+    Route::get('/conversations/check/{user}', [ConversationController::class, 'check'])->name('conversations.check');
     Route::get('/conversations/{conversation}', [ConversationController::class, 'show'])->name('conversations.show');
+});
+Route::middleware(['auth', 'not_banned'])->group(function () {
+    Route::post('/conversations', [ConversationController::class, 'store'])->name('conversations.store');
     Route::post('/conversations/{conversation}/messages', [ConversationController::class, 'message'])->name('conversations.message');
     Route::post('/conversations/{conversation}/upload', [ConversationController::class, 'upload'])->name('conversations.upload');
     Route::post('/conversations/{conversation}/offer-services', [ConversationController::class, 'offerServices'])->name('conversations.offer-services');
@@ -135,7 +192,6 @@ Route::middleware('auth')->group(function () {
 // Orders
 Route::middleware('auth')->group(function () {
     Route::get('/orders',                      [OrderController::class, 'index'])->name('orders.index');
-    Route::post('/orders',                     [OrderController::class, 'store'])->name('orders.store');
     // Static routes before {order} wildcard
     Route::get('/orders/disputable',           [OrderController::class, 'disputable'])->name('orders.disputable');
     Route::patch('/orders/{order}/accept',     [OrderController::class, 'accept'])->name('orders.accept');
@@ -144,11 +200,20 @@ Route::middleware('auth')->group(function () {
     Route::patch('/orders/{order}/confirm-completion', [OrderController::class, 'confirmCompletion'])->name('orders.confirm-completion');
     Route::post('/orders/{order}/dispute',     [OrderController::class, 'dispute'])->name('orders.dispute');
     Route::post('/orders/{order}/items',       [OrderController::class, 'addItem'])->name('orders.items.add');
-    Route::post('/orders/{order}/review',      [ReviewController::class, 'store'])->name('orders.review.store');
     Route::post('/reviews/{review}/dispute',   [ReviewDisputeController::class, 'store'])->name('reviews.dispute.store');
+});
+Route::middleware(['auth', 'not_banned'])->group(function () {
+    Route::post('/orders',                     [OrderController::class, 'store'])->name('orders.store');
+    Route::post('/orders/{order}/review',      [ReviewController::class, 'store'])->name('orders.review.store');
 });
 
 Route::get('/reviews/epithets', [ReviewController::class, 'epithets'])->name('reviews.epithets');
 Route::get('/users/{user}/reviews', [ReviewController::class, 'index'])->name('users.reviews');
+
+Route::get('/api/help-center', [App\Http\Controllers\HelpController::class, 'index'])->name('help.data');
+
+Route::get('/media/{path}', [MediaController::class, 'serve'])
+    ->where('path', '.+')
+    ->name('media.serve');
 
 require __DIR__.'/auth.php';

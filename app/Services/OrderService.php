@@ -8,13 +8,16 @@ use App\Events\NewMessageReceived;
 use App\Events\NewNotification;
 use App\Events\OrderChanged;
 use App\Events\OrderStatusChanged;
+use App\Jobs\CompleteOrderJob;
 use App\Models\Order;
 use App\Models\OrderDispute;
+use App\Models\PlatformSetting;
 use App\Models\User;
 use App\Notifications\OrderAcceptedNotification;
 use App\Notifications\OrderCancelledNotification;
 use App\Notifications\OrderCompletedNotification;
 use App\Notifications\OrderPaidNotification;
+use App\Services\IdolRatingService;
 
 class OrderService
 {
@@ -65,6 +68,10 @@ class OrderService
 
         $order->idol->notify(new OrderPaidNotification($order));
         $this->safeBroadcast(new NewNotification('private', $order->idol_id));
+
+        // Auto-complete after delay from settings
+        $delayHours = (float) PlatformSetting::get('order_auto_complete_delay', 72);
+        CompleteOrderJob::dispatch($order)->delay(now()->addSeconds((int)($delayHours * 3600)));
     }
 
     public function cancel(Order $order, User $actor, string $reason): void
@@ -161,6 +168,7 @@ class OrderService
         switch ($to) {
             case OrderStatus::Paid:
                 // Preserve an existing paid_at so we don't reset a running timer
+                $isNewPaid = $order->status !== OrderStatus::Paid;
                 $attrs['paid_at'] = $order->paid_at ?? now();
 
                 if ($order->conversation_id) {
@@ -174,10 +182,17 @@ class OrderService
                 }
                 $order->idol->notify(new OrderPaidNotification($order));
                 $this->safeBroadcast(new NewNotification('private', $order->idol_id));
+
+                if ($isNewPaid) {
+                    $delayHours = (float) PlatformSetting::get('order_auto_complete_delay', 72);
+                    CompleteOrderJob::dispatch($order)->delay(now()->addSeconds((int)($delayHours * 3600)));
+                }
                 break;
 
             case OrderStatus::Completed:
                 $attrs['completed_at'] = $order->completed_at ?? now();
+
+                IdolRatingService::adjust($order->idol, 'order_completed');
 
                 if ($order->conversation_id) {
                     $order->conversation->messages()->create([
@@ -231,19 +246,10 @@ class OrderService
 
     // ── Scheduled auto-complete ───────────────────────────────────────────────
 
-    public function autoComplete(): int
+    public function autoCompleteOrder(Order $order): void
     {
-        $count = 0;
-
-        Order::where('status', OrderStatus::Paid)
-            ->where('paid_at', '<=', now()->subHours(72))
-            ->with(['customer', 'idol', 'conversation', 'cancelledBy', 'items.service.timeUnit'])
-            ->each(function (Order $order) use (&$count) {
-                $this->complete($order, 'system', 0, 'Auto-completed after 72h timeout');
-                $count++;
-            });
-
-        return $count;
+        $delayHours = (int) PlatformSetting::get('order_auto_complete_delay', 72);
+        $this->complete($order, 'system', 0, "Auto-completed after {$delayHours}h timeout");
     }
 
     // ── Order formatter (used by controllers & command) ───────────────────────
@@ -269,6 +275,7 @@ class OrderService
                 'id'         => $order->customer->id,
                 'name'       => $order->customer->name,
                 'avatar_url' => $order->customer->avatar_url,
+                'gender'     => $order->customer->gender,
             ],
             'idol' => [
                 'id'         => $order->idol->id,
@@ -299,6 +306,8 @@ class OrderService
         $old = $order->status->value;
         $order->logStatusChange($old, OrderStatus::Completed->value, $actorType, $actorId, $note);
         $order->update(['status' => OrderStatus::Completed, 'completed_at' => now()]);
+
+        IdolRatingService::adjust($order->idol, 'order_completed');
 
         $this->broadcastSystemMessage($order, [
             'sender_id' => null,
@@ -353,8 +362,8 @@ class OrderService
             cancelReason:     $cancelReason,
             paidAt:           $order->paid_at?->toISOString(),
             completedAt:      $order->completed_at?->toISOString(),
-            confirmedByIdol:  (bool) $order->completion_confirmed_by_idol,
-            confirmedByCustomer: (bool) $order->completion_confirmed_by_customer,
+            autoCompleteAt:   $order->paid_at ? $order->paid_at->addSeconds((int)((float)PlatformSetting::get('order_auto_complete_delay', 72) * 3600))->toISOString() : null,
+            confirmedByIdol:  (bool) $order->completion_confirmed_by_idol,            confirmedByCustomer: (bool) $order->completion_confirmed_by_customer,
         ));
     }
 

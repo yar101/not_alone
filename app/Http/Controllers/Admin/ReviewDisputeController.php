@@ -8,6 +8,7 @@ use App\Models\ReviewDispute;
 use App\Notifications\ReviewDisputeApprovedNotification;
 use App\Notifications\ReviewDisputeRejectedNotification;
 use App\Services\AdminLogService;
+use App\Services\IdolRatingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -69,6 +70,7 @@ class ReviewDisputeController extends Controller
 
         if ($request->decision === 'approved') {
             $reviewDispute->review->update(['is_hidden' => true]);
+            IdolRatingService::adjust($idol, 'review_dispute_approved');
             $idol->notify(new ReviewDisputeApprovedNotification($request->admin_note));
         } else {
             $idol->notify(new ReviewDisputeRejectedNotification($request->admin_note));

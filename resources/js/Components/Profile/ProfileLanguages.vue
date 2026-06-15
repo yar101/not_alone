@@ -3,6 +3,9 @@ import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { EditPen } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     languages: { default: null },
@@ -69,8 +72,8 @@ function openEdit() {
 <template>
     <div id="tour-languages" class="block-section">
         <div class="section-header">
-            <span class="section-title">Языки</span>
-            <button v-if="isOwner" class="edit-btn" @click="openEdit" title="Редактировать">
+            <span class="section-title">{{ __('profile.languages.title') }}</span>
+            <button v-if="isOwner" class="edit-btn" @click="openEdit" :title="__('common.edit')">
                 <el-icon><EditPen /></el-icon>
             </button>
         </div>
@@ -80,12 +83,12 @@ function openEdit() {
                 {{ langInfo(code).flag }} {{ langInfo(code).name }}
             </span>
         </div>
-        <p v-else-if="isOwner" class="empty">Укажи языки, которыми владеешь</p>
-        <p v-else class="empty">Не указано</p>
+        <p v-else-if="isOwner" class="empty">{{ __('profile.languages.empty.owner') }}</p>
+        <p v-else class="empty">{{ __('common.not_specified') }}</p>
 
         <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
             <div class="edit-form">
-                <h3 class="edit-title">Языки</h3>
+                <h3 class="edit-title">{{ __('profile.languages.title') }}</h3>
                 <div class="lang-grid">
                     <button
                         v-for="l in ALL_LANGUAGES"
@@ -96,7 +99,7 @@ function openEdit() {
                         @click="toggleLang(l.code)"
                     >{{ l.flag }} {{ l.name }}</button>
                 </div>
-                <button class="save-btn" :disabled="form.processing" @click="submit">Сохранить</button>
+                <button class="save-btn" :disabled="form.processing" @click="submit">{{ __('common.save') }}</button>
             </div>
         </SiteModal>
     </div>
@@ -121,7 +124,7 @@ function openEdit() {
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #a0a0ff;
+    color: var(--color-base-1);
 }
 
 .edit-btn {
@@ -141,15 +144,15 @@ function openEdit() {
 }
 .block-section:hover .edit-btn {
     opacity: 1;
-    color: rgba(160, 160, 255, 0.8);
-    border-color: rgba(160, 160, 255, 0.35);
-    background: rgba(160, 160, 255, 0.08);
+    color: color-mix(in srgb, var(--color-base-1), transparent 20%);
+    border-color: color-mix(in srgb, var(--color-base-1), transparent 65%);
+    background: color-mix(in srgb, var(--color-base-1), transparent 92%);
 }
 .edit-btn:hover {
-    color: #be91ff;
-    border-color: rgba(160, 160, 255, 0.7);
-    background: rgba(160, 160, 255, 0.16);
-    box-shadow: 0 0 8px rgba(160, 160, 255, 0.35);
+    color: var(--color-base-1);
+    border-color: color-mix(in srgb, var(--color-base-1), transparent 30%);
+    background: color-mix(in srgb, var(--color-base-1), transparent 84%);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--color-base-1), transparent 65%);
 }
 
 .tags-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
@@ -173,13 +176,14 @@ function openEdit() {
     border: 1px solid rgba(255,255,255,0.1); background: transparent;
     color: rgba(255,255,255,0.5); font-size: 0.9rem; cursor: pointer; font-family: inherit; transition: all 0.15s;
 }
-.lang-btn.active { border-color: rgba(190,145,255,0.55); background: rgba(190,145,255,0.1); color: #fff; }
+.lang-btn.active { border-color: color-mix(in srgb, var(--color-base-1), transparent 45%); background: color-mix(in srgb, var(--color-base-1), transparent 90%); color: #fff; }
 .save-btn {
     width: 100%; padding: 0.75rem;
-    border-radius: 3px; border: 1px solid rgba(190,145,255,0.4);
-    background: rgba(190,145,255,0.1);
+    border-radius: 3px; border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 60%);
+    background: color-mix(in srgb, var(--color-base-1), transparent 90%);
     color: #fff; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: background 0.15s;
 }
-.save-btn:hover:not(:disabled) { background: rgba(190,145,255,0.2); }
+.save-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--color-base-1), transparent 80%); }
+.save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .save-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 </style>

@@ -1,27 +1,172 @@
-@import './fonts.css';
+@import "./fonts.css";
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-    --color-base-1: #a0a0ff;
+    --color-base-1: #ffb2ef;
     --color-base-2: #64d2ff;
 }
 
+html {
+    background-color: #0e0e1a;
+}
+
+html.chat-scroll-locked {
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+
+html.chat-scroll-locked body {
+    overflow: hidden;
+    overscroll-behavior: none;
+    position: fixed;
+    width: 100%;
+}
+
 body {
-    font-family: 'Figtree', ui-sans-serif, system-ui, sans-serif;
+    font-family: "Rubik", ui-sans-serif, system-ui, sans-serif;
+    background-color: #0e0e1a;
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* Масштабирование на широких мониторах (2K и выше) */
 @media (min-width: 2500px) {
-  html {
-    font-size: 120%;
-  }
+    html {
+        font-size: 120%;
+    }
 }
 
 @media (min-width: 3440px) {
-  html {
-    font-size: 145%;
-  }
+    html {
+        font-size: 145%;
+    }
+}
+
+/* ── App notification popup (ElNotification override) ──────── */
+.app-notif.el-notification {
+    background: rgba(11, 11, 24, 0.97);
+    border: 1px solid rgba(255, 178, 239, 0.22);
+    border-radius: 12px;
+    box-shadow:
+        0 8px 40px rgba(0, 0, 0, 0.65),
+        0 1px 0 rgba(255, 178, 239, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    padding: 14px 38px 14px 14px;
+    width: min(340px, calc(100vw - 1.5rem));
+    backdrop-filter: blur(12px);
+    margin-bottom: 12px;
+}
+
+.app-notif .el-notification__group {
+    margin-left: 0;
+}
+
+.app-notif .el-notification__content {
+    margin: 0;
+    text-align: left;
+}
+
+.app-notif .el-notification__closeBtn {
+    top: 10px;
+    right: 10px;
+    color: rgba(255, 255, 255, 0.25);
+    font-size: 14px;
+}
+
+.app-notif .el-notification__closeBtn:hover {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.app-notif__body {
+    display: flex;
+    gap: 11px;
+    align-items: flex-start;
+}
+
+.app-notif__icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    font-size: 1.05rem;
+}
+
+.app-notif__text {
+    flex: 1;
+    min-width: 0;
+    padding-top: 1px;
+}
+
+.app-notif__title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.96);
+    margin: 0 0 3px;
+    line-height: 1.3;
+}
+
+.app-notif__msg {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0;
+    line-height: 1.4;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+/* Warn variant for ban/block notifications */
+.app-notif--warn.el-notification {
+    border-color: rgba(251, 191, 36, 0.35);
+    box-shadow:
+        0 0 0 1px rgba(251, 191, 36, 0.12),
+        0 8px 32px rgba(0, 0, 0, 0.55);
+}
+.app-notif--warn .el-notification__content {
+    color: rgba(255, 220, 120, 0.9);
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+.app-notif--warn .el-notification__closeBtn {
+    color: rgba(251, 191, 36, 0.35);
+}
+.app-notif--warn .el-notification__closeBtn:hover {
+    color: rgba(251, 191, 36, 0.75);
+}
+
+/* Icon color classes (global — used in teleported popup) */
+.icon--success {
+    background: rgba(76, 222, 143, 0.12);
+    color: #4cde8f;
+}
+.icon--danger {
+    background: rgba(239, 68, 68, 0.12);
+    color: #f87171;
+}
+.icon--paid {
+    background: rgba(96, 165, 250, 0.12);
+    color: #60a5fa;
+}
+.icon--broadcast {
+    background: rgba(255, 178, 239, 0.12);
+    color: var(--color-base-1);
+}
+.icon--warning {
+    background: rgba(251, 191, 36, 0.12);
+    color: #fbbf24;
+}
+.icon--personal {
+    background: rgba(255, 178, 239, 0.12);
+    color: var(--color-base-1);
+}
+.icon--default {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.4);
 }

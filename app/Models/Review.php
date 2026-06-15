@@ -26,12 +26,12 @@ class Review extends Model
 
     public function reviewer(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'reviewer_id');
+        return $this->belongsTo(User::class, 'reviewer_id')->withTrashed();
     }
 
     public function idol(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'idol_id');
+        return $this->belongsTo(User::class, 'idol_id')->withTrashed();
     }
 
     public function order(): BelongsTo

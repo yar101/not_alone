@@ -9,6 +9,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            PlatformSettingSeeder::class,
             AdminSeeder::class,
             TraitSeeder::class,
             InterestSeeder::class,
@@ -18,6 +19,7 @@ class DatabaseSeeder extends Seeder
             BanReasonSeeder::class,
             NewsSeeder::class,
             ReviewEpithetSeeder::class,
+            HelpCenterSeeder::class,
         ]);
     }
 }

@@ -12,12 +12,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
+use NotificationChannels\WebPush\HasPushSubscriptions;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory;
     use Notifiable;
+    use HasPushSubscriptions;
+    use SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -29,6 +34,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'timezone',
         'profile_checklist_snoozed_until',
         'email',
+        'locale',
         'password',
         'is_idol',
         'rating',
@@ -63,6 +69,12 @@ class User extends Authenticatable implements MustVerifyEmail
             'banned_at'                      => 'datetime',
             'banned_until'                   => 'datetime',
         ];
+    }
+
+    public function isActiveBanned(): bool
+    {
+        if (!$this->is_banned) return false;
+        return $this->banned_until === null || $this->banned_until->isFuture();
     }
 
     public function getAgeAttribute(): ?int
@@ -138,25 +150,124 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(ChatBlock::class, 'blocked_id');
     }
 
+    public function contentPacks(): HasMany
+    {
+        return $this->hasMany(ContentPack::class);
+    }
+
+    public function contentPackPurchases(): HasMany
+    {
+        return $this->hasMany(ContentPackPurchase::class);
+    }
+
+    public function following(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'follows', 'follower_id', 'idol_id')->withTimestamps();
+    }
+
+    public function followers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'follows', 'idol_id', 'follower_id')->withTimestamps();
+    }
+
+    public function follow(int $userId): void
+    {
+        $this->following()->syncWithoutDetaching([$userId]);
+    }
+
+    public function unfollow(int $userId): void
+    {
+        $this->following()->detach($userId);
+    }
+
+    public function isFollowing(int $userId): bool
+    {
+        return $this->following()->where('idol_id', $userId)->exists();
+    }
+
     public function unreadMessagesCount(): int
     {
-        return $this->conversationParticipants()
-            ->get()
-            ->sum(function ($participant) {
-                $query = Message::where('conversation_id', $participant->conversation_id)
-                    ->where(function ($q) {
-                        $q->whereNull('sender_id')
-                          ->orWhere('sender_id', '!=', $this->id);
-                    });
-                if ($participant->last_read_at) {
-                    $query->where('created_at', '>', $participant->last_read_at);
-                }
-                return $query->count();
-            });
+        return $this->unreadConversationCount();
+    }
+
+    public function unreadDirectCount(): int
+    {
+        return $this->unreadConversationCount(orderOnly: false);
+    }
+
+    public function unreadOrdersCount(): int
+    {
+        return $this->unreadConversationCount(orderOnly: true);
+    }
+
+    public function unreadMineCount(): int
+    {
+        return $this->unreadConversationCount(orderOnly: true, role: 'customer');
+    }
+
+    public function unreadIncomingCount(): int
+    {
+        return $this->unreadConversationCount(orderOnly: true, role: 'idol');
+    }
+
+    private function unreadConversationCount(?bool $orderOnly = null, ?string $role = null): int
+    {
+        $participants = $this->conversationParticipants()
+            ->when($orderOnly === true, fn($q) => $q->whereHas('conversation', fn($c) => $c->whereNotNull('order_id')))
+            ->when($orderOnly === false, fn($q) => $q->whereHas('conversation', fn($c) => $c->whereNull('order_id')))
+            ->when($role === 'customer', fn($q) => $q->whereHas('conversation', fn($c) => $c->whereHas('order', fn($o) => $o->where('customer_id', $this->id))))
+            ->when($role === 'idol',     fn($q) => $q->whereHas('conversation', fn($c) => $c->whereHas('order', fn($o) => $o->where('idol_id', $this->id))))
+            ->get();
+
+        return $participants->sum(function ($participant) {
+            $query = Message::where('conversation_id', $participant->conversation_id)
+                ->where(function ($q) {
+                    $q->whereNull('sender_id')
+                      ->orWhere('sender_id', '!=', $this->id);
+                });
+            if ($participant->last_read_at) {
+                $query->where('created_at', '>', $participant->last_read_at);
+            }
+            return $query->count();
+        });
     }
 
     public function sendEmailVerificationNotification(): void
     {
         $this->notify(new VerifyEmailNotification);
+    }
+
+    public function anonymize(): void
+    {
+        if ($this->avatar_path) {
+            Storage::delete($this->avatar_path);
+        }
+        if ($this->voice_path) {
+            Storage::delete($this->voice_path);
+        }
+
+        $this->traits()->detach();
+        $this->interests()->detach();
+        $this->languages()->delete();
+
+        $this->fill([
+            'name' => 'Удалённый пользователь',
+            'email' => 'deleted_' . $this->id . '@deleted.ru',
+            'password' => bcrypt(Str::random(40)),
+            'avatar_path' => null,
+            'voice_path' => null,
+            'about' => null,
+            'birth_date' => null,
+            'timezone' => null,
+            'rating' => 0,
+            'is_banned' => false,
+            'banned_at' => null,
+            'banned_until' => null,
+            'ban_reason' => null,
+            'banned_by' => null,
+            'gender' => null,
+        ]);
+
+        $this->save();
     }
 }

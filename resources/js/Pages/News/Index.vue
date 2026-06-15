@@ -3,6 +3,10 @@ import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import SiteHeader from '@/Components/Site/SiteHeader.vue';
+import LocaleLoader from '@/Components/LocaleLoader.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 // ── State ─────────────────────────────────────────────────────
 const items       = ref([]);
@@ -83,9 +87,11 @@ onUnmounted(() => {
 
 <template>
     <Head>
-        <title>Новости — no alone</title>
+        <title>{{ __('news.title') }} — no alone</title>
         <meta name="description" content="Последние новости проекта no alone." />
     </Head>
+
+    <LocaleLoader />
 
     <!-- Декор -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
@@ -106,7 +112,7 @@ onUnmounted(() => {
                     <input
                         v-model="search"
                         class="ni-search__input"
-                        placeholder="Поиск новостей…"
+                        :placeholder="__('news.search')"
                         @input="onSearchInput"
                     />
                     <button v-if="search" class="ni-search__clear" @click="search = ''; fetchFeed(true)">
@@ -126,7 +132,7 @@ onUnmounted(() => {
                         :style="sortDir === 'asc' ? 'transform: scaleY(-1)' : ''">
                         <path d="M12 5v14M5 12l7 7 7-7"/>
                     </svg>
-                    {{ sortDir === 'desc' ? 'Новые' : 'Старые' }}
+                    {{ sortDir === 'desc' ? __('news.sort.new') : __('news.sort.old') }}
                 </button>
                 </div><!-- /ni-cats-row -->
 
@@ -170,7 +176,7 @@ onUnmounted(() => {
                                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                                                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                                             </svg>
-                                            <span>Закреплено</span>
+                                            <span>{{ __('news.pinned') }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -181,7 +187,7 @@ onUnmounted(() => {
                     <!-- Пустое состояние -->
                     <div v-else-if="!loading" class="ni-empty">
                         <div class="ni-empty__icon">◌</div>
-                        <p>{{ search ? 'Ничего не найдено' : 'Новостей пока нет' }}</p>
+                        <p>{{ search ? __('news.not_found') : __('news.empty') }}</p>
                     </div>
 
                     <!-- Sentinel + спиннер -->
@@ -245,7 +251,7 @@ onUnmounted(() => {
 .ni-search__input {
     flex: 1; background: none; border: none;
     outline: none !important; box-shadow: none !important;
-    color: rgba(255,255,255,0.82); font-family: "Figtree", sans-serif; font-size: 0.97rem;
+    color: rgba(255,255,255,0.82); font-family: 'Rubik', sans-serif; font-size: 0.97rem;
 }
 .ni-search__input:focus,
 .ni-search__input:focus-visible { outline: none !important; box-shadow: none !important; }
@@ -266,7 +272,7 @@ onUnmounted(() => {
     padding: 0.3rem 0.75rem; border-radius: 3px;
     border: 1px solid rgba(255,255,255,0.1);
     background: transparent; cursor: pointer;
-    font-family: "Figtree", sans-serif; font-size: 0.78rem;
+    font-family: 'Rubik', sans-serif; font-size: 0.78rem;
     color: rgba(255,255,255,0.4);
     transition: color 0.2s, border-color 0.2s, background 0.2s;
     white-space: nowrap; flex-shrink: 0;
@@ -333,7 +339,7 @@ onUnmounted(() => {
     border: 1px solid rgba(190,145,255,0.25);
     border-bottom: none;
     color: rgba(190,145,255,0.6);
-    font-family: "Figtree", sans-serif;
+    font-family: 'Rubik', sans-serif;
     font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
     align-self: flex-end;
     margin-bottom: -1px;
@@ -355,7 +361,7 @@ onUnmounted(() => {
     display: flex; align-items: center; justify-content: space-between;
 }
 .ni-card__date {
-    font-family: "Figtree", sans-serif;
+    font-family: 'Rubik', sans-serif;
     font-size: 0.82rem; color: rgba(255,255,255,0.28); letter-spacing: 0.02em;
 }
 .ni-card__title {

@@ -15,9 +15,11 @@ const pendingTraitSuggestionsCount = computed(() => page.props.pending_trait_sug
 const pendingInterestSuggestionsCount = computed(() => page.props.pending_interest_suggestions_count ?? 0);
 const pendingReviewDisputesCount = computed(() => page.props.pending_review_disputes_count ?? 0);
 
-const servicesOpen  = ref(false);
-const traitsOpen    = ref(false);
-const interestsOpen = ref(false);
+const servicesOpen      = ref(false);
+const traitsOpen        = ref(false);
+const interestsOpen     = ref(false);
+const contentPacksOpen  = ref(false);
+const sidebarOpen       = ref(false);
 
 const component = computed(() => page.component);
 
@@ -33,6 +35,10 @@ function isOnInterests() {
     return component.value?.startsWith('Admin/Interests/');
 }
 
+function isOnContentPacks() {
+    return component.value?.startsWith('Admin/ContentPacks/');
+}
+
 watch(component, (val) => {
     if (val?.startsWith('Admin/Services/')) {
         servicesOpen.value = true;
@@ -43,6 +49,10 @@ watch(component, (val) => {
     if (val?.startsWith('Admin/Interests/')) {
         interestsOpen.value = true;
     }
+    if (val?.startsWith('Admin/ContentPacks/')) {
+        contentPacksOpen.value = true;
+    }
+    sidebarOpen.value = false;
 }, { immediate: true });
 
 function isActive(routeName) {
@@ -52,9 +62,10 @@ function isActive(routeName) {
 
 <template>
     <div class="admin-wrap">
-        <aside class="sidebar">
+        <div v-if="sidebarOpen" class="sidebar-backdrop" @click="sidebarOpen = false"></div>
+        <aside class="sidebar" :class="{ 'sidebar--open': sidebarOpen }">
             <div class="sidebar__logo">
-                <span class="logo-brand">NoAlone</span>
+                <img src="/app-logo-v3.png" alt="NoAlone" class="sidebar__logo-img" />
                 <span class="logo-sub">Admin</span>
             </div>
 
@@ -128,6 +139,29 @@ function isActive(routeName) {
                 >
                     Рассылки
                 </Link>
+
+                <div class="nav-group">
+                    <button
+                        class="nav-item nav-item--group"
+                        :class="{ 'nav-item--active': isOnContentPacks() }"
+                        @click="contentPacksOpen = !contentPacksOpen"
+                    >
+                        <span>Контент-паки</span>
+                        <span class="nav-arrow" :class="{ 'nav-arrow--open': contentPacksOpen }">▾</span>
+                    </button>
+                    <div v-if="contentPacksOpen" class="nav-sub">
+                        <Link
+                            :href="route('admin.content-packs.index')"
+                            class="nav-item nav-item--sub"
+                            :class="{ 'nav-item--active': isActive('admin.content-packs.index') || isActive('admin.content-packs.show') }"
+                        >Модерация</Link>
+                        <Link
+                            :href="route('admin.content-packs.change-requests.index')"
+                            class="nav-item nav-item--sub"
+                            :class="{ 'nav-item--active': isActive('admin.content-packs.change-requests.*') }"
+                        >Изменения</Link>
+                    </div>
+                </div>
 
                 <Link
                     :href="route('admin.users.index')"
@@ -257,6 +291,14 @@ function isActive(routeName) {
                 </Link>
 
                 <Link
+                    :href="route('admin.help-categories.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.help-categories.*') }"
+                >
+                    Справка
+                </Link>
+
+                <Link
                     :href="route('admin.reports.index')"
                     class="nav-item"
                     :class="{ 'nav-item--active': isActive('admin.reports.*') }"
@@ -271,6 +313,14 @@ function isActive(routeName) {
                     :class="{ 'nav-item--active': isActive('admin.logs.index') }"
                 >
                     Логи
+                </Link>
+
+                <Link
+                    :href="route('admin.rating-logs.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.rating-logs.index') }"
+                >
+                    Рейтинг айдолов
                 </Link>
 
                 <Link
@@ -295,6 +345,14 @@ function isActive(routeName) {
         </aside>
 
         <div class="content-wrap">
+            <header class="admin-mobile-header">
+                <button class="hamburger-btn" @click="sidebarOpen = !sidebarOpen">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
+                <span class="admin-mobile-title">Admin</span>
+            </header>
             <main class="admin-main">
                 <slot />
             </main>
@@ -308,7 +366,7 @@ function isActive(routeName) {
     background: #07070f;
     display: flex;
     overflow: hidden;
-    font-family: 'Figtree', sans-serif;
+    font-family: 'Rubik', sans-serif;
 }
 
 /* Sidebar */
@@ -330,14 +388,14 @@ function isActive(routeName) {
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     display: flex;
     flex-direction: column;
-    gap: 0.1rem;
+    gap: 0.25rem;
 }
 
-.logo-brand {
-    font-family: 'Imbue', serif;
-    font-size: 1rem;
-    color: #9B6EE8;
-    letter-spacing: 0.02em;
+.sidebar__logo-img {
+    height: 20px;
+    width: auto;
+    object-fit: contain;
+    align-self: flex-start;
 }
 
 .logo-sub {
@@ -427,7 +485,7 @@ function isActive(routeName) {
     padding: 0 0.3rem;
     background: rgba(155, 110, 232, 0.25);
     border: 1px solid rgba(155, 110, 232, 0.4);
-    color: #be91ff;
+    color: #ffb2ef;
     font-size: 0.68rem;
     font-weight: 700;
     border-radius: 99px;
@@ -518,5 +576,73 @@ function isActive(routeName) {
     width: 100%;
     min-width: 0;
     overflow-y: auto;
+}
+
+/* ── Mobile header ──────────────────────────────────────── */
+.admin-mobile-header {
+    display: none;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(155, 110, 232, 0.15);
+    background: #09090f;
+    flex-shrink: 0;
+}
+.admin-mobile-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.hamburger-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+}
+.hamburger-btn:hover {
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(155, 110, 232, 0.12);
+}
+
+/* ── Mobile responsive ──────────────────────────────────── */
+.sidebar-backdrop {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .admin-wrap { overflow: visible; height: auto; min-height: 100vh; }
+
+    .admin-mobile-header { display: flex; }
+
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        z-index: 1200;
+        transform: translateX(-100%);
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .sidebar--open { transform: translateX(0); }
+
+    .sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1199;
+    }
+
+    .content-wrap { flex-direction: column; }
+    .admin-main { padding: 1rem; overflow-y: visible; }
 }
 </style>

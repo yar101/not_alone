@@ -1,6 +1,9 @@
 <script setup>
 import { computed } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     status: {
@@ -20,7 +23,7 @@ const verificationLinkSent = computed(
 </script>
 
 <template>
-    <Head title="Подтверждение email" />
+    <Head :title="__('verify.title')" />
 
     <div class="verify-page">
         <div class="verify-card">
@@ -33,15 +36,12 @@ const verificationLinkSent = computed(
                 </svg>
             </div>
 
-            <h1 class="verify-title">Подтвердите email</h1>
+            <h1 class="verify-title">{{ __('verify.title') }}</h1>
 
-            <p class="verify-text">
-                Мы отправили письмо со ссылкой для подтверждения на ваш адрес.
-                Перейдите по ссылке в письме, чтобы активировать аккаунт.
-            </p>
+            <p class="verify-text">{{ __('verify.text') }}</p>
 
             <p v-if="verificationLinkSent" class="verify-sent">
-                Письмо отправлено повторно. Проверьте папку «Входящие» и «Спам».
+                {{ __('verify.resent') }}
             </p>
 
             <form @submit.prevent="submit" class="verify-actions">
@@ -50,7 +50,7 @@ const verificationLinkSent = computed(
                     class="verify-btn-primary"
                     :disabled="form.processing"
                 >
-                    {{ form.processing ? 'Отправляем…' : 'Отправить повторно' }}
+                    {{ form.processing ? __('verify.resending') : __('verify.resend') }}
                 </button>
 
                 <Link
@@ -59,7 +59,7 @@ const verificationLinkSent = computed(
                     as="button"
                     class="verify-btn-ghost"
                 >
-                    Выйти
+                    {{ __('verify.logout') }}
                 </Link>
             </form>
 
@@ -75,7 +75,7 @@ const verificationLinkSent = computed(
     align-items: center;
     justify-content: center;
     padding: 2rem 1.5rem;
-    font-family: 'Figtree', sans-serif;
+    font-family: 'Rubik', sans-serif;
     box-sizing: border-box;
 }
 
@@ -99,10 +99,10 @@ const verificationLinkSent = computed(
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(160, 160, 255, 0.3);
+    border: 1px solid rgba(255, 178, 239, 0.3);
     border-radius: 3px;
-    background: rgba(160, 160, 255, 0.06);
-    color: #a0a0ff;
+    background: rgba(255, 178, 239, 0.06);
+    color: #ffb2ef;
     flex-shrink: 0;
 }
 .verify-icon svg {
@@ -148,10 +148,10 @@ const verificationLinkSent = computed(
 .verify-btn-primary {
     width: 100%;
     padding: 0.65rem 1rem;
-    border: 1px solid rgba(160, 160, 255, 0.5);
+    border: 1px solid rgba(255, 178, 239, 0.5);
     border-radius: 3px;
-    background: rgba(160, 160, 255, 0.1);
-    color: #a0a0ff;
+    background: rgba(255, 178, 239, 0.1);
+    color: #ffb2ef;
     font-size: 0.9rem;
     font-family: inherit;
     font-weight: 500;
@@ -159,8 +159,8 @@ const verificationLinkSent = computed(
     transition: background 0.15s, border-color 0.15s;
 }
 .verify-btn-primary:hover:not(:disabled) {
-    background: rgba(160, 160, 255, 0.18);
-    border-color: rgba(160, 160, 255, 0.75);
+    background: rgba(255, 178, 239, 0.18);
+    border-color: rgba(255, 178, 239, 0.75);
 }
 .verify-btn-primary:disabled {
     opacity: 0.45;

@@ -12,10 +12,12 @@
         "php": "^8.2",
         "inertiajs/inertia-laravel": "^2.0",
         "laravel-lang/common": "^6.7",
+        "laravel-notification-channels/webpush": "^10.5",
         "laravel/framework": "^11.31",
         "laravel/reverb": "^1.8",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
+        "spatie/laravel-translatable": "^6.13",
         "tightenco/ziggy": "^2.0"
     },
     "require-dev": {
@@ -60,12 +62,20 @@
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74,#86efac,#00D18F,#f0e68c\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"php artisan pail --timeout=0\" \"npm run dev\" \"php artisan reverb:start\" \"mailpit\" \"php artisan schedule:work\" --names=server,queue,logs,vite,reverb,mailpit,schedule"
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74,#86efac,#00D18F,#f0e68c\" \"php artisan serve\" \"php artisan queue:listen --tries=3\" \"php artisan pail --timeout=0\" \"npm run dev\" \"php artisan reverb:start\" \"mailpit\" \"php artisan schedule:work\" --names=server,queue,logs,vite,reverb,mailpit,schedule"
+        ],
+        "dev-lan": [
+            "Composer\\Config::disableProcessTimeout",
+            "bash dev-lan.sh"
         ],
         "ide-helper": [
             "@php artisan ide-helper:generate",
             "@php artisan ide-helper:models --nowrite",
             "@php artisan ide-helper:meta"
+        ],
+        "pwa-lan": [
+            "Composer\\Config::disableProcessTimeout",
+            "bash pwa-lan.sh"
         ]
     },
     "extra": {

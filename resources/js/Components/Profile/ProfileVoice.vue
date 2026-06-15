@@ -2,6 +2,9 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import WaveSurfer from 'wavesurfer.js';
 import { router } from '@inertiajs/vue3';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     voiceUrl: { type: String, default: null },
@@ -34,7 +37,7 @@ function initWaveSurfer() {
         container:     waveformEl.value,
         url:           props.voiceUrl,
         waveColor:     'rgba(255,255,255,0.22)',
-        progressColor: '#a0a0ff',
+        progressColor: getComputedStyle(document.documentElement).getPropertyValue('--color-base-1').trim() || '#ffb2ef',
         cursorColor:   'transparent',
         barWidth:      2,
         barGap:        2,
@@ -94,14 +97,15 @@ onUnmounted(() => {
 
 // ── Recording state (объявлено до isDiskSpinning) ───────────
 const recording = ref(false);
+const uploading = ref(false);
 
 // ── Диск: вращение + плавный возврат ───────────────────────
 const diskEl        = ref(null);
 const returnStyle   = ref({});
 let   returnTimeout = null;
 
-// Диск крутится при воспроизведении И при записи
-const isDiskSpinning = computed(() => playing.value || recording.value);
+// Диск крутится при воспроизведении, записи и загрузке
+const isDiskSpinning = computed(() => playing.value || recording.value || uploading.value);
 
 // Читаем текущий угол поворота из CSS-матрицы трансформации
 function getCurrentAngle() {
@@ -168,6 +172,24 @@ const mime = computed(() => {
 });
 
 async function startRecording() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+        alert(__('profile.voice.err.mic_unavailable'));
+        return;
+    }
+
+    // Check if permission is already permanently denied
+    if (navigator.permissions) {
+        try {
+            const status = await navigator.permissions.query({ name: 'microphone' });
+            if (status.state === 'denied') {
+                alert(__('profile.voice.err.mic_denied'));
+                return;
+            }
+        } catch {
+            // permissions API not supported — proceed anyway
+        }
+    }
+
     try {
         if (ws && playing.value) ws.pause();
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -179,8 +201,15 @@ async function startRecording() {
         recording.value = true;
         countdown.value  = MAX_SEC;
         timer = setInterval(() => { if (--countdown.value <= 0) stopRecording(); }, 1000);
-    } catch {
-        alert('Не удалось получить доступ к микрофону');
+    } catch (err) {
+        console.error('[Voice] getUserMedia error:', err?.name, err?.message);
+        if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
+            alert(__('profile.voice.err.mic_denied'));
+        } else if (err?.name === 'NotFoundError' || err?.name === 'DevicesNotFoundError') {
+            alert(__('profile.voice.err.mic_unavailable'));
+        } else {
+            alert(__('profile.voice.err.mic'));
+        }
     }
 }
 
@@ -197,13 +226,15 @@ function upload() {
     const blob = new Blob(chunks.value, { type: mime.value });
     const fd   = new FormData();
     fd.append('voice', new File([blob], `voice.${ext}`, { type: mime.value }));
+    uploading.value = true;
     router.post(route('profile.update.voice'), fd, {
         preserveState: true, preserveScroll: true, forceFormData: true,
+        onFinish: () => { uploading.value = false; },
     });
 }
 
 function deleteVoice() {
-    if (!confirm('Удалить аудио?')) return;
+    if (!confirm(__('profile.voice.confirm.del'))) return;
     if (ws) { ws.destroy(); ws = null; wsReady.value = false; playing.value = false; }
     router.delete(route('profile.delete.voice'), { preserveState: true, preserveScroll: true });
 }
@@ -229,7 +260,7 @@ function deleteVoice() {
                 class="play-btn"
                 :disabled="!wsReady"
                 @click="togglePlay"
-                :title="playing ? 'Пауза' : 'Играть'"
+                :title="playing ? __('profile.voice.pause') : __('profile.voice.play')"
             >
                 <svg v-if="!wsReady" class="icon-loading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <circle cx="12" cy="12" r="9" stroke-opacity="0.2"/>
@@ -249,7 +280,7 @@ function deleteVoice() {
                 <div class="times">{{ fmt(currentSec) }} / {{ fmt(totalSec) }}</div>
             </div>
 
-            <button v-if="isOwner" class="del-btn" @click="deleteVoice" title="Удалить">
+            <button v-if="isOwner" class="del-btn" @click="deleteVoice" :title="__('common.delete')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
@@ -259,12 +290,21 @@ function deleteVoice() {
         <!-- Запись идёт -->
         <div v-else-if="recording" class="recording">
             <span class="rec-dot" />
-            <span class="rec-timer">{{ countdown }}с</span>
-            <button class="stop-btn" @click="stopRecording">Стоп</button>
+            <span class="rec-timer">{{ countdown }}{{ __('common.sec') }}</span>
+            <button class="stop-btn" @click="stopRecording">{{ __('profile.voice.stop') }}</button>
+        </div>
+
+        <!-- Загрузка после записи -->
+        <div v-else-if="uploading" class="uploading">
+            <svg class="uploading__spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="9" stroke-width="2" stroke-opacity="0.18" />
+                <path d="M12 3a9 9 0 0 1 9 9" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            <span class="uploading__label">{{ __('profile.voice.uploading') }}</span>
         </div>
 
         <!-- Гость: аудио нет -->
-        <div v-else-if="!isOwner" class="no-audio">Аудио отсутствует</div>
+        <div v-else-if="!isOwner" class="no-audio">{{ __('profile.voice.empty') }}</div>
 
         <!-- Кнопка записи -->
         <button v-else-if="isOwner" class="rec-btn" @click="startRecording">
@@ -274,7 +314,7 @@ function deleteVoice() {
                 <line x1="12" y1="19" x2="12" y2="22"/>
                 <line x1="8" y1="22" x2="16" y2="22"/>
             </svg>
-            <span>Записать аудио</span>
+            <span>{{ __('profile.voice.record') }}</span>
         </button>
     </div>
 </template>
@@ -331,8 +371,8 @@ function deleteVoice() {
     transition: border-color 0.15s, color 0.15s;
 }
 .play-btn:hover:not(:disabled) {
-    border-color: #a0a0ff;
-    color: #a0a0ff;
+    border-color: var(--color-base-1);
+    color: var(--color-base-1);
 }
 .play-btn:disabled { opacity: 0.4; cursor: default; }
 
@@ -365,7 +405,7 @@ function deleteVoice() {
     transition: color 0.15s;
 }
 .del-btn svg { width: 16px; height: 16px; stroke-width: 2.5; }
-.del-btn:hover { color: #a0a0ff; }
+.del-btn:hover { color: var(--color-base-1); }
 
 /* ── Запись ───────────────────────────────────────────────── */
 .recording {
@@ -373,7 +413,7 @@ function deleteVoice() {
     align-items: center;
     gap: 0.6rem;
     padding: 0.5rem 0.6rem;
-    border: 1px solid rgba(190,145,255,0.35);
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 65%);
     border-radius: 3px;
     box-sizing: border-box;
 }
@@ -383,7 +423,7 @@ function deleteVoice() {
 }
 .rec-dot {
     width: 7px; height: 7px; border-radius: 50%;
-    background: #a0a0ff;
+    background: var(--color-base-1);
     flex-shrink: 0;
     animation: recBlink 1s ease-in-out infinite;
 }
@@ -422,9 +462,8 @@ function deleteVoice() {
     justify-content: center;
     gap: 0.55rem;
     padding: 0.65rem 0.75rem;
-    border: 1px solid rgba(190,145,255,0.3);
-    border-radius: 3px;
-    background: rgba(190,145,255,0.05);
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 70%);
+    background: color-mix(in srgb, var(--color-base-1), transparent 95%);
     color: rgba(255,255,255,0.55);
     font-size: 0.88rem;
     font-family: inherit;
@@ -433,15 +472,39 @@ function deleteVoice() {
     transition: border-color 0.2s, color 0.2s, background 0.2s;
 }
 .rec-btn:hover {
-    border-color: rgba(190,145,255,0.65);
-    background: rgba(190,145,255,0.1);
+    border-color: color-mix(in srgb, var(--color-base-1), transparent 35%);
+    background: color-mix(in srgb, var(--color-base-1), transparent 90%);
     color: #fff;
 }
 .rec-btn-icon {
     width: 15px; height: 15px;
     flex-shrink: 0;
-    color: rgba(190,145,255,0.7);
+    color: color-mix(in srgb, var(--color-base-1), transparent 30%);
     transition: color 0.2s;
 }
-.rec-btn:hover .rec-btn-icon { color: #a0a0ff; }
+.rec-btn:hover .rec-btn-icon { color: var(--color-base-1); }
+
+/* ── Uploading ────────────────────────────────────────────── */
+.uploading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 80%);
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--color-base-1), transparent 96%);
+    box-sizing: border-box;
+}
+.uploading__spinner {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    color: color-mix(in srgb, var(--color-base-1), transparent 20%);
+    animation: spin360 0.8s linear infinite;
+}
+.uploading__label {
+    font-size: 0.88rem;
+    color: rgba(255,255,255,0.45);
+}
 </style>

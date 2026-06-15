@@ -2,6 +2,9 @@
 import { ref, computed } from 'vue';
 import axios from 'axios';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     show:  { type: Boolean, default: false },
@@ -37,7 +40,7 @@ async function submit() {
         });
         emit('created', { conversation_id: res.data.conversation_id });
     } catch (e) {
-        error.value = e.response?.data?.error ?? 'Не удалось создать заказ';
+        error.value = e.response?.data?.error ?? __('chat.repeat.error');
         submitting.value = false;
     }
 }
@@ -54,7 +57,7 @@ function formatPrice(n) {
         <div class="rom">
             <!-- Idol -->
             <div class="rom__idol">
-                <span class="rom__idol-label">Айдол:</span>
+                <span class="rom__idol-label">{{ __('chat.idol') }}</span>
 <span class="rom__idol-name">{{ order.idol.name }}</span>
             </div>
 
@@ -75,24 +78,24 @@ function formatPrice(n) {
 
                 <div v-for="item in unavailableItems" :key="'u-' + item.id" class="rom__line rom__line--unavailable">
                     <span class="rom__line-name">—</span>
-                    <span class="rom__line-tag">недоступно</span>
+                    <span class="rom__line-tag">{{ __('chat.unavailable') }}</span>
                     <span class="rom__line-price">—</span>
                 </div>
 
                 <div class="rom__divider rom__divider--sm" />
 
                 <div class="rom__total">
-                    <span class="rom__total-label">ИТОГО</span>
+                    <span class="rom__total-label">{{ __('cart.total') }}</span>
                     <span class="rom__total-value">{{ formatPrice(total) }}</span>
                 </div>
             </div>
 
             <!-- Warnings -->
             <div v-if="unavailableItems.length > 0 && availableItems.length > 0" class="rom__warn">
-                Часть услуг недоступна и не войдёт в заказ
+                {{ __('chat.repeat.warn.partial') }}
             </div>
             <div v-else-if="availableItems.length === 0" class="rom__warn rom__warn--block">
-                Все услуги из этого заказа недоступны
+                {{ __('chat.repeat.warn.all') }}
             </div>
 
             <!-- Error -->
@@ -102,7 +105,7 @@ function formatPrice(n) {
             <div class="rom__actions">
 <button class="rom__btn rom__btn--submit" :disabled="!canSubmit" @click="submit">
                     <span v-if="submitting" class="rom__spinner" />
-                    <span v-else>↺ ПОВТОРИТЬ ЗАКАЗ</span>
+                    <span v-else>{{ __('chat.msg.repeat') }}</span>
                 </button>
             </div>
         </div>

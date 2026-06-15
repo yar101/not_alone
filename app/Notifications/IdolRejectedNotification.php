@@ -3,13 +3,15 @@
 namespace App\Notifications;
 
 use App\Mail\IdolRejectedMail;
+use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
+use NotificationChannels\WebPush\WebPushChannel;
 
 class IdolRejectedNotification extends Notification
 {
     use Queueable;
+    use SendsWebPush;
 
     public function __construct(
         private readonly string $reason
@@ -17,14 +19,13 @@ class IdolRejectedNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        return ['database', 'mail', WebPushChannel::class];
     }
 
     public function toDatabase(object $notifiable): array
     {
         return [
             'type' => 'idol_rejected',
-            'message' => 'Ваша заявка на статус Айдола отклонена.',
             'reason' => $this->reason,
         ];
     }
@@ -37,5 +38,15 @@ class IdolRejectedNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return $this->toDatabase($notifiable);
+    }
+
+    protected function webPushTitle(): string
+    {
+        return __('push.title.idol_rejected');
+    }
+
+    protected function webPushBody(): string
+    {
+        return __('push.idol_rejected');
     }
 }

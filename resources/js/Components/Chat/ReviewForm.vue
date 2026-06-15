@@ -1,6 +1,9 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
+import { useTranslations } from '@/composables/useTranslations';
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     orderId: { type: Number, required: true },
@@ -18,20 +21,43 @@ const submitting       = ref(false);
 const warningOpen      = ref(false);
 const warnWrapEl       = ref(null);
 const poppingHeart     = ref(0);
+const isTouch          = ref(false);
 
 function onDocClick(e) {
     if (warningOpen.value && warnWrapEl.value && !warnWrapEl.value.contains(e.target)) {
         warningOpen.value = false;
     }
 }
-onMounted(() => document.addEventListener('click', onDocClick, true));
-onUnmounted(() => document.removeEventListener('click', onDocClick, true));
+
+const markTouch = () => {
+    isTouch.value = true;
+    window.removeEventListener('touchstart', markTouch);
+};
+
+onMounted(() => {
+    document.addEventListener('click', onDocClick, true);
+    window.addEventListener('touchstart', markTouch, { passive: true });
+});
+onUnmounted(() => {
+    document.removeEventListener('click', onDocClick, true);
+    window.removeEventListener('touchstart', markTouch);
+});
 
 onMounted(async () => {
     const res = await axios.get(route('reviews.epithets'));
     epithets.value = res.data;
     loadingEpithets.value = false;
 });
+
+function handleMouseEnter() {
+    if (isTouch.value) return;
+    warningOpen.value = true;
+}
+
+function handleMouseLeave() {
+    if (isTouch.value) return;
+    warningOpen.value = false;
+}
 
 function activeRating(i) {
     return i <= (hovered.value || rating.value);
@@ -63,15 +89,15 @@ async function submit() {
     <div class="rv-wrap">
         <!-- Header row: title + warning button -->
         <div class="rv-header-row">
-            <div class="rv-header">ОСТАВИТЬ ОТЗЫВ</div>
-            <div class="rv-warn-wrap" ref="warnWrapEl" @mouseleave="warningOpen = false">
+            <div class="rv-header">{{ __('review.title') }}</div>
+            <div class="rv-warn-wrap" ref="warnWrapEl" @mouseleave="handleMouseLeave">
             <button
                 class="rv-warn-btn"
                 :class="{ 'rv-warn-btn--active': warningOpen }"
-                @click="warningOpen = !warningOpen"
-                @mouseenter="warningOpen = true"
+                @click.stop="warningOpen = !warningOpen"
+                @mouseenter="handleMouseEnter"
                 type="button"
-                aria-label="Важно"
+                :aria-label="__('review.important')"
             >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
@@ -81,9 +107,7 @@ async function submit() {
             </button>
             <Transition name="rv-warn">
                 <div v-if="warningOpen" class="rv-warn-popup">
-                    <p class="rv-warn-popup__text">
-                        Это ваш единственный отзыв об этом айдоле. После отправки его нельзя изменить или оставить новый — отнеситесь к нему серьёзно.
-                    </p>
+                    <p class="rv-warn-popup__text">{{ __('review.only_one') }}</p>
                 </div>
             </Transition>
         </div>
@@ -111,7 +135,7 @@ async function submit() {
                 @mouseleave="hovered = 0"
                 @click="rating = i; poppingHeart = i; setTimeout(() => poppingHeart = 0, 350)"
                 type="button"
-                :aria-label="`${i} из 5`"
+                :aria-label="__('review.rating.aria', { value: i })"
             >
                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <!-- Filled layer: always present, opacity transitions smoothly -->
@@ -163,7 +187,7 @@ async function submit() {
                 v-model="text"
                 class="rv-textarea"
                 maxlength="250"
-                placeholder="Ваш комментарий (необязательно)"
+                :placeholder="__('review.comment.placeholder')"
                 rows="3"
             ></textarea>
             <span class="rv-char-count">{{ text.length }}/250</span>
@@ -176,7 +200,7 @@ async function submit() {
             @click="submit"
             type="button"
         >
-            {{ submitting ? 'Отправка…' : 'Оставить отзыв' }}
+            {{ submitting ? __('common.sending') : __('review.submit') }}
         </button>
     </div>
 </template>
@@ -299,19 +323,19 @@ async function submit() {
     gap: 0.4rem;
 }
 .rv-epithet {
-    background: rgba(160,160,255,0.05);
-    border: 1px solid rgba(160,160,255,0.2);
+    background: rgba(255, 178, 239,0.05);
+    border: 1px solid rgba(255, 178, 239,0.2);
     border-radius: 4px;
     padding: 0.35rem 0.85rem;
     font-size: 0.92rem;
-    color: rgba(160,160,255,0.6);
+    color: rgba(255, 178, 239,0.6);
     cursor: pointer;
     transition: background 0.12s, border-color 0.12s, color 0.12s;
     font-family: inherit;
 }
-.rv-epithet:hover { background: rgba(160,160,255,0.1); color: rgba(180,180,255,0.9); }
+.rv-epithet:hover { background: rgba(255, 178, 239,0.1); color: rgba(180,180,255,0.9); }
 .rv-epithet--active {
-    background: rgba(160,160,255,0.15);
+    background: rgba(255, 178, 239,0.15);
     border-color: var(--color-base-1);
     color: var(--color-base-1);
 }
