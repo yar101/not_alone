@@ -55,12 +55,13 @@ COPY . .
 # Copy built frontend assets from stage 1
 COPY --from=assets /app/public/build ./public/build
 
+# Create cache and storage directories, set permissions
+RUN mkdir -p bootstrap/cache storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
+
 # Finalize composer autoloader
 RUN composer dump-autoload --optimize
-
-# Permissions
-RUN chown -R www-data:www-data storage bootstrap/cache \
-    && chmod -R 775 storage bootstrap/cache
 
 # Configs
 COPY docker/nginx-prod.conf /etc/nginx/nginx.conf
