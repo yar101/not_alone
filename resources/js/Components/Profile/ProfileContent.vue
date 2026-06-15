@@ -529,6 +529,8 @@ const ownerSortOptions = computed(() => [
                                 <PackStatusBadge v-if="pack.hidden_at" status="hidden" />
                                 <PackStatusBadge v-if="pack.pending_change?.status === 'has_remarks'"
                                     status="has_remarks" />
+                                <PackStatusBadge v-else-if="pack.pending_change?.status === 'rejected'"
+                                    status="rejected" />
                                 <span v-else-if="pack.pending_change?.changed_fields?.length"
                                     class="pc-card__pending-badge">{{ __('profile.content.pending_badge') }}</span>
                             </div>
@@ -718,6 +720,7 @@ const ownerSortOptions = computed(() => [
                     <PackStatusBadge v-if="isOwner" :status="detailPack.status" />
                     <PackStatusBadge v-if="isOwner && detailPack.hidden_at" status="hidden" />
                     <PackStatusBadge v-if="isOwner && detailPack.pending_change?.status === 'has_remarks'" status="has_remarks" />
+                    <PackStatusBadge v-else-if="isOwner && detailPack.pending_change?.status === 'rejected'" status="rejected" />
                     <span
                         v-else-if="isOwner && detailPack.pending_change?.changed_fields?.length"
                         class="pc-card__pending-badge">{{ __('profile.content.pending_badge') }}</span>
