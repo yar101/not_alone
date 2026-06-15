@@ -4,6 +4,7 @@ set -e
 # Только web-контейнер запускает миграции
 if [ "${CONTAINER_ROLE}" = "web" ] || [ -z "${CONTAINER_ROLE}" ]; then
     php artisan migrate --force
+    php artisan db:seed --force
     if [ "${APP_ENV}" = "local" ]; then
         php artisan config:clear
         php artisan route:clear
