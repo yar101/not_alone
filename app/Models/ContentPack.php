@@ -91,6 +91,6 @@ class ContentPack extends Model
 
     public function pendingChangeRequest(): HasOne
     {
-        return $this->hasOne(ContentPackChangeRequest::class)->whereIn('status', ['pending', 'has_remarks']);
+        return $this->hasOne(ContentPackChangeRequest::class)->whereIn('status', ['pending', 'has_remarks', 'rejected']);
     }
 }

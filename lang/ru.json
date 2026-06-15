@@ -636,6 +636,12 @@
     "profile.content.hide_pack": "Скрыть пак",
     "profile.content.delete_pack": "Удалить пак",
     "profile.content.sort.hidden": "сначала скрытые",
+    "profile.content.change_rejected": "Изменения отклонены",
+    "profile.content.no_reason": "Без указания причины",
+    "profile.content.dismiss_cr": "Скрыть отклонение",
+    "profile.content.dismiss_success": "Отклоненные изменения скрыты",
+    "profile.services.dismiss_cr": "Скрыть отклонение",
+    "profile.services.dismiss_success": "Отклоненные изменения скрыты",
 
     "profile.services.search_ph": "Название услуги",
     "profile.services.blocked_error": "Вы заблокированы этим пользователем и не можете делать заказы",
