@@ -132,6 +132,7 @@ Route::middleware(['auth', 'verified', 'not_banned'])->group(function () {
     Route::patch('/content-packs/{pack}/description', [ContentPackController::class, 'updateDescription'])->name('content-packs.description');
     Route::patch('/content-packs/{pack}/price',       [ContentPackController::class, 'updatePrice'])->name('content-packs.price');
     Route::delete('/content-packs/{pack}',            [ContentPackController::class, 'destroy'])->name('content-packs.destroy');
+    Route::delete('/content-packs/{pack}/dismiss-change-request', [ContentPackController::class, 'dismissChangeRequest'])->name('content-packs.dismiss-change-request');
 });
 
 // Public content pack profile feed

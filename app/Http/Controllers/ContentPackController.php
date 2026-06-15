@@ -416,6 +416,18 @@ class ContentPackController extends Controller
         return response()->json(['hidden_at' => $pack->hidden_at?->toIso8601String()]);
     }
 
+    public function dismissChangeRequest(Request $request, ContentPack $pack): JsonResponse
+    {
+        abort_if($pack->user_id !== $request->user()->id, 403);
+
+        $cr = $pack->pendingChangeRequest;
+        if ($cr && $cr->status === 'rejected') {
+            $cr->delete();
+        }
+
+        return response()->json(['success' => true]);
+    }
+
     public function destroy(Request $request, ContentPack $pack): RedirectResponse
     {
         abort_if($pack->user_id !== $request->user()->id, 403);

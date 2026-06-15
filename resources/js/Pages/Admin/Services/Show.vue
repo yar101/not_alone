@@ -22,6 +22,33 @@ const FIELD_LABELS = {
 const flaggedFields  = reactive(Object.fromEntries(FIELDS.map(f => [f, false])));
 const fieldComments  = reactive(Object.fromEntries(FIELDS.map(f => [f, ''])));
 
+const PRESETS = {
+    name_ru: [
+        'Содержит ссылки / контактную информацию',
+        'Нецензурная лексика или оскорбления',
+        'Опечатки или некорректный регистр',
+    ],
+    name_en: [
+        'Contains links or contact info',
+        'Inappropriate language',
+        'Typos or incorrect casing',
+    ],
+    price: [
+        'Некорректная стоимость услуги',
+        'Цена не соответствует правилам платформы',
+    ],
+    category_id: [
+        'Выбрана неподходящая категория',
+    ],
+    time_unit_id: [
+        'Некорректная единица времени',
+    ],
+    rejection: [
+        'Услуга нарушает правила платформы',
+        'Спам / Дубликат существующей услуги',
+    ],
+};
+
 const isApproved  = ref(false);
 const submitting  = ref(false);
 const errors      = ref({});
@@ -89,14 +116,16 @@ function reject() {
                 <!-- Idol info -->
                 <div class="sps-card">
                     <h2 class="sps-card__title">Айдол</h2>
-                    <div class="sps-idol">
-                        <img v-if="service.user.avatar_url" :src="service.user.avatar_url" class="sps-idol__avatar" alt="" />
-                        <div v-else class="sps-idol__avatar sps-idol__avatar--empty">{{ service.user.name?.charAt(0) }}</div>
-                        <div>
-                            <div class="sps-idol__name">{{ service.user.name }}</div>
-                            <div class="sps-idol__email">{{ service.user.email }}</div>
+                    <a :href="route('profile.show', service.user.id)" target="_blank" class="sps-idol-link">
+                        <div class="sps-idol">
+                            <img v-if="service.user.avatar_url" :src="service.user.avatar_url" class="sps-idol__avatar" alt="" />
+                            <div v-else class="sps-idol__avatar sps-idol__avatar--empty">{{ service.user.name?.charAt(0) }}</div>
+                            <div>
+                                <div class="sps-idol__name">{{ service.user.name }}</div>
+                                <div class="sps-idol__email">{{ service.user.email }}</div>
+                            </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- Service metadata -->
@@ -173,13 +202,18 @@ function reject() {
                 <!-- Field flags -->
                 <div class="sps-card">
                     <h2 class="sps-card__title">Поля</h2>
-                    <div v-for="field in FIELDS" :key="field" class="sps-flag-row">
+                    <div v-for="field in FIELDS" :key="field" class="sps-flag-row" :class="{ 'sps-flag-row--flagged': flaggedFields[field] }">
                         <div class="sps-flag-header">
                             <label class="sps-flag-label">
                                 <input type="checkbox" v-model="flaggedFields[field]" class="sps-checkbox" />
                                 <span class="sps-flag-name" :class="{ 'sps-flag-name--flagged': flaggedFields[field] }">
                                     {{ FIELD_LABELS[field] }}
                                 </span>
+                                <svg v-if="flaggedFields[field]" class="sps-warn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff7b7b" stroke-width="2.5">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                    <line x1="12" y1="9" x2="12" y2="13"/>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
                             </label>
                             <span class="sps-flag-value">
                                 <template v-if="field === 'name_ru'">{{ service.name_ru || '—' }}</template>
@@ -189,18 +223,24 @@ function reject() {
                                 <template v-else-if="field === 'time_unit_id'">{{ service.time_unit || '—' }}</template>
                             </span>
                         </div>
-                        <textarea
-                            v-if="flaggedFields[field]"
-                            v-model="fieldComments[field]"
-                            class="sps-comment"
-                            rows="2"
-                            placeholder="Комментарий к замечанию..."
-                        />
+                        <div v-if="flaggedFields[field]" class="sps-comment-wrapper">
+                            <textarea
+                                v-model="fieldComments[field]"
+                                class="sps-comment"
+                                rows="2"
+                                placeholder="Комментарий к замечанию..."
+                            />
+                            <div class="sps-presets">
+                                <button v-for="preset in PRESETS[field]" :key="preset" type="button" class="sps-preset-btn" @click="fieldComments[field] = preset">
+                                    + {{ preset }}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Decision -->
-                <div class="sps-card">
+                <div class="sps-card sps-card--sticky">
                     <h2 class="sps-card__title">Решение</h2>
 
                     <label class="sps-approved-label" :class="{ 'sps-approved-label--disabled': hasAnyFlag }">
@@ -234,6 +274,11 @@ function reject() {
                                 rows="3"
                                 placeholder="Причина отклонения (увидит пользователь)..."
                             />
+                            <div class="sps-presets sps-presets--block">
+                                <button v-for="preset in PRESETS.rejection" :key="preset" type="button" class="sps-preset-btn" @click="rejectionReason = preset">
+                                    + {{ preset }}
+                                </button>
+                            </div>
                         </div>
 
                         <button
@@ -243,7 +288,7 @@ function reject() {
                         >
                             {{ showReject ? 'Подтвердить отклонение' : 'Отклонить полностью' }}
                         </button>
-                        <button v-if="showReject" class="sps-cancel" @click="showReject = false; rejectionReason = ''">
+                        <button v-if="showReject" type="button" class="sps-cancel" @click="showReject = false; rejectionReason = ''">
                             Отмена
                         </button>
                     </div>
@@ -254,10 +299,16 @@ function reject() {
 </template>
 
 <style scoped>
-.sps-wrap { padding: 1.5rem; }
+.sps-wrap { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
 
 .sps-back { color: rgba(255, 178, 239, 0.7); text-decoration: none; font-size: 0.88rem; display: inline-block; margin-bottom: 1.25rem; transition: color 0.15s; }
 .sps-back:hover { color: #ffb2ef; }
+
+.sps-warn-icon {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 0.4rem;
+}
 
 .sps-layout { display: grid; grid-template-columns: 320px 1fr; gap: 1.25rem; }
 @media (max-width: 900px) { .sps-layout { grid-template-columns: 1fr; } }
@@ -271,6 +322,14 @@ function reject() {
 }
 
 .sps-card__title { font-size: 0.9rem; font-weight: 600; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.85rem; }
+
+.sps-idol-link {
+    text-decoration: none;
+    display: block;
+}
+.sps-idol-link:hover .sps-idol__name {
+    color: #ffb2ef;
+}
 
 .sps-idol { display: flex; align-items: center; gap: 0.75rem; }
 .sps-idol__avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
@@ -384,4 +443,64 @@ function reject() {
     transition: background 0.15s;
 }
 .sps-cancel:hover { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.65); }
+
+/* ── Enhanced UI/UX Styles ── */
+.sps-flag-row {
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 0.5rem;
+    transition: all 0.2s ease;
+}
+.sps-flag-row--flagged {
+    border-color: rgba(255,100,100,0.15);
+    background: rgba(255,100,100,0.02);
+}
+.sps-indicator {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+.sps-indicator--ok {
+    color: #64d2a0;
+    background: rgba(100,210,160,0.1);
+}
+.sps-indicator--flagged {
+    color: #ff7b7b;
+    background: rgba(255,123,123,0.1);
+}
+.sps-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.35rem;
+}
+.sps-presets--block {
+    margin-bottom: 0.75rem;
+    margin-top: 0.5rem;
+}
+.sps-preset-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    color: rgba(255,255,255,0.5);
+    font-size: 0.72rem;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.sps-preset-btn:hover {
+    background: rgba(255, 178, 239, 0.1);
+    color: #ffb2ef;
+    border-color: rgba(255, 178, 239, 0.25);
+}
+.sps-card--sticky {
+    position: sticky;
+    bottom: 1rem;
+    z-index: 100;
+    background: rgba(30, 30, 42, 0.96) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 178, 239, 0.25) !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+}
 </style>

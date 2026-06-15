@@ -636,6 +636,12 @@
     "profile.content.hide_pack": "Hide pack",
     "profile.content.delete_pack": "Delete pack",
     "profile.content.sort.hidden": "hidden first",
+    "profile.content.change_rejected": "Changes rejected",
+    "profile.content.no_reason": "No reason specified",
+    "profile.content.dismiss_cr": "Dismiss rejection",
+    "profile.content.dismiss_success": "Rejected changes hidden",
+    "profile.services.dismiss_cr": "Dismiss rejection",
+    "profile.services.dismiss_success": "Rejected changes hidden",
 
     "profile.services.search_ph": "Service name",
     "profile.services.blocked_error": "You are blocked by this user and cannot place orders",

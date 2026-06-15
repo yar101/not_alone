@@ -393,6 +393,14 @@ async function handleToggleVisibility(pack) {
     showEditMenu.value = false;
 }
 
+async function dismissChangeRequest(pack) {
+    await axios.delete(route('content-packs.dismiss-change-request', pack.id));
+    updatePackInList(pack.id, { pending_change: null });
+    if (detailPack.value?.id === pack.id) {
+        detailPack.value = { ...detailPack.value, pending_change: null };
+    }
+}
+
 const showDeleteConfirm = ref(false);
 const packToDelete = ref(null);
 
@@ -521,6 +529,8 @@ const ownerSortOptions = computed(() => [
                                 <PackStatusBadge v-if="pack.hidden_at" status="hidden" />
                                 <PackStatusBadge v-if="pack.pending_change?.status === 'has_remarks'"
                                     status="has_remarks" />
+                                <PackStatusBadge v-else-if="pack.pending_change?.status === 'rejected'"
+                                    status="rejected" />
                                 <span v-else-if="pack.pending_change?.changed_fields?.length"
                                     class="pc-card__pending-badge">{{ __('profile.content.pending_badge') }}</span>
                             </div>
@@ -710,6 +720,7 @@ const ownerSortOptions = computed(() => [
                     <PackStatusBadge v-if="isOwner" :status="detailPack.status" />
                     <PackStatusBadge v-if="isOwner && detailPack.hidden_at" status="hidden" />
                     <PackStatusBadge v-if="isOwner && detailPack.pending_change?.status === 'has_remarks'" status="has_remarks" />
+                    <PackStatusBadge v-else-if="isOwner && detailPack.pending_change?.status === 'rejected'" status="rejected" />
                     <span
                         v-else-if="isOwner && detailPack.pending_change?.changed_fields?.length"
                         class="pc-card__pending-badge">{{ __('profile.content.pending_badge') }}</span>
@@ -786,6 +797,16 @@ const ownerSortOptions = computed(() => [
                         <span>
                             <strong>{{ __('profile.content.needs_fix') }}</strong>
                             <span v-if="detailPack.status === 'has_remarks'" class="pcd-remarks-banner__note">{{ __('profile.content.hidden_msg') }}</span>
+                        </span>
+                    </div>
+
+                    <!-- Change request rejected banner -->
+                    <div v-if="isOwner && detailPack.pending_change?.status === 'rejected'"
+                        class="pcd-remarks-banner">
+                        <el-icon class="pcd-remarks-banner__icon"><WarnTriangleFilled /></el-icon>
+                        <span>
+                            <strong>{{ __('profile.content.change_rejected') }}:</strong>
+                            <span class="pcd-remarks-banner__note">{{ detailPack.pending_change.admin_comment || __('profile.content.no_reason') }}</span>
                         </span>
                     </div>
 
@@ -994,6 +1015,15 @@ const ownerSortOptions = computed(() => [
                                         </svg>
                                         {{ detailPack.hidden_at ? __('profile.content.show_pack') : __('profile.content.hide_pack') }}
                                     </button>
+                                    <button v-if="detailPack.pending_change?.status === 'rejected'"
+                                         class="pcd-edit-item pcd-edit-item--danger"
+                                         @click="dismissChangeRequest(detailPack); showEditMenu = false">
+                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                             <line x1="18" y1="6" x2="6" y2="18"></line>
+                                             <line x1="6" y1="6" x2="18" y2="18"></line>
+                                         </svg>
+                                         {{ __('profile.content.dismiss_cr') }}
+                                     </button>
                                     <button class="pcd-edit-item pcd-edit-item--danger" @click="handleDelete(detailPack); closeDetail()">
                                         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                             <polyline points="3 6 5 6 21 6" />

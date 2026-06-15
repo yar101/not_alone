@@ -63,6 +63,6 @@ class Service extends Model
 
     public function pendingChangeRequest(): HasOne
     {
-        return $this->hasOne(ServiceChangeRequest::class)->whereIn('status', ['pending', 'has_remarks']);
+        return $this->hasOne(ServiceChangeRequest::class)->whereIn('status', ['pending', 'has_remarks', 'rejected']);
     }
 }

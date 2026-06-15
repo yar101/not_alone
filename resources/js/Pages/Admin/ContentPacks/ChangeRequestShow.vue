@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
@@ -75,6 +75,60 @@ function reject() {
 function formatPrice(val) {
     return val != null ? val + ' ₽' : '—';
 }
+
+const PRESETS = {
+    title: [
+        'Содержит ссылки / контактную информацию',
+        'Нецензурная лексика или оскорбления',
+        'Опечатки или некорректный регистр',
+    ],
+    description: [
+        'Содержит ссылки / контактную информацию',
+        'Нецензурная лексика или оскорбления',
+        'Слишком короткое описание',
+        'Грамматические и стилистические ошибки',
+    ],
+    price: [
+        'Некорректная цена пака',
+        'Цена не соответствует правилам платформы',
+    ],
+    rejection: [
+        'Пак нарушает правила платформы',
+        'Спам / Дубликат существующего пака',
+    ],
+};
+
+// ── Lightbox ─────────────────────────────────────────────
+const lightboxIndex = ref(null);
+const lightboxPhotos = computed(() => {
+    const list = [];
+    if (props.pack?.cover_url) {
+        list.push({ id: 'cover', url: props.pack.cover_url });
+    }
+    if (props.pack?.photos) {
+        list.push(...props.pack.photos);
+    }
+    return list;
+});
+
+function openLightboxByUrl(url) {
+    const idx = lightboxPhotos.value.findIndex(p => p.url === url);
+    if (idx !== -1) {
+        lightboxIndex.value = idx;
+    }
+}
+function closeLightbox()   { lightboxIndex.value = null; }
+function prevPhoto() { lightboxIndex.value = (lightboxIndex.value - 1 + lightboxPhotos.value.length) % lightboxPhotos.value.length; }
+function nextPhoto() { lightboxIndex.value = (lightboxIndex.value + 1) % lightboxPhotos.value.length; }
+
+function handleLbKey(e) {
+    if (lightboxIndex.value === null) return;
+    if (e.key === 'ArrowLeft')  prevPhoto();
+    else if (e.key === 'ArrowRight') nextPhoto();
+    else if (e.key === 'Escape') closeLightbox();
+}
+onMounted(() => window.addEventListener('keydown', handleLbKey));
+onUnmounted(() => window.removeEventListener('keydown', handleLbKey));
 </script>
 
 <template>
@@ -86,18 +140,41 @@ function formatPrice(val) {
             <div class="crs-left">
                 <div class="crs-card">
                     <h2 class="crs-card__title">Айдол</h2>
-                    <div class="crs-idol">
-                        <img v-if="pack.user?.avatar_url" :src="pack.user.avatar_url" class="crs-idol__avatar" alt="" />
-                        <div v-else class="crs-idol__avatar crs-idol__avatar--empty">{{ pack.user?.name?.charAt(0) }}</div>
-                        <div class="crs-idol__name">{{ pack.user?.name }}</div>
-                    </div>
+                    <a :href="route('profile.show', pack.user.id)" target="_blank" class="crs-idol-link">
+                        <div class="crs-idol">
+                            <img v-if="pack.user?.avatar_url" :src="pack.user.avatar_url" class="crs-idol__avatar" alt="" />
+                            <div v-else class="crs-idol__avatar crs-idol__avatar--empty">{{ pack.user?.name?.charAt(0) }}</div>
+                            <div class="crs-idol__name">{{ pack.user?.name }}</div>
+                        </div>
+                    </a>
                 </div>
 
                 <div class="crs-card">
                     <h2 class="crs-card__title">Пак</h2>
-                    <img v-if="pack.cover_url" :src="pack.cover_url" class="crs-cover" alt="" />
+                    <img
+                        v-if="pack.cover_url"
+                        :src="pack.cover_url"
+                        class="crs-cover"
+                        style="cursor: pointer;"
+                        @click="openLightboxByUrl(pack.cover_url)"
+                        alt=""
+                    />
                     <div v-else class="crs-cover crs-cover--empty"></div>
                     <p class="crs-pack-title">{{ pack.title }}</p>
+                </div>
+
+                <div class="crs-card" v-if="pack.photos && pack.photos.length">
+                    <h2 class="crs-card__title">Фотографии в паке</h2>
+                    <div class="crs-photos">
+                        <img
+                            v-for="photo in pack.photos"
+                            :key="photo.id"
+                            :src="photo.url"
+                            class="crs-photo-thumb"
+                            @click="openLightboxByUrl(photo.url)"
+                            alt=""
+                        />
+                    </div>
                 </div>
 
                 <!-- Reject (fully) -->
@@ -112,6 +189,11 @@ function formatPrice(val) {
                     <div v-else>
                         <label class="crs-label">Комментарий (необязательно)</label>
                         <textarea v-model="rejectComment" class="crs-textarea" rows="3" placeholder="Причина отклонения..." />
+                        <div class="crs-presets crs-presets--block">
+                            <button v-for="preset in PRESETS.rejection" :key="preset" type="button" class="crs-preset-btn" @click="rejectComment = preset">
+                                + {{ preset }}
+                            </button>
+                        </div>
                         <div class="crs-reject-btns">
                             <button class="crs-btn crs-btn--reject" :disabled="submitting" @click="reject">Подтвердить</button>
                             <button class="crs-btn crs-btn--cancel" :disabled="submitting" @click="showReject = false">Отмена</button>
@@ -129,14 +211,21 @@ function formatPrice(val) {
                 <!-- Fields -->
                 <div v-for="(vals, field) in fields" :key="field" class="crs-field-card" :class="{ 'crs-field-card--flagged': flagged[field] }">
                     <div class="crs-field-header">
-                        <span class="crs-field-name">{{ FIELD_LABELS[field] ?? field }}</span>
+                        <span class="crs-field-name" :class="{ 'crs-field-name--flagged': flagged[field] }">
+                            {{ FIELD_LABELS[field] ?? field }}
+                            <svg v-if="flagged[field]" class="crs-warn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff7b7b" stroke-width="2.5">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                        </span>
                         <label class="crs-flag-toggle">
                             <input type="checkbox" v-model="flagged[field]" @change="isApproved = false" />
-                            <span>{{ flagged[field] ? 'Есть замечание' : 'Замечание' }}</span>
+                            <span>Замечание</span>
                         </label>
                     </div>
 
-                    <!-- Diff -->
+                    <!-- Diff (current vs requested side-by-side) -->
                     <div class="crs-diff">
                         <div class="crs-diff-col crs-diff-col--current">
                             <p class="crs-diff-label">Текущее</p>
@@ -145,7 +234,9 @@ function formatPrice(val) {
                         <div class="crs-diff-arrow">→</div>
                         <div class="crs-diff-col crs-diff-col--pending">
                             <p class="crs-diff-label">Запрошено</p>
-                            <p class="crs-diff-value crs-diff-value--new">{{ field === 'price' ? formatPrice(vals.pending) : (vals.pending || '—') }}</p>
+                            <p class="crs-diff-value crs-diff-value--new">
+                                {{ field === 'price' ? formatPrice(vals.pending) : (vals.pending || '—') }}
+                            </p>
                         </div>
                     </div>
 
@@ -158,11 +249,16 @@ function formatPrice(val) {
                             type="text"
                             :placeholder="'Укажите что не так с ' + (FIELD_LABELS[field] ?? field).toLowerCase() + '...'"
                         />
+                        <div class="crs-presets">
+                            <button v-for="preset in PRESETS[field]" :key="preset" type="button" class="crs-preset-btn" @click="comments[field] = preset">
+                                + {{ preset }}
+                            </button>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Decision buttons -->
-                <div class="crs-decision">
+                <div class="crs-decision crs-decision--sticky">
                     <button
                         class="crs-btn crs-btn--approve"
                         :disabled="submitting || hasAnyFlag"
@@ -184,10 +280,25 @@ function formatPrice(val) {
             </div>
         </div>
     </div>
+
+    <!-- Lightbox -->
+    <Teleport to="body">
+        <Transition name="lb">
+            <div v-if="lightboxIndex !== null" class="lb-overlay" @click.self="closeLightbox">
+                <button class="lb-close" @click="closeLightbox">✕</button>
+                <button class="lb-arrow lb-arrow--prev" @click="prevPhoto">&#8249;</button>
+                <div class="lb-img-wrap">
+                    <img :src="lightboxPhotos[lightboxIndex]?.url" alt="" class="lb-img" />
+                </div>
+                <button class="lb-arrow lb-arrow--next" @click="nextPhoto">&#8250;</button>
+                <div class="lb-counter">{{ lightboxIndex + 1 }} / {{ lightboxPhotos.length }}</div>
+            </div>
+        </Transition>
+    </Teleport>
 </template>
 
 <style scoped>
-.crs-wrap { padding: 1.5rem; }
+.crs-wrap { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
 
 .crs-back {
     display: inline-block;
@@ -197,6 +308,12 @@ function formatPrice(val) {
     font-size: 0.88rem;
 }
 .crs-back:hover { color: rgba(200,200,255,0.95); }
+
+.crs-warn-icon {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 0.4rem;
+}
 
 .crs-layout {
     display: grid;
@@ -396,4 +513,126 @@ function formatPrice(val) {
     color: rgba(255,255,255,0.5);
 }
 .crs-btn--cancel:hover:not(:disabled) { background: rgba(255,255,255,0.09); }
+
+/* ── Enhanced UI/UX Styles ── */
+.crs-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.4rem;
+}
+.crs-presets--block {
+    margin-bottom: 0.75rem;
+}
+.crs-preset-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    color: rgba(255,255,255,0.5);
+    font-size: 0.72rem;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.crs-preset-btn:hover {
+    background: rgba(255, 178, 239, 0.1);
+    color: #ffb2ef;
+    border-color: rgba(255, 178, 239, 0.25);
+}
+.crs-indicator {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+.crs-indicator--ok {
+    color: #64d2a0;
+    background: rgba(100,210,160,0.1);
+}
+.crs-indicator--flagged {
+    color: #ffc850;
+    background: rgba(255,200,80,0.1);
+}
+.crs-field-card {
+    transition: all 0.25s ease;
+}
+.crs-field-card--flagged {
+    border-color: rgba(255,200,80,0.2) !important;
+    background: rgba(255,200,80,0.01) !important;
+}
+.crs-decision--sticky {
+    position: sticky;
+    bottom: 1rem;
+    z-index: 100;
+    background: rgba(30, 30, 42, 0.96) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 178, 239, 0.25) !important;
+    border-radius: 10px;
+    padding: 1rem;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+}
+.crs-idol-link {
+    text-decoration: none;
+    display: block;
+}
+.crs-idol-link:hover .crs-idol__name {
+    color: #ffb2ef;
+}
+
+.crs-photos {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+.crs-photo-thumb {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.15s;
+    border: 1px solid rgba(255,255,255,0.08);
+}
+.crs-photo-thumb:hover {
+    opacity: 0.85;
+    transform: scale(1.02);
+}
+
+/* ── Lightbox ── */
+.lb-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0,0,0,0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.lb-img-wrap { max-width: 90vw; max-height: 90vh; display: flex; align-items: center; justify-content: center; }
+.lb-img { max-width: 90vw; max-height: 90vh; object-fit: contain; display: block; border-radius: 4px; box-shadow: 0 8px 60px rgba(0,0,0,0.8); }
+.lb-close {
+    position: absolute; top: 18px; right: 22px;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.7); width: 36px; height: 36px; border-radius: 50%;
+    font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 1;
+}
+.lb-close:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.lb-arrow {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.7); width: 46px; height: 46px; border-radius: 50%;
+    font-size: 2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    padding-bottom: 2px; z-index: 1;
+}
+.lb-arrow:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.lb-arrow--prev { left: 18px; }
+.lb-arrow--next { right: 18px; }
+.lb-counter {
+    position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(6px);
+    color: rgba(255,255,255,0.7); font-size: 0.85rem; padding: 4px 14px; border-radius: 20px;
+}
+.lb-enter-active, .lb-leave-active { transition: opacity 0.18s; }
+.lb-enter-from, .lb-leave-to { opacity: 0; }
 </style>
