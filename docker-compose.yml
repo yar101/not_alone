@@ -1,0 +1,176 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: no_alone_db
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: noalone
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:alpine
+    container_name: no_alone_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit
+    container_name: no_alone_mailpit
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: no_alone_app:dev
+    container_name: no_alone_app
+    ports:
+      - "8443:8443"
+    environment:
+      CONTAINER_ROLE: web
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: https://${DEV_HOST}:8443
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: noalone
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      BROADCAST_CONNECTION: reverb
+      REVERB_HOST: reverb
+      REVERB_PORT: 8080
+      REVERB_SCHEME: http
+      VITE_REVERB_HOST: ${DEV_HOST}
+      VITE_REVERB_PORT: 8443
+      VITE_REVERB_SCHEME: https
+    volumes:
+      - .:/var/www/html
+      - ./docker/nginx-dev.conf:/etc/nginx/nginx.conf:ro
+      - ./${DEV_HOST}.pem:/etc/nginx/certs/dev.pem:ro
+      - ./${DEV_HOST}-key.pem:/etc/nginx/certs/dev-key.pem:ro
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+
+  worker:
+    image: no_alone_app:dev
+    container_name: no_alone_worker
+    environment:
+      CONTAINER_ROLE: worker
+      APP_ENV: local
+      APP_DEBUG: "true"
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: noalone
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      BROADCAST_CONNECTION: reverb
+      REVERB_HOST: reverb
+      REVERB_PORT: 8080
+      REVERB_SCHEME: http
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - db
+      - redis
+      - app
+    restart: unless-stopped
+
+  scheduler:
+    image: no_alone_app:dev
+    container_name: no_alone_scheduler
+    environment:
+      CONTAINER_ROLE: scheduler
+      APP_ENV: local
+      APP_DEBUG: "true"
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: noalone
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      BROADCAST_CONNECTION: reverb
+      REVERB_HOST: reverb
+      REVERB_PORT: 8080
+      REVERB_SCHEME: http
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - db
+      - redis
+      - app
+    restart: unless-stopped
+
+  reverb:
+    image: no_alone_app:dev
+    container_name: no_alone_reverb
+    ports:
+      - "8080:8080"
+    environment:
+      CONTAINER_ROLE: reverb
+      APP_ENV: local
+      APP_DEBUG: "true"
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: noalone
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      BROADCAST_CONNECTION: reverb
+      REVERB_HOST: 0.0.0.0
+      REVERB_PORT: 8080
+      REVERB_SCHEME: http
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      - db
+      - redis
+      - app
+    restart: unless-stopped
+
+  vite:
+    image: node:22-alpine
+    container_name: no_alone_vite
+    working_dir: /var/www/html
+    ports:
+      - "5173:5173"
+    environment:
+      DEV_HOST: ${DEV_HOST}
+      VITE_REVERB_HOST: ${DEV_HOST}
+      VITE_REVERB_PORT: 8443
+      VITE_REVERB_SCHEME: https
+    volumes:
+      - .:/var/www/html
+    command: npm run dev
+    restart: unless-stopped
+
+volumes:
+  db_data:
