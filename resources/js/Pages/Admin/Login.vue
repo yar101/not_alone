@@ -1,11 +1,14 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 const form = useForm({
     email: '',
     password: '',
     remember: false,
 });
+
+const showPassword = ref(false);
 
 function submit() {
     form.post(route('admin.login.post'));
@@ -37,12 +40,23 @@ function submit() {
 
                 <div class="field">
                     <label class="field__label">Пароль</label>
-                    <input
-                        v-model="form.password"
-                        type="password"
-                        class="field__input"
-                        autocomplete="current-password"
-                    />
+                    <div class="password-input-wrapper">
+                        <input
+                            v-model="form.password"
+                            :type="showPassword ? 'text' : 'password'"
+                            class="field__input field__input--password"
+                            autocomplete="current-password"
+                        />
+                        <button
+                            type="button"
+                            class="password-toggle-btn"
+                            @click="showPassword = !showPassword"
+                            tabindex="-1"
+                        >
+                            <svg v-if="showPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                            <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-submit" :disabled="form.processing">
@@ -137,4 +151,36 @@ function submit() {
 }
 .btn-submit:hover { opacity: 0.9; transform: translateY(-1px); }
 .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    width: 100%;
+}
+
+.field__input--password {
+    width: 100%;
+    padding-right: 2.75rem;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    padding: 0.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s;
+    outline: none;
+}
+
+.password-toggle-btn:hover {
+    color: rgba(255, 255, 255, 0.8);
+}
 </style>
