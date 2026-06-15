@@ -195,45 +195,41 @@ function closeHistoryModal() {
                 <!-- Review history -->
                 <div v-if="service.history?.length" class="sps-card">
                     <h2 class="sps-card__title">История проверок</h2>
-                    <div class="sps-history-table-wrapper">
-                        <table class="sps-history-table">
-                            <thead>
-                                <tr>
-                                    <th>Дата</th>
-                                    <th>Тип</th>
-                                    <th>Решение</th>
-                                    <th>Модератор</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="item in service.history" :key="item.id">
-                                    <td class="sps-history-date">{{ formatDate(item.created_at) }}</td>
-                                    <td>
-                                        <span class="sps-history-type">
-                                            {{ item.type === 'initial' ? 'Модерация' : 'Изменения' }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span :class="['sps-dec-badge', 'sps-dec-badge--' + item.decision]">
-                                            {{ getDecisionLabel(item.decision) }}
-                                        </span>
-                                    </td>
-                                    <td class="sps-history-admin">{{ item.admin?.name || '—' }}</td>
-                                    <td class="sps-history-action">
-                                        <button
-                                            v-if="hasDetails(item)"
-                                            type="button"
-                                            class="sps-history-details-btn"
-                                            @click="showDetails(item)"
-                                        >
-                                            Детали
-                                        </button>
-                                        <span v-else class="sps-history-no-details">—</span>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div v-for="item in service.history" :key="item.id" class="sps-review-item">
+                        <div class="sps-review-item__header">
+                            <span :class="['sps-dec-badge', 'sps-dec-badge--' + item.decision]">
+                                {{ item.decision === 'approved' ? '✓ Одобрено' : item.decision === 'rejected' ? '✗ Отклонено' : '⚑ Замечания' }}
+                            </span>
+                            <span class="sps-review-item__type">
+                                {{ item.type === 'initial' ? '(Модерация)' : '(Изменения)' }}
+                            </span>
+                            <span class="sps-review-item__date">
+                                {{ new Date(item.created_at).toLocaleDateString('ru-RU') }}
+                            </span>
+                            <span v-if="item.admin" class="sps-review-item__admin">
+                                {{ item.admin.name }}
+                            </span>
+                        </div>
+
+                        <!-- Flagged fields -->
+                        <div v-if="item.flagged_fields?.length" class="sps-review-item__detail">
+                            <span class="sps-review-item__detail-label">Помечено:</span>
+                            {{ item.flagged_fields.map(f => FIELD_LABELS[f] || f).join(', ') }}
+                        </div>
+
+                        <!-- Field comments -->
+                        <div v-if="item.field_comments && Object.keys(item.field_comments).length" class="sps-review-item__comments">
+                            <div v-for="(comment, field) in item.field_comments" :key="field" class="sps-review-item__comment">
+                                <span class="sps-review-item__comment-field">{{ FIELD_LABELS[field] || field }}:</span>
+                                {{ comment }}
+                            </div>
+                        </div>
+
+                        <!-- Rejection comment -->
+                        <div v-if="item.admin_comment" class="sps-review-item__comment sps-review-item__comment--rejection">
+                            <span class="sps-review-item__comment-field">Причина:</span>
+                            {{ item.admin_comment }}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -339,62 +335,6 @@ function closeHistoryModal() {
         </div>
     </div>
 
-    <!-- History Details Modal -->
-    <Teleport to="body">
-        <Transition name="modal-fade">
-            <div v-if="historyModalItem !== null" class="hdm-overlay" @click.self="closeHistoryModal">
-                <div class="hdm-container">
-                    <div class="hdm-header">
-                        <h3 class="hdm-title">Детали проверки</h3>
-                        <button class="hdm-close" @click="closeHistoryModal">✕</button>
-                    </div>
-                    <div class="hdm-body">
-                        <div class="hdm-meta-grid">
-                            <div class="hdm-meta-item">
-                                <span class="hdm-meta-label">Решение:</span>
-                                <span :class="['hdm-badge', 'hdm-badge--' + historyModalItem.decision]">
-                                    {{ getDecisionLabel(historyModalItem.decision) }}
-                                </span>
-                            </div>
-                            <div class="hdm-meta-item">
-                                <span class="hdm-meta-label">Тип:</span>
-                                <span class="hdm-meta-val">{{ historyModalItem.type === 'initial' ? 'Первоначальная модерация' : 'Запрос изменений' }}</span>
-                            </div>
-                            <div class="hdm-meta-item">
-                                <span class="hdm-meta-label">Дата:</span>
-                                <span class="hdm-meta-val">{{ formatDate(historyModalItem.created_at) }}</span>
-                            </div>
-                            <div v-if="historyModalItem.admin" class="hdm-meta-item">
-                                <span class="hdm-meta-label">Модератор:</span>
-                                <span class="hdm-meta-val">{{ historyModalItem.admin.name }}</span>
-                            </div>
-                        </div>
-
-                        <!-- Flagged fields and remarks comments -->
-                        <div v-if="historyModalItem.flagged_fields && historyModalItem.flagged_fields.length" class="hdm-section">
-                            <h4 class="hdm-section-title">Замечания к полям:</h4>
-                            <div class="hdm-remarks-list">
-                                <div v-for="field in historyModalItem.flagged_fields" :key="field" class="hdm-remark-item">
-                                    <div class="hdm-remark-field">{{ FIELD_LABELS[field] || field }}:</div>
-                                    <div class="hdm-remark-comment">
-                                        {{ historyModalItem.field_comments?.[field] || 'Без комментария' }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Rejection reason / Admin comment -->
-                        <div v-if="historyModalItem.admin_comment || historyModalItem.rejection_reason" class="hdm-section">
-                            <h4 class="hdm-section-title">Причина отклонения:</h4>
-                            <div class="hdm-reason-box">
-                                {{ historyModalItem.admin_comment || historyModalItem.rejection_reason }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </Transition>
-    </Teleport>
 </template>
 
 <style scoped>
@@ -603,67 +543,6 @@ function closeHistoryModal() {
     box-shadow: 0 10px 40px rgba(0,0,0,0.6);
 }
 
-/* ── History Table Styles ── */
-.sps-history-table-wrapper {
-    overflow-x: auto;
-    margin-top: 0.5rem;
-}
-.sps-history-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.82rem;
-    text-align: left;
-}
-.sps-history-table th {
-    color: rgba(255,255,255,0.3);
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.68rem;
-    letter-spacing: 0.05em;
-    padding: 0.5rem 0.4rem;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-.sps-history-table td {
-    padding: 0.65rem 0.4rem;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    vertical-align: middle;
-    color: rgba(255,255,255,0.7);
-}
-.sps-history-table tr:last-child td {
-    border-bottom: none;
-}
-.sps-history-date {
-    font-weight: 500;
-}
-.sps-history-type {
-    color: rgba(255,255,255,0.45);
-}
-.sps-history-admin {
-    color: rgba(255,255,255,0.5);
-}
-.sps-history-action {
-    text-align: right;
-}
-.sps-history-no-details {
-    color: rgba(255,255,255,0.15);
-    padding-right: 0.5rem;
-}
-.sps-history-details-btn {
-    background: rgba(255, 178, 239, 0.08);
-    border: 1px solid rgba(255, 178, 239, 0.2);
-    color: #ffb2ef;
-    border-radius: 4px;
-    padding: 3px 8px;
-    font-size: 0.75rem;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 0.15s;
-}
-.sps-history-details-btn:hover {
-    background: rgba(255, 178, 239, 0.16);
-    border-color: rgba(255, 178, 239, 0.4);
-}
-
 /* ── Decision Badges ── */
 .sps-dec-badge {
     display: inline-block;
@@ -673,176 +552,28 @@ function closeHistoryModal() {
     font-weight: 600;
 }
 .sps-dec-badge--approved {
-    background: rgba(100,210,160,0.1);
+    background: rgba(100,210,160,0.12);
     color: #64d2a0;
 }
 .sps-dec-badge--rejected {
-    background: rgba(239,68,68,0.1);
+    background: rgba(239,68,68,0.12);
     color: #ef4444;
 }
 .sps-dec-badge--has_remarks {
-    background: rgba(255,123,123,0.1);
+    background: rgba(255,123,123,0.12);
     color: #ff7b7b;
 }
 
-/* ── History Details Modal Styles ── */
-.hdm-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    background: rgba(0,0,0,0.85);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-}
-.hdm-container {
-    background: rgba(30, 30, 42, 0.98);
-    border: 1px solid rgba(255, 178, 239, 0.2);
-    border-radius: 12px;
-    width: 100%;
-    max-width: 500px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.7);
-    padding: 1.5rem;
-    animation: modalScale 0.2s ease-out;
-}
-@keyframes modalScale {
-    from { transform: scale(0.95); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-}
-.hdm-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.25rem;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    padding-bottom: 0.75rem;
-}
-.hdm-title {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: rgba(255,255,255,0.9);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin: 0;
-}
-.hdm-close {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.5);
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    font-size: 0.8rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.15s;
-}
-.hdm-close:hover {
-    background: rgba(255,255,255,0.12);
-    color: #fff;
-}
-.hdm-body {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-}
-.hdm-meta-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.04);
-    border-radius: 8px;
-    padding: 0.75rem;
-}
-.hdm-meta-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-.hdm-meta-label {
-    font-size: 0.68rem;
+.sps-review-item__detail-label {
     color: rgba(255,255,255,0.3);
-    text-transform: uppercase;
     font-weight: 600;
+    margin-right: 0.25rem;
 }
-.hdm-meta-val {
-    font-size: 0.85rem;
-    color: rgba(255,255,255,0.85);
-}
-.hdm-badge {
-    align-self: flex-start;
-    padding: 1px 6px;
-    border-radius: 4px;
-    font-size: 0.72rem;
-    font-weight: 600;
-}
-.hdm-badge--approved {
-    background: rgba(100,210,160,0.15);
-    color: #64d2a0;
-}
-.hdm-badge--rejected {
-    background: rgba(239,68,68,0.15);
-    color: #ef4444;
-}
-.hdm-badge--has_remarks {
-    background: rgba(255,123,123,0.15);
-    color: #ff7b7b;
-}
-
-.hdm-section {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-.hdm-section-title {
-    font-size: 0.75rem;
-    color: rgba(255,255,255,0.45);
-    text-transform: uppercase;
-    font-weight: 700;
-    margin: 0;
-}
-.hdm-remarks-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-.hdm-remark-item {
-    background: rgba(255,100,100,0.03);
-    border: 1px solid rgba(255,100,100,0.1);
-    border-radius: 6px;
-    padding: 0.6rem 0.75rem;
-}
-.hdm-remark-field {
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: #ff7b7b;
-    margin-bottom: 0.25rem;
-}
-.hdm-remark-comment {
-    font-size: 0.82rem;
-    color: rgba(255,255,255,0.8);
-    line-height: 1.4;
-}
-.hdm-reason-box {
-    background: rgba(239,68,68,0.03);
+.sps-review-item__comment--rejection {
+    background: rgba(239,68,68,0.04);
     border: 1px solid rgba(239,68,68,0.15);
     border-radius: 6px;
-    padding: 0.75rem;
-    font-size: 0.85rem;
-    color: rgba(255,255,255,0.8);
-    line-height: 1.4;
-}
-
-/* Modal transition */
-.modal-fade-enter-active, .modal-fade-leave-active {
-    transition: opacity 0.2s;
-}
-.modal-fade-enter-from, .modal-fade-leave-to {
-    opacity: 0;
+    padding: 0.5rem 0.75rem;
+    margin-top: 0.5rem;
 }
 </style>
