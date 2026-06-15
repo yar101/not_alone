@@ -5,6 +5,10 @@ import { ref } from 'vue';
 const passwordInput = ref(null);
 const currentPasswordInput = ref(null);
 
+const showCurrentPassword = ref(false);
+const showNewPassword = ref(false);
+const showConfirmPassword = ref(false);
+
 const form = useForm({
     current_password: '',
     password: '',
@@ -14,7 +18,12 @@ const form = useForm({
 const updatePassword = () => {
     form.put(route('password.update'), {
         preserveScroll: true,
-        onSuccess: () => form.reset(),
+        onSuccess: () => {
+            form.reset();
+            showCurrentPassword.value = false;
+            showNewPassword.value = false;
+            showConfirmPassword.value = false;
+        },
         onError: () => {
             if (form.errors.password) {
                 form.reset('password', 'password_confirmation');
@@ -40,42 +49,75 @@ const updatePassword = () => {
         <form @submit.prevent="updatePassword" class="card-form">
             <div class="field">
                 <label for="current_password" class="field-label">Текущий пароль</label>
-                <input
-                    id="current_password"
-                    ref="currentPasswordInput"
-                    v-model="form.current_password"
-                    type="password"
-                    class="field-input"
-                    :class="{ 'field-input--error': form.errors.current_password }"
-                    autocomplete="current-password"
-                />
+                <div class="password-input-wrapper">
+                    <input
+                        id="current_password"
+                        ref="currentPasswordInput"
+                        v-model="form.current_password"
+                        :type="showCurrentPassword ? 'text' : 'password'"
+                        class="field-input field-input--password"
+                        :class="{ 'field-input--error': form.errors.current_password }"
+                        autocomplete="current-password"
+                    />
+                    <button
+                        type="button"
+                        class="password-toggle-btn"
+                        @click="showCurrentPassword = !showCurrentPassword"
+                        tabindex="-1"
+                    >
+                        <svg v-if="showCurrentPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                        <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
                 <p v-if="form.errors.current_password" class="field-error">{{ form.errors.current_password }}</p>
             </div>
 
             <div class="field">
                 <label for="password" class="field-label">Новый пароль</label>
-                <input
-                    id="password"
-                    ref="passwordInput"
-                    v-model="form.password"
-                    type="password"
-                    class="field-input"
-                    :class="{ 'field-input--error': form.errors.password }"
-                    autocomplete="new-password"
-                />
+                <div class="password-input-wrapper">
+                    <input
+                        id="password"
+                        ref="passwordInput"
+                        v-model="form.password"
+                        :type="showNewPassword ? 'text' : 'password'"
+                        class="field-input field-input--password"
+                        :class="{ 'field-input--error': form.errors.password }"
+                        autocomplete="new-password"
+                    />
+                    <button
+                        type="button"
+                        class="password-toggle-btn"
+                        @click="showNewPassword = !showNewPassword"
+                        tabindex="-1"
+                    >
+                        <svg v-if="showNewPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                        <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
                 <p v-if="form.errors.password" class="field-error">{{ form.errors.password }}</p>
             </div>
 
             <div class="field">
                 <label for="password_confirmation" class="field-label">Подтвердите пароль</label>
-                <input
-                    id="password_confirmation"
-                    v-model="form.password_confirmation"
-                    type="password"
-                    class="field-input"
-                    :class="{ 'field-input--error': form.errors.password_confirmation }"
-                    autocomplete="new-password"
-                />
+                <div class="password-input-wrapper">
+                    <input
+                        id="password_confirmation"
+                        v-model="form.password_confirmation"
+                        :type="showConfirmPassword ? 'text' : 'password'"
+                        class="field-input field-input--password"
+                        :class="{ 'field-input--error': form.errors.password_confirmation }"
+                        autocomplete="new-password"
+                    />
+                    <button
+                        type="button"
+                        class="password-toggle-btn"
+                        @click="showConfirmPassword = !showConfirmPassword"
+                        tabindex="-1"
+                    >
+                        <svg v-if="showConfirmPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                        <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
                 <p v-if="form.errors.password_confirmation" class="field-error">{{ form.errors.password_confirmation }}</p>
             </div>
 
@@ -141,4 +183,36 @@ const updatePassword = () => {
 .save-success { font-size: 0.85rem; color: rgba(100,200,100,0.8); margin: 0; }
 .fade-active { transition: opacity 0.3s ease; }
 .fade-from { opacity: 0; }
+
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    width: 100%;
+}
+
+.field-input--password {
+    width: 100%;
+    padding-right: 2.75rem;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    padding: 0.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s;
+    outline: none;
+}
+
+.password-toggle-btn:hover {
+    color: rgba(255, 255, 255, 0.8);
+}
 </style>
