@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useForm, router, usePage } from '@inertiajs/vue3';
+import { useForm, router, usePage, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import axios from 'axios';
 import { Camera, CircleCheck, Clock, InfoFilled, Trophy, Remove, Upload, Message, StarFilled, CircleClose } from '@element-plus/icons-vue';
@@ -13,7 +13,21 @@ const props = defineProps({
     cooldown_until: String,
     rejection_reason: String,
     quiz_passed: Boolean,
+    article_html: String,
 });
+
+const defaultArticleHtml = `
+<h2>Стань Айдолом</h2>
+<p>Айдол — это вдохновение для других. Вы будете проводить трансляции, общаться, помогать людям справляться со скукой и одиночеством. Перед тем как подать заявку, пожалуйста, внимательно ознакомьтесь с нашими правилами и условиями.</p>
+
+<h3>Основные требования:</h3>
+<ul>
+    <li><strong>Реальная фотография лица.</strong> Ваше лицо должно быть хорошо и четко видно на фотографии (без масок, сильных фильтров или темных очков). Мы заботимся о безопасности и честности на нашей платформе.</li>
+    <li><strong>Прохождение тестирования.</strong> Вам нужно будет пройти тест из 10 вопросов на знание правил сообщества и базовую эмпатию. Допускается не более 2 ошибок. Дается 2 попытки, после чего включается ограничение на 24 часа.</li>
+    <li><strong>Ответственность и уважение.</strong> Айдол обязан соблюдать правила платформы, уважать границы участников, быть вежливым и дружелюбным. Любое проявление агрессии или неуважения приведет к лишению статуса.</li>
+    <li><strong>Проверка модератором.</strong> После прохождения теста и загрузки фото ваша заявка будет отправлена на проверку администрации. Обычно это занимает от 1 до 3 рабочих дней.</li>
+</ul>
+`;
 
 // Wizard step: 1=memo, 2=quiz, 3=result, 4=photo, 5=done
 const step = ref(1);
@@ -194,61 +208,18 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 
 <template>
     <div class="apply-wrap">
-        <button class="back-btn" @click="history.back()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="15 18 9 12 15 6" />
-            </svg>
-            Назад
-        </button>
+        <Link :href="route('profile')" class="back-btn">
+            &lt;- В профиль
+        </Link>
         <div class="apply-card">
 
             <!-- ─── Step 1: Memo ─────────────────────────────── -->
-            <div v-if="step === 1" class="step-content">
+            <div v-if="step === 1" class="step-content step-content--article">
                 <div class="step-eyebrow">ЗАЯВКА НА СТАТУС</div>
-                <h1 class="step-title">Стань Айдолом</h1>
-                <p class="step-sub">Айдол — это вдохновение для других. Прочитайте требования перед началом.</p>
+                
+                <div class="article-body" v-html="article_html || defaultArticleHtml"></div>
 
-                <div class="memo-block">
-                    <div class="memo-item">
-                        <el-icon class="memo-icon">
-                            <Camera />
-                        </el-icon>
-                        <div>
-                            <strong>Реальное фото</strong>
-                            <p>Ваше лицо должно быть хорошо видно на фотографии</p>
-                        </div>
-                    </div>
-                    <div class="memo-item">
-                        <el-icon class="memo-icon">
-                            <CircleCheck />
-                        </el-icon>
-                        <div>
-                            <strong>Тест из 10 вопросов</strong>
-                            <p>Допускается не более 2 ошибок. Есть 2 попытки, потом кулдаун 24ч</p>
-                        </div>
-                    </div>
-                    <div class="memo-item">
-                        <el-icon class="memo-icon">
-                            <Clock />
-                        </el-icon>
-                        <div>
-                            <strong>Проверка администратором</strong>
-                            <p>После подачи заявки наша команда проверит её в течение нескольких дней</p>
-                        </div>
-                    </div>
-                    <div class="memo-item">
-                        <el-icon class="memo-icon">
-                            <InfoFilled />
-                        </el-icon>
-                        <div>
-                            <strong>Ответственность</strong>
-                            <p>Айдол должен соблюдать правила платформы и уважать участников</p>
-                        </div>
-                    </div>
-                </div>
-
-                <button @click="startQuiz" class="btn-primary" :disabled="quizStarting">
+                <button @click="startQuiz" class="btn-primary btn-start-quiz" :disabled="quizStarting">
                     {{ quizStarting ? 'Запуск...' : 'Начать тест' }}
                 </button>
             </div>
@@ -455,6 +426,7 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     align-self: flex-start;
     margin-left: calc((100% - 560px) / 2);
     transition: color 0.15s;
+    text-decoration: none;
 }
 
 .back-btn:hover {
@@ -915,5 +887,65 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     text-align: left;
     max-width: 400px;
     line-height: 1.55;
+}
+
+/* ── Article Style ── */
+.step-content--article {
+    align-items: stretch;
+    text-align: left;
+}
+
+.article-body {
+    width: 100%;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.65;
+    font-size: 0.92rem;
+}
+
+.article-body :deep(h2) {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    background: linear-gradient(120deg, #fff, #ffb2ef);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-align: center;
+}
+
+.article-body :deep(h3) {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #ffb2ef;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.article-body :deep(p) {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.article-body :deep(ul), .article-body :deep(ol) {
+    margin-top: 0;
+    margin-bottom: 1.25rem;
+    padding-left: 1.25rem;
+}
+
+.article-body :deep(li) {
+    margin-bottom: 0.5rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.article-body :deep(li strong) {
+    color: rgba(255, 255, 255, 0.95);
+    font-weight: 600;
+}
+
+.btn-start-quiz {
+    margin-top: 1rem;
+    align-self: center;
 }
 </style>

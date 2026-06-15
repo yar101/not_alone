@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\IdolQuizQuestion;
+use App\Models\PlatformSetting;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -57,5 +58,24 @@ class QuizQuestionController extends Controller
         $question->delete();
 
         return back()->with('success', 'Вопрос удалён.');
+    }
+
+    public function showArticle()
+    {
+        $articleHtml = PlatformSetting::get('idol_apply_article_html', '');
+        return Inertia::render('Admin/Quiz/Article', [
+            'article_html' => $articleHtml,
+        ]);
+    }
+
+    public function updateArticle(Request $request)
+    {
+        $validated = $request->validate([
+            'html' => 'nullable|string',
+        ]);
+
+        PlatformSetting::set('idol_apply_article_html', $validated['html'] ?? '');
+
+        return back()->with('success', 'Статья успешно сохранена.');
     }
 }
