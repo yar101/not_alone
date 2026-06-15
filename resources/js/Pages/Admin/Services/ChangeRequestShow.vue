@@ -112,6 +112,39 @@ function reject() {
         onFinish: () => { submitting.value = false; },
     });
 }
+const PRESETS = {
+    name: [
+        'Содержит ссылки / контактную информацию',
+        'Нецензурная лексика или оскорбления',
+        'Опечатки или некорректный регистр',
+    ],
+    name_ru: [
+        'Содержит ссылки / контактную информацию',
+        'Нецензурная лексика или оскорбления',
+        'Опечатки или некорректный регистр',
+    ],
+    name_en: [
+        'Contains links or contact info',
+        'Inappropriate language',
+        'Typos or incorrect casing',
+    ],
+    price: [
+        'Некорректная стоимость услуги',
+        'Цена не соответствует правилам платформы',
+    ],
+    category_id: [
+        'Выбрана неподходящая категория',
+    ],
+    time_unit_id: [
+        'Некорректная единица времени',
+    ],
+    rejection: [
+        'Изменения нарушают правила платформы',
+        'Спам / Дубликат существующей услуги',
+    ],
+};
+
+
 </script>
 
 <template>
@@ -125,19 +158,21 @@ function reject() {
                 <!-- Idol + service info -->
                 <div class="scr-card">
                     <h2 class="scr-card__title">Айдол</h2>
-                    <div class="scr-idol">
-                        <img v-if="service.user.avatar_url" :src="service.user.avatar_url" class="scr-idol__avatar" alt="" />
-                        <div v-else class="scr-idol__avatar scr-idol__avatar--empty">{{ service.user.name?.charAt(0) }}</div>
-                        <div>
-                            <div class="scr-idol__name">{{ service.user.name }}</div>
-                            <div class="scr-idol__meta">
-                                Услуга #{{ service.id }} ·
-                                <span class="scr-status" :class="'scr-status--' + service.status">
-                                    {{ STATUS_LABELS[service.status] || service.status }}
-                                </span>
+                    <a :href="route('profile.show', service.user.id)" target="_blank" class="scr-idol-link">
+                        <div class="scr-idol">
+                            <img v-if="service.user.avatar_url" :src="service.user.avatar_url" class="scr-idol__avatar" alt="" />
+                            <div v-else class="scr-idol__avatar scr-idol__avatar--empty">{{ service.user.name?.charAt(0) }}</div>
+                            <div>
+                                <div class="scr-idol__name">{{ service.user.name }}</div>
+                                <div class="scr-idol__meta">
+                                    Услуга #{{ service.id }} ·
+                                    <span class="scr-status" :class="'scr-status--' + service.status">
+                                        {{ STATUS_LABELS[service.status] || service.status }}
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- Review history -->
@@ -201,28 +236,39 @@ function reject() {
                 <!-- Field flags -->
                 <div class="scr-card">
                     <h2 class="scr-card__title">Замечания к полям</h2>
-                    <div v-for="(data, field) in fields" :key="field" class="scr-flag-row">
+                    <div v-for="(data, field) in fields" :key="field" class="scr-flag-row" :class="{ 'scr-flag-row--flagged': flaggedFields[field] }">
                         <div class="scr-flag-header">
                             <label class="scr-flag-label">
                                 <input type="checkbox" v-model="flaggedFields[field]" class="scr-checkbox" />
                                 <span class="scr-flag-name" :class="{ 'scr-flag-name--flagged': flaggedFields[field] }">
                                     {{ FIELD_LABELS[field] || field }}
                                 </span>
+                                <svg v-if="flaggedFields[field]" class="scr-warn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff7b7b" stroke-width="2.5">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                    <line x1="12" y1="9" x2="12" y2="13"/>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
                             </label>
                             <span v-if="isChanged(field, data)" class="scr-changed-badge">изменено</span>
                         </div>
-                        <textarea
-                            v-if="flaggedFields[field]"
-                            v-model="fieldComments[field]"
-                            class="scr-comment"
-                            rows="2"
-                            placeholder="Комментарий к замечанию..."
-                        />
+                        <div v-if="flaggedFields[field]" class="scr-comment-wrapper">
+                            <textarea
+                                v-model="fieldComments[field]"
+                                class="scr-comment"
+                                rows="2"
+                                placeholder="Комментарий к замечанию..."
+                            />
+                            <div class="scr-presets">
+                                <button v-for="preset in PRESETS[field]" :key="preset" type="button" class="scr-preset-btn" @click="fieldComments[field] = preset">
+                                    + {{ preset }}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Decision -->
-                <div class="scr-card">
+                <div class="scr-card scr-card--sticky">
                     <h2 class="scr-card__title">Решение</h2>
 
                     <label class="scr-approved-label" :class="{ 'scr-approved-label--disabled': hasAnyFlag }">
@@ -256,11 +302,16 @@ function reject() {
                                 rows="3"
                                 placeholder="Причина отклонения (увидит пользователь)..."
                             />
+                            <div class="scr-presets scr-presets--block">
+                                <button v-for="preset in PRESETS.rejection" :key="preset" type="button" class="scr-preset-btn" @click="adminComment = preset">
+                                    + {{ preset }}
+                                </button>
+                            </div>
                             <div class="scr-reject-btns">
                                 <button class="scr-reject-confirm" :disabled="submitting" @click="reject">
                                     {{ submitting ? 'Отправка…' : 'Подтвердить отклонение' }}
                                 </button>
-                                <button class="scr-cancel" @click="showReject = false; adminComment = ''">
+                                <button type="button" class="scr-cancel" @click="showReject = false; adminComment = ''">
                                     Отмена
                                 </button>
                             </div>
@@ -277,10 +328,16 @@ function reject() {
 </template>
 
 <style scoped>
-.scr-wrap { padding: 1.5rem; }
+.scr-wrap { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
 
 .scr-back { color: rgba(255,178,239,0.7); text-decoration: none; font-size: 0.88rem; display: inline-block; margin-bottom: 1.25rem; transition: color 0.15s; }
 .scr-back:hover { color: #ffb2ef; }
+
+.scr-warn-icon {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 0.4rem;
+}
 
 .scr-layout { display: grid; grid-template-columns: 1fr 340px; gap: 1.25rem; }
 @media (max-width: 900px) { .scr-layout { grid-template-columns: 1fr; } }
@@ -293,6 +350,14 @@ function reject() {
     margin-bottom: 1rem;
 }
 .scr-card__title { font-size: 0.9rem; font-weight: 600; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.85rem; }
+
+.scr-idol-link {
+    text-decoration: none;
+    display: block;
+}
+.scr-idol-link:hover .scr-idol__name {
+    color: #ffb2ef;
+}
 
 .scr-idol { display: flex; align-items: center; gap: 0.75rem; }
 .scr-idol__avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
@@ -435,4 +500,91 @@ function reject() {
 .scr-dec--ok     { color: #64d2a0; }
 .scr-dec--bad    { color: #ff7b7b; }
 .scr-dec--reject { color: #ef4444; }
+
+/* ── Enhanced UI/UX Styles ── */
+.scr-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.4rem;
+}
+.scr-presets--block {
+    margin-bottom: 0.75rem;
+}
+.scr-preset-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    color: rgba(255,255,255,0.5);
+    font-size: 0.72rem;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.scr-preset-btn:hover {
+    background: rgba(255, 178, 239, 0.1);
+    color: #ffb2ef;
+    border-color: rgba(255, 178, 239, 0.25);
+}
+.scr-indicator {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-left: auto;
+}
+.scr-indicator--ok {
+    color: #64d2a0;
+    background: rgba(100,210,160,0.1);
+}
+.scr-indicator--flagged {
+    color: #ffc850;
+    background: rgba(255,200,80,0.1);
+}
+.scr-flag-row {
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 0.5rem;
+    transition: all 0.2s ease;
+    margin-bottom: 0.75rem;
+}
+.scr-flag-row--flagged {
+    border-color: rgba(255,200,80,0.2);
+    background: rgba(255,200,80,0.01);
+}
+.scr-card--sticky {
+    position: sticky;
+    bottom: 1rem;
+    z-index: 100;
+    background: rgba(30, 30, 42, 0.96) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 178, 239, 0.25) !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+}
+.scr-visual-diff {
+    margin-top: 0.75rem;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 0.6rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+.scr-chunk--added {
+    background: rgba(100, 240, 150, 0.18);
+    color: #85f0b5;
+    padding: 1px 3px;
+    border-radius: 3px;
+    font-size: 0.85rem;
+}
+.scr-chunk--removed {
+    background: rgba(240, 100, 100, 0.18);
+    color: #ff9a9a;
+    text-decoration: line-through;
+    padding: 1px 3px;
+    border-radius: 3px;
+    font-size: 0.85rem;
+}
+.scr-chunk--normal {
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.7);
+}
 </style>

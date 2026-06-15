@@ -31,7 +31,7 @@ class ContentPackChangeRequestController extends Controller
 
     public function show(ContentPackChangeRequest $changeRequest): Response
     {
-        $changeRequest->load('contentPack.user');
+        $changeRequest->load(['contentPack.user', 'contentPack.photos']);
 
         $pack = $changeRequest->contentPack;
 
@@ -57,6 +57,10 @@ class ContentPackChangeRequestController extends Controller
                     'name'       => $pack->user->name,
                     'avatar_url' => $pack->user->avatar_url,
                 ],
+                'photos' => $pack->photos->map(fn ($ph) => [
+                    'id'  => $ph->id,
+                    'url' => $ph->url,
+                ])->values(),
             ],
             'fields' => $fields,
         ]);

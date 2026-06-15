@@ -19,6 +19,29 @@ const fieldComments  = reactive({ title: '', description: '', price: '' });
 const flaggedPhotos  = reactive({}); // { [photo_id]: boolean }
 const photoComments  = reactive({}); // { [photo_id]: string }
 
+const PRESETS = {
+    title: [
+        'Содержит ссылки / контактную информацию',
+        'Нецензурная лексика или оскорбления',
+        'Опечатки или некорректный регистр',
+    ],
+    description: [
+        'Содержит ссылки / контактную информацию',
+        'Нецензурная лексика или оскорбления',
+        'Слишком короткое описание',
+        'Грамматические и стилистические ошибки',
+    ],
+    price: [
+        'Некорректная цена пака',
+        'Цена не соответствует правилам платформы',
+    ],
+    photo: [
+        'Низкое качество изображения',
+        'Наличие водяных знаков / чужих логотипов',
+        'Неприемлемый или нарушающий правила контент',
+    ],
+};
+
 // Initialize photo flags
 if (props.pack?.photos) {
     props.pack.photos.forEach(p => {
@@ -122,14 +145,16 @@ const STATUS_LABELS = {
                 <!-- Idol info -->
                 <div class="cps-card">
                     <h2 class="cps-card__title">Айдол</h2>
-                    <div class="cps-idol">
-                        <img v-if="pack.user.avatar_url" :src="pack.user.avatar_url" class="cps-idol__avatar" alt="" />
-                        <div v-else class="cps-idol__avatar cps-idol__avatar--empty">{{ pack.user.name?.charAt(0) }}</div>
-                        <div>
-                            <div class="cps-idol__name">{{ pack.user.name }}</div>
-                            <div class="cps-idol__email">{{ pack.user.email }}</div>
+                    <a :href="route('profile.show', pack.user.id)" target="_blank" class="cps-idol-link">
+                        <div class="cps-idol">
+                            <img v-if="pack.user.avatar_url" :src="pack.user.avatar_url" class="cps-idol__avatar" alt="" />
+                            <div v-else class="cps-idol__avatar cps-idol__avatar--empty">{{ pack.user.name?.charAt(0) }}</div>
+                            <div>
+                                <div class="cps-idol__name">{{ pack.user.name }}</div>
+                                <div class="cps-idol__email">{{ pack.user.email }}</div>
+                            </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
 
                 <!-- Pack metadata -->
@@ -187,13 +212,18 @@ const STATUS_LABELS = {
                 <!-- Field flags -->
                 <div class="cps-card">
                     <h2 class="cps-card__title">Поля</h2>
-                    <div v-for="field in ['title','description','price']" :key="field" class="cps-flag-row">
+                    <div v-for="field in ['title','description','price']" :key="field" class="cps-flag-row" :class="{ 'cps-flag-row--flagged': flaggedFields[field] }">
                         <div class="cps-flag-header">
                             <label class="cps-flag-label">
                                 <input type="checkbox" v-model="flaggedFields[field]" class="cps-checkbox" />
                                 <span class="cps-flag-name" :class="{ 'cps-flag-name--flagged': flaggedFields[field] }">
                                     {{ { title: 'Название', description: 'Описание', price: 'Цена' }[field] }}
                                 </span>
+                                <svg v-if="flaggedFields[field]" class="cps-warn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff7b7b" stroke-width="2.5">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                    <line x1="12" y1="9" x2="12" y2="13"/>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
                             </label>
                             <span class="cps-flag-value">
                                 <template v-if="field === 'title'">{{ pack.title }}</template>
@@ -203,13 +233,19 @@ const STATUS_LABELS = {
                                 </template>
                             </span>
                         </div>
-                        <textarea
-                            v-if="flaggedFields[field]"
-                            v-model="fieldComments[field]"
-                            class="cps-comment"
-                            rows="2"
-                            placeholder="Комментарий к замечанию..."
-                        />
+                        <div v-if="flaggedFields[field]" class="cps-comment-wrapper">
+                            <textarea
+                                v-model="fieldComments[field]"
+                                class="cps-comment"
+                                rows="2"
+                                placeholder="Комментарий к замечанию..."
+                            />
+                            <div class="cps-presets">
+                                <button v-for="preset in PRESETS[field]" :key="preset" type="button" class="cps-preset-btn" @click="fieldComments[field] = preset">
+                                    + {{ preset }}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -217,27 +253,42 @@ const STATUS_LABELS = {
                 <div class="cps-card">
                     <h2 class="cps-card__title">Фотографии</h2>
                     <div class="cps-photos">
-                        <div v-for="(photo, idx) in pack.photos" :key="photo.id" class="cps-photo">
-                            <img :src="photo.url" class="cps-photo__img" alt="" @click="openLightbox(idx)" />
+                        <div v-for="(photo, idx) in pack.photos" :key="photo.id" class="cps-photo" :class="{ 'cps-photo--flagged': flaggedPhotos[photo.id] }">
+                            <div class="cps-photo-img-wrapper">
+                                <img :src="photo.url" class="cps-photo__img" alt="" @click="openLightbox(idx)" />
+                                <span v-if="flaggedPhotos[photo.id]" class="cps-photo-badge cps-photo-badge--flagged">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                        <line x1="12" y1="9" x2="12" y2="13"/>
+                                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                    </svg>
+                                </span>
+                            </div>
                             <div class="cps-photo__controls">
                                 <label class="cps-photo__flag">
                                     <input type="checkbox" v-model="flaggedPhotos[photo.id]" />
                                     <span :class="{ 'cps-photo__flag--flagged': flaggedPhotos[photo.id] }">Пометить</span>
                                 </label>
                             </div>
-                            <textarea
-                                v-if="flaggedPhotos[photo.id]"
-                                v-model="photoComments[photo.id]"
-                                class="cps-comment"
-                                rows="2"
-                                placeholder="Что не так с этим фото..."
-                            />
+                            <div v-if="flaggedPhotos[photo.id]" class="cps-comment-wrapper">
+                                <textarea
+                                    v-model="photoComments[photo.id]"
+                                    class="cps-comment"
+                                    rows="2"
+                                    placeholder="Что не так с этим фото..."
+                                />
+                                <div class="cps-presets">
+                                    <button v-for="preset in PRESETS.photo" :key="preset" type="button" class="cps-preset-btn" @click="photoComments[photo.id] = preset">
+                                        + {{ preset }}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Decision -->
-                <div class="cps-card">
+                <div class="cps-card cps-card--sticky">
                     <h2 class="cps-card__title">Решение</h2>
 
                     <label class="cps-approved-label" :class="{ 'cps-approved-label--disabled': hasAnyFlag }">
@@ -292,10 +343,24 @@ const STATUS_LABELS = {
 </template>
 
 <style scoped>
-.cps-wrap { padding: 1.5rem; }
+.cps-wrap { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
 
 .cps-back { color: rgba(255, 178, 239,0.7); text-decoration: none; font-size: 0.88rem; display: inline-block; margin-bottom: 1.25rem; }
 .cps-back:hover { color: #ffb2ef; }
+
+.cps-warn-icon {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 0.4rem;
+}
+
+.cps-idol-link {
+    text-decoration: none;
+    display: block;
+}
+.cps-idol-link:hover .cps-idol__name {
+    color: #ffb2ef;
+}
 
 .cps-layout { display: grid; grid-template-columns: 320px 1fr; gap: 1.25rem; }
 @media (max-width: 900px) { .cps-layout { grid-template-columns: 1fr; } }
@@ -448,4 +513,90 @@ const STATUS_LABELS = {
 }
 .lb-enter-active, .lb-leave-active { transition: opacity 0.18s; }
 .lb-enter-from, .lb-leave-to { opacity: 0; }
+
+/* ── Enhanced UI/UX Styles ── */
+.cps-flag-row {
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 0.5rem;
+    transition: all 0.2s ease;
+}
+.cps-flag-row--flagged {
+    border-color: rgba(255,100,100,0.15);
+    background: rgba(255,100,100,0.02);
+}
+.cps-indicator {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+.cps-indicator--ok {
+    color: #64d2a0;
+    background: rgba(100,210,160,0.1);
+}
+.cps-indicator--flagged {
+    color: #ff7b7b;
+    background: rgba(255,123,123,0.1);
+}
+.cps-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.35rem;
+}
+.cps-preset-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    color: rgba(255,255,255,0.5);
+    font-size: 0.72rem;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.cps-preset-btn:hover {
+    background: rgba(255, 178, 239, 0.1);
+    color: #ffb2ef;
+    border-color: rgba(255, 178, 239, 0.25);
+}
+.cps-photo-img-wrapper {
+    position: relative;
+    border-radius: 6px;
+    overflow: hidden;
+}
+.cps-photo-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 2px 5px;
+    border-radius: 4px;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+.cps-photo-badge--ok {
+    background: rgba(80, 210, 140, 0.85);
+    color: #fff;
+}
+.cps-photo-badge--flagged {
+    background: rgba(220, 60, 60, 0.85);
+    color: #fff;
+}
+.cps-photo--flagged {
+    border: 1px solid rgba(255, 100, 100, 0.25);
+    border-radius: 8px;
+    padding: 0.4rem;
+    background: rgba(255,100,100,0.01);
+}
+.cps-card--sticky {
+    position: sticky;
+    bottom: 1rem;
+    z-index: 100;
+    background: rgba(30, 30, 42, 0.96) !important;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 178, 239, 0.25) !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+}
 </style>
