@@ -87,7 +87,6 @@ function saveCategory() {
             preserveScroll: true,
             onSuccess: (page) => {
                 categoryModalOpen.value = false;
-                // If it's a new category and it's the first one, select it
                 if (props.categories.length > 0 && !selectedCategoryId.value) {
                     selectedCategoryId.value = props.categories[0].id;
                 }
@@ -96,8 +95,9 @@ function saveCategory() {
     }
 }
 
+// Fixed delete category confirm dialog message interpolation
 function deleteCategory(cat) {
-    if (!confirm(`Удалить раздел «${cat.title_ru}» и все его статьи?`)) return;
+    if (!confirm(`Удалить раздел "${cat.title_ru}" и все его статьи?`)) return;
     router.delete(route('admin.help-categories.destroy', cat.id), {
         preserveScroll: true,
         onSuccess: () => {
@@ -168,8 +168,9 @@ function saveArticle() {
     }
 }
 
+// Fixed delete article confirm dialog message interpolation
 function deleteArticle(art) {
-    if (!confirm(`Удалить подраздел «${art.title_ru}»?`)) return;
+    if (!confirm(`Удалить подраздел "${art.title_ru}"?`)) return;
     router.delete(route('admin.help-articles.destroy', art.id), {
         preserveScroll: true,
     });
@@ -178,16 +179,30 @@ function deleteArticle(art) {
 
 <template>
     <div class="help-manager">
-        <div class="page-header">
-            <h1 class="page-title">Управление Справкой (Help Center)</h1>
+        <div class="page-header-block">
+            <div>
+                <h1 class="page-title">Справочный центр</h1>
+                <p class="page-desc">
+                    Управление разделами и статьями помощи. Вы можете менять порядок элементов перетаскиванием.
+                </p>
+            </div>
         </div>
 
         <div class="help-grid">
             <!-- Left Column: Categories -->
             <div class="grid-card">
                 <div class="card-header">
-                    <h2 class="card-title">Разделы (Категории)</h2>
-                    <button class="btn-primary-mini" @click="openCreateCategory">+ Раздел</button>
+                    <div>
+                        <h2 class="card-title">Разделы справки</h2>
+                        <span class="card-subtitle">Перетащите для изменения порядка</span>
+                    </div>
+                    <button class="btn-create-item" @click="openCreateCategory">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Раздел
+                    </button>
                 </div>
 
                 <div class="card-body">
@@ -205,19 +220,46 @@ function deleteArticle(art) {
                                 :class="{ 'category-item--active': element.id === selectedCategoryId }"
                                 @click="selectCategory(element.id)"
                             >
-                                <span class="drag-handle">☰</span>
-                                <span class="item-text" :title="element.title_ru">
-                                    {{ element.title_ru }}
+                                <span class="drag-handle" title="Перетащить">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                        <circle cx="9" cy="5" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/>
+                                        <circle cx="15" cy="5" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="15" cy="19" r="1.5"/>
+                                    </svg>
                                 </span>
+                                <div class="category-info">
+                                    <span class="item-text" :title="element.title_ru">
+                                        {{ element.title_ru }}
+                                    </span>
+                                    <div class="lang-indicators">
+                                        <span class="lang-badge lang-badge--active">RU</span>
+                                        <span class="lang-badge" :class="{ 'lang-badge--active': element.title_en }">EN</span>
+                                    </div>
+                                </div>
                                 <div class="item-actions">
-                                    <button class="action-edit" @click.stop="openEditCategory(element)">✎</button>
-                                    <button class="action-delete" @click.stop="deleteCategory(element)">✕</button>
+                                    <button class="action-btn action-btn--edit" @click.stop="openEditCategory(element)" title="Редактировать">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                        </svg>
+                                    </button>
+                                    <button class="action-btn action-btn--delete" @click.stop="deleteCategory(element)" title="Удалить">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                                            <path d="M10 11v6M14 11v6"></path>
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
                         </template>
                     </draggable>
-                    <div v-if="!categoriesList.length" class="empty-text">
-                        Разделы не созданы
+                    <div v-if="!categoriesList.length" class="empty-state-placeholder">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <span>Разделы не созданы</span>
                     </div>
                 </div>
             </div>
@@ -225,25 +267,35 @@ function deleteArticle(art) {
             <!-- Right Column: Articles -->
             <div class="grid-card">
                 <div class="card-header">
-                    <h2 class="card-title">
-                        Подразделы (Статьи):
-                        <span v-if="selectedCategory" class="text-cyan-400">
-                            {{ selectedCategory.title_ru }}
-                        </span>
-                        <span v-else>выберите раздел</span>
-                    </h2>
+                    <div>
+                        <h2 class="card-title">
+                            <span v-if="selectedCategory">Статьи в «{{ selectedCategory.title_ru }}»</span>
+                            <span v-else>Статьи раздела</span>
+                        </h2>
+                        <span class="card-subtitle">Перетащите для изменения порядка</span>
+                    </div>
                     <button
                         v-if="selectedCategoryId"
-                        class="btn-primary-mini"
+                        class="btn-create-item btn-create-item--pink"
                         @click="openCreateArticle"
                     >
-                        + Добавить статью
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Добавить статью
                     </button>
                 </div>
 
                 <div class="card-body">
-                    <div v-if="!selectedCategoryId" class="no-selection">
-                        Выберите раздел в левой колонке для управления статьями.
+                    <div v-if="!selectedCategoryId" class="no-selection-placeholder">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="9" y1="9" x2="15" y2="9"></line>
+                            <line x1="9" y1="13" x2="15" y2="13"></line>
+                            <line x1="9" y1="17" x2="13" y2="17"></line>
+                        </svg>
+                        <p>Выберите раздел в левой колонке для управления его статьями.</p>
                     </div>
                     <div v-else>
                         <draggable
@@ -256,20 +308,47 @@ function deleteArticle(art) {
                         >
                             <template #item="{ element }">
                                 <div class="article-item">
-                                    <span class="drag-handle">☰</span>
+                                    <span class="drag-handle" title="Перетащить">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                            <circle cx="9" cy="5" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/>
+                                            <circle cx="15" cy="5" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="15" cy="19" r="1.5"/>
+                                        </svg>
+                                    </span>
                                     <div class="article-info">
-                                        <span class="article-title">{{ element.title_ru }}</span>
+                                        <div class="article-title-row">
+                                            <span class="article-title">{{ element.title_ru }}</span>
+                                            <div class="lang-indicators">
+                                                <span class="lang-badge lang-badge--active">RU</span>
+                                                <span class="lang-badge" :class="{ 'lang-badge--active': element.title_en && element.content_en }">EN</span>
+                                            </div>
+                                        </div>
                                         <span class="article-preview" v-html="element.content_ru"></span>
                                     </div>
                                     <div class="item-actions">
-                                        <button class="action-edit" @click="openEditArticle(element)">Изменить</button>
-                                        <button class="action-delete" @click="deleteArticle(element)">Удалить</button>
+                                        <button class="action-btn action-btn--edit" @click="openEditArticle(element)" title="Изменить">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                            </svg>
+                                        </button>
+                                        <button class="action-btn action-btn--delete" @click="deleteArticle(element)" title="Удалить">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <polyline points="3 6 5 6 21 6"></polyline>
+                                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                                                <path d="M10 11v6M14 11v6"></path>
+                                            </svg>
+                                        </button>
                                     </div>
                                 </div>
                             </template>
                         </draggable>
-                        <div v-if="!articlesList.length" class="empty-text">
-                            В этом разделе пока нет статей. Нажмите кнопку выше для добавления.
+                        <div v-if="!articlesList.length" class="empty-state-placeholder">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                            <span>В этом разделе пока нет статей.</span>
                         </div>
                     </div>
                 </div>
@@ -284,7 +363,7 @@ function deleteArticle(art) {
                     <input
                         v-model="categoryForm.title_ru"
                         class="form-input"
-                        placeholder="Что такое no alone?"
+                        placeholder="Например: Общие вопросы"
                         required
                     />
                 </div>
@@ -293,7 +372,7 @@ function deleteArticle(art) {
                     <input
                         v-model="categoryForm.title_en"
                         class="form-input"
-                        placeholder="What is no alone?"
+                        placeholder="Например: General Questions"
                     />
                 </div>
                 <div class="modal-actions">
@@ -344,7 +423,7 @@ function deleteArticle(art) {
                         <input
                             v-model="articleForm.title_ru"
                             class="form-input"
-                            placeholder="О сервисе"
+                            placeholder="Например: Как начать общение?"
                         />
                     </div>
                     <div class="form-group">
@@ -360,7 +439,7 @@ function deleteArticle(art) {
                         <input
                             v-model="articleForm.title_en"
                             class="form-input"
-                            placeholder="About service"
+                            placeholder="Например: How to start chatting?"
                         />
                     </div>
                     <div class="form-group">
@@ -386,14 +465,33 @@ function deleteArticle(art) {
 
 <style scoped>
 .help-manager {
-    padding: 0.5rem;
+    padding: 0.25rem;
+    font-family: 'Rubik', sans-serif;
+}
+
+.page-header-block {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.page-title {
+    font-size: 1.4rem;
+    color: #fff;
+    margin: 0 0 0.3rem;
+    font-weight: 600;
+}
+
+.page-desc {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.45);
+    margin: 0;
 }
 
 .help-grid {
     display: grid;
     grid-template-columns: 320px 1fr;
     gap: 1.5rem;
-    margin-top: 1.5rem;
 }
 
 @media (max-width: 900px) {
@@ -403,127 +501,215 @@ function deleteArticle(art) {
 }
 
 .grid-card {
-    background-color: #12121d;
-    border: 1px solid #1f1f2e;
-    border-radius: 10px;
+    background-color: #0b0b12;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
 .card-header {
-    background-color: #161625;
-    border-bottom: 1px solid #1f1f2e;
+    background-color: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     padding: 1rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 1rem;
 }
 
 .card-title {
-    font-size: 1.05rem;
-    font-weight: 700;
+    font-size: 0.95rem;
+    font-weight: 600;
     color: #ffffff;
     margin: 0;
 }
 
-.card-body {
-    padding: 1rem;
-    min-height: 350px;
+.card-subtitle {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.35);
+    display: block;
+    margin-top: 0.15rem;
 }
 
-.btn-primary-mini {
-    background: linear-gradient(135deg, #ffb2ef 0%, #a765ff 100%);
-    color: #ffffff;
-    border: none;
-    padding: 5px 12px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: opacity 0.2s;
+.card-body {
+    padding: 1rem;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
 }
-.btn-primary-mini:hover {
-    opacity: 0.9;
+
+.btn-create-item {
+    background: rgba(155, 110, 232, 0.15);
+    border: 1px solid rgba(155, 110, 232, 0.35);
+    color: #ffb2ef;
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: inherit;
+}
+
+.btn-create-item:hover {
+    background: rgba(155, 110, 232, 0.28);
+    border-color: rgba(155, 110, 232, 0.6);
+    box-shadow: 0 0 12px rgba(155, 110, 232, 0.2);
+}
+
+.btn-create-item--pink {
+    background: rgba(255, 178, 239, 0.15);
+    border-color: rgba(255, 178, 239, 0.35);
+    color: #ffb2ef;
+}
+
+.btn-create-item--pink:hover {
+    background: rgba(255, 178, 239, 0.28);
+    border-color: rgba(255, 178, 239, 0.6);
+    box-shadow: 0 0 12px rgba(255, 178, 239, 0.2);
 }
 
 /* Category Items */
+.drag-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
 .category-item {
     display: flex;
     align-items: center;
     padding: 10px 12px;
-    background-color: #161625;
-    border: 1px solid #1f1f2e;
-    border-radius: 6px;
-    margin-bottom: 8px;
+    background-color: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .category-item:hover {
-    border-color: rgba(255, 178, 239, 0.4);
-    background-color: #1b1b2d;
+    border-color: rgba(255, 178, 239, 0.3);
+    background-color: rgba(255, 255, 255, 0.04);
 }
 
 .category-item--active {
-    border-color: #64d2ff !important;
-    background-color: #162030 !important;
+    border-color: rgba(155, 110, 232, 0.6) !important;
+    background-color: rgba(155, 110, 232, 0.08) !important;
+    box-shadow: inset 0 0 8px rgba(155, 110, 232, 0.05);
+}
+
+.category-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
 }
 
 .drag-handle {
-    color: #52527a;
+    color: rgba(255, 255, 255, 0.2);
     cursor: grab;
     margin-right: 10px;
-    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     user-select: none;
+    transition: color 0.15s;
+}
+
+.drag-handle:hover {
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.drag-handle:active {
+    cursor: grabbing;
 }
 
 .item-text {
-    flex: 1;
-    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: #e2e2e9;
-    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 0.88rem;
+    font-weight: 500;
+}
+
+.lang-indicators {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.lang-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 0.05rem 0.25rem;
+    border-radius: 2px;
+}
+
+.lang-badge--active {
+    color: #ffb2ef;
+    background: rgba(255, 178, 239, 0.12);
+    border-color: rgba(255, 178, 239, 0.3);
 }
 
 .item-actions {
     display: flex;
-    gap: 6px;
+    gap: 0.35rem;
     margin-left: 10px;
 }
 
-.action-edit, .action-delete {
-    background: none;
-    border: none;
-    color: #8383a3;
+.action-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: rgba(255, 255, 255, 0.3);
     cursor: pointer;
-    font-size: 0.9rem;
-    padding: 2px 4px;
+    padding: 0.3rem;
     border-radius: 4px;
     transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.action-edit:hover {
-    color: #64d2ff;
-    background-color: rgba(100, 210, 255, 0.1);
+.action-btn--edit:hover {
+    color: #ffb2ef;
+    border-color: rgba(255, 178, 239, 0.3);
+    background-color: rgba(255, 178, 239, 0.08);
 }
 
-.action-delete:hover {
-    color: #ff5e84;
-    background-color: rgba(255, 94, 132, 0.1);
+.action-btn--delete:hover {
+    color: #ff6b6b;
+    border-color: rgba(255, 80, 80, 0.3);
+    background-color: rgba(255, 80, 80, 0.08);
 }
 
 /* Article Items */
 .article-item {
     display: flex;
-    align-items: center;
-    padding: 12px 14px;
-    background-color: #161625;
-    border: 1px solid #1f1f2e;
-    border-radius: 8px;
-    margin-bottom: 10px;
+    align-items: flex-start;
+    padding: 12px;
+    background-color: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+
+.article-item:hover {
+    border-color: rgba(255, 178, 239, 0.25);
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.article-item .drag-handle {
+    margin-top: 0.25rem;
 }
 
 .article-info {
@@ -531,23 +717,31 @@ function deleteArticle(art) {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0.35rem;
+}
+
+.article-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
 .article-title {
     font-weight: 600;
     color: #ffffff;
-    font-size: 0.95rem;
+    font-size: 0.92rem;
 }
 
 .article-preview {
     font-size: 0.8rem;
-    color: #8c8ca5;
+    color: rgba(255, 255, 255, 0.4);
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
     -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
+    line-height: 1.4;
 }
 
 :deep(.article-preview *) {
@@ -558,9 +752,13 @@ function deleteArticle(art) {
     font-style: normal;
 }
 
+.article-item .item-actions {
+    margin-top: 0.15rem;
+}
+
 /* Modals & Forms */
 .modal-form {
-    padding: 1rem 0;
+    padding: 0.5rem 0;
 }
 
 .form-group {
@@ -569,61 +767,70 @@ function deleteArticle(art) {
 
 .form-label {
     display: block;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     font-weight: 600;
-    color: #a0a0b8;
-    margin-bottom: 0.5rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 0.45rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .form-input {
     width: 100%;
     background-color: #0e0e15;
-    border: 1px solid #1f1f2e;
-    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
     padding: 8px 12px;
     color: #ffffff;
     font-size: 0.9rem;
     outline: none;
     transition: border-color 0.15s ease;
+    font-family: inherit;
 }
 
 .form-input:focus {
-    border-color: #64d2ff;
+    border-color: rgba(155, 110, 232, 0.5);
 }
 
 .modal-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
+    gap: 10px;
     margin-top: 1rem;
 }
 
-.btn-cancel, .btn-save, .btn-delete {
+.btn-cancel, .btn-save {
     font-family: inherit;
-    font-size: 0.88rem;
+    font-size: 0.85rem;
     font-weight: 600;
     padding: 8px 16px;
-    border-radius: 6px;
+    border-radius: 4px;
     cursor: pointer;
-    border: none;
-    transition: opacity 0.2s;
+    border: 1px solid transparent;
+    transition: all 0.2s;
 }
 
 .btn-cancel {
-    background-color: #1c1c2e;
-    color: #e2e2e9;
+    background-color: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.6);
 }
+
 .btn-cancel:hover {
-    background-color: #26263e;
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #fff;
 }
 
 .btn-save {
-    background: linear-gradient(135deg, #ffb2ef 0%, #a765ff 100%);
+    background: linear-gradient(135deg, #9B6EE8, #a03466);
     color: #ffffff;
+    box-shadow: 0 4px 12px rgba(155, 110, 232, 0.15);
 }
-.btn-save:hover {
+
+.btn-save:hover:not(:disabled) {
     opacity: 0.9;
 }
+
 .btn-save:disabled {
     opacity: 0.4;
     cursor: not-allowed;
@@ -632,20 +839,21 @@ function deleteArticle(art) {
 /* Language Tabs */
 .lang-tabs {
     display: flex;
-    border-bottom: 1px solid #1f1f2e;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     margin-bottom: 1.25rem;
 }
 
 .tab-btn {
     padding: 8px 16px;
-    color: #8c8ca5;
+    color: rgba(255, 255, 255, 0.4);
     background: none;
     border: none;
     border-bottom: 2px solid transparent;
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     font-weight: 600;
     transition: all 0.15s ease;
+    font-family: inherit;
 }
 
 .tab-btn:hover {
@@ -666,26 +874,52 @@ function deleteArticle(art) {
     to { opacity: 1; }
 }
 
-.empty-text {
-    color: #646485;
+.empty-state-placeholder {
+    color: rgba(255, 255, 255, 0.25);
     text-align: center;
-    padding: 2rem 0;
-    font-size: 0.9rem;
-}
-
-.no-selection {
-    color: #8c8ca5;
+    padding: 3rem 1rem;
+    font-size: 0.85rem;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 250px;
-    border: 2px dashed #1f1f2e;
-    border-radius: 8px;
-    font-size: 0.95rem;
+    gap: 0.6rem;
+    border: 1px dashed rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+}
+
+.empty-state-placeholder svg {
+    color: rgba(255, 255, 255, 0.15);
+}
+
+.no-selection-placeholder {
+    color: rgba(255, 255, 255, 0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 300px;
+    border: 2px dashed rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    font-size: 0.88rem;
+    padding: 2rem;
+    text-align: center;
+    gap: 0.75rem;
+}
+
+.no-selection-placeholder svg {
+    color: rgba(255, 255, 255, 0.15);
+}
+
+.no-selection-placeholder p {
+    margin: 0;
+    max-width: 250px;
+    line-height: 1.5;
 }
 
 .drag-ghost {
-    opacity: 0.4;
-    background-color: #24243b !important;
+    opacity: 0.3;
+    border-color: rgba(155, 110, 232, 0.4) !important;
+    background-color: rgba(155, 110, 232, 0.05) !important;
 }
 </style>

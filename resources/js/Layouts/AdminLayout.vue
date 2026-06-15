@@ -19,6 +19,7 @@ const servicesOpen      = ref(false);
 const traitsOpen        = ref(false);
 const interestsOpen     = ref(false);
 const contentPacksOpen  = ref(false);
+const quizOpen          = ref(false);
 const sidebarOpen       = ref(false);
 
 const component = computed(() => page.component);
@@ -39,6 +40,10 @@ function isOnContentPacks() {
     return component.value?.startsWith('Admin/ContentPacks/');
 }
 
+function isOnQuiz() {
+    return component.value?.startsWith('Admin/Quiz/');
+}
+
 watch(component, (val) => {
     if (val?.startsWith('Admin/Services/')) {
         servicesOpen.value = true;
@@ -51,6 +56,9 @@ watch(component, (val) => {
     }
     if (val?.startsWith('Admin/ContentPacks/')) {
         contentPacksOpen.value = true;
+    }
+    if (val?.startsWith('Admin/Quiz/')) {
+        quizOpen.value = true;
     }
     sidebarOpen.value = false;
 }, { immediate: true });
@@ -124,13 +132,28 @@ function isActive(routeName) {
                     </div>
                 </div>
 
-                <Link
-                    :href="route('admin.quiz.questions.index')"
-                    class="nav-item"
-                    :class="{ 'nav-item--active': isActive('admin.quiz.*') }"
-                >
-                    Квиз
-                </Link>
+                <div class="nav-group">
+                    <button
+                        class="nav-item nav-item--group"
+                        :class="{ 'nav-item--active': isOnQuiz() }"
+                        @click="quizOpen = !quizOpen"
+                    >
+                        <span>Квиз</span>
+                        <span class="nav-arrow" :class="{ 'nav-arrow--open': quizOpen }">▾</span>
+                    </button>
+                    <div v-if="quizOpen" class="nav-sub">
+                        <Link
+                            :href="route('admin.quiz.questions.index')"
+                            class="nav-item nav-item--sub"
+                            :class="{ 'nav-item--active': isActive('admin.quiz.questions.index') }"
+                        >Вопросы</Link>
+                        <Link
+                            :href="route('admin.quiz.article.index')"
+                            class="nav-item nav-item--sub"
+                            :class="{ 'nav-item--active': isActive('admin.quiz.article.index') }"
+                        >Статья о вступлении</Link>
+                    </div>
+                </div>
 
                 <Link
                     :href="route('admin.messages.index')"

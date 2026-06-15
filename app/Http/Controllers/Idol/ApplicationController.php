@@ -38,12 +38,15 @@ class ApplicationController extends Controller
             }
         }
 
+        $articleHtml = \App\Models\PlatformSetting::get('idol_apply_article_html', '');
+
         return Inertia::render('Idol/Apply', [
             'phase' => $phase,
             'session' => $sessionData,
             'cooldown_until' => $cooldownUntil,
             'rejection_reason' => $application?->rejection_reason,
             'quiz_passed' => (bool) $user->idol_quiz_passed_at,
+            'article_html' => $articleHtml,
         ]);
     }
 

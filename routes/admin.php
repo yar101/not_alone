@@ -59,6 +59,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/questions', [QuizQuestionController::class, 'store'])->name('questions.store');
             Route::patch('/questions/{question}', [QuizQuestionController::class, 'update'])->name('questions.update');
             Route::delete('/questions/{question}', [QuizQuestionController::class, 'destroy'])->name('questions.destroy');
+
+            Route::get('/article', [QuizQuestionController::class, 'showArticle'])->name('article.index');
+            Route::patch('/article', [QuizQuestionController::class, 'updateArticle'])->name('article.update');
         });
 
         // Users — static routes before parameterized
