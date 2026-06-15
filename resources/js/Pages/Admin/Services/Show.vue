@@ -103,6 +103,33 @@ function reject() {
         onFinish: () => { submitting.value = false; },
     });
 }
+
+// ── History Details Modal ───────────────────────────────
+const historyModalItem = ref(null);
+
+function formatDate(dateStr) {
+    return new Date(dateStr).toLocaleDateString('ru-RU');
+}
+
+function getDecisionLabel(decision) {
+    return {
+        approved: 'Одобрено',
+        rejected: 'Отклонено',
+        has_remarks: 'Замечания',
+    }[decision] || decision;
+}
+
+function hasDetails(item) {
+    return (item.flagged_fields && item.flagged_fields.length > 0) || !!item.admin_comment;
+}
+
+function showDetails(item) {
+    historyModalItem.value = item;
+}
+
+function closeHistoryModal() {
+    historyModalItem.value = null;
+}
 </script>
 
 <template>
@@ -170,25 +197,36 @@ function reject() {
                     <h2 class="sps-card__title">История проверок</h2>
                     <div v-for="item in service.history" :key="item.id" class="sps-review-item">
                         <div class="sps-review-item__header">
-                            <span :class="item.decision === 'approved' ? 'sps-dec--ok' : item.decision === 'rejected' ? 'sps-dec--reject' : 'sps-dec--bad'">
+                            <span :class="['sps-dec-badge', 'sps-dec-badge--' + item.decision]">
                                 {{ item.decision === 'approved' ? '✓ Одобрено' : item.decision === 'rejected' ? '✗ Отклонено' : '⚑ Замечания' }}
                             </span>
                             <span class="sps-review-item__type">
                                 {{ item.type === 'initial' ? '(Модерация)' : '(Изменения)' }}
                             </span>
-                            <span class="sps-review-item__date">{{ new Date(item.created_at).toLocaleDateString('ru-RU') }}</span>
-                            <span v-if="item.admin" class="sps-review-item__admin">{{ item.admin.name }}</span>
+                            <span class="sps-review-item__date">
+                                {{ new Date(item.created_at).toLocaleDateString('ru-RU') }}
+                            </span>
+                            <span v-if="item.admin" class="sps-review-item__admin">
+                                {{ item.admin.name }}
+                            </span>
                         </div>
+
+                        <!-- Flagged fields -->
                         <div v-if="item.flagged_fields?.length" class="sps-review-item__detail">
-                            Помечено: {{ item.flagged_fields.map(f => FIELD_LABELS[f] || f).join(', ') }}
+                            <span class="sps-review-item__detail-label">Помечено:</span>
+                            {{ item.flagged_fields.map(f => FIELD_LABELS[f] || f).join(', ') }}
                         </div>
+
+                        <!-- Field comments -->
                         <div v-if="item.field_comments && Object.keys(item.field_comments).length" class="sps-review-item__comments">
                             <div v-for="(comment, field) in item.field_comments" :key="field" class="sps-review-item__comment">
                                 <span class="sps-review-item__comment-field">{{ FIELD_LABELS[field] || field }}:</span>
                                 {{ comment }}
                             </div>
                         </div>
-                        <div v-if="item.admin_comment" class="sps-review-item__comment">
+
+                        <!-- Rejection comment -->
+                        <div v-if="item.admin_comment" class="sps-review-item__comment sps-review-item__comment--rejection">
                             <span class="sps-review-item__comment-field">Причина:</span>
                             {{ item.admin_comment }}
                         </div>
@@ -296,6 +334,7 @@ function reject() {
             </div>
         </div>
     </div>
+
 </template>
 
 <style scoped>
@@ -502,5 +541,39 @@ function reject() {
     backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 178, 239, 0.25) !important;
     box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+}
+
+/* ── Decision Badges ── */
+.sps-dec-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+.sps-dec-badge--approved {
+    background: rgba(100,210,160,0.12);
+    color: #64d2a0;
+}
+.sps-dec-badge--rejected {
+    background: rgba(239,68,68,0.12);
+    color: #ef4444;
+}
+.sps-dec-badge--has_remarks {
+    background: rgba(255,123,123,0.12);
+    color: #ff7b7b;
+}
+
+.sps-review-item__detail-label {
+    color: rgba(255,255,255,0.3);
+    font-weight: 600;
+    margin-right: 0.25rem;
+}
+.sps-review-item__comment--rejection {
+    background: rgba(239,68,68,0.04);
+    border: 1px solid rgba(239,68,68,0.15);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    margin-top: 0.5rem;
 }
 </style>
