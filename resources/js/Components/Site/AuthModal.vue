@@ -21,6 +21,10 @@ const authUser = computed(() => page.props.auth?.user ?? null);
 const tab = ref(props.initialTab);
 const showLogoutConfirm = ref(false);
 
+const showLoginPassword = ref(false);
+const showRegisterPassword = ref(false);
+const showRegisterPasswordConfirm = ref(false);
+
 watch(
     () => props.show,
     (val) => {
@@ -28,11 +32,17 @@ watch(
             tab.value = props.initialTab;
             showLogoutConfirm.value = false;
         }
+        showLoginPassword.value = false;
+        showRegisterPassword.value = false;
+        showRegisterPasswordConfirm.value = false;
     },
 );
 
 function switchTab(t) {
     tab.value = t;
+    showLoginPassword.value = false;
+    showRegisterPassword.value = false;
+    showRegisterPasswordConfirm.value = false;
 }
 
 function handleLogout() {
@@ -195,19 +205,30 @@ function submitRegister() {
                                 <label class="auth-field-label">{{
                                     __("auth.password")
                                 }}</label>
-                                <input
-                                    v-model="loginForm.password"
-                                    type="password"
-                                    class="auth-input"
-                                    :class="{
-                                        'auth-input--error':
-                                            loginForm.errors.password,
-                                    }"
-                                    autocomplete="current-password"
-                                    :placeholder="
-                                        __('auth.password.placeholder')
-                                    "
-                                />
+                                <div class="password-input-wrapper">
+                                    <input
+                                        v-model="loginForm.password"
+                                        :type="showLoginPassword ? 'text' : 'password'"
+                                        class="auth-input auth-input--password"
+                                        :class="{
+                                            'auth-input--error':
+                                                loginForm.errors.password,
+                                        }"
+                                        autocomplete="current-password"
+                                        :placeholder="
+                                            __('auth.password.placeholder')
+                                        "
+                                    />
+                                    <button
+                                        type="button"
+                                        class="password-toggle-btn"
+                                        @click="showLoginPassword = !showLoginPassword"
+                                        tabindex="-1"
+                                    >
+                                        <svg v-if="showLoginPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                        <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                    </button>
+                                </div>
                                 <Transition name="err-fade">
                                     <p
                                         v-show="loginForm.errors.password"
@@ -535,19 +556,30 @@ function submitRegister() {
                                 <label class="auth-field-label">{{
                                     __("auth.password")
                                 }}</label>
-                                <input
-                                    v-model="registerForm.password"
-                                    type="password"
-                                    class="auth-input"
-                                    :class="{
-                                        'auth-input--error':
-                                            registerForm.errors.password,
-                                    }"
-                                    autocomplete="new-password"
-                                    :placeholder="
-                                        __('auth.password.placeholder')
-                                    "
-                                />
+                                <div class="password-input-wrapper">
+                                    <input
+                                        v-model="registerForm.password"
+                                        :type="showRegisterPassword ? 'text' : 'password'"
+                                        class="auth-input auth-input--password"
+                                        :class="{
+                                            'auth-input--error':
+                                                registerForm.errors.password,
+                                        }"
+                                        autocomplete="new-password"
+                                        :placeholder="
+                                            __('auth.password.placeholder')
+                                        "
+                                    />
+                                    <button
+                                        type="button"
+                                        class="password-toggle-btn"
+                                        @click="showRegisterPassword = !showRegisterPassword"
+                                        tabindex="-1"
+                                    >
+                                        <svg v-if="showRegisterPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                        <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                    </button>
+                                </div>
                                 <Transition name="err-fade">
                                     <p
                                         v-show="registerForm.errors.password"
@@ -584,20 +616,31 @@ function submitRegister() {
                                 <label class="auth-field-label">{{
                                     __("auth.password.confirm")
                                 }}</label>
-                                <input
-                                    v-model="registerForm.password_confirmation"
-                                    type="password"
-                                    class="auth-input"
-                                    :class="{
-                                        'auth-input--error':
-                                            registerForm.errors
-                                                .password_confirmation,
-                                    }"
-                                    autocomplete="new-password"
-                                    :placeholder="
-                                        __('auth.password.placeholder')
-                                    "
-                                />
+                                <div class="password-input-wrapper">
+                                    <input
+                                        v-model="registerForm.password_confirmation"
+                                        :type="showRegisterPasswordConfirm ? 'text' : 'password'"
+                                        class="auth-input auth-input--password"
+                                        :class="{
+                                            'auth-input--error':
+                                                registerForm.errors
+                                                    .password_confirmation,
+                                        }"
+                                        autocomplete="new-password"
+                                        :placeholder="
+                                            __('auth.password.placeholder')
+                                        "
+                                    />
+                                    <button
+                                        type="button"
+                                        class="password-toggle-btn"
+                                        @click="showRegisterPasswordConfirm = !showRegisterPasswordConfirm"
+                                        tabindex="-1"
+                                    >
+                                        <svg v-if="showRegisterPasswordConfirm" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                        <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                    </button>
+                                </div>
                                 <Transition name="err-fade">
                                     <p
                                         v-show="
@@ -1196,5 +1239,36 @@ function submitRegister() {
 .auth-forgot-link:hover {
     color: var(--color-base-1);
     opacity: 0.7;
+}
+
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    width: 100%;
+}
+
+.auth-input--password {
+    padding-right: 2.75rem;
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    padding: 0.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s;
+    outline: none;
+}
+
+.password-toggle-btn:hover {
+    color: rgba(255, 255, 255, 0.8);
 }
 </style>
