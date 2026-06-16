@@ -208,343 +208,587 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 
 <template>
     <div class="apply-wrap">
-        <Link :href="route('profile')" class="back-btn">
-            &lt;- В профиль
-        </Link>
-        <div class="apply-card">
+        <div class="apply-container">
+            <Link :href="route('profile')" class="back-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.35rem;">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                В профиль
+            </Link>
 
-            <!-- ─── Step 1: Memo ─────────────────────────────── -->
-            <div v-if="step === 1" class="step-content step-content--article">
-                <div class="step-eyebrow">ЗАЯВКА НА СТАТУС</div>
+            <!-- ─── Step 1: Article (Spacious, clean editorial layout) ─── -->
+            <div v-if="step === 1" class="article-layout">
+                <div class="step-eyebrow">Заявка на статус</div>
                 
                 <div class="article-body" v-html="article_html || defaultArticleHtml"></div>
 
-                <button @click="startQuiz" class="btn-primary btn-start-quiz" :disabled="quizStarting">
-                    {{ quizStarting ? 'Запуск...' : 'Начать тест' }}
-                </button>
-            </div>
-
-            <!-- ─── Step 2: Quiz ─────────────────────────────── -->
-            <div v-else-if="step === 2" class="quiz-wrap">
-
-                <!-- Top bar -->
-                <div class="quiz-topbar">
-                    <div class="quiz-stage-label">
-                        <span class="quiz-stage-num">{{ quizCurrentStage }}</span>
-                        <span class="quiz-stage-sep">/</span>
-                        <span class="quiz-stage-total">10</span>
-                    </div>
-                    <div class="quiz-errors-badge" :class="{
-                        'quiz-errors-badge--zero': quizErrors === 0,
-                        'quiz-errors-badge--one': quizErrors === 1,
-                        'quiz-errors-badge--two': quizErrors >= 2,
-                    }">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10" />
-                            <line x1="12" y1="8" x2="12" y2="12" />
-                            <line x1="12" y1="16" x2="12.01" y2="16" />
-                        </svg>
-                        {{ quizErrors }} / 2
-                    </div>
-                </div>
-
-                <!-- Segmented progress -->
-                <div class="quiz-segments">
-                    <div v-for="n in 10" :key="n" class="quiz-segment" :class="{
-                        'quiz-segment--done': n < quizCurrentStage,
-                        'quiz-segment--active': n === quizCurrentStage,
-                    }"></div>
-                </div>
-
-                <!-- Warning -->
-                <div v-if="quizErrors >= 2" class="quiz-warning">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                    Следующая ошибка завершит тест
-                </div>
-
-                <!-- Question -->
-                <div v-if="currentQuestion" class="question-block">
-                    <p class="question-text">{{ currentQuestion.question }}</p>
-
-                    <div class="options-list">
-                        <button v-for="(opt, i) in currentQuestion.options" :key="i" class="option-row" :class="{
-                            'option-row--selected': selectedAnswer === i && !showAnswerFeedback,
-                            'option-row--correct': showAnswerFeedback && i === lastCorrectIndex,
-                            'option-row--wrong': showAnswerFeedback && selectedAnswer === i && !lastAnswerCorrect && i !== lastCorrectIndex,
-                            'option-row--muted': showAnswerFeedback && i !== lastCorrectIndex && i !== selectedAnswer,
-                        }" @click="submitAnswer(i)" :disabled="quizSubmitting || showAnswerFeedback">
-                            <span class="option-badge">{{ String.fromCharCode(65 + i) }}</span>
-                            <span class="option-text">{{ opt }}</span>
-                            <svg v-if="showAnswerFeedback && i === lastCorrectIndex"
-                                class="option-icon option-icon--correct" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                            <svg v-else-if="showAnswerFeedback && selectedAnswer === i && !lastAnswerCorrect"
-                                class="option-icon option-icon--wrong" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="18" y1="6" x2="6" y2="18" />
-                                <line x1="6" y1="6" x2="18" y2="18" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ─── Step 3: Result ───────────────────────────── -->
-            <div v-else-if="step === 3" class="step-content">
-                <!-- Passed -->
-                <template v-if="quizSessionStatus === 'passed' || phase === 'photo'">
-                    <el-icon class="step-icon">
-                        <Trophy />
-                    </el-icon>
-                    <h2 class="step-title">Тест пройден!</h2>
-                    <p class="step-sub">Отлично! Теперь загрузите своё фото для заявки.</p>
-                    <button @click="step = 4" class="btn-primary">Загрузить фото</button>
-                </template>
-
-                <!-- Failed once -->
-                <template v-else-if="quizSessionStatus === 'failed' && quizAttemptNumber < 2">
-                    <el-icon class="step-icon">
-                        <Remove />
-                    </el-icon>
-                    <h2 class="step-title">Не прошли с первого раза</h2>
-                    <p class="step-sub">Ошибок: {{ quizErrors }}. У вас есть второй шанс — без кулдауна.</p>
-                    <button @click="startQuiz" class="btn-primary" :disabled="quizStarting">
-                        {{ quizStarting ? 'Запуск...' : 'Вторая попытка' }}
+                <div class="article-actions">
+                    <button @click="startQuiz" class="btn-start-quiz" :disabled="quizStarting">
+                        {{ quizStarting ? 'Запуск...' : 'Начать тест' }}
                     </button>
-                </template>
-
-                <!-- Failed twice → cooldown -->
-                <template
-                    v-else-if="(quizSessionStatus === 'failed' && quizAttemptNumber >= 2) || phase === 'cooldown'">
-                    <el-icon class="step-icon">
-                        <Clock />
-                    </el-icon>
-                    <h2 class="step-title">Кулдаун активен</h2>
-                    <p class="step-sub">Вы использовали обе попытки. Попробуйте снова через:</p>
-                    <div class="cooldown-timer">{{ cooldownRemaining || '...' }}</div>
-                </template>
+                </div>
             </div>
 
-            <!-- ─── Step 4: Photo ────────────────────────────── -->
-            <div v-else-if="step === 4" class="step-content">
-                <el-icon class="step-icon">
-                    <Camera />
-                </el-icon>
-                <h2 class="step-title">Фото для заявки</h2>
-                <p class="step-sub">Ваше лицо должно быть хорошо видно. Принимаются форматы JPEG, PNG, WebP (до 5 МБ).
-                </p>
+            <!-- ─── Steps 2-5: Interactive Wizard Card (Glassmorphic panel for focus) ─── -->
+            <div v-else class="wizard-card">
+                <!-- ─── Step 2: Quiz ─── -->
+                <div v-if="step === 2" class="quiz-wrap">
+                    <!-- Top bar -->
+                    <div class="quiz-topbar">
+                        <div class="quiz-stage-label">
+                            <span class="quiz-stage-num">{{ quizCurrentStage }}</span>
+                            <span class="quiz-stage-sep">/</span>
+                            <span class="quiz-stage-total">10</span>
+                        </div>
+                        <div class="quiz-errors-badge" :class="{
+                            'quiz-errors-badge--zero': quizErrors === 0,
+                            'quiz-errors-badge--one': quizErrors === 1,
+                            'quiz-errors-badge--two': quizErrors >= 2,
+                        }">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="8" x2="12" y2="12" />
+                                <line x1="12" y1="16" x2="12.01" y2="16" />
+                            </svg>
+                            {{ quizErrors }} / 2
+                        </div>
+                    </div>
 
-                <div class="dropzone" :class="{ 'dropzone--has-file': photoPreview }" @dragover.prevent @drop="onDrop"
-                    @click="$refs.fileInput.click()">
-                    <img v-if="photoPreview" :src="photoPreview" class="photo-preview" alt="Preview" />
-                    <template v-else>
-                        <el-icon class="dropzone-icon">
-                            <Upload />
+                    <!-- Segmented progress -->
+                    <div class="quiz-segments">
+                        <div v-for="n in 10" :key="n" class="quiz-segment" :class="{
+                            'quiz-segment--done': n < quizCurrentStage,
+                            'quiz-segment--active': n === quizCurrentStage,
+                        }"></div>
+                    </div>
+
+                    <!-- Warning -->
+                    <div v-if="quizErrors >= 2" class="quiz-warning">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                            <line x1="12" y1="9" x2="12" y2="13" />
+                            <line x1="12" y1="17" x2="12.01" y2="17" />
+                        </svg>
+                        Следующая ошибка завершит тест
+                    </div>
+
+                    <!-- Question -->
+                    <div v-if="currentQuestion" class="question-block">
+                        <p class="question-text">{{ currentQuestion.question }}</p>
+
+                        <div class="options-list">
+                            <button v-for="(opt, i) in currentQuestion.options" :key="i" class="option-row" :class="{
+                                'option-row--selected': selectedAnswer === i && !showAnswerFeedback,
+                                'option-row--correct': showAnswerFeedback && i === lastCorrectIndex,
+                                'option-row--wrong': showAnswerFeedback && selectedAnswer === i && !lastAnswerCorrect && i !== lastCorrectIndex,
+                                'option-row--muted': showAnswerFeedback && i !== lastCorrectIndex && i !== selectedAnswer,
+                            }" @click="submitAnswer(i)" :disabled="quizSubmitting || showAnswerFeedback">
+                                <span class="option-badge">{{ String.fromCharCode(65 + i) }}</span>
+                                <span class="option-text">{{ opt }}</span>
+                                <svg v-if="showAnswerFeedback && i === lastCorrectIndex"
+                                    class="option-icon option-icon--correct" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                                <svg v-else-if="showAnswerFeedback && selectedAnswer === i && !lastAnswerCorrect"
+                                    class="option-icon option-icon--wrong" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ─── Step 3: Result ─── -->
+                <div v-else-if="step === 3" class="step-content">
+                    <!-- Passed -->
+                    <template v-if="quizSessionStatus === 'passed' || phase === 'photo'">
+                        <el-icon class="step-icon">
+                            <Trophy />
                         </el-icon>
-                        <p class="dropzone-text">Перетащите фото или нажмите для выбора</p>
+                        <h2 class="step-title">Тест пройден!</h2>
+                        <p class="step-sub">Отлично! Теперь загрузите своё фото для заявки.</p>
+                        <button @click="step = 4" class="btn-primary">Загрузить фото</button>
+                    </template>
+
+                    <!-- Failed once -->
+                    <template v-else-if="quizSessionStatus === 'failed' && quizAttemptNumber < 2">
+                        <el-icon class="step-icon">
+                            <Remove />
+                        </el-icon>
+                        <h2 class="step-title">Не прошли с первого раза</h2>
+                        <p class="step-sub">Ошибок: {{ quizErrors }}. У вас есть второй шанс — без кулдауна.</p>
+                        <button @click="startQuiz" class="btn-primary" :disabled="quizStarting">
+                            {{ quizStarting ? 'Запуск...' : 'Вторая попытка' }}
+                        </button>
+                    </template>
+
+                    <!-- Failed twice → cooldown -->
+                    <template
+                        v-else-if="(quizSessionStatus === 'failed' && quizAttemptNumber >= 2) || phase === 'cooldown'">
+                        <el-icon class="step-icon">
+                            <Clock />
+                        </el-icon>
+                        <h2 class="step-title">Кулдаун активен</h2>
+                        <p class="step-sub">Вы использовали обе попытки. Попробуйте снова через:</p>
+                        <div class="cooldown-timer">{{ cooldownRemaining || '...' }}</div>
                     </template>
                 </div>
-                <input ref="fileInput" type="file" accept="image/*" style="display:none" @change="onFileChange" />
 
-                <p v-if="photoForm.errors.face_photo" class="error-msg">{{ photoForm.errors.face_photo }}</p>
+                <!-- ─── Step 4: Photo ─── -->
+                <div v-else-if="step === 4" class="step-content">
+                    <el-icon class="step-icon">
+                        <Camera />
+                    </el-icon>
+                    <h2 class="step-title">Фото для заявки</h2>
+                    <p class="step-sub">Ваше лицо должно быть хорошо видно. Принимаются форматы JPEG, PNG, WebP (до 5 МБ).</p>
 
-                <button @click="submitPhoto" class="btn-primary" :disabled="!photoPreview || photoForm.processing">
-                    {{ photoForm.processing ? 'Отправка...' : 'Подать заявку' }}
-                </button>
-            </div>
-
-            <!-- ─── Step 5: Status screens ───────────────────── -->
-            <div v-else-if="step === 5" class="step-content">
-                <!-- Done / Pending -->
-                <template v-if="phase === 'pending' || phase === 'none'">
-                    <el-icon class="step-icon">
-                        <Message />
-                    </el-icon>
-                    <h2 class="step-title">Заявка принята!</h2>
-                    <p class="step-sub">Мы рассмотрим её в ближайшее время. Уведомление придёт на почту и в колокольчик.
-                    </p>
-                </template>
-                <!-- Approved -->
-                <template v-else-if="phase === 'approved'">
-                    <el-icon class="step-icon">
-                        <StarFilled />
-                    </el-icon>
-                    <h2 class="step-title">Вы Айдол!</h2>
-                    <p class="step-sub">Ваш статус подтверждён. Спасибо за то, что вдохновляете других!</p>
-                </template>
-                <!-- Rejected -->
-                <template v-else-if="phase === 'rejected'">
-                    <el-icon class="step-icon">
-                        <CircleClose />
-                    </el-icon>
-                    <h2 class="step-title">Заявка отклонена</h2>
-                    <p class="step-sub">К сожалению, ваша заявка была отклонена.</p>
-                    <div v-if="rejection_reason" class="rejection-reason">
-                        <strong>Причина:</strong> {{ rejection_reason }}
+                    <div class="dropzone" :class="{ 'dropzone--has-file': photoPreview }" @dragover.prevent @drop="onDrop"
+                        @click="$refs.fileInput.click()">
+                        <img v-if="photoPreview" :src="photoPreview" class="photo-preview" alt="Preview" />
+                        <template v-else>
+                            <el-icon class="dropzone-icon">
+                                <Upload />
+                            </el-icon>
+                            <p class="dropzone-text">Перетащите фото или нажмите для выбора</p>
+                        </template>
                     </div>
-                    <button @click="step = quiz_passed ? 4 : 1" class="btn-secondary">Попробовать снова</button>
-                </template>
-            </div>
+                    <input ref="fileInput" type="file" accept="image/*" style="display:none" @change="onFileChange" />
 
+                    <p v-if="photoForm.errors.face_photo" class="error-msg">{{ photoForm.errors.face_photo }}</p>
+
+                    <button @click="submitPhoto" class="btn-primary" :disabled="!photoPreview || photoForm.processing">
+                        {{ photoForm.processing ? 'Отправка...' : 'Подать заявку' }}
+                    </button>
+                </div>
+
+                <!-- ─── Step 5: Status screens ─── -->
+                <div v-else-if="step === 5" class="step-content">
+                    <!-- Done / Pending -->
+                    <template v-if="phase === 'pending' || phase === 'none'">
+                        <el-icon class="step-icon">
+                            <Message />
+                        </el-icon>
+                        <h2 class="step-title">Заявка принята!</h2>
+                        <p class="step-sub">Мы рассмотрим её в ближайшее время. Уведомление придёт на почту и в колокольчик.</p>
+                    </template>
+                    <!-- Approved -->
+                    <template v-else-if="phase === 'approved'">
+                        <el-icon class="step-icon">
+                            <StarFilled />
+                        </el-icon>
+                        <h2 class="step-title">Вы Айдол!</h2>
+                        <p class="step-sub">Ваш статус подтверждён. Спасибо за то, что вдохновляете других!</p>
+                    </template>
+                    <!-- Rejected -->
+                    <template v-else-if="phase === 'rejected'">
+                        <el-icon class="step-icon">
+                            <CircleClose />
+                        </el-icon>
+                        <h2 class="step-title">Заявка отклонена</h2>
+                        <p class="step-sub">К сожалению, ваша заявка была отклонена.</p>
+                        <div v-if="rejection_reason" class="rejection-reason">
+                            <strong>Причина:</strong> {{ rejection_reason }}
+                        </div>
+                        <button @click="step = quiz_passed ? 4 : 1" class="btn-secondary">Попробовать снова</button>
+                    </template>
+                </div>
+            </div>
         </div>
     </div>
 </template>
 
 <style scoped>
-/* ── Layout ───────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════
+   Layout — full-width page, article reading column
+   ═══════════════════════════════════════════════════════ */
 .apply-wrap {
     min-height: calc(100vh - 60px);
+    width: 100%;
+    font-family: 'Rubik', sans-serif;
+    box-sizing: border-box;
+}
+
+/* Outer padding shell — generous breathing room */
+.apply-container {
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 3.5rem 2.5rem 6rem;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem 1rem;
-    font-family: 'Rubik', sans-serif;
-    gap: 1rem;
+    gap: 2rem;
+    box-sizing: border-box;
 }
 
 /* ── Back button ──────────────────────────────────────── */
 .back-btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    background: transparent;
-    border: none;
+    align-self: flex-start;
     color: rgba(255, 255, 255, 0.38);
     font-size: 0.82rem;
-    font-family: inherit;
+    font-weight: 500;
+    letter-spacing: 0.03em;
     cursor: pointer;
-    padding: 0.25rem 0;
-    align-self: flex-start;
-    margin-left: calc((100% - 560px) / 2);
-    transition: color 0.15s;
+    transition: color 0.18s;
     text-decoration: none;
 }
 
 .back-btn:hover {
-    color: rgba(255, 255, 255, 0.75);
+    color: #ffb2ef;
 }
 
-@media (max-width: 600px) {
-    .back-btn {
-        margin-left: 0;
-    }
-}
-
-.apply-card {
+/* ═══════════════════════════════════════════════════════
+   Article Layout — full width with centered text column
+   ═══════════════════════════════════════════════════════ */
+.article-layout {
+    display: flex;
+    flex-direction: column;
     width: 100%;
-    max-width: 560px;
-    background: #0a0a0f;
+    animation: fadeIn 0.5s ease-out both;
+}
+
+/* Eyebrow label above the title */
+.step-eyebrow {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #ffb2ef;
+    margin-bottom: 0.6rem;
+}
+
+/* Article body — constrained reading width, centered */
+.article-body {
+    width: 100%;
+    max-width: 700px;       /* optimal reading width */
+    color: rgba(255, 255, 255, 0.78);
+    line-height: 1.85;
+    font-size: 1.07rem;
+}
+
+/* ── Article Typography ───────────────────────────────── */
+.article-body :deep(h1) {
+    font-size: 2.8rem;
+    font-weight: 800;
+    margin: 0 0 1rem;
+    line-height: 1.15;
+    background: linear-gradient(135deg, #ffffff 35%, #ffb2ef 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.article-body :deep(h2) {
+    font-size: 2rem;
+    font-weight: 800;
+    margin: 2.75rem 0 1.1rem;
+    line-height: 1.2;
+    background: linear-gradient(135deg, #ffffff 40%, #ffb2ef 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* First h2 gets no top margin (right after eyebrow) */
+.article-body :deep(h2:first-child) {
+    margin-top: 0;
+}
+
+.article-body :deep(h3) {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #ffb2ef;
+    margin: 2.25rem 0 0.75rem;
+    letter-spacing: -0.01em;
+}
+
+.article-body :deep(h4) {
+    font-size: 1rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 1.75rem 0 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.8rem;
+}
+
+.article-body :deep(p) {
+    margin: 0 0 1.35rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Lead paragraph — first p gets slightly larger text */
+.article-body :deep(p:first-of-type) {
+    font-size: 1.15rem;
+    color: rgba(255, 255, 255, 0.78);
+    line-height: 1.75;
+}
+
+.article-body :deep(ul),
+.article-body :deep(ol) {
+    margin: 0 0 1.75rem;
+    padding-left: 0;
+    list-style: none;
+}
+
+.article-body :deep(ol) {
+    counter-reset: ol-counter;
+}
+
+.article-body :deep(li) {
+    position: relative;
+    padding-left: 1.75rem;
+    margin-bottom: 1rem;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.7;
+}
+
+/* Bullet */
+.article-body :deep(ul li::before) {
+    content: "";
+    position: absolute;
+    left: 0.3rem;
+    top: 0.6em;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ffb2ef;
+    box-shadow: 0 0 6px rgba(255, 178, 239, 0.5);
+}
+
+/* Numbered list counter */
+.article-body :deep(ol li) {
+    counter-increment: ol-counter;
+}
+
+.article-body :deep(ol li::before) {
+    content: counter(ol-counter);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1.25rem;
+    text-align: right;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #ffb2ef;
+    line-height: 1.85;
+}
+
+.article-body :deep(li strong) {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* Blockquote — styled callout */
+.article-body :deep(blockquote) {
+    margin: 2rem 0;
+    padding: 1.25rem 1.5rem;
+    border-left: 3px solid #ffb2ef;
+    background: rgba(255, 178, 239, 0.05);
+    border-radius: 0 6px 6px 0;
+    color: rgba(255, 255, 255, 0.65);
+    font-style: italic;
+}
+
+/* Horizontal rule */
+.article-body :deep(hr) {
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    margin: 2.5rem 0;
+}
+
+/* Inline code */
+.article-body :deep(code) {
+    font-size: 0.88em;
+    background: rgba(255, 178, 239, 0.08);
     border: 1px solid rgba(255, 178, 239, 0.18);
     border-radius: 4px;
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 16px 48px rgba(0, 0, 0, 0.6);
+    padding: 0.1em 0.4em;
+    color: #ffb2ef;
+    font-family: 'JetBrains Mono', monospace;
 }
 
-/* ── Generic step wrapper ─────────────────────────────── */
+/* Bold / em */
+.article-body :deep(strong) {
+    color: #fff;
+    font-weight: 600;
+}
+
+.article-body :deep(em) {
+    color: rgba(255, 255, 255, 0.65);
+}
+
+/* ── Divider between article and CTA ─────────────────── */
+.article-actions {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    margin-top: 3rem;
+    padding-top: 2.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    gap: 1.5rem;
+}
+
+/* ── "Начать тест" — glassmorphism CTA ───────────────── */
+.btn-start-quiz {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.9rem 2.6rem;
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-family: inherit;
+    border-radius: 10px;
+    overflow: hidden;
+
+    /* Glass base */
+    background: rgba(255, 178, 239, 0.08);
+    border: 1px solid rgba(255, 178, 239, 0.28);
+    color: #ffb2ef;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+
+    /* Glow shadow */
+    box-shadow:
+        0 4px 24px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+    transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Subtle shimmer overlay */
+.btn-start-quiz::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 178, 239, 0.12) 0%,
+        transparent 60%
+    );
+    opacity: 0;
+    transition: opacity 0.28s;
+    pointer-events: none;
+}
+
+.btn-start-quiz:hover {
+    background: rgba(255, 178, 239, 0.15);
+    border-color: rgba(255, 178, 239, 0.55);
+    color: #ffffff;
+    box-shadow:
+        0 0 30px rgba(255, 178, 239, 0.28),
+        0 8px 30px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.btn-start-quiz:hover::before {
+    opacity: 1;
+}
+
+.btn-start-quiz:active {
+    transform: translateY(0);
+    box-shadow:
+        0 0 14px rgba(255, 178, 239, 0.18),
+        0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.btn-start-quiz:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Small hint text next to button */
+.cta-hint {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.3);
+    line-height: 1.5;
+    max-width: 240px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Wizard Card (Steps 2-5 — quiz, result, photo, status)
+   ═══════════════════════════════════════════════════════ */
+.wizard-card {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    background: rgba(10, 10, 15, 0.55);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 178, 239, 0.12);
+    border-radius: 14px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    animation: scaleIn 0.3s ease-out both;
+}
+
 .step-content {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.25rem;
+    gap: 1.5rem;
     text-align: center;
-    padding: 2.5rem 2rem;
-}
-
-.step-eyebrow {
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: #ffb2ef;
+    padding: 3.5rem 2.5rem;
 }
 
 .step-icon {
-    font-size: 2.75rem;
+    font-size: 3rem;
     display: flex;
     justify-content: center;
+    color: #ffb2ef;
 }
 
 .step-title {
-    font-size: 1.55rem;
+    font-size: 1.6rem;
     color: #fff;
     margin: 0;
     font-weight: 700;
 }
 
 .step-sub {
-    color: rgba(255, 255, 255, 0.45);
-    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.92rem;
     margin: 0;
-    line-height: 1.65;
-    max-width: 400px;
+    line-height: 1.6;
+    max-width: 420px;
 }
 
-/* ── Memo ─────────────────────────────────────────────── */
-.memo-block {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    text-align: left;
-}
-
-.memo-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.8rem;
-    padding: 0.75rem 0.85rem;
-    background: rgba(255, 255, 255, 0.025);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 3px;
-}
-
-.memo-icon {
-    font-size: 1.1rem;
-    flex-shrink: 0;
-    margin-top: 0.05rem;
-}
-
-.memo-item strong {
-    display: block;
-    color: rgba(255, 255, 255, 0.88);
-    font-size: 0.85rem;
-    margin-bottom: 0.15rem;
-    font-weight: 600;
-}
-
-.memo-item p {
-    margin: 0;
-    font-size: 0.78rem;
-    color: rgba(255, 255, 255, 0.38);
-    line-height: 1.45;
-}
-
-/* ── Buttons ──────────────────────────────────────────── */
+/* ── Buttons (wizard) ─────────────────────────────────── */
 .btn-primary {
-    padding: 0.7rem 2rem;
+    padding: 0.8rem 2.2rem;
     background: #ffb2ef;
-    border: none;
-    border-radius: 3px;
-    color: #fff;
-    font-size: 0.9rem;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: #0b0b12;
+    font-size: 0.92rem;
     font-weight: 700;
     letter-spacing: 0.04em;
     font-family: inherit;
     cursor: pointer;
-    transition: opacity 0.15s, transform 0.1s;
+    transition: all 0.2s;
     min-width: 160px;
+    box-shadow: 0 4px 16px rgba(255, 178, 239, 0.35);
 }
 
 .btn-primary:hover {
-    opacity: 0.88;
+    background: #ffffff;
+    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.45);
     transform: translateY(-1px);
 }
 
@@ -552,30 +796,31 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     opacity: 0.35;
     cursor: not-allowed;
     transform: none;
+    box-shadow: none;
 }
 
 .btn-secondary {
-    padding: 0.6rem 1.4rem;
+    padding: 0.7rem 1.6rem;
     background: transparent;
     border: 1px solid rgba(255, 178, 239, 0.4);
-    border-radius: 3px;
+    border-radius: 8px;
     color: #ffb2ef;
-    font-size: 0.85rem;
+    font-size: 0.88rem;
     font-family: inherit;
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
+    transition: all 0.2s;
 }
 
 .btn-secondary:hover {
-    background: rgba(255, 178, 239, 0.07);
-    border-color: rgba(255, 178, 239, 0.65);
+    background: rgba(255, 178, 239, 0.08);
+    border-color: rgba(255, 178, 239, 0.7);
+    color: #fff;
 }
 
 /* ── Quiz wrapper ─────────────────────────────────────── */
 .quiz-wrap {
     display: flex;
     flex-direction: column;
-    gap: 0;
 }
 
 /* ── Top bar ──────────────────────────────────────────── */
@@ -583,18 +828,18 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem 1.5rem 0.85rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 1.25rem 1.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .quiz-stage-label {
     display: flex;
     align-items: baseline;
-    gap: 0.2rem;
+    gap: 0.25rem;
 }
 
 .quiz-stage-num {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
     font-weight: 700;
     color: #fff;
     line-height: 1;
@@ -602,76 +847,75 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 }
 
 .quiz-stage-sep {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     color: rgba(255, 255, 255, 0.2);
-    margin: 0 0.05rem;
 }
 
 .quiz-stage-total {
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.35);
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.4);
     font-variant-numeric: tabular-nums;
 }
 
 .quiz-errors-badge {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
-    padding: 0.3rem 0.65rem;
-    border-radius: 3px;
-    font-size: 0.78rem;
+    gap: 0.4rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 5px;
+    font-size: 0.8rem;
     font-weight: 700;
     letter-spacing: 0.06em;
     border: 1px solid;
-    transition: color 0.2s, background 0.2s, border-color 0.2s;
+    transition: all 0.2s;
 }
 
 .quiz-errors-badge svg {
-    width: 0.85rem;
-    height: 0.85rem;
-    flex-shrink: 0;
+    width: 0.9rem;
+    height: 0.9rem;
 }
 
 .quiz-errors-badge--zero {
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.35);
     background: rgba(255, 255, 255, 0.03);
-    border-color: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.08);
 }
 
 .quiz-errors-badge--one {
     color: #fbb740;
-    background: rgba(251, 183, 64, 0.07);
-    border-color: rgba(251, 183, 64, 0.25);
+    background: rgba(251, 183, 64, 0.08);
+    border-color: rgba(251, 183, 64, 0.28);
 }
 
 .quiz-errors-badge--two {
     color: #ff6b6b;
     background: rgba(255, 80, 80, 0.08);
-    border-color: rgba(255, 80, 80, 0.3);
+    border-color: rgba(255, 80, 80, 0.35);
 }
 
 /* ── Segmented progress ───────────────────────────────── */
 .quiz-segments {
     display: flex;
-    gap: 3px;
-    padding: 0.75rem 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    gap: 4px;
+    padding: 0.9rem 1.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .quiz-segment {
     flex: 1;
-    height: 3px;
-    border-radius: 0;
+    height: 4px;
+    border-radius: 2px;
     background: rgba(255, 255, 255, 0.08);
     transition: background 0.25s ease;
 }
 
 .quiz-segment--done {
-    background: rgba(255, 178, 239, 0.55);
+    background: rgba(255, 178, 239, 0.45);
 }
 
 .quiz-segment--active {
     background: #ffb2ef;
+    box-shadow: 0 0 8px rgba(255, 178, 239, 0.5);
 }
 
 /* ── Warning ──────────────────────────────────────────── */
@@ -679,30 +923,28 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.6rem 1.5rem;
+    padding: 0.75rem 1.75rem;
     background: rgba(255, 80, 80, 0.06);
     border-bottom: 1px solid rgba(255, 80, 80, 0.18);
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     font-weight: 600;
-    letter-spacing: 0.02em;
     color: #ff6b6b;
 }
 
 .quiz-warning svg {
-    width: 0.9rem;
-    height: 0.9rem;
-    flex-shrink: 0;
+    width: 0.95rem;
+    height: 0.95rem;
 }
 
 /* ── Question ─────────────────────────────────────────── */
 .question-block {
-    padding: 1.5rem 1.5rem 1.75rem;
+    padding: 2rem 1.75rem 2.25rem;
 }
 
 .question-text {
-    font-size: 1rem;
-    color: rgba(255, 255, 255, 0.92);
-    margin: 0 0 1.25rem;
+    font-size: 1.05rem;
+    color: rgba(255, 255, 255, 0.95);
+    margin: 0 0 1.5rem;
     line-height: 1.6;
     font-weight: 500;
 }
@@ -711,57 +953,35 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 .options-list {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.5rem;
 }
 
 .option-row {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.85rem;
     width: 100%;
-    padding: 0.75rem 0.85rem;
-    background: rgba(255, 255, 255, 0.025);
+    padding: 0.85rem 1rem;
+    background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 3px;
-    color: rgba(255, 255, 255, 0.65);
-    font-size: 0.88rem;
+    border-radius: 7px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.92rem;
     font-family: inherit;
     text-align: left;
     cursor: pointer;
-    transition: background 0.12s, border-color 0.12s, color 0.12s;
+    transition: all 0.15s ease;
     line-height: 1.45;
 }
 
 .option-row:hover:not(:disabled) {
-    background: rgba(255, 178, 239, 0.07);
-    border-color: rgba(255, 178, 239, 0.28);
-    color: rgba(255, 255, 255, 0.92);
+    background: rgba(255, 178, 239, 0.06);
+    border-color: rgba(255, 178, 239, 0.25);
+    color: rgba(255, 255, 255, 0.95);
 }
 
 .option-row:disabled {
     cursor: default;
-}
-
-.option-row--selected {
-    background: rgba(255, 178, 239, 0.1) !important;
-    border-color: rgba(255, 178, 239, 0.5) !important;
-    color: #fff !important;
-}
-
-.option-row--correct {
-    background: rgba(74, 222, 128, 0.08) !important;
-    border-color: rgba(74, 222, 128, 0.4) !important;
-    color: #4ade80 !important;
-}
-
-.option-row--wrong {
-    background: rgba(255, 80, 80, 0.08) !important;
-    border-color: rgba(255, 80, 80, 0.35) !important;
-    color: #ff6b6b !important;
-}
-
-.option-row--muted {
-    opacity: 0.28;
 }
 
 .option-badge {
@@ -769,16 +989,16 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    width: 1.5rem;
-    height: 1.5rem;
-    border-radius: 3px;
-    background: rgba(255, 255, 255, 0.06);
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.04em;
-    color: rgba(255, 255, 255, 0.4);
-    transition: background 0.12s, border-color 0.12s, color 0.12s;
+    color: rgba(255, 255, 255, 0.45);
+    transition: all 0.15s;
 }
 
 .option-row--selected .option-badge {
@@ -799,6 +1019,28 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     color: #ff6b6b;
 }
 
+.option-row--selected {
+    background: rgba(255, 178, 239, 0.08) !important;
+    border-color: rgba(255, 178, 239, 0.4) !important;
+    color: #fff !important;
+}
+
+.option-row--correct {
+    background: rgba(74, 222, 128, 0.08) !important;
+    border-color: rgba(74, 222, 128, 0.4) !important;
+    color: #4ade80 !important;
+}
+
+.option-row--wrong {
+    background: rgba(255, 80, 80, 0.08) !important;
+    border-color: rgba(255, 80, 80, 0.35) !important;
+    color: #ff6b6b !important;
+}
+
+.option-row--muted {
+    opacity: 0.28;
+}
+
 .option-text {
     flex: 1;
 }
@@ -810,42 +1052,39 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     margin-left: auto;
 }
 
-.option-icon--correct {
-    color: #4ade80;
-}
-
-.option-icon--wrong {
-    color: #ff6b6b;
-}
+.option-icon--correct { color: #4ade80; }
+.option-icon--wrong   { color: #ff6b6b; }
 
 /* ── Cooldown ─────────────────────────────────────────── */
 .cooldown-timer {
-    font-size: 2rem;
+    font-size: 2.2rem;
     font-weight: 700;
     color: #ffb2ef;
     letter-spacing: 0.06em;
     font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 16px rgba(255, 178, 239, 0.35);
 }
 
 /* ── Photo dropzone ───────────────────────────────────── */
 .dropzone {
     width: 100%;
-    min-height: 150px;
+    min-height: 160px;
     border: 1px dashed rgba(255, 178, 239, 0.3);
-    border-radius: 3px;
+    border-radius: 8px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
+    gap: 0.6rem;
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
+    transition: all 0.2s;
     padding: 1rem;
     box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.01);
 }
 
 .dropzone:hover {
-    border-color: rgba(255, 178, 239, 0.55);
+    border-color: rgba(255, 178, 239, 0.6);
     background: rgba(255, 178, 239, 0.04);
 }
 
@@ -854,24 +1093,22 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     border-color: rgba(255, 178, 239, 0.4);
 }
 
-.dropzone-icon {
-    font-size: 1.75rem;
-}
+.dropzone-icon { font-size: 2rem; }
 
 .dropzone-text {
-    font-size: 0.82rem;
+    font-size: 0.85rem;
     color: rgba(255, 255, 255, 0.35);
 }
 
 .photo-preview {
     max-width: 100%;
-    max-height: 240px;
-    border-radius: 2px;
+    max-height: 260px;
+    border-radius: 4px;
     object-fit: cover;
 }
 
 .error-msg {
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     color: #ff6b6b;
     margin: 0;
 }
@@ -880,72 +1117,74 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 .rejection-reason {
     background: rgba(255, 80, 80, 0.05);
     border: 1px solid rgba(255, 80, 80, 0.18);
-    border-radius: 3px;
-    padding: 0.75rem 1rem;
-    font-size: 0.84rem;
-    color: rgba(255, 255, 255, 0.55);
+    border-radius: 6px;
+    padding: 0.85rem 1.1rem;
+    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.65);
     text-align: left;
     max-width: 400px;
     line-height: 1.55;
 }
 
-/* ── Article Style ── */
-.step-content--article {
-    align-items: stretch;
-    text-align: left;
+/* ── Animations ───────────────────────────────────────── */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
-.article-body {
-    width: 100%;
-    color: rgba(255, 255, 255, 0.8);
-    line-height: 1.65;
-    font-size: 0.92rem;
+@keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.97); }
+    to   { opacity: 1; transform: scale(1); }
 }
 
-.article-body :deep(h2) {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #fff;
-    margin-top: 0;
-    margin-bottom: 1rem;
-    background: linear-gradient(120deg, #fff, #ffb2ef);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-align: center;
+/* ═══════════════════════════════════════════════════════
+   Responsive
+   ═══════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+    .apply-container {
+        padding: 2.5rem 2rem 4rem;
+    }
 }
 
-.article-body :deep(h3) {
-    font-size: 1.15rem;
-    font-weight: 600;
-    color: #ffb2ef;
-    margin-top: 1.5rem;
-    margin-bottom: 0.75rem;
-}
+@media (max-width: 640px) {
+    .apply-container {
+        padding: 1.75rem 1.25rem 3.5rem;
+    }
 
-.article-body :deep(p) {
-    margin-top: 0;
-    margin-bottom: 1rem;
-    color: rgba(255, 255, 255, 0.7);
-}
+    .article-body {
+        font-size: 1rem;
+        line-height: 1.75;
+    }
 
-.article-body :deep(ul), .article-body :deep(ol) {
-    margin-top: 0;
-    margin-bottom: 1.25rem;
-    padding-left: 1.25rem;
-}
+    .article-body :deep(h2) {
+        font-size: 1.7rem;
+    }
 
-.article-body :deep(li) {
-    margin-bottom: 0.5rem;
-    color: rgba(255, 255, 255, 0.7);
-}
+    .article-body :deep(h3) {
+        font-size: 1.1rem;
+    }
 
-.article-body :deep(li strong) {
-    color: rgba(255, 255, 255, 0.95);
-    font-weight: 600;
-}
+    .article-actions {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
 
-.btn-start-quiz {
-    margin-top: 1rem;
-    align-self: center;
+    .btn-start-quiz {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .cta-hint {
+        max-width: 100%;
+    }
+
+    .step-content {
+        padding: 2.5rem 1.25rem;
+    }
+
+    .wizard-card {
+        border-radius: 10px;
+    }
 }
 </style>
