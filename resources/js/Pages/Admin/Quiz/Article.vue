@@ -108,25 +108,59 @@ function confirmDelete() {
 // ── Diff ──────────────────────────────────────────────────
 const showDiffModal  = ref(false);
 const diffLoading    = ref(false);
-const diffData       = ref(null);   // { version_a, version_b, diff: [{type, text}] }
-const diffOther      = ref(null);   // version to compare against
+const diffVersionA   = ref(null);   // Old version (other)
+const diffVersionB   = ref(null);   // New version (version)
+const htmlA          = ref('');     // Old version HTML content
+const htmlB          = ref('');     // New version HTML content
 
-function openDiff(version) {
-    // Compare against the previous version in the list
-    const idx = props.versions.findIndex(v => v.id === version.id);
-    const prev = props.versions[idx + 1];
-    if (!prev) {
-        alert('Нет предыдущей версии для сравнения.');
+function openDiffModal() {
+    showDiffModal.value = true;
+    htmlA.value = '';
+    htmlB.value = '';
+
+    if (props.versions && props.versions.length >= 2) {
+        diffVersionB.value = props.versions[0].id;
+        diffVersionA.value = props.versions[1].id;
+        runCompare();
+    } else if (props.versions && props.versions.length === 1) {
+        diffVersionB.value = props.versions[0].id;
+        diffVersionA.value = null;
+        // Fetch only B
+        diffLoading.value = true;
+        axios.get(route('admin.quiz.article.versions.show', diffVersionB.value))
+            .then(resB => { htmlB.value = resB.data.html ?? ''; })
+            .catch(err => { console.error(err); })
+            .finally(() => { diffLoading.value = false; });
+    } else {
+        diffVersionB.value = null;
+        diffVersionA.value = null;
+    }
+}
+
+function runCompare() {
+    if (!diffVersionA.value || !diffVersionB.value) {
+        htmlA.value = '';
+        htmlB.value = '';
         return;
     }
-    diffOther.value = prev;
-    diffLoading.value = true;
-    showDiffModal.value = true;
-    diffData.value = null;
 
-    axios.get(route('admin.quiz.article.versions.diff', { version: version.id, other: prev.id }))
-        .then(r => { diffData.value = r.data; })
-        .finally(() => { diffLoading.value = false; });
+    diffLoading.value = true;
+
+    // Load both version contents in parallel
+    Promise.all([
+        axios.get(route('admin.quiz.article.versions.show', diffVersionA.value)),
+        axios.get(route('admin.quiz.article.versions.show', diffVersionB.value))
+    ])
+    .then(([resA, resB]) => {
+        htmlA.value = resA.data.html ?? '';
+        htmlB.value = resB.data.html ?? '';
+    })
+    .catch(err => {
+        alert('Ошибка при загрузке содержимого версий: ' + (err.response?.data?.message || err.message));
+    })
+    .finally(() => {
+        diffLoading.value = false;
+    });
 }
 
 // ── Export ────────────────────────────────────────────────
@@ -164,14 +198,6 @@ function fmtDate(d) {
         hour: '2-digit', minute: '2-digit',
     });
 }
-
-// Diff line stats
-const diffStats = computed(() => {
-    if (!diffData.value) return null;
-    const added   = diffData.value.diff.filter(l => l.type === '+').length;
-    const removed = diffData.value.diff.filter(l => l.type === '-').length;
-    return { added, removed };
-});
 </script>
 
 <template>
@@ -191,6 +217,10 @@ const diffStats = computed(() => {
                 <button class="btn-ghost btn-sm" @click="exportArticle">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     Экспорт
+                </button>
+                <button class="btn-ghost btn-sm" @click="openDiffModal" :disabled="versions.length < 2">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    Сравнить версии
                 </button>
                 <button class="btn-primary" @click="openSaveModal">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
@@ -241,14 +271,6 @@ const diffStats = computed(() => {
                             >
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
                                 Загрузить
-                            </button>
-                            <button
-                                class="vc-btn vc-btn--diff"
-                                @click="openDiff(v)"
-                                title="Сравнить с предыдущей версией"
-                            >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                                Diff
                             </button>
                             <button
                                 v-if="!v.is_active"
@@ -392,39 +414,39 @@ const diffStats = computed(() => {
                         <button class="modal-close" @click="showDiffModal = false">✕</button>
                     </div>
                     <div class="modal-body modal-body--diff">
-                        <div v-if="diffLoading" class="diff-loading">Вычисляем diff...</div>
-                        <template v-else-if="diffData">
-                            <div class="diff-meta">
-                                <div class="diff-version diff-version--old">
-                                    <span class="diff-badge diff-badge--old">Было</span>
-                                    {{ diffData.version_a.label || fmtDate(diffData.version_a.created_at) }}
-                                </div>
-                                <div class="diff-arrow">→</div>
-                                <div class="diff-version diff-version--new">
-                                    <span class="diff-badge diff-badge--new">Стало</span>
-                                    {{ diffData.version_b.label || fmtDate(diffData.version_b.created_at) }}
-                                </div>
+                        <!-- Version Selection Header -->
+                        <div class="diff-selectors">
+                            <div class="diff-sel-group">
+                                <label class="diff-sel-label">Было (Старая версия)</label>
+                                <select v-model="diffVersionA" @change="runCompare" class="diff-select">
+                                    <option v-for="v in versions" :key="v.id" :value="v.id">
+                                        {{ v.label || '— автоматическая версия —' }} ({{ fmtDate(v.created_at) }})
+                                    </option>
+                                </select>
                             </div>
-                            <div class="diff-stats" v-if="diffStats">
-                                <span class="diff-stat diff-stat--add">+{{ diffStats.added }} строк</span>
-                                <span class="diff-stat diff-stat--rem">−{{ diffStats.removed }} строк</span>
+                            <div class="diff-sel-arrow">→</div>
+                            <div class="diff-sel-group">
+                                <label class="diff-sel-label">Стало (Новая версия)</label>
+                                <select v-model="diffVersionB" @change="runCompare" class="diff-select">
+                                    <option v-for="v in versions" :key="v.id" :value="v.id">
+                                        {{ v.label || '— автоматическая версия —' }} ({{ fmtDate(v.created_at) }})
+                                    </option>
+                                </select>
                             </div>
-                            <div class="diff-body">
-                                <div
-                                    v-for="(line, i) in diffData.diff"
-                                    :key="i"
-                                    class="diff-line"
-                                    :class="{
-                                        'diff-line--add': line.type === '+',
-                                        'diff-line--rem': line.type === '-',
-                                        'diff-line--ctx': line.type === ' ',
-                                    }"
-                                >
-                                    <span class="diff-gutter">{{ line.type }}</span>
-                                    <span class="diff-text">{{ line.text || '\u00a0' }}</span>
-                                </div>
+                        </div>
+
+                        <!-- Diff Output: Side-by-side text/HTML -->
+                        <div v-if="diffLoading" class="diff-loading">Загружаем содержимое версий...</div>
+                        <div v-else class="diff-side-by-side">
+                            <div class="diff-column">
+                                <div class="diff-column-head">Было (Старая версия)</div>
+                                <div class="diff-column-body" v-html="htmlA || '<p class=\'empty-column\'>Нет содержимого</p>'"></div>
                             </div>
-                        </template>
+                            <div class="diff-column">
+                                <div class="diff-column-head">Стало (Новая версия)</div>
+                                <div class="diff-column-body" v-html="htmlB || '<p class=\'empty-column\'>Нет содержимого</p>'"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -892,7 +914,9 @@ const diffStats = computed(() => {
 .modal--warn { max-width: 420px; }
 
 .modal--diff {
-    max-width: 700px;
+    max-width: 1200px;
+    width: 92%;
+    height: 85vh;
     max-height: 85vh;
     display: flex;
     flex-direction: column;
@@ -1023,85 +1047,127 @@ const diffStats = computed(() => {
     font-size: 0.88rem;
 }
 
-.diff-meta {
+.diff-selectors {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     padding: 0.9rem 1.25rem;
     border-bottom: 1px solid rgba(255,255,255,0.07);
-    flex-wrap: wrap;
+    background: rgba(255,255,255,0.01);
 }
 
-.diff-version {
+.diff-sel-group {
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.78rem;
-    color: rgba(255,255,255,0.55);
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+    min-width: 0;
 }
 
-.diff-arrow { color: rgba(255,255,255,0.2); font-size: 1rem; }
+.diff-sel-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.35);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
 
-.diff-badge {
-    font-size: 0.64rem;
+.diff-select {
+    width: 100%;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 6px;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.76rem;
+    color: rgba(255,255,255,0.8);
+    font-family: inherit;
+    outline: none;
+    transition: all 0.15s;
+    cursor: pointer;
+}
+
+.diff-select:focus {
+    border-color: rgba(255,178,239,0.35);
+    box-shadow: 0 0 0 2px rgba(255,178,239,0.08);
+}
+
+.diff-select option {
+    background: #111;
+    color: #fff;
+}
+
+.diff-sel-arrow {
+    color: rgba(255,255,255,0.15);
+    font-size: 1rem;
+    margin-top: 1rem;
+    user-select: none;
+}
+
+.diff-empty-state {
+    padding: 3rem;
+    text-align: center;
+    color: rgba(255,255,255,0.2);
+    font-size: 0.82rem;
+    font-style: italic;
+}
+
+.diff-side-by-side {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.15);
+}
+
+.diff-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.diff-column:first-child {
+    border-right: 1px solid rgba(255,255,255,0.06);
+}
+
+.diff-column-head {
+    padding: 0.5rem 1rem;
+    font-size: 0.72rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    padding: 0.15rem 0.45rem;
-    border-radius: 3px;
-}
-.diff-badge--old { background: rgba(255,80,80,0.1); color: #ff8080; border: 1px solid rgba(255,80,80,0.2); }
-.diff-badge--new { background: rgba(74,222,128,0.1); color: #4ade80; border: 1px solid rgba(74,222,128,0.2); }
-
-.diff-stats {
-    display: flex;
-    gap: 0.75rem;
-    padding: 0.5rem 1.25rem;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    letter-spacing: 0.05em;
+    color: rgba(255,255,255,0.38);
+    background: rgba(255,255,255,0.01);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
 }
 
-.diff-stat {
-    font-size: 0.74rem;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-}
-.diff-stat--add { color: #4ade80; }
-.diff-stat--rem { color: #ff6b6b; }
-
-.diff-body {
+.diff-column-body {
+    flex: 1;
     overflow-y: auto;
-    flex: 1;
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
-    font-size: 0.75rem;
-    line-height: 1.55;
-    padding: 0.5rem 0;
-    max-height: 420px;
+    padding: 1.5rem;
+    color: rgba(255,255,255,0.52);
+    line-height: 1.85;
+    font-size: 0.88rem;
 }
 
-.diff-line {
-    display: flex;
-    gap: 0;
-    min-height: 1.55em;
-}
+.diff-column-body :deep(h1) { font-size: 1.5rem; font-weight: 700; color: rgba(255,255,255,0.88); margin: 0 0 0.85rem; }
+.diff-column-body :deep(h2) { font-size: 1.2rem; font-weight: 700; color: rgba(255,255,255,0.82); margin: 2rem 0 0.75rem; }
+.diff-column-body :deep(h2:first-child), .diff-column-body :deep(h1:first-child) { margin-top: 0; }
+.diff-column-body :deep(h3) { font-size: 0.97rem; font-weight: 600; color: rgba(255,178,239,0.8); margin: 1.5rem 0 0.5rem; }
+.diff-column-body :deep(p)  { margin: 0 0 1rem; color: rgba(255,255,255,0.52); }
+.diff-column-body :deep(ul), .diff-column-body :deep(ol) { margin: 0 0 1rem; padding-left: 0; list-style: none; }
+.diff-column-body :deep(li) { position: relative; padding-left: 1.4rem; margin-bottom: 0.6rem; color: rgba(255,255,255,0.52); }
+.diff-column-body :deep(ul li::before) { content: ''; position: absolute; left: 0.25rem; top: 0.55em; width: 5px; height: 5px; border-radius: 50%; background: rgba(255,178,239,0.6); }
+.diff-column-body :deep(li strong), .diff-column-body :deep(strong) { color: rgba(255,255,255,0.8); font-weight: 600; }
+.diff-column-body :deep(blockquote) { border-left: 2px solid rgba(255,178,239,0.35); padding: 0.5em 0.9em; margin: 1em 0; background: rgba(255,178,239,0.03); color: rgba(255,255,255,0.42); font-style: italic; border-radius: 0 4px 4px 0; }
+.diff-column-body :deep(code) { font-size: 0.82em; background: rgba(255,178,239,0.08); border: 1px solid rgba(255,178,239,0.18); border-radius: 3px; padding: 0.1em 0.3em; color: #ffb2ef; }
+.diff-column-body :deep(hr) { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 1.5em 0; }
 
-.diff-line--ctx  { color: rgba(255,255,255,0.4); }
-.diff-line--add  { background: rgba(74,222,128,0.07); color: rgba(74,222,128,0.9); }
-.diff-line--rem  { background: rgba(255,80,80,0.07); color: rgba(255,100,100,0.9); }
-
-.diff-gutter {
-    width: 1.8rem;
-    flex-shrink: 0;
+.empty-column {
+    font-style: italic;
+    color: rgba(255,255,255,0.2) !important;
     text-align: center;
-    user-select: none;
-    opacity: 0.55;
-    padding: 0 0.25rem;
-}
-
-.diff-text {
-    flex: 1;
-    padding: 0 0.75rem 0 0;
-    white-space: pre-wrap;
-    word-break: break-all;
+    padding: 2rem 0;
 }
 
 /* ═══════════════════════════════════════════════════════
