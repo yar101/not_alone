@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Idol;
 
 use App\Http\Controllers\Controller;
 use App\Models\IdolApplication;
+use App\Models\IdolArticleVersion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -38,15 +39,16 @@ class ApplicationController extends Controller
             }
         }
 
-        $articleHtml = \App\Models\PlatformSetting::get('idol_apply_article_html', '');
+        $activeVersion = IdolArticleVersion::active()->first();
+        $articleHtml   = $activeVersion?->html ?? '';
 
         return Inertia::render('Idol/Apply', [
-            'phase' => $phase,
-            'session' => $sessionData,
-            'cooldown_until' => $cooldownUntil,
+            'phase'            => $phase,
+            'session'          => $sessionData,
+            'cooldown_until'   => $cooldownUntil,
             'rejection_reason' => $application?->rejection_reason,
-            'quiz_passed' => (bool) $user->idol_quiz_passed_at,
-            'article_html' => $articleHtml,
+            'quiz_passed'      => (bool) $user->idol_quiz_passed_at,
+            'article_html'     => $articleHtml,
         ]);
     }
 

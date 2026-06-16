@@ -60,8 +60,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::patch('/questions/{question}', [QuizQuestionController::class, 'update'])->name('questions.update');
             Route::delete('/questions/{question}', [QuizQuestionController::class, 'destroy'])->name('questions.destroy');
 
+            // Article versioning
             Route::get('/article', [QuizQuestionController::class, 'showArticle'])->name('article.index');
-            Route::patch('/article', [QuizQuestionController::class, 'updateArticle'])->name('article.update');
+            Route::post('/article/versions', [QuizQuestionController::class, 'storeVersion'])->name('article.versions.store');
+            Route::get('/article/versions/{version}', [QuizQuestionController::class, 'getVersion'])->name('article.versions.show');
+            Route::patch('/article/versions/{version}/activate', [QuizQuestionController::class, 'activateVersion'])->name('article.versions.activate');
+            Route::delete('/article/versions/{version}', [QuizQuestionController::class, 'destroyVersion'])->name('article.versions.destroy');
+            Route::get('/article/versions/{version}/diff/{other}', [QuizQuestionController::class, 'diffVersions'])->name('article.versions.diff');
+            Route::get('/article/export', [QuizQuestionController::class, 'exportArticle'])->name('article.export');
+            Route::post('/article/import', [QuizQuestionController::class, 'importArticle'])->name('article.import');
         });
 
         // Users — static routes before parameterized
