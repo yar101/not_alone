@@ -217,10 +217,8 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
                 В профиль
             </Link>
 
-            <!-- ─── Step 1: Article (Spacious, clean editorial layout) ─── -->
+            <!-- ─── Step 1: Article ─── -->
             <div v-if="step === 1" class="article-layout">
-                <div class="step-eyebrow">Заявка на статус</div>
-                
                 <div class="article-body" v-html="article_html || defaultArticleHtml"></div>
 
                 <div class="article-actions">
@@ -476,59 +474,53 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 
 /* ── Article Typography ───────────────────────────────── */
 .article-body :deep(h1) {
-    font-size: 2.8rem;
-    font-weight: 800;
+    font-size: 2.6rem;
+    font-weight: 700;
     margin: 0 0 1rem;
     line-height: 1.15;
-    background: linear-gradient(135deg, #ffffff 35%, #ffb2ef 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: rgba(255, 255, 255, 0.88);
 }
 
 .article-body :deep(h2) {
-    font-size: 2rem;
-    font-weight: 800;
-    margin: 2.75rem 0 1.1rem;
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 2.75rem 0 1rem;
     line-height: 1.2;
-    background: linear-gradient(135deg, #ffffff 40%, #ffb2ef 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: rgba(255, 255, 255, 0.82);
 }
 
-/* First h2 gets no top margin (right after eyebrow) */
-.article-body :deep(h2:first-child) {
+/* First heading gets no top margin */
+.article-body :deep(h2:first-child),
+.article-body :deep(h1:first-child) {
     margin-top: 0;
 }
 
 .article-body :deep(h3) {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #ffb2ef;
-    margin: 2.25rem 0 0.75rem;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: rgba(255, 178, 239, 0.8);
+    margin: 2rem 0 0.65rem;
     letter-spacing: -0.01em;
 }
 
 .article-body :deep(h4) {
-    font-size: 1rem;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.9);
-    margin: 1.75rem 0 0.5rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.65);
+    margin: 1.5rem 0 0.4rem;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    font-size: 0.8rem;
+    letter-spacing: 0.07em;
+    font-size: 0.75rem;
 }
 
 .article-body :deep(p) {
-    margin: 0 0 1.35rem;
-    color: rgba(255, 255, 255, 0.7);
+    margin: 0 0 1.3rem;
+    color: rgba(255, 255, 255, 0.52);
 }
 
-/* Lead paragraph — first p gets slightly larger text */
+/* Lead paragraph — first p slightly larger */
 .article-body :deep(p:first-of-type) {
-    font-size: 1.15rem;
-    color: rgba(255, 255, 255, 0.78);
+    font-size: 1.08rem;
+    color: rgba(255, 255, 255, 0.58);
     line-height: 1.75;
 }
 
@@ -546,8 +538,8 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 .article-body :deep(li) {
     position: relative;
     padding-left: 1.75rem;
-    margin-bottom: 1rem;
-    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 0.9rem;
+    color: rgba(255, 255, 255, 0.52);
     line-height: 1.7;
 }
 
@@ -583,7 +575,7 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 }
 
 .article-body :deep(li strong) {
-    color: #ffffff;
+    color: rgba(255, 255, 255, 0.82);
     font-weight: 600;
 }
 
@@ -591,10 +583,10 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 .article-body :deep(blockquote) {
     margin: 2rem 0;
     padding: 1.25rem 1.5rem;
-    border-left: 3px solid #ffb2ef;
-    background: rgba(255, 178, 239, 0.05);
+    border-left: 2px solid rgba(255, 178, 239, 0.45);
+    background: rgba(255, 178, 239, 0.03);
     border-radius: 0 6px 6px 0;
-    color: rgba(255, 255, 255, 0.65);
+    color: rgba(255, 255, 255, 0.45);
     font-style: italic;
 }
 
@@ -618,12 +610,12 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 
 /* Bold / em */
 .article-body :deep(strong) {
-    color: #fff;
+    color: rgba(255, 255, 255, 0.82);
     font-weight: 600;
 }
 
 .article-body :deep(em) {
-    color: rgba(255, 255, 255, 0.65);
+    color: rgba(255, 255, 255, 0.48);
 }
 
 /* ── Divider between article and CTA ─────────────────── */
@@ -637,80 +629,41 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     gap: 1.5rem;
 }
 
-/* ── "Начать тест" — glassmorphism CTA ───────────────── */
+/* ── "Начать тест" — minimal CTA ─────────────────────── */
 .btn-start-quiz {
-    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.6rem;
-    padding: 0.9rem 2.6rem;
-    font-size: 0.92rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
+    gap: 0.5rem;
+    padding: 0.65rem 1.75rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     cursor: pointer;
     font-family: inherit;
-    border-radius: 10px;
-    overflow: hidden;
+    border-radius: 6px;
 
-    /* Glass base */
-    background: rgba(255, 178, 239, 0.08);
-    border: 1px solid rgba(255, 178, 239, 0.28);
-    color: #ffb2ef;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: transparent;
+    border: 1px solid rgba(255, 178, 239, 0.25);
+    color: rgba(255, 178, 239, 0.7);
 
-    /* Glow shadow */
-    box-shadow:
-        0 4px 24px rgba(0, 0, 0, 0.25),
-        inset 0 1px 0 rgba(255, 255, 255, 0.06);
-
-    transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Subtle shimmer overlay */
-.btn-start-quiz::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-        135deg,
-        rgba(255, 178, 239, 0.12) 0%,
-        transparent 60%
-    );
-    opacity: 0;
-    transition: opacity 0.28s;
-    pointer-events: none;
+    transition: border-color 0.18s, color 0.18s, background 0.18s;
 }
 
 .btn-start-quiz:hover {
-    background: rgba(255, 178, 239, 0.15);
-    border-color: rgba(255, 178, 239, 0.55);
-    color: #ffffff;
-    box-shadow:
-        0 0 30px rgba(255, 178, 239, 0.28),
-        0 8px 30px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    transform: translateY(-2px);
-}
-
-.btn-start-quiz:hover::before {
-    opacity: 1;
+    border-color: rgba(255, 178, 239, 0.45);
+    color: rgba(255, 178, 239, 0.95);
+    background: rgba(255, 178, 239, 0.05);
 }
 
 .btn-start-quiz:active {
-    transform: translateY(0);
-    box-shadow:
-        0 0 14px rgba(255, 178, 239, 0.18),
-        0 2px 10px rgba(0, 0, 0, 0.3);
+    background: rgba(255, 178, 239, 0.08);
 }
 
 .btn-start-quiz:disabled {
-    opacity: 0.38;
+    opacity: 0.35;
     cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
 }
 
 /* Small hint text next to button */
