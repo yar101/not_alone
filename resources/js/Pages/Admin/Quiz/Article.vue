@@ -63,11 +63,11 @@ const activeTab = ref('edit'); // 'edit' | 'preview'
                     <span class="pane-badge pane-badge--pink">Живой вид</span>
                 </div>
                 <div class="pane-body preview-scroll">
-                    <!-- Preview simulating site styling -->
                     <div class="apply-card-preview">
-                        <div class="step-eyebrow">ЗАЯВКА НА СТАТУС</div>
                         <div class="article-body-preview" v-html="form.html || '<p class=empty-preview>Текст статьи пуст. Начните вводить текст в редакторе слева...</p>'"></div>
-                        <button class="btn-primary-preview" disabled>Начать тест</button>
+                        <div class="preview-actions">
+                            <button class="btn-primary-preview" disabled>Начать тест</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -217,97 +217,141 @@ const activeTab = ref('edit'); // 'edit' | 'preview'
 /* ── Live Preview Styles ── */
 .apply-card-preview {
     width: 100%;
-    max-width: 500px;
-    margin: 1rem auto;
-    background: #0a0a0f;
-    border: 1px solid rgba(255, 178, 239, 0.18);
-    border-radius: 4px;
-    padding: 2.5rem 2rem;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+    padding: 1.5rem 0.5rem 2rem;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
-    text-align: center;
-}
-
-.step-eyebrow {
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: #ffb2ef;
+    gap: 0;
+    font-family: 'Rubik', sans-serif;
 }
 
 .article-body-preview {
     text-align: left;
     width: 100%;
-    color: rgba(255, 255, 255, 0.85);
-    line-height: 1.7;
-    font-size: 0.95rem;
+    max-width: 100%;
+    color: rgba(255, 255, 255, 0.52);
+    line-height: 1.85;
+    font-size: 0.88rem;
+}
+
+.article-body-preview :deep(h1) {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.88);
+    margin: 0 0 0.85rem;
 }
 
 .article-body-preview :deep(h2) {
-    font-size: 1.45rem;
+    font-size: 1.2rem;
     font-weight: 700;
-    color: #fff;
+    color: rgba(255, 255, 255, 0.82);
+    margin: 2rem 0 0.75rem;
+}
+
+.article-body-preview :deep(h2:first-child),
+.article-body-preview :deep(h1:first-child) {
     margin-top: 0;
-    margin-bottom: 0.9rem;
-    background: linear-gradient(120deg, #fff, #ffb2ef);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
 }
 
 .article-body-preview :deep(h3) {
-    font-size: 1.12rem;
+    font-size: 0.97rem;
     font-weight: 600;
-    color: #ffb2ef;
-    margin-top: 1.4rem;
-    margin-bottom: 0.7rem;
+    color: rgba(255, 178, 239, 0.8);
+    margin: 1.5rem 0 0.5rem;
 }
 
 .article-body-preview :deep(p) {
-    margin-top: 0;
-    margin-bottom: 0.9rem;
-    color: rgba(255, 255, 255, 0.7);
+    margin: 0 0 1rem;
+    color: rgba(255, 255, 255, 0.52);
 }
 
-.article-body-preview :deep(ul), .article-body-preview :deep(ol) {
-    margin-top: 0;
-    margin-bottom: 1.1rem;
-    padding-left: 1.25rem;
+.article-body-preview :deep(ul),
+.article-body-preview :deep(ol) {
+    margin: 0 0 1rem;
+    padding-left: 0;
+    list-style: none;
 }
 
 .article-body-preview :deep(li) {
-    margin-bottom: 0.45rem;
-    color: rgba(255, 255, 255, 0.7);
+    position: relative;
+    padding-left: 1.4rem;
+    margin-bottom: 0.6rem;
+    color: rgba(255, 255, 255, 0.52);
+}
+
+.article-body-preview :deep(ul li::before) {
+    content: '';
+    position: absolute;
+    left: 0.25rem;
+    top: 0.55em;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(255, 178, 239, 0.6);
 }
 
 .article-body-preview :deep(li strong) {
-    color: rgba(255, 255, 255, 0.95);
+    color: rgba(255, 255, 255, 0.8);
     font-weight: 600;
+}
+
+.article-body-preview :deep(strong) {
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 600;
+}
+
+.article-body-preview :deep(blockquote) {
+    border-left: 2px solid rgba(255, 178, 239, 0.35);
+    padding: 0.5em 0.9em;
+    margin: 1em 0;
+    background: rgba(255, 178, 239, 0.03);
+    color: rgba(255, 255, 255, 0.42);
+    font-style: italic;
+    border-radius: 0 4px 4px 0;
+}
+
+.article-body-preview :deep(code) {
+    font-size: 0.82em;
+    background: rgba(255, 178, 239, 0.08);
+    border: 1px solid rgba(255, 178, 239, 0.18);
+    border-radius: 3px;
+    padding: 0.1em 0.3em;
+    color: #ffb2ef;
+}
+
+.article-body-preview :deep(hr) {
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    margin: 1.5em 0;
 }
 
 .empty-preview {
     font-style: italic;
-    color: rgba(255, 255, 255, 0.25) !important;
+    color: rgba(255, 255, 255, 0.2) !important;
     text-align: center;
-    padding: 2rem 0;
+    padding: 2.5rem 0;
+}
+
+.preview-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .btn-primary-preview {
     padding: 0.7rem 2rem;
-    background: #ffb2ef;
-    border: none;
-    border-radius: 3px;
-    color: #fff;
-    font-size: 0.9rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    opacity: 0.6;
+    background: transparent;
+    border: 1px solid rgba(255, 178, 239, 0.25);
+    border-radius: 6px;
+    color: rgba(255, 178, 239, 0.6);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.7;
     cursor: not-allowed;
-    margin-top: 0.75rem;
-    align-self: center;
-    width: fit-content;
+    font-family: inherit;
 }
 
 @media (max-width: 900px) {
