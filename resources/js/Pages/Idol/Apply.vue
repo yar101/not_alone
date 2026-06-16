@@ -621,7 +621,7 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 /* ── Divider between article and CTA ─────────────────── */
 .article-actions {
     display: flex;
-    justify-content: flex-start;
+    justify-content: center;
     align-items: center;
     margin-top: 3rem;
     padding-top: 2.5rem;
@@ -635,14 +635,14 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    padding: 0.65rem 1.75rem;
-    font-size: 0.82rem;
+    padding: 0.8rem 2.4rem;
+    font-size: 0.88rem;
     font-weight: 600;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.07em;
     text-transform: uppercase;
     cursor: pointer;
     font-family: inherit;
-    border-radius: 6px;
+    border-radius: 7px;
 
     background: transparent;
     border: 1px solid rgba(255, 178, 239, 0.25);
@@ -1119,7 +1119,7 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 
     .article-actions {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: center;
         gap: 1rem;
     }
 
