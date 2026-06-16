@@ -667,7 +667,8 @@ const diffStats = computed(() => {
     gap: 0.6rem;
     overflow-x: auto;
     flex: 1;
-    padding: 0.2rem 0;
+    min-width: 0;
+    padding: 0.35rem 0.2rem;
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
@@ -688,8 +689,7 @@ const diffStats = computed(() => {
 }
 
 .version-card-horizontal {
-    flex-shrink: 0;
-    width: 250px;
+    flex: 0 0 280px;
     padding: 0.5rem 0.65rem;
     background: rgba(255,255,255,0.02);
     border: 1px solid rgba(255,255,255,0.06);
@@ -744,16 +744,16 @@ const diffStats = computed(() => {
 .vc-actions {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.25rem;
     margin-top: 0.15rem;
 }
 
 .vc-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.28rem 0.6rem;
-    font-size: 0.7rem;
+    gap: 0.2rem;
+    padding: 0.25rem 0.45rem;
+    font-size: 0.68rem;
     font-weight: 600;
     border-radius: 4px;
     cursor: pointer;
@@ -763,7 +763,7 @@ const diffStats = computed(() => {
     background: transparent;
 }
 
-.vc-btn svg { width: 11px; height: 11px; }
+.vc-btn svg { width: 10px; height: 10px; }
 
 .vc-btn--activate {
     color: #4ade80;
@@ -796,7 +796,7 @@ const diffStats = computed(() => {
 .vc-btn--delete {
     color: rgba(255,100,100,0.55);
     border-color: rgba(255,100,100,0.15);
-    padding: 0.28rem 0.45rem;
+    padding: 0.25rem 0.35rem;
     margin-left: auto;
 }
 .vc-btn--delete:hover {
