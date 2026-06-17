@@ -651,36 +651,47 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    padding: 0.8rem 2.4rem;
-    font-size: 0.88rem;
+    gap: 0.6rem;
+    padding: 0.9rem 2.8rem;
+    font-size: 0.9rem;
     font-weight: 600;
-    letter-spacing: 0.07em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     cursor: pointer;
     font-family: inherit;
-    border-radius: 7px;
+    border-radius: 9px;
 
-    background: transparent;
-    border: 1px solid rgba(255, 178, 239, 0.25);
-    color: rgba(255, 178, 239, 0.7);
+    background: linear-gradient(135deg, rgba(255, 178, 239, 0.12) 0%, rgba(255, 178, 239, 0.04) 100%);
+    border: 1px solid rgba(255, 178, 239, 0.28);
+    color: #ffffff;
+    box-shadow: 
+        0 2px 12px 0 rgba(255, 178, 239, 0.05),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.35);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 
-    transition: border-color 0.18s, color 0.18s, background 0.18s;
+    transition: all 0.2s ease-in-out;
 }
 
 .btn-start-quiz:hover {
     border-color: rgba(255, 178, 239, 0.45);
-    color: rgba(255, 178, 239, 0.95);
-    background: rgba(255, 178, 239, 0.05);
+    background: linear-gradient(135deg, rgba(255, 178, 239, 0.18) 0%, rgba(255, 178, 239, 0.06) 100%);
+    color: #ffffff;
+    box-shadow: 
+        0 4px 16px 0 rgba(255, 178, 239, 0.1),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.4);
 }
 
 .btn-start-quiz:active {
-    background: rgba(255, 178, 239, 0.08);
+    box-shadow: 
+        0 1px 6px 0 rgba(255, 178, 239, 0.04),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.18);
 }
 
 .btn-start-quiz:disabled {
     opacity: 0.35;
     cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 /* Small hint text next to button */
