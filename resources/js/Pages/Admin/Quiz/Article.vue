@@ -1,9 +1,10 @@
 <script setup>
-import { ref, computed } from 'vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { ref, computed, watch } from 'vue';
+import { useForm, router, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import HtmlEditor from '@/Components/Admin/HtmlEditor.vue';
 import axios from 'axios';
+import { ElNotification } from 'element-plus';
 
 defineOptions({ layout: AdminLayout });
 
@@ -30,6 +31,20 @@ function closeSaveModal() {
 }
 
 const saveForm = useForm({ html: '', label: '' });
+const importForm = useForm({ file: null });
+
+const page = usePage();
+
+watch(() => page.props.flash?.success, (successMsg) => {
+    if (successMsg) {
+        ElNotification({
+            title: 'Успешно',
+            message: successMsg,
+            type: 'success',
+            duration: 5000,
+        });
+    }
+}, { immediate: true });
 
 function saveVersion() {
     savePending.value = true;
@@ -179,9 +194,17 @@ function triggerImport() {
 function onImportFile(e) {
     const file = e.target.files[0];
     if (!file) return;
+
+    // Read file locally to load into the editor instantly
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+        editorHtml.value = evt.target.result;
+    };
+    reader.readAsText(file);
+
     importPending.value = true;
-    const form = useForm({ file });
-    form.post(route('admin.quiz.article.import'), {
+    importForm.file = file;
+    importForm.post(route('admin.quiz.article.import'), {
         forceFormData: true,
         preserveScroll: true,
         onFinish: () => {
