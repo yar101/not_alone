@@ -466,7 +466,8 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
 /* Article body — constrained reading width, centered */
 .article-body {
     width: 100%;
-    max-width: 700px;       /* optimal reading width */
+    max-width: 950px;       /* optimal reading width */
+    margin: 0 auto;
     color: rgba(255, 255, 255, 0.78);
     line-height: 1.85;
     font-size: 1.07rem;
