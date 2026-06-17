@@ -83,11 +83,75 @@ function submitEdit(id) {
 }
 
 const stages = Array.from({ length: 10 }, (_, i) => i + 1);
+
+// ── Import / Export ──────────────────────────────────────
+const importFile   = ref(null);
+const importMode   = ref('append');
+const importError  = ref('');
+const importFileInput = ref(null);
+
+function triggerImport() {
+    importFileInput.value?.click();
+}
+
+function onImportFileChange(e) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (!f.name.endsWith('.json')) {
+        importError.value = 'Выберите файл .json';
+        return;
+    }
+    importError.value = '';
+    importFile.value = f;
+    submitImport();
+}
+
+function submitImport() {
+    if (!importFile.value) return;
+    const form = new FormData();
+    form.append('file', importFile.value);
+    form.append('mode', importMode.value);
+    router.post(route('admin.quiz.questions.import'), form, {
+        forceFormData: true,
+        onError: (errors) => { importError.value = errors.file ?? 'Ошибка импорта'; },
+        onSuccess: () => { importFile.value = null; importError.value = ''; },
+        onFinish: () => { if (importFileInput.value) importFileInput.value.value = ''; },
+    });
+}
 </script>
 
 <template>
     <div>
         <h1 class="page-title">Вопросы теста (по этапам)</h1>
+
+        <!-- ── Import / Export panel ───────────────────────── -->
+        <div class="io-panel">
+            <div class="io-panel__left">
+                <span class="io-label">Импорт / Экспорт вопросов (JSON)</span>
+            </div>
+            <div class="io-panel__right">
+                <select v-model="importMode" class="io-select">
+                    <option value="append">Добавить к существующим</option>
+                    <option value="replace">Заменить все вопросы</option>
+                </select>
+                <input
+                    ref="importFileInput"
+                    type="file"
+                    accept=".json"
+                    class="io-file-hidden"
+                    @change="onImportFileChange"
+                />
+                <button class="io-btn io-btn--import" @click="triggerImport">
+                    <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Импорт
+                </button>
+                <a :href="route('admin.quiz.questions.export')" class="io-btn io-btn--export" download>
+                    <svg viewBox="0 0 24 24" fill="none"><path d="M12 21V9m0 12l-4-4m4 4l4-4M4 7V5a2 2 0 012-2h12a2 2 0 012 2v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Экспорт
+                </a>
+            </div>
+            <p v-if="importError" class="io-error">{{ importError }}</p>
+        </div>
 
         <div class="stages-list">
             <div v-for="stage in stages" :key="stage" class="stage-card">
@@ -219,6 +283,118 @@ const stages = Array.from({ length: 10 }, (_, i) => i + 1);
 <style scoped>
 /* ─── Page ────────────────────────────────────────────────────────── */
 .page-title { font-size: 1.4rem; color: #fff; margin: 0 0 1.5rem; }
+
+/* ─── Import / Export ────────────────────────────────────────────── */
+.io-panel {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.io-panel__left {
+    display: flex;
+    align-items: center;
+}
+
+.io-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.io-panel__right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.io-select {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #fff;
+    padding: 0.45rem 2rem 0.45rem 0.7rem;
+    font-size: 0.85rem;
+    outline: none;
+    font-family: inherit;
+    border-radius: 4px;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.25em 1.25em;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+.io-select option {
+    background: #1a1625;
+    color: #fff;
+}
+.io-select:focus {
+    border-color: rgba(155, 110, 232, 0.55);
+}
+
+.io-file-hidden {
+    display: none !important;
+}
+
+.io-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.9rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.io-btn svg {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+}
+
+.io-btn--import {
+    background: rgba(155, 110, 232, 0.1);
+    border: 1px solid rgba(155, 110, 232, 0.4);
+    color: #c084fc;
+}
+.io-btn--import:hover {
+    background: rgba(155, 110, 232, 0.2);
+    border-color: rgba(155, 110, 232, 0.6);
+}
+
+.io-btn--export {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.8);
+}
+.io-btn--export:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #fff;
+}
+
+.io-error {
+    width: 100%;
+    margin: 0;
+    font-size: 0.8rem;
+    color: #ff6b6b;
+    border-top: 1px solid rgba(255, 80, 80, 0.15);
+    padding-top: 0.5rem;
+}
 
 /* ─── Stages list ─────────────────────────────────────────────────── */
 .stages-list { display: flex; flex-direction: column; gap: 2px; }

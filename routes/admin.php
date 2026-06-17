@@ -59,6 +59,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/questions', [QuizQuestionController::class, 'store'])->name('questions.store');
             Route::patch('/questions/{question}', [QuizQuestionController::class, 'update'])->name('questions.update');
             Route::delete('/questions/{question}', [QuizQuestionController::class, 'destroy'])->name('questions.destroy');
+            Route::get('/questions/export', [QuizQuestionController::class, 'exportQuestions'])->name('questions.export');
+            Route::post('/questions/import', [QuizQuestionController::class, 'importQuestions'])->name('questions.import');
 
             // Article versioning
             Route::get('/article', [QuizQuestionController::class, 'showArticle'])->name('article.index');

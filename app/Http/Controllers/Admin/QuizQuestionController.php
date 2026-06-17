@@ -65,6 +65,127 @@ class QuizQuestionController extends Controller
     }
 
     // ═══════════════════════════════════════════════════════
+    // Questions JSON export / import
+    // ═══════════════════════════════════════════════════════
+
+    /**
+     * Export all questions as a structured JSON file.
+     */
+    public function exportQuestions()
+    {
+        $questions = IdolQuizQuestion::orderBy('stage')
+            ->orderBy('sort_order')
+            ->get(['stage', 'question', 'options', 'correct_option_index', 'sort_order'])
+            ->map(fn($q) => [
+                'stage'                => $q->stage,
+                'question'             => $q->question,
+                'options'              => $q->options,
+                'correct_option_index' => $q->correct_option_index,
+                'sort_order'           => $q->sort_order,
+            ])
+            ->values();
+
+        $payload = [
+            'version'   => 1,
+            'exported_at' => now()->toISOString(),
+            'questions' => $questions,
+        ];
+
+        $date = now()->format('Y-m-d');
+
+        return response()->json($payload, 200, [
+            'Content-Disposition' => "attachment; filename=\"quiz_questions_{$date}.json\"",
+            'Content-Type'        => 'application/json; charset=utf-8',
+        ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    }
+
+    /**
+     * Import questions from a JSON file.
+     *
+     * Modes:
+     *   replace — delete all existing questions and insert from file
+     *   append  — keep existing, add only questions from file (duplicates by text skipped)
+     */
+    public function importQuestions(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:json|max:2048',
+            'mode' => 'required|in:replace,append',
+        ]);
+
+        $raw = file_get_contents($request->file('file')->getRealPath());
+        $data = json_decode($raw, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return back()->withErrors(['file' => 'Файл не является валидным JSON.']);
+        }
+
+        $questions = $data['questions'] ?? (is_array($data) && isset($data[0]) ? $data : null);
+
+        if (!is_array($questions) || empty($questions)) {
+            return back()->withErrors(['file' => 'Файл не содержит массив вопросов (ключ "questions").']);
+        }
+
+        // Validate every question entry
+        $errors = [];
+        foreach ($questions as $i => $q) {
+            $n = $i + 1;
+            if (!isset($q['stage']) || !is_int((int) $q['stage']) || $q['stage'] < 1 || $q['stage'] > 10) {
+                $errors[] = "Вопрос #{$n}: поле «stage» должно быть числом от 1 до 10.";
+            }
+            if (empty($q['question']) || !is_string($q['question'])) {
+                $errors[] = "Вопрос #{$n}: поле «question» отсутствует или не является строкой.";
+            }
+            if (!isset($q['options']) || !is_array($q['options']) || count($q['options']) < 2) {
+                $errors[] = "Вопрос #{$n}: поле «options» должно быть массивом минимум из 2 вариантов.";
+            }
+            if (!isset($q['correct_option_index']) || !is_numeric($q['correct_option_index'])) {
+                $errors[] = "Вопрос #{$n}: поле «correct_option_index» отсутствует или не является числом.";
+            }
+            if (count($errors) >= 5) {
+                $errors[] = '…(и другие ошибки)';
+                break;
+            }
+        }
+
+        if ($errors) {
+            return back()->withErrors(['file' => implode(' | ', $errors)]);
+        }
+
+        $mode = $request->input('mode', 'append');
+
+        \DB::transaction(function () use ($questions, $mode) {
+            if ($mode === 'replace') {
+                IdolQuizQuestion::truncate();
+            }
+
+            foreach ($questions as $q) {
+                $attrs = [
+                    'stage'                => (int) $q['stage'],
+                    'question'             => trim($q['question']),
+                    'options'              => array_values(array_map('strval', $q['options'])),
+                    'correct_option_index' => (int) $q['correct_option_index'],
+                    'sort_order'           => isset($q['sort_order']) ? (int) $q['sort_order'] : 0,
+                ];
+
+                if ($mode === 'append') {
+                    IdolQuizQuestion::firstOrCreate(
+                        ['stage' => $attrs['stage'], 'question' => $attrs['question']],
+                        $attrs
+                    );
+                } else {
+                    IdolQuizQuestion::create($attrs);
+                }
+            }
+        });
+
+        $count = count($questions);
+        $label = $mode === 'replace' ? "Все вопросы заменены ({$count} шт.)" : "Добавлено/пропущено: {$count} вопросов.";
+
+        return back()->with('success', $label);
+    }
+
+    // ═══════════════════════════════════════════════════════
     // Article versioning
     // ═══════════════════════════════════════════════════════
 
