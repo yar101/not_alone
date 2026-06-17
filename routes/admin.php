@@ -68,6 +68,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::delete('/article/versions/{version}', [QuizQuestionController::class, 'destroyVersion'])->name('article.versions.destroy');
             Route::get('/article/versions/{version}/diff/{other}', [QuizQuestionController::class, 'diffVersions'])->name('article.versions.diff');
             Route::get('/article/export', [QuizQuestionController::class, 'exportArticle'])->name('article.export');
+            Route::patch('/article/active', [QuizQuestionController::class, 'updateActiveVersion'])->name('article.active.update');
             Route::post('/article/import', [QuizQuestionController::class, 'importArticle'])->name('article.import');
         });
 

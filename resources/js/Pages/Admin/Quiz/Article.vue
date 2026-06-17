@@ -60,6 +60,18 @@ function saveVersion() {
     });
 }
 
+const activeUpdateForm = useForm({ html: '' });
+const saveActivePending = ref(false);
+
+function saveActiveDirectly() {
+    saveActivePending.value = true;
+    activeUpdateForm.html = editorHtml.value;
+    activeUpdateForm.patch(route('admin.quiz.article.active.update'), {
+        preserveScroll: true,
+        onFinish: () => { saveActivePending.value = false; }
+    });
+}
+
 // ── Activate version ─────────────────────────────────────
 const activateTarget  = ref(null);
 const showActivateModal = ref(false);
@@ -244,6 +256,10 @@ function fmtDate(d) {
                 <button class="btn-ghost btn-sm" @click="openDiffModal" :disabled="versions.length < 2">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                     Сравнить версии
+                </button>
+                <button class="btn-success" @click="saveActiveDirectly" :disabled="saveActivePending">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    {{ saveActivePending ? 'Сохранение...' : 'Сохранить изменения' }}
                 </button>
                 <button class="btn-primary" @click="openSaveModal">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
@@ -872,6 +888,26 @@ function fmtDate(d) {
 .btn-primary svg { width: 14px; height: 14px; }
 .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
 .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+.btn-success {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.55rem 1.1rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-family: inherit;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background: linear-gradient(135deg, #10b981, #047857);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(16,185,129,0.22);
+    transition: opacity 0.15s, transform 0.1s;
+}
+.btn-success svg { width: 14px; height: 14px; }
+.btn-success:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-success:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
 .btn-ghost {
     display: inline-flex;

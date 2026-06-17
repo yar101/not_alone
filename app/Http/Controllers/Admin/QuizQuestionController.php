@@ -126,6 +126,33 @@ class QuizQuestionController extends Controller
     }
 
     /**
+     * Update the currently active version in place.
+     */
+    public function updateActiveVersion(Request $request)
+    {
+        $validated = $request->validate([
+            'html' => 'nullable|string',
+        ]);
+
+        $html = $validated['html'] ?? '';
+
+        $active = IdolArticleVersion::active()->first();
+
+        if ($active) {
+            $active->update(['html' => $html]);
+            return back()->with('success', 'Изменения в активной версии сохранены.');
+        }
+
+        IdolArticleVersion::create([
+            'html'      => $html,
+            'label'     => 'Изначальная версия',
+            'is_active' => true,
+        ]);
+
+        return back()->with('success', 'Создана новая активная версия.');
+    }
+
+    /**
      * Delete a version. Cannot delete the active one.
      */
     public function destroyVersion(IdolArticleVersion $version)
