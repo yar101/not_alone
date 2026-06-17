@@ -60,6 +60,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::patch('/questions/{question}', [QuizQuestionController::class, 'update'])->name('questions.update');
             Route::delete('/questions/{question}', [QuizQuestionController::class, 'destroy'])->name('questions.destroy');
             Route::get('/questions/export', [QuizQuestionController::class, 'exportQuestions'])->name('questions.export');
+            Route::get('/questions/template', [QuizQuestionController::class, 'downloadTemplate'])->name('questions.template');
             Route::post('/questions/import', [QuizQuestionController::class, 'importQuestions'])->name('questions.import');
 
             // Article versioning

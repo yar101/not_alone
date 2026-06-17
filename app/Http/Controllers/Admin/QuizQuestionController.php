@@ -100,6 +100,46 @@ class QuizQuestionController extends Controller
     }
 
     /**
+     * Download a blank/template JSON file for filling out with questions.
+     */
+    public function downloadTemplate()
+    {
+        $payload = [
+            'version'   => 1,
+            'questions' => [
+                [
+                    'stage'                => 1,
+                    'question'             => 'Пример вопроса для этапа 1?',
+                    'options'              => [
+                        'Вариант ответа A',
+                        'Вариант ответа B',
+                        'Вариант ответа C',
+                        'Вариант ответа D'
+                    ],
+                    'correct_option_index' => 0,
+                    'sort_order'           => 0,
+                ],
+                [
+                    'stage'                => 2,
+                    'question'             => 'Пример вопроса для этапа 2?',
+                    'options'              => [
+                        'Вариант ответа A',
+                        'Вариант ответа B',
+                        'Вариант ответа C'
+                    ],
+                    'correct_option_index' => 1,
+                    'sort_order'           => 0,
+                ]
+            ],
+        ];
+
+        return response()->json($payload, 200, [
+            'Content-Disposition' => 'attachment; filename="quiz_questions_template.json"',
+            'Content-Type'        => 'application/json; charset=utf-8',
+        ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    }
+
+    /**
      * Import questions from a JSON file.
      *
      * Modes:

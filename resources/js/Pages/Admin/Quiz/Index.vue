@@ -149,6 +149,10 @@ function submitImport() {
                     <svg viewBox="0 0 24 24" fill="none"><path d="M12 21V9m0 12l-4-4m4 4l4-4M4 7V5a2 2 0 012-2h12a2 2 0 012 2v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     Экспорт
                 </a>
+                <a :href="route('admin.quiz.questions.template')" class="io-btn io-btn--template" download>
+                    <svg viewBox="0 0 24 24" fill="none"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Шаблон
+                </a>
             </div>
             <p v-if="importError" class="io-error">{{ importError }}</p>
         </div>
@@ -385,6 +389,16 @@ function submitImport() {
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.25);
     color: #fff;
+}
+
+.io-btn--template {
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    color: #38bdf8;
+}
+.io-btn--template:hover {
+    background: rgba(56, 189, 248, 0.2);
+    border-color: rgba(56, 189, 248, 0.6);
 }
 
 .io-error {
