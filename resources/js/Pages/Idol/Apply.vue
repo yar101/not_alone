@@ -4,8 +4,11 @@ import { useForm, router, usePage, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import axios from 'axios';
 import { Camera, CircleCheck, Clock, InfoFilled, Trophy, Remove, Upload, Message, StarFilled, CircleClose } from '@element-plus/icons-vue';
+import { useTranslations } from '@/composables/useTranslations';
 
 defineOptions({ layout: AppLayout });
+
+const { __ } = useTranslations();
 
 const props = defineProps({
     phase: String,   // 'none' | 'quiz' | 'photo' | 'pending' | 'approved' | 'rejected' | 'cooldown'
@@ -214,11 +217,24 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
                     <line x1="19" y1="12" x2="5" y2="12"></line>
                     <polyline points="12 19 5 12 12 5"></polyline>
                 </svg>
-                В профиль
+                {{ __('idol.apply.back_to_profile') }}
             </Link>
 
             <!-- ─── Step 1: Article ─── -->
             <div v-if="step === 1" class="article-layout">
+                <div class="article-warning">
+                    <div class="warning-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                    </div>
+                    <div class="warning-content">
+                        <strong>{{ __("idol.apply.warning_title") }}</strong> {{ __("idol.apply.warning_text") }}
+                    </div>
+                </div>
+
                 <div class="article-body" v-html="article_html || defaultArticleHtml"></div>
 
                 <div class="article-actions">
@@ -1078,6 +1094,44 @@ const progressPercent = computed(() => Math.round((quizCurrentStage.value / 10) 
     text-align: left;
     max-width: 400px;
     line-height: 1.55;
+}
+
+/* ── Warning Alert Box ───────────────────────────────── */
+.article-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    width: 100%;
+    max-width: 950px;
+    margin: 0 auto 2rem;
+    padding: 1.25rem 1.5rem;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0.04) 100%);
+    border: 1px solid rgba(245, 158, 11, 0.28);
+    border-radius: 12px;
+    color: #fbd38d;
+    box-sizing: border-box;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 
+        0 8px 32px 0 rgba(0, 0, 0, 0.24), 
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+}
+
+.warning-icon {
+    flex-shrink: 0;
+    color: #f6ad55;
+    margin-top: 0.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.warning-content strong {
+    color: #f6ad55;
+    font-weight: 600;
+    margin-right: 0.25rem;
 }
 
 /* ── Animations ───────────────────────────────────────── */

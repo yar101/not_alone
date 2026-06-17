@@ -20,7 +20,7 @@ registerRoute(
 self.addEventListener('push', (event) => {
     const data = event.data?.json() ?? {}
     event.waitUntil(
-        self.registration.showNotification(data.title ?? 'NoAlone', {
+        self.registration.showNotification(data.title ?? 'Not Alone', {
             body: data.body ?? '',
             icon: data.icon ?? '/pwa-192x192.png',
             badge: '/pwa-64x64.png',

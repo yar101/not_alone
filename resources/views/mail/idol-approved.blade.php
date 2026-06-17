@@ -104,7 +104,7 @@
                             <tr>
                                 <td align="center">
                                     <p style="margin:0;font-size:0.75rem;color:rgba(255,255,255,0.2);line-height:1.6;">
-                                        Спасибо, что выбрали NoAlone!
+                                         Спасибо, что выбрали Not Alone!
                                     </p>
                                 </td>
                             </tr>

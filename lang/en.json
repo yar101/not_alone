@@ -13,6 +13,10 @@
     "nav.menu": "Menu",
     "nav.tracked": "Tracked",
 
+    "idol.apply.back_to_profile": "To Profile",
+    "idol.apply.warning_title": "Attention!",
+    "idol.apply.warning_text": "To successfully pass the test, you must read the article below very carefully. All test questions are compiled strictly based on these materials.",
+
     "welcome.start": "START",
     "welcome.enter": "ENTER",
     "welcome.help": "Help",

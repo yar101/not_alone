@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#0e0e1a">
-    <title>Страница не найдена — NoAlone</title>
+    <title>Страница не найдена — Not Alone</title>
     <style>
         body {
             background-color: #0e0e1a;

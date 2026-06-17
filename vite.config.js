@@ -55,8 +55,8 @@ export default defineConfig({
                 ],
             },
             manifest: {
-                name: 'NoAlone',
-                short_name: 'NoAlone',
+                name: 'Not Alone',
+                short_name: 'Not Alone',
                 description: 'Найди своего айдола',
                 theme_color: '#0e0e1a',
                 background_color: '#0e0e1a',

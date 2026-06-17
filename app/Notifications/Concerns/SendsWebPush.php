@@ -12,7 +12,7 @@ trait SendsWebPush
 
     protected function webPushTitle(): string
     {
-        return 'NoAlone';
+        return 'Not Alone';
     }
 
     protected function webPushUrl(): string

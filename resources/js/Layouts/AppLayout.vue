@@ -272,7 +272,7 @@ onUnmounted(() => {
     <div class="app-wrap">
         <header class="app-header">
             <Link href="/" class="app-logo">
-                <img src="/app-logo-v3.png" alt="NoAlone" class="app-logo__img" />
+                <img src="/app-logo-v3.png" alt="Not Alone" class="app-logo__img" />
             </Link>
 
             <div class="header-right">

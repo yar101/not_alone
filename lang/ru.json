@@ -13,6 +13,10 @@
     "nav.menu": "Меню",
     "nav.tracked": "Отслеживаемые",
 
+    "idol.apply.back_to_profile": "В профиль",
+    "idol.apply.warning_title": "Внимание!",
+    "idol.apply.warning_text": "Для успешного прохождения теста вам необходимо очень внимательно прочитать статью ниже. Все вопросы теста составлены строго на основе этих материалов.",
+
     "welcome.start": "НАЧАТЬ",
     "welcome.enter": "ВОЙТИ",
     "welcome.help": "Справка",
