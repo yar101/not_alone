@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from "vue";
-import { usePage } from "@inertiajs/vue3";
+import { usePage, router } from "@inertiajs/vue3";
 import StartBtn from "@/Components/Site/StartBtn.vue";
 import HelpModal from "@/Components/Site/HelpModal.vue";
 import AuthModal from "@/Components/Site/AuthModal.vue";
@@ -17,6 +17,14 @@ const { __ } = useTranslations();
 const startBtnLabel = computed(() => {
     return page.props.auth?.user ? __("welcome.enter") : __("welcome.start");
 });
+
+const handleStartClick = () => {
+    if (page.props.auth?.user) {
+        router.visit(route("profile"));
+    } else {
+        showAuthModal.value = true;
+    }
+};
 </script>
 
 <template>
@@ -61,7 +69,7 @@ const startBtnLabel = computed(() => {
                 >
                     <StartBtn
                         :label="startBtnLabel"
-                        @click="showAuthModal = true"
+                        @click="handleStartClick"
                     />
                 </div>
 
