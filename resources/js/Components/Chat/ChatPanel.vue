@@ -1000,6 +1000,16 @@ watch(isOpen, (val, oldVal) => {
         fetchConversations();
         fetchOrders();
         subscribeOrdersEcho();
+        // Refresh lazy unread counters so dots are visible immediately on open
+        router.reload({
+            only: [
+                "unread_messages_count",
+                "unread_direct_count",
+                "unread_orders_count",
+                "unread_mine_count",
+                "unread_incoming_count",
+            ],
+        });
     }
     if (!val && oldVal) {
         leaveEcho();
@@ -1020,7 +1030,16 @@ watch(activeConversation, (conv, oldConv) => {
 });
 
 watch(activeTab, (tab) => {
-    if (tab === "orders") fetchOrders(true);
+    if (tab === "orders") {
+        fetchOrders(true);
+        router.reload({
+            only: [
+                "unread_orders_count",
+                "unread_mine_count",
+                "unread_incoming_count",
+            ],
+        });
+    }
 });
 
 watch(ordersSubTab, () => {
@@ -1961,9 +1980,8 @@ function formatDate(iso) {
                                                     (order.unread_count ?? 0) >
                                                     0
                                                 "
-                                                class="chat-conv-badge"
-                                                >{{ order.unread_count }}</span
-                                            >
+                                                class="chat-conv-badge chat-conv-badge--dot"
+                                            ></span>
                                         </div>
                                         <div class="order-stub__perf">
                                             <span
@@ -3863,7 +3881,7 @@ function formatDate(iso) {
         <div class="cm-title cm-title--green">
             {{ __("chat.btn.order_done") }}
         </div>
-        <div class="cm-body">{{ __("chat.order.complete_confirm") }}</div>
+        <div class="cm-body" style="white-space: pre-line">{{ __("chat.order.complete_confirm") }}</div>
         <div class="cm-perf">
             <span class="cm-perf__line cm-perf__line--green"></span>
         </div>
@@ -4355,13 +4373,22 @@ function formatDate(iso) {
     height: 20px;
     padding: 0 5px;
     border-radius: 999px;
-    background: linear-gradient(135deg, #e0558f, #b03070);
-    box-shadow: 0 2px 8px rgba(224, 85, 143, 0.4);
+    background: linear-gradient(160deg, rgba(230, 90, 155, 0.95) 0%, rgba(175, 45, 105, 0.9) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 210, 235, 0.35);
     color: #fff;
     font-size: 0.72rem;
     font-weight: 700;
     line-height: 20px;
     text-align: center;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.chat-conv-badge--dot {
+    min-width: 10px;
+    width: 10px;
+    height: 10px;
+    padding: 0;
+    line-height: 1;
 }
 
 /* ── Main area ────────────────────────────────────────── */
@@ -5680,10 +5707,13 @@ function formatDate(iso) {
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: #e0558f;
+    background: linear-gradient(160deg, rgba(240, 120, 175, 0.95) 0%, rgba(190, 55, 110, 0.9) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 220, 235, 0.45);
     vertical-align: middle;
-    margin-left: 4px;
+    margin-left: 5px;
     flex-shrink: 0;
+    position: relative;
+    top: -0.5px;
 }
 
 /* ── Order stub cards ───────────────────────────────────── */

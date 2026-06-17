@@ -18,7 +18,7 @@ enum OrderStatus: string
             self::Pending   => 'Создан',
             self::Accepted  => 'Принят',
             self::Paid      => 'Оплачен',
-            self::Completed => 'Выполнен',
+            self::Completed => 'Завершён',
             self::Cancelled => 'Отменён',
             self::Refunded  => 'Аннулирован',
             self::Disputed  => 'Оспаривается',

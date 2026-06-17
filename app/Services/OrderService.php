@@ -124,9 +124,17 @@ class OrderService
             'metadata'  => ['event' => $event, 'actor_name' => $actor->name],
         ]);
 
-        if ($order->completion_confirmed_by_idol && $order->completion_confirmed_by_customer) {
+        // Customer confirmation is prioritised: the order completes immediately
+        // when the customer confirms, regardless of whether the idol has confirmed.
+        // Idol confirmation alone only sets the flag and waits for the customer.
+        if (!$isIdol) {
+            // Customer clicked → complete right away
+            $this->complete($order, 'user', $actor->id);
+        } elseif ($order->completion_confirmed_by_idol && $order->completion_confirmed_by_customer) {
+            // Both have confirmed (idol was last) → complete
             $this->complete($order, 'user', $actor->id);
         } else {
+            // Idol confirmed first, waiting for customer
             $this->broadcastOrderChanged($order);
         }
 
