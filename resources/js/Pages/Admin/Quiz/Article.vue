@@ -221,9 +221,63 @@ function onImportFile(e) {
         preserveScroll: true,
         onFinish: () => {
             importPending.value = false;
-            e.target.value = '';
+            if (e && e.target) e.target.value = '';
         },
     });
+}
+
+// ── Drag & Drop ──────────────────────────────────────────
+const isDragging = ref(false);
+
+function onDragOver(e) {
+    e.preventDefault();
+}
+
+function onDragEnter(e) {
+    e.preventDefault();
+    isDragging.value = true;
+}
+
+function onDragLeave(e) {
+    e.preventDefault();
+    if (!e.relatedTarget) {
+        isDragging.value = false;
+    }
+}
+
+function onDrop(e) {
+    e.preventDefault();
+    isDragging.value = false;
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+        const file = files[0];
+        if (!file.name.endsWith('.html') && !file.name.endsWith('.htm')) {
+            ElNotification({
+                title: 'Ошибка',
+                message: 'Выберите файл .html или .htm для импорта статьи',
+                type: 'error',
+                duration: 5000,
+            });
+            return;
+        }
+
+        // Read file locally to load into the editor instantly
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            editorHtml.value = evt.target.result;
+        };
+        reader.readAsText(file);
+
+        importPending.value = true;
+        importForm.file = file;
+        importForm.post(route('admin.quiz.article.import'), {
+            forceFormData: true,
+            preserveScroll: true,
+            onFinish: () => {
+                importPending.value = false;
+            },
+        });
+    }
 }
 
 // ── Helpers ───────────────────────────────────────────────
@@ -236,7 +290,25 @@ function fmtDate(d) {
 </script>
 
 <template>
-    <div class="article-page">
+    <div
+        @dragover="onDragOver"
+        @dragenter="onDragEnter"
+        @dragleave="onDragLeave"
+        @drop="onDrop"
+        class="article-page"
+    >
+        <!-- Drag & Drop Overlay -->
+        <div v-if="isDragging" class="drag-drop-overlay" @dragleave="isDragging = false" @dragover.prevent>
+            <div class="drag-drop-content">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="drag-icon">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <p class="drag-text">Перетащите сюда файл .html для импорта статьи</p>
+                <span class="drag-subtext">Файл будет загружен как новая версия</span>
+            </div>
+        </div>
 
         <!-- ── Header ── -->
         <div class="ap-header">
@@ -1237,5 +1309,64 @@ function fmtDate(d) {
     .ap-layout { flex-direction: column; }
     .ap-versions-col { width: 100%; }
     .versions-pane { max-height: 300px; }
+}
+
+/* ─── Drag & Drop Overlay ────────────────────────────────────────── */
+.drag-drop-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(8, 8, 18, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    pointer-events: auto;
+}
+
+.drag-drop-content {
+    width: min(500px, 100%);
+    border: 2px dashed rgba(155, 110, 232, 0.5);
+    background: rgba(155, 110, 232, 0.04);
+    border-radius: 16px;
+    padding: 3rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.drag-icon {
+    width: 3.5rem;
+    height: 3.5rem;
+    color: #c084fc;
+    margin-bottom: 1.5rem;
+    animation: dragPulse 2s infinite ease-in-out;
+}
+
+.drag-text {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 0.5rem 0;
+}
+
+.drag-subtext {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+@keyframes dragPulse {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
 }
 </style>
