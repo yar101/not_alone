@@ -195,6 +195,14 @@ function isActive(routeName) {
                 </Link>
 
                 <Link
+                    :href="route('admin.conversations.index')"
+                    class="nav-item"
+                    :class="{ 'nav-item--active': isActive('admin.conversations.*') }"
+                >
+                    Переписки
+                </Link>
+
+                <Link
                     :href="route('admin.orders.index')"
                     class="nav-item"
                     :class="{ 'nav-item--active': isActive('admin.orders.*') }"

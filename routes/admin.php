@@ -257,6 +257,7 @@ Route::patch('/{trait}', [PersonalityTraitController::class, 'update'])->name('u
         });
 
         // Conversations (read-only for admin)
+        Route::get('/conversations', [ConversationController::class, 'index'])->name('conversations.index');
         Route::get('/conversations/{conversation}/messages', [ConversationController::class, 'messages'])->name('conversations.messages');
 
         // Support chat
