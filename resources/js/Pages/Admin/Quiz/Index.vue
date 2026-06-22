@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
@@ -10,13 +10,69 @@ const props = defineProps({
 });
 
 const expandedStages = ref(new Set([1]));
+const manualExpandedStages = ref(new Set([1]));
+
 function toggleStage(stage) {
     if (expandedStages.value.has(stage)) {
         expandedStages.value.delete(stage);
+        if (!searchQuery.value.trim()) {
+            manualExpandedStages.value.delete(stage);
+        }
     } else {
         expandedStages.value.add(stage);
+        if (!searchQuery.value.trim()) {
+            manualExpandedStages.value.add(stage);
+        }
     }
 }
+
+const searchQuery = ref('');
+
+const filteredQuestionsByStage = computed(() => {
+    if (!searchQuery.value.trim()) {
+        return props.questions_by_stage;
+    }
+    const query = searchQuery.value.toLowerCase().trim();
+    const result = {};
+    for (const [stage, questions] of Object.entries(props.questions_by_stage)) {
+        result[stage] = (questions || []).filter(q => {
+            const questionMatch = q.question && q.question.toLowerCase().includes(query);
+            const optionsMatch = q.options && q.options.some(opt => opt && opt.toLowerCase().includes(query));
+            return questionMatch || optionsMatch;
+        });
+    }
+    return result;
+});
+
+const totalFilteredCount = computed(() => {
+    let count = 0;
+    for (const questions of Object.values(filteredQuestionsByStage.value)) {
+        count += (questions || []).length;
+    }
+    return count;
+});
+
+watch(searchQuery, (newVal) => {
+    const query = newVal.trim();
+    if (query) {
+        // Auto expand stages that have matching questions
+        const newExpanded = new Set();
+        for (const [stage, questions] of Object.entries(props.questions_by_stage)) {
+            const hasMatch = (questions || []).some(q => {
+                const questionMatch = q.question && q.question.toLowerCase().includes(query.toLowerCase());
+                const optionsMatch = q.options && q.options.some(opt => opt && opt.toLowerCase().includes(query.toLowerCase()));
+                return questionMatch || optionsMatch;
+            });
+            if (hasMatch) {
+                newExpanded.add(Number(stage));
+            }
+        }
+        expandedStages.value = newExpanded;
+    } else {
+        // Restore manual expanded stages
+        expandedStages.value = new Set(manualExpandedStages.value);
+    }
+});
 
 // New question form state per stage
 const newForms = reactive({});
@@ -211,12 +267,48 @@ function onDrop(e) {
             <p v-if="importError" class="io-error">{{ importError }}</p>
         </div>
 
+        <!-- ── Search Bar ──────────────────────────────────── -->
+        <div class="search-panel">
+            <div class="search-input-wrapper">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                <input
+                    v-model="searchQuery"
+                    type="text"
+                    placeholder="Поиск по тексту вопросов и ответов..."
+                    class="search-input"
+                />
+                <button
+                    v-if="searchQuery"
+                    @click="searchQuery = ''"
+                    class="search-clear-btn"
+                    title="Очистить"
+                >
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div v-if="searchQuery" class="search-results-info">
+                Найдено вопросов: {{ totalFilteredCount }}
+            </div>
+        </div>
+
         <div class="stages-list">
             <div v-for="stage in stages" :key="stage" class="stage-card">
                 <button class="stage-header" @click="toggleStage(stage)" :class="{ 'is-open': expandedStages.has(stage) }">
                     <span class="stage-badge">{{ String(stage).padStart(2, '0') }}</span>
                     <span class="stage-title">Этап {{ stage }}</span>
-                    <span class="stage-count-pill">{{ (questions_by_stage[stage] || []).length }}</span>
+                    <span class="stage-count-pill">
+                        <template v-if="searchQuery.trim()">
+                            {{ (filteredQuestionsByStage[stage] || []).length }} / {{ (questions_by_stage[stage] || []).length }}
+                        </template>
+                        <template v-else>
+                            {{ (questions_by_stage[stage] || []).length }}
+                        </template>
+                    </span>
                     <svg class="stage-chevron" :class="{ 'is-open': expandedStages.has(stage) }" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
@@ -224,15 +316,16 @@ function onDrop(e) {
 
                 <div v-if="expandedStages.has(stage)" class="stage-body">
                         <!-- Existing questions -->
-                        <div v-if="(questions_by_stage[stage] || []).length === 0" class="empty-state">
+                        <div v-if="(filteredQuestionsByStage[stage] || []).length === 0" class="empty-state">
                             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
                                 <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                             </svg>
-                            <span>Нет вопросов в этом этапе</span>
+                            <span v-if="searchQuery.trim()">Нет совпадений для этого этапа</span>
+                            <span v-else>Нет вопросов в этом этапе</span>
                         </div>
 
-                        <div v-for="(q, qIndex) in (questions_by_stage[stage] || [])" :key="q.id" class="question-item">
+                        <div v-for="(q, qIndex) in (filteredQuestionsByStage[stage] || [])" :key="q.id" class="question-item">
                             <div v-if="editingId === q.id" class="question-edit-form">
                                 <div class="edit-form-header">
                                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -758,5 +851,88 @@ function onDrop(e) {
 @keyframes dragPulse {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-8px); }
+}
+
+/* ─── Search Bar ─────────────────────────────────────────────────── */
+.search-panel {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.search-input-wrapper {
+    position: relative;
+    flex: 1;
+    min-width: 280px;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    position: absolute;
+    left: 0.75rem;
+    width: 1.1rem;
+    height: 1.1rem;
+    color: rgba(255, 255, 255, 0.4);
+    pointer-events: none;
+}
+
+.search-input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #fff;
+    padding: 0.55rem 2.5rem 0.55rem 2.3rem;
+    font-size: 0.9rem;
+    outline: none;
+    font-family: inherit;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.search-input:focus {
+    border-color: rgba(155, 110, 232, 0.55);
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 0 0 3px rgba(155, 110, 232, 0.15);
+}
+
+.search-clear-btn {
+    position: absolute;
+    right: 0.75rem;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.search-clear-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.search-clear-btn svg {
+    width: 0.85rem;
+    height: 0.85rem;
+}
+
+.search-results-info {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 500;
 }
 </style>
