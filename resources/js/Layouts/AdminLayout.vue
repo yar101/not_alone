@@ -1,7 +1,13 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { Document, User, ChatDotRound, Tickets, Money, Warning } from '@element-plus/icons-vue';
+import {
+    Odometer, Warning, List, ShoppingBag, Aim, Message,
+    Picture, User, ChatDotRound, Tickets, ScaleToOriginal,
+    Microphone, Headset, Star, Discount, Lock, ChatSquare,
+    Document, QuestionFilled, WarningFilled, Monitor,
+    TrendCharts, Setting
+} from '@element-plus/icons-vue';
 
 function logout() {
     router.post(route('admin.logout'));
@@ -79,294 +85,342 @@ function isActive(routeName) {
             </div>
 
             <nav class="sidebar__nav">
-                <Link
-                    :href="route('admin.dashboard')"
-                    class="nav-item"
-                    :class="{ 'nav-item--active': isActive('admin.dashboard') }"
-                >
-                    Дашборд
-                </Link>
-
-                <Link :href="route('admin.strikes.index')" class="nav-item" :class="{ active: $page.component.startsWith('Admin/Strikes') }">
-                    <el-icon class="nav-icon"><Warning /></el-icon>
-                    Страйки
-                </Link>
-
-                <Link
-                    :href="route('admin.applications.index')"
-                    class="nav-item"
-                    :class="{ 'nav-item--active': isActive('admin.applications.*') }"
-                >
-                    Заявки
-                    <span v-if="pendingCount > 0" class="nav-badge">{{ pendingCount }}</span>
-                </Link>
-
-                <div class="nav-group">
-                    <button
-                        class="nav-item nav-item--group"
-                        :class="{ 'nav-item--active': isOnServices() }"
-                        @click="servicesOpen = !servicesOpen"
+                <!-- Основное -->
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Основное</div>
+                    
+                    <Link
+                        :href="route('admin.dashboard')"
+                        class="nav-item"
+                        :class="{ 'nav-item--active': isActive('admin.dashboard') }"
                     >
-                        <span>Услуги</span>
-                        <span class="nav-badge" v-if="pendingServicesCount > 0" style="margin-left: auto; margin-right: 0.25rem;">{{ pendingServicesCount }}</span>
-                        <span class="nav-arrow" :class="{ 'nav-arrow--open': servicesOpen }">▾</span>
-                    </button>
-                    <div v-if="servicesOpen" class="nav-sub">
-                        <Link
-                            :href="route('admin.services.categories.index')"
-                            class="nav-item nav-item--sub"
-                            :class="{ 'nav-item--active': isActive('admin.services.categories.index') }"
-                        >Категории</Link>
-                        <Link
-                            :href="route('admin.services.time-units.index')"
-                            class="nav-item nav-item--sub"
-                            :class="{ 'nav-item--active': isActive('admin.services.time-units.index') }"
-                        >Ед. времени</Link>
-                        <Link
-                            :href="route('admin.services.price-limits.index')"
-                            class="nav-item nav-item--sub"
-                            :class="{ 'nav-item--active': isActive('admin.services.price-limits.index') }"
-                        >Лимиты цен</Link>
-                        <Link
-                            :href="route('admin.services.moderation.index')"
-                            class="nav-item nav-item--sub"
-                            :class="{ 'nav-item--active': isActive('admin.services.moderation.index') }"
+                        <el-icon class="nav-icon"><Odometer /></el-icon>
+                        <span class="nav-text">Дашборд</span>
+                    </Link>
+
+                    <Link
+                        :href="route('admin.applications.index')"
+                        class="nav-item"
+                        :class="{ 'nav-item--active': isActive('admin.applications.*') }"
+                    >
+                        <el-icon class="nav-icon"><List /></el-icon>
+                        <span class="nav-text">Заявки</span>
+                        <span v-if="pendingCount > 0" class="nav-badge">{{ pendingCount }}</span>
+                    </Link>
+                </div>
+
+                <!-- Коммерция и Контент -->
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Коммерция и Контент</div>
+
+                    <div class="nav-group">
+                        <button
+                            class="nav-item nav-item--group"
+                            :class="{ 'nav-item--active': isOnServices() }"
+                            @click="servicesOpen = !servicesOpen"
                         >
-                            Модерация
-                            <span v-if="pendingServicesCount > 0" class="nav-badge">{{ pendingServicesCount }}</span>
-                        </Link>
+                            <el-icon class="nav-icon"><ShoppingBag /></el-icon>
+                            <span class="nav-text">Услуги</span>
+                            <span class="nav-badge" v-if="pendingServicesCount > 0" style="margin-left: auto; margin-right: 0.25rem;">{{ pendingServicesCount }}</span>
+                            <span class="nav-arrow" :class="{ 'nav-arrow--open': servicesOpen }">▾</span>
+                        </button>
+                        <div v-if="servicesOpen" class="nav-sub">
+                            <Link
+                                :href="route('admin.services.categories.index')"
+                                class="nav-item nav-item--sub"
+                                :class="{ 'nav-item--active': isActive('admin.services.categories.index') }"
+                            >Категории</Link>
+                            <Link
+                                :href="route('admin.services.time-units.index')"
+                                class="nav-item nav-item--sub"
+                                :class="{ 'nav-item--active': isActive('admin.services.time-units.index') }"
+                            >Ед. времени</Link>
+                            <Link
+                                :href="route('admin.services.price-limits.index')"
+                                class="nav-item nav-item--sub"
+                                :class="{ 'nav-item--active': isActive('admin.services.price-limits.index') }"
+                            >Лимиты цен</Link>
+                            <Link
+                                :href="route('admin.services.moderation.index')"
+                                class="nav-item nav-item--sub"
+                                :class="{ 'nav-item--active': isActive('admin.services.moderation.index') }"
+                            >
+                                Модерация
+                                <span v-if="pendingServicesCount > 0" class="nav-badge">{{ pendingServicesCount }}</span>
+                            </Link>
+                        </div>
                     </div>
-                </div>
 
-                <div class="nav-group">
-                    <button
-                        class="nav-item nav-item--group"
-                        :class="{ 'nav-item--active': isOnQuiz() }"
-                        @click="quizOpen = !quizOpen"
-                    >
-                        <span>Квиз</span>
-                        <span class="nav-arrow" :class="{ 'nav-arrow--open': quizOpen }">▾</span>
-                    </button>
-                    <div v-if="quizOpen" class="nav-sub">
-                        <Link
-                            :href="route('admin.quiz.questions.index')"
-                            class="nav-item nav-item--sub"
-                            :class="{ 'nav-item--active': isActive('admin.quiz.questions.index') }"
-                        >Вопросы</Link>
-                        <Link
-                            :href="route('admin.quiz.article.index')"
-                            class="nav-item nav-item--sub"
-                            :class="{ 'nav-item--active': isActive('admin.quiz.article.index') }"
-                        >Статья о вступлении</Link>
-                    </div>
-                </div>
-
-                <Link
-                    :href="route('admin.messages.index')"
-                    class="nav-item"
-                    :class="{ 'nav-item--active': isActive('admin.messages.index') }"
-                >
-                    Рассылки
-                </Link>
-
-                <div class="nav-group">
-                    <button
-                        class="nav-item nav-item--group"
-                        :class="{ 'nav-item--active': isOnContentPacks() }"
-                        @click="contentPacksOpen = !contentPacksOpen"
-                    >
-                        <span>Контент-паки</span>
-                        <span class="nav-arrow" :class="{ 'nav-arrow--open': contentPacksOpen }">▾</span>
-                    </button>
-                    <div v-if="contentPacksOpen" class="nav-sub">
-                        <Link
-                            :href="route('admin.content-packs.index')"
-                            class="nav-item nav-item--sub"
-                            :class="{ 'nav-item--active': isActive('admin.content-packs.index') || isActive('admin.content-packs.show') }"
-                        >Модерация</Link>
-                        <Link
-                            :href="route('admin.content-packs.change-requests.index')"
-                            class="nav-item nav-item--sub"
-                            :class="{ 'nav-item--active': isActive('admin.content-packs.change-requests.*') }"
-                        >Изменения</Link>
-                    </div>
-                </div>
-
-                <Link
-                    :href="route('admin.users.index')"
-                    class="nav-item"
-                    :class="{ 'nav-item--active': isActive('admin.users.*') }"
-                >
-                    Пользователи
-                </Link>
-
-                <Link
-                    :href="route('admin.conversations.index')"
-                    class="nav-item"
-                    :class="{ 'nav-item--active': isActive('admin.conversations.*') }"
-                >
-                    Переписки
-                </Link>
-
-                <Link
-                    :href="route('admin.orders.index')"
-                    class="nav-item"
-                    :class="{ 'nav-item--active': isActive('admin.orders.*') }"
-                >
-                    Заказы
-                </Link>
-
-                <Link
-                    :href="route('admin.disputes.index')"
-                    class="nav-item"
-                    :class="{ 'nav-item--active': isActive('admin.disputes.*') }"
-                >
-                    Споры
-                </Link>
-
-                <Link
-                    :href="route('admin.review-disputes.index')"
-                    class="nav-item"
-                    :class="{ 'nav-item--active': isActive('admin.review-disputes.*') }"
-                >
-                    Отзывы (жалобы)
-                    <span v-if="pendingReviewDisputesCount > 0" class="nav-badge" style="margin-left: auto; margin-right: 0.25rem;">{{ pendingReviewDisputesCount }}</span>
-                </Link>
-
-                <Link
-                    :href="route('admin.support.index')"
-                    class="nav-item"
-                    :class="{ 'nav-item--active': isActive('admin.support.*') }"
-                >
-                    Поддержка
-                </Link>
-
-                <div class="nav-group">
-                    <button
-                        class="nav-item nav-item--group"
-                        :class="{ 'nav-item--active': isOnTraits() }"
-                        @click="traitsOpen = !traitsOpen"
-                    >
-                        <span>Черты характера</span>
-                        <span class="nav-badge" v-if="pendingTraitSuggestionsCount > 0" style="margin-left: auto; margin-right: 0.25rem;">{{ pendingTraitSuggestionsCount }}</span>
-                        <span class="nav-arrow" :class="{ 'nav-arrow--open': traitsOpen }">▾</span>
-                    </button>
-                    <div v-if="traitsOpen" class="nav-sub">
-                        <Link
-                            :href="route('admin.traits.index')"
-                            class="nav-item nav-item--sub"
-                            :class="{ 'nav-item--active': isActive('admin.traits.index') }"
-                        >Список</Link>
-                        <Link
-                            :href="route('admin.traits.suggestions.index')"
-                            class="nav-item nav-item--sub"
-                            :class="{ 'nav-item--active': isActive('admin.traits.suggestions.*') }"
+                    <div class="nav-group">
+                        <button
+                            class="nav-item nav-item--group"
+                            :class="{ 'nav-item--active': isOnContentPacks() }"
+                            @click="contentPacksOpen = !contentPacksOpen"
                         >
-                            Предложения
-                            <span v-if="pendingTraitSuggestionsCount > 0" class="nav-badge">{{ pendingTraitSuggestionsCount }}</span>
-                        </Link>
+                            <el-icon class="nav-icon"><Picture /></el-icon>
+                            <span class="nav-text">Контент-паки</span>
+                            <span class="nav-arrow" :class="{ 'nav-arrow--open': contentPacksOpen }">▾</span>
+                        </button>
+                        <div v-if="contentPacksOpen" class="nav-sub">
+                            <Link
+                                :href="route('admin.content-packs.index')"
+                                class="nav-item nav-item--sub"
+                                :class="{ 'nav-item--active': isActive('admin.content-packs.index') || isActive('admin.content-packs.show') }"
+                            >Модерация</Link>
+                            <Link
+                                :href="route('admin.content-packs.change-requests.index')"
+                                class="nav-item nav-item--sub"
+                                :class="{ 'nav-item--active': isActive('admin.content-packs.change-requests.*') }"
+                            >Изменения</Link>
+                        </div>
                     </div>
-                </div>
 
-                <div class="nav-group">
-                    <button
-                        class="nav-item nav-item--group"
-                        :class="{ 'nav-item--active': isOnInterests() }"
-                        @click="interestsOpen = !interestsOpen"
+                    <Link
+                        :href="route('admin.orders.index')"
+                        class="nav-item"
+                        :class="{ 'nav-item--active': isActive('admin.orders.*') }"
                     >
-                        <span>Интересы</span>
-                        <span class="nav-badge" v-if="pendingInterestSuggestionsCount > 0" style="margin-left: auto; margin-right: 0.25rem;">{{ pendingInterestSuggestionsCount }}</span>
-                        <span class="nav-arrow" :class="{ 'nav-arrow--open': interestsOpen }">▾</span>
-                    </button>
-                    <div v-if="interestsOpen" class="nav-sub">
-                        <Link
-                            :href="route('admin.interests.index')"
-                            class="nav-item nav-item--sub"
-                            :class="{ 'nav-item--active': isActive('admin.interests.index') }"
-                        >Список</Link>
-                        <Link
-                            :href="route('admin.interests.suggestions.index')"
-                            class="nav-item nav-item--sub"
-                            :class="{ 'nav-item--active': isActive('admin.interests.suggestions.*') }"
-                        >
-                            Предложения
-                            <span v-if="pendingInterestSuggestionsCount > 0" class="nav-badge">{{ pendingInterestSuggestionsCount }}</span>
-                        </Link>
-                    </div>
+                        <el-icon class="nav-icon"><Tickets /></el-icon>
+                        <span class="nav-text">Заказы</span>
+                    </Link>
                 </div>
 
-                <Link
-                    :href="route('admin.chat-blocks.index')"
-                    class="nav-item"
-                    :class="{ 'nav-item--active': isActive('admin.chat-blocks.index') }"
-                >
-                    Блокировки в чате
-                </Link>
+                <!-- Пользователи и Модерация -->
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Пользователи и Модерация</div>
 
-                <Link
-                    :href="route('admin.ban-reasons.index')"
-                    class="nav-item"
-                    :class="{ 'nav-item--active': isActive('admin.ban-reasons.index') }"
-                >
-                    Причины блокировок
-                </Link>
+                    <Link
+                        :href="route('admin.users.index')"
+                        class="nav-item"
+                        :class="{ 'nav-item--active': isActive('admin.users.*') }"
+                    >
+                        <el-icon class="nav-icon"><User /></el-icon>
+                        <span class="nav-text">Пользователи</span>
+                    </Link>
 
-                <Link
-                    :href="route('admin.review-epithets.index')"
-                    class="nav-item"
-                    :class="{ 'nav-item--active': isActive('admin.review-epithets.index') }"
-                >
-                    Отзывы — Эпитеты
-                </Link>
+                    <Link
+                        :href="route('admin.conversations.index')"
+                        class="nav-item"
+                        :class="{ 'nav-item--active': isActive('admin.conversations.*') }"
+                    >
+                        <el-icon class="nav-icon"><ChatDotRound /></el-icon>
+                        <span class="nav-text">Переписки</span>
+                    </Link>
 
-                <Link
-                    :href="route('admin.news.index')"
-                    class="nav-item"
-                    :class="{ 'nav-item--active': isActive('admin.news.index') }"
-                >
-                    Статьи
-                </Link>
+                    <Link :href="route('admin.strikes.index')" class="nav-item" :class="{ active: $page.component.startsWith('Admin/Strikes') }">
+                        <el-icon class="nav-icon"><Warning /></el-icon>
+                        <span class="nav-text">Страйки</span>
+                    </Link>
 
-                <Link
-                    :href="route('admin.help-categories.index')"
-                    class="nav-item"
-                    :class="{ 'nav-item--active': isActive('admin.help-categories.*') }"
-                >
-                    Справка
-                </Link>
+                    <Link
+                        :href="route('admin.disputes.index')"
+                        class="nav-item"
+                        :class="{ 'nav-item--active': isActive('admin.disputes.*') }"
+                    >
+                        <el-icon class="nav-icon"><ScaleToOriginal /></el-icon>
+                        <span class="nav-text">Споры</span>
+                    </Link>
 
-                <Link
-                    :href="route('admin.reports.index')"
-                    class="nav-item"
-                    :class="{ 'nav-item--active': isActive('admin.reports.*') }"
-                >
-                    Жалобы
-                    <span v-if="pendingReportsCount > 0" class="nav-badge">{{ pendingReportsCount }}</span>
-                </Link>
+                    <Link
+                        :href="route('admin.review-disputes.index')"
+                        class="nav-item"
+                        :class="{ 'nav-item--active': isActive('admin.review-disputes.*') }"
+                    >
+                        <el-icon class="nav-icon"><Microphone /></el-icon>
+                        <span class="nav-text">Отзывы</span>
+                        <span v-if="pendingReviewDisputesCount > 0" class="nav-badge" style="margin-left: auto; margin-right: 0.25rem;">{{ pendingReviewDisputesCount }}</span>
+                    </Link>
 
-                <Link
-                    :href="route('admin.logs.index')"
-                    class="nav-item"
-                    :class="{ 'nav-item--active': isActive('admin.logs.index') }"
-                >
-                    Логи
-                </Link>
+                    <Link
+                        :href="route('admin.reports.index')"
+                        class="nav-item"
+                        :class="{ 'nav-item--active': isActive('admin.reports.*') }"
+                    >
+                        <el-icon class="nav-icon"><WarningFilled /></el-icon>
+                        <span class="nav-text">Жалобы</span>
+                        <span v-if="pendingReportsCount > 0" class="nav-badge">{{ pendingReportsCount }}</span>
+                    </Link>
 
-                <Link
-                    :href="route('admin.rating-logs.index')"
-                    class="nav-item"
-                    :class="{ 'nav-item--active': isActive('admin.rating-logs.index') }"
-                >
-                    Рейтинг айдолов
-                </Link>
+                    <Link
+                        :href="route('admin.support.index')"
+                        class="nav-item"
+                        :class="{ 'nav-item--active': isActive('admin.support.*') }"
+                    >
+                        <el-icon class="nav-icon"><Headset /></el-icon>
+                        <span class="nav-text">Поддержка</span>
+                    </Link>
 
-                <Link
-                    :href="route('admin.settings.index')"
-                    class="nav-item"
-                    :class="{ 'nav-item--active': isActive('admin.settings.index') }"
-                >
-                    Настройки
-                </Link>
+                    <Link
+                        :href="route('admin.chat-blocks.index')"
+                        class="nav-item"
+                        :class="{ 'nav-item--active': isActive('admin.chat-blocks.index') }"
+                    >
+                        <el-icon class="nav-icon"><Lock /></el-icon>
+                        <span class="nav-text">Блокировки в чате</span>
+                    </Link>
+                </div>
+
+                <!-- Наполнение -->
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Наполнение</div>
+
+                    <div class="nav-group">
+                        <button
+                            class="nav-item nav-item--group"
+                            :class="{ 'nav-item--active': isOnQuiz() }"
+                            @click="quizOpen = !quizOpen"
+                        >
+                            <el-icon class="nav-icon"><Aim /></el-icon>
+                            <span class="nav-text">Квиз</span>
+                            <span class="nav-arrow" :class="{ 'nav-arrow--open': quizOpen }">▾</span>
+                        </button>
+                        <div v-if="quizOpen" class="nav-sub">
+                            <Link
+                                :href="route('admin.quiz.questions.index')"
+                                class="nav-item nav-item--sub"
+                                :class="{ 'nav-item--active': isActive('admin.quiz.questions.index') }"
+                            >Вопросы</Link>
+                            <Link
+                                :href="route('admin.quiz.article.index')"
+                                class="nav-item nav-item--sub"
+                                :class="{ 'nav-item--active': isActive('admin.quiz.article.index') }"
+                            >Статья о вступлении</Link>
+                        </div>
+                    </div>
+
+                    <div class="nav-group">
+                        <button
+                            class="nav-item nav-item--group"
+                            :class="{ 'nav-item--active': isOnTraits() }"
+                            @click="traitsOpen = !traitsOpen"
+                        >
+                            <el-icon class="nav-icon"><Star /></el-icon>
+                            <span class="nav-text">Черты характера</span>
+                            <span class="nav-badge" v-if="pendingTraitSuggestionsCount > 0" style="margin-left: auto; margin-right: 0.25rem;">{{ pendingTraitSuggestionsCount }}</span>
+                            <span class="nav-arrow" :class="{ 'nav-arrow--open': traitsOpen }">▾</span>
+                        </button>
+                        <div v-if="traitsOpen" class="nav-sub">
+                            <Link
+                                :href="route('admin.traits.index')"
+                                class="nav-item nav-item--sub"
+                                :class="{ 'nav-item--active': isActive('admin.traits.index') }"
+                            >Список</Link>
+                            <Link
+                                :href="route('admin.traits.suggestions.index')"
+                                class="nav-item nav-item--sub"
+                                :class="{ 'nav-item--active': isActive('admin.traits.suggestions.*') }"
+                            >
+                                Предложения
+                                <span v-if="pendingTraitSuggestionsCount > 0" class="nav-badge">{{ pendingTraitSuggestionsCount }}</span>
+                            </Link>
+                        </div>
+                    </div>
+
+                    <div class="nav-group">
+                        <button
+                            class="nav-item nav-item--group"
+                            :class="{ 'nav-item--active': isOnInterests() }"
+                            @click="interestsOpen = !interestsOpen"
+                        >
+                            <el-icon class="nav-icon"><Discount /></el-icon>
+                            <span class="nav-text">Интересы</span>
+                            <span class="nav-badge" v-if="pendingInterestSuggestionsCount > 0" style="margin-left: auto; margin-right: 0.25rem;">{{ pendingInterestSuggestionsCount }}</span>
+                            <span class="nav-arrow" :class="{ 'nav-arrow--open': interestsOpen }">▾</span>
+                        </button>
+                        <div v-if="interestsOpen" class="nav-sub">
+                            <Link
+                                :href="route('admin.interests.index')"
+                                class="nav-item nav-item--sub"
+                                :class="{ 'nav-item--active': isActive('admin.interests.index') }"
+                            >Список</Link>
+                            <Link
+                                :href="route('admin.interests.suggestions.index')"
+                                class="nav-item nav-item--sub"
+                                :class="{ 'nav-item--active': isActive('admin.interests.suggestions.*') }"
+                            >
+                                Предложения
+                                <span v-if="pendingInterestSuggestionsCount > 0" class="nav-badge">{{ pendingInterestSuggestionsCount }}</span>
+                            </Link>
+                        </div>
+                    </div>
+
+                    <Link
+                        :href="route('admin.ban-reasons.index')"
+                        class="nav-item"
+                        :class="{ 'nav-item--active': isActive('admin.ban-reasons.index') }"
+                    >
+                        <el-icon class="nav-icon"><Lock /></el-icon>
+                        <span class="nav-text">Причины блокировок</span>
+                    </Link>
+
+                    <Link
+                        :href="route('admin.review-epithets.index')"
+                        class="nav-item"
+                        :class="{ 'nav-item--active': isActive('admin.review-epithets.index') }"
+                    >
+                        <el-icon class="nav-icon"><ChatSquare /></el-icon>
+                        <span class="nav-text">Отзывы — Эпитеты</span>
+                    </Link>
+
+                    <Link
+                        :href="route('admin.news.index')"
+                        class="nav-item"
+                        :class="{ 'nav-item--active': isActive('admin.news.index') }"
+                    >
+                        <el-icon class="nav-icon"><Document /></el-icon>
+                        <span class="nav-text">Статьи</span>
+                    </Link>
+
+                    <Link
+                        :href="route('admin.help-categories.index')"
+                        class="nav-item"
+                        :class="{ 'nav-item--active': isActive('admin.help-categories.*') }"
+                    >
+                        <el-icon class="nav-icon"><QuestionFilled /></el-icon>
+                        <span class="nav-text">Справка</span>
+                    </Link>
+                </div>
+
+                <!-- Система -->
+                <div class="sidebar-section">
+                    <div class="sidebar-section-title">Система</div>
+
+                    <Link
+                        :href="route('admin.messages.index')"
+                        class="nav-item"
+                        :class="{ 'nav-item--active': isActive('admin.messages.index') }"
+                    >
+                        <el-icon class="nav-icon"><Message /></el-icon>
+                        <span class="nav-text">Рассылки</span>
+                    </Link>
+
+                    <Link
+                        :href="route('admin.logs.index')"
+                        class="nav-item"
+                        :class="{ 'nav-item--active': isActive('admin.logs.index') }"
+                    >
+                        <el-icon class="nav-icon"><Monitor /></el-icon>
+                        <span class="nav-text">Логи</span>
+                    </Link>
+
+                    <Link
+                        :href="route('admin.rating-logs.index')"
+                        class="nav-item"
+                        :class="{ 'nav-item--active': isActive('admin.rating-logs.index') }"
+                    >
+                        <el-icon class="nav-icon"><TrendCharts /></el-icon>
+                        <span class="nav-text">Рейтинг айдолов</span>
+                    </Link>
+
+                    <Link
+                        :href="route('admin.settings.index')"
+                        class="nav-item"
+                        :class="{ 'nav-item--active': isActive('admin.settings.index') }"
+                    >
+                        <el-icon class="nav-icon"><Setting /></el-icon>
+                        <span class="nav-text">Настройки</span>
+                    </Link>
+                </div>
             </nav>
 
             <div class="sidebar__footer">
@@ -443,6 +497,44 @@ function isActive(routeName) {
 }
 
 /* Nav */
+
+.sidebar-section {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.sidebar-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+.sidebar-section-title {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.25);
+    padding: 0.5rem 1rem 0.25rem;
+    font-weight: 600;
+}
+.nav-icon {
+    font-size: 1.05rem;
+    width: 20px;
+    display: flex;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.4);
+    transition: color 0.15s;
+}
+.nav-text {
+    flex: 1;
+}
+.nav-item--active .nav-icon {
+    color: #9B6EE8;
+}
+.nav-item:hover .nav-icon {
+    color: rgba(255, 255, 255, 0.7);
+}
+
 .sidebar__nav {
     flex: 1;
     padding: 0.5rem 0;

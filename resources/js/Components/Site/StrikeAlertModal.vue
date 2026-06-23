@@ -186,10 +186,13 @@ async function markAsRead() {
 .stat-value.text-red { color: #f56565; }
 
 .strike-note {
-    background: rgba(0, 0, 0, 0.25);
-    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 10px;
     padding: 1rem 1.25rem;
-    border-left: 3px solid rgba(252, 129, 129, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 0 0 1px rgba(252, 129, 129, 0.15);
 }
 
 .note-label {
