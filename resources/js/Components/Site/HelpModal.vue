@@ -230,9 +230,10 @@ async function submitDispute() {
                 class="faq-sidebar"
                 :class="{ 'faq-sidebar--mob-hidden': mobileNav !== 'cats' }"
             >
-                <div class="faq-sidebar__label">
-                    {{ __("help.sections.label") }}
-                </div>
+                <div class="faq-sidebar__scroll">
+                    <div class="faq-sidebar__label">
+                        {{ __("help.sections.label") }}
+                    </div>
 
                 <!-- Loading skeleton -->
                 <div v-if="helpLoading" class="faq-loading">
@@ -256,6 +257,7 @@ async function submitDispute() {
                         <span class="faq-article-btn__title">{{ article.q }}</span>
                     </button>
                 </template>
+                </div>
 
                 <!-- Sidebar action buttons -->
                 <div class="faq-sidebar__actions">
@@ -450,16 +452,20 @@ async function submitDispute() {
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
-    padding-bottom: 0.5rem;
     background: rgba(255, 255, 255, 0.025);
     border-right: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 12px 0 0 12px;
+}
+
+.faq-sidebar__scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 0.5rem;
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.07) transparent;
 }
-.faq-sidebar::-webkit-scrollbar { width: 3px; }
-.faq-sidebar::-webkit-scrollbar-thumb {
+.faq-sidebar__scroll::-webkit-scrollbar { width: 3px; }
+.faq-sidebar__scroll::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.07);
     border-radius: 3px;
 }

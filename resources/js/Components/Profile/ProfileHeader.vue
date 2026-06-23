@@ -208,7 +208,7 @@ function deleteAvatar() {
                 <h3 class="edit-title">{{ __('profile.header.edit') }}</h3>
 
                 <div class="edit-field">
-                    <label class="edit-label">{{ __('auth.name') }}</label>
+                    <label class="edit-label">Логин</label>
                     <input v-model="form.name" class="edit-input" type="text" :placeholder="__('profile.header.name_ph')"
                         @input="nameError = ''" />
                     <span v-if="nameError || form.errors.name" class="edit-field-error">

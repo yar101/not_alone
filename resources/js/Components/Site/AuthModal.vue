@@ -71,6 +71,7 @@ const registerForm = useForm({
     email: "",
     password: "",
     password_confirmation: "",
+    is_adult: false,
 });
 
 // ── Birth date selects ─────────────────────────────────────
@@ -329,9 +330,7 @@ function submitRegister() {
                             class="auth-form"
                         >
                             <div class="auth-field">
-                                <label class="auth-field-label">{{
-                                    __("auth.name")
-                                }}</label>
+                                <label class="auth-field-label">Логин</label>
                                 <input
                                     v-model="registerForm.name"
                                     type="text"
@@ -675,6 +674,28 @@ function submitRegister() {
                                             registerForm.errors
                                                 .password_confirmation
                                         }}
+                                    </p>
+                                </Transition>
+                            </div>
+
+                            <div class="auth-remember" style="margin-bottom: 1rem;">
+                                <label class="auth-remember-label">
+                                    <input
+                                        v-model="registerForm.is_adult"
+                                        type="checkbox"
+                                        class="auth-checkbox-native"
+                                        required
+                                    />
+                                    <span class="auth-checkbox-box">
+                                        <svg class="auth-checkbox-check" viewBox="0 0 10 8" fill="none">
+                                            <path d="M1 4L3.5 6.5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                    </span>
+                                    <span class="auth-remember-text">Мне есть 18 лет</span>
+                                </label>
+                                <Transition name="err-fade">
+                                    <p v-show="registerForm.errors.is_adult" class="auth-error">
+                                        {{ registerForm.errors.is_adult }}
                                     </p>
                                 </Transition>
                             </div>
