@@ -47,7 +47,7 @@ class UserStrikeNotification extends Notification implements ShouldQueue
             ->line('Количество ваших активных страйков: ' . $activeStrikes . ' из 3.');
 
         if ($this->strike->rating_deducted < 0) {
-            $mail->line('В связи с нарушением ваш рейтинг был понижен на ' . abs($this->strike->rating_deducted) . '.');
+            $mail->line('В связи с нарушением ваш рейтинг был понижен.');
         }
 
         if (!empty($this->strike->admin_note)) {
@@ -58,8 +58,10 @@ class UserStrikeNotification extends Notification implements ShouldQueue
         if ($activeStrikes >= 3) {
             $mail->line('Так как вы достигли лимита страйков (3), ваш аккаунт был заблокирован.');
         } else {
-            $mail->line('Пожалуйста, будьте внимательны. Страйки автоматически сгорают через 6 месяцев. Если вы получите 3 активных страйка, ваш аккаунт будет заблокирован.');
+            $mail->line('При получении 3 активных страйков ваш аккаунт будет заблокирован.');
         }
+
+        $mail->salutation(' '); // Убирает дефолтное "Regards, Laravel"
 
         return $mail;
     }
