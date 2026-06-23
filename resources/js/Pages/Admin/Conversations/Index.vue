@@ -131,6 +131,10 @@ function getSystemText(msg) {
     const event = msg.metadata?.event ?? msg.type;
     const meta = msg.metadata ?? {};
     switch (event) {
+        case 'order_created':
+            return 'Оформлен новый заказ';
+        case 'item_added':
+            return 'В заказ добавлены новые услуги';
         case 'order_accepted':
             return 'Айдол принял предложение и готов выполнить заказ';
         case 'order_paid':
@@ -139,6 +143,14 @@ function getSystemText(msg) {
             return 'Заказ отменён' + (meta.cancel_reason ? `: ${meta.cancel_reason}` : '');
         case 'order_completed':
             return 'Заказ завершён и закрыт';
+        case 'order_auto_completed':
+            return 'Заказ завершён автоматически по истечении времени';
+        case 'completion_confirmed_by_idol':
+            return `Айдол ${meta.actor_name || ''} подтвердил выполнение заказа`;
+        case 'completion_confirmed_by_customer':
+            return `Клиент ${meta.actor_name || ''} подтвердил выполнение заказа`;
+        case 'review_submitted':
+            return 'Клиент оставил отзыв о заказе';
         case 'order_disputed':
             return 'Был открыт спор по заказу';
         case 'chat_closed':
@@ -320,8 +332,20 @@ function getSystemText(msg) {
                             </div>
 
                             <!-- System event -->
-                            <div v-if="isSystemMessage(msg)" class="system-msg">
+                            <div v-if="isSystemMessage(msg)" class="system-msg" :class="{ 'system-msg--detailed': ['order_created', 'item_added'].includes(msg.metadata?.event) && msg.metadata?.services }">
                                 <span class="system-msg-text">{{ getSystemText(msg) }}</span>
+                                
+                                <div v-if="['order_created', 'item_added'].includes(msg.metadata?.event) && msg.metadata?.services?.length" class="system-msg-details">
+                                    <div v-for="svc in msg.metadata.services" :key="svc.id" class="sys-svc-line">
+                                        <span class="sys-svc-name">{{ svc.name }} <span class="sys-svc-qty">x{{ svc.quantity || 1 }}</span></span>
+                                        <span class="sys-svc-price">{{ (svc.price || 0).toLocaleString('ru-RU') }} ₽</span>
+                                    </div>
+                                    <div class="sys-svc-total">
+                                        <span>Итого:</span>
+                                        <span>{{ msg.metadata.services.reduce((sum, s) => sum + ((s.price || 0) * (s.quantity || 1)), 0).toLocaleString('ru-RU') }} ₽</span>
+                                    </div>
+                                </div>
+
                                 <span class="system-msg-time">{{ formatTime(msg.created_at) }}</span>
                             </div>
 
@@ -400,6 +424,8 @@ function getSystemText(msg) {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .filter-row {
@@ -415,6 +441,8 @@ function getSystemText(msg) {
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
+    flex: 1;
+    min-width: 0;
 }
 
 .filter-label {
@@ -433,6 +461,8 @@ function getSystemText(msg) {
     outline: none;
     font-family: inherit;
     border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .filter-select {
@@ -543,7 +573,7 @@ function getSystemText(msg) {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.08);
+    background: #252131;
     border: 2px solid #141121;
     display: flex;
     align-items: center;
@@ -568,7 +598,7 @@ function getSystemText(msg) {
 
 .conv-avatar--idol {
     border-color: #9B6EE8;
-    background: rgba(155, 110, 232, 0.2);
+    background: #31244c;
     color: #c084fc;
 }
 
@@ -892,6 +922,58 @@ function getSystemText(msg) {
 .system-msg-time {
     font-size: 0.7rem;
     color: rgba(255, 255, 255, 0.25);
+}
+
+.system-msg--detailed {
+    max-width: 90%;
+    align-items: stretch;
+    text-align: left;
+}
+
+.system-msg--detailed .system-msg-text {
+    text-align: center;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.system-msg-details {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.sys-svc-line {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+    gap: 1rem;
+}
+
+.sys-svc-qty {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.75rem;
+    margin-left: 0.25rem;
+}
+
+.sys-svc-price {
+    font-family: monospace;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.sys-svc-total {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.25rem;
+    padding-top: 0.25rem;
+    border-top: 1px dashed rgba(255, 255, 255, 0.15);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #4cde8f;
 }
 
 /* User message bubble */

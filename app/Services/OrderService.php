@@ -297,7 +297,7 @@ class OrderService
                 'service'  => $item->service ? [
                     'id'        => $item->service->id,
                     'name'      => $item->service->name,
-                    'price'     => $item->service->price,
+                    'price'     => $item->price ?? $item->service->price,
                     'time_unit' => $item->service->timeUnit?->name,
                 ] : null,
             ])->values()->all(),

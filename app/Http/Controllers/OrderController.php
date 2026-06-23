@@ -73,7 +73,7 @@ class OrderController extends Controller
 
         foreach ($services as $service) {
             $qty = (int) ($quantityMap[$service->id]['quantity'] ?? 1);
-            $order->items()->create(['service_id' => $service->id, 'quantity' => $qty]);
+            $order->items()->create(['service_id' => $service->id, 'quantity' => $qty, 'price' => $service->price]);
         }
 
         $conversation = Conversation::create(['order_id' => $order->id]);
@@ -230,7 +230,7 @@ class OrderController extends Controller
         if ($existing) {
             $existing->increment('quantity');
         } else {
-            $order->items()->create(['service_id' => $service->id, 'quantity' => 1]);
+            $order->items()->create(['service_id' => $service->id, 'quantity' => 1, 'price' => $service->price]);
         }
 
         $order->touch();
