@@ -196,6 +196,13 @@ const STORAGE_KEY = 'notif_active_filters';
 const savedFilters = localStorage.getItem(STORAGE_KEY);
 const activeFilters = ref(savedFilters ? JSON.parse(savedFilters) : ['service', 'order']);
 
+const POPUP_STORAGE_KEY = 'notif_popups_enabled';
+const popupsEnabled = ref(localStorage.getItem(POPUP_STORAGE_KEY) !== 'false');
+
+watch(popupsEnabled, (val) => {
+    localStorage.setItem(POPUP_STORAGE_KEY, val ? 'true' : 'false');
+});
+
 watch(activeFilters, (val) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(val));
 }, { deep: true });
@@ -449,6 +456,7 @@ function renderNotif(item) {
 
 function showNotifPopup(item) {
     if (isMobile.value) return;
+    if (!popupsEnabled.value) return;
     const { iconComp, iconClass, title, message } = renderNotif(item);
     ElNotification({
         duration: 5000,
@@ -689,7 +697,16 @@ defineExpose({ toggleDropdown });
 
                 <!-- Header -->
                 <div class="notif-panel-header">
-                    <span class="notif-panel-title">{{ __('notification.title') }}</span>
+                    <div class="notif-panel-header-top" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span class="notif-panel-title">{{ __('notification.title') }}</span>
+                        <label class="popup-toggle-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.75rem; color: rgba(255, 255, 255, 0.4);">
+                            <span>Всплывающие окна</span>
+                            <div class="toggle-switch">
+                                <input type="checkbox" v-model="popupsEnabled" style="display: none;">
+                                <div class="slider" :class="{ 'slider--on': popupsEnabled }"></div>
+                            </div>
+                        </label>
+                    </div>
                     <div class="notif-filters">
                         <div class="notif-filter-row">
                             <button class="notif-filter-btn notif-filter-btn--all" :class="{ 'notif-filter-btn--active': activeFilters.includes('all') }"
@@ -1622,5 +1639,37 @@ defineExpose({ toggleDropdown });
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 178, 239, 0.3) transparent;
+}
+</style>
+
+<style scoped>
+.toggle-switch {
+    width: 28px;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    position: relative;
+    transition: background 0.2s;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.slider {
+    position: absolute;
+    top: 1px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    transition: transform 0.2s, background 0.2s;
+}
+.slider--on {
+    transform: translateX(12px);
+    background: #9b6ee8;
+}
+.popup-toggle-label:hover .toggle-switch {
+    background: rgba(255, 255, 255, 0.15);
+}
+.popup-toggle-label:hover {
+    color: rgba(255, 255, 255, 0.6) !important;
 }
 </style>
