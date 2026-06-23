@@ -41,7 +41,7 @@ class UserStrikeNotification extends Notification implements ShouldQueue
 
         $mail = (new MailMessage)
             ->error()
-            ->subject('⚠️ ВАЖНО: Вы получили предупреждение (Страйк) от администрации')
+            ->subject('Уведомление от модерации платформы')
             ->greeting('Уведомление о нарушении')
             ->line('Вы получили это письмо, так как администрация зафиксировала нарушение правил платформы.')
             ->line('Количество ваших активных страйков: ' . $activeStrikes . ' из 3.');
