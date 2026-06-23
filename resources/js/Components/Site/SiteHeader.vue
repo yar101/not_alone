@@ -9,11 +9,11 @@ defineProps({
 
 <template>
     <header class="site-header">
-        <!-- Логотип -->
+        <!-- Логотип (только для мобилок, на десктопе он в PublicNav) -->
         <component
             :is="activePage === 'home' ? 'span' : Link"
             :href="activePage !== 'home' ? '/' : undefined"
-            class="site-header__logo"
+            class="site-header__logo mobile-only-logo"
         >
             <img src="/app-logo-v3.png" alt="Not Alone" class="site-header__logo-img" />
         </component>
@@ -27,9 +27,9 @@ defineProps({
 .site-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center; /* По умолчанию центрируем навбар */
     gap: 1.5rem;
-    padding: 1.2rem 4rem 1.2rem;
+    padding: 2.5rem 4rem 1.2rem;
     flex-shrink: 0;
     position: relative;
     z-index: 10;
@@ -43,7 +43,7 @@ defineProps({
     text-decoration: none;
     cursor: default;
     position: relative;
-    z-index: 100;
+    z-index: 1;
     transition: opacity 0.2s;
     overflow: visible;
 }
@@ -55,18 +55,19 @@ a.site-header__logo:hover {
 }
 
 .site-header__logo-img {
-    height: 168px;
+    height: 72px;
     width: auto;
     display: block;
 }
 
+.mobile-only-logo {
+    display: none !important;
+}
+
 .site-header__nav {
-    position: absolute;
-    left: 0;
-    right: 0;
     display: flex;
     justify-content: center;
-    pointer-events: none;
+    z-index: 100;
 }
 .site-header__nav > * {
     pointer-events: auto;
@@ -112,17 +113,16 @@ a.site-header__logo:hover {
     .site-header {
         padding: 0.75rem 1rem 0.75rem;
         gap: 1.25rem;
+        justify-content: space-between; /* На мобилке разносим лого и бургер */
     }
     .site-header__nav {
-        position: static;
         flex: 1;
-        transform: none;
     }
     .site-header__contact-label {
         display: none;
     }
-    .site-header__logo-img {
-        height: 72px;
+    .mobile-only-logo {
+        display: flex !important;
     }
 }
 </style>

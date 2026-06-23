@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { router } from "@inertiajs/vue3";
+import { router, Link } from "@inertiajs/vue3";
 import { useTranslations } from "@/composables/useTranslations";
 import LocaleSwitcher from "@/Components/Site/LocaleSwitcher.vue";
 
@@ -106,22 +106,33 @@ function onTabClick(tab) {
 
         <!-- Основная навигация -->
         <nav class="pub-tabs" :class="{ 'pub-tabs--open': mobileMenuOpen }">
-            <button
-                v-for="tab in tabs"
-                :key="tab.key"
-                class="pub-tab"
-                :class="{ 'pub-tab--active': visualActive === tab.key }"
-                @click="onTabClick(tab)"
-            >
-                <span class="pub-tab__icon" v-html="tab.icon" />
-                {{ tab.label }}
-            </button>
+            <template v-for="(tab, index) in tabs" :key="tab.key">
+                <!-- Центральный логотип (между 2 и 3 табом) -->
+                <div v-if="index === 2" class="pub-nav-logo-wrapper">
+                    <component
+                        :is="activePage === 'home' ? 'span' : Link"
+                        :href="activePage !== 'home' ? '/' : undefined"
+                        class="pub-nav-center-logo"
+                    >
+                        <img src="/app-logo-v3.png" alt="Not Alone" />
+                    </component>
+                </div>
+
+                <button
+                    class="pub-tab"
+                    :class="{ 'pub-tab--active': visualActive === tab.key }"
+                    @click="onTabClick(tab)"
+                >
+                    <span class="pub-tab__icon" v-html="tab.icon" />
+                    {{ tab.label }}
+                </button>
+            </template>
 
             <!-- Разделитель для десктопа -->
-            <div class="pub-tabs__divider" />
+            <div v-show="false" class="pub-tabs__divider" />
 
             <!-- Свитчер языков -->
-            <div class="pub-locale-wrap">
+            <div v-show="false" class="pub-locale-wrap">
                 <LocaleSwitcher />
             </div>
         </nav>
@@ -162,7 +173,6 @@ function onTabClick(tab) {
     padding: 0.3rem;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    animation: pub-tabs-appear 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
 }
 
 /* Масштабирование для всех экранов (включая 4K) */
@@ -222,6 +232,40 @@ function onTabClick(tab) {
     opacity: 0.8;
 }
 
+/* Центральный логотип */
+.pub-nav-logo-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 0.5rem;
+    position: relative;
+    width: 180px; /* Резервируем место под вылезающий логотип */
+    flex-shrink: 0;
+    align-self: stretch;
+}
+
+.pub-nav-center-logo {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    z-index: 10;
+}
+
+.pub-nav-center-logo img {
+    height: 100px;
+    width: auto;
+    max-width: none; /* ЗАПРЕЩАЕМ сжатие картинки */
+    display: block;
+    filter: drop-shadow(0 8px 16px rgba(0,0,0,0.2)) brightness(1);
+    transition: filter 0.3s ease;
+}
+
+.pub-nav-center-logo:hover img {
+    filter: drop-shadow(0 0 18px rgba(255, 178, 239, 0.5)) brightness(1.12);
+}
+
 /* Кнопка-бургер */
 .pub-mobile-toggle {
     display: none; /* скрыта на десктопах */
@@ -275,20 +319,6 @@ function onTabClick(tab) {
     opacity: 0;
 }
 
-/* Анимация появления панели при первой загрузке */
-@keyframes pub-tabs-appear {
-    from {
-        opacity: 0;
-        transform: translateY(-6px) scale(0.97);
-        filter: blur(4px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        filter: blur(0);
-    }
-}
-
 /* ========== МОБИЛЬНАЯ ВЕРСИЯ (≤768px) ========== */
 @media (max-width: 768px) {
     .pub-nav {
@@ -323,6 +353,10 @@ function onTabClick(tab) {
         z-index: 99;
         animation: none; /* убираем анимацию загрузки, добавим свою */
         transform-origin: top right;
+    }
+
+    .pub-nav-logo-wrapper {
+        display: none; /* Прячем центральный логотип на мобилках */
     }
 
     /* Открытое мобильное меню */

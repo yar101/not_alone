@@ -318,7 +318,7 @@ function isActive(routeName) {
                     class="nav-item"
                     :class="{ 'nav-item--active': isActive('admin.news.index') }"
                 >
-                    Новости
+                    Статьи
                 </Link>
 
                 <Link
