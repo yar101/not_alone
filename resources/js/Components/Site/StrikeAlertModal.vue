@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { usePage, router } from '@inertiajs/vue3';
+import { WarningFilled } from '@element-plus/icons-vue';
 import axios from 'axios';
 
 const page = usePage();
@@ -22,7 +23,6 @@ async function markAsRead() {
     try {
         await axios.patch(route('notifications.read', unreadStrike.value.id));
         isVisible.value = false;
-        // Optionally reload props to clear unread_strike globally
         router.reload({ only: ['unread_strike'] });
     } catch (e) {
         console.error('Failed to mark strike as read', e);
@@ -36,7 +36,7 @@ async function markAsRead() {
     <div v-if="unreadStrike && isVisible" class="strike-modal-overlay">
         <div class="strike-modal-content">
             <div class="strike-header">
-                <span class="strike-icon">⚠️</span>
+                <el-icon class="strike-icon"><WarningFilled /></el-icon>
                 <h2>Предупреждение о нарушении</h2>
             </div>
             
@@ -63,8 +63,7 @@ async function markAsRead() {
 
                 <div class="strike-warning">
                     <p>
-                        Пожалуйста, будьте внимательны. Ваши страйки автоматически сгорят через 6 месяцев, 
-                        если не будет новых нарушений. <strong>При получении 3 активных страйков ваш аккаунт будет заблокирован.</strong>
+                        <strong>При получении 3 активных страйков ваш аккаунт будет заблокирован.</strong>
                     </p>
                 </div>
             </div>
@@ -89,8 +88,9 @@ async function markAsRead() {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.85);
+    background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     z-index: 99999;
     display: flex;
     align-items: center;
@@ -99,51 +99,53 @@ async function markAsRead() {
 }
 
 .strike-modal-content {
-    background: #1a0a0a;
-    border: 2px solid #fc8181;
-    border-radius: 12px;
+    background: rgba(25, 10, 15, 0.85);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(229, 62, 62, 0.2);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
     width: 100%;
-    max-width: 500px;
-    box-shadow: 0 0 40px rgba(229, 62, 62, 0.4);
+    max-width: 480px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    animation: slideUp 0.4s ease-out forwards;
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes slideUp {
-    0% { transform: translateY(30px); opacity: 0; }
-    100% { transform: translateY(0); opacity: 1; }
+    0% { transform: translateY(40px) scale(0.95); opacity: 0; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
 }
 
 .strike-header {
-    background: rgba(229, 62, 62, 0.15);
+    background: rgba(229, 62, 62, 0.08);
     padding: 1.5rem;
     text-align: center;
-    border-bottom: 1px solid rgba(229, 62, 62, 0.3);
+    border-bottom: 1px solid rgba(229, 62, 62, 0.15);
 }
 
 .strike-icon {
-    font-size: 3rem;
-    display: block;
+    font-size: 3.5rem;
+    color: rgba(252, 129, 129, 0.9);
     margin-bottom: 0.5rem;
+    display: inline-flex;
 }
 
 .strike-header h2 {
     margin: 0;
     color: #fc8181;
-    font-size: 1.4rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
 }
 
 .strike-body {
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
-    color: rgba(255, 255, 255, 0.9);
+    gap: 1.25rem;
+    color: rgba(255, 255, 255, 0.85);
     font-size: 0.95rem;
     line-height: 1.5;
 }
@@ -152,6 +154,7 @@ async function markAsRead() {
     margin: 0;
     text-align: center;
     font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .strike-stats {
@@ -159,9 +162,9 @@ async function markAsRead() {
     flex-direction: column;
     gap: 0.75rem;
     background: rgba(255, 255, 255, 0.03);
-    padding: 1rem;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1rem 1.25rem;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .stat-box {
@@ -171,103 +174,103 @@ async function markAsRead() {
 }
 
 .stat-label {
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.9rem;
 }
 
 .stat-value {
-    font-weight: 700;
-    font-size: 1.1rem;
+    font-weight: 600;
+    font-size: 1.05rem;
 }
 .stat-value.danger { color: #fc8181; }
 .stat-value.text-red { color: #f56565; }
 
 .strike-note {
-    background: rgba(0, 0, 0, 0.3);
-    border-left: 4px solid #fc8181;
-    padding: 1rem;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    border-left: 3px solid rgba(252, 129, 129, 0.6);
 }
 
 .note-label {
-    font-size: 0.8rem;
-    color: #fc8181;
+    font-size: 0.75rem;
+    color: rgba(252, 129, 129, 0.8);
     text-transform: uppercase;
     font-weight: 700;
-    margin-bottom: 0.5rem;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.4rem;
 }
 
 .note-text {
     font-style: italic;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
 }
 
 .strike-warning {
     color: rgba(255, 255, 255, 0.6);
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     text-align: center;
 }
 
 .strike-warning strong {
     color: #fc8181;
+    font-weight: 500;
 }
 
 .strike-footer {
-    padding: 1.5rem;
-    background: rgba(0, 0, 0, 0.2);
-    border-top: 1px solid rgba(229, 62, 62, 0.2);
+    padding: 1.25rem 1.5rem;
+    background: rgba(0, 0, 0, 0.15);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
     display: flex;
     justify-content: center;
 }
 
 .btn-acknowledge {
-    background: #e53e3e;
-    color: #fff;
-    border: none;
-    padding: 0.8rem 2rem;
-    font-size: 1.05rem;
-    font-weight: 700;
-    border-radius: 6px;
+    background: rgba(229, 62, 62, 0.15);
+    color: #fc8181;
+    border: 1px solid rgba(229, 62, 62, 0.3);
+    padding: 0.75rem 2rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s;
-    text-transform: uppercase;
+    transition: all 0.2s ease;
     width: 100%;
 }
 
 .btn-acknowledge:hover:not(:disabled) {
-    background: #c53030;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(229, 62, 62, 0.4);
+    background: rgba(229, 62, 62, 0.25);
+    border-color: rgba(229, 62, 62, 0.5);
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(229, 62, 62, 0.2);
 }
 
 .btn-acknowledge:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
 }
 
-/* Адаптивность для мобильных */
 @media (max-width: 640px) {
     .strike-modal-content {
         max-width: 100%;
-        border-radius: 8px;
+        border-radius: 12px;
     }
     .strike-header {
-        padding: 1rem;
-    }
-    .strike-header h2 {
-        font-size: 1.2rem;
-    }
-    .strike-body {
-        padding: 1rem;
-        gap: 1rem;
+        padding: 1.25rem;
     }
     .strike-icon {
-        font-size: 2.5rem;
+        font-size: 3rem;
+    }
+    .strike-body {
+        padding: 1.25rem;
     }
     .btn-acknowledge {
-        padding: 0.8rem 1rem;
-        font-size: 0.95rem;
+        padding: 0.75rem 1rem;
     }
     .strike-footer {
-        padding: 1rem;
+        padding: 1.25rem;
     }
 }
 </style>

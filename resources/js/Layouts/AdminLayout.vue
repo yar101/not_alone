@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
+import { Document, User, ChatDotRound, Tickets, Money, Warning } from '@element-plus/icons-vue';
 
 function logout() {
     router.post(route('admin.logout'));
@@ -87,7 +88,7 @@ function isActive(routeName) {
                 </Link>
 
                 <Link :href="route('admin.strikes.index')" class="nav-item" :class="{ active: $page.component.startsWith('Admin/Strikes') }">
-                    <span class="nav-icon">⚠️</span>
+                    <el-icon class="nav-icon"><Warning /></el-icon>
                     Страйки
                 </Link>
 
