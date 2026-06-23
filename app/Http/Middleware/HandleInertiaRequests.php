@@ -45,11 +45,17 @@ class HandleInertiaRequests extends Middleware
             $idolStatus = $application->status;
         }
 
+        $unreadStrike = $user ? $user->unreadNotifications()->where('type', \App\Notifications\UserStrikeNotification::class)->first() : null;
+
         return [
             ...parent::share($request),
             'auth' => [
                 'user' => $user,
             ],
+            'unread_strike' => $unreadStrike ? [
+                'id' => $unreadStrike->id,
+                'data' => $unreadStrike->data,
+            ] : null,
             'auth_admin' => auth('admin')->user(),
             'notifications_unread' => $user ? $this->countUnreadNotifications($user) : 0,
             'service_unread' => $user ? $this->countUnreadService($user) : 0,

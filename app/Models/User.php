@@ -150,6 +150,16 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(ChatBlock::class, 'blocked_id');
     }
 
+    public function strikes(): HasMany
+    {
+        return $this->hasMany(UserStrike::class);
+    }
+
+    public function activeStrikesCount(): int
+    {
+        return $this->strikes()->where('expires_at', '>', now())->count();
+    }
+
     public function contentPacks(): HasMany
     {
         return $this->hasMany(ContentPack::class);

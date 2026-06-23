@@ -35,6 +35,7 @@ use App\Http\Controllers\Admin\SupportChatController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\HelpCategoryController;
 use App\Http\Controllers\Admin\HelpArticleController;
+use App\Http\Controllers\Admin\StrikeController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -84,6 +85,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('/users/{user}/reset-quiz', [UserController::class, 'resetQuizProgress'])->name('users.reset-quiz');
         Route::post('/users/{user}/ban', [UserController::class, 'ban'])->name('users.ban');
         Route::delete('/users/{user}/ban', [UserController::class, 'unban'])->name('users.unban');
+
+        Route::get('/strikes', [StrikeController::class, 'index'])->name('strikes.index');
+        Route::post('/strikes', [StrikeController::class, 'store'])->name('strikes.store');
 
         // Idol rating (manual adjustment)
         Route::patch('/users/{user}/rating', [IdolRatingController::class, 'update'])->name('users.rating.update');

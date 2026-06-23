@@ -86,6 +86,11 @@ function isActive(routeName) {
                     Дашборд
                 </Link>
 
+                <Link :href="route('admin.strikes.index')" class="nav-item" :class="{ active: $page.component.startsWith('Admin/Strikes') }">
+                    <span class="nav-icon">⚠️</span>
+                    Страйки
+                </Link>
+
                 <Link
                     :href="route('admin.applications.index')"
                     class="nav-item"

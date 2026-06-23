@@ -11,6 +11,7 @@ import AuthModal from "@/Components/Site/AuthModal.vue";
 import UserSidebar from "@/Components/UserSidebar.vue";
 import LocaleLoader from "@/Components/LocaleLoader.vue";
 import PwaUpdateModal from "@/Components/PwaUpdateModal.vue";
+import StrikeAlertModal from "@/Components/Site/StrikeAlertModal.vue";
 import { useTranslations } from "@/composables/useTranslations";
 
 const { __ } = useTranslations();
@@ -269,6 +270,7 @@ onUnmounted(() => {
 <template>
     <LocaleLoader />
     <PwaUpdateModal :show="pwaUpdateAvailable" />
+    <StrikeAlertModal />
     <div class="app-wrap">
         <header class="app-header">
             <Link href="/" class="app-logo">
