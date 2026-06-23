@@ -21,7 +21,7 @@
 {{-- Footer --}}
 <x-slot:footer>
 <x-mail::footer>
-© {{ date('Y') }} {{ config('app.name') }}. {{ __('All rights reserved.') }}
+С уважением,<br>сервис Not Alone
 </x-mail::footer>
 </x-slot:footer>
 </x-mail::layout>
