@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -10,7 +11,7 @@ use Spatie\Translatable\HasTranslations;
 
 class Service extends Model
 {
-    use HasTranslations;
+    use HasTranslations, SoftDeletes;
 
     public array $translatable = ['name'];
 
