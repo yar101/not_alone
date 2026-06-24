@@ -6,7 +6,7 @@ import {
     Picture, User, ChatDotRound, Tickets, ScaleToOriginal,
     Microphone, Headset, Star, Discount, Lock, ChatSquare,
     Document, QuestionFilled, WarningFilled, Monitor,
-    TrendCharts, Setting
+    TrendCharts, Setting, RefreshRight, Help
 } from '@element-plus/icons-vue';
 
 function logout() {
@@ -263,6 +263,15 @@ function isActive(routeName) {
                 <!-- Наполнение -->
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">Наполнение</div>
+
+                    <Link
+                        :href="route('admin.avatar-frames.index')"
+                        class="nav-item"
+                        :class="{ 'nav-item--active': isActive('admin.avatar-frames.*') }"
+                    >
+                        <el-icon class="nav-icon"><Picture /></el-icon>
+                        <span class="nav-text">Рамки аватарок</span>
+                    </Link>
 
                     <div class="nav-group">
                         <button

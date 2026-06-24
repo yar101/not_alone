@@ -1,11 +1,12 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
-import { Edit, Setting, MoreFilled } from '@element-plus/icons-vue';
+import { Edit, Setting, MoreFilled, Picture } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppSelect from '@/Components/AppSelect.vue';
 import AvatarUploader from '@/Components/AvatarUploader.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
+import AvatarFramesModal from '@/Components/AvatarFramesModal.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
 const { __, transChoice } = useTranslations();
@@ -25,6 +26,7 @@ const emit = defineEmits(['report']);
 
 const editModal = ref(false);
 const lightboxOpen = ref(false);
+const framesModal = ref(false);
 
 // ── Marquee для имени ──────────────────────────────────────
 const nameWrapRef = ref(null);
@@ -166,6 +168,9 @@ function deleteAvatar() {
             </button>
 
             <div v-if="isOwner" class="owner-menu">
+                <button class="action-pill" @click="framesModal = true" title="Мои рамки аватарок">
+                    <el-icon><Picture /></el-icon>
+                </button>
                 <button class="action-pill" @click="editModal = true" :title="__('profile.header.edit')">
                     <el-icon><Edit /></el-icon>
                 </button>
@@ -176,6 +181,8 @@ function deleteAvatar() {
         <div class="header-avatar-area">
             <div class="avatar-wrapper" :class="{ 'avatar-clickable': !isOwner && user.avatar_url }" @click="onAvatarClick">
                 <AvatarUploader :user="user" :size="190" :editable="isOwner" />
+                
+                <img v-if="user.active_frame_path" :src="'/storage/' + user.active_frame_path" class="profile-active-frame" alt="" />
 
                 <!-- Бейдж новичка — правый нижний угол аватарки -->
                 <div v-if="isIdol && user.is_newbie" class="newbie-badge">
@@ -258,6 +265,8 @@ function deleteAvatar() {
                 <button class="save-btn" :disabled="form.processing" @click="submitEdit">{{ __('common.save') }}</button>
             </div>
         </SiteModal>
+
+        <AvatarFramesModal v-if="isOwner" v-model="framesModal" />
     </div>
 </template>
 
@@ -418,6 +427,20 @@ function deleteAvatar() {
     display: flex;
     justify-content: center;
     padding: 1.5rem 0 1.25rem;
+    position: relative;
+    z-index: 2;
+}
+
+.profile-active-frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1.15);
+    width: 190px;
+    height: 190px;
+    object-fit: contain;
+    z-index: 5;
+    pointer-events: none;
 }
 
 .avatar-wrapper {

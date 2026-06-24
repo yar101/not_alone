@@ -13,6 +13,7 @@ use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\AboutController;
 use App\Http\Controllers\ContentPackController;
 use App\Http\Controllers\ContentPackPurchaseController;
+use App\Http\Controllers\AvatarFrameController;
 use App\Http\Controllers\FollowController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\MediaController;
@@ -156,6 +157,13 @@ Route::middleware(['auth', 'not_banned'])->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/push/subscribe',   [PushSubscriptionController::class, 'store'])->name('push.subscribe');
     Route::delete('/push/subscribe', [PushSubscriptionController::class, 'destroy'])->name('push.unsubscribe');
+});
+
+// Avatar Frames
+Route::middleware('auth')->group(function () {
+    Route::get('/api/avatar-frames', [AvatarFrameController::class, 'index'])->name('avatar-frames.index');
+    Route::post('/api/avatar-frames/{avatarFrame}/equip', [AvatarFrameController::class, 'equip'])->name('avatar-frames.equip');
+    Route::post('/api/avatar-frames/unequip', [AvatarFrameController::class, 'unequip'])->name('avatar-frames.unequip');
 });
 
 // Notification routes

@@ -36,6 +36,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\HelpCategoryController;
 use App\Http\Controllers\Admin\HelpArticleController;
 use App\Http\Controllers\Admin\StrikeController;
+use App\Http\Controllers\Admin\AvatarFrameController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -142,6 +143,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/price-limits', [ServicePriceLimitController::class, 'store'])->name('price-limits.store');
             Route::patch('/price-limits/{priceLimit}', [ServicePriceLimitController::class, 'update'])->name('price-limits.update');
             Route::delete('/price-limits/{priceLimit}', [ServicePriceLimitController::class, 'destroy'])->name('price-limits.destroy');
+        });
+
+        // Avatar Frames
+        Route::prefix('avatar-frames')->name('avatar-frames.')->group(function () {
+            Route::get('/', [AvatarFrameController::class, 'index'])->name('index');
+            Route::post('/', [AvatarFrameController::class, 'store'])->name('store');
+            Route::post('/{avatarFrame}', [AvatarFrameController::class, 'update'])->name('update'); // Use POST with _method=PATCH for file uploads
+            Route::delete('/{avatarFrame}', [AvatarFrameController::class, 'destroy'])->name('destroy');
         });
 
         // Platform settings

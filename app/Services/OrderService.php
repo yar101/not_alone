@@ -317,6 +317,9 @@ class OrderService
 
         IdolRatingService::adjust($order->idol, 'order_completed');
 
+        \App\Jobs\EvaluateUserAchievementsJob::dispatch($order->idol);
+        \App\Jobs\EvaluateUserAchievementsJob::dispatch($order->customer);
+
         $this->broadcastSystemMessage($order, [
             'sender_id' => null,
             'body'      => '',

@@ -31,6 +31,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'about',
         'voice_path',
         'avatar_path',
+        'active_frame_path',
         'timezone',
         'profile_checklist_snoozed_until',
         'email',
@@ -138,6 +139,13 @@ class User extends Authenticatable implements MustVerifyEmail
     public function ordersAsIdol(): HasMany
     {
         return $this->hasMany(Order::class, 'idol_id');
+    }
+
+    public function avatarFrames(): BelongsToMany
+    {
+        return $this->belongsToMany(AvatarFrame::class, 'user_avatar_frames')
+            ->withPivot('acquired_at')
+            ->withTimestamps();
     }
 
     public function conversationParticipants(): HasMany
