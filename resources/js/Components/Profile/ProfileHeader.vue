@@ -178,13 +178,11 @@ function deleteAvatar() {
                 <AvatarUploader :user="user" :size="190" :editable="isOwner" />
 
                 <!-- Бейдж новичка — правый нижний угол аватарки -->
-                <template v-if="isIdol && user.is_newbie">
-                    <el-tooltip content="У этого айдола менее 25 выполненных заказов" placement="top" effect="dark">
-                        <div class="newbie-badge">
-                            <img src="/not_alone_icon_without_background.png" alt="Newbie" />
-                        </div>
+                <div v-if="isIdol && user.is_newbie" class="newbie-badge">
+                    <el-tooltip content="У этого айдола менее 25 выполненных заказов" placement="top" effect="dark" popper-class="newbie-dark-tooltip">
+                        <img src="/not_alone_icon_without_background.png" alt="Newbie" />
                     </el-tooltip>
-                </template>
+                </div>
             </div>
         </div>
 
@@ -302,11 +300,10 @@ function deleteAvatar() {
     justify-content: center;
     z-index: 10;
     cursor: help;
-    transition: filter 0.3s ease, transform 0.3s ease;
+    transition: filter 0.3s ease;
 }
 .newbie-badge:hover {
     filter: drop-shadow(0 0 10px rgba(255, 178, 239, 0.7));
-    transform: scale(1.05);
 }
 .newbie-badge img {
     width: 100%;

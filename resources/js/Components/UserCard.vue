@@ -96,7 +96,6 @@ function calcAge(birthDate) {
     box-shadow:
         0 6px 16px -4px rgba(0, 0, 0, 0.4),
         0 0 10px rgba(255, 178, 239, 0.05);
-    transform: translateY(-3px);
 }
 
 .user-card:hover :deep(.card-avatar) {
