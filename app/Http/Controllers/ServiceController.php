@@ -44,7 +44,14 @@ class ServiceController extends Controller
 
         $servicesByCategory = $services->groupBy('category_id');
 
-        $result = $allCategories->map(function ($cat) use ($servicesByCategory, $descriptions, $isOwner) {
+        $hasUsedTrial = false;
+        if (auth()->check()) {
+            $hasUsedTrial = \App\Models\UserIdolTrial::where('user_id', auth()->id())
+                ->where('idol_id', $user->id)
+                ->exists();
+        }
+
+        $result = $allCategories->map(function ($cat) use ($servicesByCategory, $descriptions, $isOwner, $hasUsedTrial) {
             $group = $servicesByCategory->get($cat->id, collect());
             return [
                 'category' => [
@@ -59,13 +66,14 @@ class ServiceController extends Controller
                     'sort_order'     => $cat->sort_order,
                 ],
                 'idol_description' => $descriptions[$cat->id] ?? null,
-                'items'            => $group->map(function (Service $s) use ($isOwner) {
+                'items'            => $group->map(function (Service $s) use ($isOwner, $hasUsedTrial) {
                     $base = [
                         'id'               => $s->id,
                         'name_ru'          => $s->getTranslation('name', 'ru'),
                         'name_en'          => $s->getTranslation('name', 'en', false) ?: null,
                         'price'            => $s->price,
                         'is_active'        => $s->is_active,
+                        'is_trial'         => $isOwner ? $s->is_trial : ($hasUsedTrial ? false : $s->is_trial),
                         'status'           => $s->status,
                         'rejection_reason' => $s->rejection_reason,
                         'category_id'      => $s->category_id,
@@ -382,7 +390,7 @@ class ServiceController extends Controller
         
         $service->update(['is_trial' => $request->is_trial]);
         
-        return back()->with('success', 'Статус пробной услуги обновлен.');
+        return back()->with('success', 'Статус "Первый заказ бесплатно" обновлен.');
     }
 
     public function dismissChangeRequest(Request $request, Service $service): RedirectResponse

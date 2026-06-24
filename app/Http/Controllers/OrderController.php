@@ -66,7 +66,7 @@ class OrderController extends Controller
 
         $trialServicesCount = $services->where('is_trial', true)->count();
         if ($trialServicesCount > 1) {
-            return response()->json(['error' => 'Нельзя заказать более одной пробной услуги одновременно'], 422);
+            return response()->json(['error' => 'Нельзя заказать более одной бесплатной услуги одновременно'], 422);
         }
 
         $hasUsedTrial = false;
@@ -76,7 +76,7 @@ class OrderController extends Controller
                 ->exists();
 
             if ($hasUsedTrial) {
-                return response()->json(['error' => 'Вы уже использовали пробную услугу у этого пользователя'], 422);
+                return response()->json(['error' => 'Вы уже использовали бесплатный первый заказ у этого пользователя'], 422);
             }
         }
 

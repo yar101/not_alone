@@ -132,7 +132,7 @@ function addToCart(item) {
     const idolId = props.profileUser?.id;
 
     if (item.is_trial && c.items.some((i) => i.is_trial)) {
-        ElMessage.warning('В корзине уже есть пробная услуга. Вы можете оформить только одну пробную услугу за раз.');
+        ElMessage.warning('В корзине уже есть услуга "Первый заказ бесплатно". Вы можете оформить только одну такую услугу за раз.');
         return;
     }
 
@@ -477,7 +477,7 @@ function toggleTrialStatus(item) {
             preserveState: true,
             onSuccess: () => {
                 resyncSelectedCategory();
-                toast.success('Статус пробной услуги изменен');
+                toast.success('Статус услуги изменен');
             },
             onFinish: () => {
                 localeLoading.value = false;
@@ -1123,7 +1123,7 @@ watch(selectedCategory, (cat) => {
                             <div class="svc-card__info">
                                 <div class="svc-card__name-row">
                                     <span class="svc-card__name" :class="{ 'svc-card__name--flagged': isFlagged(item, 'name_ru') || isFlagged(item, 'name_en') }">
-                                        <span v-if="item.is_trial" class="svc-trial-badge" title="Бесплатно 1 раз для новых клиентов">Пробная</span>
+                                        <span v-if="item.is_trial" class="svc-trial-badge" title="Бесплатно 1 раз для новых клиентов">Первый заказ бесплатно</span>
                                         {{ localServiceName(item) }}
                                         <span v-if="isFlagged(item, 'name_ru') || isFlagged(item, 'name_en')" class="svc-card__flag-icon" :title="getFieldComment(item, 'name_ru') || getFieldComment(item, 'name_en') || 'Замечание модератора'">⚠️</span>
                                     </span>
@@ -1301,7 +1301,7 @@ watch(selectedCategory, (cat) => {
                                                         >
                                                             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                                                         </svg>
-                                                        {{ item.is_trial ? 'Убрать пробную' : 'Сделать пробной' }}
+                                                        {{ item.is_trial ? 'Убрать статус "Первый заказ бесплатно"' : 'Сделать "Первым заказом бесплатно"' }}
                                                     </button>
                                                     <button
                                                         class="svc-menu__item"
@@ -1904,7 +1904,7 @@ watch(selectedCategory, (cat) => {
                                 <div class="sf-field" style="flex-direction: row; align-items: center; gap: 0.5rem; justify-content: flex-start;">
                                     <input type="checkbox" id="is_trial" v-model="form.is_trial" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-base-1); flex-shrink: 0;" />
                                     <label for="is_trial" style="color: rgba(255, 255, 255, 0.85); font-size: 0.9rem; cursor: pointer; user-select: none; margin: 0;">
-                                        Сделать услугу пробной (бесплатно для новых клиентов)
+                                        Сделать "Первый заказ бесплатно" (бесплатно для новых клиентов)
                                     </label>
                                     <el-tooltip placement="top" effect="dark" popper-class="newbie-dark-tooltip">
                                         <template #content>
