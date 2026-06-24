@@ -152,7 +152,7 @@ const PRESETS = {
         <Link :href="route('admin.services.change-requests.index')" class="scr-back">← К списку</Link>
 
         <div class="scr-layout">
-            <!-- LEFT: Comparison table + idol info -->
+            <!-- LEFT: Service info + history -->
             <div class="scr-left">
 
                 <!-- Idol + service info -->
@@ -162,17 +162,32 @@ const PRESETS = {
                         <div class="scr-idol">
                             <img v-if="service.user.avatar_url" :src="service.user.avatar_url" class="scr-idol__avatar" alt="" />
                             <div v-else class="scr-idol__avatar scr-idol__avatar--empty">{{ service.user.name?.charAt(0) }}</div>
-                            <div>
-                                <div class="scr-idol__name">{{ service.user.name }}</div>
-                                <div class="scr-idol__meta">
-                                    Услуга #{{ service.id }} ·
-                                    <span class="scr-status" :class="'scr-status--' + service.status">
-                                        {{ STATUS_LABELS[service.status] || service.status }}
-                                    </span>
-                                </div>
+                            <div style="min-width: 0; flex: 1;">
+                                <div class="scr-idol__name" :title="service.user.name">{{ service.user.name }}</div>
+                                <div class="scr-idol__email" :title="service.user.email">{{ service.user.email }}</div>
                             </div>
                         </div>
                     </a>
+                </div>
+
+                <div class="scr-card">
+                    <h2 class="scr-card__title">Заявка на изменение #{{ changeRequest.id }}</h2>
+                    <div class="scr-meta">
+                        <div class="scr-meta__row">
+                            <span class="scr-meta__label">Статус</span>
+                            <span class="scr-status" :class="'scr-status--' + changeRequest.status">
+                                {{ STATUS_LABELS[changeRequest.status] || changeRequest.status }}
+                            </span>
+                        </div>
+                        <div class="scr-meta__row">
+                            <span class="scr-meta__label">Услуга</span>
+                            <span>{{ service.name_ru || service.name }} (#{{ service.id }})</span>
+                        </div>
+                        <div class="scr-meta__row">
+                            <span class="scr-meta__label">Создана</span>
+                            <span>{{ new Date(changeRequest.created_at).toLocaleDateString('ru-RU') }}</span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Review history -->
@@ -190,7 +205,7 @@ const PRESETS = {
                             <span v-if="item.admin" class="scr-review-item__admin">{{ item.admin.name }}</span>
                         </div>
                         <div v-if="item.flagged_fields?.length" class="scr-review-item__detail">
-                            Помечено: {{ item.flagged_fields.map(f => FIELD_LABELS[f] || f).join(', ') }}
+                            <span class="scr-review-item__detail-label">Помечено:</span> {{ item.flagged_fields.map(f => FIELD_LABELS[f] || f).join(', ') }}
                         </div>
                         <div v-if="item.field_comments && Object.keys(item.field_comments).length" class="scr-review-item__comments">
                             <div v-for="(comment, field) in item.field_comments" :key="field" class="scr-review-item__comment">
@@ -198,44 +213,21 @@ const PRESETS = {
                                 {{ comment }}
                             </div>
                         </div>
-                        <div v-if="item.admin_comment" class="scr-review-item__comment">
+                        <div v-if="item.admin_comment" class="scr-review-item__comment scr-review-item__comment--rejection">
                             <span class="scr-review-item__comment-field">Причина:</span>
                             {{ item.admin_comment }}
                         </div>
                     </div>
                 </div>
-
-                <!-- Comparison table -->
-                <div class="scr-card">
-                    <h2 class="scr-card__title">Запрошенные изменения</h2>
-                    <div v-for="(data, field) in fields" :key="field" class="scr-comp-row">
-                        <div class="scr-comp-label">{{ FIELD_LABELS[field] || field }}</div>
-                        <div class="scr-comp-grid">
-                            <div class="scr-side scr-side--current">
-                                <div class="scr-side__label">Сейчас</div>
-                                <div class="scr-side__val">{{ formatValue(field, data, 'current') }}</div>
-                            </div>
-                            <div class="scr-arrow">→</div>
-                            <div class="scr-side scr-side--pending">
-                                <div class="scr-side__label">Станет</div>
-                                <div class="scr-side__val" :class="{ 'scr-val--diff': isChanged(field, data) }">
-                                    {{ formatValue(field, data, 'pending') }}
-                                </div>
-                            </div>
-                        </div>
-                        <div v-if="data.admin_comment" class="scr-prev-comment">
-                            Предыдущее замечание: {{ data.admin_comment }}
-                        </div>
-                    </div>
-                </div>
             </div>
 
-            <!-- RIGHT: Decision form -->
+            <!-- RIGHT: Decision form & Fields -->
             <div class="scr-right">
 
                 <!-- Field flags -->
+                <!-- Field flags -->
                 <div class="scr-card">
-                    <h2 class="scr-card__title">Замечания к полям</h2>
+                    <h2 class="scr-card__title">Поля (Запрошенные изменения)</h2>
                     <div v-for="(data, field) in fields" :key="field" class="scr-flag-row" :class="{ 'scr-flag-row--flagged': flaggedFields[field] }">
                         <div class="scr-flag-header">
                             <label class="scr-flag-label">
@@ -251,6 +243,25 @@ const PRESETS = {
                             </label>
                             <span v-if="isChanged(field, data)" class="scr-changed-badge">изменено</span>
                         </div>
+                        
+                        <div class="scr-comp-grid">
+                            <div class="scr-side scr-side--current">
+                                <div class="scr-side__label">Сейчас</div>
+                                <div class="scr-side__val">{{ formatValue(field, data, 'current') }}</div>
+                            </div>
+                            <div class="scr-arrow">→</div>
+                            <div class="scr-side scr-side--pending">
+                                <div class="scr-side__label">Станет</div>
+                                <div class="scr-side__val" :class="{ 'scr-val--diff': isChanged(field, data) }">
+                                    {{ formatValue(field, data, 'pending') }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-if="data.admin_comment" class="scr-prev-comment">
+                            Предыдущее замечание: {{ data.admin_comment }}
+                        </div>
+
                         <div v-if="flaggedFields[field]" class="scr-comment-wrapper">
                             <textarea
                                 v-model="fieldComments[field]"
@@ -339,14 +350,14 @@ const PRESETS = {
     margin-left: 0.4rem;
 }
 
-.scr-layout { display: grid; grid-template-columns: 1fr 340px; gap: 1.25rem; }
+.scr-layout { display: grid; grid-template-columns: 320px 1fr; gap: 1.25rem; }
 @media (max-width: 900px) { .scr-layout { grid-template-columns: 1fr; } }
 
 .scr-card {
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.07);
     border-radius: 10px;
-    padding: 1.1rem;
+    padding: 0.9rem 1rem;
     margin-bottom: 1rem;
 }
 .scr-card__title { font-size: 0.9rem; font-weight: 600; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.85rem; }
