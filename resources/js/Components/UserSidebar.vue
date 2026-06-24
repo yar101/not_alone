@@ -386,7 +386,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
     font-weight: 700;
     white-space: nowrap;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    z-index: 1;
+    z-index: 10;
 }
 
 .usb-rating-badge__star {
