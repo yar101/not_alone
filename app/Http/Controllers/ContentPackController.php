@@ -565,7 +565,7 @@ class ContentPackController extends Controller
 
         if ($img) {
             // Fix orientation from EXIF
-            $exif = @exif_read_data($realPath);
+            $exif = function_exists('exif_read_data') ? @exif_read_data($realPath) : false;
             if (!empty($exif['Orientation'])) {
                 switch ($exif['Orientation']) {
                     case 3: $img = imagerotate($img, 180, 0); break;
