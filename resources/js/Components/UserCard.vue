@@ -30,6 +30,11 @@ function calcAge(birthDate) {
         class="user-card"
         :class="{ 'is-compact': compact }"
     >
+        <!-- Бейдж новичка — правый верхний угол -->
+        <div v-if="user.is_idol && user.is_newbie" class="newbie-badge" title="Новичок">
+            <img src="/not_alone_icon_without_background.png" alt="Newbie" />
+        </div>
+
         <UserCardAvatar :user="user" :compact="compact" />
         <div class="card-body">
             <div class="card-name-row">
@@ -68,6 +73,7 @@ function calcAge(birthDate) {
 
 <style scoped>
 .user-card {
+    position: relative;
     display: flex;
     flex-direction: column;
     background: linear-gradient(
@@ -96,6 +102,21 @@ function calcAge(birthDate) {
         0 6px 16px -4px rgba(0, 0, 0, 0.4),
         0 0 10px rgba(255, 178, 239, 0.05);
     transform: translateY(-3px);
+}
+
+.newbie-badge {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 24px;
+    height: 24px;
+    z-index: 2;
+}
+.newbie-badge img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 }
 
 .user-card:hover :deep(.card-avatar) {

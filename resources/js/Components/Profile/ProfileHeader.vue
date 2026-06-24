@@ -156,7 +156,7 @@ function deleteAvatar() {
             <span class="rating-num">{{ rating }}</span>
         </div>
 
-        <!-- Кнопки сверху справа -->
+        <!-- Кнопки снизу справа -->
         <div class="header-actions">
             <button v-if="!isOwner && canReport" class="action-pill action-pill--report" @click="emit('report')" :title="__('profile.header.report')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -170,6 +170,11 @@ function deleteAvatar() {
                     <el-icon><Edit /></el-icon>
                 </button>
             </div>
+        </div>
+
+        <!-- Бейдж новичка — верхний правый угол -->
+        <div v-if="isIdol && user.is_newbie" class="newbie-badge" title="Новичок">
+            <img src="/not_alone_icon_without_background.png" alt="Newbie" />
         </div>
 
         <!-- Аватар по центру -->
@@ -270,15 +275,34 @@ function deleteAvatar() {
     font-family: 'Rubik', sans-serif;
 }
 
-/* Кнопки — абсолютно в правом верхнем углу */
+/* Кнопки — абсолютно в правом нижнем углу */
 .header-actions {
     position: absolute;
-    top: 0.75rem;
+    bottom: 0.75rem;
     right: 0.75rem;
     display: flex;
     gap: 0.4rem;
     align-items: center;
     z-index: 10;
+}
+
+/* Бейдж новичка — абсолютно в правом верхнем углу */
+.newbie-badge {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+.newbie-badge img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 }
 
 .action-pill {

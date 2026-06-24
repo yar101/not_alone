@@ -66,8 +66,16 @@ class UserSearchController extends Controller
 
         $users = $query
             ->select(['id','name','avatar_path','gender','birth_date','is_idol','rating','about','timezone','created_at'])
+            ->withCount(['ordersAsIdol as completed_orders_count' => function ($q) {
+                $q->where('status', 'completed');
+            }])
             ->paginate(20)
             ->withQueryString();
+
+        $users->getCollection()->transform(function ($user) {
+            $user->is_newbie = $user->completed_orders_count < 25;
+            return $user;
+        });
 
         return Inertia::render('Search/Index', [
             'users'              => $users,

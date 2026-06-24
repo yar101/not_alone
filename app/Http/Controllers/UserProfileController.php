@@ -18,6 +18,7 @@ use App\Models\ServiceTimeUnit;
 use App\Jobs\NotifyFollowersJob;
 
 use App\Models\ChatBlock;
+use App\Models\Order;
 use App\Models\User;
 use App\Models\UserLanguage;
 use App\Services\IdolRatingService;
@@ -50,6 +51,7 @@ class UserProfileController extends Controller
                 'timezone'         => $user->timezone,
                 'checklist_snoozed' => $checklistSnoozed,
                 'is_banned'        => $user->isActiveBanned(),
+                'is_newbie'        => \App\Models\Order::where('idol_id', $user->id)->where('status', 'completed')->count() < 25,
             ],
             'isOwner'          => auth()->id() === $user->id,
             'isIdol'           => (bool) $user->is_idol,

@@ -135,6 +135,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsTo(Admin::class, 'banned_by');
     }
 
+    public function ordersAsIdol(): HasMany
+    {
+        return $this->hasMany(Order::class, 'idol_id');
+    }
+
     public function conversationParticipants(): HasMany
     {
         return $this->hasMany(ConversationParticipant::class);
