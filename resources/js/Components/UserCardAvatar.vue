@@ -48,8 +48,12 @@ const initial = computed(() => {
 
         <img v-if="user.active_frame_path" :src="'/storage/' + user.active_frame_path" class="user-active-frame" alt="" />
 
-        <div v-if="showNewbieBadge && user.is_idol && user.is_newbie" class="newbie-badge">
-            <el-tooltip content="Этот айдол — новичок, у него менее 25 выполненных заказов. Не судите строго, у него лапки." placement="top" effect="dark" popper-class="newbie-dark-tooltip">
+        <div v-if="showNewbieBadge && user.is_idol && user.is_newbie" class="newbie-badge" @click.prevent.stop>
+            <el-tooltip :trigger="['hover', 'click']" placement="top" effect="dark" popper-class="newbie-dark-tooltip">
+                <template #content>
+                    Этот айдол — новичок, у него менее 25 выполненных заказов.<br>
+                    Не судите строго, у него лапки.
+                </template>
                 <img src="/not_alone_icon_without_background.png" alt="Newbie" />
             </el-tooltip>
         </div>
