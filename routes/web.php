@@ -96,6 +96,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/settings',    [ProfileController::class, 'edit'])->name('settings.edit');
     Route::patch('/settings',  [ProfileController::class, 'update'])->name('settings.update');
     Route::delete('/settings', [ProfileController::class, 'destroy'])->name('settings.destroy');
+    
+    Route::get('/profile/customization', [App\Http\Controllers\CustomizationController::class, 'index'])->name('profile.customization');
 });
 
 // Idol routes

@@ -6,7 +6,6 @@ import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppSelect from '@/Components/AppSelect.vue';
 import AvatarUploader from '@/Components/AvatarUploader.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
-import AvatarFramesModal from '@/Components/AvatarFramesModal.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
 const { __, transChoice } = useTranslations();
@@ -26,7 +25,6 @@ const emit = defineEmits(['report']);
 
 const editModal = ref(false);
 const lightboxOpen = ref(false);
-const framesModal = ref(false);
 
 // ── Marquee для имени ──────────────────────────────────────
 const nameWrapRef = ref(null);
@@ -168,9 +166,6 @@ function deleteAvatar() {
             </button>
 
             <div v-if="isOwner" class="owner-menu">
-                <button class="action-pill" @click="framesModal = true" title="Мои рамки аватарок">
-                    <el-icon><Picture /></el-icon>
-                </button>
                 <button class="action-pill" @click="editModal = true" :title="__('profile.header.edit')">
                     <el-icon><Edit /></el-icon>
                 </button>
@@ -263,8 +258,6 @@ function deleteAvatar() {
                 <button class="save-btn" :disabled="form.processing" @click="submitEdit">{{ __('common.save') }}</button>
             </div>
         </SiteModal>
-
-        <AvatarFramesModal v-if="isOwner" v-model="framesModal" />
     </div>
 </template>
 

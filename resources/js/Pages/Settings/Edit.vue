@@ -44,9 +44,6 @@ defineProps({
 
 <style scoped>
 .page-wrap {
-    background:
-        radial-gradient(ellipse at 20% 30%, rgba(255, 178, 239, 0.07) 0%, transparent 60%),
-        radial-gradient(ellipse at 80% 70%, rgba(100, 60, 180, 0.06) 0%, transparent 60%);
     padding: 2rem 1rem 4rem;
     flex: 1;
 }
