@@ -319,6 +319,7 @@ onUnmounted(() => {
                                 initials
                             }}</span>
                         </div>
+                        <img v-if="user.active_frame_path" :src="'/storage/' + user.active_frame_path" class="applayout-active-frame" alt="" />
                         <span class="user-name-clip">
                             <span class="user-name">{{ user.name }}</span>
                         </span>
@@ -441,7 +442,21 @@ onUnmounted(() => {
     transition:
         background 0.18s,
         border-color 0.18s;
+    position: relative;
 }
+
+.applayout-active-frame {
+    position: absolute;
+    top: 50%;
+    left: 0.55rem; /* user-chip padding-left */
+    transform: translateY(-50%) scale(1.15);
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    z-index: 5;
+    pointer-events: none;
+}
+
 @media (hover: hover) {
     .user-chip:hover {
         background: rgba(255, 178, 239, 0.08);

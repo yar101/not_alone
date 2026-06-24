@@ -46,6 +46,8 @@ const initial = computed(() => {
             <span v-else class="card-avatar__initials">{{ initial }}</span>
         </div>
 
+        <img v-if="user.active_frame_path" :src="'/storage/' + user.active_frame_path" class="user-active-frame" alt="" />
+
         <div v-if="showNewbieBadge && user.is_idol && user.is_newbie" class="newbie-badge">
             <el-tooltip content="Этот айдол — новичок, у него менее 25 выполненных заказов. Не судите строго, у него лапки." placement="top" effect="dark" popper-class="newbie-dark-tooltip">
                 <img src="/not_alone_icon_without_background.png" alt="Newbie" />
@@ -70,6 +72,23 @@ const initial = computed(() => {
     position: relative;
     align-self: center;
     margin-bottom: 0.25rem;
+}
+
+.user-active-frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1.15);
+    width: 110px;
+    height: 110px;
+    object-fit: contain;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.is-compact .user-active-frame {
+    width: 90px;
+    height: 90px;
 }
 
 
