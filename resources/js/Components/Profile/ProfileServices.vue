@@ -279,6 +279,7 @@ const form = useForm({
     category_id: null,
     time_unit_id: null,
     price: "",
+    is_trial: false,
 });
 
 function openAdd() {
@@ -311,12 +312,14 @@ function openEdit(item) {
         form.category_id = source.pending_category?.id ?? item.category_id;
         form.time_unit_id = source.pending_time_unit?.id ?? item.time_unit?.id;
         form.price = source.pending_price ?? item.price;
+        form.is_trial = source.pending_is_trial ?? item.is_trial ?? false;
     } else {
         form.name_ru = item.name_ru ?? "";
         form.name_en = item.name_en ?? "";
         form.category_id = item.category_id ?? null;
         form.time_unit_id = item.time_unit?.id ?? null;
         form.price = item.price;
+        form.is_trial = item.is_trial ?? false;
     }
     
     showNameRu.value = !!form.name_ru;
@@ -521,6 +524,7 @@ function loadDraft() {
         if (d.category_id) form.category_id = d.category_id;
         if (d.price) form.price = d.price;
         if (d.time_unit_id) form.time_unit_id = d.time_unit_id;
+        if (d.is_trial !== undefined) form.is_trial = d.is_trial;
     } catch {}
 }
 
@@ -534,6 +538,7 @@ function saveDraft() {
                 category_id: form.category_id,
                 price: form.price,
                 time_unit_id: form.time_unit_id,
+                is_trial: form.is_trial,
             }),
         );
     }
@@ -550,6 +555,7 @@ watch(
         () => form.category_id,
         () => form.price,
         () => form.time_unit_id,
+        () => form.is_trial,
     ],
     saveDraft,
 );
@@ -1832,6 +1838,23 @@ watch(selectedCategory, (cat) => {
                                     >
                                         {{ form.errors.time_unit_id }}
                                     </p>
+                                </div>
+                            </div>
+
+                            <div class="sf-row" style="margin-top: 1.5rem; margin-bottom: 0.5rem;">
+                                <div class="sf-field" style="flex-direction: row; align-items: center; gap: 0.5rem; justify-content: flex-start;">
+                                    <input type="checkbox" id="is_trial" v-model="form.is_trial" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-base-1); flex-shrink: 0;" />
+                                    <label for="is_trial" style="color: rgba(255, 255, 255, 0.85); font-size: 0.9rem; cursor: pointer; user-select: none; margin: 0;">
+                                        Сделать услугу пробной (бесплатно для новых клиентов)
+                                    </label>
+                                    <el-tooltip placement="top" effect="dark" popper-class="newbie-dark-tooltip">
+                                        <template #content>
+                                            Позволит новым клиентам 1 раз воспользоваться<br>
+                                            этой услугой бесплатно (0 руб).<br>
+                                            Полезно для привлечения аудитории.
+                                        </template>
+                                        <span style="display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.6); font-size: 10px; cursor: help; flex-shrink: 0;">?</span>
+                                    </el-tooltip>
                                 </div>
                             </div>
 

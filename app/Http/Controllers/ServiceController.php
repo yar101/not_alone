@@ -157,6 +157,7 @@ class ServiceController extends Controller
             'category_id'  => ['required', 'integer', 'exists:service_categories,id'],
             'time_unit_id' => ['required', 'integer', 'exists:service_time_units,id'],
             'price'        => ['required', 'integer', 'min:1', 'max:999999'],
+            'is_trial'     => ['boolean'],
         ]);
 
         if (empty($data['name_ru']) && empty($data['name_en'])) {
@@ -173,6 +174,7 @@ class ServiceController extends Controller
             'category_id'  => $data['category_id'],
             'time_unit_id' => $data['time_unit_id'],
             'price'        => $data['price'],
+            'is_trial'     => $data['is_trial'] ?? false,
             'is_active'    => true,
             'status'       => 'pending',
         ]);
@@ -190,6 +192,7 @@ class ServiceController extends Controller
             'category_id'  => ['sometimes', 'integer', 'exists:service_categories,id'],
             'time_unit_id' => ['sometimes', 'integer', 'exists:service_time_units,id'],
             'price'        => ['sometimes', 'integer', 'min:1', 'max:999999'],
+            'is_trial'     => ['sometimes', 'boolean'],
             'is_active'    => ['sometimes', 'boolean'],
         ]);
 
@@ -207,8 +210,12 @@ class ServiceController extends Controller
             $this->upsertChangeRequest($service, $isModeratedFieldChange);
             
             // Still allow updating non-moderated fields like is_active
-            if (isset($data['is_active'])) {
-                $service->update(['is_active' => $data['is_active']]);
+            $nonModUpdates = [];
+            if (isset($data['is_active'])) $nonModUpdates['is_active'] = $data['is_active'];
+            if (isset($data['is_trial']))  $nonModUpdates['is_trial'] = $data['is_trial'];
+            
+            if (!empty($nonModUpdates)) {
+                $service->update($nonModUpdates);
             }
             
             return back()->with('success', 'Изменения отправлены на модерацию.');

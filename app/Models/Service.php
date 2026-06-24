@@ -15,12 +15,13 @@ class Service extends Model
 
     public array $translatable = ['name'];
 
-    protected $fillable = ['name', 'user_id', 'category_id', 'time_unit_id', 'price', 'is_active', 'status', 'rejection_reason', 'moderated_by', 'moderated_at', 'resubmitted_at'];
+    protected $fillable = ['name', 'user_id', 'category_id', 'time_unit_id', 'price', 'is_active', 'is_trial', 'status', 'rejection_reason', 'moderated_by', 'moderated_at', 'resubmitted_at'];
 
     protected function casts(): array
     {
         return [
             'is_active'      => 'boolean',
+            'is_trial'       => 'boolean',
             'price'          => 'integer',
             'moderated_at'   => 'datetime',
             'resubmitted_at' => 'datetime',
