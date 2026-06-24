@@ -57,7 +57,7 @@ const showReject  = ref(false);
 
 const hasAnyFlag = computed(() => {
     const flagged = Object.values(flaggedFields).some(v => v);
-    if (flagged) isApproved.value = false;
+    // if (flagged) isApproved.value = false; removed to allow approve with remarks
     return flagged;
 });
 
@@ -281,16 +281,16 @@ function closeHistoryModal() {
                 <div class="sps-card sps-card--sticky">
                     <h2 class="sps-card__title">Решение</h2>
 
-                    <label class="sps-approved-label" :class="{ 'sps-approved-label--disabled': hasAnyFlag }">
-                        <input type="checkbox" v-model="isApproved" :disabled="hasAnyFlag" class="sps-checkbox" />
+                    <label class="sps-approved-label">
+                        <input type="checkbox" v-model="isApproved" class="sps-checkbox" />
                         <span>Одобрить услугу</span>
                     </label>
 
-                    <p v-if="hasAnyFlag" class="sps-decision-hint">
-                        Есть пометки — будет отправлено решение «Есть замечания».
+                    <p v-if="isApproved" class="sps-decision-hint sps-decision-hint--ok">
+                        Услуга будет одобрена и появится в профиле айдола. <span v-if="hasAnyFlag">При этом айдолу придут ваши замечания.</span>
                     </p>
-                    <p v-else-if="isApproved" class="sps-decision-hint sps-decision-hint--ok">
-                        Услуга будет одобрена и появится в профиле айдола.
+                    <p v-else-if="hasAnyFlag" class="sps-decision-hint">
+                        Есть пометки, но галочка "Одобрить" не стоит — услуга вернется на доработку («Есть замечания»).
                     </p>
 
                     <div v-if="errors._" class="sps-err">{{ errors._ }}</div>

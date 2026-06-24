@@ -135,6 +135,13 @@ class NotificationController extends Controller
                 'read_at'    => $n->read_at?->toIso8601String(),
                 'created_at' => $n->created_at->toIso8601String(),
                 'data'       => $n->data,
+                'reason'     => (function() use ($n) {
+                    $t = $n->data['type'] ?? '';
+                    if ($t === 'service_approved' && !empty($n->data['field_comments'])) {
+                        return implode('; ', array_values($n->data['field_comments']));
+                    }
+                    return $n->data['reason'] ?? $n->data['rejection_reason'] ?? null;
+                })(),
                 'source'     => 'notification',
             ];
         })->concat($broadcasts->map(function ($b) use ($user) {
@@ -202,6 +209,13 @@ class NotificationController extends Controller
             'read_at'    => $n->read_at?->toIso8601String(),
             'created_at' => $n->created_at->toIso8601String(),
             'data'       => $n->data,
+                'reason'     => (function() use ($n) {
+                    $t = $n->data['type'] ?? '';
+                    if ($t === 'service_approved' && !empty($n->data['field_comments'])) {
+                        return implode('; ', array_values($n->data['field_comments']));
+                    }
+                    return $n->data['reason'] ?? $n->data['rejection_reason'] ?? null;
+                })(),
         ])->values();
 
         $unreadCount = $user->unreadNotifications()
