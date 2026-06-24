@@ -138,6 +138,8 @@ function calcAge(birthDate) {
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
+    max-width: 100%;
+    display: block;
     letter-spacing: 0.01em;
 }
 

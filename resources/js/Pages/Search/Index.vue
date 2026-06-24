@@ -464,7 +464,6 @@ function genderLabel(g) {
                                 v-for="user in users.data"
                                 :key="user.id"
                                 :user="user"
-                                compact
                             />
                         </div>
 
@@ -898,34 +897,34 @@ function genderLabel(g) {
 /* Сайдбар ~540px, учитываем оставшееся пространство */
 .user-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 1rem;
     padding: 0.75rem;
 }
 
-/* ~1600px и меньше → 4 колонки */
+/* ~1600px и меньше */
 @media (max-width: 1600px) {
+    .user-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+
+/* ~1200px и меньше */
+@media (max-width: 1200px) {
     .user-grid {
         grid-template-columns: repeat(4, 1fr);
     }
 }
 
-/* ~1200px и меньше → 3 колонки */
-@media (max-width: 1200px) {
+/* ~900px и меньше */
+@media (max-width: 900px) {
     .user-grid {
         grid-template-columns: repeat(3, 1fr);
     }
 }
 
-/* ~900px и меньше → 2 колонки */
-@media (max-width: 900px) {
-    .user-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-/* ~500px и меньше → 2 колонки (оставляем компактными) */
-@media (max-width: 500px) {
+/* ~600px и меньше */
+@media (max-width: 600px) {
     .user-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 0.75rem;
