@@ -7366,7 +7366,7 @@ function formatDate(iso) {
         right: 16px;
         bottom: 16px;
         max-width: calc(100vw - 32px);
-        border-radius: 12px;
+        border-radius: 8px;
         border: 1px solid rgba(255, 178, 239, 0.28);
         box-shadow: 0 12px 48px rgba(0, 0, 0, 0.85);
         overflow: hidden;

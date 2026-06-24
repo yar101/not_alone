@@ -237,7 +237,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
     right: 1.25rem;
     bottom: 1.25rem;
     width: 360px;
-    border-radius: 16px;
+    border-radius: 8px;
     overflow: hidden;
     z-index: 1101;
     display: flex;

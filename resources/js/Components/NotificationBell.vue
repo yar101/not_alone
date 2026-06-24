@@ -1091,7 +1091,7 @@ defineExpose({ toggleDropdown });
     width: min(500px, calc(100vw - 1rem));
     background: #0f0f1d;
     border: 1px solid rgba(255, 178, 239, 0.18);
-    border-radius: 6px;
+    border-radius: 8px;
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
     overflow: hidden;
     z-index: 1101;
