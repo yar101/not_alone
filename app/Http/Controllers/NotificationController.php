@@ -137,7 +137,7 @@ class NotificationController extends Controller
                 'data'       => $n->data,
                 'reason'     => (function() use ($n) {
                     $t = $n->data['type'] ?? '';
-                    if ($t === 'service_approved' && !empty($n->data['field_comments'])) {
+                    if (($t === 'service_approved' || $t === 'service_change_approved') && !empty($n->data['field_comments'])) {
                         return implode('; ', array_values($n->data['field_comments']));
                     }
                     return $n->data['reason'] ?? $n->data['rejection_reason'] ?? null;
@@ -211,7 +211,7 @@ class NotificationController extends Controller
             'data'       => $n->data,
                 'reason'     => (function() use ($n) {
                     $t = $n->data['type'] ?? '';
-                    if ($t === 'service_approved' && !empty($n->data['field_comments'])) {
+                    if (($t === 'service_approved' || $t === 'service_change_approved') && !empty($n->data['field_comments'])) {
                         return implode('; ', array_values($n->data['field_comments']));
                     }
                     return $n->data['reason'] ?? $n->data['rejection_reason'] ?? null;

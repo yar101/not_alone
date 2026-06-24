@@ -36,7 +36,7 @@ const showReject   = ref(false);
 
 const hasAnyFlag = computed(() => {
     const flagged = Object.values(flaggedFields).some(v => v);
-    if (flagged) isApproved.value = false;
+    // if (flagged) isApproved.value = false;
     return flagged;
 });
 
@@ -271,16 +271,16 @@ const PRESETS = {
                 <div class="scr-card scr-card--sticky">
                     <h2 class="scr-card__title">Решение</h2>
 
-                    <label class="scr-approved-label" :class="{ 'scr-approved-label--disabled': hasAnyFlag }">
-                        <input type="checkbox" v-model="isApproved" :disabled="hasAnyFlag" class="scr-checkbox" />
+                    <label class="scr-approved-label">
+                        <input type="checkbox" v-model="isApproved" class="scr-checkbox" />
                         <span>Одобрить изменения</span>
                     </label>
 
-                    <p v-if="hasAnyFlag" class="scr-decision-hint">
-                        Есть пометки — будет отправлено «Есть замечания».
+                    <p v-if="isApproved" class="scr-decision-hint scr-decision-hint--ok">
+                        Изменения будут применены к услуге. <span v-if="hasAnyFlag">При этом айдолу придут ваши замечания.</span>
                     </p>
-                    <p v-else-if="isApproved" class="scr-decision-hint scr-decision-hint--ok">
-                        Изменения будут применены к услуге.
+                    <p v-else-if="hasAnyFlag" class="scr-decision-hint">
+                        Есть пометки, но галочка "Одобрить" не стоит — запрос вернется на доработку («Есть замечания»).
                     </p>
 
                     <div v-if="errors._" class="scr-err">{{ errors._ }}</div>
