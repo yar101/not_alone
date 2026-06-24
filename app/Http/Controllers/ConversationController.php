@@ -99,6 +99,7 @@ class ConversationController extends Controller
                     'id'         => $other->id,
                     'name'       => $other->name,
                     'avatar_url' => $other->avatar_url,
+                    'active_frame_path' => $other->active_frame_path,
                     'is_idol'    => $other->is_idol,
                     'gender'     => $other->gender,
                     ] : null,                'last_message' => $conversation->lastMessage ? [
@@ -143,6 +144,7 @@ class ConversationController extends Controller
             'sender_id'       => $m->sender_id,
             'sender_name'     => $m->sender?->name,
             'sender_avatar'   => $m->sender?->avatar_url,
+            'sender_frame'    => $m->sender?->active_frame_path,
             'created_at'      => $m->created_at->toISOString(),
             'conversation_id' => $m->conversation_id,
         ]);

@@ -9,6 +9,7 @@ import {
     inject,
 } from "vue";
 import { usePage, router, Link } from "@inertiajs/vue3";
+import UserAvatar from "@/Components/UserAvatar.vue";
 import SiteModal from "@/Components/Site/SiteModal.vue";
 import axios from "axios";
 import { Check, Lock } from "@element-plus/icons-vue";
@@ -1543,20 +1544,10 @@ function formatDate(iso) {
                                             >
                                         </template>
                                         <template v-else>
-                                            <img
-                                                v-if="
-                                                    conv.other_user?.avatar_url
-                                                "
-                                                :src="
-                                                    conv.other_user.avatar_url
-                                                "
-                                                alt=""
+                                            <UserAvatar
+                                                :user="conv.other_user"
+                                                :size="48"
                                             />
-                                            <span v-else>{{
-                                                conv.other_user?.name?.charAt(
-                                                    0,
-                                                ) ?? "?"
-                                            }}</span>
                                         </template>
                                     </div>
                                     <div class="chat-conv-info">
@@ -1930,21 +1921,10 @@ function formatDate(iso) {
                                                 class="chat-conv-avatar chat-conv-avatar--sm"
                                                 :class="{ 'is-male': (order.is_customer ? order.idol : order.customer).gender === 'male' }"
                                             >
-                                                <img v-if="(order.is_customer ? order.idol : order.customer).avatar_url"
-                                                    :src="
-                                                        (order.is_customer
-                                                            ? order.idol
-                                                            : order.customer
-                                                        ).avatar_url
-                                                    "
-                                                    alt=""
+                                                <UserAvatar
+                                                    :user="(order.is_customer ? order.idol : order.customer)"
+                                                    :size="48"
                                                 />
-                                                <span v-else>{{
-                                                    (order.is_customer
-                                                        ? order.idol
-                                                        : order.customer
-                                                    ).name?.charAt(0) ?? "?"
-                                                }}</span>
                                             </div>
                                             <div class="order-stub__who">
                                                 <span
@@ -2115,22 +2095,10 @@ function formatDate(iso) {
                                         <span class="chat-support-icon">✦</span>
                                     </template>
                                     <template v-else>
-                                        <img
-                                            v-if="
-                                                activeConversation.other_user
-                                                    ?.avatar_url
-                                            "
-                                            :src="
-                                                activeConversation.other_user
-                                                    .avatar_url
-                                            "
-                                            alt=""
+                                        <UserAvatar
+                                            :user="activeConversation.other_user"
+                                            :size="48"
                                         />
-                                        <span v-else>{{
-                                            activeConversation.other_user?.name?.charAt(
-                                                0,
-                                            ) ?? "?"
-                                        }}</span>
                                     </template>
                                 </div>
                                 <!-- Индикаторы на аватарке -->
