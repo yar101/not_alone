@@ -30,12 +30,6 @@ function calcAge(birthDate) {
         class="user-card"
         :class="{ 'is-compact': compact }"
     >
-        <!-- Бейдж новичка — правый верхний угол -->
-        <div v-if="user.is_idol && user.is_newbie" class="newbie-badge">
-            <img src="/not_alone_icon_without_background.png" alt="Newbie" />
-            <div class="newbie-tooltip">У этого айдола менее 25 выполненных заказов</div>
-        </div>
-
         <UserCardAvatar :user="user" :compact="compact" />
         <div class="card-body">
             <div class="card-name-row">
@@ -103,47 +97,6 @@ function calcAge(birthDate) {
         0 6px 16px -4px rgba(0, 0, 0, 0.4),
         0 0 10px rgba(255, 178, 239, 0.05);
     transform: translateY(-3px);
-}
-
-.newbie-badge {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    width: 48px;
-    height: 48px;
-    z-index: 10;
-    cursor: help;
-}
-.newbie-badge img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
-}
-.newbie-tooltip {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 5px;
-    background: rgba(15, 15, 29, 0.95);
-    color: #fff;
-    padding: 0.5rem 0.8rem;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    white-space: nowrap;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-5px);
-    transition: all 0.2s ease;
-    border: 1px solid rgba(255, 178, 239, 0.2);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-    pointer-events: none;
-    z-index: 20;
-}
-.newbie-badge:hover .newbie-tooltip {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
 }
 
 .user-card:hover :deep(.card-avatar) {

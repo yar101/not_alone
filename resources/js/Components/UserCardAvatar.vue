@@ -41,6 +41,15 @@ const initial = computed(() => {
                 class="card-avatar__img" />
             <span v-else class="card-avatar__initials">{{ initial }}</span>
         </div>
+
+        <template v-if="showIdolBadge && user.is_idol && user.is_newbie">
+            <el-tooltip content="У этого айдола менее 25 выполненных заказов" placement="top" effect="dark">
+                <div class="newbie-badge">
+                    <img src="/not_alone_icon_without_background.png" alt="Newbie" />
+                </div>
+            </el-tooltip>
+        </template>
+
         <div class="card-avatar-badges" v-if="(showIdolBadge && user.is_idol) || (showRating && user.rating)">
             <IdolBadge
                 v-if="showIdolBadge && user.is_idol"
@@ -58,6 +67,44 @@ const initial = computed(() => {
     position: relative;
     align-self: center;
     margin-bottom: 0.25rem;
+    display: inline-flex;
+}
+
+.card-idol-badge {
+    width: 22px;
+    height: 22px;
+    z-index: 5;
+}
+
+.newbie-badge {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    width: 54px;
+    height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    cursor: help;
+    transition: filter 0.3s ease, transform 0.3s ease;
+}
+.newbie-badge:hover {
+    filter: drop-shadow(0 0 8px rgba(255, 178, 239, 0.7));
+    transform: scale(1.05);
+}
+.newbie-badge img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.is-compact .newbie-badge {
+    width: 48px;
+    height: 48px;
+    bottom: -3px;
+    right: -3px;
 }
 
 .card-avatar {

@@ -156,7 +156,7 @@ function deleteAvatar() {
             <span class="rating-num">{{ rating }}</span>
         </div>
 
-        <!-- Кнопки снизу справа -->
+        <!-- Кнопки сверху справа -->
         <div class="header-actions">
             <button v-if="!isOwner && canReport" class="action-pill action-pill--report" @click="emit('report')" :title="__('profile.header.report')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -172,16 +172,19 @@ function deleteAvatar() {
             </div>
         </div>
 
-        <!-- Бейдж новичка — верхний правый угол -->
-        <div v-if="isIdol && user.is_newbie" class="newbie-badge">
-            <img src="/not_alone_icon_without_background.png" alt="Newbie" />
-            <div class="newbie-tooltip">У этого айдола менее 25 выполненных заказов</div>
-        </div>
-
         <!-- Аватар по центру -->
         <div class="header-avatar-area">
             <div class="avatar-wrapper" :class="{ 'avatar-clickable': !isOwner && user.avatar_url }" @click="onAvatarClick">
                 <AvatarUploader :user="user" :size="190" :editable="isOwner" />
+
+                <!-- Бейдж новичка — правый нижний угол аватарки -->
+                <template v-if="isIdol && user.is_newbie">
+                    <el-tooltip content="У этого айдола менее 25 выполненных заказов" placement="top" effect="dark">
+                        <div class="newbie-badge">
+                            <img src="/not_alone_icon_without_background.png" alt="Newbie" />
+                        </div>
+                    </el-tooltip>
+                </template>
             </div>
         </div>
 
@@ -276,10 +279,10 @@ function deleteAvatar() {
     font-family: 'Rubik', sans-serif;
 }
 
-/* Кнопки — абсолютно в правом нижнем углу */
+/* Кнопки — абсолютно в правом верхнем углу */
 .header-actions {
     position: absolute;
-    bottom: 0.75rem;
+    top: 0.75rem;
     right: 0.75rem;
     display: flex;
     gap: 0.4rem;
@@ -287,49 +290,29 @@ function deleteAvatar() {
     z-index: 10;
 }
 
-/* Бейдж новичка — абсолютно в правом верхнем углу */
+/* Бейдж новичка — в нижнем правом углу аватарки */
 .newbie-badge {
     position: absolute;
-    top: 0.75rem;
-    right: 0.75rem;
-    width: 64px;
-    height: 64px;
+    bottom: -5px;
+    right: -5px;
+    width: 70px;
+    height: 70px;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 10;
     cursor: help;
+    transition: filter 0.3s ease, transform 0.3s ease;
+}
+.newbie-badge:hover {
+    filter: drop-shadow(0 0 10px rgba(255, 178, 239, 0.7));
+    transform: scale(1.05);
 }
 .newbie-badge img {
     width: 100%;
     height: 100%;
     object-fit: contain;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
-}
-.newbie-tooltip {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 8px;
-    background: rgba(15, 15, 29, 0.95);
-    color: #fff;
-    padding: 0.6rem 1rem;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    white-space: nowrap;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-5px);
-    transition: all 0.2s ease;
-    border: 1px solid rgba(255, 178, 239, 0.2);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-    pointer-events: none;
-    z-index: 20;
-}
-.newbie-badge:hover .newbie-tooltip {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
 }
 
 .action-pill {
