@@ -816,7 +816,12 @@ defineExpose({ toggleDropdown });
                                     <p v-if="getNotificationTitle(item) && !['new_message', 'order_created', 'order_accepted', 'order_cancelled', 'order_paid', 'order_completed'].includes(item.type)" class="notif-msg notif-msg--sub">
                                         {{ getNotificationMessage(item) }}
                                     </p>
-                                    <p v-if="item.reason" class="notif-reason">
+                                    <div v-if="item.data?.field_comments && Object.keys(item.data.field_comments).length" class="notif-field-comments">
+                                        <div v-for="(comment, field) in item.data.field_comments" :key="field" class="notif-field-comment">
+                                            <span class="notif-field-name">{{ item.type.includes('pack') ? __('pack.field.' + field) : __('service.field.' + field) }}:</span> {{ comment }}
+                                        </div>
+                                    </div>
+                                    <p v-else-if="item.reason" class="notif-reason">
                                         <span class="notif-reason--sub">{{ __('notification.reason') }}</span> {{ item.reason }}
                                     </p>
                                     <div class="notif-footer-row">
@@ -955,7 +960,12 @@ defineExpose({ toggleDropdown });
                                         <p v-if="getNotificationTitle(item) && !['new_message', 'order_created', 'order_accepted', 'order_cancelled', 'order_paid', 'order_completed'].includes(item.type)" class="notif-msg notif-msg--sub">
                                             {{ getNotificationMessage(item) }}
                                         </p>
-                                        <p v-if="item.reason" class="notif-reason">
+                                        <div v-if="item.data?.field_comments && Object.keys(item.data.field_comments).length" class="notif-field-comments">
+                                            <div v-for="(comment, field) in item.data.field_comments" :key="field" class="notif-field-comment">
+                                                <span class="notif-field-name">{{ item.type.includes('pack') ? __('pack.field.' + field) : __('service.field.' + field) }}:</span> {{ comment }}
+                                            </div>
+                                        </div>
+                                        <p v-else-if="item.reason" class="notif-reason">
                                             <span class="notif-reason--sub">{{ __('notification.reason') }}</span> {{ item.reason }}
                                         </p>
                                         <div class="notif-footer-row">
