@@ -464,6 +464,7 @@ function genderLabel(g) {
                                 v-for="user in users.data"
                                 :key="user.id"
                                 :user="user"
+                                :show-newbie-badge="false"
                             />
                         </div>
 

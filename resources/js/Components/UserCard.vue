@@ -12,6 +12,10 @@ const props = defineProps({
     compact: {
         type: Boolean,
         default: false
+    },
+    showNewbieBadge: {
+        type: Boolean,
+        default: true
     }
 });
 
@@ -30,7 +34,7 @@ function calcAge(birthDate) {
         class="user-card"
         :class="{ 'is-compact': compact }"
     >
-        <UserCardAvatar :user="user" :compact="compact" />
+        <UserCardAvatar :user="user" :compact="compact" :show-newbie-badge="showNewbieBadge" />
         <div class="card-body">
             <div class="card-name-row">
                 <div class="card-name">{{ user.name }}</div>

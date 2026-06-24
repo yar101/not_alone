@@ -19,6 +19,10 @@ const props = defineProps({
     compact: {
         type: Boolean,
         default: false
+    },
+    showNewbieBadge: {
+        type: Boolean,
+        default: true
     }
 });
 
@@ -35,14 +39,14 @@ const initial = computed(() => {
 </script>
 
 <template>
-    <div class="card-avatar-wrap" :class="{ 'is-compact': compact }">
-        <div class="card-avatar" :class="{ 'is-male': user.gender === 'male' }">
+    <div class="card-avatar-wrap" :class="{ 'is-compact': compact, 'is-male': user.gender === 'male' }">
+        <div class="card-avatar">
             <img v-if="avatarUrl" :src="avatarUrl" :alt="__('common.avatar')"
                 class="card-avatar__img" />
             <span v-else class="card-avatar__initials">{{ initial }}</span>
         </div>
 
-        <div v-if="showIdolBadge && user.is_idol && user.is_newbie" class="newbie-badge">
+        <div v-if="showNewbieBadge && user.is_idol && user.is_newbie" class="newbie-badge">
             <el-tooltip content="У этого айдола менее 25 выполненных заказов" placement="top" effect="dark" popper-class="newbie-dark-tooltip">
                 <img src="/not_alone_icon_without_background.png" alt="Newbie" />
             </el-tooltip>
@@ -52,6 +56,7 @@ const initial = computed(() => {
             <IdolBadge
                 v-if="showIdolBadge"
                 class="card-idol-badge"
+                :gender="user.gender"
             />
             <span v-if="showRating && user.rating" class="card-rating">
                 ★ {{ user.rating }}
@@ -117,7 +122,7 @@ const initial = computed(() => {
     height: 90px;
 }
 
-.card-avatar.is-male {
+.card-avatar-wrap.is-male .card-avatar {
     background: rgba(100, 210, 255, 0.12);
     border-color: rgba(100, 210, 255, 0.3);
 }
@@ -139,7 +144,7 @@ const initial = computed(() => {
     font-size: 2rem;
 }
 
-.card-avatar.is-male .card-avatar__initials {
+.card-avatar-wrap.is-male .card-avatar__initials {
     color: var(--color-base-2);
     text-shadow: 0 0 20px rgba(100, 210, 255, 0.4);
 }
@@ -184,7 +189,7 @@ const initial = computed(() => {
     font-size: 0.7rem;
 }
 
-.card-avatar.is-male + .card-avatar-badges .card-rating {
+.card-avatar-wrap.is-male .card-rating {
     border-color: rgba(100, 210, 255, 0.4);
     color: var(--color-base-2);
 }
@@ -211,7 +216,7 @@ const initial = computed(() => {
     font-size: 0.7rem;
 }
 
-.card-avatar.is-male + .card-avatar-badges :deep(.card-idol-badge) {
+.card-avatar-wrap.is-male :deep(.card-idol-badge) {
     border-color: rgba(100, 210, 255, 0.4);
     color: var(--color-base-2);
 }
