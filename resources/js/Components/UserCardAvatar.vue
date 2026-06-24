@@ -78,10 +78,10 @@ const initial = computed(() => {
 
 .newbie-badge {
     position: absolute;
-    bottom: -4px;
+    top: -4px;
     right: -4px;
-    width: 54px;
-    height: 54px;
+    width: 48px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -101,10 +101,10 @@ const initial = computed(() => {
 }
 
 .is-compact .newbie-badge {
-    width: 48px;
-    height: 48px;
-    bottom: -3px;
-    right: -3px;
+    width: 42px;
+    height: 42px;
+    top: -4px;
+    right: -4px;
 }
 
 .card-avatar {
