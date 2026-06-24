@@ -1089,45 +1089,53 @@ watch(selectedCategory, (cat) => {
                                 'svc-card--rejected': isOwner && item.status === 'rejected',
                             }"
                         >
-                            <!-- Badges: top-right corner -->
-                            <div v-if="isOwner" class="svc-card__badges">
-                                <ServiceStatusBadge
-                                    v-if="!item.is_active"
-                                    status="hidden"
-                                />
-                                <ServiceStatusBadge
-                                    v-else-if="item.status === 'rejected'"
-                                    status="rejected"
-                                />
-                                <ServiceStatusBadge
-                                    v-else-if="item.status === 'has_remarks' || item.pending_change?.status === 'has_remarks'"
-                                    status="has_remarks"
-                                    :is-change-request="item.pending_change?.status === 'has_remarks'"
-                                />
-                                <ServiceStatusBadge
-                                    v-else-if="item.pending_change?.status === 'pending'"
-                                    status="pending"
-                                    :is-change-request="true"
-                                />
-                                <ServiceStatusBadge
-                                    v-else-if="item.pending_change?.status === 'rejected'"
-                                    status="rejected"
-                                    :is-change-request="true"
-                                />
-                                <ServiceStatusBadge
-                                    v-else-if="item.status === 'pending'"
-                                    status="pending"
-                                />
-                            </div>
-
                             <!-- Info column -->
                             <div class="svc-card__info">
-                                <div class="svc-card__name-row">
-                                    <span class="svc-card__name" :class="{ 'svc-card__name--flagged': isFlagged(item, 'name_ru') || isFlagged(item, 'name_en') }">
-                                        <span v-if="item.is_trial" class="svc-trial-badge" title="Бесплатно 1 раз для новых клиентов">1-й заказ 0 ₽</span>
-                                        {{ localServiceName(item) }}
-                                        <span v-if="isFlagged(item, 'name_ru') || isFlagged(item, 'name_en')" class="svc-card__flag-icon" :title="getFieldComment(item, 'name_ru') || getFieldComment(item, 'name_en') || 'Замечание модератора'">⚠️</span>
-                                    </span>
+                                <div class="svc-card__header">
+                                    <div class="svc-card__name-row">
+                                        <span class="svc-card__name" :class="{ 'svc-card__name--flagged': isFlagged(item, 'name_ru') || isFlagged(item, 'name_en') }">
+                                            {{ localServiceName(item) }}
+                                            <span v-if="isFlagged(item, 'name_ru') || isFlagged(item, 'name_en')" class="svc-card__flag-icon" :title="getFieldComment(item, 'name_ru') || getFieldComment(item, 'name_en') || 'Замечание модератора'">⚠️</span>
+                                        </span>
+                                    </div>
+                                    
+                                    <!-- Badges -->
+                                    <div class="svc-card__badges">
+                                        <ServiceStatusBadge
+                                            v-if="item.is_trial"
+                                            status="trial"
+                                            title="Бесплатно 1 раз для новых клиентов"
+                                        />
+                                        <template v-if="isOwner">
+                                            <ServiceStatusBadge
+                                                v-if="!item.is_active"
+                                                status="hidden"
+                                            />
+                                            <ServiceStatusBadge
+                                                v-else-if="item.status === 'rejected'"
+                                                status="rejected"
+                                            />
+                                            <ServiceStatusBadge
+                                                v-else-if="item.status === 'has_remarks' || item.pending_change?.status === 'has_remarks'"
+                                                status="has_remarks"
+                                                :is-change-request="item.pending_change?.status === 'has_remarks'"
+                                            />
+                                            <ServiceStatusBadge
+                                                v-else-if="item.pending_change?.status === 'pending'"
+                                                status="pending"
+                                                :is-change-request="true"
+                                            />
+                                            <ServiceStatusBadge
+                                                v-else-if="item.pending_change?.status === 'rejected'"
+                                                status="rejected"
+                                                :is-change-request="true"
+                                            />
+                                            <ServiceStatusBadge
+                                                v-else-if="item.status === 'pending'"
+                                                status="pending"
+                                            />
+                                        </template>
+                                    </div>
                                 </div>
                                 <span
                                     v-if="
@@ -2818,11 +2826,19 @@ watch(selectedCategory, (cat) => {
 
 
 
+.svc-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
 .svc-card__name-row {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     flex-wrap: wrap;
+    flex: 1;
 }
 
 .svc-card__name {
@@ -2844,14 +2860,15 @@ watch(selectedCategory, (cat) => {
     text-overflow: ellipsis;
 }
 
-/* Badges wrapper — pinned to top-right of card */
+/* Badges wrapper */
 .svc-card__badges {
-    position: absolute;
-    top: 0;
-    right: 0;
     display: flex;
     flex-direction: row;
-    gap: 0;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    flex-shrink: 0;
+    margin: -0.4rem;
 }
 
 .svc-card__badges .svc-pill {
