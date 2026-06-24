@@ -117,6 +117,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         [UserProfileController::class, 'updateCategoryDescription']
     )->name('profile.services.category.description');
     Route::patch('/profile/services/{service}',     [ServiceController::class, 'update'])->name('profile.services.update');
+    Route::post('/profile/services/{service}/toggle-trial', [ServiceController::class, 'toggleTrial'])->name('profile.services.toggle-trial');
     Route::post('/profile/services/{service}/fix-change-request', [ServiceController::class, 'fixChangeRequest'])->name('profile.services.fix-change-request');
     Route::delete('/profile/services/{service}/dismiss-change-request', [ServiceController::class, 'dismissChangeRequest'])->name('profile.services.dismiss-change-request');
     Route::delete('/profile/services/{service}',    [ServiceController::class, 'destroy'])->name('profile.services.destroy');

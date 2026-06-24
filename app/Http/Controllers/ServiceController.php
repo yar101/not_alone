@@ -192,7 +192,6 @@ class ServiceController extends Controller
             'category_id'  => ['sometimes', 'integer', 'exists:service_categories,id'],
             'time_unit_id' => ['sometimes', 'integer', 'exists:service_time_units,id'],
             'price'        => ['sometimes', 'integer', 'min:1', 'max:999999'],
-            'is_trial'     => ['sometimes', 'boolean'],
             'is_active'    => ['sometimes', 'boolean'],
         ]);
 
@@ -212,9 +211,11 @@ class ServiceController extends Controller
             $changed = false;
             
             if ($field === 'name_ru') {
-                $changed = $val !== $service->getTranslation('name', 'ru', false);
+                $oldRu = $service->getTranslation('name', 'ru', false);
+                $changed = trim(empty($val) ? '' : $val) !== trim(empty($oldRu) ? '' : $oldRu);
             } elseif ($field === 'name_en') {
-                $changed = (empty($val) ? null : $val) !== ($service->getTranslation('name', 'en', false) ?: null);
+                $oldEn = $service->getTranslation('name', 'en', false);
+                $changed = trim(empty($val) ? '' : $val) !== trim(empty($oldEn) ? '' : $oldEn);
             } else {
                 $changed = (int)$val !== (int)$service->{$field};
             }
@@ -225,15 +226,16 @@ class ServiceController extends Controller
         }
         
         if ($service->status === 'approved' && !empty($isModeratedFieldChange)) {
+            \Illuminate\Support\Facades\Log::info("False moderation trigger debug", [
+                'service_id' => $service->id,
+                'changed_fields' => $isModeratedFieldChange,
+                'data' => $data,
+            ]);
             $this->upsertChangeRequest($service, $isModeratedFieldChange);
             
             // Still allow updating non-moderated fields like is_active
-            $nonModUpdates = [];
-            if (isset($data['is_active'])) $nonModUpdates['is_active'] = $data['is_active'];
-            if (isset($data['is_trial']))  $nonModUpdates['is_trial'] = $data['is_trial'];
-            
-            if (!empty($nonModUpdates)) {
-                $service->update($nonModUpdates);
+            if (isset($data['is_active'])) {
+                $service->update(['is_active' => $data['is_active']]);
             }
             
             return back()->with('success', 'Изменения отправлены на модерацию.');
@@ -370,6 +372,17 @@ class ServiceController extends Controller
         $service->delete();
 
         return back()->with('success', 'Услуга удалена.');
+    }
+
+    public function toggleTrial(Request $request, Service $service): RedirectResponse
+    {
+        abort_if($service->user_id !== $request->user()->id, 403);
+        
+        $request->validate(['is_trial' => 'required|boolean']);
+        
+        $service->update(['is_trial' => $request->is_trial]);
+        
+        return back()->with('success', 'Статус пробной услуги обновлен.');
     }
 
     public function dismissChangeRequest(Request $request, Service $service): RedirectResponse

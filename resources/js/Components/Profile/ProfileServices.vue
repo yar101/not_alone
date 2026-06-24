@@ -465,6 +465,27 @@ function toggleActive(item) {
     );
 }
 
+function toggleTrialStatus(item) {
+    localeLoading.value = true;
+    router.post(
+        route("profile.services.toggle-trial", item.id),
+        {
+            is_trial: !item.is_trial,
+        },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                resyncSelectedCategory();
+                toast.success('Статус пробной услуги изменен');
+            },
+            onFinish: () => {
+                localeLoading.value = false;
+            },
+        },
+    );
+}
+
 // ── Computed ────────────────────────────────────────────────────
 const loaded = computed(() => Array.isArray(localServices.value));
 const isEmpty = computed(
@@ -1264,6 +1285,27 @@ watch(selectedCategory, (cat) => {
                                                     <button
                                                         class="svc-menu__item"
                                                         @click="
+                                                            toggleTrialStatus(item);
+                                                            closeMenu();
+                                                        "
+                                                    >
+                                                        <svg
+                                                            width="13"
+                                                            height="13"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            stroke-width="2"
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                        >
+                                                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                                                        </svg>
+                                                        {{ item.is_trial ? 'Убрать пробную' : 'Сделать пробной' }}
+                                                    </button>
+                                                    <button
+                                                        class="svc-menu__item"
+                                                        @click="
                                                             openEdit(item);
                                                             closeMenu();
                                                         "
@@ -1858,7 +1900,7 @@ watch(selectedCategory, (cat) => {
                                 </div>
                             </div>
 
-                            <div class="sf-row" style="margin-top: 1.5rem; margin-bottom: 0.5rem;">
+                            <div v-if="!editingId" class="sf-row" style="margin-top: 1.5rem; margin-bottom: 0.5rem;">
                                 <div class="sf-field" style="flex-direction: row; align-items: center; gap: 0.5rem; justify-content: flex-start;">
                                     <input type="checkbox" id="is_trial" v-model="form.is_trial" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-base-1); flex-shrink: 0;" />
                                     <label for="is_trial" style="color: rgba(255, 255, 255, 0.85); font-size: 0.9rem; cursor: pointer; user-select: none; margin: 0;">
