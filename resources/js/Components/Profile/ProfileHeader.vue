@@ -181,8 +181,6 @@ function deleteAvatar() {
         <div class="header-avatar-area">
             <div class="avatar-wrapper" :class="{ 'avatar-clickable': !isOwner && user.avatar_url }" @click="onAvatarClick">
                 <AvatarUploader :user="user" :size="190" :editable="isOwner" />
-                
-                <img v-if="user.active_frame_path" :src="'/storage/' + user.active_frame_path" class="profile-active-frame" alt="" />
 
                 <!-- Бейдж новичка — правый нижний угол аватарки -->
                 <div v-if="isIdol && user.is_newbie" class="newbie-badge">

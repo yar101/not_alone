@@ -51,6 +51,7 @@ class UserProfileController extends Controller
                 'timezone'         => $user->timezone,
                 'checklist_snoozed' => $checklistSnoozed,
                 'is_banned'        => $user->isActiveBanned(),
+                'active_frame_path'=> $user->active_frame_path,
                 'is_newbie'        => \App\Models\Order::where('idol_id', $user->id)->where('status', 'completed')->count() < 25,
             ],
             'isOwner'          => auth()->id() === $user->id,
