@@ -9,7 +9,8 @@ import {
     inject,
 } from "vue";
 import { useForm, router, usePage } from "@inertiajs/vue3";
-import { ElTooltip, ElMessage } from "element-plus";
+import { ElTooltip, ElMessage, ElCheckbox, ElIcon } from "element-plus";
+import { InfoFilled } from "@element-plus/icons-vue";
 import axios from "axios";
 import AppSelect from "@/Components/AppSelect.vue";
 import CreateButton from "@/Components/CreateButton.vue";
@@ -132,7 +133,7 @@ function addToCart(item) {
     const idolId = props.profileUser?.id;
 
     if (item.is_trial && c.items.some((i) => i.is_trial)) {
-        ElMessage.warning('В корзине уже есть услуга "Первый заказ бесплатно". Вы можете оформить только одну такую услугу за раз.');
+        ElMessage.warning('В корзине уже есть услуга "1-й заказ 0 ₽". Вы можете оформить только одну такую услугу за раз.');
         return;
     }
 
@@ -1123,7 +1124,7 @@ watch(selectedCategory, (cat) => {
                             <div class="svc-card__info">
                                 <div class="svc-card__name-row">
                                     <span class="svc-card__name" :class="{ 'svc-card__name--flagged': isFlagged(item, 'name_ru') || isFlagged(item, 'name_en') }">
-                                        <span v-if="item.is_trial" class="svc-trial-badge" title="Бесплатно 1 раз для новых клиентов">Первый заказ бесплатно</span>
+                                        <span v-if="item.is_trial" class="svc-trial-badge" title="Бесплатно 1 раз для новых клиентов">1-й заказ 0 ₽</span>
                                         {{ localServiceName(item) }}
                                         <span v-if="isFlagged(item, 'name_ru') || isFlagged(item, 'name_en')" class="svc-card__flag-icon" :title="getFieldComment(item, 'name_ru') || getFieldComment(item, 'name_en') || 'Замечание модератора'">⚠️</span>
                                     </span>
@@ -1301,7 +1302,7 @@ watch(selectedCategory, (cat) => {
                                                         >
                                                             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                                                         </svg>
-                                                        {{ item.is_trial ? 'Убрать статус "Первый заказ бесплатно"' : 'Сделать "Первым заказом бесплатно"' }}
+                                                        {{ item.is_trial ? 'Убрать "1-й заказ 0 ₽"' : 'Сделать "1-й заказ 0 ₽"' }}
                                                     </button>
                                                     <button
                                                         class="svc-menu__item"
@@ -1900,21 +1901,21 @@ watch(selectedCategory, (cat) => {
                                 </div>
                             </div>
 
-                            <div v-if="!editingId" class="sf-row" style="margin-top: 1.5rem; margin-bottom: 0.5rem;">
-                                <div class="sf-field" style="flex-direction: row; align-items: center; gap: 0.5rem; justify-content: flex-start;">
-                                    <input type="checkbox" id="is_trial" v-model="form.is_trial" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--color-base-1); flex-shrink: 0;" />
-                                    <label for="is_trial" style="color: rgba(255, 255, 255, 0.85); font-size: 0.9rem; cursor: pointer; user-select: none; margin: 0;">
-                                        Сделать "Первый заказ бесплатно" (бесплатно для новых клиентов)
+                            <div v-if="!editingId" class="sf-field" style="flex-direction: row; align-items: center; justify-content: space-between; margin-top: 1.5rem; margin-bottom: 0.5rem; background: rgba(255, 255, 255, 0.03); padding: 1rem 1.25rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08);">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <input type="checkbox" id="is_trial" v-model="form.is_trial" class="svc-custom-checkbox" />
+                                    <label for="is_trial" style="color: rgba(255, 255, 255, 0.7); font-size: 0.9rem; cursor: pointer; user-select: none; margin: 0;">
+                                        Сделать <span style="color: var(--color-base-1); font-weight: 600;">1-й заказ 0 ₽</span>
                                     </label>
-                                    <el-tooltip placement="top" effect="dark" popper-class="newbie-dark-tooltip">
-                                        <template #content>
-                                            Позволит новым клиентам 1 раз воспользоваться<br>
-                                            этой услугой бесплатно (0 руб).<br>
-                                            Полезно для привлечения аудитории.
-                                        </template>
-                                        <span style="display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.6); font-size: 10px; cursor: help; flex-shrink: 0;">?</span>
-                                    </el-tooltip>
                                 </div>
+                                
+                                <el-tooltip placement="top" effect="dark" popper-class="newbie-dark-tooltip">
+                                    <template #content>
+                                        Новый клиент сможет заказать эту услугу за 0 ₽.<br>
+                                        Один клиент может взять только одну бесплатную услугу.
+                                    </template>
+                                    <el-icon :size="20" style="color: rgba(255, 255, 255, 0.4); cursor: help; outline: none;" @click.prevent.stop><InfoFilled /></el-icon>
+                                </el-tooltip>
                             </div>
 
                             <div class="sf-actions">
@@ -3872,5 +3873,46 @@ watch(selectedCategory, (cat) => {
     background: rgba(255, 178, 239, 0.16);
     border-color: rgba(255, 178, 239, 0.5);
     color: var(--color-base-1);
+}
+
+.svc-custom-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    margin: 0;
+    outline: none;
+}
+
+.svc-custom-checkbox:hover {
+    border-color: var(--color-base-1);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.svc-custom-checkbox:checked {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-color: var(--color-base-1);
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.svc-custom-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 2px;
+    width: 6px;
+    height: 11px;
+    border: solid var(--color-base-1);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
 }
 </style>
