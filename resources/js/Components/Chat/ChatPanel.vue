@@ -4042,7 +4042,7 @@ function formatDate(iso) {
 .chat-sticky-controls {
     position: sticky;
     top: 0;
-    z-index: 5;
+    z-index: 10;
     background: #0b0b18;
     border-bottom: 1px solid rgba(255, 178, 239, 0.1);
     padding-top: 1px;
@@ -4451,7 +4451,7 @@ function formatDate(iso) {
     background: #3ddc84;
     border: 2px solid #0f0f22;
     border-radius: 50%;
-    z-index: 2;
+    z-index: 6;
     box-shadow: 0 0 6px rgba(61, 220, 132, 0.4);
 }
 
@@ -4471,7 +4471,7 @@ function formatDate(iso) {
     padding: 1px 4px;
     border-radius: 3px;
     letter-spacing: 0.06em;
-    z-index: 3;
+    z-index: 7;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
     pointer-events: none;
     display: flex;
