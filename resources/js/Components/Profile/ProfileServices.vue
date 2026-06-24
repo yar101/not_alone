@@ -9,8 +9,8 @@ import {
     inject,
 } from "vue";
 import { useForm, router, usePage } from "@inertiajs/vue3";
-import { ElTooltip, ElMessage, ElCheckbox, ElIcon } from "element-plus";
-import { InfoFilled } from "@element-plus/icons-vue";
+import { ElTooltip, ElMessage, ElCheckbox, ElIcon, ElSwitch } from "element-plus";
+import { InfoFilled, Present } from "@element-plus/icons-vue";
 import axios from "axios";
 import AppSelect from "@/Components/AppSelect.vue";
 import CreateButton from "@/Components/CreateButton.vue";
@@ -466,12 +466,12 @@ function toggleActive(item) {
     );
 }
 
-function toggleTrialStatus(item) {
+function toggleTrialStatus(item, val = null) {
     localeLoading.value = true;
     router.post(
         route("profile.services.toggle-trial", item.id),
         {
-            is_trial: !item.is_trial,
+            is_trial: val !== null ? val : !item.is_trial,
         },
         {
             preserveScroll: true,
@@ -1294,49 +1294,37 @@ watch(selectedCategory, (cat) => {
                                                     <button
                                                         class="svc-menu__item"
                                                         @click="
-                                                            toggleTrialStatus(item);
-                                                            closeMenu();
-                                                        "
-                                                    >
-                                                        <svg
-                                                            width="13"
-                                                            height="13"
-                                                            viewBox="0 0 24 24"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            stroke-width="2"
-                                                            stroke-linecap="round"
-                                                            stroke-linejoin="round"
-                                                        >
-                                                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                                                        </svg>
-                                                        {{ item.is_trial ? 'Убрать "1-й заказ 0 ₽"' : 'Сделать "1-й заказ 0 ₽"' }}
-                                                    </button>
-                                                    <button
-                                                        class="svc-menu__item"
-                                                        @click="
                                                             openEdit(item);
                                                             closeMenu();
                                                         "
                                                     >
-                                                        <svg
-                                                            width="13"
-                                                            height="13"
-                                                            viewBox="0 0 24 24"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            stroke-width="2"
-                                                            stroke-linecap="round"
-                                                            stroke-linejoin="round"
-                                                        >
-                                                            <path
-                                                                d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
-                                                            />
-                                                            <path
-                                                                d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
-                                                            />
+                                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                                         </svg>
                                                         {{ __("common.edit") }}
+                                                    </button>
+                                                    <button
+                                                        class="svc-menu__item"
+                                                        :class="{ 'svc-menu__item--active': item.is_trial }"
+                                                        @click="
+                                                            toggleTrialStatus(item);
+                                                            closeMenu();
+                                                        "
+                                                    >
+                                                        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                                            <span style="display: flex; align-items: center; gap: 0.6rem; white-space: nowrap;">
+                                                                <el-icon><Present /></el-icon>
+                                                                1-й заказ 0 ₽
+                                                            </span>
+                                                            <el-tooltip placement="top" effect="dark" popper-class="newbie-dark-tooltip" :hide-after="0" trigger="click">
+                                                                <template #content>
+                                                                    Новый клиент сможет заказать эту услугу за 0 ₽.<br>
+                                                                    Один клиент может взять только одну бесплатную услугу.
+                                                                </template>
+                                                                <el-icon :size="16" style="color: rgba(255, 255, 255, 0.4); cursor: help; outline: none;" @click.prevent.stop><InfoFilled /></el-icon>
+                                                            </el-tooltip>
+                                                        </div>
                                                     </button>
                                                     <div
                                                         class="svc-menu__divider"
@@ -1917,7 +1905,7 @@ watch(selectedCategory, (cat) => {
                                     </label>
                                 </div>
                                 
-                                <el-tooltip placement="top" effect="dark" popper-class="newbie-dark-tooltip">
+                                <el-tooltip placement="top" effect="dark" popper-class="newbie-dark-tooltip" :hide-after="0" trigger="click">
                                     <template #content>
                                         Новый клиент сможет заказать эту услугу за 0 ₽.<br>
                                         Один клиент может взять только одну бесплатную услугу.
@@ -3135,7 +3123,7 @@ watch(selectedCategory, (cat) => {
     right: 0;
     top: calc(100% + 6px);
     z-index: 50;
-    min-width: 160px;
+    min-width: 190px;
     background: #0f0f18;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 6px;
@@ -3149,26 +3137,46 @@ watch(selectedCategory, (cat) => {
 .svc-menu__item {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.75rem;
     width: 100%;
-    padding: 0.48rem 0.65rem;
+    padding: 0.6rem 0.75rem;
     border: none;
     border-radius: 4px;
     background: transparent;
-    color: rgba(255, 255, 255, 0.65);
+    color: rgba(255, 255, 255, 0.75);
     font-family: inherit;
-    font-size: 0.82rem;
+    font-size: 0.95rem;
     text-align: left;
     cursor: pointer;
     transition:
         background 0.12s,
         color 0.12s;
+    white-space: nowrap;
 }
 
-.svc-menu__item svg {
+.svc-menu__item--active {
+    color: var(--color-base-1);
+    background: rgba(var(--color-base-1-rgb, 255, 178, 239), 0.1);
+}
+
+.svc-menu__item--active svg,
+.svc-menu__item--active .el-icon {
+    color: var(--color-base-1) !important;
+}
+
+.svc-menu__item--active:hover {
+    background: rgba(var(--color-base-1-rgb, 255, 178, 239), 0.2);
+    color: var(--color-base-1);
+}
+
+.svc-menu__item svg,
+.svc-menu__item .el-icon {
     flex-shrink: 0;
     color: rgba(255, 255, 255, 0.35);
     transition: color 0.12s;
+    width: 16px !important;
+    height: 16px !important;
+    font-size: 16px !important;
 }
 
 .svc-menu__item:hover {
@@ -3176,8 +3184,9 @@ watch(selectedCategory, (cat) => {
     color: rgba(255, 255, 255, 0.92);
 }
 
-.svc-menu__item:hover svg {
-    color: rgba(255, 255, 255, 0.65);
+.svc-menu__item:hover svg,
+.svc-menu__item:hover .el-icon {
+    color: rgba(255, 255, 255, 0.92);
 }
 
 .svc-menu__item--danger {
