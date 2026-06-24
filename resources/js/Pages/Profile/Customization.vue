@@ -95,7 +95,8 @@ const unequip = async () => {
                             <div class="current-frame-section">
                                 <h4 class="section-subtitle">Текущая рамка</h4>
                                 <div class="current-preview">
-                                    <div class="mock-avatar"></div>
+                                    <img v-if="usePage().props.auth.user.avatar_url" :src="usePage().props.auth.user.avatar_url" class="mock-avatar avatar-img" />
+                                    <div v-else class="mock-avatar"></div>
                                     <img v-if="activeFramePath" :src="'/storage/' + activeFramePath" alt="" class="frame-img" />
                                 </div>
                                 <div class="current-actions">
@@ -342,6 +343,11 @@ const unequip = async () => {
     background: linear-gradient(135deg, #2a2536, #15131a);
     border-radius: 50%;
     z-index: 1;
+}
+.mock-avatar.avatar-img {
+    width: calc(100% - 12px);
+    height: calc(100% - 12px);
+    object-fit: cover;
 }
 .mock-avatar-small {
     position: absolute;

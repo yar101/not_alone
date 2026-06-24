@@ -210,7 +210,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
                     </div>
 
                     <!-- Language switcher -->
-                    <div class="usb-locale">
+                    <div class="usb-locale" v-if="false">
                         <button
                             v-for="(label, code) in locale?.available"
                             :key="code"
