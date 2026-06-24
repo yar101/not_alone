@@ -84,6 +84,8 @@ class OrderService
             'cancelled_by'  => $actor->id,
         ]);
 
+        \App\Models\UserIdolTrial::where('order_id', $order->id)->delete();
+
         $this->broadcastSystemMessage($order, [
             'sender_id' => $actor->id,
             'body'      => '',
@@ -235,6 +237,8 @@ class OrderService
                     ]);
                     $order->conversation->touch();
                 }
+
+                \App\Models\UserIdolTrial::where('order_id', $order->id)->delete();
                 break;
 
             case OrderStatus::Refunded:

@@ -64,6 +64,22 @@ class OrderController extends Controller
             return response()->json(['error' => 'Вы заблокированы этим пользователем'], 422);
         }
 
+        $trialServicesCount = $services->where('is_trial', true)->count();
+        if ($trialServicesCount > 1) {
+            return response()->json(['error' => 'Нельзя заказать более одной пробной услуги одновременно'], 422);
+        }
+
+        $hasUsedTrial = false;
+        if ($trialServicesCount > 0) {
+            $hasUsedTrial = \App\Models\UserIdolTrial::where('user_id', $user->id)
+                ->where('idol_id', $idol->id)
+                ->exists();
+
+            if ($hasUsedTrial) {
+                return response()->json(['error' => 'Вы уже использовали пробную услугу у этого пользователя'], 422);
+            }
+        }
+
         $order = Order::create([
             'customer_id' => $user->id,
             'idol_id'     => $idol->id,
@@ -73,7 +89,16 @@ class OrderController extends Controller
 
         foreach ($services as $service) {
             $qty = (int) ($quantityMap[$service->id]['quantity'] ?? 1);
-            $order->items()->create(['service_id' => $service->id, 'quantity' => $qty, 'price' => $service->price]);
+            $price = ($service->is_trial && !$hasUsedTrial) ? 0 : $service->price;
+            $order->items()->create(['service_id' => $service->id, 'quantity' => $qty, 'price' => $price]);
+        }
+
+        if ($trialServicesCount > 0 && !$hasUsedTrial) {
+            \App\Models\UserIdolTrial::create([
+                'user_id' => $user->id,
+                'idol_id' => $idol->id,
+                'order_id' => $order->id,
+            ]);
         }
 
         $conversation = Conversation::create(['order_id' => $order->id]);
@@ -94,7 +119,7 @@ class OrderController extends Controller
                 'services' => $services->map(fn($s) => [
                     'id'        => $s->id,
                     'name'      => $s->name,
-                    'price'     => $s->price,
+                    'price'     => ($s->is_trial && !$hasUsedTrial) ? 0 : $s->price,
                     'time_unit' => $s->timeUnit?->name,
                     'quantity'  => (int) ($quantityMap[$s->id]['quantity'] ?? 1),
                 ])->values()->all(),
