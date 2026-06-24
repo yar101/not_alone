@@ -186,8 +186,8 @@ class ConversationController extends Controller
                     'completed_at'  => $o->completed_at?->toISOString(),
                     'completion_confirmed_by_idol'     => $o->completion_confirmed_by_idol,
                     'completion_confirmed_by_customer' => $o->completion_confirmed_by_customer,
-                    'customer'      => ['id' => $o->customer->id, 'name' => $o->customer->name, 'avatar_url' => $o->customer->avatar_url],
-                    'idol'          => ['id' => $o->idol->id, 'name' => $o->idol->name, 'avatar_url' => $o->idol->avatar_url, 'gender' => $o->idol->gender],
+                    'customer'      => ['id' => $o->customer->id, 'name' => $o->customer->name, 'avatar_url' => $o->customer->avatar_url, 'active_frame_path' => $o->customer->active_frame_path],
+                    'idol'          => ['id' => $o->idol->id, 'name' => $o->idol->name, 'avatar_url' => $o->idol->avatar_url, 'active_frame_path' => $o->idol->active_frame_path, 'gender' => $o->idol->gender],
                     'items'         => $o->items->map(fn($item) => [
                         'id'       => $item->id,
                         'quantity' => $item->quantity ?? 1,
@@ -214,6 +214,7 @@ class ConversationController extends Controller
                 'id'         => $other->id,
                 'name'       => $other->name,
                 'avatar_url' => $other->avatar_url,
+                'active_frame_path' => $other->active_frame_path,
                 'is_idol'    => $other->is_idol,
                 'gender'     => $other->gender,
                 ] : null,            'other_last_read_at' => $otherParticipant?->last_read_at?->toISOString(),

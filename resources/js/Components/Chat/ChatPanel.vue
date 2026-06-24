@@ -1535,13 +1535,12 @@ function formatDate(iso) {
                                     @click="openConversation(conv)"
                                 >
                                     <div
-                                        class="chat-conv-avatar"
-                                        :class="{ 'is-male': conv.other_user?.gender === 'male' }"
+                                        class="chat-conv-avatar-wrapper"
                                     >
                                         <template v-if="conv.is_support">
-                                            <span class="chat-support-icon"
-                                                >✦</span
-                                            >
+                                            <div class="chat-conv-avatar chat-conv-avatar--support">
+                                                <span class="chat-support-icon">✦</span>
+                                            </div>
                                         </template>
                                         <template v-else>
                                             <UserAvatar
@@ -1918,8 +1917,7 @@ function formatDate(iso) {
                                     >
                                         <div class="order-stub__head">
                                             <div
-                                                class="chat-conv-avatar chat-conv-avatar--sm"
-                                                :class="{ 'is-male': (order.is_customer ? order.idol : order.customer).gender === 'male' }"
+                                                class="chat-conv-avatar-wrapper"
                                             >
                                                 <UserAvatar
                                                     :user="(order.is_customer ? order.idol : order.customer)"
@@ -4258,12 +4256,20 @@ function formatDate(iso) {
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: rgba(255, 178, 239, 0.15);
-    border: 1.5px solid rgba(255, 178, 239, 0.3);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+}
+.chat-conv-avatar-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.chat-conv-avatar--support {
+    background: rgba(255, 178, 239, 0.15);
+    border: 1.5px solid rgba(255, 178, 239, 0.3);
     overflow: hidden;
     color: #ffb2ef;
     font-weight: 700;
@@ -4298,6 +4304,12 @@ function formatDate(iso) {
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+.chat-header-avatar-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
 .chat-conv-info {
