@@ -233,16 +233,29 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 /* ── Panel ────────────────────────────────────────────────── */
 .usb-panel {
     position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
+    top: 1.25rem;
+    right: 1.25rem;
+    bottom: 1.25rem;
     width: 360px;
+    border-radius: 16px;
+    overflow: hidden;
     z-index: 1101;
     display: flex;
     flex-direction: column;
     background: linear-gradient(175deg, #121228 0%, #0a0a1a 55%, #080814 100%);
-    border-left: 1px solid rgba(255, 178, 239, 0.18);
+    border: 1px solid rgba(255, 178, 239, 0.18);
     box-shadow: -14px 0 70px rgba(0, 0, 0, 0.65), -2px 0 20px rgba(255, 178, 239, 0.14);
+}
+
+@media (max-width: 480px) {
+    .usb-panel {
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        border-radius: 0;
+        border: none;
+    }
 }
 
 /* ── Hero header ──────────────────────────────────────────── */
@@ -602,9 +615,9 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 .sidebar-backdrop-leave-to    { opacity: 0; }
 
 .sidebar-panel-enter-active,
-.sidebar-panel-leave-active { transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1); }
+.sidebar-panel-leave-active { transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.26s; }
 .sidebar-panel-enter-from,
-.sidebar-panel-leave-to    { transform: translateX(100%); }
+.sidebar-panel-leave-to    { transform: translateX(calc(100% + 2rem)); opacity: 0; }
 
 /* ── Language switcher ────────────────────────────────────── */
 .usb-locale {
