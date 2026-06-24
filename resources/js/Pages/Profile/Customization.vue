@@ -84,7 +84,7 @@ const unequip = async () => {
                 <!-- Контент -->
                 <main class="content-area">
                     <div v-if="activeTab === 'frames'" class="frames-section">
-                        <h3 class="section-title">Рамки для аватарок</h3>
+                        <h3 class="section-title">Рамки</h3>
                         <p class="section-desc">Украсьте свой аватар уникальной рамкой. Вы можете получить их за достижения или купить.</p>
 
                         <div v-if="loading" class="frames-loading">
