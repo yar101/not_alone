@@ -1756,26 +1756,29 @@ defineExpose({ toggleDropdown });
 .notif-field-comments-title {
     font-size: 0.8rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(251, 191, 36, 0.7);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-bottom: 0.1rem;
+    margin-bottom: 0.2rem;
 }
 
 .notif-field-comment {
     font-size: 1rem;
     line-height: 1.45;
-    color: rgba(255, 255, 255, 0.85);
-    background: rgba(255, 178, 239, 0.06);
-    padding: 0.5rem 0.75rem;
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(251, 191, 36, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 0.6rem 0.85rem;
     border-radius: 8px;
-    border-left: 3px solid rgba(255, 178, 239, 0.5);
     word-break: break-word;
 }
 
 .notif-field-name {
     font-weight: 600;
-    color: #ffb2ef;
+    color: #fbbf24;
     margin-right: 0.4rem;
 }
 
