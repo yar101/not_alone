@@ -267,7 +267,7 @@ class OrderController extends Controller
             $allItems = $order->items->map(fn($item) => [
                 'id'        => $item->service?->id,
                 'name'      => $item->service?->name,
-                'price'     => $item->service?->price,
+                'price'     => $item->price ?? $item->service?->price,
                 'time_unit' => $item->service?->timeUnit?->name,
                 'quantity'  => $item->quantity ?? 1,
             ])->values()->all();

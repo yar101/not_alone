@@ -182,9 +182,9 @@ async function purchaseContent() {
                                     }}&thinsp;₽<template v-if="item.time_unit">&thinsp;/&thinsp;{{ item.time_unit
                                         }}</template></span>
                                     <div class="rc-qty">
-                                        <button class="rc-qty__btn" @click="emit('change-quantity', idx, -1)">−</button>
+                                        <button class="rc-qty__btn" :disabled="item.is_trial" @click="emit('change-quantity', idx, -1)">−</button>
                                         <span class="rc-qty__val">{{ item.quantity || 1 }}</span>
-                                        <button class="rc-qty__btn" @click="emit('change-quantity', idx, 1)">+</button>
+                                        <button class="rc-qty__btn" :disabled="item.is_trial" @click="emit('change-quantity', idx, 1)">+</button>
                                     </div>
                                 </div>
                             </div>
@@ -612,9 +612,14 @@ async function purchaseContent() {
     transition: background 0.12s, color 0.12s;
 }
 
-.rc-qty__btn:hover {
+.rc-qty__btn:hover:not(:disabled) {
     background: rgba(100, 210, 255, 0.08);
     color: rgba(100, 210, 255, 0.95);
+}
+
+.rc-qty__btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
 }
 
 .rc-qty__val {

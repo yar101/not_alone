@@ -390,7 +390,7 @@ class ServiceController extends Controller
         
         $service->update(['is_trial' => $request->is_trial]);
         
-        return back()->with('success', 'Статус "Первый заказ бесплатно" обновлен.');
+        return back()->with('success', 'Статус "1-й заказ 0 Р" обновлен.');
     }
 
     public function dismissChangeRequest(Request $request, Service $service): RedirectResponse

@@ -24,6 +24,7 @@ const LABELS = computed(() => {
         has_remarks: __("profile.services.status.remarks"),
         rejected: __("profile.services.status.rejected"),
         hidden: __("profile.services.status.hidden"),
+        trial: "1-й заказ 0 ₽",
     };
 });
 
@@ -57,6 +58,12 @@ const STYLES = {
         bg: "rgba(180,180,200,0.08)",
         border: "rgba(180,180,200,0.18)",
         shine: "rgba(220,220,230,0.38)",
+    },
+    trial: {
+        color: "#5bc0de",
+        bg: "rgba(91,192,222,0.14)",
+        border: "rgba(91,192,222,0.28)",
+        shine: "rgba(150,220,250,0.60)",
     },
 };
 

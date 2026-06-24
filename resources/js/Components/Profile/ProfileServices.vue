@@ -119,6 +119,14 @@ function isInCart(serviceId) {
     );
 }
 
+const openCart = inject("openCart", null);
+
+function hasTrialConflict(item) {
+    if (!cart || !cart.value?.services) return false;
+    const c = cart.value.services;
+    return item.is_trial && c.items.some((i) => i.is_trial) && !isInCart(item.id);
+}
+
 function addToCart(item) {
     if (!page.props.auth?.user) {
         openAuth?.("register");
@@ -128,12 +136,17 @@ function addToCart(item) {
         showBlockError();
         return;
     }
+
+    if (isInCart(item.id)) {
+        openCart?.("services");
+        return;
+    }
+
     if (!cart) return;
     const c = cart.value.services;
     const idolId = props.profileUser?.id;
 
-    if (item.is_trial && c.items.some((i) => i.is_trial)) {
-        ElMessage.warning('В корзине уже есть услуга "1-й заказ 0 ₽". Вы можете оформить только одну такую услугу за раз.');
+    if (hasTrialConflict(item)) {
         return;
     }
 
@@ -1167,17 +1180,28 @@ watch(selectedCategory, (cat) => {
 
                                 <!-- Actions column -->
                                 <div class="svc-card__actions">
-                                    <button
+                                    <el-tooltip
                                         v-if="!isOwner && cart"
-                                        class="svc-buy-btn"
-                                        :class="{
-                                            'svc-buy-btn--in-cart': isInCart(
-                                                item.id,
-                                            ),
-                                        }"
-                                        @click="addToCart(item)"
+                                        placement="top"
+                                        effect="dark"
+                                        :disabled="!hasTrialConflict(item)"
+                                        popper-class="newbie-dark-tooltip"
                                     >
-                                        <template v-if="isInCart(item.id)">
+                                        <template #content>
+                                            В корзине уже есть услуга «1-й заказ 0 ₽».<br />
+                                            Вы можете оформить только одну такую услугу за раз.
+                                        </template>
+                                        <button
+                                            class="svc-buy-btn"
+                                            :class="{
+                                                'svc-buy-btn--in-cart': isInCart(
+                                                    item.id,
+                                                ),
+                                                'svc-buy-btn--conflict': hasTrialConflict(item)
+                                            }"
+                                            @click="addToCart(item)"
+                                        >
+                                            <template v-if="isInCart(item.id)">
                                             <svg
                                                 width="11"
                                                 height="11"
@@ -1222,7 +1246,8 @@ watch(selectedCategory, (cat) => {
                                                 __("profile.services.to_cart")
                                             }}</span>
                                         </template>
-                                    </button>
+                                        </button>
+                                    </el-tooltip>
                                     <div v-if="isOwner" class="svc-menu">
                                         <button
                                             class="svc-menu__trigger"
@@ -3071,6 +3096,19 @@ watch(selectedCategory, (cat) => {
 }
 
 .svc-buy-btn--in-cart:hover svg {
+    transform: none;
+}
+
+.svc-buy-btn--conflict {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.svc-buy-btn--conflict:hover {
+    box-shadow: none;
+}
+
+.svc-buy-btn--conflict:hover svg {
     transform: none;
 }
 

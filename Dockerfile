@@ -37,6 +37,7 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
         intl \
         zip \
         opcache \
+        exif \
     && pecl install redis \
     && docker-php-ext-enable redis
 
