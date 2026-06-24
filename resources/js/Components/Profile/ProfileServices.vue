@@ -9,6 +9,7 @@ import {
     inject,
 } from "vue";
 import { useForm, router, usePage } from "@inertiajs/vue3";
+import { ElTooltip, ElMessage } from "element-plus";
 import axios from "axios";
 import AppSelect from "@/Components/AppSelect.vue";
 import CreateButton from "@/Components/CreateButton.vue";
@@ -129,6 +130,12 @@ function addToCart(item) {
     if (!cart) return;
     const c = cart.value.services;
     const idolId = props.profileUser?.id;
+
+    if (item.is_trial && c.items.some((i) => i.is_trial)) {
+        ElMessage.warning('В корзине уже есть пробная услуга. Вы можете оформить только одну пробную услугу за раз.');
+        return;
+    }
+
     if (c.idol_id && c.idol_id !== idolId && c.items.length > 0) {
         // Different idol — show conflict modal
         pendingCartItem.value = item;
@@ -148,9 +155,10 @@ function doAddToCart(item) {
     c.items.push({
         service_id: item.id,
         name: localServiceName(item),
-        price: item.price,
+        price: item.is_trial ? 0 : item.price,
         time_unit: localUnitName(item.time_unit) || null,
         quantity: 1,
+        is_trial: item.is_trial,
     });
 }
 
@@ -1094,6 +1102,7 @@ watch(selectedCategory, (cat) => {
                             <div class="svc-card__info">
                                 <div class="svc-card__name-row">
                                     <span class="svc-card__name" :class="{ 'svc-card__name--flagged': isFlagged(item, 'name_ru') || isFlagged(item, 'name_en') }">
+                                        <span v-if="item.is_trial" class="svc-trial-badge" title="Бесплатно 1 раз для новых клиентов">Пробная</span>
                                         {{ localServiceName(item) }}
                                         <span v-if="isFlagged(item, 'name_ru') || isFlagged(item, 'name_en')" class="svc-card__flag-icon" :title="getFieldComment(item, 'name_ru') || getFieldComment(item, 'name_en') || 'Замечание модератора'">⚠️</span>
                                     </span>
@@ -1111,11 +1120,19 @@ watch(selectedCategory, (cat) => {
 
                             <!-- Footer: price + actions -->
                             <div class="svc-card__footer">
-                                <div class="svc-card__price-block">
-                                    <span class="svc-card__amount">{{ item.price.toLocaleString("ru") }}</span
-                                    ><span class="svc-card__rub">₽</span
-                                    ><span class="svc-card__sep">/</span
-                                    ><span class="svc-card__unit">{{ localUnitName(item.time_unit) }}</span>
+                                <div class="svc-card__price-block" :class="{'svc-card__price-block--trial': !isOwner && item.is_trial}">
+                                    <template v-if="!isOwner && item.is_trial">
+                                        <div class="svc-card__price-main">
+                                            <span class="svc-card__amount">0</span><span class="svc-card__rub">₽</span><span class="svc-card__sep">/</span><span class="svc-card__unit">{{ localUnitName(item.time_unit) }}</span>
+                                        </div>
+                                        <div class="svc-card__old-price">{{ item.price.toLocaleString("ru") }} ₽</div>
+                                    </template>
+                                    <template v-else>
+                                        <span class="svc-card__amount">{{ item.price.toLocaleString("ru") }}</span
+                                        ><span class="svc-card__rub">₽</span
+                                        ><span class="svc-card__sep">/</span
+                                        ><span class="svc-card__unit">{{ localUnitName(item.time_unit) }}</span>
+                                    </template>
                                 </div>
 
                                 <!-- Actions column -->
@@ -3275,9 +3292,41 @@ watch(selectedCategory, (cat) => {
 }
 
 .svc-err {
-    font-size: 0.75rem;
-    color: rgba(239, 68, 68, 0.8);
-    margin: 0;
+    font-size: 0.85rem;
+    color: var(--color-danger);
+    margin-top: 0.5rem;
+}
+
+.svc-trial-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 6px;
+    vertical-align: middle;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+.svc-card__price-block--trial {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+.svc-card__price-main {
+    display: flex;
+    align-items: baseline;
+    color: #10b981;
+}
+.svc-card__old-price {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-decoration: line-through;
 }
 
 /* ── Category drill-in (list → detail) ───────────────────── */

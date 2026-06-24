@@ -108,6 +108,13 @@ class UserProfileController extends Controller
                 $allCategories = ServiceCategory::where('is_active', true)
                     ->orderBy('sort_order')
                     ->get(['id', 'name', 'description', 'image_path', 'accent_color', 'sort_order', 'is_active']);
+                
+                $hasUsedTrial = false;
+                if ($authId && !$isOwner) {
+                    $hasUsedTrial = \App\Models\UserIdolTrial::where('user_id', $authId)
+                        ->where('idol_id', $user->id)
+                        ->exists();
+                }
 
                 // Services for this user
                 $query = $user->services()->with(['timeUnit:id,name', 'latestReview', 'pendingChangeRequest.pendingCategory', 'pendingChangeRequest.pendingTimeUnit']);
@@ -124,7 +131,7 @@ class UserProfileController extends Controller
 
                 $servicesByCategory = $services->groupBy('category_id');
 
-                return $allCategories->map(function ($cat) use ($servicesByCategory, $descriptions, $isOwner) {
+                return $allCategories->map(function ($cat) use ($servicesByCategory, $descriptions, $isOwner, $hasUsedTrial) {
                     $group = $servicesByCategory->get($cat->id, collect());
                     return [
                         'category' => [
@@ -139,13 +146,14 @@ class UserProfileController extends Controller
                             'sort_order'   => $cat->sort_order,
                         ],
                         'idol_description' => $descriptions[$cat->id] ?? null,
-                        'items'            => $group->map(function (Service $s) use ($isOwner) {
+                        'items'            => $group->map(function (Service $s) use ($isOwner, $hasUsedTrial) {
                             $base = [
                                 'id'               => $s->id,
                                 'name_ru'          => $s->getTranslation('name', 'ru'),
                                 'name_en'          => $s->getTranslation('name', 'en', false) ?: null,
                                 'price'            => $s->price,
                                 'is_active'        => $s->is_active,
+                                'is_trial'         => $isOwner ? $s->is_trial : ($hasUsedTrial ? false : $s->is_trial),
                                 'status'           => $s->status,
                                 'rejection_reason' => $s->rejection_reason,
                                 'category_id'      => $s->category_id,
