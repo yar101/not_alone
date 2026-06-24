@@ -295,10 +295,11 @@ onUnmounted(() => {
 
                 <template v-if="user">
                     <button @click="sidebarOpen = true" id="tour-user-chip" class="user-chip">
-                        <div
-                            class="user-avatar"
-                            :class="{ 'is-male': user.gender === 'male' }"
-                        >
+                        <div class="user-avatar-wrap">
+                            <div
+                                class="user-avatar"
+                                :class="{ 'is-male': user.gender === 'male' }"
+                            >
                             <template v-if="user.avatar_url">
                                 <div
                                     v-if="!avatarLoaded"
@@ -318,8 +319,9 @@ onUnmounted(() => {
                             <span v-else class="user-avatar__initials">{{
                                 initials
                             }}</span>
+                            </div>
+                            <img v-if="user.active_frame_path" :src="'/storage/' + user.active_frame_path" class="applayout-active-frame" alt="" />
                         </div>
-                        <img v-if="user.active_frame_path" :src="'/storage/' + user.active_frame_path" class="applayout-active-frame" alt="" />
                         <span class="user-name-clip">
                             <span class="user-name">{{ user.name }}</span>
                         </span>
@@ -442,16 +444,20 @@ onUnmounted(() => {
     transition:
         background 0.18s,
         border-color 0.18s;
+}
+
+.user-avatar-wrap {
     position: relative;
+    display: flex;
 }
 
 .applayout-active-frame {
     position: absolute;
     top: 50%;
-    left: 0.55rem; /* user-chip padding-left */
-    transform: translateY(-50%) scale(1.15);
-    width: 32px;
-    height: 32px;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1.15);
+    width: 40px;
+    height: 40px;
     object-fit: contain;
     z-index: 5;
     pointer-events: none;

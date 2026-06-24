@@ -177,7 +177,7 @@ const initial = computed(() => {
     align-items: center;
     gap: 0.35rem;
     white-space: nowrap;
-    z-index: 2;
+    z-index: 10;
 }
 
 .is-compact .card-avatar-badges {

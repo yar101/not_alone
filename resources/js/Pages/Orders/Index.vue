@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { usePage, Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import UserAvatar from '@/Components/UserAvatar.vue';
 import axios from 'axios';
 import { useTranslations } from '@/composables/useTranslations';
 
@@ -258,8 +259,7 @@ onUnmounted(() => {
                     <!-- Head -->
                     <div class="ocard__head">
                         <div class="ocard__avatar">
-                            <img v-if="partner(order).avatar_url" :src="partner(order).avatar_url" alt="" />
-                            <span v-else>{{ partner(order).name?.charAt(0) ?? '?' }}</span>
+                            <UserAvatar :user="partner(order)" :size="48" />
                         </div>
                         <div class="ocard__who">
                             <span class="ocard__name">{{ partner(order).name }}</span>
@@ -346,8 +346,7 @@ onUnmounted(() => {
                     <!-- Partner -->
                     <div class="opanel__partner">
                         <div class="opanel__avatar">
-                            <img v-if="partner(selectedOrder).avatar_url" :src="partner(selectedOrder).avatar_url" alt="" />
-                            <span v-else>{{ partner(selectedOrder).name?.charAt(0) ?? '?' }}</span>
+                            <UserAvatar :user="partner(selectedOrder)" :size="64" />
                         </div>
                         <div class="opanel__partner-info">
                             <span class="opanel__partner-name">{{ partner(selectedOrder).name }}</span>
