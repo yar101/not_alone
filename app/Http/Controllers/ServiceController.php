@@ -203,8 +203,26 @@ class ServiceController extends Controller
             $this->validatePriceLimit($request->user(), $timeUnitId, $price);
         }
 
-        // If service is approved and it's not just a visibility toggle, use ChangeRequest
-        $isModeratedFieldChange = array_intersect_key($data, array_flip(['name_ru', 'name_en', 'category_id', 'time_unit_id', 'price']));
+        // Check if moderated fields actually changed
+        $isModeratedFieldChange = [];
+        foreach (['name_ru', 'name_en', 'category_id', 'time_unit_id', 'price'] as $field) {
+            if (!array_key_exists($field, $data)) continue;
+            
+            $val = $data[$field];
+            $changed = false;
+            
+            if ($field === 'name_ru') {
+                $changed = $val !== $service->getTranslation('name', 'ru', false);
+            } elseif ($field === 'name_en') {
+                $changed = (empty($val) ? null : $val) !== ($service->getTranslation('name', 'en', false) ?: null);
+            } else {
+                $changed = (int)$val !== (int)$service->{$field};
+            }
+
+            if ($changed) {
+                $isModeratedFieldChange[$field] = $val;
+            }
+        }
         
         if ($service->status === 'approved' && !empty($isModeratedFieldChange)) {
             $this->upsertChangeRequest($service, $isModeratedFieldChange);
