@@ -47,7 +47,7 @@ const initial = computed(() => {
         </div>
 
         <div v-if="showNewbieBadge && user.is_idol && user.is_newbie" class="newbie-badge">
-            <el-tooltip content="У этого айдола менее 25 выполненных заказов" placement="top" effect="dark" popper-class="newbie-dark-tooltip">
+            <el-tooltip content="Этот айдол — новичок, у него менее 25 выполненных заказов. Не судите строго, у него лапки." placement="top" effect="dark" popper-class="newbie-dark-tooltip">
                 <img src="/not_alone_icon_without_background.png" alt="Newbie" />
             </el-tooltip>
         </div>
