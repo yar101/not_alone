@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue';
 import axios from 'axios';
-import { usePage } from '@inertiajs/vue3';
+import { usePage, router } from '@inertiajs/vue3';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import { ElMessage } from 'element-plus';
 
@@ -46,6 +46,7 @@ const equip = async (frame) => {
         const res = await axios.post(route('avatar-frames.equip', frame.id));
         activeFramePath.value = res.data.active_frame_path;
         usePage().props.auth.user.active_frame_path = res.data.active_frame_path;
+        router.reload({ only: ['user', 'auth'], preserveScroll: true });
         ElMessage.success(res.data.message);
     } catch (e) {
         ElMessage.error(e.response?.data?.message || 'Ошибка');
@@ -57,6 +58,7 @@ const unequip = async () => {
         const res = await axios.post(route('avatar-frames.unequip'));
         activeFramePath.value = null;
         usePage().props.auth.user.active_frame_path = null;
+        router.reload({ only: ['user', 'auth'], preserveScroll: true });
         ElMessage.success(res.data.message);
     } catch (e) {
         ElMessage.error('Ошибка');
