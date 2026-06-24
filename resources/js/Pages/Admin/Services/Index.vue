@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { useForm, router, Link } from '@inertiajs/vue3';
 import { Plus } from '@element-plus/icons-vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppSelect from '@/Components/AppSelect.vue';

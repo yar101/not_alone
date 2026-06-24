@@ -389,7 +389,7 @@
     "notification.msg.service_approved": "Ваша услуга «:name» одобрена!",
     "notification.msg.service_remarks": "По вашей услуге «:name» есть замечания от администрации.",
     "notification.msg.service_rejected": "Ваша услуга «:name» была отклонена администрацией. :reason",
-    "notification.msg.service_change_approved": "Изменения в услуге «:name» одобрены: :fields.",
+    "notification.msg.service_change_approved": "Изменения в услуге «:name» одобрены.",
     "notification.msg.service_change_remarks": "По изменениям в услуге «:name» есть замечания — проверьте и исправьте.",
     "notification.msg.service_change_rejected": "Изменения в услуге «:name» отклонены. :note",
     "notification.msg.review_dispute_approved": "Ваша жалоба на отзыв одобрена — отзыв скрыт. :note",

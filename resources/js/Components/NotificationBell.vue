@@ -817,6 +817,7 @@ defineExpose({ toggleDropdown });
                                         {{ getNotificationMessage(item) }}
                                     </p>
                                     <div v-if="item.data?.field_comments && Object.keys(item.data.field_comments).length" class="notif-field-comments">
+                                        <div class="notif-field-comments-title">Замечания</div>
                                         <div v-for="(comment, field) in item.data.field_comments" :key="field" class="notif-field-comment">
                                             <span class="notif-field-name">{{ item.type.includes('pack') ? __('pack.field.' + field) : __('service.field.' + field) }}:</span> {{ comment }}
                                         </div>
@@ -961,6 +962,7 @@ defineExpose({ toggleDropdown });
                                             {{ getNotificationMessage(item) }}
                                         </p>
                                         <div v-if="item.data?.field_comments && Object.keys(item.data.field_comments).length" class="notif-field-comments">
+                                            <div class="notif-field-comments-title">Замечания</div>
                                             <div v-for="(comment, field) in item.data.field_comments" :key="field" class="notif-field-comment">
                                                 <span class="notif-field-name">{{ item.type.includes('pack') ? __('pack.field.' + field) : __('service.field.' + field) }}:</span> {{ comment }}
                                             </div>
@@ -1743,6 +1745,40 @@ defineExpose({ toggleDropdown });
     background: rgba(0, 0, 0, 0.15);
     min-height: 200px;
 }
+
+.notif-field-comments {
+    margin-top: 0.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.notif-field-comments-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.1rem;
+}
+
+.notif-field-comment {
+    font-size: 1rem;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 178, 239, 0.06);
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    border-left: 3px solid rgba(255, 178, 239, 0.5);
+    word-break: break-word;
+}
+
+.notif-field-name {
+    font-weight: 600;
+    color: #ffb2ef;
+    margin-right: 0.4rem;
+}
+
 .notif-setting-item {
     display: flex;
     justify-content: space-between;
