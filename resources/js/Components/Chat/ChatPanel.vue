@@ -2147,6 +2147,10 @@ function formatDate(iso) {
                                         }}</span>
                                     </template>
                                 </div>
+                                <div v-if="isTyping" class="chat-main__typing">
+                                    Печатает
+                                    <span class="chat-typing-dots"><span>.</span><span>.</span><span>.</span></span>
+                                </div>
                             </div>
                             <button
                                 v-if="
@@ -3202,14 +3206,7 @@ function formatDate(iso) {
                                         </template>
                                     </TransitionGroup>
 
-                                    <div v-if="isTyping" class="chat-typing">
-                                        {{
-                                            __("chat.typing", {
-                                                name: activeConversation
-                                                    .other_user?.name,
-                                            })
-                                        }}
-                                    </div>
+
                                     <ReviewForm
                                         v-if="showReviewForm"
                                         :order-id="activeOrderData.id"
@@ -4396,9 +4393,9 @@ function formatDate(iso) {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.75rem;
+    gap: 1.25rem;
     padding: 1rem;
-    padding-bottom: 0.6rem;
+    padding-bottom: 1.2rem;
     border-bottom: none;
     box-shadow:
         0 1px 0 rgba(255, 178, 239, 0.12),
@@ -4407,11 +4404,40 @@ function formatDate(iso) {
 }
 
 .chat-main__header-info {
+    position: relative;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
+    justify-content: center;
     gap: 2px;
     flex: 1;
     min-width: 0;
+}
+
+.chat-main__typing {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    font-size: 0.75rem;
+    color: var(--cat-accent, #ffb2ef);
+    opacity: 0.9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.chat-typing-dots span {
+    animation: typingDots 1.4s infinite;
+    opacity: 0;
+}
+.chat-typing-dots span:nth-child(1) { animation-delay: 0s; }
+.chat-typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.chat-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingDots {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0; }
 }
 
 .chat-main__name-row {
@@ -7163,7 +7189,7 @@ function formatDate(iso) {
 
     .chat-main__header {
         justify-content: flex-start;
-        gap: 0.6rem;
+        gap: 1rem;
     }
 }
 
