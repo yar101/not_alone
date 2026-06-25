@@ -419,11 +419,11 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
     align-items: center;
     justify-content: center;
     width: 100%;
-    padding: 0.55rem;
-    background: linear-gradient(135deg, rgba(255, 178, 239, 0.12) 0%, rgba(255, 178, 239, 0.05) 100%);
+    padding: 0.85rem;
+    background: linear-gradient(135deg, rgba(255, 178, 239, 0.15) 0%, rgba(100, 210, 255, 0.1) 100%);
     color: var(--color-base-1);
     font-weight: 700;
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     border-radius: 8px;
@@ -437,7 +437,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 
 @media (hover: hover) {
     .usb-become-btn:hover {
-        background: linear-gradient(135deg, rgba(255, 178, 239, 0.22) 0%, rgba(255, 178, 239, 0.1) 100%);
+        background: linear-gradient(135deg, rgba(255, 178, 239, 0.25) 0%, rgba(100, 210, 255, 0.2) 100%);
         color: #fff;
     }
 }
@@ -702,5 +702,11 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 .usb-locale__flag {
     font-size: 0.9rem;
     line-height: 1;
+}
+
+@media (max-width: 768px) {
+    .usb-become-footer {
+        padding-bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px));
+    }
 }
 </style>

@@ -3563,30 +3563,22 @@ function formatDate(iso) {
                                             />
                                         </svg>
                                     </button>
-                                    <textarea
-                                        v-model="newMessage"
-                                        class="chat-input"
-                                        :placeholder="__('chat.placeholder')"
-                                        rows="3"
-                                        maxlength="500"
-                                        :disabled="
-                                            isChatClosed ||
-                                            (!!activeBlock?.active &&
-                                                !activeBlock?.i_am_blocker)
-                                        "
-                                        @keydown.enter="handleEnter"
-                                        @input="onInput"
-                                    />
-                                    <span
-                                        class="chat-char-count"
-                                        :class="{
-                                            'chat-char-count--warn':
-                                                newMessage.length > 450,
-                                        }"
-                                    >
-                                        {{ newMessage.length }}/500
-                                    </span>
-                                    <button
+                                    <div class="chat-input-box">
+                                        <textarea
+                                            v-model="newMessage"
+                                            class="chat-input"
+                                            :placeholder="__('chat.placeholder')"
+                                            rows="3"
+                                            maxlength="500"
+                                            :disabled="
+                                                isChatClosed ||
+                                                (!!activeBlock?.active &&
+                                                    !activeBlock?.i_am_blocker)
+                                            "
+                                            @keydown.enter="handleEnter"
+                                            @input="onInput"
+                                        />
+                                        <button
                                         class="chat-send"
                                         :disabled="
                                             !newMessage.trim() ||
@@ -3595,6 +3587,7 @@ function formatDate(iso) {
                                             (!!activeBlock?.active &&
                                                 !activeBlock?.i_am_blocker)
                                         "
+                                        @mousedown.prevent
                                         @click="sendMessage"
                                     >
                                         <template v-if="sending">
@@ -3602,8 +3595,8 @@ function formatDate(iso) {
                                         </template>
                                         <template v-else>
                                             <svg
-                                                width="12"
-                                                height="12"
+                                                width="22"
+                                                height="22"
                                                 viewBox="0 0 24 24"
                                                 fill="none"
                                                 stroke="currentColor"
@@ -3621,9 +3614,9 @@ function formatDate(iso) {
                                                     points="22 2 15 22 11 13 2 9 22 2"
                                                 />
                                             </svg>
-                                            Enter
                                         </template>
                                     </button>
+                                    </div>
                                 </div>
                             </div>
                         </Transition>
@@ -4515,7 +4508,7 @@ function formatDate(iso) {
     display: flex;
     flex-direction: column;
     scrollbar-width: thin;
-    scrollbar-color: rgba(100, 220, 180, 0.35) transparent;
+    scrollbar-color: rgba(255, 178, 239, 0.15) transparent;
 }
 
 .chat-messages::-webkit-scrollbar {
@@ -4527,19 +4520,19 @@ function formatDate(iso) {
 }
 
 .chat-messages::-webkit-scrollbar-thumb {
-    background: rgba(100, 220, 180, 0.35);
+    background: rgba(255, 178, 239, 0.15);
     border-radius: 99px;
 }
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
-    background: rgba(100, 220, 180, 0.6);
+    background: rgba(255, 178, 239, 0.3);
 }
 
 .chat-messages-inner {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-    padding-bottom: 1.5rem;
+    padding-bottom: 210px;
 }
 
 /* ── Load more indicator ──────────────────────────────── */
@@ -4781,20 +4774,20 @@ function formatDate(iso) {
 }
 
 .chat-input-wrap {
-    flex-shrink: 0;
-    padding: 0 0 0.85rem;
-    background: transparent;
-}
-
-.chat-input-fade {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    height: 60px;
-    background: linear-gradient(to bottom, transparent, #0e0e1c);
-    pointer-events: none;
-    z-index: 1;
+    z-index: 10;
+    padding: 0.85rem 0;
+    background: rgba(14, 14, 28, 0.65);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.chat-input-fade {
+    display: none;
 }
 
 .chat-input-inner {
@@ -4803,51 +4796,49 @@ function formatDate(iso) {
     padding: 0 1.1rem;
 }
 
-.chat-input-inner::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    border-radius: 6px 6px 0 0;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 178, 239, 0.4),
-        rgba(255, 178, 239, 0.7),
-        rgba(255, 178, 239, 0.4),
-        transparent
-    );
-    box-shadow: 0 0 12px rgba(255, 178, 239, 0.2);
-    z-index: 1;
-}
-
-.chat-input {
-    width: 100%;
-    box-sizing: border-box;
+.chat-input-box {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: flex-end;
     background: rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    padding: 0.65rem 5.25rem 0.65rem 0.85rem;
+    border-radius: 14px;
+    padding: 0.25rem;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.chat-input-box:focus-within {
+    border-color: rgba(255, 178, 239, 0.4);
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 0 3px rgba(130, 80, 255, 0.08);
+}
+
+
+
+.chat-input {
+    width: 100%;
+    flex: 1;
+    box-sizing: border-box;
+    background: transparent;
+    border: none;
+    padding: 0.5rem 3.5rem 0.5rem 0.75rem;
     color: rgba(255, 255, 255, 0.95);
     font-size: 0.95rem;
     resize: none;
     line-height: 1.55;
     outline: none;
     font-family: inherit;
-    transition:
-        border-color 0.15s,
-        background 0.15s;
     display: block;
 }
 
 .chat-input:focus {
-    border-color: rgba(255, 178, 239, 0.4);
-    background: rgba(255, 255, 255, 0.05);
-    box-shadow: 0 0 0 3px rgba(130, 80, 255, 0.08);
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
 }
 
 .chat-input::placeholder {
@@ -4856,8 +4847,8 @@ function formatDate(iso) {
 
 .chat-char-count {
     position: absolute;
-    right: 1.85rem;
-    top: 0.5rem;
+    right: 5rem;
+    top: 0.8rem;
     font-size: 0.7rem;
     color: rgba(255, 255, 255, 0.2);
     font-variant-numeric: tabular-nums;
@@ -4870,27 +4861,24 @@ function formatDate(iso) {
 }
 
 .chat-send {
-    position: absolute;
-    right: 1.6rem;
-    bottom: 0.5rem;
-    padding: 0.28rem 0.65rem;
+    position: relative;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    padding: 0;
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    justify-content: center;
     background: linear-gradient(
         135deg,
         rgba(140, 90, 255, 0.3),
         rgba(100, 55, 210, 0.25)
     );
     border: 1px solid rgba(255, 178, 239, 0.4);
-    border-radius: 4px;
+    border-radius: 12px;
     color: rgba(210, 170, 255, 0.95);
-    font-family: inherit;
-    font-size: 0.78rem;
-    font-weight: 500;
-    letter-spacing: 0.03em;
     cursor: pointer;
-    box-shadow: 0 2px 10px rgba(100, 55, 210, 0.25);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 4px 10px rgba(0, 0, 0, 0.25);
     transition:
         background 0.15s,
         border-color 0.15s,
@@ -7190,6 +7178,22 @@ function formatDate(iso) {
     .chat-main__header {
         justify-content: flex-start;
         gap: 1rem;
+    }
+
+    .chat-textarea {
+        padding-right: 0.5rem;
+    }
+
+    .chat-char-count {
+        right: 4rem;
+    }
+
+    .chat-input-wrap {
+        padding: 0.8rem 0 calc(1.5rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .chat-messages-inner {
+        padding-bottom: calc(210px + env(safe-area-inset-bottom, 0px));
     }
 }
 
