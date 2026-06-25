@@ -1345,7 +1345,19 @@ watch(selectedCategory, (cat) => {
                                                             <el-tooltip placement="top" effect="dark" popper-class="newbie-dark-tooltip" :hide-after="0" trigger="click">
                                                                 <template #content>
                                                                     Новый клиент сможет заказать эту услугу за 0 ₽.<br>
-                                                                    Один клиент может взять только одну бесплатную услугу.
+                                                                    Один клиент может взять только одну бесплатную услугу.<br>
+                                                                    <div style="margin-top: 6px; color: #ffb2ef; display: inline-flex; align-items: center; gap: 4px;">
+                                                                        <span>Это помогает привлечению новых клиентов</span>
+                                                                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width: 14px; height: 14px;">
+                                                                            <defs>
+                                                                                <radialGradient :id="`tooltip-heart-rg-${item.id}`" cx="50%" cy="35%" r="65%">
+                                                                                    <stop offset="0%" stop-color="rgba(255,190,210,0.95)" />
+                                                                                    <stop offset="100%" stop-color="rgba(210,50,100,0.9)" />
+                                                                                </radialGradient>
+                                                                            </defs>
+                                                                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" :fill="`url(#tooltip-heart-rg-${item.id})`" stroke="rgba(210,60,100,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                                                        </svg>
+                                                                    </div>
                                                                 </template>
                                                                 <el-icon :size="16" style="color: rgba(255, 255, 255, 0.4); cursor: help; outline: none;" @click.prevent.stop><InfoFilled /></el-icon>
                                                             </el-tooltip>
@@ -1775,14 +1787,14 @@ watch(selectedCategory, (cat) => {
                                 </div>
                             </Transition>
 
-                            <button
+                            <!-- <button
                                 v-if="showNameRu && !showNameEn"
                                 type="button"
                                 class="sf-add-lang"
                                 @click="addSecondary"
                             >
                                 + {{ __("profile.services.form.add_en") }}
-                            </button>
+                            </button> -->
                             <button
                                 v-if="showNameEn && !showNameRu"
                                 type="button"
@@ -1933,7 +1945,19 @@ watch(selectedCategory, (cat) => {
                                 <el-tooltip placement="top" effect="dark" popper-class="newbie-dark-tooltip" :hide-after="0" trigger="click">
                                     <template #content>
                                         Новый клиент сможет заказать эту услугу за 0 ₽.<br>
-                                        Один клиент может взять только одну бесплатную услугу.
+                                        Один клиент может взять только одну бесплатную услугу.<br>
+                                        <div style="margin-top: 6px; color: #ffb2ef; display: inline-flex; align-items: center; gap: 4px;">
+                                            <span>Это помогает привлечению новых клиентов</span>
+                                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width: 14px; height: 14px;">
+                                                <defs>
+                                                    <radialGradient id="tooltip-heart-rg-form" cx="50%" cy="35%" r="65%">
+                                                        <stop offset="0%" stop-color="rgba(255,190,210,0.95)" />
+                                                        <stop offset="100%" stop-color="rgba(210,50,100,0.9)" />
+                                                    </radialGradient>
+                                                </defs>
+                                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="url(#tooltip-heart-rg-form)" stroke="rgba(210,60,100,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                        </div>
                                     </template>
                                     <el-icon :size="20" style="color: rgba(255, 255, 255, 0.4); cursor: help; outline: none;" @click.prevent.stop><InfoFilled /></el-icon>
                                 </el-tooltip>
