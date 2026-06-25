@@ -2,13 +2,14 @@
 
 namespace App\Notifications;
 
+use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Models\Order;
 use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 
-class OrderAcceptedNotification extends Notification
+class OrderAcceptedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
     use SendsWebPush;
