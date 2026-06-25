@@ -242,9 +242,9 @@ class QuizQuestionSeeder extends Seeder
         ];
 
         foreach ($questions as $data) {
-            IdolQuizQuestion::firstOrCreate(
-                ['stage' => $data['stage'], 'question' => $data['question']],
-                array_diff_key($data, array_flip(['stage', 'question']))
+            IdolQuizQuestion::updateOrCreate(
+                ['stage' => $data['stage'], 'sort_order' => $data['sort_order']],
+                array_diff_key($data, array_flip(['stage', 'sort_order']))
             );
         }
     }

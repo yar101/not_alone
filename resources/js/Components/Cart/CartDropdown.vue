@@ -3,6 +3,7 @@ import { ref, computed, watch, inject, onMounted, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useTranslations } from '@/composables/useTranslations';
+import { useModalHistory } from '@/composables/useModalHistory';
 
 const { __ } = useTranslations();
 
@@ -39,6 +40,8 @@ const isOpen = computed({
     set: (v) => emit('update:modelValue', v),
 });
 
+const modalHistory = useModalHistory(isOpen, 'cart');
+
 const servicesTotal = computed(() =>
     servicesItems.value.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0)
 );
@@ -65,9 +68,13 @@ onUnmounted(() => {
     document.documentElement.classList.remove('chat-scroll-locked');
 });
 
-function close() { isOpen.value = false; }
+function close() { 
+    if (modalHistory?.skipHistoryBack) modalHistory.skipHistoryBack();
+    isOpen.value = false; 
+}
 
 function silentClose() {
+    if (modalHistory?.skipHistoryBack) modalHistory.skipHistoryBack();
     isOpen.value = false;
 }
 
@@ -84,6 +91,7 @@ async function createOrder() {
             services: sc.items.map(i => ({ id: i.service_id, quantity: i.quantity || 1 })),
         });
         emit('clear-services');
+        if (modalHistory?.skipHistoryBack) modalHistory.skipHistoryBack();
         isOpen.value = false;
         if (openOrder) openOrder(res.data.order_id);
         router.reload({ only: ['order_notifications_unread'] });
@@ -107,6 +115,7 @@ async function purchaseContent() {
             items: contentItems.value.map(i => i.pack_id),
         });
         emit('clear-content');
+        if (modalHistory?.skipHistoryBack) modalHistory.skipHistoryBack();
         isOpen.value = false;
     } catch (e) {
         contentError.value = e.response?.data?.error ?? __('cart.pay.error');
@@ -281,7 +290,9 @@ async function purchaseContent() {
     position: fixed;
     inset: 0;
     z-index: 1100;
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 /* ── Panel ────────────────────────────────────────────── */
@@ -739,7 +750,16 @@ async function purchaseContent() {
 }
 
 @media (max-width: 768px) {
-    .rc-panel { top: 60px; }
+    .rc-panel {
+        top: 1rem;
+        left: 1rem;
+        right: 1rem;
+        bottom: 1rem;
+        max-width: none;
+        width: auto;
+        border-radius: 16px;
+        border: 1px solid rgba(120, 220, 255, 0.18);
+    }
 }
 
 @media (min-width: 769px) {

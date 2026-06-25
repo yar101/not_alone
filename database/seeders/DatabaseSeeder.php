@@ -13,7 +13,7 @@ class DatabaseSeeder extends Seeder
             AdminSeeder::class,
             TraitSeeder::class,
             InterestSeeder::class,
-            QuizQuestionSeeder::class,
+            // QuizQuestionSeeder::class,
             ServiceCategorySeeder::class,
             ServiceTimeUnitSeeder::class,
             BanReasonSeeder::class,

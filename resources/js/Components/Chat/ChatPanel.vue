@@ -3929,7 +3929,9 @@ function formatDate(iso) {
     position: fixed;
     inset: 0;
     z-index: 1100;
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .backdrop-enter-active,
@@ -7139,6 +7141,14 @@ function formatDate(iso) {
 
 @media (max-width: 767px) {
     .chat-panel {
+        top: 1rem;
+        left: 1rem;
+        right: 1rem;
+        bottom: 1rem;
+        max-width: none;
+        width: auto;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 178, 239, 0.28);
         overflow: hidden;
     }
 

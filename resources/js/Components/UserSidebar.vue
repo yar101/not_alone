@@ -233,7 +233,9 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 .usb-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     z-index: 1100;
 }
 
@@ -256,12 +258,13 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 
 @media (max-width: 480px) {
     .usb-panel {
-        top: 0;
-        right: 0;
-        bottom: 0;
-        width: 100%;
-        border-radius: 0;
-        border: none;
+        top: 1rem;
+        right: 1rem;
+        left: 1rem;
+        bottom: 1rem;
+        width: auto;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 178, 239, 0.28);
     }
 }
 
