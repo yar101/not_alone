@@ -29,6 +29,21 @@ class ConversationController extends Controller
         $query = Conversation::whereNull('order_id')
             ->whereHas('participants', fn($q) => $q->where('user_id', $user->id))
             ->with(['participants.user', 'lastMessage.sender'])
+            ->withCount(['messages as unread_count' => function ($q) use ($user) {
+                $userId = $user->id;
+                $q->where(function ($q) use ($userId) {
+                    $q->where('sender_id', '!=', $userId)->orWhereNull('sender_id');
+                })->whereExists(function ($sub) use ($userId) {
+                    $sub->selectRaw('1')
+                        ->from('conversation_participants as cp')
+                        ->whereColumn('cp.conversation_id', 'messages.conversation_id')
+                        ->where('cp.user_id', $userId)
+                        ->where(function($q) {
+                            $q->whereNull('cp.last_read_at')
+                              ->orWhereColumn('messages.created_at', '>', 'cp.last_read_at');
+                        });
+                });
+            }])
             ->orderByDesc('updated_at')
             ->orderByDesc('id');
 
@@ -80,16 +95,7 @@ class ConversationController extends Controller
             $participantMe = $conversation->participants
                 ->firstWhere('user_id', $user->id);
 
-            $unread = 0;
-            if ($participantMe) {
-                $query = $conversation->messages()->where(function ($q) use ($user) {
-                    $q->where('sender_id', '!=', $user->id)->orWhereNull('sender_id');
-                });
-                if ($participantMe->last_read_at) {
-                    $query->where('created_at', '>', $participantMe->last_read_at);
-                }
-                $unread = $query->count();
-            }
+            $unread = $conversation->unread_count ?? 0;
 
             return [
                 'id'           => $conversation->id,
