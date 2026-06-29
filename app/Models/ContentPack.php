@@ -50,7 +50,7 @@ class ContentPack extends Model
         }
 
         return $path 
-            ? \Illuminate\Support\Facades\Storage::url($path)
+            ? \Illuminate\Support\Facades\Storage::temporaryUrl($path, now()->addMinutes(60))
             : null;
     }
 
