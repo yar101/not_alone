@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, reactive } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
+import { ArrowLeft, ArrowRight, BellFilled } from '@element-plus/icons-vue';
 import { useTranslations } from '@/composables/useTranslations';
 
 const { __ } = useTranslations();
@@ -353,7 +353,8 @@ function selectPack(pack) {
                 </button>
 
                 <!-- Мои + айдолы — единый список -->
-                <template v-for="item in sidebarItems" :key="item.id">
+                <template v-for="(item, index) in sidebarItems" :key="item.id">
+                    <div v-if="item.type === 'idol' && (index === 0 || sidebarItems[index - 1].type !== 'idol')" class="gallery-sidebar-divider" />
                     <button
                         class="gallery-idol-item"
                         :class="{ 'gallery-idol-item--active': selectedIdolId === item.id && !selectedPackId }"
@@ -362,13 +363,19 @@ function selectPack(pack) {
                         <!-- Аватар: "Мои" — иконка пользователя, айдол — фото или инициал -->
                         <div
                             class="gallery-idol-item__avatar"
-                            :class="item.type === 'mine' ? 'gallery-idol-item__avatar--mine' : ''"
+                            :class="{
+                                'gallery-idol-item__avatar--mine': item.type === 'mine',
+                                'gallery-idol-item__avatar--new': item.type === 'new',
+                            }"
                         >
                             <template v-if="item.type === 'mine'">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                                     <circle cx="12" cy="7" r="4"/>
                                 </svg>
+                            </template>
+                            <template v-else-if="item.type === 'new'">
+                                <el-icon color="#fff" :size="15"><BellFilled /></el-icon>
                             </template>
                             <template v-else>
                                 <img v-if="item.avatar_url" :src="item.avatar_url" :alt="item.name" />
@@ -399,13 +406,16 @@ function selectPack(pack) {
                                         :class="{ 'gallery-pack-item__cover-img--loaded': packCoverLoaded[pack.id] }"
                                         @load="packCoverLoaded[pack.id] = true"
                                     />
+                                    <div v-if="pack.is_new" class="gallery-pack-item__new-badge">NEW</div>
                                 </template>
-                                <span v-else class="gallery-pack-item__cover-empty" />
+                                <template v-else>
+                                    <span class="gallery-pack-item__cover-empty" />
+                                    <div v-if="pack.is_new" class="gallery-pack-item__new-badge">NEW</div>
+                                </template>
                             </div>
                             <div class="gallery-pack-item__info">
                                 <span class="gallery-pack-item__title">
                                     {{ pack.title }}
-                                    <span v-if="pack.is_new" class="gallery-pack-item__badge">NEW</span>
                                 </span>
                                 <span class="gallery-pack-item__count">{{ __('pack.photos', { count: pack.photo_count }) }}</span>
                             </div>
@@ -676,14 +686,16 @@ function selectPack(pack) {
     font-weight: 600;
     color: rgba(255, 178, 239,0.7);
 }
-.gallery-idol-item__avatar--all {
-    background: rgba(255,255,255,0.06);
-    color: rgba(255,255,255,0.4);
+.gallery-sidebar-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 0.5rem 1rem;
 }
-.gallery-idol-item__avatar--mine {
-    background: rgba(160,255,200,0.1);
-    color: rgba(160,255,200,0.6);
-}
+
+.gallery-idol-item__avatar--mine { background: linear-gradient(135deg, var(--color-base-1), #8762ef); color: #fff; }
+.gallery-idol-item__avatar--new { background: linear-gradient(135deg, #ff4757, #ff6b81); color: #fff; box-shadow: 0 0 10px rgba(255, 71, 87, 0.4); }
+.gallery-idol-item__avatar--all { background: rgba(255,255,255,0.1); color: #fff; }
+
 .gallery-idol-item__avatar img {
     width: 100%;
     height: 100%;
@@ -745,6 +757,22 @@ function selectPack(pack) {
     transition: opacity 0.3s;
 }
 .gallery-pack-item__cover img.gallery-pack-item__cover-img--loaded { opacity: 1; }
+.gallery-pack-item__new-badge {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    background: #ff4757;
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(255, 71, 87, 0.5);
+    z-index: 2;
+}
+
 .gallery-pack-item__cover-shimmer {
     position: absolute;
     inset: 0;

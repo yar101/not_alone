@@ -165,7 +165,7 @@ class GalleryController extends Controller
                     $join->on('content_pack_purchases.content_pack_id', '=', 'content_packs.id')
                          ->where('content_pack_purchases.user_id', '=', $userId);
                 })
-                ->select('content_packs.*', 'content_pack_purchases.purchased_at', 'content_pack_purchases.id as purchase_id')
+                ->addSelect('content_packs.*', 'content_pack_purchases.purchased_at', 'content_pack_purchases.id as purchase_id')
                 ->when($cursor, fn ($q) => $q->where('content_pack_purchases.id', '<', $cursor))
                 ->orderByDesc('content_pack_purchases.id');
             } else {
