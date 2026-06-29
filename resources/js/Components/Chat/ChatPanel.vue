@@ -5710,10 +5710,10 @@ function formatDate(iso) {
 }
 
 .order-stub--active {
-    background: rgba(255, 178, 239, 0.1);
+    background: rgba(255, 178, 239, 0.08);
     box-shadow:
-        0 2px 14px rgba(255, 178, 239, 0.18),
-        inset 0 0 0 1px rgba(255, 178, 239, 0.28);
+        0 2px 10px rgba(0, 0, 0, 0.2),
+        inset 0 0 0 1px rgba(255, 178, 239, 0.2);
 }
 
 .order-stub--active:hover {
