@@ -42,5 +42,14 @@ echo "  📦 Redis Port:          $DEV_HOST:6379"
 echo "================================================================="
 echo ""
 
+# Run Seeder in background when container is ready
+(
+    until docker compose exec -T app php artisan db:seed --class=TestUsersSeeder > /dev/null 2>&1; do
+        sleep 2
+    done
+    docker compose exec -T app php artisan services:seed --all --force > /dev/null 2>&1
+    echo "✅ Тестовые пользователи (u1@test.com - u20@test.com) с паролем 123123 успешно загружены!"
+) &
+
 # Run Docker Compose
 docker compose up --build

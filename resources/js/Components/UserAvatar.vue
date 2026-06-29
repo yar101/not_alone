@@ -32,15 +32,14 @@ const initials = (props.user?.name ?? '?').charAt(0).toUpperCase();
     height: 100%;
     border-radius: 50%;
     overflow: hidden;
-    background: rgba(255, 178, 239, 0.15);
-    border: 2px solid rgba(120, 100, 230, 0.45);
+    background: color-mix(in srgb, var(--color-base-1), transparent 85%);
+    border: 2px solid color-mix(in srgb, var(--color-base-1), transparent 55%);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 .ua-wrap.is-male {
-    background: rgba(100, 210, 255, 0.15);
-    border-color: rgba(100, 210, 255, 0.45);
+    --color-base-1: var(--color-base-2);
 }
 .ua-img {
     width: 100%;

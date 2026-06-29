@@ -226,7 +226,7 @@ class ContentPackController extends Controller
         foreach ($deleteIds as $photoId) {
             $photo = ContentPackPhoto::find($photoId);
             if ($photo && $photo->content_pack_id === $pack->id) {
-                Storage::disk('local')->delete($photo->path);
+                Storage::delete($photo->path);
                 if ($pack->cover_path === $photo->path) {
                     $pack->update(['cover_path' => null]);
                 }
@@ -249,7 +249,7 @@ class ContentPackController extends Controller
                     continue;
                 }
                 // Delete old file
-                Storage::disk('local')->delete($photo->path);
+                Storage::delete($photo->path);
                 // Store new with compression
                 $path = $this->compressAndStorePhoto($file, $pack->id);
                 $photo->update(['path' => $path, 'original_filename' => $file->getClientOriginalName()]);
@@ -441,9 +441,9 @@ class ContentPackController extends Controller
         // Rejected packs — files already deleted by admin
         if ($pack->status !== 'rejected') {
             foreach ($pack->photos as $photo) {
-                Storage::disk('local')->delete($photo->path);
+                Storage::delete($photo->path);
             }
-            Storage::disk('local')->deleteDirectory('content-packs/' . $pack->id);
+            Storage::deleteDirectory('content-packs/' . $pack->id);
         }
 
         $pack->forceDelete();
@@ -602,7 +602,7 @@ class ContentPackController extends Controller
             imagejpeg($newImg, null, 70);
             $imageData = ob_get_clean();
 
-            Storage::disk('local')->put($path, $imageData);
+            Storage::put($path, $imageData);
             imagedestroy($img);
             imagedestroy($newImg);
 
@@ -610,6 +610,6 @@ class ContentPackController extends Controller
         }
 
         // Fallback to regular store if GD fails
-        return $file->store('content-packs/' . $packId, 'local');
+        return $file->store('content-packs/' . $packId);
     }
 }

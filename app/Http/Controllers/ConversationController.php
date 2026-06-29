@@ -474,7 +474,7 @@ class ConversationController extends Controller
             'file' => ['required', 'file', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
         ]);
 
-        $path = $request->file('file')->store("chat/{$conversation->id}", 'public');
+        $path = $request->file('file')->store("chat/{$conversation->id}");
 
         return response()->json(['url' => Storage::url($path)]);
     }

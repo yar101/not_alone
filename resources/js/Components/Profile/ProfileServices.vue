@@ -420,7 +420,6 @@ const dismissChangeRequest = (item) => {
     router.delete(route("profile.services.dismiss-change-request", item.id), {
         onSuccess: () => {
             resyncSelectedCategory();
-            toast.success(__("profile.services.dismiss_success", "Отклоненные изменения скрыты"));
         },
     });
 };
@@ -491,7 +490,6 @@ function toggleTrialStatus(item, val = null) {
             preserveState: true,
             onSuccess: () => {
                 resyncSelectedCategory();
-                toast.success('Статус услуги изменен');
             },
             onFinish: () => {
                 localeLoading.value = false;
@@ -1203,8 +1201,8 @@ watch(selectedCategory, (cat) => {
                                         >
                                             <template v-if="isInCart(item.id)">
                                             <svg
-                                                width="11"
-                                                height="11"
+                                                width="15"
+                                                height="15"
                                                 viewBox="0 0 24 24"
                                                 fill="none"
                                                 stroke="currentColor"
@@ -1222,8 +1220,8 @@ watch(selectedCategory, (cat) => {
                                         </template>
                                         <template v-else>
                                             <svg
-                                                width="11"
-                                                height="11"
+                                                width="15"
+                                                height="15"
                                                 viewBox="0 0 24 24"
                                                 fill="none"
                                                 stroke="currentColor"
@@ -3090,9 +3088,9 @@ watch(selectedCategory, (cat) => {
     background: color-mix(in srgb, var(--cat-accent, #ffb2ef) 18%, transparent);
     color: var(--cat-accent, #ffb2ef);
     box-shadow:
-        0 0 20px color-mix(in srgb, var(--cat-accent, #ffb2ef) 20%, transparent),
-        inset 0 0 12px
-            color-mix(in srgb, var(--cat-accent, #ffb2ef) 8%, transparent);
+        0 0 10px color-mix(in srgb, var(--cat-accent, #ffb2ef) 12%, transparent),
+        inset 0 0 8px
+            color-mix(in srgb, var(--cat-accent, #ffb2ef) 5%, transparent);
 }
 
 .svc-buy-btn svg {
@@ -3101,7 +3099,6 @@ watch(selectedCategory, (cat) => {
 }
 
 .svc-buy-btn:hover svg {
-    transform: translateX(2px);
 }
 
 .svc-buy-btn--in-cart {

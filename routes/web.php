@@ -224,8 +224,5 @@ Route::get('/users/{user}/reviews', [ReviewController::class, 'index'])->name('u
 
 Route::get('/api/help-center', [App\Http\Controllers\HelpController::class, 'index'])->name('help.data');
 
-Route::get('/media/{path}', [MediaController::class, 'serve'])
-    ->where('path', '.+')
-    ->name('media.serve');
 
 require __DIR__.'/auth.php';

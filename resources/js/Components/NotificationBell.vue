@@ -19,6 +19,8 @@ const { __, locale } = useTranslations();
 const open = ref(false);
 const isMobile = ref(window.innerWidth < 768);
 const onResize = () => { isMobile.value = window.innerWidth < 768; };
+const chatOpen = ref(false);
+const onToggleChat = (e) => { chatOpen.value = e.detail; };
 const { isSupported, subscribe, syncSubscription } = usePushNotifications();
 const pushPermission = ref(typeof Notification !== 'undefined' ? Notification.permission : 'unsupported');
 
@@ -197,9 +199,9 @@ const STORAGE_KEY = 'notif_active_filters';
 const savedFilters = localStorage.getItem(STORAGE_KEY);
 const activeFilters = ref(savedFilters ? JSON.parse(savedFilters) : ['service', 'order']);
 
-const POPUP_STORAGE_KEY = 'notif_popups_enabled';
+const POPUP_STORAGE_KEY = 'noalone_popups_enabled';
 const showSettings = ref(false);
-const popupsEnabled = ref(localStorage.getItem(POPUP_STORAGE_KEY) !== 'false');
+const popupsEnabled = ref(localStorage.getItem(POPUP_STORAGE_KEY) === 'true');
 
 watch(popupsEnabled, (val) => {
     localStorage.setItem(POPUP_STORAGE_KEY, val ? 'true' : 'false');
@@ -461,6 +463,7 @@ function renderNotif(item) {
 function showNotifPopup(item) {
     if (isMobile.value) return;
     if (!popupsEnabled.value) return;
+    if (chatOpen.value) return;
     const { iconComp, iconClass, title, message } = renderNotif(item);
     ElNotification({
         duration: 5000,
@@ -640,6 +643,7 @@ async function requestPush() {
 onMounted(() => {
     window.addEventListener('resize', onResize);
     document.addEventListener('click', closeOnOutside);
+    window.addEventListener('noalone:toggle-chat', onToggleChat);
 
     if (isSupported() && page.props.auth?.user) {
         if (Notification.permission === 'granted') {
@@ -669,6 +673,7 @@ onUnmounted(() => {
     clearTimeout(autoReadTimer);
     window.removeEventListener('resize', onResize);
     document.removeEventListener('click', closeOnOutside);
+    window.removeEventListener('noalone:toggle-chat', onToggleChat);
     window.Echo.leaveChannel('notifications.global');
     const userId = page.props.auth?.user?.id;
     if (userId) {
@@ -717,7 +722,7 @@ defineExpose({ toggleDropdown });
 
                 <div v-if="showSettings" class="notif-settings-panel">
                     <div class="notif-setting-item">
-                        <span class="notif-setting-label">Всплывающие окна на экране</span>
+                        <span class="notif-setting-label">Всплывающие уведомления на экране</span>
                         <label class="toggle-switch">
                             <input type="checkbox" v-model="popupsEnabled" style="display: none;">
                             <div class="slider" :class="{ 'slider--on': popupsEnabled }"></div>
@@ -867,14 +872,6 @@ defineExpose({ toggleDropdown });
                 </div>
 
                 <div v-if="showSettings" class="notif-settings-panel" style="flex:1; overflow-y:auto;">
-                    <div class="notif-setting-item">
-                        <span class="notif-setting-label">Всплывающие окна на экране</span>
-                        <label class="toggle-switch">
-                            <input type="checkbox" v-model="popupsEnabled" style="display: none;">
-                            <div class="slider" :class="{ 'slider--on': popupsEnabled }"></div>
-                        </label>
-                    </div>
-
                     <div class="notif-setting-group">
                         <div class="notif-setting-group-title">Отображаемые категории</div>
                         <div class="notif-filters-compact">
