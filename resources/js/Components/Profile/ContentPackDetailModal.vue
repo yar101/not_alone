@@ -1,6 +1,6 @@
 <script setup>
 import { inject, ref, computed, onMounted, onUnmounted } from 'vue';
-import { Picture } from '@element-plus/icons-vue';
+import { Picture, ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
@@ -124,13 +124,13 @@ function handleAddToCart() {
             <div v-if="lightboxIndex !== null" class="lb-overlay" @click.self="closeLightbox">
                 <button class="lb-close" @click="closeLightbox">✕</button>
 
-                <button class="lb-arrow lb-arrow--prev" @click="prevPhoto">&#8249;</button>
+                <button class="lb-arrow lb-arrow--prev" @click="prevPhoto"><el-icon><ArrowLeft /></el-icon></button>
 
-                <div class="lb-img-wrap">
+                <div class="lb-img-wrap" @click.stop>
                     <img :src="photos[lightboxIndex]?.url" :alt="pack.title" class="lb-img" />
                 </div>
 
-                <button class="lb-arrow lb-arrow--next" @click="nextPhoto">&#8250;</button>
+                <button class="lb-arrow lb-arrow--next" @click="nextPhoto"><el-icon><ArrowRight /></el-icon></button>
 
                 <div class="lb-counter">{{ lightboxIndex + 1 }} / {{ photos.length }}</div>
             </div>
@@ -367,15 +367,13 @@ function handleAddToCart() {
     width: 46px;
     height: 46px;
     border-radius: 50%;
-    font-size: 2rem;
-    line-height: 1;
+    font-size: 1.5rem;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: background 0.15s;
     z-index: 1;
-    padding-bottom: 2px;
 }
 .lb-arrow:hover { background: rgba(255,255,255,0.15); color: #fff; }
 .lb-arrow--prev { left: 18px; }

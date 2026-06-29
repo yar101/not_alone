@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, reactive } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
 import { useTranslations } from '@/composables/useTranslations';
 
 const { __ } = useTranslations();
@@ -533,7 +534,7 @@ function selectPack(id) {
                     </button>
 
                     <!-- Prev arrow -->
-                    <button class="lb-arrow lb-arrow--prev" @click.stop="prevPhoto" :aria-label="__('gallery.prev')">&#8249;</button>
+                    <button class="lb-arrow lb-arrow--prev" @click.stop="prevPhoto" :aria-label="__('gallery.prev')"><el-icon><ArrowLeft /></el-icon></button>
 
                     <!-- Image -->
                     <div class="lb-content" @click.stop>
@@ -542,7 +543,7 @@ function selectPack(id) {
                     </div>
 
                     <!-- Next arrow -->
-                    <button class="lb-arrow lb-arrow--next" @click.stop="nextPhoto" :aria-label="__('gallery.next')">&#8250;</button>
+                    <button class="lb-arrow lb-arrow--next" @click.stop="nextPhoto" :aria-label="__('gallery.next')"><el-icon><ArrowRight /></el-icon></button>
 
                 </div>
             </Transition>
@@ -987,15 +988,13 @@ function selectPack(id) {
     width: 46px;
     height: 46px;
     border-radius: 50%;
-    font-size: 2rem;
-    line-height: 1;
+    font-size: 1.5rem;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.15s, color 0.15s;
+    transition: background 0.15s;
     z-index: 1;
-    padding-bottom: 2px;
 }
 .lb-arrow:hover { background: rgba(255,255,255,0.15); color: #fff; }
 .lb-arrow--prev { left: 18px; }
@@ -1204,7 +1203,7 @@ function selectPack(id) {
     .gallery-main { padding: 0.75rem; }
 
     /* Lightbox arrows smaller */
-    .lb-arrow { width: 36px; height: 36px; font-size: 1.6rem; }
+    .lb-arrow { width: 36px; height: 36px; font-size: 1.2rem; }
     .lb-arrow--prev { left: 8px; }
     .lb-arrow--next { right: 8px; }
     .lb-content { max-width: calc(90vw - 90px); }

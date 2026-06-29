@@ -1,6 +1,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
+import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 defineOptions({ layout: AdminLayout });
@@ -331,11 +332,11 @@ const STATUS_LABELS = {
         <Transition name="lb">
             <div v-if="lightboxIndex !== null" class="lb-overlay" @click.self="closeLightbox">
                 <button class="lb-close" @click="closeLightbox">✕</button>
-                <button class="lb-arrow lb-arrow--prev" @click="prevPhoto">&#8249;</button>
+                <button class="lb-arrow lb-arrow--prev" @click="prevPhoto"><el-icon><ArrowLeft /></el-icon></button>
                 <div class="lb-img-wrap">
                     <img :src="photos[lightboxIndex]?.url" alt="" class="lb-img" />
                 </div>
-                <button class="lb-arrow lb-arrow--next" @click="nextPhoto">&#8250;</button>
+                <button class="lb-arrow lb-arrow--next" @click="nextPhoto"><el-icon><ArrowRight /></el-icon></button>
                 <div class="lb-counter">{{ lightboxIndex + 1 }} / {{ photos.length }}</div>
             </div>
         </Transition>
@@ -500,8 +501,8 @@ const STATUS_LABELS = {
     position: absolute; top: 50%; transform: translateY(-50%);
     background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
     color: rgba(255,255,255,0.7); width: 46px; height: 46px; border-radius: 50%;
-    font-size: 2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
-    padding-bottom: 2px; z-index: 1;
+    font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s; z-index: 1;
 }
 .lb-arrow:hover { background: rgba(255,255,255,0.15); color: #fff; }
 .lb-arrow--prev { left: 18px; }
