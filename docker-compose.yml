@@ -62,7 +62,7 @@ services:
       AWS_DEFAULT_REGION: us-east-1
       AWS_BUCKET: not-alone
       AWS_ENDPOINT: http://minio:9000
-      AWS_URL: https://${DEV_HOST}:8443/storage-minio/not-alone
+      AWS_URL: https://${DEV_HOST}:8443/not-alone
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       FILESYSTEM_DISK: s3
     volumes:
@@ -101,7 +101,7 @@ services:
       AWS_DEFAULT_REGION: us-east-1
       AWS_BUCKET: not-alone
       AWS_ENDPOINT: http://minio:9000
-      AWS_URL: https://${DEV_HOST}:8443/storage-minio/not-alone
+      AWS_URL: https://${DEV_HOST}:8443/not-alone
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       FILESYSTEM_DISK: s3
     volumes:
@@ -138,7 +138,7 @@ services:
       AWS_DEFAULT_REGION: us-east-1
       AWS_BUCKET: not-alone
       AWS_ENDPOINT: http://minio:9000
-      AWS_URL: https://${DEV_HOST}:8443/storage-minio/not-alone
+      AWS_URL: https://${DEV_HOST}:8443/not-alone
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       FILESYSTEM_DISK: s3
     volumes:
