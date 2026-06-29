@@ -1297,7 +1297,9 @@ const ownerSortOptions = computed(() => [
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.22);
     color: rgba(255, 255, 255, 0.9);
     font-size: 0.88rem;
