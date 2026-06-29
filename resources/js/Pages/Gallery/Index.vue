@@ -201,6 +201,7 @@ const activeFilterLabel = computed(() => {
     }
     if (selectedIdolId.value === null) return __('gallery.all_photos');
     if (selectedIdolId.value === 'mine') return __('gallery.mine');
+    if (selectedIdolId.value === 'new') return __('gallery.new_packs');
     const idol = props.idols.find(i => i.id === selectedIdolId.value);
     return idol?.name ?? __('gallery.all_photos');
 });
