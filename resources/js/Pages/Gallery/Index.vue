@@ -417,7 +417,7 @@ function selectPack(pack) {
                                 </span>
                                 <span class="gallery-pack-item__count">{{ __('pack.photos', { count: pack.photo_count }) }}</span>
                             </div>
-                            <div v-if="pack.is_new" class="gallery-pack-item__new-badge">NEW</div>
+                            <div v-if="pack.is_new" class="gallery-pack-item__new-badge" :title="__('gallery.new_packs')"></div>
                         </button>
                         <button
                             v-if="hasMorePacks && !packsLoading"
@@ -696,7 +696,7 @@ function selectPack(pack) {
     background: rgba(255, 178, 239, 0.2); 
     backdrop-filter: blur(10px); 
     -webkit-backdrop-filter: blur(10px); 
-    border: 1px dashed rgba(255, 178, 239, 0.4); 
+    border: 1px solid rgba(255, 178, 239, 0.4); 
     color: var(--color-base-1); 
     box-shadow: inset 0 0 10px rgba(255, 178, 239, 0.1); 
 }
@@ -704,7 +704,7 @@ function selectPack(pack) {
     background: rgba(255, 255, 255, 0.05); 
     backdrop-filter: blur(10px); 
     -webkit-backdrop-filter: blur(10px); 
-    border: 1px dashed rgba(255, 255, 255, 0.2); 
+    border: 1px solid rgba(255, 255, 255, 0.15); 
     color: rgba(255,255,255,0.8); 
 }
 
@@ -770,17 +770,14 @@ function selectPack(pack) {
 .gallery-pack-item__cover img.gallery-pack-item__cover-img--loaded { opacity: 1; }
 
 .gallery-pack-item__new-badge {
-    background: rgba(255, 178, 239, 0.15);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 178, 239, 0.5);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 178, 239, 0.3);
-    color: var(--color-base-1);
-    padding: 2px 6px;
-    border-radius: 6px;
-    font-size: 0.6rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    border: 1px solid rgba(255, 178, 239, 0.7);
+    box-shadow: 0 0 4px rgba(255, 178, 239, 0.3);
     flex-shrink: 0;
 }
 
