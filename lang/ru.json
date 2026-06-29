@@ -12,15 +12,12 @@
     "nav.contacts": "Контакты",
     "nav.menu": "Меню",
     "nav.tracked": "Отслеживаемые",
-
     "idol.apply.back_to_profile": "В профиль",
     "idol.apply.warning_title": "Внимание!",
     "idol.apply.warning_text": "Для успешного прохождения теста вам необходимо очень внимательно прочитать статью ниже. Все вопросы теста составлены строго на основе этих материалов.",
-
     "welcome.start": "НАЧАТЬ",
     "welcome.enter": "ВОЙТИ",
     "welcome.help": "Справка",
-
     "common.gallery": "Галерея",
     "common.close": "Закрыть",
     "common.search": "Поиск",
@@ -34,14 +31,11 @@
     "common.idol": "Айдол",
     "common.login": "Войти",
     "common.register": "Регистрация",
-
     "layout.become_idol": "Стать Айдолом",
     "layout.banned_error": "Невозможно взаимодействовать с заблокированным пользователем",
-
     "app.update.title": "Доступно обновление",
     "app.update.message": "Доступна новая версия приложения.",
     "app.update.button": "Обновить страницу",
-
     "upload.drop": "Отпустите для загрузки",
     "upload.hint": "Перетащите, вставьте из буфера",
     "upload.hint.select": "или выберите файл",
@@ -56,7 +50,6 @@
     "upload.error.size": "Размер не должен превышать :size МБ",
     "upload.size.suffix": "МБ",
     "upload.hint.up_to": "до",
-
     "cart.title": "КОРЗИНА",
     "cart.icon.title": "Корзина",
     "cart.order.error": "Ошибка при создании заказа",
@@ -72,38 +65,32 @@
     "cart.order.submitting": "ОФОРМЛЯЕМ…",
     "cart.pay.submit": "ОПЛАТИТЬ",
     "cart.pay.loading": "ОПЛАТА…",
-
     "chat.messages": "Сообщения",
     "chat.idol": "Айдол:",
     "chat.unavailable": "недоступно",
-
     "review.title": "ОСТАВИТЬ ОТЗЫВ",
     "review.only_one": "Это ваш единственный отзыв об этом айдоле. После публикации изменить его будет нельзя.",
     "review.submit": "Оставить отзыв",
     "review.comment.placeholder": "Ваш комментарий (необязательно)",
     "review.important": "Важно",
     "review.rating.aria": ":value из 5",
-
     "profile.tabs.about": "О себе",
     "profile.tabs.posts": "Публикации",
     "profile.tabs.services": "Услуги",
     "profile.tabs.content": "Контент",
     "profile.tabs.reviews": "Отзывы",
     "profile.tabs.back_to_categories": "К категориям",
-
     "profile.message.send": "Написать сообщение",
     "profile.follow": "Отслеживать",
     "profile.unfollow": "Отслеживается",
     "profile.unfollow_confirm_title": "Отменить отслеживание?",
     "profile.unfollow_confirm_body": "Вы уверены, что хотите перестать отслеживать этого пользователя?",
-
     "profile.about.title": "О себе",
     "profile.about.empty": "Пользователь пока ничего не написал",
     "profile.about.placeholder": "Напиши что-нибудь о себе…",
     "profile.about.owner_hint_before": "Расскажи о себе — нажми",
     "profile.about.owner_hint_after": "чтобы добавить",
     "profile.guest.text": "Войди или зарегистрируйся, чтобы оставлять комментарии и ставить лайки",
-
     "checklist.title": "Заполните профиль",
     "checklist.about": "Заполните текст «О себе»",
     "checklist.traits": "Укажите черты характера",
@@ -111,7 +98,6 @@
     "checklist.audio": "Запишите аудио",
     "checklist.languages": "Укажите языки",
     "checklist.timezone": "Укажите часовой пояс",
-
     "pack.status.pending": "На рассмотрении",
     "pack.status.approved": "Одобрен",
     "pack.status.published": "Опубликован",
@@ -160,7 +146,6 @@
     "pack.photo.replaced": "Заменено",
     "pack.photo.restore": "Восстановить",
     "pack.remarks.empty": "Конкретных замечаний нет",
-
     "reviews.error.reported": "Жалоба уже отправлена и ожидает рассмотрения.",
     "reviews.error.failed": "Не удалось отправить жалобу. Попробуйте ещё раз.",
     "reviews.sort.newest": "сначала новые",
@@ -182,26 +167,21 @@
     "reviews.dispute.ph": "Опишите причину…",
     "reviews.dispute.submit": "Отправить жалобу",
     "reviews.dispute.submitting": "Отправка…",
-
     "verify.title": "Подтвердите email",
     "verify.text": "Мы отправили письмо со ссылкой для подтверждения на ваш адрес. Проверьте почту.",
     "verify.resent": "Письмо отправлено повторно. Проверьте папку «Входящие» и «Спам».",
     "verify.resend": "Отправить повторно",
     "verify.resending": "Отправляем…",
     "verify.logout": "Выйти",
-
     "gallery.title": "Галерея",
     "gallery.mine": "Мои",
     "gallery.search": "Поиск айдола...",
-
     "news.title": "Новости",
     "news.search": "Поиск новостей…",
     "news.back": "Все новости",
-
     "orders.title": "Заказы",
     "orders.search": "Поиск по имени...",
     "orders.cancel_reason": "причина отмены…",
-
     "search.title": "Поиск пользователей",
     "search.name": "Поиск по имени",
     "search.filter": "Поиск...",
@@ -233,7 +213,6 @@
     "search.active.idol": "Айдол: :value",
     "search.active.rating": "Рейтинг: :from–:to",
     "search.age.years": "год|года|лет",
-
     "common.back": "Назад",
     "common.edit": "Редактировать",
     "common.yes": "Да",
@@ -258,13 +237,11 @@
     "common.leave_body": "Введённые данные будут потеряны.",
     "common.stay": "Остаться",
     "common.leave": "Выйти",
-
     "gender.any": "Любой",
     "gender.male": "Мужской",
     "gender.female": "Женский",
     "gender.abbr.male": "М",
     "gender.abbr.female": "Ж",
-
     "gallery.empty.my_packs": "У вас пока нет контент паков",
     "gallery.empty.my_packs.sub": "Создайте паки в своём профиле, чтобы они появились здесь",
     "gallery.empty.purchased": "У вас пока нет купленного контента",
@@ -273,13 +250,11 @@
     "gallery.next": "Следующее",
     "gallery.filter.title": "Фильтры",
     "gallery.load_more": "Загрузить ещё",
-
     "news.pinned": "Закреплено",
     "news.sort.new": "Новые",
     "news.sort.old": "Старые",
     "news.empty": "Новостей пока нет",
     "news.not_found": "Ничего не найдено",
-
     "order.status.all": "Все",
     "order.status.pending": "Создан",
     "order.status.accepted": "Принят",
@@ -319,7 +294,6 @@
     "order.cancel.idol.4": "Слишком большой объём работы",
     "order.cancel.idol.5": "Это не моя специализация",
     "order.cancel.idol.6": "По личным причинам",
-
     "notification.title": "Уведомления",
     "notification.tab.all": "Все",
     "notification.tab.service": "Сервис",
@@ -406,7 +380,6 @@
     "notification.type.pack_change_approved": "Изменения одобрены",
     "notification.type.pack_change_remarks": "Замечания к изменениям",
     "notification.type.pack_change_rejected": "Изменения отклонены",
-
     "chat.title": "Чат",
     "chat.tab.orders": "Заказы",
     "chat.search": "Поиск…",
@@ -504,7 +477,6 @@
     "chat.block.time.m": "мин.",
     "chat.block.time.s": "сек.",
     "common.reason": "Причина",
-
     "help.support.btn": "Поддержка",
     "help.support.title": "Поддержка",
     "help.dispute.btn": "Оспорить заказ",
@@ -536,7 +508,6 @@
     "help.dispute.reason.4": "Заказ не выполнен",
     "help.dispute.reason.5": "Угрозы",
     "help.dispute.reason.6": "Спам и навязывание",
-
     "profile.header.edit": "Личная информация",
     "profile.header.settings_btn": "Настройки",
     "profile.header.report": "Пожаловаться",
@@ -547,7 +518,6 @@
     "profile.header.name_ph": "Имя или Имя Фамилия",
     "profile.header.tz_ph": "Не указан",
     "profile.header.delete_avatar": "Удалить фото",
-
     "profile.voice.err.mic": "Не удалось получить доступ к микрофону",
     "profile.voice.err.mic_denied": "Доступ к микрофону запрещён. Разрешите его в настройках браузера и перезагрузите страницу.",
     "profile.voice.err.mic_unavailable": "Микрофон не обнаружен или API недоступно в этом браузере.",
@@ -558,7 +528,6 @@
     "profile.voice.empty": "Аудио отсутствует",
     "profile.voice.record": "Записать аудио",
     "profile.voice.uploading": "Сохранение…",
-
     "profile.traits.title": "Характер",
     "profile.traits.empty": "Добавь свои черты характера",
     "profile.traits.not_specified": "Не указано",
@@ -571,7 +540,6 @@
     "profile.traits.suggest.ph": "Например: Меланхоличный...",
     "profile.traits.sent": "Предложение отправлено!",
     "profile.traits.back": "← Назад",
-
     "profile.interests.title": "Интересы",
     "profile.interests.empty": "Добавь свои интересы",
     "profile.interests.not_specified": "Не указано",
@@ -583,7 +551,6 @@
     "profile.interests.suggest.ph": "Например: Настольные игры...",
     "profile.interests.sent": "Предложение отправлено!",
     "profile.interests.back": "← Назад",
-
     "profile.report.success": "Жалоба отправлена. Мы рассмотрим её в ближайшее время.",
     "profile.report.close": "Закрыть",
     "profile.report.title": "Пожаловаться на :name",
@@ -598,20 +565,17 @@
     "profile.report.reasons.fraud": "Мошенничество",
     "profile.report.reasons.harassment": "Харассмент",
     "profile.report.reasons.other": "Другое",
-
     "Спам": "Спам",
     "Оскорбления": "Оскорбления",
     "Нежелательный контент": "Нежелательный контент",
     "Агрессивное поведение": "Агрессивное поведение",
     "Домогательства": "Домогательства",
     "Другое": "Другое",
-
     "profile.services.become.eyebrow": "Услуги",
     "profile.services.become.title": "Начни получать заказы<br>на то, что умеешь",
     "profile.services.become.tag1": "Чаты, звонки, коллаборации",
     "profile.services.become.tag2": "Сам назначаешь цену",
     "profile.services.become.apply": "Подать заявку",
-
     "profile.content.become.eyebrow": "Контент",
     "profile.content.become.tagline": "Продавай контент напрямую своим фанатам",
     "profile.content.feature.packs": "Эксклюзивные паки",
@@ -646,7 +610,6 @@
     "profile.content.dismiss_success": "Отклоненные изменения скрыты",
     "profile.services.dismiss_cr": "Скрыть отклонение",
     "profile.services.dismiss_success": "Отклоненные изменения скрыты",
-
     "profile.services.search_ph": "Название услуги",
     "profile.services.blocked_error": "Вы заблокированы этим пользователем и не можете делать заказы",
     "profile.services.empty": "У этого айдола пока нет услуг в данной категории.",
@@ -687,10 +650,8 @@
     "profile.services.desc_edit_ph": "Расскажите об этой категории услуг…",
     "profile.services.categories_label": "Категории",
     "profile.services.new_btn": "Новая услуга",
-
     "profile.languages.title": "Языки",
     "profile.languages.empty.owner": "Укажи языки, которыми владеешь",
-
     "post.new": "Новая запись",
     "post.empty.owner": "Нет публикаций — поделись чем-нибудь",
     "post.empty.guest": "Публикаций пока нет",
@@ -708,7 +669,6 @@
     "post.detail.error": "Ошибка",
     "post.detail.load_more": "Загрузить ещё",
     "post.read_more": "··· читать далее",
-
     "auth.welcome": "Добро пожаловать",
     "auth.continue": "Продолжить",
     "auth.logout": "Выйти из аккаунта",
@@ -750,31 +710,26 @@
     "auth.month.10": "Октябрь",
     "auth.month.11": "Ноябрь",
     "auth.month.12": "Декабрь",
-
     "profile.services.form.name_ru": "Название (RU)",
     "profile.services.form.name_en": "Название (EN)",
     "profile.services.form.add_en": "Добавить название на английском",
     "profile.services.form.add_ru": "Добавить название на русском",
     "profile.services.search_ph_en": "напр. Let's chat about hobbies",
-
     "auth.forgot": "Забыли пароль?",
     "auth.forgot.title": "Забыли пароль",
     "auth.forgot.hint": "Введите email-адрес — мы отправим ссылку для сброса пароля.",
     "auth.forgot.submit": "Отправить ссылку",
     "auth.forgot.sending": "Отправка…",
     "auth.forgot.sent": "Ссылка для сброса пароля отправлена на ваш email.",
-
     "auth.reset.title": "Сброс пароля",
     "auth.reset.new_password": "Новый пароль",
     "auth.reset.confirm_password": "Подтвердите пароль",
     "auth.reset.submit": "Сбросить пароль",
     "auth.reset.sending": "Сброс…",
-
     "auth.confirm.title": "Подтвердите пароль",
     "auth.confirm.hint": "Это защищённый раздел приложения. Подтвердите пароль для продолжения.",
     "auth.confirm.submit": "Подтвердить",
     "auth.confirm.sending": "Подтверждение…",
-
     "(and :count more error)": "(и ещё :count ошибка)",
     "(and :count more errors)": "(и ещё :count ошибка)|(и ещё :count ошибки)|(и ещё :count ошибок)",
     "A decryption key is required.": "Ключ дешифровки обязателен.",
@@ -1036,7 +991,6 @@
     "You are receiving this email because we received a password reset request for your account.": "Вы получили это письмо, потому что мы получили запрос на сброс пароля для Вашей учётной записи.",
     "You're logged in!": "Вы уже вошли.",
     "Your email address is unverified.": "Ваш адрес электронной почты не подтверждён.",
-
     "push.order_created": "Новый заказ от :name",
     "push.order_accepted": "Айдол :name принял ваш заказ",
     "push.order_paid": "Заказ оплачен клиентом :name",
@@ -1066,7 +1020,6 @@
     "push.service_change_approved": "Ваши изменения в услуге «:name» были проверены и одобрены.",
     "push.service_change_remarks": "Модератор оставил замечания к вашим изменениям в услуге «:name».",
     "push.service_change_rejected": "Ваши изменения в услуге «:name» были отклонены модератором.",
-
     "push.new_message": "Новое сообщение от :name",
     "push.title.new_message": "Новое сообщение",
     "push.title.order_created": "Новый заказ",
@@ -1097,7 +1050,6 @@
     "push.title.service_change_approved": "Изменения услуги одобрены",
     "push.title.service_change_remarks": "Замечания к изменениям услуги",
     "push.title.service_change_rejected": "Изменения услуги отклонены",
-
     "profile.tour.next": "Далее →",
     "profile.tour.prev": "← Назад",
     "profile.tour.done": "Готово",
@@ -1138,5 +1090,6 @@
     "profile.tour.usb_features.desc": "Управляй своим кошельком и отслеживай статус заказов услуг.",
     "profile.tour.usb_locale.title": "Смена языка",
     "profile.tour.usb_locale.desc": "Выбирай язык интерфейса (русский/английский) в один клик.",
-    "profile.tour.progressText": "{{current}} из {{total}}"
+    "profile.tour.progressText": "{{current}} из {{total}}",
+    "gallery.new_packs": "Новое"
 }
