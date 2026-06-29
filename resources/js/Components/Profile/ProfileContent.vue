@@ -1462,35 +1462,37 @@ const ownerSortOptions = computed(() => [
     border: 1px solid;
     cursor: pointer;
     font-family: inherit;
-    transition: opacity 0.15s, background 0.15s;
+    transition: opacity 0.15s, background 0.15s, border-color 0.15s;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .pc-btn--primary {
-    background: rgba(100, 210, 160, 0.15);
-    border-color: rgba(100, 210, 160, 0.4);
+    background: rgba(100, 210, 160, 0.2);
+    border-color: rgba(100, 210, 160, 0.5);
     border-top: none;
-    color: #64d2a0;
+    color: #8ceabb;
     box-shadow: inset 0 1px 0 rgba(120, 240, 175, 0.60);
 }
 
 .pc-btn--primary:hover {
-    background: rgba(100, 210, 160, 0.25);
+    background: rgba(100, 210, 160, 0.3);
 }
 
 .pc-btn--warn {
-    background: rgba(230, 180, 60, 0.12);
-    border-color: rgba(230, 180, 60, 0.35);
-    color: rgba(240, 195, 80, 0.9);
+    background: rgba(230, 180, 60, 0.18);
+    border-color: rgba(230, 180, 60, 0.45);
+    color: rgba(255, 210, 100, 1);
 }
 
 .pc-btn--warn:hover {
-    background: rgba(230, 180, 60, 0.22);
+    background: rgba(230, 180, 60, 0.28);
 }
 
 .pc-btn--danger {
-    background: rgba(180, 60, 60, 0.1);
-    border-color: rgba(180, 60, 60, 0.3);
-    color: rgba(255, 120, 120, 0.7);
+    background: rgba(180, 60, 60, 0.15);
+    border-color: rgba(180, 60, 60, 0.4);
+    color: rgba(255, 140, 140, 0.9);
 }
 
 .pc-btn--danger:hover {
@@ -1517,35 +1519,39 @@ const ownerSortOptions = computed(() => [
     align-items: center;
     justify-content: center;
     gap: 0.4rem;
-    border: none;
-    border-top: none;
-    border-radius: 8px;
+    border: 1px solid rgba(100, 160, 255, 0.3);
+    border-radius: 12px;
     font-size: 0.88rem;
-    font-weight: 500;
+    font-weight: 600;
     font-family: inherit;
     cursor: pointer;
-    transition: background 0.15s, color 0.15s, transform 0.1s ease;
-    background: rgba(100, 160, 255, 0.1);
-    color: rgba(160, 200, 255, 0.9);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s ease;
+    background: rgba(100, 160, 255, 0.22);
+    color: rgba(200, 230, 255, 1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
 .pc-btn--cart-full:hover {
-    background: rgba(100, 160, 255, 0.2);
+    background: rgba(100, 160, 255, 0.35);
+    border-color: rgba(100, 160, 255, 0.55);
 }
 
 .pc-btn--cart-full.pc-btn--in-cart {
-    background: rgba(50, 255, 150, 0.18);
-    color: rgb(80, 255, 170);
+    background: rgba(50, 255, 150, 0.25);
+    border-color: rgba(50, 255, 150, 0.5);
+    color: rgb(150, 255, 200);
     cursor: pointer;
 }
 
 .pc-btn--cart-full.pc-btn--in-cart:hover {
-    background: rgba(50, 255, 150, 0.26);
+    background: rgba(50, 255, 150, 0.32);
+    border-color: rgba(50, 255, 150, 0.55);
 }
 
 .pc-btn--cart-full.pc-btn--in-cart:active {
-    background: rgba(50, 255, 150, 0.35);
+    background: rgba(50, 255, 150, 0.4);
     transform: scale(0.97);
 }
 
