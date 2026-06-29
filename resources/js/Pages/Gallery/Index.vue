@@ -199,10 +199,10 @@ const activeFilterLabel = computed(() => {
         const pack = sidebarPacks.value.find(p => p.id === selectedPackId.value);
         if (pack) return pack.title;
     }
-    if (selectedIdolId.value === null) return __('common.all');
+    if (selectedIdolId.value === null) return __('gallery.all_photos');
     if (selectedIdolId.value === 'mine') return __('gallery.mine');
     const idol = props.idols.find(i => i.id === selectedIdolId.value);
-    return idol?.name ?? __('common.all');
+    return idol?.name ?? __('gallery.all_photos');
 });
 
 const isFilterActive = computed(() => selectedIdolId.value !== null || selectedPackId.value !== null);
@@ -349,7 +349,7 @@ function selectPack(pack) {
                             <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
                         </svg>
                     </div>
-                    <span class="gallery-idol-item__name">{{ __('common.all') }}</span>
+                    <span class="gallery-idol-item__name">{{ __('gallery.all_photos') }}</span>
                 </button>
 
                 <!-- Мои + айдолы — единый список -->

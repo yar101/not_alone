@@ -1091,5 +1091,6 @@
     "profile.tour.usb_locale.title": "Смена языка",
     "profile.tour.usb_locale.desc": "Выбирай язык интерфейса (русский/английский) в один клик.",
     "profile.tour.progressText": "{{current}} из {{total}}",
-    "gallery.new_packs": "Новое"
+    "gallery.new_packs": "Новые паки",
+    "gallery.all_photos": "Все фото"
 }
