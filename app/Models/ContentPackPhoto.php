@@ -20,7 +20,7 @@ class ContentPackPhoto extends Model
 
     public function getUrlAttribute(): string
     {
-        return \Illuminate\Support\Facades\Storage::temporaryUrl($this->path, now()->addMinutes(60));
+        return \Illuminate\Support\Facades\Storage::url($this->path);
     }
 
     public function contentPack(): BelongsTo
