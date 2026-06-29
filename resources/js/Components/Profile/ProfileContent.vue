@@ -1398,7 +1398,7 @@ const ownerSortOptions = computed(() => [
 }
 
 .pc-card__title {
-    font-size: 1.15rem;
+    font-size: clamp(0.95rem, 2.5vw + 0.4rem, 1.15rem);
     font-weight: 600;
     color: rgba(255, 255, 255, 0.88);
     line-height: 1.3;
