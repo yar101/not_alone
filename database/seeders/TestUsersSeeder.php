@@ -17,7 +17,7 @@ class TestUsersSeeder extends Seeder
         $password = Hash::make('123123');
         $purchasesMade = 0;
 
-        for ($i = 1; $i <= 20; $i++) {
+        for ($i = 1; $i <= 100; $i++) {
             $isIdol = $i % 2 === 0;
             $gender = $isIdol ? 'female' : 'male';
             $user = User::updateOrCreate(
