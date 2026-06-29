@@ -692,8 +692,21 @@ function selectPack(pack) {
 }
 
 .gallery-idol-item__avatar--mine { background: linear-gradient(135deg, var(--color-base-1), #8762ef); color: #fff; }
-.gallery-idol-item__avatar--new { background: linear-gradient(135deg, var(--color-base-1), #ffb2ef); color: #000; box-shadow: 0 0 10px rgba(255, 178, 239, 0.2); }
-.gallery-idol-item__avatar--all { background: rgba(255,255,255,0.1); color: #fff; }
+.gallery-idol-item__avatar--new { 
+    background: rgba(255, 178, 239, 0.2); 
+    backdrop-filter: blur(10px); 
+    -webkit-backdrop-filter: blur(10px); 
+    border: 1px dashed rgba(255, 178, 239, 0.4); 
+    color: var(--color-base-1); 
+    box-shadow: inset 0 0 10px rgba(255, 178, 239, 0.1); 
+}
+.gallery-idol-item__avatar--all { 
+    background: rgba(255, 255, 255, 0.05); 
+    backdrop-filter: blur(10px); 
+    -webkit-backdrop-filter: blur(10px); 
+    border: 1px dashed rgba(255, 255, 255, 0.2); 
+    color: rgba(255,255,255,0.8); 
+}
 
 .gallery-idol-item__avatar img {
     width: 100%;
@@ -757,8 +770,11 @@ function selectPack(pack) {
 .gallery-pack-item__cover img.gallery-pack-item__cover-img--loaded { opacity: 1; }
 
 .gallery-pack-item__new-badge {
-    background: var(--color-base-1);
-    color: #000;
+    background: rgba(255, 178, 239, 0.15);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 178, 239, 0.3);
+    color: var(--color-base-1);
     padding: 2px 6px;
     border-radius: 6px;
     font-size: 0.6rem;
