@@ -127,6 +127,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware(['auth', 'verified', 'not_banned'])->group(function () {
     Route::post('/content-packs',                     [ContentPackController::class, 'store'])->name('content-packs.store');
     Route::post('/content-packs/purchase',            [ContentPackPurchaseController::class, 'store'])->name('content-packs.purchase');
+    Route::post('/content-packs/{pack}/view',         [ContentPackPurchaseController::class, 'markAsViewed'])->name('content-packs.view');
     Route::patch('/content-packs/{pack}',             [ContentPackController::class, 'update'])->name('content-packs.update');
     Route::post('/content-packs/{pack}/publish',             [ContentPackController::class, 'publish'])->name('content-packs.publish');
     Route::post('/content-packs/{pack}/toggle-visibility',  [ContentPackController::class, 'toggleVisibility'])->name('content-packs.toggle-visibility');

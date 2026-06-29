@@ -14,11 +14,13 @@ class ContentPackPurchase extends Model
         'user_id',
         'price_paid',
         'purchased_at',
+        'viewed_at',
     ];
 
     protected $casts = [
         'price_paid'   => 'integer',
         'purchased_at' => 'datetime',
+        'viewed_at'    => 'datetime',
     ];
 
     public function contentPack(): BelongsTo

@@ -288,7 +288,11 @@ class UserProfileController extends Controller
                 }
                 return ContentPackPurchase::where('user_id', $authUser->id)
                     ->whereHas('contentPack', fn ($q) => $q->where('user_id', $user->id))
-                    ->pluck('content_pack_id')
+                    ->get()
+                    ->map(fn ($p) => [
+                        'id' => $p->content_pack_id,
+                        'is_new' => is_null($p->viewed_at),
+                    ])
                     ->toArray();
             }, 'content'),
 

@@ -50,4 +50,14 @@ class ContentPackPurchaseController extends Controller
 
         return response()->json(['success' => true, 'purchased' => $created]);
     }
+
+    public function markAsViewed(Request $request, ContentPack $pack): JsonResponse
+    {
+        ContentPackPurchase::where('user_id', $request->user()->id)
+            ->where('content_pack_id', $pack->id)
+            ->whereNull('viewed_at')
+            ->update(['viewed_at' => now()]);
+
+        return response()->json(['success' => true]);
+    }
 }

@@ -41,6 +41,11 @@ const detailPack = ref(null);
 function openDetail(pack) {
     detailPack.value = pack;
     showDetailModal.value = true;
+    
+    if (isNewPack(pack.id)) {
+        localNewPackIds.value.delete(pack.id);
+        axios.post(route('content-packs.view', pack.id)).catch(err => console.error('Failed to mark pack as viewed:', err));
+    }
 }
 function closeDetail() {
     showDetailModal.value = false;
@@ -247,12 +252,22 @@ watch(() => props.contentPacks, (val) => {
     }
 }, { immediate: true });
 
+const localNewPackIds = ref(new Set());
+
 watch(() => props.purchasedPackIds, (val) => {
-    localPurchasedIds.value = val ?? [];
+    const raw = val ?? [];
+    if (raw.length > 0 && typeof raw[0] === 'object') {
+        localPurchasedIds.value = raw.map(p => p.id);
+        localNewPackIds.value = new Set(raw.filter(p => p.is_new).map(p => p.id));
+    } else {
+        localPurchasedIds.value = raw;
+        localNewPackIds.value = new Set();
+    }
 }, { immediate: true });
 
 const displayPacks = () => localPacks.value ?? props.contentPacks;
 const displayPurchasedIds = () => localPurchasedIds.value;
+const isNewPack = (packId) => localNewPackIds.value.has(packId);
 
 // For owner: has_remarks → pending change request → approved → rest
 const STATUS_PRIORITY = { has_remarks: 0, approved: 2 };
@@ -272,6 +287,16 @@ const ownerPacksSorted = computed(() => {
             if (aHidden !== bHidden) return aHidden - bHidden;
         }
         return packPriority(a) - packPriority(b);
+    });
+});
+
+const guestPacksSorted = computed(() => {
+    const packs = displayPacks();
+    if (!packs) return packs;
+    return [...packs].sort((a, b) => {
+        const aNew = localNewPackIds.value.has(a.id) ? 1 : 0;
+        const bNew = localNewPackIds.value.has(b.id) ? 1 : 0;
+        return bNew - aNew;
     });
 });
 
@@ -598,11 +623,11 @@ const ownerSortOptions = computed(() => [
                     <SortDropdown :options="sortOptions" v-model="sort" @update:modelValue="onSortChange" />
                 </div>
 
-                <div v-if="displayPacks() !== null && !displayPacks().length && !loading" class="pc-empty">
+                <div v-if="guestPacksSorted !== null && !guestPacksSorted.length && !loading" class="pc-empty">
                     <p>{{ __('profile.content.no_published') }}</p>
                 </div>
                 <div v-else class="pc-grid">
-                    <div v-for="pack in displayPacks()" :key="pack.id" class="pc-card pc-card--visitor"
+                    <div v-for="pack in guestPacksSorted" :key="pack.id" class="pc-card pc-card--visitor"
                         @click="openDetail(pack)">
                         <div class="pc-card__cover">
                             <div v-if="pack.cover_url && !coverLoaded[pack.id] && !coverError[pack.id]" class="pc-cover-shimmer" />
@@ -611,6 +636,7 @@ const ownerSortOptions = computed(() => [
                                 :ref="el => { if (el?.complete && el.naturalWidth > 0) coverLoaded[pack.id] = true }"
                                 @load="coverLoaded[pack.id] = true" @error="coverError[pack.id] = true" />
                             <div v-if="!pack.cover_url || coverError[pack.id]" class="pc-card__cover-placeholder" />
+                            <div v-if="isNewPack(pack.id)" class="pc-card__new-badge">New</div>
                             <div class="pc-card__photo-badge">
                                 <el-icon :size="18">
                                     <Picture />
@@ -1298,6 +1324,8 @@ const ownerSortOptions = computed(() => [
     align-items: center;
     gap: 0.4rem;
     background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.22);
     color: rgba(255, 255, 255, 0.9);
     font-size: 0.88rem;
@@ -1358,6 +1386,22 @@ const ownerSortOptions = computed(() => [
     border: 1px dashed rgba(255, 255, 255, 0.12);
     border-radius: 6px;
     box-sizing: border-box;
+}
+
+.pc-card__new-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: #ff4757;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(255, 71, 87, 0.4);
+    z-index: 2;
 }
 
 .pc-card__photo-badge {
