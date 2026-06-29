@@ -406,11 +406,9 @@ function selectPack(pack) {
                                         :class="{ 'gallery-pack-item__cover-img--loaded': packCoverLoaded[pack.id] }"
                                         @load="packCoverLoaded[pack.id] = true"
                                     />
-                                    <div v-if="pack.is_new" class="gallery-pack-item__new-badge">NEW</div>
                                 </template>
                                 <template v-else>
                                     <span class="gallery-pack-item__cover-empty" />
-                                    <div v-if="pack.is_new" class="gallery-pack-item__new-badge">NEW</div>
                                 </template>
                             </div>
                             <div class="gallery-pack-item__info">
@@ -419,6 +417,7 @@ function selectPack(pack) {
                                 </span>
                                 <span class="gallery-pack-item__count">{{ __('pack.photos', { count: pack.photo_count }) }}</span>
                             </div>
+                            <div v-if="pack.is_new" class="gallery-pack-item__new-badge">NEW</div>
                         </button>
                         <button
                             v-if="hasMorePacks && !packsLoading"
@@ -689,11 +688,11 @@ function selectPack(pack) {
 .gallery-sidebar-divider {
     height: 1px;
     background: rgba(255, 255, 255, 0.08);
-    margin: 0.5rem 1rem;
+    margin: 0.5rem 0;
 }
 
 .gallery-idol-item__avatar--mine { background: linear-gradient(135deg, var(--color-base-1), #8762ef); color: #fff; }
-.gallery-idol-item__avatar--new { background: linear-gradient(135deg, #ff4757, #ff6b81); color: #fff; box-shadow: 0 0 10px rgba(255, 71, 87, 0.4); }
+.gallery-idol-item__avatar--new { background: linear-gradient(135deg, var(--color-base-1), #ffb2ef); color: #000; box-shadow: 0 0 10px rgba(255, 178, 239, 0.2); }
 .gallery-idol-item__avatar--all { background: rgba(255,255,255,0.1); color: #fff; }
 
 .gallery-idol-item__avatar img {
@@ -712,7 +711,6 @@ function selectPack(pack) {
 /* ── Sidebar pack sub-list ───────────────────────────────── */
 .gallery-pack-list {
     padding: 2px 0 4px;
-    border-left: 1px solid rgba(255, 178, 239,0.12);
     margin-left: 25px;
 }
 
@@ -757,20 +755,17 @@ function selectPack(pack) {
     transition: opacity 0.3s;
 }
 .gallery-pack-item__cover img.gallery-pack-item__cover-img--loaded { opacity: 1; }
+
 .gallery-pack-item__new-badge {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    background: #ff4757;
-    color: #fff;
+    background: var(--color-base-1);
+    color: #000;
     padding: 2px 6px;
     border-radius: 6px;
     font-size: 0.6rem;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    box-shadow: 0 2px 8px rgba(255, 71, 87, 0.5);
-    z-index: 2;
+    flex-shrink: 0;
 }
 
 .gallery-pack-item__cover-shimmer {
