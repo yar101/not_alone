@@ -4,7 +4,7 @@ import { Head, Link } from "@inertiajs/vue3";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import UserCard from "@/Components/UserCard.vue";
 import { useTranslations } from "@/composables/useTranslations";
-import { ArrowLeft, ArrowRight, Search } from "@element-plus/icons-vue";
+import { ArrowLeft, ArrowRight, Search, Star } from "@element-plus/icons-vue";
 
 const { __, transChoice } = useTranslations();
 
@@ -50,7 +50,7 @@ const filteredIdols = computed(() => {
             </div>
 
             <div v-else class="empty-state">
-                <div class="empty-icon">⭐</div>
+                <el-icon class="empty-icon"><Star /></el-icon>
                 <p class="empty-text">Вы пока никого не отслеживаете</p>
                 <Link :href="route('users.search')" class="find-btn">
                     Найти айдолов
@@ -151,17 +151,20 @@ const filteredIdols = computed(() => {
     justify-content: center;
     padding: 6rem 2rem;
     text-align: center;
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(20, 15, 30, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-radius: 20px;
-    border: 1px dashed rgba(255, 255, 255, 0.1);
+    border: 1px dashed rgba(255, 178, 239, 0.3);
+    box-shadow: inset 0 0 40px rgba(255, 178, 239, 0.05);
 }
 
 .empty-icon {
-    font-size: 4rem;
+    font-size: 5rem;
     margin-bottom: 1.5rem;
-    filter: drop-shadow(
-        0 0 20px color-mix(in srgb, var(--color-base-1), transparent 80%)
-    );
+    color: var(--color-base-1);
+    filter: drop-shadow(0 0 20px rgba(255, 178, 239, 0.6));
+    opacity: 0.9;
 }
 
 .empty-text {
