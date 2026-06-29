@@ -33,9 +33,12 @@ class GalleryController extends Controller
             ])
             ->values();
 
+        $hasNewPacks = ContentPackPurchase::where('user_id', $userId)->whereNull('viewed_at')->exists();
+
         return Inertia::render('Gallery/Index', [
-            'idols'   => $idols,
-            'is_idol' => (bool) $user->is_idol,
+            'idols'         => $idols,
+            'is_idol'       => (bool) $user->is_idol,
+            'has_new_packs' => $hasNewPacks,
         ]);
     }
 
@@ -49,6 +52,7 @@ class GalleryController extends Controller
         $perPage = 24;
 
         $packId  = $request->input('pack_id');
+        $isNew   = $request->boolean('is_new');
 
         // Idol viewing their own content pack photos
         if ($mine && $user->is_idol) {
@@ -95,6 +99,7 @@ class GalleryController extends Controller
                      ->where('content_pack_purchases.user_id', '=', $userId);
             })
             ->where('content_packs.status', 'published')
+            ->when($isNew, fn ($q) => $q->whereNull('content_pack_purchases.viewed_at'))
             ->when($idolId, fn ($q) => $q->where('content_packs.user_id', $idolId))
             ->when($packId, fn ($q) => $q->where('content_pack_photos.content_pack_id', $packId))
             ->when($cursor, fn ($q) => $q->where('content_pack_photos.id', '<', $cursor))
@@ -135,6 +140,7 @@ class GalleryController extends Controller
         $user    = auth()->user();
         $idolId  = $request->input('idol_id');
         $mine    = $request->boolean('mine');
+        $isNew   = $request->boolean('is_new');
         $cursor  = $request->input('cursor');
         $perPage = 20;
 
@@ -146,13 +152,26 @@ class GalleryController extends Controller
                 ->orderByDesc('id');
         } else {
             $query = ContentPack::withTrashed()
-                ->whereHas('purchases', fn ($q) => $q->where('user_id', $userId))
+                ->whereHas('purchases', fn ($q) => $q->where('user_id', $userId)->when($isNew, fn ($q2) => $q2->whereNull('viewed_at')))
+                ->with(['purchases' => fn ($q) => $q->where('user_id', $userId)])
                 ->where('status', 'published')
                 ->when($idolId, fn ($q) => $q->where('user_id', $idolId))
                 ->with('coverPhoto')
-                ->withCount('photos')
-                ->when($cursor, fn ($q) => $q->where('id', '<', $cursor))
-                ->orderByDesc('id');
+                ->withCount('photos');
+
+            if ($isNew) {
+                // To sort by purchased_at correctly with pagination, we join purchases
+                $query->join('content_pack_purchases', function ($join) use ($userId) {
+                    $join->on('content_pack_purchases.content_pack_id', '=', 'content_packs.id')
+                         ->where('content_pack_purchases.user_id', '=', $userId);
+                })
+                ->select('content_packs.*', 'content_pack_purchases.purchased_at', 'content_pack_purchases.id as purchase_id')
+                ->when($cursor, fn ($q) => $q->where('content_pack_purchases.id', '<', $cursor))
+                ->orderByDesc('content_pack_purchases.id');
+            } else {
+                $query->when($cursor, fn ($q) => $q->where('id', '<', $cursor))
+                      ->orderByDesc('id');
+            }
         }
 
         $packs   = $query->limit($perPage + 1)->get();
@@ -167,8 +186,9 @@ class GalleryController extends Controller
                 'title'       => $p->title,
                 'photo_count' => $p->photos_count,
                 'cover_url'   => $p->cover_url,
+                'is_new'      => !$mine && $p->purchases && $p->purchases->first() && is_null($p->purchases->first()->viewed_at),
             ])->values(),
-            'next_cursor' => $hasMore ? $packs->last()?->id : null,
+            'next_cursor' => $hasMore ? ($isNew && !$mine ? $packs->last()?->purchase_id : $packs->last()?->id) : null,
             'has_more'    => $hasMore,
         ]);
     }

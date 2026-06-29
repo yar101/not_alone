@@ -13,6 +13,7 @@ defineOptions({ layout: AppLayout });
 const props = defineProps({
     idols:   { type: Array,   default: () => [] },
     is_idol: { type: Boolean, default: false },
+    has_new_packs: { type: Boolean, default: false },
 });
 
 // ── Sidebar filter ────────────────────────────────────────
@@ -29,6 +30,9 @@ const filteredIdols = computed(() => {
 // Единый список для сайдбара: "Мои" (если айдол) + все айдолы
 const sidebarItems = computed(() => {
     const items = [];
+    if (props.has_new_packs) {
+        items.push({ id: 'new', name: __('gallery.new_packs') || 'Новое', type: 'new', avatar_url: null });
+    }
     if (props.is_idol) {
         items.push({ id: 'mine', name: __('gallery.mine'), type: 'mine', avatar_url: null });
     }
@@ -68,10 +72,12 @@ async function loadSidebarPacks(append = false) {
     packsLoading.value = true;
     try {
         const isMine = selectedIdolId.value === 'mine';
+        const isNew  = selectedIdolId.value === 'new';
         const { data } = await axios.get(route('gallery.packs'), {
             params: {
-                idol_id: (!isMine && selectedIdolId.value) ? selectedIdolId.value : undefined,
+                idol_id: (!isMine && !isNew && selectedIdolId.value) ? selectedIdolId.value : undefined,
                 mine:    isMine ? true : undefined,
+                is_new:  isNew ? true : undefined,
                 cursor:  append ? nextPacksCursor.value : undefined,
             },
         });
@@ -110,10 +116,12 @@ async function loadPhotos() {
     loading.value = true;
     try {
         const isMine = selectedIdolId.value === 'mine';
+        const isNew  = selectedIdolId.value === 'new';
         const { data } = await axios.get(route('gallery.photos'), {
             params: {
-                idol_id: (!isMine && selectedIdolId.value) ? selectedIdolId.value : undefined,
+                idol_id: (!isMine && !isNew && selectedIdolId.value) ? selectedIdolId.value : undefined,
                 mine:    isMine ? true : undefined,
+                is_new:  isNew ? true : undefined,
                 pack_id: selectedPackId.value ?? undefined,
                 cursor:  nextCursor.value ?? undefined,
             },
@@ -225,8 +233,12 @@ function selectIdolItem(id) {
     selectedPackId.value = null;
 }
 
-function selectPack(id) {
-    selectedPackId.value = id;
+function selectPack(pack) {
+    selectedPackId.value = pack.id;
+    if (pack.is_new) {
+        pack.is_new = false;
+        axios.post(route('content-packs.view', pack.id)).catch(err => console.error('Failed to mark pack as viewed:', err));
+    }
     closeFilters();
 }
 </script>
@@ -376,7 +388,7 @@ function selectPack(id) {
                             :key="pack.id"
                             class="gallery-pack-item"
                             :class="{ 'gallery-pack-item--active': selectedPackId === pack.id }"
-                            @click="selectPack(pack.id)"
+                            @click="selectPack(pack)"
                         >
                             <div class="gallery-pack-item__cover">
                                 <template v-if="pack.cover_url">
@@ -391,7 +403,10 @@ function selectPack(id) {
                                 <span v-else class="gallery-pack-item__cover-empty" />
                             </div>
                             <div class="gallery-pack-item__info">
-                                <span class="gallery-pack-item__title">{{ pack.title }}</span>
+                                <span class="gallery-pack-item__title">
+                                    {{ pack.title }}
+                                    <span v-if="pack.is_new" class="gallery-pack-item__badge">NEW</span>
+                                </span>
                                 <span class="gallery-pack-item__count">{{ __('pack.photos', { count: pack.photo_count }) }}</span>
                             </div>
                         </button>
