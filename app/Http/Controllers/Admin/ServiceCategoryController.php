@@ -117,16 +117,16 @@ class ServiceCategoryController extends Controller
 
         if ($request->boolean('remove_image') && !$request->hasFile('image')) {
             if ($category->image_path) {
-                Storage::disk('public')->delete($category->image_path);
+                Storage::delete($category->image_path);
             }
             $category->update(['image_path' => null]);
         } elseif ($request->hasFile('image')) {
             $request->validate(['image' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:4096']]);
             if ($category->image_path) {
-                Storage::disk('public')->delete($category->image_path);
+                Storage::delete($category->image_path);
             }
             $ext  = $request->file('image')->getClientOriginalExtension() ?: 'jpg';
-            $path = $request->file('image')->storeAs('service-categories', "{$category->id}.{$ext}", 'public');
+            $path = $request->file('image')->storeAs('service-categories', "{$category->id}.{$ext}");
             $category->update(['image_path' => $path]);
         }
 
@@ -136,7 +136,7 @@ class ServiceCategoryController extends Controller
     public function destroy(ServiceCategory $category): RedirectResponse
     {
         if ($category->image_path) {
-            Storage::disk('public')->delete($category->image_path);
+            Storage::delete($category->image_path);
         }
         $category->delete();
 

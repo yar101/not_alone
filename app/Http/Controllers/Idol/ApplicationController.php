@@ -73,7 +73,7 @@ class ApplicationController extends Controller
             'face_photo' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
         ]);
 
-        $path = $request->file('face_photo')->store('idol-photos', 'public');
+        $path = $request->file('face_photo')->store('idol-photos');
 
         IdolApplication::create([
             'user_id' => $user->id,

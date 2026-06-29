@@ -112,6 +112,31 @@ class SupportChatController extends Controller
         ]);
     }
 
+    private function storeFile(Request $request, Conversation $conversation): ?Message
+    {
+        $path = $request->file('file')->store("chat/{$conversation->id}");
+
+        $admin = auth('admin')->user();
+
+        $msg = $conversation->messages()->create([
+            'sender_id' => null,
+            'body'      => '',
+            'type'      => 'image',
+            'metadata'  => [
+                'admin_id'  => $admin->id,
+                'admin_name' => self::ADMIN_NAME,
+                'image_url' => Storage::url($path),
+            ],
+        ]);
+
+        $conversation->touch();
+        $msg->load('sender');
+
+        $this->broadcastToAll($conversation, $msg);
+
+        return $msg;
+    }
+
     public function send(Request $request, Conversation $conversation): JsonResponse
     {
         $request->validate(['body' => ['required', 'string', 'max:5000']]);
@@ -139,7 +164,7 @@ class SupportChatController extends Controller
             'file' => ['required', 'file', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
         ]);
 
-        $path = $request->file('file')->store("chat/{$conversation->id}", 'public');
+        $path = $request->file('file')->store("chat/{$conversation->id}");
 
         return response()->json(['url' => Storage::url($path)]);
     }

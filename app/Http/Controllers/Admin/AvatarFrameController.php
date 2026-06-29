@@ -44,7 +44,7 @@ class AvatarFrameController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        $path = $request->file('image')->store('avatar_frames', 'public');
+        $path = $request->file('image')->store('avatar_frames');
 
         AvatarFrame::create([
             'name' => $validated['name'],
@@ -72,8 +72,8 @@ class AvatarFrameController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            Storage::disk('public')->delete($avatarFrame->image_path);
-            $avatarFrame->image_path = $request->file('image')->store('avatar_frames', 'public');
+            Storage::delete($avatarFrame->image_path);
+            $avatarFrame->image_path = $request->file('image')->store('avatar_frames');
         }
 
         $avatarFrame->update([
@@ -90,7 +90,7 @@ class AvatarFrameController extends Controller
 
     public function destroy(AvatarFrame $avatarFrame)
     {
-        Storage::disk('public')->delete($avatarFrame->image_path);
+        Storage::delete($avatarFrame->image_path);
         $avatarFrame->delete();
 
         return redirect()->back()->with('success', 'Рамка удалена');

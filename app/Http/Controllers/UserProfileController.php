@@ -412,7 +412,7 @@ class UserProfileController extends Controller
         $request->validate(['voice' => ['required', 'file', 'mimes:webm,mp4,ogg', 'max:5120']]);
         $user  = $request->user();
         $ext   = $request->file('voice')->getClientOriginalExtension() ?: 'webm';
-        $path  = $request->file('voice')->storeAs('voices', "{$user->id}.{$ext}", 'public');
+        $path  = $request->file('voice')->storeAs('voices', "{$user->id}.{$ext}");
         $user->update(['voice_path' => $path]);
         return back();
     }
@@ -421,7 +421,7 @@ class UserProfileController extends Controller
     {
         $user = $request->user();
         if ($user->voice_path) {
-            Storage::disk('public')->delete($user->voice_path);
+            Storage::disk(config('filesystems.default'))->delete($user->voice_path);
             $user->update(['voice_path' => null]);
         }
         return back();
@@ -445,7 +445,7 @@ class UserProfileController extends Controller
         $user = $request->user();
 
         if ($user->avatar_path) {
-            Storage::disk('public')->delete($user->avatar_path);
+            Storage::disk(config('filesystems.default'))->delete($user->avatar_path);
         }
 
         $file = $request->file('avatar');
@@ -497,7 +497,7 @@ class UserProfileController extends Controller
         imagejpeg($newImg, null, 70);
         $imageData = ob_get_clean();
         
-        Storage::disk('public')->put($path, $imageData);
+        Storage::disk(config('filesystems.default'))->put($path, $imageData);
 
         imagedestroy($img);
         imagedestroy($newImg);
@@ -511,7 +511,7 @@ class UserProfileController extends Controller
     {
         $user = $request->user();
         if ($user->avatar_path) {
-            Storage::disk('public')->delete($user->avatar_path);
+            Storage::disk(config('filesystems.default'))->delete($user->avatar_path);
             $user->update(['avatar_path' => null]);
         }
         return back();
@@ -584,13 +584,13 @@ class UserProfileController extends Controller
                 imagejpeg($newImg, null, 70);
                 $imageData = ob_get_clean();
 
-                Storage::disk('public')->put($photoPath, $imageData);
+                Storage::disk(config('filesystems.default'))->put($photoPath, $imageData);
                 imagedestroy($img);
                 imagedestroy($newImg);
             } else {
                 // Fallback to regular store if GD fails
                 $ext       = $file->getClientOriginalExtension() ?: 'jpg';
-                $photoPath = $file->storeAs("posts/{$user->id}", time() . '.' . $ext, 'public');
+                $photoPath = $file->storeAs("posts/{$user->id}", time() . '.' . $ext);
             }
         }
         $post = Post::create([
@@ -608,7 +608,7 @@ class UserProfileController extends Controller
     {
         abort_if($post->user_id !== $request->user()->id, 403);
         if ($post->photo_path) {
-            Storage::disk('public')->delete($post->photo_path);
+            Storage::disk(config('filesystems.default'))->delete($post->photo_path);
         }
         $post->delete();
         return back();
