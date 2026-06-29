@@ -320,7 +320,7 @@ onUnmounted(() => {
                                 initials
                             }}</span>
                             </div>
-                            <img v-if="user.active_frame_path" :src="'/storage/' + user.active_frame_path" class="applayout-active-frame" alt="" />
+                            <img v-if="user.active_frame_url || user.active_frame_path" :src="user.active_frame_url || ('/storage/' + user.active_frame_path)" class="applayout-active-frame" alt="" />
                         </div>
                         <span class="user-name-clip">
                             <span class="user-name">{{ user.name }}</span>

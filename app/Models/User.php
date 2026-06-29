@@ -53,7 +53,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'remember_token',
     ];
 
-    protected $appends = ['age', 'avatar_url'];
+    protected $appends = ['age', 'avatar_url', 'active_frame_url'];
 
     protected function casts(): array
     {
@@ -86,6 +86,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getAvatarUrlAttribute(): ?string
     {
         return $this->avatar_path ? Storage::url($this->avatar_path) : null;
+    }
+
+    public function getActiveFrameUrlAttribute(): ?string
+    {
+        return $this->active_frame_path ? Storage::url($this->active_frame_path) : null;
     }
 
     public function traits(): BelongsToMany

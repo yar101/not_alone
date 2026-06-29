@@ -29,8 +29,11 @@ const props = defineProps({
 const { __ } = useTranslations();
 
 const avatarUrl = computed(() => {
-    if (!props.user.avatar_path) return null;
-    return "/storage/" + props.user.avatar_path;
+    return props.user.avatar_url || (props.user.avatar_path ? "/storage/" + props.user.avatar_path : null);
+});
+
+const activeFrameUrl = computed(() => {
+    return props.user.active_frame_url || (props.user.active_frame_path ? "/storage/" + props.user.active_frame_path : null);
 });
 
 const initial = computed(() => {
@@ -45,8 +48,7 @@ const initial = computed(() => {
                 class="card-avatar__img" />
             <span v-else class="card-avatar__initials">{{ initial }}</span>
         </div>
-
-        <img v-if="user.active_frame_path" :src="'/storage/' + user.active_frame_path" class="user-active-frame" alt="" />
+        <img v-if="activeFrameUrl" :src="activeFrameUrl" class="user-active-frame" alt="" />
 
         <div v-if="showNewbieBadge && user.is_idol && user.is_newbie" class="newbie-badge" @click.prevent.stop>
             <el-tooltip :trigger="['hover', 'click']" placement="top" effect="dark" popper-class="newbie-dark-tooltip">
