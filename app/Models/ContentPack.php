@@ -50,7 +50,7 @@ class ContentPack extends Model
         }
 
         return $path 
-            ? URL::temporarySignedRoute('media.serve', now()->addMinutes(60), ['path' => $path])
+            ? \Illuminate\Support\Facades\Storage::temporaryUrl($path, now()->addMinutes(60))
             : null;
     }
 
