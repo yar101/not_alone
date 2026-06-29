@@ -692,7 +692,7 @@ function selectPack(pack) {
     margin: 0.5rem 0;
 }
 
-.gallery-idol-item__avatar--mine { background: linear-gradient(135deg, var(--color-base-1), #8762ef); color: #fff; }
+.gallery-idol-item__avatar--mine,
 .gallery-idol-item__avatar--new,
 .gallery-idol-item__avatar--all { 
     background: rgba(255, 255, 255, 0.05); 
