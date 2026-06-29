@@ -693,20 +693,14 @@ function selectPack(pack) {
 }
 
 .gallery-idol-item__avatar--mine { background: linear-gradient(135deg, var(--color-base-1), #8762ef); color: #fff; }
-.gallery-idol-item__avatar--new { 
-    background: rgba(255, 178, 239, 0.2); 
-    backdrop-filter: blur(10px); 
-    -webkit-backdrop-filter: blur(10px); 
-    border: 1px solid rgba(255, 178, 239, 0.4); 
-    color: var(--color-base-1); 
-    box-shadow: inset 0 0 10px rgba(255, 178, 239, 0.1); 
-}
+.gallery-idol-item__avatar--new,
 .gallery-idol-item__avatar--all { 
     background: rgba(255, 255, 255, 0.05); 
     backdrop-filter: blur(10px); 
     -webkit-backdrop-filter: blur(10px); 
     border: 1px solid rgba(255, 255, 255, 0.15); 
     color: rgba(255,255,255,0.8); 
+    box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.02); 
 }
 
 .gallery-idol-item__avatar img {
