@@ -44,6 +44,7 @@ const sidebarItems = computed(() => {
 
 // ── Sidebar pack sub-list ─────────────────────────────────
 const selectedPackId    = ref(null);
+const expandedIdolId    = ref(null);
 const sidebarPacks      = ref([]);
 const packCoverLoaded   = reactive({});
 const packsLoading      = ref(false);
@@ -62,11 +63,13 @@ async function loadSidebarPacks(append = false) {
             sidebarPacks.value    = [...cached.packs];
             hasMorePacks.value    = cached.hasMore;
             nextPacksCursor.value = cached.nextCursor;
+            expandedIdolId.value  = selectedIdolId.value;
             return;
         }
         sidebarPacks.value    = [];
         hasMorePacks.value    = false;
         nextPacksCursor.value = null;
+        expandedIdolId.value  = null;
     }
 
     packsLoading.value = true;
@@ -93,6 +96,9 @@ async function loadSidebarPacks(append = false) {
         console.error(e);
     } finally {
         packsLoading.value = false;
+        if (!append && sidebarPacks.value.length > 0) {
+            expandedIdolId.value = selectedIdolId.value;
+        }
     }
 }
 
@@ -384,13 +390,14 @@ function selectPack(pack) {
                             </template>
                         </div>
                         <span class="gallery-idol-item__name">{{ item.name }}</span>
+                        <div v-if="packsLoading && selectedIdolId === item.id" style="margin-left: auto;">
+                            <div class="gallery-loading__spinner--sm" />
+                        </div>
                     </button>
 
                     <!-- Pack sub-list (одинаковый для всех пунктов) -->
-                    <div v-if="selectedIdolId === item.id" class="gallery-pack-list">
-                        <div v-if="packsLoading" class="gallery-pack-list__loading">
-                            <div class="gallery-loading__spinner gallery-loading__spinner--sm" />
-                        </div>
+                    <Transition name="pack-list">
+                        <div v-if="expandedIdolId === item.id" class="gallery-pack-list">
                         <button
                             v-for="pack in sidebarPacks"
                             :key="pack.id"
@@ -430,7 +437,8 @@ function selectPack(pack) {
                         <div v-if="packsLoading && sidebarPacks.length" class="gallery-pack-list__loading">
                             <div class="gallery-loading__spinner--sm" />
                         </div>
-                    </div>
+                        </div>
+                    </Transition>
                 </template>
 
             </div>
@@ -772,6 +780,22 @@ function selectPack(pack) {
     box-shadow: inset 0 0 0 1px rgba(255, 178, 239, 0.15);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
+}
+
+/* ── Transitions ─────────────────────────────────────────── */
+.pack-list-enter-active,
+.pack-list-leave-active {
+    transition: max-height 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.25s ease, padding 0.3s ease;
+    max-height: 1000px;
+    overflow: hidden;
+    opacity: 1;
+}
+.pack-list-enter-from,
+.pack-list-leave-to {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
 }
 
 .gallery-pack-item__cover {
