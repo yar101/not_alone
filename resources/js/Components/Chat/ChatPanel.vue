@@ -95,6 +95,15 @@ const convUnreadOnly = ref(false);
 const orderUnreadOnly = ref(false);
 
 const isMobile = ref(false);
+// Separate mobile nav state from data state to prevent flash
+// 'list' = show sidebar, 'detail' = show conversation
+const mobileView = ref('list');
+let mobileViewTimer = null;
+
+function setMobileView(view) {
+    if (mobileViewTimer) clearTimeout(mobileViewTimer);
+    mobileView.value = view;
+}
 function checkMobile() {
     isMobile.value = window.innerWidth < 768;
 }
@@ -381,6 +390,14 @@ const filteredConversations = computed(() => conversations.value);
 async function openConversation(conv) {
     if (activeConversation.value?.id === conv.id && conv.id !== "draft") return;
     leaveEcho();
+
+    if (isMobile.value) {
+        // On mobile: first slide the panel in (empty/clean), then load
+        setMobileView('detail');
+        // Wait for slide animation to complete before showing any content
+        await new Promise(r => setTimeout(r, 300));
+    }
+
     loadingMsgs.value = true;
     activeConversation.value = conv;
     messages.value = [];
@@ -391,8 +408,6 @@ async function openConversation(conv) {
 
     if (conv.is_draft) {
         loadingMsgs.value = false;
-        coverMessages.value = true;
-        setTimeout(() => (coverMessages.value = false), 80);
         return;
     }
 
@@ -424,16 +439,12 @@ async function openConversation(conv) {
             ],
         });
     } finally {
-        coverMessages.value = true;
         loadingMsgs.value = false;
     }
 
     if (!conv.is_draft) subscribeEcho(conv.id);
     await nextTick();
     messagesEnd.value?.scrollIntoView({ behavior: "instant" });
-    setTimeout(() => {
-        coverMessages.value = false;
-    }, 80);
 }
 
 // ── Start conversation with user (called from outside) ───
@@ -1034,6 +1045,8 @@ watch(isOpen, (val, oldVal) => {
     if (!val && oldVal) {
         leaveEcho();
         leaveOrdersEcho();
+        if (mobileViewTimer) clearTimeout(mobileViewTimer);
+        mobileView.value = 'list';
         activeConversation.value = null;
         activeOrderData.value = null;
         searchQuery.value = "";
@@ -1127,8 +1140,19 @@ watch(
 
 function backToList() {
     leaveEcho();
-    activeConversation.value = null;
-    activeOrderData.value = null;
+    // Switch mobile view immediately so slide OUT plays with content still visible
+    if (isMobile.value) {
+        setMobileView('list');
+        // Clear data only after slide animation completes (280ms)
+        if (mobileViewTimer) clearTimeout(mobileViewTimer);
+        mobileViewTimer = setTimeout(() => {
+            activeConversation.value = null;
+            activeOrderData.value = null;
+        }, 300);
+    } else {
+        activeConversation.value = null;
+        activeOrderData.value = null;
+    }
 }
 
 // ── Orders helpers ────────────────────────────────────────
@@ -1350,7 +1374,7 @@ function formatDate(iso) {
                     class="chat-sidebar"
                     :class="{
                         'chat-sidebar--mobile-hidden':
-                            isMobile && activeConversation,
+                            isMobile && mobileView === 'detail',
                     }"
                 >
                     <div class="chat-sidebar__header">
@@ -2047,7 +2071,7 @@ function formatDate(iso) {
                     class="chat-main"
                     :class="{
                         'chat-main--mobile-hidden':
-                            isMobile && !activeConversation,
+                            isMobile && mobileView === 'list',
                     }"
                 >
                     <!-- Пусто — нет выбранного диалога -->
