@@ -390,9 +390,15 @@ const filteredConversations = computed(() => conversations.value);
 async function openConversation(conv) {
     if (activeConversation.value?.id === conv.id && conv.id !== "draft") return;
     leaveEcho();
+
+    if (isMobile.value) {
+        // On mobile: first slide the panel in (empty/clean), then load
+        setMobileView('detail');
+        // Wait for slide animation to complete before showing any content
+        await new Promise(r => setTimeout(r, 300));
+    }
+
     loadingMsgs.value = true;
-    // Switch mobile view BEFORE clearing content so slide animation has content to show
-    if (isMobile.value) setMobileView('detail');
     activeConversation.value = conv;
     messages.value = [];
     newMessage.value = "";
@@ -402,8 +408,6 @@ async function openConversation(conv) {
 
     if (conv.is_draft) {
         loadingMsgs.value = false;
-        coverMessages.value = true;
-        setTimeout(() => (coverMessages.value = false), 80);
         return;
     }
 
@@ -435,16 +439,12 @@ async function openConversation(conv) {
             ],
         });
     } finally {
-        coverMessages.value = true;
         loadingMsgs.value = false;
     }
 
     if (!conv.is_draft) subscribeEcho(conv.id);
     await nextTick();
     messagesEnd.value?.scrollIntoView({ behavior: "instant" });
-    setTimeout(() => {
-        coverMessages.value = false;
-    }, 80);
 }
 
 // ── Start conversation with user (called from outside) ───
