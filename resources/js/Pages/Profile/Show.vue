@@ -1037,8 +1037,6 @@ onMounted(async () => {
 <!-- driver.js dark theme override (non-scoped) -->
 <style>
 .driver-overlay {
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
     opacity: 0.8 !important; 
 }
 .driver-popover {
