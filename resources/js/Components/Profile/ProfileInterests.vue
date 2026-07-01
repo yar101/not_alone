@@ -135,16 +135,20 @@ function submitSuggestion() {
                                     </span>
                                     <span class="cat-arrow" :class="{ open: expandedCats.has(cat.id) }">›</span>
                                 </button>
-                                <div v-if="expandedCats.has(cat.id)" class="cat-interests">
-                                    <button
-                                        v-for="i in cat.interests"
-                                        :key="i.id"
-                                        type="button"
-                                        class="interest-btn"
-                                        :class="{ active: selected.has(i.id) }"
-                                        @click="toggleInterest(i.id)"
-                                        :disabled="!selected.has(i.id) && selected.size >= 10"
-                                    >{{ localName(i) }}</button>
+                                <div class="cat-interests-wrapper" :class="{ 'is-open': expandedCats.has(cat.id) }">
+                                    <div class="cat-interests-inner">
+                                        <div class="cat-interests">
+                                            <button
+                                                v-for="i in cat.interests"
+                                                :key="i.id"
+                                                type="button"
+                                                class="interest-btn"
+                                                :class="{ active: selected.has(i.id) }"
+                                                @click="toggleInterest(i.id)"
+                                                :disabled="!selected.has(i.id) && selected.size >= 10"
+                                            >{{ localName(i) }}</button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </template>
@@ -269,6 +273,17 @@ function submitSuggestion() {
 .cat-count { color: color-mix(in srgb, var(--color-base-1), transparent 25%); font-size: 0.8rem; margin-left: 0.4rem; }
 .cat-arrow { color: rgba(255,255,255,0.35); font-size: 1.1rem; transition: transform 0.2s; margin-left: auto; }
 .cat-arrow.open { transform: rotate(90deg); }
+.cat-interests-wrapper {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cat-interests-wrapper.is-open {
+    grid-template-rows: 1fr;
+}
+.cat-interests-inner {
+    overflow: hidden;
+}
 .cat-interests { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0.6rem 0.9rem; background: rgba(0,0,0,0.12); border-radius: 0 0 var(--profile-border-radius, 8px) var(--profile-border-radius, 8px); }
 .interest-btn {
     padding: 0.25rem 0.65rem;
