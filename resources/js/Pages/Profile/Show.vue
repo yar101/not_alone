@@ -187,19 +187,53 @@ function submitReport() {
 const TOUR_KEY = "profile_tour_done";
 let activeDriverObj = null;
 
+const tourIsActive = ref(false);
+const tourCurrentStepIndex = ref(0);
+const tourTotalSteps = ref(0);
+const showTourCloseConfirm = ref(false);
+const isMobile = ref(false);
+
+const closeTourConfirmed = () => {
+    showTourCloseConfirm.value = false;
+    if (activeDriverObj) {
+        localStorage.setItem(TOUR_KEY, "1");
+        activeDriverObj.destroy();
+    }
+};
+
 onMounted(async () => {
+    isMobile.value = window.innerWidth <= 768;
+    window.addEventListener('resize', () => {
+        isMobile.value = window.innerWidth <= 768;
+    });
+
     if (!props.isOwner) return;
     if (localStorage.getItem(TOUR_KEY)) return;
 
     const { driver } = await import("driver.js");
     await import("driver.js/dist/driver.css");
 
+    tourIsActive.value = true;
+
     activeDriverObj = driver({
         showProgress: true,
+        allowClose: false,
         progressText: __("profile.tour.progressText"),
         nextBtnText: __("profile.tour.next"),
         prevBtnText: __("profile.tour.prev"),
         doneBtnText: __("profile.tour.done"),
+        onHighlightStarted: (element, step, { state }) => {
+            tourCurrentStepIndex.value = state?.activeIndex || 0;
+            // Re-trigger resize check just in case
+            isMobile.value = window.innerWidth <= 768;
+        },
+        onDestroyStarted: () => {
+            if (!activeDriverObj.hasNextStep() || activeDriverObj.isDestroyed) {
+                activeDriverObj.destroy();
+            } else {
+                showTourCloseConfirm.value = true;
+            }
+        },
         steps: [
             {
                 element: "#tour-header",
@@ -350,29 +384,24 @@ onMounted(async () => {
                     description: __("profile.tour.usb_features.desc"),
                     side: "left",
                 },
-            },
-            {
-                element: ".usb-locale",
-                popover: {
-                    title: __("profile.tour.usb_locale.title"),
-                    description: __("profile.tour.usb_locale.desc"),
-                    side: "left",
-                    onNextClick: () => {
-                        activeDriverObj.destroy();
-                    },
-                },
                 onHighlightStarted: () => {
                     window.dispatchEvent(new CustomEvent("noalone:toggle-sidebar", { detail: true }));
                 },
             },
         ],
         onDestroyed: () => {
+            tourIsActive.value = false;
             localStorage.setItem(TOUR_KEY, "1");
             window.dispatchEvent(new CustomEvent("noalone:toggle-chat", { detail: false }));
             window.dispatchEvent(new CustomEvent("noalone:toggle-sidebar", { detail: false }));
         },
     });
 
+    // We calculate total steps by filtering out non-existent ones on mobile?
+    // Actually just use the raw array length, or the driver's internal state.
+    // However driver.js doesn't skip immediately, it evaluates them.
+    tourTotalSteps.value = 17; // 17 steps in total
+    
     activeDriverObj.drive();
 });
 </script>
@@ -981,10 +1010,37 @@ onMounted(async () => {
             </div>
         </form>
     </SiteModal>
+
+    <!-- Tour Confirm Modal -->
+    <SiteModal v-model="showTourCloseConfirm" title="Прервать обучение?">
+        <p style="color: rgba(255,255,255,0.8); margin-bottom: 1.5rem; line-height: 1.5;">Вы уверены, что хотите прервать обучение? Вы всегда сможете пройти его позже.</p>
+        <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+            <button class="report-btn-cancel" @click="closeTourCancelled">Продолжить</button>
+            <button class="report-btn-submit" @click="closeTourConfirmed">Прервать</button>
+        </div>
+    </SiteModal>
+
+    <!-- Mobile Tour Dock -->
+    <Teleport to="body">
+        <div v-if="isMobile && tourIsActive" class="mobile-tour-dock">
+            <button class="mtd-btn" @click="activeDriverObj?.movePrevious()" :disabled="tourCurrentStepIndex === 0">
+                Назад
+            </button>
+            <span class="mtd-steps">{{ tourCurrentStepIndex + 1 }} из {{ tourTotalSteps }}</span>
+            <button class="mtd-btn mtd-btn-next" @click="activeDriverObj?.moveNext()">
+                {{ tourCurrentStepIndex === tourTotalSteps - 1 ? 'Завершить' : 'Далее' }}
+            </button>
+        </div>
+    </Teleport>
 </template>
 
 <!-- driver.js dark theme override (non-scoped) -->
 <style>
+.driver-overlay {
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    opacity: 0.8 !important; 
+}
 .driver-popover {
     background: #0c0c14 !important;
     border: 1px solid rgba(255, 255, 255, 0.15) !important;
@@ -996,14 +1052,15 @@ onMounted(async () => {
     font-family: "Rubik", sans-serif !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+    max-width: 350px !important; /* Made wider for better text flow */
 }
 .driver-popover-title {
     color: #ffffff !important;
-    font-size: 1rem !important;
+    font-size: 1.15rem !important;
 }
 .driver-popover-description {
     color: rgba(255, 255, 255, 0.6) !important;
-    font-size: 0.9rem !important;
+    font-size: 1rem !important;
     line-height: 1.6 !important;
 }
 .driver-popover-footer {
@@ -1017,6 +1074,8 @@ onMounted(async () => {
     text-shadow: none !important;
     font-weight: 500 !important;
     transition: all 0.2s ease !important;
+    padding: 10px 20px !important;
+    font-size: 1rem !important;
 }
 .driver-popover-prev-btn:hover {
     background: color-mix(in srgb, var(--color-base-1), transparent 75%) !important;
@@ -1033,6 +1092,8 @@ onMounted(async () => {
     text-shadow: none !important;
     font-weight: 500 !important;
     transition: all 0.2s ease !important;
+    padding: 10px 20px !important;
+    font-size: 1rem !important;
 }
 .driver-popover-next-btn:hover,
 .driver-popover-done-btn:hover {
@@ -1046,18 +1107,64 @@ onMounted(async () => {
 }
 .driver-popover-progress-text {
     color: rgba(255, 255, 255, 0.3) !important;
+    font-size: 0.95rem !important;
 }
-.driver-popover-arrow-side-left.driver-popover-arrow {
-    border-right-color: #0c0c14 !important;
+.driver-popover-arrow {
+    display: none !important;
 }
-.driver-popover-arrow-side-right.driver-popover-arrow {
-    border-left-color: #0c0c14 !important;
+
+/* Mobile dock and hiding footer */
+@media (max-width: 768px) {
+    .driver-popover-footer {
+        display: none !important;
+    }
 }
-.driver-popover-arrow-side-top.driver-popover-arrow {
-    border-bottom-color: #0c0c14 !important;
+
+.mobile-tour-dock {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000000001; /* Above driver.js */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem;
+    background: rgba(12, 12, 20, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
 }
-.driver-popover-arrow-side-bottom.driver-popover-arrow {
-    border-top-color: #0c0c14 !important;
+
+.mtd-btn {
+    all: unset;
+    cursor: pointer;
+    background: color-mix(in srgb, var(--color-base-1), transparent 85%);
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 50%);
+    color: var(--color-base-1);
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+.mtd-btn:disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+.mtd-btn-next {
+    background: color-mix(in srgb, var(--color-base-2), transparent 85%);
+    border: 1px solid color-mix(in srgb, var(--color-base-2), transparent 50%);
+    color: var(--color-base-2);
+}
+.mtd-btn:active {
+    transform: scale(0.95);
+}
+.mtd-steps {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.95rem;
+    font-weight: 500;
 }
 </style>
 
