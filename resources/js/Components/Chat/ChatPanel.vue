@@ -3967,6 +3967,12 @@ function formatDate(iso) {
     flex-shrink: 0;
 }
 
+@media (max-width: 768px) {
+    .chat-sidebar__header {
+        flex-direction: row-reverse;
+    }
+}
+
 .chat-sidebar__title {
     font-size: 1.05rem;
     font-weight: 700;
