@@ -195,10 +195,11 @@ onUnmounted(() => {
     width: 60%;
     height: 80%;
     max-height: 90vh;
-    background:
-        linear-gradient(135deg, rgba(255, 178, 239, 0.05) 0%, transparent 45%),
-        linear-gradient(160deg, rgb(16, 11, 20) 0%, rgb(7, 6, 11) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(10, 7, 20, 0.7);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
     border-radius: 12px;
     pointer-events: all;
     display: flex;
