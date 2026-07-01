@@ -188,16 +188,8 @@ const TOUR_KEY = "profile_tour_done";
 let activeDriverObj = null;
 
 const tourIsActive = ref(false);
-const tourCurrentStepIndex = ref(0);
-const tourTotalSteps = ref(0);
-const isMobile = ref(false);
 
 onMounted(async () => {
-    isMobile.value = window.innerWidth <= 768;
-    window.addEventListener('resize', () => {
-        isMobile.value = window.innerWidth <= 768;
-    });
-
     if (!props.isOwner) return;
     if (localStorage.getItem(TOUR_KEY)) return;
 
@@ -217,10 +209,14 @@ onMounted(async () => {
         nextBtnText: __("profile.tour.next"),
         prevBtnText: __("profile.tour.prev"),
         doneBtnText: __("profile.tour.done"),
+        closeBtnText: "✕",
+        showButtons: ["next", "close"],
+        onPopoverRender: (popover) => {
+            if (popover.closeButton) {
+                popover.closeButton.innerText = "✕";
+            }
+        },
         onHighlightStarted: (element, step, { state }) => {
-            tourCurrentStepIndex.value = state?.activeIndex || 0;
-            // Re-trigger resize check just in case
-            isMobile.value = window.innerWidth <= 768;
         },
         steps: [
             {
@@ -260,7 +256,7 @@ onMounted(async () => {
                 popover: {
                     title: __("profile.tour.traits.title"),
                     description: __("profile.tour.traits.desc"),
-                    side: "bottom",
+                    side: "top",
                 },
             },
             {
@@ -385,10 +381,6 @@ onMounted(async () => {
         },
     });
 
-    // We calculate total steps by filtering out non-existent ones on mobile?
-    // Actually just use the raw array length, or the driver's internal state.
-    // However driver.js doesn't skip immediately, it evaluates them.
-    tourTotalSteps.value = 17; // 17 steps in total
     
     activeDriverObj.drive();
 });
@@ -998,26 +990,12 @@ onMounted(async () => {
             </div>
         </form>
     </SiteModal>
-
-
-    <!-- Mobile Tour Dock -->
-    <Teleport to="body">
-        <div v-if="isMobile && tourIsActive" class="mobile-tour-dock">
-            <button class="mtd-btn" @click="activeDriverObj?.movePrevious()" :disabled="tourCurrentStepIndex === 0">
-                Назад
-            </button>
-            <span class="mtd-steps">{{ tourCurrentStepIndex + 1 }} из {{ tourTotalSteps }}</span>
-            <button class="mtd-btn mtd-btn-next" @click="activeDriverObj?.moveNext()">
-                {{ tourCurrentStepIndex === tourTotalSteps - 1 ? 'Завершить' : 'Далее' }}
-            </button>
-        </div>
-    </Teleport>
 </template>
 
 <!-- driver.js dark theme override (non-scoped) -->
 <style>
 .driver-overlay {
-    opacity: 0.8 !important; 
+    opacity: 0.97 !important; 
 }
 .driver-popover {
     background: #0c0c14 !important;
@@ -1035,6 +1013,7 @@ onMounted(async () => {
 .driver-popover-title {
     color: #ffffff !important;
     font-size: 1.15rem !important;
+    padding-right: 45px !important; /* Space for the square close button */
 }
 .driver-popover-description {
     color: rgba(255, 255, 255, 0.6) !important;
@@ -1043,6 +1022,12 @@ onMounted(async () => {
 }
 .driver-popover-footer {
     border-top: 1px solid rgba(255, 255, 255, 0.07) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 20px !important;
+    padding-top: 12px !important;
+    margin-top: 12px !important;
 }
 .driver-popover-prev-btn {
     background: color-mix(in srgb, var(--color-base-1), transparent 90%) !important;
@@ -1091,68 +1076,63 @@ onMounted(async () => {
     display: none !important;
 }
 
-/* Mobile dock and hiding footer */
-@media (max-width: 768px) {
-    .driver-popover-footer {
-        display: none !important;
+/* Pink close button styling (no background/border) */
+.driver-popover-close-btn {
+    all: unset;
+    cursor: pointer;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 28px !important;
+    height: 28px !important;
+    background: transparent !important;
+    border: none !important;
+    color: #ff4b4b !important;
+    border-radius: 50% !important;
+    font-size: 1.2rem !important;
+    font-weight: bold !important;
+    top: 12px !important;
+    right: 12px !important;
+    position: absolute !important;
+    pointer-events: auto !important;
+    transition: all 0.2s ease !important;
+    box-shadow: none !important;
+}
+.driver-popover-close-btn:hover {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Desktop size reductions for clean visual layout */
+@media (min-width: 769px) {
+    .driver-popover-title {
+        font-size: 0.95rem !important;
+    }
+    .driver-popover-description {
+        font-size: 0.82rem !important;
+        line-height: 1.5 !important;
+    }
+    .driver-popover-prev-btn,
+    .driver-popover-next-btn,
+    .driver-popover-done-btn {
+        padding: 6px 14px !important;
+        font-size: 0.8rem !important;
+    }
+    .driver-popover-progress-text {
+        font-size: 0.8rem !important;
+    }
+    .driver-popover-close-btn {
+        font-size: 0.95rem !important;
+        width: 22px !important;
+        height: 22px !important;
+        top: 10px !important;
+        right: 10px !important;
     }
 }
 
-.mobile-tour-dock {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    z-index: 1000000001; /* Above driver.js */
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1.25rem;
-    background: rgba(12, 12, 20, 0.7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
-}
-
-.mtd-btn {
-    all: unset;
-    cursor: pointer;
-    background: color-mix(in srgb, var(--color-base-1), transparent 85%);
-    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 50%);
-    color: var(--color-base-1);
-    padding: 0.75rem 1.25rem;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 500;
-    transition: all 0.2s ease;
-}
-.mtd-btn:disabled {
-    opacity: 0.4;
-    pointer-events: none;
-}
-.mtd-btn-next {
-    background: color-mix(in srgb, var(--color-base-2), transparent 85%);
-    border: 1px solid color-mix(in srgb, var(--color-base-2), transparent 50%);
-    color: var(--color-base-2);
-}
-.mtd-btn:active {
-    transform: scale(0.95);
-}
-.mtd-steps {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.95rem;
-    font-weight: 500;
-}
-/* Make close button larger */
-.driver-popover-close-btn {
-    font-size: 1.5rem !important;
-    top: 10px !important;
-    right: 15px !important;
-    color: rgba(255, 255, 255, 0.7) !important;
-}
-.driver-popover-close-btn:hover {
-    color: #fff !important;
+/* Forbid scrolling when driver is active */
+body.driver-active {
+    overflow: hidden !important;
 }
 </style>
 
