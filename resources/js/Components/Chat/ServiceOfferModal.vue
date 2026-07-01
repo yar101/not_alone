@@ -613,12 +613,16 @@ watch(() => props.modelValue, (val) => {
 
 /* ── Footer (selected + submit) ──────────────────── */
 .sof-footer {
-    margin: 1rem -2rem -2rem;
-    padding: 1rem 2rem 1.5rem;
-    background: rgba(7,6,11,0.82);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border-top: 1px solid rgba(255,255,255,0.05);
+    position: sticky;
+    bottom: -2rem;
+    margin: auto -2rem -2rem;
+    padding: 1.5rem 2rem 1.5rem;
+    background: rgb(10, 7, 20);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    z-index: 10;
 }
 
 @media (max-width: 768px) {
