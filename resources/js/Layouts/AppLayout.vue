@@ -407,9 +407,7 @@ onUnmounted(() => {
     align-items: center;
     justify-content: space-between;
     padding: 0 2rem;
-    background: rgba(10, 10, 20, 0.96);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: transparent;
     flex-shrink: 0;
 }
 
