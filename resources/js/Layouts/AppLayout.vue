@@ -392,7 +392,7 @@ onUnmounted(() => {
 /* ── Layout wrap ─────────────────────────────────────────── */
 .app-wrap {
     min-height: 100vh;
-    background: #0a0a14;
+    background: transparent;
     display: flex;
     flex-direction: column;
 }
