@@ -357,22 +357,14 @@ onMounted(async () => {
                 },
             },
             {
-                element: ".usb-hero",
-                popover: {
-                    title: __("profile.tour.usb_hero.title"),
-                    description: __("profile.tour.usb_hero.desc"),
-                    side: "left",
-                },
-                onHighlightStarted: () => {
-                    window.dispatchEvent(new CustomEvent("noalone:toggle-sidebar", { detail: true }));
-                },
-            },
-            {
                 element: ".usb-nav",
                 popover: {
                     title: __("profile.tour.usb_nav.title"),
                     description: __("profile.tour.usb_nav.desc"),
                     side: "left",
+                },
+                onHighlightStarted: () => {
+                    window.dispatchEvent(new CustomEvent("noalone:toggle-sidebar", { detail: true }));
                 },
             },
             {
