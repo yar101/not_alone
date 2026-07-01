@@ -190,16 +190,7 @@ let activeDriverObj = null;
 const tourIsActive = ref(false);
 const tourCurrentStepIndex = ref(0);
 const tourTotalSteps = ref(0);
-const showTourCloseConfirm = ref(false);
 const isMobile = ref(false);
-
-const closeTourConfirmed = () => {
-    showTourCloseConfirm.value = false;
-    if (activeDriverObj) {
-        localStorage.setItem(TOUR_KEY, "1");
-        activeDriverObj.destroy();
-    }
-};
 
 onMounted(async () => {
     isMobile.value = window.innerWidth <= 768;
@@ -217,7 +208,10 @@ onMounted(async () => {
 
     activeDriverObj = driver({
         showProgress: true,
-        allowClose: false,
+        allowClose: true,
+        overlayClickBehavior: () => {
+            // Do nothing on overlay click, as requested by user
+        },
         progressText: __("profile.tour.progressText"),
         nextBtnText: __("profile.tour.next"),
         prevBtnText: __("profile.tour.prev"),
@@ -226,13 +220,6 @@ onMounted(async () => {
             tourCurrentStepIndex.value = state?.activeIndex || 0;
             // Re-trigger resize check just in case
             isMobile.value = window.innerWidth <= 768;
-        },
-        onDestroyStarted: () => {
-            if (!activeDriverObj.hasNextStep() || activeDriverObj.isDestroyed) {
-                activeDriverObj.destroy();
-            } else {
-                showTourCloseConfirm.value = true;
-            }
         },
         steps: [
             {
@@ -1011,14 +998,6 @@ onMounted(async () => {
         </form>
     </SiteModal>
 
-    <!-- Tour Confirm Modal -->
-    <SiteModal v-model="showTourCloseConfirm" title="Прервать обучение?">
-        <p style="color: rgba(255,255,255,0.8); margin-bottom: 1.5rem; line-height: 1.5;">Вы уверены, что хотите прервать обучение? Вы всегда сможете пройти его позже.</p>
-        <div style="display: flex; justify-content: flex-end; gap: 1rem;">
-            <button class="report-btn-cancel" @click="closeTourCancelled">Продолжить</button>
-            <button class="report-btn-submit" @click="closeTourConfirmed">Прервать</button>
-        </div>
-    </SiteModal>
 
     <!-- Mobile Tour Dock -->
     <Teleport to="body">
@@ -1079,7 +1058,7 @@ onMounted(async () => {
     background: color-mix(in srgb, var(--color-base-1), transparent 75%) !important;
     border-color: var(--color-base-1) !important;
     color: #fff !important;
-    box-shadow: 0 0 10px color-mix(in srgb, var(--color-base-1), transparent 50%) !important;
+    box-shadow: 0 0 4px color-mix(in srgb, var(--color-base-1), transparent 80%) !important;
 }
 .driver-popover-next-btn,
 .driver-popover-done-btn {
@@ -1098,7 +1077,7 @@ onMounted(async () => {
     background: color-mix(in srgb, var(--color-base-2), transparent 75%) !important;
     border-color: var(--color-base-2) !important;
     color: #fff !important;
-    box-shadow: 0 0 10px color-mix(in srgb, var(--color-base-2), transparent 50%) !important;
+    box-shadow: 0 0 4px color-mix(in srgb, var(--color-base-2), transparent 80%) !important;
 }
 .driver-popover-navigation-btns {
     margin-top: 10px !important;
@@ -1163,6 +1142,16 @@ onMounted(async () => {
     color: rgba(255, 255, 255, 0.7);
     font-size: 0.95rem;
     font-weight: 500;
+}
+/* Make close button larger */
+.driver-popover-close-btn {
+    font-size: 1.5rem !important;
+    top: 10px !important;
+    right: 15px !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+.driver-popover-close-btn:hover {
+    color: #fff !important;
 }
 </style>
 
