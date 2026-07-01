@@ -209,6 +209,7 @@ onMounted(async () => {
     activeDriverObj = driver({
         showProgress: true,
         allowClose: true,
+        disableActiveInteraction: true,
         overlayClickBehavior: () => {
             // Do nothing on overlay click, as requested by user
         },
