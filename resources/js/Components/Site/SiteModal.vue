@@ -199,7 +199,7 @@ onUnmounted(() => {
         linear-gradient(135deg, rgba(255, 178, 239, 0.05) 0%, transparent 45%),
         linear-gradient(160deg, rgb(16, 11, 20) 0%, rgb(7, 6, 11) 100%);
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 3px;
+    border-radius: 12px;
     pointer-events: all;
     display: flex;
     flex-direction: column;
@@ -218,7 +218,7 @@ onUnmounted(() => {
         height: 88svh;
         max-height: 88svh;
         transform: none;
-        border-radius: 3px 3px 0 0;
+        border-radius: 16px 16px 0 0;
     }
 }
 
@@ -372,7 +372,7 @@ onUnmounted(() => {
 }
 .site-modal-body::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.08);
-    border-radius: 3px;
+    border-radius: 8px;
 }
 
 /* ── Transitions ───────────────────────────────────── */
