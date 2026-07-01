@@ -7,6 +7,7 @@ import {
     provide,
     reactive,
     watch,
+    nextTick,
 } from "vue";
 import { Head, Link, useForm, usePage, router } from "@inertiajs/vue3";
 import { useTranslations } from "@/composables/useTranslations.js";
@@ -211,9 +212,15 @@ onMounted(async () => {
         doneBtnText: __("profile.tour.done"),
         closeBtnText: "✕",
         showButtons: ["next", "close"],
-        onPopoverRender: (popover) => {
+        onPopoverRender: (popover, opts) => {
             if (popover.closeButton) {
                 popover.closeButton.innerText = "✕";
+            }
+            // On last step, rename "Next" to "Закончить тур"
+            const steps = opts?.config?.steps || [];
+            const idx = opts?.state?.activeIndex;
+            if (idx !== undefined && idx === steps.length - 1 && popover.nextButton) {
+                popover.nextButton.innerText = "Закончить тур";
             }
         },
         onHighlightStarted: (element, step, { state }) => {
@@ -328,6 +335,17 @@ onMounted(async () => {
                     title: __("profile.tour.chat_search.title"),
                     description: __("profile.tour.chat_search.desc"),
                     side: "left",
+                    // Hide chat via CSS instead of closing through Vue (v-if).
+                    // Closing via event removes chat DOM mid-animation, breaking
+                    // driver.js on mobile. CSS hiding keeps DOM intact.
+                    // The chat is properly closed in onDestroyed.
+                    onNextClick: (el, step, opts) => {
+                        const panel = document.querySelector('.chat-panel');
+                        const backdrop = document.querySelector('.chat-backdrop');
+                        if (panel) panel.style.display = 'none';
+                        if (backdrop) backdrop.style.display = 'none';
+                        opts.driver.moveNext();
+                    },
                 },
             },
             {
@@ -336,10 +354,6 @@ onMounted(async () => {
                     title: __("profile.tour.user_chip.title"),
                     description: __("profile.tour.user_chip.desc"),
                     side: "bottom",
-                },
-                onHighlightStarted: () => {
-                    window.dispatchEvent(new CustomEvent("noalone:toggle-chat", { detail: false }));
-                    window.dispatchEvent(new CustomEvent("noalone:toggle-sidebar", { detail: false }));
                 },
             },
             {
