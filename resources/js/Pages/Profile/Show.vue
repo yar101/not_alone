@@ -998,17 +998,31 @@ onMounted(async () => {
     opacity: 0.97 !important; 
 }
 .driver-popover {
-    background: #0c0c14 !important;
-    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    background: #1a1a26 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
     color: rgba(255, 255, 255, 0.9) !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8),
-                0 0 16px color-mix(in srgb, var(--color-base-1), transparent 92%),
-                0 0 24px color-mix(in srgb, var(--color-base-2), transparent 94%) !important;
-    border-radius: 8px !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6) !important;
+    border-radius: 12px !important;
     font-family: "Rubik", sans-serif !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    max-width: 350px !important; /* Made wider for better text flow */
+    max-width: 350px !important;
+    overflow: hidden !important;
+}
+.driver-popover::before {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        color-mix(in srgb, var(--color-base-1), transparent 40%) 25%, 
+        color-mix(in srgb, var(--color-base-1), transparent 40%) 75%, 
+        transparent 100%
+    ) !important;
+    z-index: 10 !important;
 }
 .driver-popover-title {
     color: #ffffff !important;
@@ -1076,7 +1090,7 @@ onMounted(async () => {
     display: none !important;
 }
 
-/* Pink close button styling (no background/border) */
+/* Red close button styling (no background/border, muted color) */
 .driver-popover-close-btn {
     all: unset;
     cursor: pointer;
@@ -1087,10 +1101,10 @@ onMounted(async () => {
     height: 28px !important;
     background: transparent !important;
     border: none !important;
-    color: #ff4b4b !important;
+    color: rgba(239, 68, 68, 0.6) !important;
     border-radius: 50% !important;
-    font-size: 1.2rem !important;
-    font-weight: bold !important;
+    font-size: 1.1rem !important;
+    font-weight: normal !important;
     top: 12px !important;
     right: 12px !important;
     position: absolute !important;
@@ -1099,7 +1113,7 @@ onMounted(async () => {
     box-shadow: none !important;
 }
 .driver-popover-close-btn:hover {
-    color: #ffffff !important;
+    color: #ff4b4b !important;
     background: rgba(255, 255, 255, 0.08) !important;
 }
 
@@ -1127,6 +1141,17 @@ onMounted(async () => {
         height: 22px !important;
         top: 10px !important;
         right: 10px !important;
+    }
+}
+
+/* Mobile full-width tooltip layout with margins */
+@media (max-width: 768px) {
+    .driver-popover {
+        width: calc(100% - 24px) !important;
+        max-width: calc(100% - 24px) !important;
+        left: 12px !important;
+        right: 12px !important;
+        border-radius: 12px !important;
     }
 }
 
