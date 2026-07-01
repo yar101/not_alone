@@ -148,7 +148,7 @@ function deleteAvatar() {
 </script>
 
 <template>
-    <div id="tour-header" class="profile-header">
+    <div id="tour-header" class="profile-header glass-panel">
 
         <!-- Рейтинг — верхний левый угол -->
         <div v-if="isIdol && rating !== null" class="header-rating">
@@ -270,10 +270,6 @@ function deleteAvatar() {
     flex-shrink: 0;
     position: relative;
     overflow: visible;
-    background: #06060e;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: var(--profile-border-radius, 8px);
     display: flex;
     flex-direction: column;
     align-items: center;

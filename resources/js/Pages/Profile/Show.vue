@@ -668,28 +668,29 @@ onMounted(async () => {
                                 key="about"
                                 class="tab-panel"
                             >
-                                <!-- Верх: bio слева, диск+плеер справа (eager — не defer) -->
-                                <div class="about-top-grid anim-block">
-                                    <ProfileAbout
-                                        :about="profileUser.about"
-                                        :is-owner="isOwner"
-                                    />
-                                    <div
-                                        id="tour-voice"
-                                        class="about-voice-col"
-                                    >
-                                        <ProfileVoice
-                                            :voice-url="profileUser.voice_url"
+                                <div class="about-fused-container glass-panel">
+                                    <!-- Верх: bio слева, диск+плеер справа (eager — не defer) -->
+                                    <div class="about-top-grid anim-block">
+                                        <ProfileAbout
+                                            :about="profileUser.about"
                                             :is-owner="isOwner"
                                         />
+                                        <div
+                                            id="tour-voice"
+                                            class="about-voice-col"
+                                        >
+                                            <ProfileVoice
+                                                :voice-url="profileUser.voice_url"
+                                                :is-owner="isOwner"
+                                            />
+                                        </div>
                                     </div>
-                                </div>
 
-                                <!-- Слитая панель: характер + интересы + языки (deferred) -->
-                                <div
-                                    v-if="Array.isArray(traits)"
-                                    class="fused-panel"
-                                >
+                                    <!-- Слитая панель: характер + интересы + языки (deferred) -->
+                                    <div
+                                        v-if="Array.isArray(traits)"
+                                        class="fused-panel"
+                                    >
                                     <div id="tour-traits" class="anim-block">
                                         <ProfileTraits
                                             :traits="traits"
@@ -722,6 +723,7 @@ onMounted(async () => {
                                     <div
                                         class="skeleton-row skeleton-row--short"
                                     />
+                                </div>
                                 </div>
                             </div>
 
@@ -1002,6 +1004,15 @@ onMounted(async () => {
 <style>
 :root {
     --profile-border-radius: 8px;
+}
+.glass-panel {
+    background: rgba(20, 14, 40, 0.55) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+    border-radius: var(--profile-border-radius, 8px) !important;
+    overflow: hidden;
 }
 .driver-overlay {
     opacity: 0.97 !important; 
@@ -1574,10 +1585,8 @@ body.driver-active {
 .about-top-grid {
     display: grid;
     grid-template-columns: 1fr 300px;
-    background: #06060e;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: var(--profile-border-radius, 8px) var(--profile-border-radius, 8px) 0 0;
-    overflow: hidden;
+    background: transparent;
+    border: none;
     margin-bottom: 0;
 }
 
@@ -1587,7 +1596,7 @@ body.driver-active {
 
 .about-top-grid :deep(.block-section) {
     border: none;
-    border-right: 1px solid rgba(255, 255, 255, 0.18);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .about-voice-col {
@@ -1599,16 +1608,13 @@ body.driver-active {
 
 /* ── Слитая панель ────────────────────────────────────────── */
 .fused-panel {
-    background: #06060e;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-top: none;
-    border-radius: 0 0 var(--profile-border-radius, 8px) var(--profile-border-radius, 8px);
-    overflow: hidden;
+    background: transparent;
+    border: none;
 }
 
 .fused-panel :deep(.block-section) {
-    border-top: 1px solid rgba(255, 255, 255, 0.18);
-    background: #06060e;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: transparent;
 }
 
 .fused-panel > :first-child :deep(.block-section) {
