@@ -10,7 +10,8 @@
 }
 
 html {
-    background-color: #0e0e1a;
+    background: radial-gradient(circle at top right, #140f22 0%, #0a0814 50%, #05040a 100%);
+    background-attachment: fixed;
 }
 
 html.chat-scroll-locked {
@@ -27,7 +28,8 @@ html.chat-scroll-locked body {
 
 body {
     font-family: "Rubik", ui-sans-serif, system-ui, sans-serif;
-    background-color: #0e0e1a;
+    background: radial-gradient(circle at top right, #140f22 0%, #0a0814 50%, #05040a 100%);
+    background-attachment: fixed;
     padding-bottom: env(safe-area-inset-bottom);
 }
 
