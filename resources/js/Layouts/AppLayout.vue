@@ -43,6 +43,11 @@ const cartDropdown = ref(null);
 const cartInitialTab = ref("services");
 const sidebarOpen = ref(false);
 const pwaUpdateAvailable = ref(false);
+const isScrolled = ref(false);
+
+function handleScroll() {
+    isScrolled.value = window.scrollY > 10;
+}
 
 function handleToggleChatEvent(e) {
     cartOpen.value = false;
@@ -242,6 +247,8 @@ function handleUserBannedEvent() {
 }
 
 onMounted(() => {
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
     window.addEventListener("noalone:open-order", handleOpenOrderEvent);
     window.addEventListener("noalone:user-banned", handleUserBannedEvent);
     window.addEventListener("noalone:toggle-chat", handleToggleChatEvent);
@@ -258,6 +265,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+    window.removeEventListener("scroll", handleScroll);
     window.removeEventListener("noalone:open-order", handleOpenOrderEvent);
     window.removeEventListener("noalone:user-banned", handleUserBannedEvent);
     window.removeEventListener("noalone:toggle-chat", handleToggleChatEvent);
@@ -272,7 +280,7 @@ onUnmounted(() => {
     <PwaUpdateModal :show="pwaUpdateAvailable" />
     <StrikeAlertModal />
     <div class="app-wrap">
-        <header class="app-header">
+        <header class="app-header" :class="{ 'app-header--scrolled': isScrolled }">
             <Link href="/" class="app-logo">
                 <img src="/app-logo-v3.png" alt="Not Alone" class="app-logo__img" />
             </Link>
@@ -409,6 +417,15 @@ onUnmounted(() => {
     padding: 0 2rem;
     background: transparent;
     flex-shrink: 0;
+    border-bottom: 1px solid transparent;
+    transition: background 0.3s, backdrop-filter 0.3s, -webkit-backdrop-filter 0.3s, border-color 0.3s;
+}
+
+.app-header--scrolled {
+    background: rgba(10, 7, 20, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
 /* ── Logo ────────────────────────────────────────────────── */
