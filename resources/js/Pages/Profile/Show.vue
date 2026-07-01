@@ -1006,9 +1006,9 @@ onMounted(async () => {
     --profile-border-radius: 8px;
 }
 .glass-panel {
-    background: rgba(20, 14, 40, 0.55) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
+    background: rgba(10, 7, 20, 0.7) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
     border-radius: var(--profile-border-radius, 8px) !important;

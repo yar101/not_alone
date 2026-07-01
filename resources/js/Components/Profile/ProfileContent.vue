@@ -1224,9 +1224,9 @@ const ownerSortOptions = computed(() => [
 
 .pc-card {
     border-radius: 12px;
-    background: rgba(20, 14, 40, 0.55);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(10, 7, 20, 0.7);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
     overflow: hidden;
