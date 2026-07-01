@@ -1596,7 +1596,6 @@ body.driver-active {
 
 .about-top-grid :deep(.block-section) {
     border: none;
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .about-voice-col {
