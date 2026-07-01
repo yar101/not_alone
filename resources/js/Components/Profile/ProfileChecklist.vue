@@ -70,7 +70,7 @@ const sortedItems = computed(() => [
     padding: 0.875rem 1rem 0.75rem;
     background: linear-gradient(135deg, color-mix(in srgb, var(--color-base-1), transparent 94%) 0%, rgba(255, 255, 255, 0.02) 100%);
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 82%);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     font-family: 'Rubik', sans-serif;
     position: relative;
     overflow: hidden;

@@ -273,7 +273,7 @@ function deleteAvatar() {
     background: #06060e;
     border: 1px solid rgba(255, 255, 255, 0.18);
     border-bottom: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -320,7 +320,7 @@ function deleteAvatar() {
     width: 32px;
     height: 32px;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     background: transparent;
     color: rgba(255, 255, 255, 0.55);
     display: flex;
@@ -376,7 +376,7 @@ function deleteAvatar() {
     right: 0;
     background: rgb(16, 11, 20);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 4px;
+    border-radius: var(--profile-border-radius, 8px);
     overflow: hidden;
     min-width: 180px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
@@ -489,7 +489,7 @@ function deleteAvatar() {
     align-items: center;
     gap: 0.35rem;
     padding: 0.3rem 0.85rem;
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     font-size: 0.92rem;
     letter-spacing: 0.04em;
     line-height: 1;
@@ -582,7 +582,7 @@ function deleteAvatar() {
 .edit-input {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     padding: 0.6rem 0.75rem;
     color: rgba(255, 255, 255, 0.85);
     font-size: 0.9rem;
@@ -606,7 +606,7 @@ function deleteAvatar() {
 .edit-select {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     padding: 0.6rem 0.75rem;
     color: rgba(255, 255, 255, 0.85);
     font-size: 0.9rem;
@@ -636,7 +636,7 @@ function deleteAvatar() {
     flex: 1;
     padding: 0.45rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     background: transparent;
     color: rgba(255, 255, 255, 0.4);
     font-size: 0.88rem;
@@ -654,7 +654,7 @@ function deleteAvatar() {
     padding: 0.4rem 0.85rem;
     font-size: 0.85rem;
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 65%);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     background: transparent;
     color: color-mix(in srgb, var(--color-base-1), white 20%);
     cursor: pointer;
@@ -673,7 +673,7 @@ function deleteAvatar() {
     margin-top: 0.5rem;
     padding: 0.8rem;
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 55%);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     background: color-mix(in srgb, var(--color-base-1), transparent 92%);
     color: #fff;
     font-size: 0.95rem;
@@ -752,7 +752,7 @@ function deleteAvatar() {
     width: 38px;
     height: 38px;
     border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     background: transparent;
     color: rgba(255, 255, 255, 0.55);
     font-size: 1.1rem;
@@ -772,7 +772,7 @@ function deleteAvatar() {
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 60%);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     background: color-mix(in srgb, var(--color-base-1), transparent 94%);
     color: color-mix(in srgb, var(--color-base-1), white 10%);
     font-size: 0.9rem;
@@ -799,7 +799,7 @@ function deleteAvatar() {
     max-width: min(80vw, 640px);
     max-height: 80vh;
     object-fit: contain;
-    border-radius: 8px;
+    border-radius: var(--profile-border-radius, 8px);
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 60%);
     box-shadow: 0 0 60px color-mix(in srgb, var(--color-base-1), transparent 85%);
     cursor: default;

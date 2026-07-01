@@ -85,7 +85,7 @@ function submit() {
     justify-content: center;
     width: 26px; height: 26px;
     padding: 0;
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     border: 1px solid transparent;
     background: transparent;
     cursor: pointer;
@@ -133,7 +133,7 @@ function submit() {
     width: 100%;
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     padding: 0.75rem 1rem;
     color: rgba(255,255,255,0.85);
     font-size: 0.95rem;
@@ -148,7 +148,7 @@ function submit() {
 .edit-error { color: rgba(220,100,140,0.9); font-size: 0.8rem; margin: 0.25rem 0 0; }
 .save-btn {
     width: 100%; margin-top: 0.75rem; padding: 0.75rem;
-    border-radius: 3px; border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 60%);
+    border-radius: var(--profile-border-radius, 8px); border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 60%);
     background: color-mix(in srgb, var(--color-base-1), transparent 90%);
     color: #fff; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: background 0.15s;
 }

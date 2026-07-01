@@ -1000,6 +1000,9 @@ onMounted(async () => {
 
 <!-- driver.js dark theme override (non-scoped) -->
 <style>
+:root {
+    --profile-border-radius: 8px;
+}
 .driver-overlay {
     opacity: 0.97 !important; 
 }
@@ -1008,7 +1011,7 @@ onMounted(async () => {
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     color: rgba(255, 255, 255, 0.9) !important;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6) !important;
-    border-radius: 12px !important;
+    border-radius: var(--profile-border-radius, 8px) !important;
     font-family: "Rubik", sans-serif !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
@@ -1053,7 +1056,7 @@ onMounted(async () => {
     background: color-mix(in srgb, var(--color-base-1), transparent 90%) !important;
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 60%) !important;
     color: var(--color-base-1) !important;
-    border-radius: 4px !important;
+    border-radius: var(--profile-border-radius, 8px) !important;
     text-shadow: none !important;
     font-weight: 500 !important;
     transition: all 0.2s ease !important;
@@ -1178,7 +1181,7 @@ body.driver-active {
     padding: 0.65rem 1rem;
     margin-bottom: 0.75rem;
     border: 1px solid rgba(234, 179, 8, 0.3);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     background: rgba(234, 179, 8, 0.06);
     flex-shrink: 0;
     flex-wrap: wrap;
@@ -1216,7 +1219,7 @@ body.driver-active {
     flex-shrink: 0;
     padding: 0.3rem 0.75rem;
     border: 1px solid rgba(234, 179, 8, 0.35);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     background: transparent;
     color: rgba(234, 179, 8, 0.85);
     font-size: 0.8rem;
@@ -1346,6 +1349,7 @@ body.driver-active {
     width: min(640px, 90%);
     background: rgb(10, 8, 20);
     border: 1px solid rgba(200, 60, 60, 0.2);
+    border-radius: var(--profile-border-radius, 8px);
     box-shadow:
         inset 0 1px 0 rgba(255, 100, 100, 0.12),
         inset 0 -1px 0 rgba(0, 0, 0, 0.4),
@@ -1458,7 +1462,7 @@ body.driver-active {
         );
         border: 1px solid
             color-mix(in srgb, var(--cat-accent, #ffb2ef) 25%, transparent);
-        border-radius: 6px;
+        border-radius: var(--profile-border-radius, 8px);
         color: color-mix(in srgb, var(--cat-accent, #ffb2ef) 80%, white);
         font-size: 0.85rem;
         font-weight: 600;
@@ -1509,6 +1513,7 @@ body.driver-active {
         color-mix(in srgb, var(--color-base-1), transparent 90%) 100%
     );
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 85%);
+    border-radius: var(--profile-border-radius, 8px);
     box-shadow: inset 0 1px 0
         color-mix(in srgb, var(--color-base-1), transparent 60%);
 }
@@ -1571,7 +1576,7 @@ body.driver-active {
     grid-template-columns: 1fr 300px;
     background: #06060e;
     border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 3px 3px 0 0;
+    border-radius: var(--profile-border-radius, 8px) var(--profile-border-radius, 8px) 0 0;
     overflow: hidden;
     margin-bottom: 0;
 }
@@ -1597,7 +1602,7 @@ body.driver-active {
     background: #06060e;
     border: 1px solid rgba(255, 255, 255, 0.18);
     border-top: none;
-    border-radius: 0 0 3px 3px;
+    border-radius: 0 0 var(--profile-border-radius, 8px) var(--profile-border-radius, 8px);
     overflow: hidden;
 }
 
@@ -1619,7 +1624,7 @@ body.driver-active {
     padding: 4rem 2rem;
     text-align: center;
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
 }
 .coming-soon-title {
     font-size: 1.1rem;
@@ -1639,7 +1644,7 @@ body.driver-active {
     overflow: hidden;
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 82%);
     border-top-color: color-mix(in srgb, var(--color-base-1), transparent 70%);
-    border-radius: 6px;
+    border-radius: var(--profile-border-radius, 8px);
     background:
         repeating-linear-gradient(
             0deg,
@@ -1720,7 +1725,7 @@ body.driver-active {
     opacity: 0.8;
     background: color-mix(in srgb, var(--color-base-1), transparent 92%);
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 80%);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     padding: 0.2rem 0.55rem;
     box-shadow: inset 0 1px 0
         color-mix(in srgb, var(--color-base-1), transparent 92%);
@@ -1732,7 +1737,7 @@ body.driver-active {
     align-items: center;
     padding: 0.65rem 1.35rem;
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 70%);
-    border-radius: 4px;
+    border-radius: var(--profile-border-radius, 8px);
     background: color-mix(in srgb, var(--color-base-1), transparent 91%);
     color: var(--color-base-1);
     font-size: 0.74rem;
@@ -1800,6 +1805,7 @@ body.driver-active {
         color-mix(in srgb, var(--color-base-2), transparent 96%)
     );
     border: 1px solid color-mix(in srgb, var(--color-base-2), transparent 60%);
+    border-radius: var(--profile-border-radius, 8px);
     color: var(--color-base-2);
     font-family: inherit;
     font-size: 0.8rem;
@@ -1833,6 +1839,7 @@ body.driver-active {
         color-mix(in srgb, var(--color-base-1), transparent 92%)
     );
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 50%);
+    border-radius: var(--profile-border-radius, 8px);
     color: var(--color-base-1);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
@@ -1901,6 +1908,7 @@ body.driver-active {
 .unfollow-confirm__btn--cancel {
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--profile-border-radius, 8px);
     color: color-mix(in srgb, #fff, transparent 20%);
 }
 .unfollow-confirm__btn--cancel:hover {
@@ -1913,6 +1921,7 @@ body.driver-active {
         color-mix(in srgb, var(--color-base-1), transparent 92%)
     );
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 50%);
+    border-radius: var(--profile-border-radius, 8px);
     color: var(--color-base-1);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
@@ -1935,6 +1944,7 @@ body.driver-active {
     border-radius: 6px;
     background: transparent;
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 65%);
+    border-radius: var(--profile-border-radius, 8px);
     color: var(--color-base-1);
     font-family: inherit;
     font-size: 0.88rem;
@@ -1993,7 +2003,7 @@ body.driver-active {
     font-size: 0.82rem;
     cursor: pointer;
     transition: all 0.15s;
-    border-radius: 2px;
+    border-radius: var(--profile-border-radius, 8px);
 }
 .report-reason-btn:hover {
     border-color: rgba(239, 68, 68, 0.35);
@@ -2017,7 +2027,7 @@ body.driver-active {
     transition: border-color 0.15s;
     box-sizing: border-box;
     width: 100%;
-    border-radius: 2px;
+    border-radius: var(--profile-border-radius, 8px);
 }
 .report-textarea:focus {
     border-color: color-mix(in srgb, var(--color-base-1), transparent 65%);
@@ -2047,7 +2057,7 @@ body.driver-active {
     font-family: "Rubik", sans-serif;
     font-size: 0.85rem;
     cursor: pointer;
-    border-radius: 2px;
+    border-radius: var(--profile-border-radius, 8px);
     transition:
         color 0.15s,
         border-color 0.15s;
@@ -2064,7 +2074,7 @@ body.driver-active {
     font-family: "Rubik", sans-serif;
     font-size: 0.85rem;
     cursor: pointer;
-    border-radius: 2px;
+    border-radius: var(--profile-border-radius, 8px);
     transition:
         background 0.15s,
         border-color 0.15s;
@@ -2099,7 +2109,7 @@ body.driver-active {
     font-family: "Rubik", sans-serif;
     font-size: 0.85rem;
     cursor: pointer;
-    border-radius: 2px;
+    border-radius: var(--profile-border-radius, 8px);
     transition: background 0.15s;
 }
 .report-btn-close:hover {

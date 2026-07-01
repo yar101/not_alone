@@ -212,7 +212,7 @@ function submitSuggestion() {
     justify-content: center;
     width: 26px; height: 26px;
     padding: 0;
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     border: 1px solid transparent;
     background: transparent;
     cursor: pointer;
@@ -237,7 +237,7 @@ function submitSuggestion() {
 .tags-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .tag {
     padding: 0.28rem 0.65rem;
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     border: 1px solid rgba(255,255,255,0.12);
     background: rgba(255,255,255,0.04);
     color: rgba(255,255,255,0.8);
@@ -252,27 +252,27 @@ function submitSuggestion() {
 .search-input {
     width: 100%; padding: 0.55rem 0.9rem; margin-bottom: 0.75rem;
     background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 3px; color: rgba(255,255,255,0.88); font-size: 0.9rem; font-family: inherit;
+    border-radius: var(--profile-border-radius, 8px); color: rgba(255,255,255,0.88); font-size: 0.9rem; font-family: inherit;
     box-sizing: border-box; outline: none; transition: border-color 0.15s;
 }
 .search-input::placeholder { color: rgba(255,255,255,0.25); }
 .search-input:focus { border-color: color-mix(in srgb, var(--color-base-1), transparent 50%); }
 .categories { display: flex; flex-direction: column; gap: 0.2rem; margin-bottom: 1rem; }
-.cat-block { border: 1px solid rgba(255,255,255,0.07); border-radius: 3px; }
+.cat-block { border: 1px solid rgba(255,255,255,0.07); border-radius: var(--profile-border-radius, 8px); }
 .cat-header {
     width: 100%; display: flex; align-items: center;
     padding: 0.6rem 0.9rem;
     background: rgba(255,255,255,0.03); border: none; color: rgba(255,255,255,0.75);
     font-size: 0.9rem; cursor: pointer; font-family: inherit; text-align: left;
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
 }
 .cat-count { color: color-mix(in srgb, var(--color-base-1), transparent 25%); font-size: 0.8rem; margin-left: 0.4rem; }
 .cat-arrow { color: rgba(255,255,255,0.35); font-size: 1.1rem; transition: transform 0.2s; margin-left: auto; }
 .cat-arrow.open { transform: rotate(90deg); }
-.cat-interests { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0.6rem 0.9rem; background: rgba(0,0,0,0.12); border-radius: 0 0 3px 3px; }
+.cat-interests { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0.6rem 0.9rem; background: rgba(0,0,0,0.12); border-radius: 0 0 var(--profile-border-radius, 8px) var(--profile-border-radius, 8px); }
 .interest-btn {
     padding: 0.25rem 0.65rem;
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     border: 1px solid rgba(255,255,255,0.1); background: transparent;
     color: rgba(255,255,255,0.5); font-size: 0.88rem; cursor: pointer; font-family: inherit; transition: all 0.15s;
 }
@@ -281,7 +281,7 @@ function submitSuggestion() {
 .no-results { color: rgba(255,255,255,0.3); font-size: 0.9rem; text-align: center; padding: 1rem 0; margin: 0; }
 .save-btn {
     width: 100%; padding: 0.75rem;
-    border-radius: 3px; border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 60%);
+    border-radius: var(--profile-border-radius, 8px); border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 60%);
     background: color-mix(in srgb, var(--color-base-1), transparent 90%);
     color: #fff; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: background 0.15s;
 }
@@ -292,7 +292,7 @@ function submitSuggestion() {
 .suggest-btn {
     flex-shrink: 0;
     padding: 0.5rem 0.85rem;
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 70%);
     background: color-mix(in srgb, var(--color-base-1), transparent 93%);
     color: color-mix(in srgb, var(--color-base-1), transparent 15%);
@@ -326,7 +326,7 @@ function submitSuggestion() {
     padding: 0.6rem 0.9rem;
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 6px;
+    border-radius: var(--profile-border-radius, 8px);
     color: rgba(255,255,255,0.88);
     font-size: 0.9rem;
     font-family: inherit;

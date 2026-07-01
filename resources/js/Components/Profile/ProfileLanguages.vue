@@ -133,7 +133,7 @@ function openEdit() {
     justify-content: center;
     width: 26px; height: 26px;
     padding: 0;
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     border: 1px solid transparent;
     background: transparent;
     cursor: pointer;
@@ -158,7 +158,7 @@ function openEdit() {
 .tags-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .tag {
     padding: 0.28rem 0.65rem;
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     border: 1px solid rgba(255,255,255,0.12);
     background: rgba(255,255,255,0.04);
     color: rgba(255,255,255,0.8);
@@ -172,14 +172,14 @@ function openEdit() {
 .lang-grid { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
 .lang-btn {
     padding: 0.3rem 0.75rem;
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     border: 1px solid rgba(255,255,255,0.1); background: transparent;
     color: rgba(255,255,255,0.5); font-size: 0.9rem; cursor: pointer; font-family: inherit; transition: all 0.15s;
 }
 .lang-btn.active { border-color: color-mix(in srgb, var(--color-base-1), transparent 45%); background: color-mix(in srgb, var(--color-base-1), transparent 90%); color: #fff; }
 .save-btn {
     width: 100%; padding: 0.75rem;
-    border-radius: 3px; border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 60%);
+    border-radius: var(--profile-border-radius, 8px); border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 60%);
     background: color-mix(in srgb, var(--color-base-1), transparent 90%);
     color: #fff; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: background 0.15s;
 }

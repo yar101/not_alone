@@ -354,7 +354,7 @@ function deleteVoice() {
     gap: 0.5rem;
     padding: 0.5rem 0.6rem;
     border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     background: rgba(255,255,255,0.03);
     box-sizing: border-box;
 }
@@ -363,7 +363,7 @@ function deleteVoice() {
     width: 28px; height: 28px;
     flex-shrink: 0;
     border: 1px solid rgba(255,255,255,0.18);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     background: transparent;
     color: rgba(255,255,255,0.75);
     display: flex; align-items: center; justify-content: center;
@@ -414,7 +414,7 @@ function deleteVoice() {
     gap: 0.6rem;
     padding: 0.5rem 0.6rem;
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 65%);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     box-sizing: border-box;
 }
 @keyframes recBlink {
@@ -436,7 +436,7 @@ function deleteVoice() {
 .stop-btn {
     padding: 0.18rem 0.6rem;
     border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     background: transparent;
     color: rgba(255,255,255,0.5);
     font-size: 0.82rem;
@@ -463,6 +463,7 @@ function deleteVoice() {
     gap: 0.55rem;
     padding: 0.65rem 0.75rem;
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 70%);
+    border-radius: var(--profile-border-radius, 8px);
     background: color-mix(in srgb, var(--color-base-1), transparent 95%);
     color: rgba(255,255,255,0.55);
     font-size: 0.88rem;
@@ -492,7 +493,7 @@ function deleteVoice() {
     gap: 0.6rem;
     padding: 0.65rem 0.75rem;
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 80%);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     background: color-mix(in srgb, var(--color-base-1), transparent 96%);
     box-sizing: border-box;
 }
