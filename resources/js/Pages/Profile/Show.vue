@@ -673,7 +673,7 @@ onMounted(async () => {
                             >
                                 <div class="about-fused-container glass-panel">
                                     <!-- Верх: bio слева, диск+плеер справа (eager — не defer) -->
-                                    <div class="about-top-grid anim-block">
+                                    <div class="about-top-grid anim-block" :class="{ 'about-top-grid--has-bio': profileUser.about }">
                                         <ProfileAbout
                                             :about="profileUser.about"
                                             :is-owner="isOwner"
@@ -2020,6 +2020,9 @@ body.driver-active {
     .about-top-grid :deep(.block-section) {
         border-right: none;
         border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    }
+    .about-top-grid--has-bio :deep(.block-section) {
+        border-bottom: none;
     }
     .about-voice-col {
         padding: 1.25rem;
