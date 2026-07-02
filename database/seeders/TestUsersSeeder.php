@@ -6,6 +6,9 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use App\Models\ServiceCategory;
+use App\Models\ServiceTimeUnit;
+use App\Models\Service;
 
 class TestUsersSeeder extends Seeder
 {
@@ -16,6 +19,9 @@ class TestUsersSeeder extends Seeder
     {
         $password = Hash::make('123123');
         $purchasesMade = 0;
+        
+        $categories = ServiceCategory::all();
+        $timeUnits = ServiceTimeUnit::all();
 
         for ($i = 1; $i <= 100; $i++) {
             $isIdol = $i % 2 === 0;
@@ -64,6 +70,20 @@ class TestUsersSeeder extends Seeder
                         'viewed_at' => null,
                     ]);
                     $purchasesMade++;
+                }
+
+                // Generate services for this idol
+                if ($categories->isNotEmpty() && $timeUnits->isNotEmpty()) {
+                    Service::updateOrCreate([
+                        'user_id' => $user->id,
+                    ], [
+                        'name' => ['ru' => 'Тестовая услуга ' . $i, 'en' => 'Test Service ' . $i],
+                        'category_id' => $categories->random()->id,
+                        'time_unit_id' => $timeUnits->random()->id,
+                        'price' => fake()->numberBetween(100, 1000),
+                        'is_active' => true,
+                        'status' => 'published',
+                    ]);
                 }
             }
         }
