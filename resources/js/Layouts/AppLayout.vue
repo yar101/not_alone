@@ -426,6 +426,7 @@ onUnmounted(() => {
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border-bottom-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
 /* ── Logo ────────────────────────────────────────────────── */
@@ -641,7 +642,6 @@ onUnmounted(() => {
     .app-header {
         height: 60px;
         padding: 0 1rem;
-        border-bottom-color: transparent;
     }
     .app-logo__img {
         height: 36px;
