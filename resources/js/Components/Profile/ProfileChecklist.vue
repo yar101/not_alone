@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useTranslations } from '@/composables/useTranslations';
+import { Check } from '@element-plus/icons-vue';
 
 const { __ } = useTranslations();
 
@@ -53,10 +54,7 @@ const sortedItems = computed(() => [
                 :style="{ '--idx': idx }"
             >
                 <span class="pcl__check-wrap" :class="{ 'pcl__check-wrap--done': item.done }">
-                    <svg class="pcl__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline v-if="item.done" points="20 6 9 17 4 12" stroke-width="2.5" />
-                        <circle v-else cx="12" cy="12" r="8" stroke-width="1.75" />
-                    </svg>
+                    <el-icon v-if="item.done" class="pcl__check"><Check /></el-icon>
                 </span>
                 <span class="pcl__label">{{ item.label }}</span>
             </li>
