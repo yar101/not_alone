@@ -2098,16 +2098,18 @@ function formatDate(iso) {
                         <span>{{ __("chat.empty.select") }}</span>
                     </div>
 
-                    <!-- Лоадер во время mobile slide-in анимации -->
-                    <div v-else-if="mobileOpening" class="chat-msgs-loader">
-                        <div class="chat-msgs-loader__dots">
-                            <span></span>
-                            <span></span>
-                            <span></span>
+                    <!-- Единый лоадер: по центру всего chat-main, не прыгает при появлении шапки -->
+                    <Transition name="msgs-fade">
+                        <div v-show="mobileOpening || (loadingMsgs && activeConversation)" class="chat-msgs-loader">
+                            <div class="chat-msgs-loader__dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
                         </div>
-                    </div>
+                    </Transition>
 
-                    <template v-else>
+                    <template v-if="activeConversation && !mobileOpening">
                         <!-- Шапка диалога -->
                         <div class="chat-main__header">
                             <button
@@ -2282,17 +2284,6 @@ function formatDate(iso) {
 
                         <!-- Сообщения -->
                         <div class="chat-messages-wrap">
-                            <!-- Лоадер: вне скролл-контейнера, не уезжает при scrollIntoView -->
-                            <Transition name="msgs-fade">
-                            <div v-show="loadingMsgs" class="chat-msgs-loader">
-                                <div class="chat-msgs-loader__dots">
-                                    <span></span>
-                                    <span></span>
-                                    <span></span>
-                                </div>
-                            </div>
-                            </Transition>
-                            
                             <div
                                 class="chat-messages"
                                 ref="messagesContainer"
