@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { useForm, router } from '@inertiajs/vue3';
 import { EditPen } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import { useTranslations } from '@/composables/useTranslations';
@@ -15,11 +15,18 @@ const props = defineProps({
 const editModal = ref(false);
 const form = useForm({ about: props.about ?? '' });
 
+function openEdit() {
+    form.about = props.about ?? '';
+    editModal.value = true;
+}
+
 function submit() {
     form.patch(route('profile.update.about'), {
         preserveState: true,
         preserveScroll: true,
-        onSuccess: () => editModal.value = false,
+        onSuccess: () => {
+            editModal.value = false;
+        },
     });
 }
 </script>
@@ -28,7 +35,7 @@ function submit() {
     <div id="tour-about" class="block-section">
         <div class="section-header">
             <span class="section-title">{{ __('profile.about.title') }}</span>
-            <button v-if="isOwner" class="edit-btn" @click="editModal = true" :title="__('common.edit')">
+            <button v-if="isOwner" class="edit-btn" @click="openEdit" :title="__('common.edit')">
                 <el-icon><EditPen /></el-icon>
             </button>
         </div>
@@ -39,7 +46,7 @@ function submit() {
         </p>
         <p v-else class="about-empty">{{ __('profile.about.empty') }}</p>
 
-        <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
+        <SiteModal :show="editModal" variant="pink" :compact="true" :no-history="true" @close="editModal = false">
             <div class="edit-form">
                 <h3 class="edit-title">{{ __('profile.about.title') }}</h3>
                 <textarea

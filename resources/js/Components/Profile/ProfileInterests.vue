@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { useForm, router } from '@inertiajs/vue3';
 import { EditPen } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import { useTranslations } from '@/composables/useTranslations';
@@ -67,7 +67,9 @@ function submit() {
     form.patch(route('profile.update.interests'), {
         preserveState: true,
         preserveScroll: true,
-        onSuccess: () => editModal.value = false,
+        onSuccess: () => {
+            editModal.value = false;
+        },
     });
 }
 
@@ -110,7 +112,7 @@ function submitSuggestion() {
         <p v-else-if="isOwner" class="empty">{{ __('profile.interests.empty') }}</p>
         <p v-else class="empty">{{ __('profile.interests.not_specified') }}</p>
 
-        <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
+        <SiteModal :show="editModal" variant="pink" :compact="true" :no-history="true" @close="editModal = false">
             <div class="edit-form">
                 <h3 class="edit-title">{{ __('profile.interests.title') }}</h3>
 

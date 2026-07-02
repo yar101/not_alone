@@ -39,6 +39,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    noHistory: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const emit = defineEmits(["close"]);
@@ -52,7 +56,7 @@ const isOpen = computed({
     },
 });
 
-const modalHistory = useModalHistory(isOpen, "sm");
+const modalHistory = props.noHistory ? null : useModalHistory(isOpen, "sm");
 
 defineExpose({
     skipHistoryBack: () => modalHistory?.skipHistoryBack?.(),

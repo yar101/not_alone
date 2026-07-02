@@ -30,6 +30,17 @@ class HandleInertiaRequests extends Middleware
     private const MESSAGE_TYPES = ['new_message'];
     private const FOLLOW_TYPES  = ['new_post', 'new_service', 'new_content_pack'];
 
+    public function handle(Request $request, \Closure $next)
+    {
+        $response = parent::handle($request, $next);
+        
+        $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        $response->headers->set('Pragma', 'no-cache');
+        $response->headers->set('Expires', '0');
+
+        return $response;
+    }
+
     public function version(Request $request): ?string
     {
         return parent::version($request);

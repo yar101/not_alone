@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { useForm, router } from '@inertiajs/vue3';
 import { EditPen } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import { useTranslations } from '@/composables/useTranslations';
@@ -59,7 +59,9 @@ function submit() {
     form.patch(route('profile.update.languages'), {
         preserveState: true,
         preserveScroll: true,
-        onSuccess: () => editModal.value = false,
+        onSuccess: () => {
+            editModal.value = false;
+        },
     });
 }
 
@@ -86,7 +88,7 @@ function openEdit() {
         <p v-else-if="isOwner" class="empty">{{ __('profile.languages.empty.owner') }}</p>
         <p v-else class="empty">{{ __('common.not_specified') }}</p>
 
-        <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
+        <SiteModal :show="editModal" variant="pink" :compact="true" :no-history="true" @close="editModal = false">
             <div class="edit-form">
                 <h3 class="edit-title">{{ __('profile.languages.title') }}</h3>
                 <div class="lang-grid">
