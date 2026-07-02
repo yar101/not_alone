@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Artisan;
 
 class DatabaseSeeder extends Seeder
 {
@@ -21,6 +22,11 @@ class DatabaseSeeder extends Seeder
             ReviewEpithetSeeder::class,
             HelpCenterSeeder::class,
             TestUsersSeeder::class,
+        ]);
+
+        Artisan::call('services:seed', [
+            '--all' => true,
+            '--force' => true,
         ]);
     }
 }
