@@ -7,7 +7,6 @@ import CreateButton from '@/Components/CreateButton.vue';
 import SortDropdown from '@/Components/SortDropdown.vue';
 import CreateContentPackModal from '@/Components/Profile/CreateContentPackModal.vue';
 import ContentPackRemarksModal from '@/Components/Profile/ContentPackRemarksModal.vue';
-import IdolCTA from '@/Components/Profile/IdolCTA.vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import PackStatusBadge from '@/Components/Profile/PackStatusBadge.vue';
 import { useTranslations } from '@/composables/useTranslations';
@@ -465,19 +464,7 @@ const ownerSortOptions = computed(() => [
                 </div>
             </template>
 
-            <!-- Owner but not idol yet -->
-            <template v-else-if="isOwner && !isIdol">
-                <div style="padding: 1rem 0">
-                    <IdolCTA
-                        :eyebrow="__('profile.content.become.eyebrow')"
-                        :title="__('profile.content.become.tagline')"
-                        :tag1="__('profile.content.feature.packs')"
-                        :tag2="__('profile.content.feature.paid')"
-                        :apply-text="__('profile.content.apply')"
-                        apply-link="/idol/apply"
-                    />
-                </div>
-            </template>
+
 
             <!-- Owner + Idol view -->
             <template v-else-if="isOwner && isIdol">

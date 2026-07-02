@@ -11,7 +11,6 @@ import {
 } from "vue";
 import { Head, Link, useForm, usePage, router } from "@inertiajs/vue3";
 import { useTranslations } from "@/composables/useTranslations.js";
-import IdolCTA from '@/Components/Profile/IdolCTA.vue';
 
 import SiteModal from "@/Components/Site/SiteModal.vue";
 import AppLayout from "@/Layouts/AppLayout.vue";
@@ -121,7 +120,7 @@ function resendVerification() {
 // ── Tabs ─────────────────────────────────────────────────────
 const TAB_ORDER = props.isIdol
     ? ["about", "posts", "services", "content", "reviews"]
-    : ["about", "posts", "services", "content"];
+    : ["about"];
 const storedTab = sessionStorage.getItem(`profile_tab_${props.profileUser.id}`);
 const hashTab = window.location.hash.slice(1);
 const initialTab = TAB_ORDER.includes(hashTab)
@@ -590,6 +589,7 @@ onMounted(async () => {
                             }}</span>
                         </button>
                         <button
+                            v-if="isIdol"
                             class="tab-btn"
                             :class="{ active: tab === 'services' }"
                             @click="switchTab('services')"
@@ -600,6 +600,7 @@ onMounted(async () => {
                             }}</span>
                         </button>
                         <button
+                            v-if="isIdol"
                             class="tab-btn"
                             :class="{ active: tab === 'content' }"
                             @click="switchTab('content')"
@@ -767,26 +768,6 @@ onMounted(async () => {
                                                 isBlockedByIdol
                                             "
                                         />
-                                    </div>
-                                </template>
-                                <!-- Owner but not idol yet -->
-                                <template v-else-if="isOwner">
-                                    <IdolCTA
-                                        :eyebrow="__('profile.services.become.eyebrow')"
-                                        :title="__('profile.services.become.title')"
-                                        :tag1="__('profile.services.become.tag1')"
-                                        :tag2="__('profile.services.become.tag2')"
-                                        :apply-text="__('profile.services.become.apply')"
-                                        apply-link="/idol/apply"
-                                    />
-                                </template>
-                                <!-- Visitor viewing a non-idol profile -->
-                                <template v-else>
-                                    <div class="anim-block coming-soon-block">
-                                        <p class="coming-soon-title">Услуги</p>
-                                        <p class="coming-soon-text">
-                                            У этого пользователя нет услуг
-                                        </p>
                                     </div>
                                 </template>
                             </div>
