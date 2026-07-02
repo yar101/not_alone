@@ -10,6 +10,9 @@ class HelpCenterSeeder extends Seeder
 {
     public function run(): void
     {
+        HelpArticle::query()->delete();
+        HelpCategory::query()->delete();
+
         $data = [
             [
                 'title' => ['ru' => 'Что такое no alone?', 'en' => 'What is no alone?'],
