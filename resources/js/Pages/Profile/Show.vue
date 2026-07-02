@@ -1378,7 +1378,7 @@ body.driver-active {
     border: none;
     padding: 0.25rem 0;
     position: relative;
-    gap: 0;
+    gap: 0.35rem;
 
     overflow-x: auto;
     scrollbar-width: none;
@@ -1428,24 +1428,22 @@ body.driver-active {
 }
 
 .tab-btn {
-    padding: 0.55rem 0.85rem;
-    border: none;
-    border-radius: 6px;
+    padding: 0.5rem 1.1rem;
+    border: 1px solid transparent;
+    border-radius: var(--profile-border-radius, 8px);
     background: transparent;
     color: rgba(255, 255, 255, 0.45);
-    font-size: 0.88rem;
-    letter-spacing: 0.06em;
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
     cursor: pointer;
     font-family: inherit;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    transition:
-        color 0.18s ease,
-        background 0.18s ease,
-        box-shadow 0.18s ease;
+    gap: 0.45rem;
+    transition: all 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     white-space: nowrap;
     flex-shrink: 0;
 }
@@ -1460,19 +1458,16 @@ body.driver-active {
 }
 .tab-btn.active {
     color: color-mix(in srgb, var(--color-base-1), white 20%);
-    background: linear-gradient(
-        160deg,
-        color-mix(in srgb, var(--color-base-1), transparent 82%) 0%,
-        color-mix(in srgb, var(--color-base-1), transparent 90%) 100%
-    );
-    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 85%);
-    border-radius: var(--profile-border-radius, 8px);
-    box-shadow: inset 0 1px 0
-        color-mix(in srgb, var(--color-base-1), transparent 60%);
+    background: color-mix(in srgb, var(--color-base-1) 10%, rgba(10, 7, 20, 0.6));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid color-mix(in srgb, var(--color-base-1) 25%, rgba(255, 255, 255, 0.08));
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-base-1) 30%, rgba(255, 255, 255, 0.2)), 0 4px 15px rgba(0, 0, 0, 0.35);
 }
 .tab-btn:hover:not(.active) {
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.03);
     color: rgba(255, 255, 255, 0.75);
+    border-color: rgba(255, 255, 255, 0.03);
 }
 
 /* ── Контент ──────────────────────────────────────────────── */
@@ -1964,7 +1959,7 @@ body.driver-active {
 }
 @media (max-width: 600px) {
     .profile-tabs {
-        gap: 0.2rem;
+        gap: 0.25rem;
     }
     .tab-btn {
         flex: 1;
@@ -1973,6 +1968,7 @@ body.driver-active {
         padding: 0.5rem 0.25rem;
         font-size: 0.62rem;
         letter-spacing: 0.03em;
+        border-radius: 10px;
     }
     .tab-icon {
         font-size: 1.25rem;
