@@ -99,6 +99,7 @@ const isMobile = ref(false);
 // 'list' = show sidebar, 'detail' = show conversation
 const mobileView = ref('list');
 let mobileViewTimer = null;
+const mobileOpening = ref(false);
 
 function setMobileView(view) {
     if (mobileViewTimer) clearTimeout(mobileViewTimer);
@@ -394,8 +395,10 @@ async function openConversation(conv) {
     if (isMobile.value) {
         // On mobile: first slide the panel in (empty/clean), then load
         setMobileView('detail');
+        mobileOpening.value = true;
         // Wait for slide animation to complete before showing any content
         await new Promise(r => setTimeout(r, 300));
+        mobileOpening.value = false;
     }
 
     loadingMsgs.value = true;
@@ -2075,7 +2078,8 @@ function formatDate(iso) {
                     }"
                 >
                     <!-- Пусто — нет выбранного диалога -->
-                    <div v-if="!activeConversation" class="chat-main__empty">
+                    <!-- Пусто — нет выбранного диалога -->
+                    <div v-if="!activeConversation && !mobileOpening" class="chat-main__empty">
                         <svg
                             width="48"
                             height="48"
@@ -2092,6 +2096,15 @@ function formatDate(iso) {
                             />
                         </svg>
                         <span>{{ __("chat.empty.select") }}</span>
+                    </div>
+
+                    <!-- Лоадер во время mobile slide-in анимации -->
+                    <div v-else-if="mobileOpening" class="chat-msgs-loader">
+                        <div class="chat-msgs-loader__dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
                     </div>
 
                     <template v-else>
@@ -2269,104 +2282,22 @@ function formatDate(iso) {
 
                         <!-- Сообщения -->
                         <div class="chat-messages-wrap">
+                            <!-- Лоадер: вне скролл-контейнера, не уезжает при scrollIntoView -->
+                            <Transition name="msgs-fade">
+                            <div v-show="loadingMsgs" class="chat-msgs-loader">
+                                <div class="chat-msgs-loader__dots">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                            </div>
+                            </Transition>
+                            
                             <div
                                 class="chat-messages"
                                 ref="messagesContainer"
                                 @scroll="onMessagesScroll"
                             >
-                                <div v-if="loadingMsgs" class="chat-skeleton">
-                                    <div
-                                        class="chat-skeleton__row chat-skeleton__row--left"
-                                    >
-                                        <div
-                                            class="chat-skeleton__avatar"
-                                        ></div>
-                                        <div class="chat-skeleton__bubbles">
-                                            <div
-                                                class="chat-skeleton__bubble"
-                                                style="width: 54%"
-                                            ></div>
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="chat-skeleton__row chat-skeleton__row--right"
-                                    >
-                                        <div class="chat-skeleton__bubbles">
-                                            <div
-                                                class="chat-skeleton__bubble"
-                                                style="width: 38%"
-                                            ></div>
-                                            <div
-                                                class="chat-skeleton__bubble"
-                                                style="width: 62%"
-                                            ></div>
-                                        </div>
-                                        <div
-                                            class="chat-skeleton__avatar"
-                                        ></div>
-                                    </div>
-                                    <div
-                                        class="chat-skeleton__row chat-skeleton__row--left"
-                                    >
-                                        <div
-                                            class="chat-skeleton__avatar"
-                                        ></div>
-                                        <div class="chat-skeleton__bubbles">
-                                            <div
-                                                class="chat-skeleton__bubble"
-                                                style="width: 72%"
-                                            ></div>
-                                            <div
-                                                class="chat-skeleton__bubble"
-                                                style="width: 45%"
-                                            ></div>
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="chat-skeleton__row chat-skeleton__row--right"
-                                    >
-                                        <div class="chat-skeleton__bubbles">
-                                            <div
-                                                class="chat-skeleton__bubble"
-                                                style="width: 48%"
-                                            ></div>
-                                        </div>
-                                        <div
-                                            class="chat-skeleton__avatar"
-                                        ></div>
-                                    </div>
-                                    <div
-                                        class="chat-skeleton__row chat-skeleton__row--left"
-                                    >
-                                        <div
-                                            class="chat-skeleton__avatar"
-                                        ></div>
-                                        <div class="chat-skeleton__bubbles">
-                                            <div
-                                                class="chat-skeleton__bubble"
-                                                style="width: 60%"
-                                            ></div>
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="chat-skeleton__row chat-skeleton__row--right"
-                                    >
-                                        <div class="chat-skeleton__bubbles">
-                                            <div
-                                                class="chat-skeleton__bubble"
-                                                style="width: 55%"
-                                            ></div>
-                                            <div
-                                                class="chat-skeleton__bubble"
-                                                style="width: 30%"
-                                            ></div>
-                                        </div>
-                                        <div
-                                            class="chat-skeleton__avatar"
-                                        ></div>
-                                    </div>
-                                </div>
-                                <template v-else>
                                     <!-- Индикатор подгрузки -->
                                     <div
                                         v-if="loadingMore"
@@ -3203,7 +3134,6 @@ function formatDate(iso) {
                                         @close="repeatOrderOpen = false"
                                     />
                                     <div ref="messagesEnd" />
-                                </template>
                             </div>
 
                             <!-- Оверлей: скрывает скролл при открытии диалога -->
@@ -4094,84 +4024,59 @@ function formatDate(iso) {
 }
 
 /* ── Messages skeleton loader ─────────────────────────── */
-.chat-skeleton {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 1.4rem;
-    padding: 1.5rem 1rem 2rem;
-    overflow: hidden;
-}
-
-.chat-skeleton__row {
-    display: flex;
-    align-items: flex-end;
-    gap: 0.6rem;
-}
-
-.chat-skeleton__row--right {
-    flex-direction: row-reverse;
-}
-
-.chat-skeleton__avatar {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    background: rgba(100, 200, 255, 0.07);
-    overflow: hidden;
-    position: relative;
-}
-
-.chat-skeleton__bubbles {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    flex: 1;
-    min-width: 0;
-}
-
-.chat-skeleton__row--right .chat-skeleton__bubbles {
-    align-items: flex-end;
-}
-
-.chat-skeleton__bubble {
-    height: 36px;
-    border-radius: 12px;
-    background: rgba(100, 200, 255, 0.07);
-    position: relative;
-    overflow: hidden;
-}
-
-.chat-skeleton__row--right .chat-skeleton__bubble {
-    background: rgba(160, 130, 255, 0.07);
-}
-
-/* GPU-accelerated shimmer via translateX on ::after */
-.chat-skeleton__bubble::after,
-.chat-skeleton__avatar::after {
-    content: "";
+/* ── Messages loader ───────────────────────────────── */
+.chat-msgs-loader {
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0.09) 50%,
-        transparent 100%
-    );
-    transform: translateX(-100%);
-    animation: skel-slide 1.2s ease-in-out infinite;
-    will-change: transform;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 5;
 }
 
-@keyframes skel-slide {
-    0% {
-        transform: translateX(-100%);
-    }
+.chat-msgs-loader__dots {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
 
-    100% {
-        transform: translateX(100%);
+.chat-msgs-loader__dots span {
+    display: block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: rgba(255, 178, 239, 0.85);
+    box-shadow:
+        0 0 8px rgba(255, 178, 239, 0.6),
+        0 0 20px rgba(255, 178, 239, 0.25);
+    animation: chat-dot-wave 1.3s ease-in-out infinite;
+    will-change: transform, opacity;
+}
+
+.chat-msgs-loader__dots span:nth-child(1) { animation-delay: 0s; }
+.chat-msgs-loader__dots span:nth-child(2) { animation-delay: 0.18s; background: rgba(180, 130, 255, 0.85); box-shadow: 0 0 8px rgba(180,130,255,0.6), 0 0 20px rgba(180,130,255,0.25); }
+.chat-msgs-loader__dots span:nth-child(3) { animation-delay: 0.36s; background: rgba(130, 100, 255, 0.75); box-shadow: 0 0 8px rgba(130,100,255,0.5), 0 0 20px rgba(130,100,255,0.2); }
+
+@keyframes chat-dot-wave {
+    0%, 60%, 100% {
+        transform: translateY(0) scale(1);
+        opacity: 0.5;
     }
+    30% {
+        transform: translateY(-8px) scale(1.15);
+        opacity: 1;
+    }
+}
+
+.msgs-fade-enter-active,
+.msgs-fade-leave-active {
+    transition: opacity 0.2s ease;
+}
+
+.msgs-fade-enter-from,
+.msgs-fade-leave-to {
+    opacity: 0;
 }
 
 /* ── Empty state ──────────────────────────────────────── */
