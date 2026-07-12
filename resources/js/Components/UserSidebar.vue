@@ -341,12 +341,17 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
     margin-top: 0.45rem;
 }
 
+.usb-badges :deep(.idol-badge) {
+    padding: 0.15rem 0.5rem;
+    font-size: 0.72rem;
+}
+
 .usb-badge {
     display: inline-flex;
     align-items: center;
-    padding: 0.28rem 0.75rem;
+    padding: 0.15rem 0.5rem;
     border-radius: 3px;
-    font-size: 0.85rem;
+    font-size: 0.72rem;
     letter-spacing: 0.04em;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.04);
@@ -366,7 +371,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
     color: rgba(255, 255, 255, 0.45);
 }
 .usb-badge--default {
-    font-size: 0.72rem;
+    font-size: 0.65rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: rgba(255, 178, 239, 0.5);
