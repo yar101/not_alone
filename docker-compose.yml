@@ -82,6 +82,7 @@ services:
       CONTAINER_ROLE: worker
       APP_ENV: local
       APP_DEBUG: "true"
+      APP_URL: https://${DEV_HOST}:8443
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
@@ -119,6 +120,7 @@ services:
       CONTAINER_ROLE: scheduler
       APP_ENV: local
       APP_DEBUG: "true"
+      APP_URL: https://${DEV_HOST}:8443
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
