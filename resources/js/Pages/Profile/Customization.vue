@@ -172,7 +172,7 @@ const unequip = async () => {
 }
 
 .customization-container {
-    max-width: 900px;
+    max-width: 1440px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
@@ -215,13 +215,16 @@ const unequip = async () => {
 
 /* ── Sidebar Menu ────────────────────────────────────────────── */
 .sidebar-menu {
-    flex: 0 0 240px;
+    flex: 0 0 280px;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    background: #06060e;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 3px;
+    background: rgba(10, 7, 20, 0.7);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
     padding: 0.75rem;
 }
 @media (max-width: 768px) {
@@ -233,7 +236,7 @@ const unequip = async () => {
 
 .menu-item {
     padding: 0.75rem 1rem;
-    border-radius: 2px;
+    border-radius: 6px;
     background: transparent;
     border: 1px solid transparent;
     color: rgba(255, 255, 255, 0.6);
@@ -262,9 +265,12 @@ const unequip = async () => {
 /* ── Content Area ────────────────────────────────────────────── */
 .content-area {
     flex: 1;
-    background: #06060e;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 3px;
+    background: rgba(10, 7, 20, 0.7);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
     padding: 2rem;
     min-width: 0;
 }
