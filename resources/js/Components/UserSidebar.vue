@@ -88,7 +88,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
                     </button>
 
                     <div class="usb-avatar-wrap">
-                        <AvatarUploader :user="user" :size="88" :editable="true" />
+                        <AvatarUploader :user="user" :size="72" :editable="true" />
                         
                         <!-- Rating badge — only for idols -->
                         <div v-if="isIdol && ratingValue != null" class="usb-rating-badge">
@@ -99,13 +99,15 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
                         </div>
                     </div>
 
-                    <div class="usb-name">{{ user.name }}</div>
+                    <div class="usb-user-info">
+                        <div class="usb-name">{{ user.name }}</div>
 
-                    <div class="usb-badges">
-                        <IdolBadge v-if="isIdol" :gender="user.gender" />
-                        <span v-if="user.gender" class="usb-badge" :class="'usb-badge--' + user.gender">{{ user.gender === 'female' ? '\u2640\uFE0F' : '\u2642\uFE0F' }}</span>
-                        <span v-if="user.age" class="usb-badge usb-badge--age">{{ ageLabel(user.age) }}</span>
-                        <span v-if="!isIdol && !user.gender && !user.age" class="usb-badge usb-badge--default">{{ __('nav.user') }}</span>
+                        <div class="usb-badges">
+                            <IdolBadge v-if="isIdol" :gender="user.gender" />
+                            <span v-if="user.gender" class="usb-badge" :class="'usb-badge--' + user.gender">{{ user.gender === 'female' ? '\u2640\uFE0F' : '\u2642\uFE0F' }}</span>
+                            <span v-if="user.age" class="usb-badge usb-badge--age">{{ ageLabel(user.age) }}</span>
+                            <span v-if="!isIdol && !user.gender && !user.age" class="usb-badge usb-badge--default">{{ __('nav.user') }}</span>
+                        </div>
                     </div>
                 </div>
 
@@ -247,7 +249,8 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
     bottom: 1.25rem;
     width: 360px;
     border-radius: 8px;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     z-index: 1101;
     display: flex;
     flex-direction: column;
@@ -272,9 +275,10 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 .usb-hero {
     position: relative;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    padding: 2.2rem 1.5rem 1.5rem;
+    padding: 3rem 1.5rem 1.5rem;
+    gap: 1.25rem;
     border-bottom: 1px solid rgba(255, 178, 239, 0.1);
     background:
         radial-gradient(ellipse 280px 160px at 50% 0%, rgba(255, 178, 239, 0.1) 0%, transparent 100%);
@@ -320,7 +324,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
     font-size: 1.05rem;
     font-weight: 700;
     color: rgba(255, 255, 255, 0.94);
-    text-align: center;
+    text-align: left;
     letter-spacing: 0.01em;
     max-width: 100%;
     overflow: hidden;
@@ -332,7 +336,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 .usb-badges {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 0.35rem;
     margin-top: 0.45rem;
 }
@@ -373,7 +377,13 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 /* Avatar wrap */
 .usb-avatar-wrap {
     position: relative;
-    margin-bottom: 0.9rem;
+    flex-shrink: 0;
+}
+
+.usb-user-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
 }
 
 /* ── Rating badge ── */
