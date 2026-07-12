@@ -38,7 +38,7 @@ class AvatarFrameController extends Controller
         return response()->json([
             'frames' => $frames,
             'unlocked_ids' => $unlockedFrameIds,
-            'active_frame_path' => $user->active_frame_path
+            'active_frame' => $user->activeFrame
         ]);
     }
 
@@ -59,12 +59,12 @@ class AvatarFrameController extends Controller
         }
 
         $user->update([
-            'active_frame_path' => $avatarFrame->image_path
+            'active_frame_id' => $avatarFrame->id
         ]);
 
         return response()->json([
             'message' => 'Рамка надета!', 
-            'active_frame_path' => $user->active_frame_path
+            'active_frame' => $avatarFrame
         ]);
     }
 
@@ -76,7 +76,7 @@ class AvatarFrameController extends Controller
         $user = $request->user();
         
         $user->update([
-            'active_frame_path' => null
+            'active_frame_id' => null
         ]);
 
         return response()->json(['message' => 'Рамка снята.']);

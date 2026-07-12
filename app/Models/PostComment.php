@@ -15,7 +15,7 @@ class PostComment extends Model
 
     public function replies(): HasMany
     {
-        return $this->hasMany(PostComment::class, 'parent_id')->with('user:id,name,avatar_path,active_frame_path');
+        return $this->hasMany(PostComment::class, 'parent_id')->with(['user:id,name,avatar_path,active_frame_id', 'user.activeFrame']);
     }
 
     public function user(): BelongsTo

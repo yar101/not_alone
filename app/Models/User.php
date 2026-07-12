@@ -31,7 +31,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'about',
         'voice_path',
         'avatar_path',
-        'active_frame_path',
+        'active_frame_id',
         'timezone',
         'profile_checklist_snoozed_until',
         'email',
@@ -53,7 +53,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'remember_token',
     ];
 
-    protected $appends = ['age', 'avatar_url', 'active_frame_url'];
+    protected $with = ['activeFrame'];
+
+    protected $appends = ['age', 'avatar_url'];
 
     protected function casts(): array
     {
@@ -86,11 +88,6 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getAvatarUrlAttribute(): ?string
     {
         return $this->avatar_path ? Storage::url($this->avatar_path) : null;
-    }
-
-    public function getActiveFrameUrlAttribute(): ?string
-    {
-        return $this->active_frame_path ? Storage::url($this->active_frame_path) : null;
     }
 
     public function traits(): BelongsToMany
@@ -151,6 +148,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsToMany(AvatarFrame::class, 'user_avatar_frames')
             ->withPivot('acquired_at')
             ->withTimestamps();
+    }
+
+    public function activeFrame(): BelongsTo
+    {
+        return $this->belongsTo(AvatarFrame::class, 'active_frame_id');
     }
 
     public function conversationParticipants(): HasMany

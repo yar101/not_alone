@@ -65,7 +65,8 @@ class UserSearchController extends Controller
         $query->orderBy($sortBy, $sortDir);
 
         $users = $query
-            ->select(['id','name','avatar_path','active_frame_path','gender','birth_date','is_idol','rating','about','timezone','created_at'])
+            ->select(['id','name','avatar_path','active_frame_id','gender','birth_date','is_idol','rating','about','timezone','created_at'])
+            ->with('activeFrame')
             ->withCount(['ordersAsIdol as completed_orders_count' => function ($q) {
                 $q->where('status', 'completed');
             }])

@@ -4,6 +4,7 @@ import { Head, Link, usePage, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { Lock } from '@element-plus/icons-vue';
 
 defineOptions({ layout: AppLayout });
 
@@ -12,7 +13,7 @@ const activeTab = ref('frames');
 const loading = ref(true);
 const frames = ref([]);
 const unlockedIds = ref([]);
-const activeFramePath = ref(null);
+const activeFrame = ref(null);
 
 const fetchFrames = async () => {
     try {
@@ -20,7 +21,7 @@ const fetchFrames = async () => {
         const response = await axios.get(route('avatar-frames.index'));
         frames.value = response.data.frames;
         unlockedIds.value = response.data.unlocked_ids;
-        activeFramePath.value = response.data.active_frame_path;
+        activeFrame.value = response.data.active_frame;
     } catch (e) {
         ElMessage.error('Не удалось загрузить список рамок');
     } finally {
@@ -40,8 +41,8 @@ const isUnlocked = (frame) => {
 const equip = async (frame) => {
     try {
         const res = await axios.post(route('avatar-frames.equip', frame.id));
-        activeFramePath.value = res.data.active_frame_path;
-        usePage().props.auth.user.active_frame_path = res.data.active_frame_path;
+        activeFrame.value = res.data.active_frame;
+        usePage().props.auth.user.active_frame = res.data.active_frame;
         router.reload({ only: ['user', 'auth'], preserveScroll: true });
         ElMessage.success(res.data.message);
     } catch (e) {
@@ -52,8 +53,8 @@ const equip = async (frame) => {
 const unequip = async () => {
     try {
         const res = await axios.post(route('avatar-frames.unequip'));
-        activeFramePath.value = null;
-        usePage().props.auth.user.active_frame_path = null;
+        activeFrame.value = null;
+        usePage().props.auth.user.active_frame = null;
         router.reload({ only: ['user', 'auth'], preserveScroll: true });
         ElMessage.success(res.data.message);
     } catch (e) {
@@ -68,7 +69,6 @@ const unequip = async () => {
     <div class="page-wrap">
         <div class="customization-container">
             <div class="page-header">
-                <Link :href="route('profile.show', { user: usePage().props.auth.user.id })" class="back-link">← Мой профиль</Link>
                 <h1 class="page-title">Кастомизация</h1>
             </div>
 
@@ -97,10 +97,10 @@ const unequip = async () => {
                                 <div class="current-preview">
                                     <img v-if="usePage().props.auth.user.avatar_url" :src="usePage().props.auth.user.avatar_url" class="mock-avatar avatar-img" />
                                     <div v-else class="mock-avatar"></div>
-                                    <img v-if="activeFramePath" :src="'/storage/' + activeFramePath" alt="" class="frame-img" />
+                                    <img v-if="activeFrame" :src="activeFrame.image_url" alt="" class="frame-img" />
                                 </div>
                                 <div class="current-actions">
-                                    <button v-if="activeFramePath" class="btn-unequip" @click="unequip">Снять рамку</button>
+                                    <button v-if="activeFrame" class="btn-unequip" @click="unequip">Снять рамку</button>
                                     <div v-else class="no-frame-text">Рамка не надета</div>
                                 </div>
                             </div>
@@ -112,8 +112,11 @@ const unequip = async () => {
                                     v-for="frame in frames" 
                                     :key="frame.id" 
                                     class="frame-card"
-                                    :class="{ 'is-locked': !isUnlocked(frame), 'is-active': activeFramePath === frame.image_path }"
+                                    :class="{ 'is-locked': !isUnlocked(frame), 'is-active': activeFrame?.id === frame.id }"
                                 >
+                                    <div v-if="!isUnlocked(frame)" class="locked-badge">
+                                        <el-icon><Lock /></el-icon>
+                                    </div>
                                     <div class="frame-preview-box">
                                         <div class="mock-avatar-small"></div>
                                         <img :src="frame.image_url" alt="" class="frame-img" />
@@ -134,14 +137,14 @@ const unequip = async () => {
 
                                     <div class="frame-actions">
                                         <button 
-                                            v-if="isUnlocked(frame) && activeFramePath !== frame.image_path" 
+                                            v-if="isUnlocked(frame) && activeFrame?.id !== frame.id"
                                             class="btn-equip"
                                             @click="equip(frame)"
                                         >
                                             Надеть
                                         </button>
                                         <button 
-                                            v-else-if="activeFramePath === frame.image_path" 
+                                            v-else-if="activeFrame?.id === frame.id" 
                                             class="btn-equip is-equipped" 
                                             disabled
                                         >
@@ -185,14 +188,6 @@ const unequip = async () => {
     gap: 0.4rem;
     margin-bottom: 0.5rem;
 }
-
-.back-link {
-    font-size: 0.85rem;
-    color: rgba(255, 178, 239, 0.7);
-    text-decoration: none;
-    transition: color 0.2s;
-}
-.back-link:hover { color: rgba(255, 178, 239, 1); }
 
 .page-title {
     font-size: 1.4rem;
@@ -414,6 +409,7 @@ const unequip = async () => {
 }
 
 .frame-card {
+    position: relative;
     background: rgba(255, 255, 255, 0.02);
     border-radius: 3px;
     padding: 1.5rem 1rem;
@@ -423,6 +419,7 @@ const unequip = async () => {
     text-align: center;
     border: 1px solid rgba(255, 255, 255, 0.05);
     transition: 0.2s ease;
+    overflow: hidden;
 }
 .frame-card:hover {
     background: rgba(255, 255, 255, 0.05);
@@ -433,8 +430,18 @@ const unequip = async () => {
     background: rgba(255, 178, 239, 0.05);
 }
 .frame-card.is-locked {
-    opacity: 0.5;
-    filter: grayscale(100%);
+    opacity: 0.65;
+}
+
+.locked-badge {
+    position: absolute;
+    top: 0.6rem;
+    left: 0.6rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .frame-preview-box {
@@ -451,10 +458,18 @@ const unequip = async () => {
     color: rgba(255, 255, 255, 0.9);
 }
 .frame-desc {
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.65);
     margin-bottom: 1.25rem;
-    line-height: 1.4;
+    line-height: 1.3;
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    display: inline-block;
 }
 .frame-actions {
     margin-top: auto;

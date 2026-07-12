@@ -51,7 +51,7 @@ class UserProfileController extends Controller
                 'timezone'         => $user->timezone,
                 'checklist_snoozed' => $checklistSnoozed,
                 'is_banned'        => $user->isActiveBanned(),
-                'active_frame_path'=> $user->active_frame_path,
+                'active_frame'     => $user->activeFrame,
                 'is_newbie'        => \App\Models\Order::where('idol_id', $user->id)->where('status', 'completed')->count() < 25,
             ],
             'isOwner'          => auth()->id() === $user->id,
@@ -304,7 +304,7 @@ class UserProfileController extends Controller
             ->where('status', 'approved')
             ->where('user_id', '!=', $user->id)
             ->where('category_id', $category->id)
-            ->with(['user:id,name,avatar_path,active_frame_path,rating'])
+            ->with(['user:id,name,avatar_path,active_frame_id,rating', 'user.activeFrame'])
             ->get(['id', 'user_id'])
             ->unique('user_id');
 
@@ -617,7 +617,7 @@ class UserProfileController extends Controller
     public function getPosts(Request $request, User $user): JsonResponse
     {
         $paginated = $user->posts()
-            ->with('user:id,name,avatar_path,active_frame_path,gender')
+            ->with(['user:id,name,avatar_path,active_frame_id,gender', 'user.activeFrame'])
             ->withCount(['likes', 'comments'])
             ->latest()
             ->paginate(10);
@@ -663,7 +663,7 @@ class UserProfileController extends Controller
         $perPage = 15;
 
         $paginator = $post->comments()
-            ->with(['user:id,name,avatar_path,active_frame_path,gender'])
+            ->with(['user:id,name,avatar_path,active_frame_id,gender', 'user.activeFrame'])
             ->withCount('replies')
             ->orderBy('created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
@@ -673,7 +673,7 @@ class UserProfileController extends Controller
         // For comments with exactly 1 reply, load it inline so it displays without a toggle button
         $singleIds = $comments->filter(fn ($c) => $c->replies_count === 1)->pluck('id');
         if ($singleIds->isNotEmpty()) {
-            $singleReplies = PostComment::with('user:id,name,avatar_path,active_frame_path,gender')
+            $singleReplies = PostComment::with(['user:id,name,avatar_path,active_frame_id,gender', 'user.activeFrame'])
                 ->whereIn('parent_id', $singleIds)
                 ->orderBy('created_at')
                 ->get()
@@ -729,7 +729,7 @@ class UserProfileController extends Controller
         $perPage = 50;
 
         $paginator = PostComment::where('parent_id', $comment->id)
-            ->with('user:id,name,avatar_path,active_frame_path,gender')
+            ->with(['user:id,name,avatar_path,active_frame_id,gender', 'user.activeFrame'])
             ->orderBy('created_at')
             ->paginate($perPage, ['*'], 'page', $page);
 
@@ -796,7 +796,7 @@ class UserProfileController extends Controller
             'body'      => $data['body'],
         ]);
 
-        $comment->load('user:id,name,avatar_path,active_frame_path');
+        $comment->load(['user:id,name,avatar_path,active_frame_id', 'user.activeFrame']);
 
         return response()->json([
             'id'            => $comment->id,

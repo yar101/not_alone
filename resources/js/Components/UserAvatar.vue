@@ -17,7 +17,7 @@ const initials = (props.user?.name ?? '?').charAt(0).toUpperCase();
             <img v-if="user.avatar_url" :src="user.avatar_url" class="ua-img" alt="" />
             <span v-else class="ua-initials">{{ initials }}</span>
         </div>
-        <img v-if="user?.active_frame_path" :src="'/storage/' + user.active_frame_path" class="ua-frame" alt="" />
+        <img v-if="user?.active_frame?.image_url" :src="user.active_frame.image_url" class="ua-frame" alt="" />
     </div>
 </template>
 

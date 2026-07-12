@@ -33,7 +33,7 @@ const avatarUrl = computed(() => {
 });
 
 const activeFrameUrl = computed(() => {
-    return props.user.active_frame_url || (props.user.active_frame_path ? "/storage/" + props.user.active_frame_path : null);
+    return props.user.active_frame_url || props.user.active_frame?.image_url || null;
 });
 
 const initial = computed(() => {

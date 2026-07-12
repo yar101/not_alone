@@ -28,7 +28,7 @@ class ConversationController extends Controller
 
         $query = Conversation::whereNull('order_id')
             ->whereHas('participants', fn($q) => $q->where('user_id', $user->id))
-            ->with(['participants.user', 'lastMessage.sender'])
+            ->with(['participants.user.activeFrame', 'lastMessage.sender.activeFrame'])
             ->withCount(['messages as unread_count' => function ($q) use ($user) {
                 $userId = $user->id;
                 $q->where(function ($q) use ($userId) {
@@ -105,7 +105,7 @@ class ConversationController extends Controller
                     'id'         => $other->id,
                     'name'       => $other->name,
                     'avatar_url' => $other->avatar_url,
-                    'active_frame_path' => $other->active_frame_path,
+                    'active_frame' => $other->activeFrame,
                     'is_idol'    => $other->is_idol,
                     'gender'     => $other->gender,
                     ] : null,                'last_message' => $conversation->lastMessage ? [
@@ -133,7 +133,7 @@ class ConversationController extends Controller
             403
         );
 
-        $query = $conversation->messages()->with('sender')->latest();
+        $query = $conversation->messages()->with(['sender.activeFrame'])->latest();
         if ($request->before_id) {
             $query->where('id', '<', $request->before_id);
         }
@@ -150,7 +150,7 @@ class ConversationController extends Controller
             'sender_id'       => $m->sender_id,
             'sender_name'     => $m->sender?->name,
             'sender_avatar'   => $m->sender?->avatar_url,
-            'sender_frame'    => $m->sender?->active_frame_path,
+            'sender_frame'    => $m->sender?->activeFrame,
             'created_at'      => $m->created_at->toISOString(),
             'conversation_id' => $m->conversation_id,
         ]);
@@ -172,8 +172,8 @@ class ConversationController extends Controller
         $orderData = null;
         if ($conversation->order_id) {
             $conversation->load([
-                'order.customer',
-                'order.idol',
+                'order.customer.activeFrame',
+                'order.idol.activeFrame',
                 'order.cancelledBy',
                 'order.items.service.category',
                 'order.items.service.timeUnit',
@@ -192,8 +192,8 @@ class ConversationController extends Controller
                     'completed_at'  => $o->completed_at?->toISOString(),
                     'completion_confirmed_by_idol'     => $o->completion_confirmed_by_idol,
                     'completion_confirmed_by_customer' => $o->completion_confirmed_by_customer,
-                    'customer'      => ['id' => $o->customer->id, 'name' => $o->customer->name, 'avatar_url' => $o->customer->avatar_url, 'active_frame_path' => $o->customer->active_frame_path],
-                    'idol'          => ['id' => $o->idol->id, 'name' => $o->idol->name, 'avatar_url' => $o->idol->avatar_url, 'active_frame_path' => $o->idol->active_frame_path, 'gender' => $o->idol->gender],
+                    'customer'      => ['id' => $o->customer->id, 'name' => $o->customer->name, 'avatar_url' => $o->customer->avatar_url, 'active_frame' => $o->customer->activeFrame],
+                    'idol'          => ['id' => $o->idol->id, 'name' => $o->idol->name, 'avatar_url' => $o->idol->avatar_url, 'active_frame' => $o->idol->activeFrame, 'gender' => $o->idol->gender],
                     'items'         => $o->items->map(fn($item) => [
                         'id'       => $item->id,
                         'quantity' => $item->quantity ?? 1,
@@ -220,7 +220,7 @@ class ConversationController extends Controller
                 'id'         => $other->id,
                 'name'       => $other->name,
                 'avatar_url' => $other->avatar_url,
-                'active_frame_path' => $other->active_frame_path,
+                'active_frame' => $other->activeFrame,
                 'is_idol'    => $other->is_idol,
                 'gender'     => $other->gender,
                 ] : null,            'other_last_read_at' => $otherParticipant?->last_read_at?->toISOString(),

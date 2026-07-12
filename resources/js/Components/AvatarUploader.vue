@@ -104,8 +104,8 @@ function applyCrop() {
         </div>
 
         <img
-            v-if="user?.active_frame_path"
-            :src="'/storage/' + user.active_frame_path"
+            v-if="user?.active_frame?.image_url"
+            :src="user.active_frame.image_url"
             class="au-frame"
             alt="Рамка"
             @dragstart.prevent

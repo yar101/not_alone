@@ -39,8 +39,8 @@ class AvatarFrameController extends Controller
             'description' => 'nullable|string',
             'image' => 'required|image|max:2048|mimes:png',
             'type' => 'required|in:free,paid,achievement,promo',
-            'price' => 'numeric|min:0',
-            'condition_class' => 'nullable|string',
+            'price' => 'nullable|numeric|min:0',
+            'condition_class' => 'required_if:type,achievement|nullable|string',
             'is_active' => 'boolean',
         ]);
 
@@ -51,7 +51,7 @@ class AvatarFrameController extends Controller
             'description' => $validated['description'],
             'image_path' => $path,
             'type' => $validated['type'],
-            'price' => $validated['price'] ?? 0,
+            'price' => $validated['type'] === 'paid' ? ($validated['price'] ?? 0) : 0,
             'condition_class' => $validated['type'] === 'achievement' ? $validated['condition_class'] : null,
             'is_active' => $validated['is_active'] ?? true,
         ]);
@@ -66,8 +66,8 @@ class AvatarFrameController extends Controller
             'description' => 'nullable|string',
             'image' => 'nullable|image|max:2048|mimes:png',
             'type' => 'required|in:free,paid,achievement,promo',
-            'price' => 'numeric|min:0',
-            'condition_class' => 'nullable|string',
+            'price' => 'nullable|numeric|min:0',
+            'condition_class' => 'required_if:type,achievement|nullable|string',
             'is_active' => 'boolean',
         ]);
 
@@ -80,7 +80,7 @@ class AvatarFrameController extends Controller
             'name' => $validated['name'],
             'description' => $validated['description'],
             'type' => $validated['type'],
-            'price' => $validated['price'] ?? 0,
+            'price' => $validated['type'] === 'paid' ? ($validated['price'] ?? 0) : 0,
             'condition_class' => $validated['type'] === 'achievement' ? $validated['condition_class'] : null,
             'is_active' => $validated['is_active'] ?? true,
         ]);

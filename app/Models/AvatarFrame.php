@@ -20,4 +20,11 @@ class AvatarFrame extends Model
         'is_active' => 'boolean',
         'price' => 'decimal:2',
     ];
+
+    protected $appends = ['image_url'];
+
+    public function getImageUrlAttribute(): ?string
+    {
+        return $this->image_path ? \Illuminate\Support\Facades\Storage::url($this->image_path) : null;
+    }
 }

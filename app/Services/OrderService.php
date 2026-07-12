@@ -287,14 +287,14 @@ class OrderService
                 'id'         => $order->customer->id,
                 'name'       => $order->customer->name,
                 'avatar_url' => $order->customer->avatar_url,
-                'active_frame_path' => $order->customer->active_frame_path,
+                'active_frame' => $order->customer->activeFrame,
                 'gender'     => $order->customer->gender,
             ],
             'idol' => [
                 'id'         => $order->idol->id,
                 'name'       => $order->idol->name,
                 'avatar_url' => $order->idol->avatar_url,
-                'active_frame_path' => $order->idol->active_frame_path,
+                'active_frame' => $order->idol->activeFrame,
                 'gender'     => $order->idol->gender,
             ],
             'items' => $order->items->map(fn($item) => [
@@ -323,8 +323,7 @@ class OrderService
 
         IdolRatingService::adjust($order->idol, 'order_completed');
 
-        \App\Jobs\EvaluateUserAchievementsJob::dispatch($order->idol);
-        \App\Jobs\EvaluateUserAchievementsJob::dispatch($order->customer);
+        \App\Events\OrderCompletedEvent::dispatch($order);
 
         $this->broadcastSystemMessage($order, [
             'sender_id' => null,

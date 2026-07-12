@@ -79,7 +79,7 @@ class ReviewController extends Controller
 
         $query = Review::where('idol_id', $user->id)
                        ->where('is_hidden', false)
-                       ->with(['reviewer', 'epithets']);
+                       ->with(['reviewer.activeFrame', 'epithets']);
 
         if ($isOwner) {
             $query->with(['disputes' => fn($q) => $q->latest('created_at')->limit(1)]);
@@ -114,7 +114,7 @@ class ReviewController extends Controller
                     'id'                => $r->reviewer->id,
                     'name'              => $r->reviewer->name,
                     'avatar_url'        => $r->reviewer->avatar_url,
-                    'active_frame_path' => $r->reviewer->active_frame_path,
+                    'active_frame'      => $r->reviewer->activeFrame,
                     'gender'            => $r->reviewer->gender,
                 ],
                 'created_at'       => $r->created_at->toISOString(),
