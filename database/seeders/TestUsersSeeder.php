@@ -20,16 +20,21 @@ class TestUsersSeeder extends Seeder
         for ($i = 1; $i <= 100; $i++) {
             $isIdol = $i % 2 === 0;
             $gender = $isIdol ? 'female' : 'male';
-            $user = User::updateOrCreate(
-                ['email' => "u{$i}@test.com"],
-                [
-                    'name' => "u{$i}" . ($isIdol ? ' (Idol)' : ''),
+            $email = "u{$i}@test.com";
+            $name = "u{$i}" . ($isIdol ? ' (Idol)' : '');
+
+            $user = User::where('email', $email)->orWhere('name', $name)->first();
+
+            if (!$user) {
+                $user = User::create([
+                    'email' => $email,
+                    'name' => $name,
                     'password' => $password,
                     'is_idol' => $isIdol,
                     'gender' => $gender,
                     'email_verified_at' => now(),
-                ]
-            );
+                ]);
+            }
 
             if ($isIdol) {
                 $photoPath = "content-packs/{$user->id}-test/cover.jpg";
