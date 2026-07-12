@@ -88,7 +88,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
                     </button>
 
                     <div class="usb-avatar-wrap">
-                        <AvatarUploader :user="user" :size="72" :editable="true" />
+                        <AvatarUploader :user="user" :size="88" :editable="true" />
                         
                         <!-- Rating badge — only for idols -->
                         <div v-if="isIdol && ratingValue != null" class="usb-rating-badge">
