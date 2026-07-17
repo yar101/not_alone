@@ -100,57 +100,24 @@ const handleStartClick = () => {
 .circle2,
 .circle3 {
     border-radius: 50%;
-    background: rgba(60, 60, 190, 0.04);
-    box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.02);
+    background: rgba(60, 60, 190, 0.03);
+    box-shadow: inset 0 0 30px rgba(255, 255, 255, 0.015);
     position: absolute;
-    right: -15%;
-    top: -10%;
+    right: -12%;
+    top: -8%;
 }
 
 .circle1 {
-    width: 1000px;
-    height: 1000px;
+    width: 900px;
+    height: 900px;
 }
 .circle2 {
-    width: 800px;
-    height: 800px;
+    width: 700px;
+    height: 700px;
 }
 .circle3 {
-    width: 600px;
-    height: 600px;
-}
-
-@media (max-width: 1024px) {
-    .circle1 {
-        width: 700px;
-        height: 700px;
-    }
-    .circle2 {
-        width: 550px;
-        height: 550px;
-    }
-    .circle3 {
-        width: 400px;
-        height: 400px;
-    }
-}
-
-@media (max-width: 640px) {
-    .circle1 {
-        width: 400px;
-        height: 400px;
-        right: -20%;
-    }
-    .circle2 {
-        width: 300px;
-        height: 300px;
-        right: -15%;
-    }
-    .circle3 {
-        width: 200px;
-        height: 200px;
-        right: -10%;
-    }
+    width: 500px;
+    height: 500px;
 }
 
 /* Стили кнопок-ссылок */
