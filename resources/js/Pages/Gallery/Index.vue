@@ -397,7 +397,7 @@ function selectPack(pack) {
                     @click="selectAll"
                 >
                     <div class="gallery-idol-item__avatar gallery-idol-item__avatar--all">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                             <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
                             <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
                         </svg>
@@ -421,7 +421,7 @@ function selectPack(pack) {
                             }"
                         >
                             <template v-if="item.type === 'mine'">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                                     <circle cx="12" cy="7" r="4"/>
                                 </svg>
@@ -669,7 +669,7 @@ function selectPack(pack) {
 }
 
 .gallery-idol-list {
-    padding: 0.5rem 0.75rem;
+    padding: 0.5rem 0.4rem;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -679,15 +679,15 @@ function selectPack(pack) {
 .gallery-idol-item {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.5rem;
     width: 100%;
-    padding: 0.45rem 0.75rem;
+    padding: 0.45rem 0.5rem;
     background: transparent;
     border: none;
     border-radius: 12px;
     cursor: pointer;
     color: rgba(255,255,255,0.6);
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     font-family: inherit;
     text-align: left;
     transition: all 0.2s ease;
@@ -707,8 +707,8 @@ function selectPack(pack) {
 }
 
 .gallery-idol-item__avatar {
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
