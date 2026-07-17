@@ -19,18 +19,24 @@ class GalleryController extends Controller
         $user   = auth()->user();
 
         // Distinct idols from whom the user purchased content, ordered by most recent purchase
-        $idols = ContentPackPurchase::where('user_id', $userId)
+        $purchases = ContentPackPurchase::where('user_id', $userId)
             ->with(['contentPack' => fn ($q) => $q->withTrashed()->with(['user:id,name,avatar_path,active_frame_id', 'user.activeFrame'])])
             ->orderByDesc('purchased_at')
-            ->get()
-            ->map(fn ($purchase) => $purchase->contentPack?->user)
+            ->get();
+
+        $idols = $purchases
+            ->groupBy(fn ($p) => $p->contentPack?->user_id)
+            ->map(function ($purchasesGroup) {
+                $idol = $purchasesGroup->first()->contentPack?->user;
+                if (!$idol) return null;
+                return [
+                    'id'            => $idol->id,
+                    'name'          => $idol->name,
+                    'avatar_url'    => $idol->avatar_url,
+                    'has_new_packs' => $purchasesGroup->contains(fn ($p) => is_null($p->viewed_at)),
+                ];
+            })
             ->filter()
-            ->unique('id')
-            ->map(fn ($idol) => [
-                'id'         => $idol->id,
-                'name'       => $idol->name,
-                'avatar_url' => $idol->avatar_url,
-            ])
             ->values();
 
         $hasNewPacks = ContentPackPurchase::where('user_id', $userId)->whereNull('viewed_at')->exists();

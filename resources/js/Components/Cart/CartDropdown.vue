@@ -117,6 +117,7 @@ async function purchaseContent() {
         emit('clear-content');
         if (modalHistory?.skipHistoryBack) modalHistory.skipHistoryBack();
         isOpen.value = false;
+        router.reload({ only: ['purchasedPackIds', 'contentPacks', 'idols'] });
     } catch (e) {
         contentError.value = e.response?.data?.error ?? __('cart.pay.error');
     } finally {

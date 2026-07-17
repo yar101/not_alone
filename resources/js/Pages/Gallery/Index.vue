@@ -21,18 +21,20 @@ const props = defineProps({
 const selectedIdolId = ref(null);
 const searchQuery    = ref('');
 
+const idolsList = ref([...props.idols]);
+watch(() => props.idols, (newVal) => {
+    idolsList.value = [...newVal];
+});
+
 const filteredIdols = computed(() => {
-    if (!searchQuery.value) return props.idols;
+    if (!searchQuery.value) return idolsList.value;
     const q = searchQuery.value.toLowerCase();
-    return props.idols.filter(i => i.name.toLowerCase().includes(q));
+    return idolsList.value.filter(i => i.name.toLowerCase().includes(q));
 });
 
 // Единый список для сайдбара: "Мои" (если айдол) + все айдолы
 const sidebarItems = computed(() => {
     const items = [];
-    if (props.has_new_packs) {
-        items.push({ id: 'new', name: __('gallery.new_packs') || 'Новое', type: 'new', avatar_url: null });
-    }
     if (props.is_idol) {
         items.push({ id: 'mine', name: __('gallery.mine'), type: 'mine', avatar_url: null });
     }
@@ -75,12 +77,10 @@ async function loadSidebarPacks(append = false) {
     packsLoading.value = true;
     try {
         const isMine = selectedIdolId.value === 'mine';
-        const isNew  = selectedIdolId.value === 'new';
         const { data } = await axios.get(route('gallery.packs'), {
             params: {
-                idol_id: (!isMine && !isNew && selectedIdolId.value) ? selectedIdolId.value : undefined,
+                idol_id: (!isMine && selectedIdolId.value) ? selectedIdolId.value : undefined,
                 mine:    isMine ? true : undefined,
-                is_new:  isNew ? true : undefined,
                 cursor:  append ? nextPacksCursor.value : undefined,
             },
         });
@@ -122,12 +122,10 @@ async function loadPhotos() {
     loading.value = true;
     try {
         const isMine = selectedIdolId.value === 'mine';
-        const isNew  = selectedIdolId.value === 'new';
         const { data } = await axios.get(route('gallery.photos'), {
             params: {
-                idol_id: (!isMine && !isNew && selectedIdolId.value) ? selectedIdolId.value : undefined,
+                idol_id: (!isMine && selectedIdolId.value) ? selectedIdolId.value : undefined,
                 mine:    isMine ? true : undefined,
-                is_new:  isNew ? true : undefined,
                 pack_id: selectedPackId.value ?? undefined,
                 cursor:  nextCursor.value ?? undefined,
             },
@@ -245,6 +243,16 @@ function selectPack(pack) {
     if (pack.is_new) {
         pack.is_new = false;
         axios.post(route('content-packs.view', pack.id)).catch(err => console.error('Failed to mark pack as viewed:', err));
+        
+        if (selectedIdolId.value !== 'mine' && selectedIdolId.value !== null) {
+            const hasMoreNew = sidebarPacks.value.some(p => p.is_new);
+            if (!hasMoreNew) {
+                const idol = idolsList.value.find(i => i.id === selectedIdolId.value);
+                if (idol) {
+                    idol.has_new_packs = false;
+                }
+            }
+        }
     }
     closeFilters();
 }
@@ -342,6 +350,44 @@ function selectPack(pack) {
                 </button>
             </div>
 
+            <!-- Toolbar (desktop only) -->
+            <div class="gallery-toolbar desktop-only">
+                <div class="gallery-density-toggle">
+                    <button
+                        v-for="d in ['compact', 'medium', 'large']"
+                        :key="d"
+                        class="density-btn"
+                        :class="{ 'density-btn--active': gridDensity === d }"
+                        @click="gridDensity = d"
+                        :aria-label="d"
+                    >
+                        <!-- compact: 3×3 grid -->
+                        <svg v-if="d === 'compact'" width="15" height="15" viewBox="0 0 15 15" fill="currentColor">
+                            <rect x="0"  y="0"  width="4" height="4" rx="0.5"/>
+                            <rect x="5.5" y="0"  width="4" height="4" rx="0.5"/>
+                            <rect x="11" y="0"  width="4" height="4" rx="0.5"/>
+                            <rect x="0"  y="5.5" width="4" height="4" rx="0.5"/>
+                            <rect x="5.5" y="5.5" width="4" height="4" rx="0.5"/>
+                            <rect x="11" y="5.5" width="4" height="4" rx="0.5"/>
+                            <rect x="0"  y="11" width="4" height="4" rx="0.5"/>
+                            <rect x="5.5" y="11" width="4" height="4" rx="0.5"/>
+                            <rect x="11" y="11" width="4" height="4" rx="0.5"/>
+                        </svg>
+                        <!-- medium: 2×2 grid -->
+                        <svg v-else-if="d === 'medium'" width="15" height="15" viewBox="0 0 15 15" fill="currentColor">
+                            <rect x="0"  y="0"  width="6.5" height="6.5" rx="0.5"/>
+                            <rect x="8.5" y="0"  width="6.5" height="6.5" rx="0.5"/>
+                            <rect x="0"  y="8.5" width="6.5" height="6.5" rx="0.5"/>
+                            <rect x="8.5" y="8.5" width="6.5" height="6.5" rx="0.5"/>
+                        </svg>
+                        <svg v-else width="15" height="15" viewBox="0 0 15 15" fill="currentColor">
+                            <rect x="0" y="0" width="15" height="6.5" rx="0.5"/>
+                            <rect x="0" y="8.5" width="15" height="6.5" rx="0.5"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
             <div class="gallery-idol-list">
 
                 <!-- Все -->
@@ -372,7 +418,6 @@ function selectPack(pack) {
                             class="gallery-idol-item__avatar"
                             :class="{
                                 'gallery-idol-item__avatar--mine': item.type === 'mine',
-                                'gallery-idol-item__avatar--new': item.type === 'new',
                             }"
                         >
                             <template v-if="item.type === 'mine'">
@@ -381,15 +426,13 @@ function selectPack(pack) {
                                     <circle cx="12" cy="7" r="4"/>
                                 </svg>
                             </template>
-                            <template v-else-if="item.type === 'new'">
-                                <el-icon color="#fff" :size="15"><BellFilled /></el-icon>
-                            </template>
                             <template v-else>
                                 <img v-if="item.avatar_url" :src="item.avatar_url" :alt="item.name" />
                                 <span v-else>{{ item.name?.charAt(0)?.toUpperCase() }}</span>
                             </template>
                         </div>
                         <span class="gallery-idol-item__name">{{ item.name }}</span>
+                        <div v-if="item.has_new_packs" class="gallery-idol-item__new-badge" :title="__('gallery.new_packs')"></div>
                         <div v-if="packsLoading && selectedIdolId === item.id" style="margin-left: auto;">
                             <div class="gallery-loading__spinner--sm" />
                         </div>
@@ -453,45 +496,7 @@ function selectPack(pack) {
 
         <!-- Main area -->
         <main class="gallery-main">
-
-            <!-- Toolbar (desktop only) -->
-            <div class="gallery-toolbar">
-                <div class="gallery-density-toggle">
-                    <button
-                        v-for="d in ['compact', 'medium', 'large']"
-                        :key="d"
-                        class="density-btn"
-                        :class="{ 'density-btn--active': gridDensity === d }"
-                        @click="gridDensity = d"
-                        :aria-label="d"
-                    >
-                        <!-- compact: 3×3 grid -->
-                        <svg v-if="d === 'compact'" width="15" height="15" viewBox="0 0 15 15" fill="currentColor">
-                            <rect x="0"  y="0"  width="4" height="4" rx="0.5"/>
-                            <rect x="5.5" y="0"  width="4" height="4" rx="0.5"/>
-                            <rect x="11" y="0"  width="4" height="4" rx="0.5"/>
-                            <rect x="0"  y="5.5" width="4" height="4" rx="0.5"/>
-                            <rect x="5.5" y="5.5" width="4" height="4" rx="0.5"/>
-                            <rect x="11" y="5.5" width="4" height="4" rx="0.5"/>
-                            <rect x="0"  y="11" width="4" height="4" rx="0.5"/>
-                            <rect x="5.5" y="11" width="4" height="4" rx="0.5"/>
-                            <rect x="11" y="11" width="4" height="4" rx="0.5"/>
-                        </svg>
-                        <!-- medium: 2×2 grid -->
-                        <svg v-else-if="d === 'medium'" width="15" height="15" viewBox="0 0 15 15" fill="currentColor">
-                            <rect x="0" y="0"   width="6.5" height="6.5" rx="0.5"/>
-                            <rect x="8.5" y="0"   width="6.5" height="6.5" rx="0.5"/>
-                            <rect x="0" y="8.5" width="6.5" height="6.5" rx="0.5"/>
-                            <rect x="8.5" y="8.5" width="6.5" height="6.5" rx="0.5"/>
-                        </svg>
-                        <!-- large: 1×2 rows -->
-                        <svg v-else width="15" height="15" viewBox="0 0 15 15" fill="currentColor">
-                            <rect x="0" y="0"   width="15" height="6.5" rx="0.5"/>
-                            <rect x="0" y="8.5" width="15" height="6.5" rx="0.5"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
+            <div class="gallery-content">
 
             <!-- Empty state -->
             <div v-if="!loading && !photos.length && !hasMore" class="gallery-empty">
@@ -549,6 +554,7 @@ function selectPack(pack) {
                     {{ __('gallery.load_more') }}
                 </button>
             </div>
+            </div>
         </main>
 
         <!-- Lightbox -->
@@ -593,19 +599,24 @@ function selectPack(pack) {
 .gallery-page {
     display: flex;
     min-height: calc(100vh - 60px);
-    background: #0a0a14;
 }
 
 /* ── Sidebar ─────────────────────────────────────────────── */
 .gallery-sidebar {
-    width: 270px;
+    width: 280px;
     flex-shrink: 0;
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    margin: 1.5rem;
     display: flex;
     flex-direction: column;
     position: sticky;
-    top: 60px;
-    height: calc(100vh - 60px);
+    top: calc(60px + 1.5rem);
+    height: calc(100vh - 60px - 3rem);
+    border-radius: 16px;
+    background: rgba(20, 15, 25, 0.4);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 4px 20px rgba(0,0,0,0.2);
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: rgba(255,255,255,0.08) transparent;
@@ -740,6 +751,19 @@ function selectPack(pack) {
 }
 
 /* ── Sidebar pack sub-list ───────────────────────────────── */
+.gallery-idol-item__new-badge {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 178, 239, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 178, 239, 0.7);
+    box-shadow: 0 0 4px rgba(255, 178, 239, 0.3);
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
 .gallery-pack-list {
     padding: 2px 0 6px 36px;
     display: flex;
@@ -890,12 +914,14 @@ function selectPack(pack) {
 .gallery-toolbar {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    padding: 0 0 0.75rem;
+    justify-content: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
 .gallery-density-toggle {
     display: flex;
+    flex: 1;
     gap: 3px;
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.08);
@@ -904,6 +930,7 @@ function selectPack(pack) {
 }
 
 .density-btn {
+    flex: 1;
     width: 30px;
     height: 30px;
     display: flex;
@@ -1198,6 +1225,13 @@ function selectPack(pack) {
     /* Sidebar: hidden from layout when not open or closing */
     .gallery-sidebar {
         display: none;
+        margin: 0;
+        width: 100%;
+        border-radius: 0;
+        height: auto;
+        background: rgba(20, 15, 25, 0.85);
+        border: none;
+        top: auto;
     }
 
     /* Shared styles for open and closing states */

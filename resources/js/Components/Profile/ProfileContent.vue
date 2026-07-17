@@ -1550,6 +1550,7 @@ const ownerSortOptions = computed(() => [
     color: rgb(100, 230, 170);
     cursor: pointer;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border-color: rgba(100, 210, 160, 0.4);
 }
 
 .pc-btn--cart-full.pc-btn--purchased:hover {
