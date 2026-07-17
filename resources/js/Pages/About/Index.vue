@@ -338,7 +338,7 @@ function openFeature(f) {
     width: 100%; height: 100dvh;
     display: flex; flex-direction: column; overflow: hidden;
     position: relative; z-index: 1;
-    background: linear-gradient(180deg, rgba(255,42,191,0.07) 0%, rgba(0,0,0,0.65) 100%) fixed;
+    background: linear-gradient(180deg, rgba(255, 42, 191, 0.09) 0%, rgba(0, 0, 0, 0.56) 100%) fixed;
 }
 
 /* ── Декор ─────────────────────────────────────────────────── */
