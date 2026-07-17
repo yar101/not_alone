@@ -80,7 +80,7 @@ function isActive(routeName) {
         <div v-if="sidebarOpen" class="sidebar-backdrop" @click="sidebarOpen = false"></div>
         <aside class="sidebar" :class="{ 'sidebar--open': sidebarOpen }">
             <div class="sidebar__logo">
-                <img src="/app-logo-v3.png" alt="Not Alone" class="sidebar__logo-img" />
+                <img src="/app-logo-v3.webp" alt="Not Alone" class="sidebar__logo-img" />
                 <span class="logo-sub">Admin</span>
             </div>
 

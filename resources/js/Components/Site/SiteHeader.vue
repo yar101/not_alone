@@ -15,7 +15,7 @@ defineProps({
             :href="activePage !== 'home' ? '/' : undefined"
             class="site-header__logo mobile-only-logo"
         >
-            <img src="/app-logo-v3.png" alt="Not Alone" class="site-header__logo-img" />
+            <img src="/app-logo-v3.webp" alt="Not Alone" class="site-header__logo-img" />
         </component>
 
         <!-- Навигация по центру -->

@@ -38,14 +38,14 @@ const handleStartClick = () => {
 
     <!-- Фоновое изображение (Пикачу) с адаптивным позиционированием -->
     <img
-        src="/pika.png"
+        src="/pika.webp"
         alt="pika"
         class="fixed max-w-[800px] md:max-w-[1400px] left-1/2 -translate-x-1/3 max-[756px]:-translate-y-[20%] md:left-[20rem] md:translate-x-0 opacity-20 md:opacity-100 pointer-events-none z-0"
     />
 
     <!-- Адаптивное изображение звезды (фиксировано в правой нижней части) -->
     <img
-        src="/star.png"
+        src="/star.webp"
         alt="star"
         class="fixed w-[200px] sm:w-[350px] md:w-[500px] lg:w-[570px] rotate-[15deg] opacity-[30%] md:opacity-[50%] right-[2%] bottom-[5%] md:right-[5%] md:bottom-[8%] pointer-events-none z-0 transition-all duration-700 ease-in-out"
     />

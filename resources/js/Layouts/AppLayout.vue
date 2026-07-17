@@ -282,7 +282,7 @@ onUnmounted(() => {
     <div class="app-wrap">
         <header class="app-header" :class="{ 'app-header--scrolled': isScrolled }">
             <Link href="/" class="app-logo">
-                <img src="/app-logo-v3.png" alt="Not Alone" class="app-logo__img" />
+                <img src="/app-logo-v3.webp" alt="Not Alone" class="app-logo__img" />
             </Link>
 
             <div class="header-right">

@@ -152,7 +152,7 @@ function deleteAvatar() {
 
         <!-- Рейтинг — верхний левый угол -->
         <div v-if="isIdol && rating !== null" class="header-rating">
-            <img src="/stars/10.png" class="star-img" alt="rating" />
+            <img src="/stars/10.webp" class="star-img" alt="rating" />
             <span class="rating-num">{{ rating }}</span>
         </div>
 

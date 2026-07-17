@@ -246,7 +246,7 @@ function deleteVoice() {
         <div class="disk-wrap">
             <img
                 ref="diskEl"
-                :src="'/profile_disk.png'"
+                :src="'/profile_disk.webp'"
                 class="disk"
                 :class="{ spinning: isDiskSpinning && !returnStyle.transform }"
                 :style="returnStyle"

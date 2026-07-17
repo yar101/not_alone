@@ -114,7 +114,7 @@ function onTabClick(tab) {
                         :href="activePage !== 'home' ? '/' : undefined"
                         class="pub-nav-center-logo"
                     >
-                        <img src="/app-logo-v3.png" alt="Not Alone" />
+                        <img src="/app-logo-v3.webp" alt="Not Alone" />
                     </component>
                 </div>
 
