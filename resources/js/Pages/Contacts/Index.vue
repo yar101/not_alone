@@ -140,17 +140,20 @@ const contacts = [
     align-items: center;
     gap: 1.25rem;
     padding: 1.1rem 1.5rem;
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 2px;
+    background: rgba(10, 7, 20, 0.7);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 4px 20px rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
     transition: all 0.3s ease;
     text-decoration: none;
 }
 
 .minimal-link:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 178, 239, 0.25);
+    background: rgba(15, 12, 25, 0.85);
+    border-color: rgba(255, 178, 239, 0.3);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 6px 24px rgba(0, 0, 0, 0.4);
     transform: translateX(4px);
 }
 

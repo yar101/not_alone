@@ -2,14 +2,12 @@
 import { ref, computed } from "vue";
 import { usePage, router } from "@inertiajs/vue3";
 import StartBtn from "@/Components/Site/StartBtn.vue";
-import HelpModal from "@/Components/Site/HelpModal.vue";
 import AuthModal from "@/Components/Site/AuthModal.vue";
 import SiteHeader from "@/Components/Site/SiteHeader.vue";
 import { useTranslations } from "@/composables/useTranslations";
 import LocaleLoader from "@/Components/LocaleLoader.vue";
 
 const page = usePage();
-const showHelpModal = ref(false);
 const showAuthModal = ref(false);
 
 const { __ } = useTranslations();
@@ -73,31 +71,7 @@ const handleStartClick = () => {
                     />
                 </div>
 
-                <!-- Кнопки -->
-                <div
-                    class="w-full flex flex-col items-center gap-3 wlc-fade-btns"
-                >
-                    <div class="w-full flex justify-center">
-                        <div class="w-full max-w-[550px]">
-                            <button
-                                class="flex items-center justify-center gap-4 py-3.5 md:py-4 px-4 md:px-6 link-button w-full transition-all duration-500 ease-out group link-left"
-                                @click="showHelpModal = true"
-                            >
-                                <span
-                                    class="text-gray-200 group-hover:text-white transition-colors"
-                                >
-                                    {{ __("welcome.help") }}
-                                </span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
 
-                <HelpModal
-                    :show="showHelpModal"
-                    :show-dispute="false"
-                    @close="showHelpModal = false"
-                />
                 <AuthModal
                     :show="showAuthModal"
                     @close="showAuthModal = false"
