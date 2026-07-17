@@ -63,7 +63,7 @@ const handleStartClick = () => {
             >
                 <!-- Главная кнопка (START) -->
                 <div
-                    class="scale-110 sm:scale-105 backdrop-blur md:scale-125 mb-14 md:mb-16 transform transition-transform wlc-fade-start"
+                    class="scale-110 sm:scale-105 backdrop-blur bg-black/60 rounded-[12px] md:scale-125 mb-14 md:mb-16 transform transition-transform wlc-fade-start"
                 >
                     <StartBtn
                         :label="startBtnLabel"
