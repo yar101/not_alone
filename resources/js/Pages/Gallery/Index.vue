@@ -880,7 +880,7 @@ function selectPack(pack) {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     line-height: 1.3;
 }
 .gallery-pack-item__count {
