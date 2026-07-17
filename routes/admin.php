@@ -229,12 +229,12 @@ Route::patch('/{trait}', [PersonalityTraitController::class, 'update'])->name('u
         });
 
         // News (О проекте)
-        Route::prefix('news')->name('news.')->group(function () {
-            Route::get('/',          [NewsController::class, 'index'])->name('index');
-            Route::post('/',         [NewsController::class, 'store'])->name('store');
-            Route::patch('/{news}',  [NewsController::class, 'update'])->name('update');
-            Route::delete('/{news}', [NewsController::class, 'destroy'])->name('destroy');
-        });
+        // Route::prefix('news')->name('news.')->group(function () {
+        //     Route::get('/',          [NewsController::class, 'index'])->name('index');
+        //     Route::post('/',         [NewsController::class, 'store'])->name('store');
+        //     Route::patch('/{news}',  [NewsController::class, 'update'])->name('update');
+        //     Route::delete('/{news}', [NewsController::class, 'destroy'])->name('destroy');
+        // });
 
         // Help / FAQ CRUD
         Route::prefix('help-categories')->name('help-categories.')->group(function () {

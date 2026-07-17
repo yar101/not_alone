@@ -33,9 +33,9 @@ Route::get('/about', AboutController::class)->name('about');
 Route::get('/contacts', function () {
     return Inertia::render('Contacts/Index');
 })->name('contacts');
-Route::get('/news',           [NewsPublicController::class, 'index'])->name('news');
-Route::get('/news/feed',      [NewsPublicController::class, 'feed'])->name('news.feed');
-Route::get('/news/{news}',    [NewsPublicController::class, 'show'])->name('news.show');
+// Route::get('/news',           [NewsPublicController::class, 'index'])->name('news');
+// Route::get('/news/feed',      [NewsPublicController::class, 'feed'])->name('news.feed');
+// Route::get('/news/{news}',    [NewsPublicController::class, 'show'])->name('news.show');
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [

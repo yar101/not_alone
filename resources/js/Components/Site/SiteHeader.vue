@@ -9,11 +9,11 @@ defineProps({
 
 <template>
     <header class="site-header">
-        <!-- Логотип (только для мобилок, на десктопе он в PublicNav) -->
+        <!-- Основной логотип (слева на десктопе) -->
         <component
             :is="activePage === 'home' ? 'span' : Link"
             :href="activePage !== 'home' ? '/' : undefined"
-            class="site-header__logo mobile-only-logo"
+            class="site-header__logo"
         >
             <img src="/app-logo-v3.webp" alt="Not Alone" class="site-header__logo-img" />
         </component>
@@ -26,10 +26,10 @@ defineProps({
 <style scoped>
 .site-header {
     display: flex;
+    flex-direction: row;
     align-items: center;
-    justify-content: center; /* По умолчанию центрируем навбар */
-    gap: 1.5rem;
-    padding: 2.5rem 4rem 1.2rem;
+    justify-content: center; /* Центрируем навбар */
+    padding: 2rem 4rem 1.2rem;
     flex-shrink: 0;
     position: relative;
     z-index: 10;
@@ -42,10 +42,12 @@ defineProps({
     flex-shrink: 0;
     text-decoration: none;
     cursor: default;
-    position: relative;
-    z-index: 1;
+    position: absolute;
+    left: 4rem;
+    top: 65%;
+    transform: translateY(-50%);
+    z-index: 20;
     transition: opacity 0.2s;
-    overflow: visible;
 }
 a.site-header__logo {
     cursor: pointer;
@@ -55,14 +57,26 @@ a.site-header__logo:hover {
 }
 
 .site-header__logo-img {
-    height: 72px;
+    height: 100px; /* Размер для мобильных по умолчанию */
     width: auto;
     display: block;
+    filter: drop-shadow(0 8px 16px rgba(0,0,0,0.2)) brightness(1);
+    transition: filter 0.3s ease, height 0.3s ease;
 }
 
-.mobile-only-logo {
-    display: none !important;
+@media (min-width: 768px) {
+    .site-header__logo-img {
+        height: 160px; /* Увеличенный размер для десктопа */
+    }
 }
+
+.site-header__logo:hover .site-header__logo-img {
+    filter: drop-shadow(0 0 18px rgba(255, 178, 239, 0.5)) brightness(1.12);
+}
+
+/* .mobile-only-logo {
+    display: none !important;
+} */
 
 .site-header__nav {
     display: flex;
@@ -121,8 +135,12 @@ a.site-header__logo:hover {
     .site-header__contact-label {
         display: none;
     }
-    .mobile-only-logo {
-        display: flex !important;
+    .site-header__logo {
+        position: static;
+        transform: none;
     }
+    /* .mobile-only-logo {
+        display: flex !important;
+    } */
 }
 </style>

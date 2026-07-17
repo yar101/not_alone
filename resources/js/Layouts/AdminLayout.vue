@@ -371,14 +371,14 @@ function isActive(routeName) {
                         <span class="nav-text">Отзывы — Эпитеты</span>
                     </Link>
 
-                    <Link
+                    <!-- <Link
                         :href="route('admin.news.index')"
                         class="nav-item"
                         :class="{ 'nav-item--active': isActive('admin.news.index') }"
                     >
                         <el-icon class="nav-icon"><Document /></el-icon>
                         <span class="nav-text">Статьи</span>
-                    </Link>
+                    </Link> -->
 
                     <Link
                         :href="route('admin.help-categories.index')"
