@@ -4,6 +4,7 @@ import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useTranslations } from '@/composables/useTranslations';
 import { useModalHistory } from '@/composables/useModalHistory';
+import { Picture, Briefcase } from '@element-plus/icons-vue';
 
 const { __ } = useTranslations();
 
@@ -151,12 +152,18 @@ async function purchaseContent() {
                     <div class="rc-tabs">
                         <button class="rc-tab" :class="{ 'rc-tab--active': activeTab === 'services' }"
                             @click="activeTab = 'services'">
-                            {{ __('cart.tab.services') }}
+                            <span class="rc-tab__inner">
+                                <el-icon><Briefcase /></el-icon>
+                                <span>{{ __('cart.tab.services') }}</span>
+                            </span>
                             <span v-if="servicesItems.length" class="rc-tab__badge">{{ servicesItems.length }}</span>
                         </button>
                         <button class="rc-tab" :class="{ 'rc-tab--active': activeTab === 'content' }"
                             @click="activeTab = 'content'">
-                            {{ __('cart.tab.content') }}
+                            <span class="rc-tab__inner">
+                                <el-icon><Picture /></el-icon>
+                                <span>{{ __('cart.tab.content') }}</span>
+                            </span>
                             <span v-if="contentItems.length" class="rc-tab__badge">{{
                                 contentItems.length }}</span>
                         </button>
@@ -379,17 +386,22 @@ async function purchaseContent() {
     border-radius: 4px;
     background: transparent;
     border: 1px solid rgba(120, 220, 255, 0.12);
-    color: rgba(210, 240, 255, 0.4);
+    color: rgba(210, 240, 255, 0.5);
     font-family: inherit;
-    font-size: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
+    font-size: 0.85rem;
+    font-weight: 500;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.4rem;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.rc-tab__inner {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
 .rc-tab:hover {
@@ -691,17 +703,17 @@ async function purchaseContent() {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    padding: 0.35rem 1.5rem;
+    padding: 0.1rem 1.5rem;
 }
 
 .rc-total__label {
-    font-size: 0.9rem;
-    letter-spacing: 0.2em;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
     color: rgba(210, 240, 255, 0.45);
 }
 
 .rc-total__sum {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     font-weight: 700;
     letter-spacing: 0.04em;
     color: rgba(100, 210, 255, 1);
