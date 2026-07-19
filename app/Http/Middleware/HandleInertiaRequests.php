@@ -12,6 +12,7 @@ use App\Models\UserReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Inertia\Middleware;
+use Inertia\Inertia;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -60,36 +61,36 @@ class HandleInertiaRequests extends Middleware
                 'data' => $unreadStrike->data,
             ] : null,
             'auth_admin' => auth('admin')->user(),
-            'notifications_unread' => $user ? $this->hasUnreadNotifications($user) : false,
-            'service_unread' => $user ? $this->hasUnreadService($user) : false,
-            'order_notifications_unread' => $user ? $this->hasUnreadOrders($user) : false,
-            'messages_notifications_unread' => $user ? $this->hasUnreadMessages($user) : false,
-            'follows_unread' => $user ? $this->hasUnreadFollows($user) : false,
+            'notifications_unread' => Inertia::defer(fn() => $user ? $this->hasUnreadNotifications($user) : false, 'badges'),
+            'service_unread' => Inertia::defer(fn() => $user ? $this->hasUnreadService($user) : false, 'badges'),
+            'order_notifications_unread' => Inertia::defer(fn() => $user ? $this->hasUnreadOrders($user) : false, 'badges'),
+            'messages_notifications_unread' => Inertia::defer(fn() => $user ? $this->hasUnreadMessages($user) : false, 'badges'),
+            'follows_unread' => Inertia::defer(fn() => $user ? $this->hasUnreadFollows($user) : false, 'badges'),
             'is_idol' => $user?->is_idol ?? false,
             'idol_status' => $idolStatus,
-            'pending_applications_count' => fn() => auth('admin')->check()
+            'pending_applications_count' => Inertia::defer(fn() => auth('admin')->check()
                 ? IdolApplication::where('status', 'pending')->count()
-                : 0,
-            'pending_services_count' => fn() => auth('admin')->check()
+                : 0, 'admin_badges'),
+            'pending_services_count' => Inertia::defer(fn() => auth('admin')->check()
                 ? Service::where('status', 'pending')->count()
-                : 0,
-            'pending_reports_count' => fn() => auth('admin')->check()
+                : 0, 'admin_badges'),
+            'pending_reports_count' => Inertia::defer(fn() => auth('admin')->check()
                 ? UserReport::where('status', 'pending')->count()
-                : 0,
-            'pending_trait_suggestions_count' => fn() => auth('admin')->check()
+                : 0, 'admin_badges'),
+            'pending_trait_suggestions_count' => Inertia::defer(fn() => auth('admin')->check()
                 ? TraitSuggestion::where('status', 'pending')->count()
-                : 0,
-            'pending_interest_suggestions_count' => fn() => auth('admin')->check()
+                : 0, 'admin_badges'),
+            'pending_interest_suggestions_count' => Inertia::defer(fn() => auth('admin')->check()
                 ? InterestSuggestion::where('status', 'pending')->count()
-                : 0,
-            'pending_review_disputes_count' => fn() => auth('admin')->check()
+                : 0, 'admin_badges'),
+            'pending_review_disputes_count' => Inertia::defer(fn() => auth('admin')->check()
                 ? ReviewDispute::where('status', 'pending')->count()
-                : 0,
-            'has_unread_messages'  => fn() => $user ? $user->hasUnreadMessages() : false,
-            'has_unread_direct'    => fn() => $user ? $user->hasUnreadDirect() : false,
-            'has_unread_orders'    => fn() => $user ? $user->hasUnreadOrders() : false,
-            'has_unread_mine'      => fn() => $user ? $user->hasUnreadMine() : false,
-            'has_unread_incoming'  => fn() => $user ? $user->hasUnreadIncoming() : false,
+                : 0, 'admin_badges'),
+            'has_unread_messages'  => Inertia::defer(fn() => $user ? $user->hasUnreadMessages() : false, 'badges'),
+            'has_unread_direct'    => Inertia::defer(fn() => $user ? $user->hasUnreadDirect() : false, 'badges'),
+            'has_unread_orders'    => Inertia::defer(fn() => $user ? $user->hasUnreadOrders() : false, 'badges'),
+            'has_unread_mine'      => Inertia::defer(fn() => $user ? $user->hasUnreadMine() : false, 'badges'),
+            'has_unread_incoming'  => Inertia::defer(fn() => $user ? $user->hasUnreadIncoming() : false, 'badges'),
             'chat_block_reasons' => fn() => $user
                 ? cache()->rememberForever('chat_block_reasons_list', fn() => BanReason::forChatBlock()->get()->map(fn($r) => $r->label)->unique()->values())
                 : [],

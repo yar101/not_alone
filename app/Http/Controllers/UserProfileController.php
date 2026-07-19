@@ -106,9 +106,11 @@ class UserProfileController extends Controller
                 $isOwner = $authId === $user->id;
 
                 // All active categories
-                $allCategories = ServiceCategory::where('is_active', true)
-                    ->orderBy('sort_order')
-                    ->get(['id', 'name', 'description', 'image_path', 'accent_color', 'sort_order', 'is_active']);
+                $allCategories = cache()->rememberForever('active_service_categories', fn() => 
+                    ServiceCategory::where('is_active', true)
+                        ->orderBy('sort_order')
+                        ->get(['id', 'name', 'description', 'image_path', 'accent_color', 'sort_order', 'is_active'])
+                );
                 
                 $hasUsedTrial = false;
                 if ($authId && !$isOwner) {
