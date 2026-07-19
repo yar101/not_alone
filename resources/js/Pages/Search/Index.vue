@@ -49,31 +49,17 @@ const LANGUAGES = [
 ];
 
 const TIMEZONES = [
+    "Europe/Kaliningrad",
     "Europe/Moscow",
-    "Europe/Kiev",
-    "Europe/Minsk",
-    "Europe/London",
-    "Europe/Berlin",
-    "Europe/Paris",
-    "Europe/Amsterdam",
-    "Europe/Warsaw",
-    "Asia/Almaty",
-    "Asia/Tashkent",
+    "Europe/Samara",
     "Asia/Yekaterinburg",
-    "Asia/Novosibirsk",
+    "Asia/Omsk",
     "Asia/Krasnoyarsk",
     "Asia/Irkutsk",
     "Asia/Yakutsk",
     "Asia/Vladivostok",
-    "America/New_York",
-    "America/Chicago",
-    "America/Denver",
-    "America/Los_Angeles",
-    "Asia/Tokyo",
-    "Asia/Seoul",
-    "Asia/Shanghai",
-    "Asia/Dubai",
-    "Asia/Kolkata",
+    "Asia/Magadan",
+    "Asia/Kamchatka",
 ];
 
 // ── Reactive filters ────────────────────────────────────────

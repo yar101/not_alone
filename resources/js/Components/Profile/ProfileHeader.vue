@@ -76,12 +76,17 @@ function validateName(value) {
 }
 
 const TIMEZONES = [
-    'Europe/Moscow', 'Europe/Kiev', 'Europe/Minsk', 'Europe/London',
-    'Europe/Berlin', 'Europe/Paris', 'Europe/Amsterdam', 'Europe/Warsaw',
-    'Asia/Almaty', 'Asia/Tashkent', 'Asia/Yekaterinburg', 'Asia/Novosibirsk',
-    'Asia/Krasnoyarsk', 'Asia/Irkutsk', 'Asia/Yakutsk', 'Asia/Vladivostok',
-    'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
-    'Asia/Tokyo', 'Asia/Seoul', 'Asia/Shanghai', 'Asia/Dubai', 'Asia/Kolkata',
+    'Europe/Kaliningrad',
+    'Europe/Moscow',
+    'Europe/Samara',
+    'Asia/Yekaterinburg',
+    'Asia/Omsk',
+    'Asia/Krasnoyarsk',
+    'Asia/Irkutsk',
+    'Asia/Yakutsk',
+    'Asia/Vladivostok',
+    'Asia/Magadan',
+    'Asia/Kamchatka',
 ];
 
 const currentYear = new Date().getFullYear();
