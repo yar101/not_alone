@@ -1,10 +1,9 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
-import { Edit, Setting, MoreFilled, Picture } from '@element-plus/icons-vue';
+import { Edit, Setting, MoreFilled, Picture, Location } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppSelect from '@/Components/AppSelect.vue';
-import { ElNotification } from 'element-plus';
 import AvatarUploader from '@/Components/AvatarUploader.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
 import { useTranslations } from '@/composables/useTranslations';
@@ -96,9 +95,6 @@ function detectTimezone() {
         const found = TIMEZONES.find(t => t.value === tz);
         if (found) {
             form.timezone = tz;
-            ElNotification({ title: 'Успешно', message: 'Часовой пояс определен!', type: 'success' });
-        } else {
-            ElNotification({ title: 'Внимание', message: 'Ваш часовой пояс не входит в официальный список.', type: 'warning' });
         }
     }
 }
@@ -272,10 +268,8 @@ function deleteAvatar() {
                     <label class="edit-label label-with-btn">
                         {{ __('search.filters.timezone') }}
                         <button type="button" class="btn-auto-detect" @click="detectTimezone" title="Определить автоматически">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
-                            </svg>
-                            Где я
+                            <el-icon><Location /></el-icon>
+                            Определить
                         </button>
                     </label>
                     <AppSelect v-model="form.timezone" :options="timezoneOptions" :placeholder="__('profile.header.tz_ph')" />
