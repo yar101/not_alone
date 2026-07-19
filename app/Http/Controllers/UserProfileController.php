@@ -84,22 +84,21 @@ class UserProfileController extends Controller
                 ],
             ]), 'about'),
             'languages'     => Inertia::defer(fn () => $user->load('languages')->languages->pluck('language_code'), 'about'),
-            'allTraits'     => Inertia::defer(fn () => PersonalityTrait::orderBy('sort_order')->get(['id', 'name'])->map(fn ($t) => [
+            'allTraits'     => Inertia::defer(fn () => cache()->rememberForever('search_traits', fn() => PersonalityTrait::orderBy('sort_order')->get(['id', 'name'])->map(fn ($t) => [
                 'id'      => $t->id,
                 'name_ru' => $t->getTranslation('name', 'ru'),
                 'name_en' => $t->getTranslation('name', 'en', false) ?: null,
-            ]), 'about'),
-            'allCategories' => Inertia::defer(fn () => InterestCategory::with(['interests' => fn ($q) => $q->orderBy('sort_order')])->orderBy('sort_order')->get()->map(fn ($cat) => [
+            ])), 'about'),
+            'allCategories' => Inertia::defer(fn () => cache()->rememberForever('search_interest_categories', fn() => InterestCategory::with(['interests' => fn ($q) => $q->orderBy('sort_order')])->orderBy('sort_order')->get()->map(fn ($cat) => [
                 'id'        => $cat->id,
                 'name_ru'   => $cat->getTranslation('name', 'ru'),
                 'name_en'   => $cat->getTranslation('name', 'en', false) ?: null,
-                'sort_order' => $cat->sort_order,
                 'interests' => $cat->interests->map(fn ($i) => [
                     'id'      => $i->id,
                     'name_ru' => $i->getTranslation('name', 'ru'),
                     'name_en' => $i->getTranslation('name', 'en', false) ?: null,
                 ])->values(),
-            ]), 'about'),
+            ])), 'about'),
 
             // Deferred group "services"
             'services'     => Inertia::defer(function () use ($user) {
@@ -153,22 +152,22 @@ class UserProfileController extends Controller
                 })->values();
             }, 'services'),
             'serviceCategories' => Inertia::defer(
-                fn () => ServiceCategory::where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'name_suggestions', 'accent_color'])->map(fn ($c) => [
+                fn () => cache()->rememberForever('profile_service_categories', fn() => ServiceCategory::where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'name_suggestions', 'accent_color'])->map(fn ($c) => [
                     'id'             => $c->id,
                     'name'           => $c->getTranslation('name', 'ru'),
                     'name_ru'        => $c->getTranslation('name', 'ru'),
                     'name_en'        => $c->getTranslation('name', 'en', false) ?: null,
                     'name_suggestions' => $c->name_suggestions,
                     'accent_color'   => $c->accent_color,
-                ]),
+                ])),
                 'services'
             ),
             'serviceTimeUnits' => Inertia::defer(
-                fn () => ServiceTimeUnit::where('is_active', true)->orderBy('sort_order')->get()->map(fn ($u) => [
+                fn () => cache()->rememberForever('search_service_time_units', fn() => ServiceTimeUnit::where('is_active', true)->orderBy('sort_order')->get()->map(fn ($u) => [
                     'id'      => $u->id,
                     'name_ru' => $u->getTranslation('name', 'ru'),
                     'name_en' => $u->getTranslation('name', 'en', false) ?: null,
-                ]),
+                ])),
                 'services'
             ),
 
@@ -219,37 +218,34 @@ class UserProfileController extends Controller
         $page    = max(1, (int) $request->get('page', 1));
         $perPage = min(8, max(1, (int) $request->get('per_page', 4)));
 
-        $idols = Service::where('is_active', true)
-            ->where('status', 'approved')
-            ->where('user_id', '!=', $user->id)
-            ->where('category_id', $category->id)
-            ->with(['user:id,name,avatar_path,active_frame_id,rating', 'user.activeFrame'])
-            ->get(['id', 'user_id'])
-            ->unique('user_id');
-
         // Стабильная рандомизация: seed из сессии, одинаковый на всех страницах пагинации
         $seedKey = 'idol_shuffle_' . $user->id . '_' . $category->id;
         $seed = $request->session()->get($seedKey);
         if (!$seed || $page === 1) {
-            $seed = mt_rand();
+            $seed = (string) mt_rand();
             $request->session()->put($seedKey, $seed);
         }
-        mt_srand($seed);
-        $idols = $idols->shuffle();
 
-        $total = $idols->count();
-        $paged = $idols->slice(($page - 1) * $perPage, $perPage)->values();
+        $paginator = Service::where('is_active', true)
+            ->where('status', 'approved')
+            ->where('user_id', '!=', $user->id)
+            ->where('category_id', $category->id)
+            ->select('user_id')
+            ->groupBy('user_id')
+            ->orderByRaw("md5(user_id::text || ?)", [$seed])
+            ->with(['user:id,name,avatar_path,active_frame_id,rating', 'user.activeFrame'])
+            ->paginate($perPage, ['*'], 'page', $page);
 
         return response()->json([
-            'idols'   => $paged->map(fn ($s) => [
+            'idols'   => collect($paginator->items())->map(fn ($s) => [
                 'id'         => $s->user->id,
                 'name'       => $s->user->name,
                 'avatar_url' => $s->user->avatar_url,
                 'rating'     => $s->user->rating,
             ])->values(),
-            'total'   => $total,
+            'total'   => $paginator->total(),
             'page'    => $page,
-            'hasMore' => ($page * $perPage) < $total,
+            'hasMore' => $paginator->hasMorePages(),
         ]);
     }
 

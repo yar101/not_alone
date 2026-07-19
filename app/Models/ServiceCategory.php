@@ -29,7 +29,10 @@ class ServiceCategory extends Model
 
     protected static function booted()
     {
-        $clearCache = fn() => \Illuminate\Support\Facades\Cache::forget('search_service_categories');
+        $clearCache = function() {
+            \Illuminate\Support\Facades\Cache::forget('search_service_categories');
+            \Illuminate\Support\Facades\Cache::forget('profile_service_categories');
+        };
         static::saved($clearCache);
         static::deleted($clearCache);
     }

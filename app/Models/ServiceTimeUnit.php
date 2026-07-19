@@ -29,4 +29,11 @@ class ServiceTimeUnit extends Model
     {
         return $this->hasOne(ServicePriceLimit::class, 'time_unit_id');
     }
+
+    protected static function booted()
+    {
+        $clearCache = fn() => \Illuminate\Support\Facades\Cache::forget('search_service_time_units');
+        static::saved($clearCache);
+        static::deleted($clearCache);
+    }
 }
