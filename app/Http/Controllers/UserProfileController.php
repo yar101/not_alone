@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\ContentPackResource;
+use App\Http\Resources\ServiceResource;
 use App\Models\ContentPack;
 use App\Models\ContentPackPurchase;
 use App\Models\IdolCategoryDescription;
@@ -146,52 +148,7 @@ class UserProfileController extends Controller
                             'sort_order'   => $cat->sort_order,
                         ],
                         'idol_description' => $descriptions[$cat->id] ?? null,
-                        'items'            => $group->map(function (Service $s) use ($isOwner, $hasUsedTrial) {
-                            $base = [
-                                'id'               => $s->id,
-                                'name_ru'          => $s->getTranslation('name', 'ru'),
-                                'name_en'          => $s->getTranslation('name', 'en', false) ?: null,
-                                'price'            => $s->price,
-                                'is_active'        => $s->is_active,
-                                'is_trial'         => $isOwner ? $s->is_trial : ($hasUsedTrial ? false : $s->is_trial),
-                                'status'           => $s->status,
-                                'rejection_reason' => $s->rejection_reason,
-                                'category_id'      => $s->category_id,
-                                'time_unit'        => [
-                                    'id'      => $s->timeUnit->id,
-                                    'name_ru' => $s->timeUnit->getTranslation('name', 'ru'),
-                                    'name_en' => $s->timeUnit->getTranslation('name', 'en', false) ?: null,
-                                ],
-                            ];
-
-                            if ($isOwner) {
-                                $base['latest_review'] = $s->latestReview ? [
-                                    'decision'       => $s->latestReview->decision,
-                                    'flagged_fields' => $s->latestReview->flagged_fields ?? [],
-                                    'field_comments' => $s->latestReview->field_comments ?? [],
-                                ] : null;
-
-                                $base['pending_change'] = $s->pendingChangeRequest ? [
-                                    'changed_fields'   => $s->pendingChangeRequest->changed_fields,
-                                    'pending_name'     => $s->pendingChangeRequest->pending_name,
-                                    'pending_price'    => $s->pendingChangeRequest->pending_price,
-                                    'pending_category' => $s->pendingChangeRequest->pendingCategory ? [
-                                        'id'      => $s->pendingChangeRequest->pendingCategory->id,
-                                        'name_ru' => $s->pendingChangeRequest->pendingCategory->getTranslation('name', 'ru'),
-                                    ] : null,
-                                    'pending_time_unit' => $s->pendingChangeRequest->pendingTimeUnit ? [
-                                        'id'      => $s->pendingChangeRequest->pendingTimeUnit->id,
-                                        'name_ru' => $s->pendingChangeRequest->pendingTimeUnit->getTranslation('name', 'ru'),
-                                    ] : null,
-                                    'status'           => $s->pendingChangeRequest->status,
-                                    'flagged_fields'   => $s->pendingChangeRequest->flagged_fields ?? [],
-                                    'field_comments'   => $s->pendingChangeRequest->field_comments ?? [],
-                                    'admin_comment'    => $s->pendingChangeRequest->admin_comment,
-                                ] : null;
-                            }
-
-                            return $base;
-                        })->values(),
+                        'items'            => $group->map(fn (Service $s) => (new ServiceResource($s, $isOwner, $hasUsedTrial))->resolve())->values(),
                     ];
                 })->values();
             }, 'services'),
@@ -225,38 +182,7 @@ class UserProfileController extends Controller
                         ->with(['photos', 'latestReview', 'pendingChangeRequest'])
                         ->latest()
                         ->get()
-                        ->map(fn (ContentPack $p) => [
-                            'id'          => $p->id,
-                            'title'       => $p->title,
-                            'description' => $p->description,
-                            'price'       => $p->price,
-                            'status'      => $p->status,
-                            'cover_url'   => $p->cover_url,
-                            'photos_count' => $p->photos->count(),
-                            'published_at' => $p->published_at?->toIso8601String(),
-                            'hidden_at'    => $p->hidden_at?->toIso8601String(),
-                            'latest_review' => $p->latestReview ? [
-                                'decision'          => $p->latestReview->decision,
-                                'flagged_fields'    => $p->latestReview->flagged_fields ?? [],
-                                'field_comments'    => $p->latestReview->field_comments ?? [],
-                                'flagged_photo_ids' => $p->latestReview->flagged_photo_ids ?? [],
-                                'photo_comments'    => $p->latestReview->photo_comments ?? [],
-                            ] : null,
-                            'photos' => $p->photos->map(fn ($ph) => [
-                                'id'  => $ph->id,
-                                'url' => $ph->url,
-                            ])->values(),
-                            'pending_change' => $p->pendingChangeRequest ? [
-                                'changed_fields'      => $p->pendingChangeRequest->changed_fields,
-                                'pending_title'       => $p->pendingChangeRequest->pending_title,
-                                'pending_description' => $p->pendingChangeRequest->pending_description,
-                                'pending_price'       => $p->pendingChangeRequest->pending_price,
-                                'status'              => $p->pendingChangeRequest->status,
-                                'flagged_fields'      => $p->pendingChangeRequest->flagged_fields ?? [],
-                                'field_comments'      => $p->pendingChangeRequest->field_comments ?? [],
-                                'admin_comment'       => $p->pendingChangeRequest->admin_comment,
-                            ] : null,
-                        ])
+                        ->map(fn (ContentPack $p) => (new ContentPackResource($p, true))->resolve())
                         ->values();
                 }
 
@@ -266,18 +192,11 @@ class UserProfileController extends Controller
                     ->with(['photos'])
                     ->latest('published_at')
                     ->get()
-                    ->map(fn (ContentPack $p) => [
-                        'id'          => $p->id,
-                        'title'       => $p->title,
-                        'description' => $p->description,
-                        'price'       => $p->price,
-                        'status'      => $p->status,
-                        'cover_url'   => $p->cover_url,
-                        'photos_count' => $p->photos->count(),
-                        'published_at' => $p->published_at?->toIso8601String(),
-                        'idol_id'     => $user->id,
-                        'idol_name'   => $user->name,
-                    ])
+                    ->map(function (ContentPack $p) use ($user) {
+                        $p->idol_id = $user->id;
+                        $p->idol_name = $user->name;
+                        return (new ContentPackResource($p, false))->resolve();
+                    })
                     ->values();
             }, 'content'),
 
