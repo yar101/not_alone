@@ -24,4 +24,11 @@ class Interest extends Model
     {
         return $this->belongsToMany(User::class, 'user_interests', 'interest_id', 'user_id');
     }
+
+    protected static function booted()
+    {
+        $clearCache = fn() => \Illuminate\Support\Facades\Cache::forget('search_interest_categories');
+        static::saved($clearCache);
+        static::deleted($clearCache);
+    }
 }
