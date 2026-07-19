@@ -82,7 +82,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
                 <!-- Hero header -->
                 <div class="usb-hero">
                     <button class="usb-close" @click="close" aria-label="Закрыть">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/>
                         </svg>
                     </button>
@@ -287,12 +287,13 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 .usb-close {
     position: absolute;
     top: 1rem;
-    left: 1rem;
+    right: 1rem;
+    left: auto;
     background: none;
     border: none;
     color: rgba(255, 255, 255, 0.55);
     cursor: pointer;
-    padding: 0.3rem;
+    padding: 0.4rem;
     border-radius: 6px;
     display: flex;
     align-items: center;

@@ -4,6 +4,7 @@ import { useForm, router } from '@inertiajs/vue3';
 import { Edit, Setting, MoreFilled, Picture } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppSelect from '@/Components/AppSelect.vue';
+import { ElNotification } from 'element-plus';
 import AvatarUploader from '@/Components/AvatarUploader.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
 import { useTranslations } from '@/composables/useTranslations';
@@ -76,18 +77,31 @@ function validateName(value) {
 }
 
 const TIMEZONES = [
-    { value: 'Europe/Kaliningrad', label: 'Калининградское время (UTC+2)' },
-    { value: 'Europe/Moscow', label: 'Московское время (UTC+3)' },
-    { value: 'Europe/Samara', label: 'Самарское время (UTC+4)' },
-    { value: 'Asia/Yekaterinburg', label: 'Екатеринбургское время (UTC+5)' },
-    { value: 'Asia/Omsk', label: 'Омское время (UTC+6)' },
-    { value: 'Asia/Krasnoyarsk', label: 'Красноярское время (UTC+7)' },
-    { value: 'Asia/Irkutsk', label: 'Иркутское время (UTC+8)' },
-    { value: 'Asia/Yakutsk', label: 'Якутское время (UTC+9)' },
-    { value: 'Asia/Vladivostok', label: 'Владивостокское время (UTC+10)' },
-    { value: 'Asia/Magadan', label: 'Магаданское время (UTC+11)' },
-    { value: 'Asia/Kamchatka', label: 'Камчатское время (UTC+12)' },
+    { value: 'Europe/Kaliningrad', label: 'Калининград UTC+2' },
+    { value: 'Europe/Moscow', label: 'Москва UTC+3' },
+    { value: 'Europe/Samara', label: 'Самара UTC+4' },
+    { value: 'Asia/Yekaterinburg', label: 'Екатеринбург UTC+5' },
+    { value: 'Asia/Omsk', label: 'Омск UTC+6' },
+    { value: 'Asia/Krasnoyarsk', label: 'Красноярск UTC+7' },
+    { value: 'Asia/Irkutsk', label: 'Иркутск UTC+8' },
+    { value: 'Asia/Yakutsk', label: 'Якутск UTC+9' },
+    { value: 'Asia/Vladivostok', label: 'Владивосток UTC+10' },
+    { value: 'Asia/Magadan', label: 'Магадан UTC+11' },
+    { value: 'Asia/Kamchatka', label: 'Камчатка UTC+12' },
 ];
+
+function detectTimezone() {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz) {
+        const found = TIMEZONES.find(t => t.value === tz);
+        if (found) {
+            form.timezone = tz;
+            ElNotification({ title: 'Успешно', message: 'Часовой пояс определен!', type: 'success' });
+        } else {
+            ElNotification({ title: 'Внимание', message: 'Ваш часовой пояс не входит в официальный список.', type: 'warning' });
+        }
+    }
+}
 
 const currentYear = new Date().getFullYear();
 
@@ -255,7 +269,15 @@ function deleteAvatar() {
                 </div>
 
                 <div class="edit-field">
-                    <label class="edit-label">{{ __('search.filters.timezone') }}</label>
+                    <label class="edit-label label-with-btn">
+                        {{ __('search.filters.timezone') }}
+                        <button type="button" class="btn-auto-detect" @click="detectTimezone" title="Определить автоматически">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            Где я
+                        </button>
+                    </label>
                     <AppSelect v-model="form.timezone" :options="timezoneOptions" :placeholder="__('profile.header.tz_ph')" />
                 </div>
 
@@ -814,5 +836,29 @@ function deleteAvatar() {
 .lb-enter-from,
 .lb-leave-to {
     opacity: 0;
+}
+.label-with-btn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.btn-auto-detect {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(255, 178, 239, 0.1);
+    border: 1px solid rgba(255, 178, 239, 0.2);
+    color: var(--color-base-1);
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: none;
+    letter-spacing: normal;
+}
+.btn-auto-detect:hover {
+    background: rgba(255, 178, 239, 0.2);
 }
 </style>
