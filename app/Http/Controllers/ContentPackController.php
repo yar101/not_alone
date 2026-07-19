@@ -11,11 +11,15 @@ use App\Jobs\NotifyFollowersJob;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use App\Services\ContentPackService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class ContentPackController extends Controller
 {
+    public function __construct(private ContentPackService $contentPackService)
+    {
+    }
     private function priceLimits(): array
     {
         return [
@@ -33,95 +37,8 @@ class ContentPackController extends Controller
     }
 
     /**
-     * Create or update a pending change request for a published pack.
-     * Returns the data to include in the JSON response.
+     * Settings moved out
      */
-    private function upsertChangeRequest(ContentPack $pack, string $field, mixed $value): array
-    {
-        DB::transaction(function () use ($pack, $field, $value, &$changeRequest) {
-            $changeRequest = ContentPackChangeRequest::where('content_pack_id', $pack->id)
-                ->whereIn('status', ['pending', 'has_remarks'])
-                ->lockForUpdate()
-                ->first();
-
-            $currentValue = $pack->{$field};
-            $isSameAsCurrent = match ($field) {
-                'price'       => (int) $value === (int) $currentValue,
-                'description' => (string) ($value ?? '') === (string) ($currentValue ?? ''),
-                default       => (string) $value === (string) $currentValue,
-            };
-
-            if ($changeRequest) {
-                $changedFields = $changeRequest->changed_fields ?? [];
-
-                if ($isSameAsCurrent) {
-                    // Remove this field from the pending request
-                    $changedFields = array_values(array_filter($changedFields, fn ($f) => $f !== $field));
-                    if (empty($changedFields)) {
-                        $changeRequest->delete();
-                        $changeRequest = null;
-                        return;
-                    }
-                    // Also remove from flagged if it was flagged
-                    $flaggedFields = array_values(array_filter($changeRequest->flagged_fields ?? [], fn ($f) => $f !== $field));
-                    $fieldComments = array_filter($changeRequest->field_comments ?? [], fn ($k) => $k !== $field, ARRAY_FILTER_USE_KEY);
-                    $changeRequest->update([
-                        'changed_fields'   => $changedFields,
-                        "pending_{$field}" => null,
-                        'flagged_fields'   => $flaggedFields ?: null,
-                        'field_comments'   => $fieldComments ?: null,
-                        'status'           => 'pending',
-                    ]);
-                } else {
-                    if (!in_array($field, $changedFields)) {
-                        $changedFields[] = $field;
-                    }
-                    // Remove this field from flagged (user fixed it)
-                    $flaggedFields = array_values(array_filter($changeRequest->flagged_fields ?? [], fn ($f) => $f !== $field));
-                    $fieldComments = array_filter($changeRequest->field_comments ?? [], fn ($k) => $k !== $field, ARRAY_FILTER_USE_KEY);
-                    // If no more flagged fields, reset status to pending
-                    $newStatus = empty($flaggedFields) ? 'pending' : $changeRequest->status;
-                    $changeRequest->update([
-                        'changed_fields'   => $changedFields,
-                        "pending_{$field}" => $value,
-                        'flagged_fields'   => $flaggedFields ?: null,
-                        'field_comments'   => $fieldComments ?: null,
-                        'status'           => $newStatus,
-                    ]);
-                }
-            } else {
-                if ($isSameAsCurrent) {
-                    return; // nothing to do
-                }
-                $changeRequest = ContentPackChangeRequest::create([
-                    'content_pack_id'  => $pack->id,
-                    'changed_fields'   => [$field],
-                    "pending_{$field}" => $value,
-                    'status'           => 'pending',
-                ]);
-            }
-        });
-
-        if (!isset($changeRequest) || $changeRequest === null) {
-            // Pending request was removed (user reverted to original value)
-            return [
-                $field          => $value,
-                'pending'       => false,
-                'pending_change' => null,
-            ];
-        }
-
-        return [
-            $field          => $value,
-            'pending'       => true,
-            'pending_change' => [
-                'changed_fields'      => $changeRequest->changed_fields,
-                'pending_title'       => $changeRequest->pending_title,
-                'pending_description' => $changeRequest->pending_description,
-                'pending_price'       => $changeRequest->pending_price,
-            ],
-        ];
-    }
 
     public function store(Request $request): JsonResponse
     {
@@ -279,7 +196,7 @@ class ContentPackController extends Controller
         );
 
         if ($this->moderationSettings()['existing_packs']) {
-            return response()->json($this->upsertChangeRequest($pack, 'price', $data['price']));
+            return response()->json($this->contentPackService->upsertChangeRequest($pack, 'price', $data['price']));
         }
 
         $pack->update(['price' => $data['price']]);
@@ -297,7 +214,7 @@ class ContentPackController extends Controller
         ]);
 
         if ($this->moderationSettings()['existing_packs']) {
-            return response()->json($this->upsertChangeRequest($pack, 'description', $data['description'] ?? null));
+            return response()->json($this->contentPackService->upsertChangeRequest($pack, 'description', $data['description'] ?? null));
         }
 
         $pack->update(['description' => $data['description'] ?? null]);
@@ -315,7 +232,7 @@ class ContentPackController extends Controller
         ]);
 
         if ($this->moderationSettings()['existing_packs']) {
-            return response()->json($this->upsertChangeRequest($pack, 'title', $data['title']));
+            return response()->json($this->contentPackService->upsertChangeRequest($pack, 'title', $data['title']));
         }
 
         $pack->update(['title' => $data['title']]);
@@ -370,7 +287,7 @@ class ContentPackController extends Controller
         // upsertChangeRequest queries DB fresh each call, so safe to call per field
         foreach ($flaggedFields as $field) {
             if (array_key_exists($field, $data)) {
-                $this->upsertChangeRequest($pack, $field, $data[$field]);
+                $this->contentPackService->upsertChangeRequest($pack, $field, $data[$field]);
             }
         }
 
