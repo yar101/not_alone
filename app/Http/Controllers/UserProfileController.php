@@ -525,7 +525,7 @@ class UserProfileController extends Controller
 
     public function destroyPost(Request $request, Post $post): RedirectResponse
     {
-        abort_if($post->user_id !== $request->user()->id, 403);
+        $this->authorize('delete', $post);
         if ($post->photo_path) {
             Storage::disk(config('filesystems.default'))->delete($post->photo_path);
         }
@@ -729,7 +729,7 @@ class UserProfileController extends Controller
 
     public function destroyComment(Request $request, PostComment $comment): JsonResponse
     {
-        abort_if($comment->user_id !== $request->user()->id, 403);
+        $this->authorize('delete', $comment);
         $comment->delete();
         return response()->json(['deleted' => true]);
     }

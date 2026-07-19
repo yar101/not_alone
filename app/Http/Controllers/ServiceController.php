@@ -192,7 +192,7 @@ class ServiceController extends Controller
 
     public function update(Request $request, Service $service): RedirectResponse
     {
-        abort_if($service->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $service);
 
         $data = $request->validate([
             'name_ru'      => ['sometimes', 'nullable', 'string', 'max:120'],
@@ -287,7 +287,7 @@ class ServiceController extends Controller
 
     public function fixChangeRequest(Request $request, Service $service): RedirectResponse
     {
-        abort_if($service->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $service);
         
         $cr = $service->pendingChangeRequest;
         abort_if(!$cr || $cr->status !== 'has_remarks', 422);
@@ -376,7 +376,7 @@ class ServiceController extends Controller
 
     public function destroy(Request $request, Service $service): RedirectResponse
     {
-        abort_if($service->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $service);
         $service->delete();
 
         return back()->with('success', 'Услуга удалена.');
@@ -384,7 +384,7 @@ class ServiceController extends Controller
 
     public function toggleTrial(Request $request, Service $service): RedirectResponse
     {
-        abort_if($service->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $service);
         
         $request->validate(['is_trial' => 'required|boolean']);
         
@@ -395,7 +395,7 @@ class ServiceController extends Controller
 
     public function dismissChangeRequest(Request $request, Service $service): RedirectResponse
     {
-        abort_if($service->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $service);
         
         $cr = $service->pendingChangeRequest;
         if ($cr && $cr->status === 'rejected') {

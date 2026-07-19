@@ -94,7 +94,7 @@ class ContentPackController extends Controller
 
     public function update(Request $request, ContentPack $pack): RedirectResponse
     {
-        abort_if($pack->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $pack);
         abort_if($pack->status !== 'has_remarks', 422);
 
         $review = $pack->latestReview;
@@ -183,7 +183,7 @@ class ContentPackController extends Controller
 
     public function updatePrice(Request $request, ContentPack $pack): JsonResponse
     {
-        abort_if($pack->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $pack);
         abort_if($pack->status !== 'published', 422);
 
         $limits = $this->priceLimits();
@@ -206,7 +206,7 @@ class ContentPackController extends Controller
 
     public function updateDescription(Request $request, ContentPack $pack): JsonResponse
     {
-        abort_if($pack->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $pack);
         abort_if($pack->status !== 'published', 422);
 
         $data = $request->validate([
@@ -224,7 +224,7 @@ class ContentPackController extends Controller
 
     public function updateTitle(Request $request, ContentPack $pack): JsonResponse
     {
-        abort_if($pack->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $pack);
         abort_if($pack->status !== 'published', 422);
 
         $data = $request->validate([
@@ -242,7 +242,7 @@ class ContentPackController extends Controller
 
     public function updateCover(Request $request, ContentPack $pack): JsonResponse
     {
-        abort_if($pack->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $pack);
         abort_if($pack->status !== 'published', 422);
 
         $data = $request->validate([
@@ -260,7 +260,7 @@ class ContentPackController extends Controller
 
     public function fixChangeRequest(Request $request, ContentPack $pack): JsonResponse
     {
-        abort_if($pack->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $pack);
 
         $cr = $pack->pendingChangeRequest;
         abort_if(!$cr || $cr->status !== 'has_remarks', 422);
@@ -310,7 +310,7 @@ class ContentPackController extends Controller
 
     public function publish(Request $request, ContentPack $pack): RedirectResponse
     {
-        abort_if($pack->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $pack);
         abort_if($pack->status !== 'approved', 422);
 
         $pack->update([
@@ -325,7 +325,7 @@ class ContentPackController extends Controller
 
     public function toggleVisibility(Request $request, ContentPack $pack): JsonResponse
     {
-        abort_if($pack->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $pack);
         abort_if($pack->status !== 'published', 422);
 
         $pack->update(['hidden_at' => $pack->hidden_at ? null : now()]);
@@ -335,7 +335,7 @@ class ContentPackController extends Controller
 
     public function dismissChangeRequest(Request $request, ContentPack $pack): JsonResponse
     {
-        abort_if($pack->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $pack);
 
         $cr = $pack->pendingChangeRequest;
         if ($cr && $cr->status === 'rejected') {
@@ -347,7 +347,7 @@ class ContentPackController extends Controller
 
     public function destroy(Request $request, ContentPack $pack): RedirectResponse
     {
-        abort_if($pack->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $pack);
 
         // Published pack with purchases → soft delete so buyers keep gallery access
         if ($pack->status === 'published' && $pack->purchases()->exists()) {
