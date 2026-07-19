@@ -612,11 +612,17 @@ function genderLabel(g) {
     max-width: 300px;
     min-width: 220px;
     flex-shrink: 0;
-    border-left: 1px solid rgba(255, 178, 239, 0.12);
-    height: 100%;
-    background: rgba(10, 10, 20, 0.6);
+    margin: 1.5rem;
     display: flex;
     flex-direction: column;
+    height: calc(100vh - 60px - 3rem);
+    border-radius: 16px;
+    background: rgba(20, 15, 25, 0.4);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 4px 20px rgba(0,0,0,0.2);
+    overflow: hidden;
 }
 
 .sidebar-inner {
@@ -654,8 +660,8 @@ function genderLabel(g) {
 .sidebar-footer {
     flex-shrink: 0;
     padding: 0.75rem 1.5rem;
-    border-top: 1px solid rgba(255, 178, 239, 0.15);
-    background: rgba(10, 10, 20, 0.95);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: transparent;
 }
 
 .apply-btn {
