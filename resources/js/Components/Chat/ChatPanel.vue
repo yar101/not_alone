@@ -121,21 +121,21 @@ const ordersHaveUnread = computed(
     () =>
         pendingOrderUnread.value ||
         (page.props.unread_orders_count ?? 0) > 0 ||
-        orders.value.some((o) => (o.unread_count ?? 0) > 0),
+        orders.value.some((o) => o.unread),
 );
 const mineHaveUnread = computed(
     () =>
         (page.props.unread_mine_count ?? 0) > 0 ||
         orders.value
             .filter((o) => o.is_customer)
-            .some((o) => (o.unread_count ?? 0) > 0),
+            .some((o) => o.unread),
 );
 const incomingHaveUnread = computed(
     () =>
         (page.props.unread_incoming_count ?? 0) > 0 ||
         orders.value
             .filter((o) => !o.is_customer)
-            .some((o) => (o.unread_count ?? 0) > 0),
+            .some((o) => o.unread),
 );
 
 const orderStatusLabels = computed(() => ({
@@ -429,9 +429,9 @@ async function openConversation(conv) {
             closed_at: res.data.closed_at ?? null,
         };
         const local = conversations.value.find((c) => c.id === conv.id);
-        if (local) local.unread_count = 0;
+        if (local) local.unread = false;
         const order = orders.value.find((o) => o.conversation_id === conv.id);
-        if (order) order.unread_count = 0;
+        if (order) order.unread = false;
         router.reload({
             only: [
                 "unread_messages_count",
@@ -468,7 +468,7 @@ async function startWith(userId) {
                 conv ?? {
                     id: conversation_id,
                     other_user: user,
-                    unread_count: 0,
+                    unread: false,
                 },
             );
         } else {
@@ -477,7 +477,7 @@ async function startWith(userId) {
             await openConversation({
                 id: "draft",
                 other_user: user,
-                unread_count: 0,
+                unread: false,
                 is_draft: true,
             });
         }
@@ -495,7 +495,7 @@ async function startConversation(convId) {
         conv = conversations.value.find((c) => c.id === convId);
     }
     await openConversation(
-        conv ?? { id: convId, other_user: null, unread_count: 0 },
+        conv ?? { id: convId, other_user: null, unread: false },
     );
 }
 
@@ -673,10 +673,10 @@ function subscribeOrdersEcho() {
         if (idx !== -1) {
             orders.value.splice(idx, 1, {
                 ...order,
-                unread_count: orders.value[idx].unread_count ?? 0,
+                unread: orders.value[idx].unread,
             });
         } else {
-            orders.value.unshift({ ...order, unread_count: 0 });
+            orders.value.unshift({ ...order, unread: false });
         }
         if (activeOrderData.value?.id === order.id) {
             activeOrderData.value = { ...activeOrderData.value, ...order };
@@ -720,14 +720,14 @@ function handleIncomingMessageForList(data) {
             (o) => o.conversation_id === conversation_id,
         );
         if (order) {
-            order.unread_count = (order.unread_count ?? 0) + 1;
+            order.unread = true;
         }
     } else {
         const conv = conversations.value.find((c) => c.id === conversation_id);
         if (conv) {
             conv.last_message = last_message;
             conv.updated_at = last_message?.created_at;
-            conv.unread_count = (conv.unread_count ?? 0) + 1;
+            conv.unread = true;
         }
     }
 }
@@ -735,11 +735,11 @@ function handleIncomingMessageForList(data) {
 async function markRead(conversationId) {
     await axios.get(route("conversations.show", conversationId));
     const local = conversations.value.find((c) => c.id === conversationId);
-    if (local) local.unread_count = 0;
+    if (local) local.unread = false;
     const order = orders.value.find(
         (o) => o.conversation_id === conversationId,
     );
-    if (order) order.unread_count = 0;
+    if (order) order.unread = false;
     router.reload({ only: ["unread_messages_count"] });
 }
 
@@ -903,7 +903,7 @@ async function onRepeatOrderCreated({ conversation_id }) {
     await fetchConversations();
     const conv = conversations.value.find((c) => c.id === conversation_id);
     await openConversation(
-        conv ?? { id: conversation_id, other_user: null, unread_count: 0 },
+        conv ?? { id: conversation_id, other_user: null, unread: false },
     );
 }
 
@@ -1207,7 +1207,7 @@ async function openOrderConversation(order) {
     await openConversation({
         id: order.conversation_id,
         other_user: other,
-        unread_count: 0,
+        unread: false,
     });
 }
 
@@ -1576,7 +1576,7 @@ function formatDate(iso) {
                                         'chat-conv-item--active':
                                             activeConversation?.id === conv.id,
                                         'chat-conv-item--unread':
-                                            conv.unread_count > 0,
+                                            conv.unread,
                                     }"
                                     @click="openConversation(conv)"
                                 >
@@ -1617,10 +1617,9 @@ function formatDate(iso) {
                                             )
                                         }}</span>
                                         <span
-                                            v-if="conv.unread_count > 0"
-                                            class="chat-conv-badge"
-                                            >{{ conv.unread_count }}</span
-                                        >
+                                            v-if="conv.unread"
+                                            class="chat-conv-badge chat-conv-badge--dot"
+                                        ></span>
                                     </div>
                                 </button>
                                 <!-- Load more conversations -->
@@ -2000,10 +1999,7 @@ function formatDate(iso) {
                                                 }}
                                             </span>
                                             <span
-                                                v-if="
-                                                    (order.unread_count ?? 0) >
-                                                    0
-                                                "
+                                                v-if="order.unread"
                                                 class="chat-conv-badge chat-conv-badge--dot"
                                             ></span>
                                         </div>

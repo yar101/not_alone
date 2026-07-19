@@ -29,21 +29,6 @@ class ConversationController extends Controller
         $query = Conversation::whereNull('order_id')
             ->whereHas('participants', fn($q) => $q->where('user_id', $user->id))
             ->with(['participants.user.activeFrame', 'lastMessage.sender.activeFrame'])
-            ->withCount(['messages as unread_count' => function ($q) use ($user) {
-                $userId = $user->id;
-                $q->where(function ($q) use ($userId) {
-                    $q->where('sender_id', '!=', $userId)->orWhereNull('sender_id');
-                })->whereExists(function ($sub) use ($userId) {
-                    $sub->selectRaw('1')
-                        ->from('conversation_participants as cp')
-                        ->whereColumn('cp.conversation_id', 'messages.conversation_id')
-                        ->where('cp.user_id', $userId)
-                        ->where(function($q) {
-                            $q->whereNull('cp.last_read_at')
-                              ->orWhereColumn('messages.created_at', '>', 'cp.last_read_at');
-                        });
-                });
-            }])
             ->orderByDesc('updated_at')
             ->orderByDesc('id');
 
@@ -59,22 +44,7 @@ class ConversationController extends Controller
         }
 
         if ($request->boolean('unread')) {
-            $userId = $user->id;
-            $query->whereExists(function ($sub) use ($userId) {
-                $sub->from('messages as m')
-                    ->join('conversation_participants as cp', function ($j) use ($userId) {
-                        $j->on('cp.conversation_id', '=', 'm.conversation_id')
-                          ->where('cp.user_id', $userId);
-                    })
-                    ->whereColumn('m.conversation_id', 'conversations.id')
-                    ->where(function ($q) use ($userId) {
-                        $q->where('m.sender_id', '!=', $userId)->orWhereNull('m.sender_id');
-                    })
-                    ->where(function ($q) {
-                        $q->whereNull('cp.last_read_at')
-                          ->orWhereColumn('m.created_at', '>', 'cp.last_read_at');
-                    });
-            });
+            $query->whereHas('participants', fn($q) => $q->where('user_id', $user->id)->where('has_unread', true));
         }
 
         if ($cursorAt && $cursorId) {
@@ -95,7 +65,7 @@ class ConversationController extends Controller
             $participantMe = $conversation->participants
                 ->firstWhere('user_id', $user->id);
 
-            $unread = $conversation->unread_count ?? 0;
+            $hasUnread = $participantMe->has_unread ?? false;
 
             return [
                 'id'           => $conversation->id,
@@ -115,7 +85,7 @@ class ConversationController extends Controller
                     'sender_id'  => $conversation->lastMessage->sender_id,
                     'created_at' => $conversation->lastMessage->created_at?->toISOString(),
                 ] : null,
-                'unread_count' => $unread,
+                'unread'       => $hasUnread,
                 'updated_at'   => $conversation->updated_at?->toISOString(),
                 'block'        => $this->blockStatus($conversation, $user),
             ];
@@ -158,7 +128,10 @@ class ConversationController extends Controller
         // Mark as read and broadcast
         $conversation->participants()
             ->where('user_id', $user->id)
-            ->update(['last_read_at' => now()]);
+            ->update([
+                'last_read_at' => now(),
+                'has_unread' => false,
+            ]);
 
         broadcast(new MessageRead($conversation->id, $user->id, now()->toISOString()));
 
@@ -346,6 +319,7 @@ class ConversationController extends Controller
         ]);
 
         $conversation->touch();
+        $conversation->participants()->where('user_id', '!=', $user->id)->update(['has_unread' => true]);
 
         $msg->load('sender');
 
@@ -425,6 +399,7 @@ class ConversationController extends Controller
         ]);
 
         $conversation->touch();
+        $conversation->participants()->where('user_id', '!=', $user->id)->update(['has_unread' => true]);
         $msg->load('sender');
 
         try {
