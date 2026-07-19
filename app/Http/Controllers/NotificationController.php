@@ -23,6 +23,51 @@ class NotificationController extends Controller
     private const FOLLOW_TYPES  = ['new_post', 'new_service', 'new_content_pack'];
     private const PER_PAGE      = 20;
 
+    private const TYPE_MAP = [
+        'idol_approved' => \App\Notifications\IdolApprovedNotification::class,
+        'idol_rejected' => \App\Notifications\IdolRejectedNotification::class,
+        'low_rating_warning' => \App\Notifications\LowRatingWarningNotification::class,
+        'admin_rating' => \App\Notifications\AdminRatingNotification::class,
+        'review_dispute_approved' => \App\Notifications\ReviewDisputeApprovedNotification::class,
+        'review_dispute_rejected' => \App\Notifications\ReviewDisputeRejectedNotification::class,
+        'content_pack_approved' => \App\Notifications\ContentPackApprovedNotification::class,
+        'content_pack_remarks' => \App\Notifications\ContentPackRemarksNotification::class,
+        'content_pack_rejected' => \App\Notifications\ContentPackRejectedNotification::class,
+        'content_pack_change_approved' => \App\Notifications\ContentPackChangeApprovedNotification::class,
+        'content_pack_change_remarks' => \App\Notifications\ContentPackChangeRemarksNotification::class,
+        'content_pack_change_rejected' => \App\Notifications\ContentPackChangeRejectedNotification::class,
+        'service_approved' => \App\Notifications\ServiceApprovedNotification::class,
+        'service_rejected' => \App\Notifications\ServiceRejectedNotification::class,
+        'service_remarks' => \App\Notifications\ServiceRemarksNotification::class,
+        'service_change_approved' => \App\Notifications\ServiceChangeApprovedNotification::class,
+        'service_change_remarks' => \App\Notifications\ServiceChangeRemarksNotification::class,
+        'service_change_rejected' => \App\Notifications\ServiceChangeRejectedNotification::class,
+        'test' => \App\Notifications\TestNotification::class,
+        'chat_status' => \App\Notifications\ChatStatusNotification::class,
+        'new_review' => \App\Notifications\NewReviewNotification::class,
+        'order_created' => \App\Notifications\OrderCreatedNotification::class,
+        'order_accepted' => \App\Notifications\OrderAcceptedNotification::class,
+        'order_cancelled' => \App\Notifications\OrderCancelledNotification::class,
+        'order_paid' => \App\Notifications\OrderPaidNotification::class,
+        'order_completed' => \App\Notifications\OrderCompletedNotification::class,
+        'new_message' => \App\Notifications\NewMessageNotification::class,
+        'new_post' => \App\Notifications\NewPostNotification::class,
+        'new_service' => \App\Notifications\NewServiceNotification::class,
+        'new_content_pack' => \App\Notifications\NewContentPackNotification::class,
+        'strike' => \App\Notifications\UserStrikeNotification::class,
+    ];
+
+    private function getClassesForTypes(array $types): array
+    {
+        $classes = [];
+        foreach ($types as $type) {
+            if (isset(self::TYPE_MAP[$type])) {
+                $classes[] = self::TYPE_MAP[$type];
+            }
+        }
+        return $classes;
+    }
+
     private function parseBefore(Request $request): ?Carbon
     {
         $raw = $request->input('before');
@@ -35,10 +80,10 @@ class NotificationController extends Controller
         $before = $this->parseBefore($request);
 
         $excluded     = array_merge(self::SERVICE_TYPES, self::ORDER_TYPES, self::MESSAGE_TYPES);
-        $placeholders = implode(',', array_fill(0, count($excluded), '?'));
+        $excludedClasses = $this->getClassesForTypes($excluded);
 
         $rows = $user->notifications()
-            ->whereRaw("(data::jsonb->>'type') NOT IN ($placeholders)", $excluded)
+            ->whereNotIn('type', $excludedClasses)
             ->when($before, fn($q) => $q->where('created_at', '<', $before))
             ->latest()
             ->limit(self::PER_PAGE + 1)
@@ -55,13 +100,13 @@ class NotificationController extends Controller
             'created_at' => $n->created_at->toIso8601String(),
         ])->values();
 
-        $unread = $user->unreadNotifications()
-            ->whereRaw("(data::jsonb->>'type') NOT IN ($placeholders)", $excluded)
-            ->count();
+        $hasUnread = $user->unreadNotifications()
+            ->whereNotIn('type', $excludedClasses)
+            ->exists();
 
         return response()->json([
             'notifications' => $items,
-            'unread_count'  => $unread,
+            'has_unread'    => $hasUnread,
             'has_more'      => $hasMore,
         ]);
     }
@@ -71,10 +116,10 @@ class NotificationController extends Controller
         $user   = $request->user();
         $before = $this->parseBefore($request);
 
-        $placeholders = implode(',', array_fill(0, count(self::SERVICE_TYPES), '?'));
+        $serviceClasses = $this->getClassesForTypes(self::SERVICE_TYPES);
 
         $rows = $user->notifications()
-            ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::SERVICE_TYPES)
+            ->whereIn('type', $serviceClasses)
             ->when($before, fn($q) => $q->where('created_at', '<', $before))
             ->latest()
             ->limit(self::PER_PAGE + 1)
@@ -92,14 +137,14 @@ class NotificationController extends Controller
             'created_at' => $n->created_at->toIso8601String(),
         ])->values();
 
-        $unreadCount = $user->unreadNotifications()
-            ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::SERVICE_TYPES)
-            ->count();
+        $hasUnread = $user->unreadNotifications()
+            ->whereIn('type', $serviceClasses)
+            ->exists();
 
         return response()->json([
-            'items'        => $items,
-            'unread_count' => $unreadCount,
-            'has_more'     => $hasMore,
+            'items'      => $items,
+            'has_unread' => $hasUnread,
+            'has_more'   => $hasMore,
         ]);
     }
 
@@ -186,10 +231,10 @@ class NotificationController extends Controller
         $user   = $request->user();
         $before = $this->parseBefore($request);
 
-        $placeholders = implode(',', array_fill(0, count(self::ORDER_TYPES), '?'));
+        $orderClasses = $this->getClassesForTypes(self::ORDER_TYPES);
 
         $rows = $user->notifications()
-            ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::ORDER_TYPES)
+            ->whereIn('type', $orderClasses)
             ->when($before, fn($q) => $q->where('created_at', '<', $before))
             ->latest()
             ->limit(self::PER_PAGE + 1)
@@ -206,14 +251,14 @@ class NotificationController extends Controller
                 'reason'     => $n->data['reason'] ?? $n->data['rejection_reason'] ?? null,
         ])->values();
 
-        $unreadCount = $user->unreadNotifications()
-            ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::ORDER_TYPES)
-            ->count();
+        $hasUnread = $user->unreadNotifications()
+            ->whereIn('type', $orderClasses)
+            ->exists();
 
         return response()->json([
-            'items'        => $items,
-            'unread_count' => $unreadCount,
-            'has_more'     => $hasMore,
+            'items'      => $items,
+            'has_unread' => $hasUnread,
+            'has_more'   => $hasMore,
         ]);
     }
 
@@ -234,10 +279,10 @@ class NotificationController extends Controller
     {
         $user         = $request->user();
         $excluded     = array_merge(self::SERVICE_TYPES, self::ORDER_TYPES, self::MESSAGE_TYPES, self::FOLLOW_TYPES);
-        $placeholders = implode(',', array_fill(0, count($excluded), '?'));
+        $excludedClasses = $this->getClassesForTypes($excluded);
         
         $user->unreadNotifications()
-            ->whereRaw("(data::jsonb->>'type') NOT IN ($placeholders)", $excluded)
+            ->whereNotIn('type', $excludedClasses)
             ->update(['read_at' => now()]);
 
         return response()->json(['ok' => true]);
@@ -246,10 +291,10 @@ class NotificationController extends Controller
     public function markAllOrdersRead(Request $request)
     {
         $user         = $request->user();
-        $placeholders = implode(',', array_fill(0, count(self::ORDER_TYPES), '?'));
+        $orderClasses = $this->getClassesForTypes(self::ORDER_TYPES);
         
         $user->unreadNotifications()
-            ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::ORDER_TYPES)
+            ->whereIn('type', $orderClasses)
             ->update(['read_at' => now()]);
 
         return response()->json(['ok' => true]);
@@ -258,15 +303,15 @@ class NotificationController extends Controller
     public function markAllServiceRead(Request $request)
     {
         $user                = $request->user();
-        $servicePlaceholders = implode(',', array_fill(0, count(self::SERVICE_TYPES), '?'));
-        $messagePlaceholders = implode(',', array_fill(0, count(self::MESSAGE_TYPES), '?'));
+        $serviceClasses = $this->getClassesForTypes(self::SERVICE_TYPES);
+        $messageClasses = $this->getClassesForTypes(self::MESSAGE_TYPES);
 
         // 1. Помечаем персональные уведомления
         $user->unreadNotifications()
-            ->where(function ($q) use ($servicePlaceholders, $messagePlaceholders) {
-                $q->whereRaw("(data::jsonb->>'type') IN ($servicePlaceholders)", self::SERVICE_TYPES)
-                    ->orWhere(function ($sq) use ($messagePlaceholders) {
-                        $sq->whereRaw("(data::jsonb->>'type') IN ($messagePlaceholders)", self::MESSAGE_TYPES)
+            ->where(function ($q) use ($serviceClasses, $messageClasses) {
+                $q->whereIn('type', $serviceClasses)
+                    ->orWhere(function ($sq) use ($messageClasses) {
+                        $sq->whereIn('type', $messageClasses)
                             ->whereRaw("data::jsonb->>'sender_id' IS NULL");
                     });
             })
@@ -287,10 +332,10 @@ class NotificationController extends Controller
     public function markAllFollowsRead(Request $request)
     {
         $user         = $request->user();
-        $placeholders = implode(',', array_fill(0, count(self::FOLLOW_TYPES), '?'));
+        $followClasses = $this->getClassesForTypes(self::FOLLOW_TYPES);
         
         $user->unreadNotifications()
-            ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::FOLLOW_TYPES)
+            ->whereIn('type', $followClasses)
             ->update(['read_at' => now()]);
 
         return response()->json(['ok' => true]);
@@ -299,10 +344,10 @@ class NotificationController extends Controller
     public function markAllMessagesRead(Request $request)
     {
         $user = $request->user();
-        $placeholders = implode(',', array_fill(0, count(self::MESSAGE_TYPES), '?'));
+        $messageClasses = $this->getClassesForTypes(self::MESSAGE_TYPES);
         
         $user->unreadNotifications()
-            ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::MESSAGE_TYPES)
+            ->whereIn('type', $messageClasses)
             ->whereRaw("data::jsonb->>'sender_id' IS NOT NULL")
             ->update(['read_at' => now()]);
 

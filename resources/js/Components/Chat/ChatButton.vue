@@ -63,12 +63,25 @@ const unreadMessages = computed(() => page.props.has_unread_messages ?? false);
 }
 .chat-btn__badge {
     position: absolute;
-    top: 4px;
-    right: 4px;
+    top: 2px;
+    right: 2px;
     width: 8px;
     height: 8px;
+    background: #ff4757;
+    border: 1px solid var(--color-base-1);
     border-radius: 50%;
-    background: #e0558f;
+    
+    box-shadow: 0 0 5px rgba(255, 71, 87, 0.4);
     pointer-events: none;
+    z-index: 10;
+}
+
+@media (max-width: 768px) {
+    .chat-btn__badge {
+        top: 1px;
+        right: 1px;
+        width: 10px;
+        height: 10px;
+    }
 }
 </style>

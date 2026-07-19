@@ -86,11 +86,11 @@ async function markAllRead() {
     });
 
     if (page.props) {
-        page.props.notifications_unread = 0;
-        page.props.service_unread = 0;
-        page.props.order_notifications_unread = 0;
-        page.props.messages_notifications_unread = 0;
-        page.props.follows_unread = 0;
+        page.props.notifications_unread = false;
+        page.props.service_unread = false;
+        page.props.order_notifications_unread = false;
+        page.props.messages_notifications_unread = false;
+        page.props.follows_unread = false;
     }
 
     try {
@@ -114,7 +114,7 @@ function toggleDropdown() {
     open.value = !open.value;
     if (open.value) {
         fetchAll();
-        if (totalUnread.value > 0) {
+        if (totalUnread.value) {
             markAllRead();
         }
     }
@@ -251,19 +251,19 @@ watch(activeFilters, autoFetchIfEmpty, { deep: true });
 const forceZeroUnread = ref(false);
 
 const totalUnread = computed(() => {
-    if (forceZeroUnread.value) return 0;
-    return (page.props.notifications_unread ?? 0) +
-        (page.props.service_unread ?? 0) +
-        (page.props.order_notifications_unread ?? 0) +
-        (page.props.messages_notifications_unread ?? 0) +
-        (page.props.follows_unread ?? 0);
+    if (forceZeroUnread.value) return false;
+    return !!(page.props.notifications_unread ||
+        page.props.service_unread ||
+        page.props.order_notifications_unread ||
+        page.props.messages_notifications_unread ||
+        page.props.follows_unread);
 });
 
-const serviceUnread = computed(() => forceZeroUnread.value ? 0 : (page.props.service_unread ?? 0));
-const orderUnread = computed(() => forceZeroUnread.value ? 0 : (page.props.order_notifications_unread ?? 0));
-const messagesUnread = computed(() => forceZeroUnread.value ? 0 : (page.props.messages_notifications_unread ?? 0));
-const followsUnread = computed(() => forceZeroUnread.value ? 0 : (page.props.follows_unread ?? 0));
-const personalUnread = computed(() => forceZeroUnread.value ? 0 : (page.props.notifications_unread ?? 0));
+const serviceUnread = computed(() => forceZeroUnread.value ? false : !!page.props.service_unread);
+const orderUnread = computed(() => forceZeroUnread.value ? false : !!page.props.order_notifications_unread);
+const messagesUnread = computed(() => forceZeroUnread.value ? false : !!page.props.messages_notifications_unread);
+const followsUnread = computed(() => forceZeroUnread.value ? false : !!page.props.follows_unread);
+const personalUnread = computed(() => forceZeroUnread.value ? false : !!page.props.notifications_unread);
 
 watch(() => page.url, () => {
     forceZeroUnread.value = false;
@@ -280,11 +280,11 @@ watch(open, (newVal) => {
         // С небольшой задержкой сбрасываем счетчики локально и запрашиваем актуальные данные с бэкенда.
         setTimeout(() => {
             if (page.props) {
-                page.props.notifications_unread = 0;
-                page.props.service_unread = 0;
-                page.props.order_notifications_unread = 0;
-                page.props.messages_notifications_unread = 0;
-                page.props.follows_unread = 0;
+                page.props.notifications_unread = false;
+                page.props.service_unread = false;
+                page.props.order_notifications_unread = false;
+                page.props.messages_notifications_unread = false;
+                page.props.follows_unread = false;
             }
             reloadCounts();
         }, 200);
@@ -695,9 +695,7 @@ defineExpose({ toggleDropdown });
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
             </svg>
             <Transition name="badge-pop">
-                <span v-if="totalUnread > 0" class="badge" :key="totalUnread">
-                    {{ totalUnread > 99 ? '99+' : totalUnread }}
-                </span>
+                <span v-if="totalUnread" class="badge" :key="totalUnread ? 'true' : 'false'"></span>
             </Transition>
         </button>
 
@@ -1045,38 +1043,25 @@ defineExpose({ toggleDropdown });
 
 .badge {
     position: absolute;
-    top: -2px;
-    right: -2px;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 4px;
-    background: rgba(255, 178, 239, 0.6); /* Semi-transparent color-base-1 */
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 178, 239, 0.4);
-    border-radius: 999px;
+    top: 2px;
+    right: 2px;
+    width: 8px;
+    height: 8px;
+    background: #ff4757; /* Bright red or pink indicator */
+    border: 1px solid var(--color-base-1); /* Optional, for contrast */
+    border-radius: 50%;
     
-    font-size: 0.65rem;
-    font-weight: 700;
-    color: #ffffff;
-    
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-    
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0 5px rgba(255, 71, 87, 0.4);
     pointer-events: none;
     z-index: 10;
 }
 
 @media (max-width: 768px) {
     .badge {
-        top: -3px;
-        right: -3px;
-        min-width: 20px;
-        height: 20px;
-        font-size: 0.7rem;
+        top: 1px;
+        right: 1px;
+        width: 10px;
+        height: 10px;
     }
 }
 
