@@ -33,6 +33,8 @@ use Inertia\Response;
 
 class UserProfileController extends Controller
 {
+    public function __construct(private \App\Services\UserProfileService $profileService) {}
+
     public function show(User $user): Response
     {
         $checklistSnoozed = false;
@@ -217,38 +219,8 @@ class UserProfileController extends Controller
 
     public function categoryIdols(User $user, ServiceCategory $category, Request $request): JsonResponse
     {
-        $page    = max(1, (int) $request->get('page', 1));
-        $perPage = min(8, max(1, (int) $request->get('per_page', 4)));
-
-        // Стабильная рандомизация: seed из сессии, одинаковый на всех страницах пагинации
-        $seedKey = 'idol_shuffle_' . $user->id . '_' . $category->id;
-        $seed = $request->session()->get($seedKey);
-        if (!$seed || $page === 1) {
-            $seed = (string) mt_rand();
-            $request->session()->put($seedKey, $seed);
-        }
-
-        $paginator = Service::where('is_active', true)
-            ->where('status', 'approved')
-            ->where('user_id', '!=', $user->id)
-            ->where('category_id', $category->id)
-            ->select('user_id')
-            ->groupBy('user_id')
-            ->orderByRaw("md5(user_id::text || ?)", [$seed])
-            ->with(['user:id,name,avatar_path,active_frame_id,rating', 'user.activeFrame'])
-            ->paginate($perPage, ['*'], 'page', $page);
-
-        return response()->json([
-            'idols'   => collect($paginator->items())->map(fn ($s) => [
-                'id'         => $s->user->id,
-                'name'       => $s->user->name,
-                'avatar_url' => $s->user->avatar_url,
-                'rating'     => $s->user->rating,
-            ])->values(),
-            'total'   => $paginator->total(),
-            'page'    => $page,
-            'hasMore' => $paginator->hasMorePages(),
-        ]);
+        $result = $this->profileService->getCategoryIdols($user, $category, $request);
+        return response()->json($result);
     }
 
     public function updateAbout(Request $request): RedirectResponse
@@ -455,39 +427,8 @@ class UserProfileController extends Controller
             'body'  => ['required', 'string', 'max:377'],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
         ]);
-        $user = $request->user();
-        $photoPath = null;
-        $tempPath = null;
-        $destinationPath = null;
-        
-        if ($request->hasFile('photo')) {
-            $file = $request->file('photo');
-            $ext = $file->getClientOriginalExtension() ?: 'jpg';
-            // Store original file temporarily
-            $tempPath = $file->storeAs('temp/posts', uniqid() . '.' . $ext, config('filesystems.default'));
-            $destinationPath = "posts/{$user->id}/" . time() . ".jpg";
-            // Set the final photo_path immediately so the user sees it, or we could leave it as tempPath until job is done.
-            // Using tempPath initially allows the frontend to load the full image while thumbnail is generating.
-            $photoPath = $tempPath; 
-        }
-        
-        $post = Post::create([
-            'user_id'    => $user->id,
-            'body'       => $request->input('body'),
-            'photo_path' => $photoPath,
-        ]);
 
-        if ($tempPath && $destinationPath) {
-            \App\Jobs\ProcessImageUpload::dispatch(
-                $tempPath,
-                $destinationPath,
-                Post::class,
-                $post->id,
-                'photo_path'
-            );
-        }
-
-        NotifyFollowersJob::dispatch($user, $post);
+        $this->profileService->createPost($user, ['body' => $request->input('body')], $request->file('photo'));
 
         return back();
     }
@@ -495,10 +436,7 @@ class UserProfileController extends Controller
     public function destroyPost(Request $request, Post $post): RedirectResponse
     {
         $this->authorize('delete', $post);
-        if ($post->photo_path) {
-            Storage::disk(config('filesystems.default'))->delete($post->photo_path);
-        }
-        $post->delete();
+        $this->profileService->deletePost($post);
         return back();
     }
 
@@ -677,13 +615,7 @@ class UserProfileController extends Controller
             abort_if($parent->parent_id !== null, 422, 'Cannot reply to a reply.');
         }
 
-        $comment = PostComment::create([
-            'post_id'   => $post->id,
-            'user_id'   => $request->user()->id,
-            'parent_id' => $data['parent_id'] ?? null,
-            'body'      => $data['body'],
-        ]);
-
+        $comment = $this->profileService->createComment($request->user(), $post, $data);
         $comment->load(['user:id,name,avatar_path,active_frame_id', 'user.activeFrame']);
 
         return response()->json([

@@ -27,24 +27,17 @@ class ConversationController extends Controller
         $perPage  = 10;
 
         $query = Conversation::whereNull('order_id')
-            ->whereHas('participants', fn($q) => $q->where('user_id', $user->id))
+            ->withUser($user->id)
             ->with(['participants.user.activeFrame', 'lastMessage.sender.activeFrame'])
             ->orderByDesc('updated_at')
             ->orderByDesc('id');
 
         if ($search !== '') {
-            $like = '%' . $search . '%';
-            $query->where(function ($q) use ($user, $like) {
-                $q->where('is_support', true)
-                  ->orWhereHas('participants', function ($pq) use ($user, $like) {
-                      $pq->where('user_id', '!=', $user->id)
-                         ->whereHas('user', fn($uq) => $uq->whereRaw('LOWER(name) LIKE LOWER(?)', [$like]));
-                  });
-            });
+            $query->search($search, $user->id);
         }
 
         if ($request->boolean('unread')) {
-            $query->whereHas('participants', fn($q) => $q->where('user_id', $user->id)->where('has_unread', true));
+            $query->unreadForUser($user->id);
         }
 
         if ($cursorAt && $cursorId) {

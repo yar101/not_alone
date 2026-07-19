@@ -43,92 +43,12 @@ class OrderController extends Controller
         $user  = $request->user();
         $idol  = User::findOrFail($request->idol_id);
 
-        $serviceIds  = collect($request->services)->pluck('id');
-        $quantityMap = collect($request->services)->keyBy('id');
-
-        $services = Service::whereIn('id', $serviceIds)
-            ->where('user_id', $idol->id)
-            ->where('is_active', true)
-            ->with(['category', 'timeUnit'])
-            ->get();
-
-        if ($services->count() !== $serviceIds->unique()->count()) {
-            return response()->json(['error' => 'Некоторые услуги недоступны'], 422);
+        try {
+            [$order, $conversation] = $this->service->createOrder($user, $idol, $request->services);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
         }
 
-        if ($idol->isActiveBanned()) {
-            return response()->json(['error' => 'Пользователь недоступен'], 422);
-        }
-
-        if (ChatBlock::active()->where('blocker_id', $idol->id)->where('blocked_id', $user->id)->exists()) {
-            return response()->json(['error' => 'Вы заблокированы этим пользователем'], 422);
-        }
-
-        $trialServicesCount = $services->where('is_trial', true)->count();
-        if ($trialServicesCount > 1) {
-            return response()->json(['error' => 'Нельзя заказать более одной бесплатной услуги одновременно'], 422);
-        }
-
-        $hasUsedTrial = false;
-        if ($trialServicesCount > 0) {
-            $hasUsedTrial = \App\Models\UserIdolTrial::where('user_id', $user->id)
-                ->where('idol_id', $idol->id)
-                ->exists();
-
-            if ($hasUsedTrial) {
-                return response()->json(['error' => 'Вы уже использовали бесплатный первый заказ у этого пользователя'], 422);
-            }
-        }
-
-        $order = Order::create([
-            'customer_id' => $user->id,
-            'idol_id'     => $idol->id,
-            'status'      => OrderStatus::Pending,
-        ]);
-        $order->logStatusChange(null, OrderStatus::Pending->value, 'user', $user->id);
-
-        foreach ($services as $service) {
-            $qty = (int) ($quantityMap[$service->id]['quantity'] ?? 1);
-            $price = ($service->is_trial && !$hasUsedTrial) ? 0 : $service->price;
-            $order->items()->create(['service_id' => $service->id, 'quantity' => $qty, 'price' => $price]);
-        }
-
-        if ($trialServicesCount > 0 && !$hasUsedTrial) {
-            \App\Models\UserIdolTrial::create([
-                'user_id' => $user->id,
-                'idol_id' => $idol->id,
-                'order_id' => $order->id,
-            ]);
-        }
-
-        $conversation = Conversation::create(['order_id' => $order->id]);
-        $conversation->participants()->createMany([
-            ['user_id' => $user->id],
-            ['user_id' => $idol->id],
-        ]);
-
-        $order->update(['conversation_id' => $conversation->id]);
-
-        $conversation->messages()->create([
-            'sender_id' => $user->id,
-            'body'      => '',
-            'type'      => 'system',
-            'metadata'  => [
-                'event'    => 'order_created',
-                'order_id' => $order->id,
-                'services' => $services->map(fn($s) => [
-                    'id'        => $s->id,
-                    'name'      => $s->name,
-                    'price'     => ($s->is_trial && !$hasUsedTrial) ? 0 : $s->price,
-                    'time_unit' => $s->timeUnit?->name,
-                    'quantity'  => (int) ($quantityMap[$s->id]['quantity'] ?? 1),
-                ])->values()->all(),
-            ],
-        ]);
-
-        $conversation->touch();
-
-        $order->load(['customer', 'idol', 'cancelledBy', 'items.service.timeUnit']);
         $this->safeBroadcast(new OrderChanged($idol->id,  $this->service->formatOrder($order, $idol->id),  'created'));
         $this->safeBroadcast(new OrderChanged($user->id,  $this->service->formatOrder($order, $user->id),  'created'));
 

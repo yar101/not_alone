@@ -85,4 +85,26 @@ class Conversation extends Model
 
         return $conversation;
     }
+
+    public function scopeWithUser($query, int $userId)
+    {
+        return $query->whereHas('participants', fn($q) => $q->where('user_id', $userId));
+    }
+
+    public function scopeSearch($query, string $search, int $userId)
+    {
+        $like = '%' . $search . '%';
+        return $query->where(function ($q) use ($userId, $like) {
+            $q->where('is_support', true)
+              ->orWhereHas('participants', function ($pq) use ($userId, $like) {
+                  $pq->where('user_id', '!=', $userId)
+                     ->whereHas('user', fn($uq) => $uq->whereRaw('LOWER(name) LIKE LOWER(?)', [$like]));
+              });
+        });
+    }
+
+    public function scopeUnreadForUser($query, int $userId)
+    {
+        return $query->whereHas('participants', fn($q) => $q->where('user_id', $userId)->where('has_unread', true));
+    }
 }

@@ -23,6 +23,100 @@ class OrderService
 {
     // ── Public transitions (user actions) ────────────────────────────────────
 
+    public function createOrder(User $customer, User $idol, array $requestedServices): array
+    {
+        $serviceIds  = collect($requestedServices)->pluck('id');
+        $quantityMap = collect($requestedServices)->keyBy('id');
+
+        $services = \App\Models\Service::whereIn('id', $serviceIds)
+            ->where('user_id', $idol->id)
+            ->where('is_active', true)
+            ->with(['category', 'timeUnit'])
+            ->get();
+
+        if ($services->count() !== $serviceIds->unique()->count()) {
+            throw new \Exception('Некоторые услуги недоступны');
+        }
+
+        if ($idol->isActiveBanned()) {
+            throw new \Exception('Пользователь недоступен');
+        }
+
+        if (\App\Models\ChatBlock::active()->where('blocker_id', $idol->id)->where('blocked_id', $customer->id)->exists()) {
+            throw new \Exception('Вы заблокированы этим пользователем');
+        }
+
+        $trialServicesCount = $services->where('is_trial', true)->count();
+        if ($trialServicesCount > 1) {
+            throw new \Exception('Нельзя заказать более одной бесплатной услуги одновременно');
+        }
+
+        $hasUsedTrial = false;
+        if ($trialServicesCount > 0) {
+            $hasUsedTrial = \App\Models\UserIdolTrial::where('user_id', $customer->id)
+                ->where('idol_id', $idol->id)
+                ->exists();
+
+            if ($hasUsedTrial) {
+                throw new \Exception('Вы уже использовали бесплатный первый заказ у этого пользователя');
+            }
+        }
+
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($customer, $idol, $services, $quantityMap, $trialServicesCount, $hasUsedTrial) {
+            $order = Order::create([
+                'customer_id' => $customer->id,
+                'idol_id'     => $idol->id,
+                'status'      => OrderStatus::Pending,
+            ]);
+            $order->logStatusChange(null, OrderStatus::Pending->value, 'user', $customer->id);
+
+            foreach ($services as $service) {
+                $qty = (int) ($quantityMap[$service->id]['quantity'] ?? 1);
+                $price = ($service->is_trial && !$hasUsedTrial) ? 0 : $service->price;
+                $order->items()->create(['service_id' => $service->id, 'quantity' => $qty, 'price' => $price]);
+            }
+
+            if ($trialServicesCount > 0 && !$hasUsedTrial) {
+                \App\Models\UserIdolTrial::create([
+                    'user_id' => $customer->id,
+                    'idol_id' => $idol->id,
+                    'order_id' => $order->id,
+                ]);
+            }
+
+            $conversation = \App\Models\Conversation::create(['order_id' => $order->id]);
+            $conversation->participants()->createMany([
+                ['user_id' => $customer->id],
+                ['user_id' => $idol->id],
+            ]);
+
+            $order->update(['conversation_id' => $conversation->id]);
+
+            $conversation->messages()->create([
+                'sender_id' => $customer->id,
+                'body'      => '',
+                'type'      => 'system',
+                'metadata'  => [
+                    'event'    => 'order_created',
+                    'order_id' => $order->id,
+                    'services' => $services->map(fn($s) => [
+                        'id'        => $s->id,
+                        'name'      => $s->name,
+                        'price'     => ($s->is_trial && !$hasUsedTrial) ? 0 : $s->price,
+                        'time_unit' => $s->timeUnit?->name,
+                        'quantity'  => (int) ($quantityMap[$s->id]['quantity'] ?? 1),
+                    ])->values()->all(),
+                ],
+            ]);
+
+            $conversation->touch();
+
+            $order->load(['customer', 'idol', 'cancelledBy', 'items.service.timeUnit']);
+
+            return [$order, $conversation];
+        });
+    }
+
     public function accept(Order $order, User $actor): void
     {
         $order->logStatusChange(OrderStatus::Pending->value, OrderStatus::Accepted->value, 'user', $actor->id);
