@@ -73,15 +73,19 @@ class ContentPackController extends Controller
         $coverPath  = null;
 
         foreach ($request->file('photos', []) as $index => $file) {
-            $path = $this->compressAndStorePhoto($file, $pack->id);
-            ContentPackPhoto::create([
+            [$tempPath, $finalPath] = $this->storeTempPhoto($file, $pack->id);
+            
+            $photo = ContentPackPhoto::create([
                 'content_pack_id'   => $pack->id,
-                'path'              => $path,
+                'path'              => $tempPath,
                 'original_filename' => $file->getClientOriginalName(),
                 'sort_order'        => $index,
             ]);
+            
+            \App\Jobs\ProcessImageUpload::dispatch($tempPath, $finalPath, ContentPackPhoto::class, $photo->id, 'path');
+            
             if ((int)$index === (int)$coverIndex) {
-                $coverPath = $path;
+                $coverPath = $tempPath;
             }
         }
 
@@ -475,58 +479,12 @@ class ContentPackController extends Controller
         return $base;
     }
 
-    private function compressAndStorePhoto($file, $packId)
+    private function storeTempPhoto($file, $packId)
     {
-        $realPath = $file->getRealPath();
-        $img = imagecreatefromstring(file_get_contents($realPath));
+        $ext = $file->getClientOriginalExtension() ?: 'jpg';
+        $tempPath = $file->storeAs('temp/content-packs/' . $packId, uniqid() . '.' . $ext, config('filesystems.default'));
+        $finalPath = 'content-packs/' . $packId . '/' . time() . '_' . uniqid() . '.jpg';
 
-        if ($img) {
-            // Fix orientation from EXIF
-            $exif = function_exists('exif_read_data') ? @exif_read_data($realPath) : false;
-            if (!empty($exif['Orientation'])) {
-                switch ($exif['Orientation']) {
-                    case 3: $img = imagerotate($img, 180, 0); break;
-                    case 6: $img = imagerotate($img, -90, 0); break;
-                    case 8: $img = imagerotate($img, 90, 0); break;
-                }
-            }
-
-            $width  = imagesx($img);
-            $height = imagesy($img);
-            $maxDim = 1600;
-
-            if ($width > $maxDim || $height > $maxDim) {
-                $ratio = $width / $height;
-                if ($ratio > 1) {
-                    $newWidth  = $maxDim;
-                    $newHeight = (int)($maxDim / $ratio);
-                } else {
-                    $newHeight = $maxDim;
-                    $newWidth  = (int)($maxDim * $ratio);
-                }
-            } else {
-                $newWidth  = $width;
-                $newHeight = $height;
-            }
-
-            $newImg = imagecreatetruecolor($newWidth, $newHeight);
-            $white  = imagecolorallocate($newImg, 255, 255, 255);
-            imagefill($newImg, 0, 0, $white);
-            imagecopyresampled($newImg, $img, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-
-            $path = 'content-packs/' . $packId . '/' . time() . '_' . uniqid() . '.jpg';
-            ob_start();
-            imagejpeg($newImg, null, 70);
-            $imageData = ob_get_clean();
-
-            Storage::put($path, $imageData);
-            imagedestroy($img);
-            imagedestroy($newImg);
-
-            return $path;
-        }
-
-        // Fallback to regular store if GD fails
-        return $file->store('content-packs/' . $packId);
+        return [$tempPath, $finalPath];
     }
 }

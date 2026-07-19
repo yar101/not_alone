@@ -459,64 +459,35 @@ class UserProfileController extends Controller
         ]);
         $user = $request->user();
         $photoPath = null;
+        $tempPath = null;
+        $destinationPath = null;
+        
         if ($request->hasFile('photo')) {
             $file = $request->file('photo');
-            $realPath = $file->getRealPath();
-            $img = imagecreatefromstring(file_get_contents($realPath));
-
-            if ($img) {
-                // Fix orientation from EXIF
-                $exif = function_exists('exif_read_data') ? @exif_read_data($realPath) : false;
-                if (!empty($exif['Orientation'])) {
-                    switch ($exif['Orientation']) {
-                        case 3: $img = imagerotate($img, 180, 0); break;
-                        case 6: $img = imagerotate($img, -90, 0); break;
-                        case 8: $img = imagerotate($img, 90, 0); break;
-                    }
-                }
-
-                $width  = imagesx($img);
-                $height = imagesy($img);
-                $maxDim = 1600;
-
-                if ($width > $maxDim || $height > $maxDim) {
-                    $ratio = $width / $height;
-                    if ($ratio > 1) {
-                        $newWidth  = $maxDim;
-                        $newHeight = (int)($maxDim / $ratio);
-                    } else {
-                        $newHeight = $maxDim;
-                        $newWidth  = (int)($maxDim * $ratio);
-                    }
-                } else {
-                    $newWidth  = $width;
-                    $newHeight = $height;
-                }
-
-                $newImg = imagecreatetruecolor($newWidth, $newHeight);
-                $white  = imagecolorallocate($newImg, 255, 255, 255);
-                imagefill($newImg, 0, 0, $white);
-                imagecopyresampled($newImg, $img, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-
-                $photoPath = "posts/{$user->id}/" . time() . ".jpg";
-                ob_start();
-                imagejpeg($newImg, null, 70);
-                $imageData = ob_get_clean();
-
-                Storage::disk(config('filesystems.default'))->put($photoPath, $imageData);
-                imagedestroy($img);
-                imagedestroy($newImg);
-            } else {
-                // Fallback to regular store if GD fails
-                $ext       = $file->getClientOriginalExtension() ?: 'jpg';
-                $photoPath = $file->storeAs("posts/{$user->id}", time() . '.' . $ext);
-            }
+            $ext = $file->getClientOriginalExtension() ?: 'jpg';
+            // Store original file temporarily
+            $tempPath = $file->storeAs('temp/posts', uniqid() . '.' . $ext, config('filesystems.default'));
+            $destinationPath = "posts/{$user->id}/" . time() . ".jpg";
+            // Set the final photo_path immediately so the user sees it, or we could leave it as tempPath until job is done.
+            // Using tempPath initially allows the frontend to load the full image while thumbnail is generating.
+            $photoPath = $tempPath; 
         }
+        
         $post = Post::create([
             'user_id'    => $user->id,
             'body'       => $request->input('body'),
             'photo_path' => $photoPath,
         ]);
+
+        if ($tempPath && $destinationPath) {
+            \App\Jobs\ProcessImageUpload::dispatch(
+                $tempPath,
+                $destinationPath,
+                Post::class,
+                $post->id,
+                'photo_path'
+            );
+        }
 
         NotifyFollowersJob::dispatch($user, $post);
 
