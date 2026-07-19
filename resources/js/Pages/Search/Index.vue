@@ -49,17 +49,17 @@ const LANGUAGES = [
 ];
 
 const TIMEZONES = [
-    "Europe/Kaliningrad",
-    "Europe/Moscow",
-    "Europe/Samara",
-    "Asia/Yekaterinburg",
-    "Asia/Omsk",
-    "Asia/Krasnoyarsk",
-    "Asia/Irkutsk",
-    "Asia/Yakutsk",
-    "Asia/Vladivostok",
-    "Asia/Magadan",
-    "Asia/Kamchatka",
+    { value: 'Europe/Kaliningrad', label: 'Калининградское время (UTC+2)' },
+    { value: 'Europe/Moscow', label: 'Московское время (UTC+3)' },
+    { value: 'Europe/Samara', label: 'Самарское время (UTC+4)' },
+    { value: 'Asia/Yekaterinburg', label: 'Екатеринбургское время (UTC+5)' },
+    { value: 'Asia/Omsk', label: 'Омское время (UTC+6)' },
+    { value: 'Asia/Krasnoyarsk', label: 'Красноярское время (UTC+7)' },
+    { value: 'Asia/Irkutsk', label: 'Иркутское время (UTC+8)' },
+    { value: 'Asia/Yakutsk', label: 'Якутское время (UTC+9)' },
+    { value: 'Asia/Vladivostok', label: 'Владивостокское время (UTC+10)' },
+    { value: 'Asia/Magadan', label: 'Магаданское время (UTC+11)' },
+    { value: 'Asia/Kamchatka', label: 'Камчатское время (UTC+12)' },
 ];
 
 // ── Reactive filters ────────────────────────────────────────
@@ -307,8 +307,10 @@ const activeChips = computed(() => {
         const l = LANGUAGES.find((x) => x.code === code);
         if (l) chips.push({ label: l.label, key: "languages", value: code });
     });
-    if (f.value.timezone)
-        chips.push({ label: f.value.timezone, key: "timezone" });
+    if (f.value.timezone) {
+        const tzObj = TIMEZONES.find(t => t.value === f.value.timezone);
+        chips.push({ label: tzObj ? tzObj.label : f.value.timezone, key: "timezone" });
+    }
     f.value.service_categories.forEach((id) => {
         const c = props.serviceCategories.find((x) => x.id === id);
         if (c)

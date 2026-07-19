@@ -76,17 +76,17 @@ function validateName(value) {
 }
 
 const TIMEZONES = [
-    'Europe/Kaliningrad',
-    'Europe/Moscow',
-    'Europe/Samara',
-    'Asia/Yekaterinburg',
-    'Asia/Omsk',
-    'Asia/Krasnoyarsk',
-    'Asia/Irkutsk',
-    'Asia/Yakutsk',
-    'Asia/Vladivostok',
-    'Asia/Magadan',
-    'Asia/Kamchatka',
+    { value: 'Europe/Kaliningrad', label: 'Калининградское время (UTC+2)' },
+    { value: 'Europe/Moscow', label: 'Московское время (UTC+3)' },
+    { value: 'Europe/Samara', label: 'Самарское время (UTC+4)' },
+    { value: 'Asia/Yekaterinburg', label: 'Екатеринбургское время (UTC+5)' },
+    { value: 'Asia/Omsk', label: 'Омское время (UTC+6)' },
+    { value: 'Asia/Krasnoyarsk', label: 'Красноярское время (UTC+7)' },
+    { value: 'Asia/Irkutsk', label: 'Иркутское время (UTC+8)' },
+    { value: 'Asia/Yakutsk', label: 'Якутское время (UTC+9)' },
+    { value: 'Asia/Vladivostok', label: 'Владивостокское время (UTC+10)' },
+    { value: 'Asia/Magadan', label: 'Магаданское время (UTC+11)' },
+    { value: 'Asia/Kamchatka', label: 'Камчатское время (UTC+12)' },
 ];
 
 const currentYear = new Date().getFullYear();
@@ -119,7 +119,7 @@ const monthOptions = computed(() =>
 );
 const timezoneOptions = computed(() => [
     { value: '', label: __('common.not_specified') },
-    ...TIMEZONES.map(tz => ({ value: tz, label: tz })),
+    ...TIMEZONES,
 ]);
 
 function submitEdit() {
