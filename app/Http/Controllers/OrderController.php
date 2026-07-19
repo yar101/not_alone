@@ -144,9 +144,13 @@ class OrderController extends Controller
     public function accept(Request $request, Order $order): JsonResponse
     {
         abort_unless($order->idol_id === $request->user()->id, 403);
-        abort_unless($order->status === OrderStatus::Pending, 422);
 
-        $this->service->accept($order, $request->user());
+        DB::transaction(function () use ($request, $order) {
+            $lockedOrder = Order::lockForUpdate()->find($order->id);
+            abort_unless($lockedOrder->status === OrderStatus::Pending, 422);
+
+            $this->service->accept($lockedOrder, $request->user());
+        });
 
         return response()->json(['status' => 'accepted']);
     }
@@ -154,9 +158,13 @@ class OrderController extends Controller
     public function pay(Request $request, Order $order): JsonResponse
     {
         abort_unless($order->customer_id === $request->user()->id, 403);
-        abort_unless($order->status === OrderStatus::Accepted, 422);
 
-        $this->service->pay($order, $request->user());
+        DB::transaction(function () use ($request, $order) {
+            $lockedOrder = Order::lockForUpdate()->find($order->id);
+            abort_unless($lockedOrder->status === OrderStatus::Accepted, 422);
+
+            $this->service->pay($lockedOrder, $request->user());
+        });
 
         return response()->json(['status' => 'paid']);
     }
@@ -169,11 +177,15 @@ class OrderController extends Controller
             $order->customer_id === $user->id || $order->idol_id === $user->id,
             403
         );
-        abort_unless(in_array($order->status, [OrderStatus::Pending, OrderStatus::Accepted]), 422);
 
         $request->validate(['cancel_reason' => 'required|string|max:1000']);
 
-        $this->service->cancel($order, $user, $request->cancel_reason);
+        DB::transaction(function () use ($request, $order, $user) {
+            $lockedOrder = Order::lockForUpdate()->find($order->id);
+            abort_unless(in_array($lockedOrder->status, [OrderStatus::Pending, OrderStatus::Accepted]), 422);
+
+            $this->service->cancel($lockedOrder, $user, $request->cancel_reason);
+        });
 
         return response()->json(['status' => 'cancelled']);
     }
@@ -184,9 +196,13 @@ class OrderController extends Controller
             $order->customer_id === $request->user()->id || $order->idol_id === $request->user()->id,
             403
         );
-        abort_unless($order->status === OrderStatus::Paid, 422);
 
-        $result = $this->service->confirmCompletion($order, $request->user());
+        $result = DB::transaction(function () use ($request, $order) {
+            $lockedOrder = Order::lockForUpdate()->find($order->id);
+            abort_unless($lockedOrder->status === OrderStatus::Paid, 422);
+
+            return $this->service->confirmCompletion($lockedOrder, $request->user());
+        });
 
         return response()->json($result);
     }
@@ -218,9 +234,6 @@ class OrderController extends Controller
         $user = $request->user();
 
         abort_unless($order->customer_id === $user->id, 403);
-        abort_unless($order->status === OrderStatus::Completed, 422, 'Оспорить можно только выполненный заказ.');
-        abort_unless($order->completed_at && $order->completed_at->gte(now()->subHour()), 422, 'Время для оспаривания истекло. Спор можно открыть в течение 1 часа после завершения заказа.');
-        abort_unless(!$order->disputes()->exists(), 422, 'По этому заказу уже открыт спор.');
 
         $request->validate([
             'reason'  => ['required', Rule::in(self::DISPUTE_REASONS)],
@@ -230,7 +243,15 @@ class OrderController extends Controller
         $details = trim($request->details);
         abort_unless(mb_strlen($details) >= 100, 422);
 
-        $this->service->dispute($order, $user, $request->reason, $details);
+        DB::transaction(function () use ($request, $order, $user, $details) {
+            $lockedOrder = Order::lockForUpdate()->find($order->id);
+            
+            abort_unless($lockedOrder->status === OrderStatus::Completed, 422, 'Оспорить можно только выполненный заказ.');
+            abort_unless($lockedOrder->completed_at && $lockedOrder->completed_at->gte(now()->subHour()), 422, 'Время для оспаривания истекло. Спор можно открыть в течение 1 часа после завершения заказа.');
+            abort_unless(!$lockedOrder->disputes()->exists(), 422, 'По этому заказу уже открыт спор.');
+
+            $this->service->dispute($lockedOrder, $user, $request->reason, $details);
+        });
 
         return response()->json(['success' => true]);
     }
@@ -240,23 +261,27 @@ class OrderController extends Controller
         $user = $request->user();
 
         abort_unless($order->customer_id === $user->id, 403);
-        abort_unless($order->status === OrderStatus::Pending, 422);
 
         $request->validate(['service_id' => ['required', 'integer', 'exists:services,id']]);
 
-        $service = Service::where('id', $request->service_id)
-            ->where('user_id', $order->idol_id)
-            ->where('is_active', true)
-            ->where('status', 'approved')
-            ->with('timeUnit:id,name')
-            ->firstOrFail();
+        DB::transaction(function () use ($request, $order) {
+            $lockedOrder = Order::lockForUpdate()->find($order->id);
+            abort_unless($lockedOrder->status === \App\Enums\OrderStatus::Pending, 422);
 
-        $existing = $order->items()->where('service_id', $service->id)->first();
-        if ($existing) {
-            $existing->increment('quantity');
-        } else {
-            $order->items()->create(['service_id' => $service->id, 'quantity' => 1, 'price' => $service->price]);
-        }
+            $service = \App\Models\Service::where('id', $request->service_id)
+                ->where('user_id', $lockedOrder->idol_id)
+                ->where('is_active', true)
+                ->where('status', 'approved')
+                ->with('timeUnit:id,name')
+                ->firstOrFail();
+
+            $existing = $lockedOrder->items()->where('service_id', $service->id)->first();
+            if ($existing) {
+                $existing->increment('quantity');
+            } else {
+                $lockedOrder->items()->create(['service_id' => $service->id, 'quantity' => 1, 'price' => $service->price]);
+            }
+        });
 
         $order->touch();
 
