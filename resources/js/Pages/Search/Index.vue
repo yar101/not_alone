@@ -151,6 +151,17 @@ function apply() {
     router.get(route("users.search"), params, {
         preserveState: true,
         replace: true,
+        onStart: () => {
+            loading.value = true;
+            startTime = Date.now();
+        },
+        onFinish: () => {
+            const elapsed = Date.now() - startTime;
+            const delay = Math.max(0, MIN_LOADING_MS - elapsed);
+            setTimeout(() => {
+                loading.value = false;
+            }, delay);
+        }
     });
 }
 
@@ -184,7 +195,21 @@ function resetFilters() {
     router.get(
         route("users.search"),
         {},
-        { preserveState: false, replace: true },
+        { 
+            preserveState: false, 
+            replace: true,
+            onStart: () => {
+                loading.value = true;
+                startTime = Date.now();
+            },
+            onFinish: () => {
+                const elapsed = Date.now() - startTime;
+                const delay = Math.max(0, MIN_LOADING_MS - elapsed);
+                setTimeout(() => {
+                    loading.value = false;
+                }, delay);
+            }
+        },
     );
 }
 
@@ -192,32 +217,6 @@ const mobileFiltersOpen = ref(false);
 const loading = ref(false);
 let startTime = 0;
 const MIN_LOADING_MS = 400;
-
-let removeStartHook = null;
-let removeFinishHook = null;
-
-onMounted(() => {
-    removeStartHook = router.on("start", (event) => {
-        const url = event.detail.visit.url;
-        // Если это поиск и это НЕ переход по страницам (пагинация)
-        if (url.pathname.includes("/search") && !url.searchParams.has("page")) {
-            loading.value = true;
-            startTime = Date.now();
-        }
-    });
-    removeFinishHook = router.on("finish", () => {
-        const elapsed = Date.now() - startTime;
-        const delay = Math.max(0, MIN_LOADING_MS - elapsed);
-        setTimeout(() => {
-            loading.value = false;
-        }, delay);
-    });
-});
-
-onUnmounted(() => {
-    if (removeStartHook) removeStartHook();
-    if (removeFinishHook) removeFinishHook();
-});
 
 function applyAndClose() {
     mobileFiltersOpen.value = false;
