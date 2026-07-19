@@ -115,24 +115,24 @@ const pendingOrderUnread = ref(false);
 
 // Instant dots from server-shared props — no fetch required
 const messagesHaveUnread = computed(
-    () => (page.props.unread_direct_count ?? 0) > 0,
+    () => page.props.has_unread_direct,
 );
 const ordersHaveUnread = computed(
     () =>
         pendingOrderUnread.value ||
-        (page.props.unread_orders_count ?? 0) > 0 ||
+        page.props.has_unread_orders ||
         orders.value.some((o) => o.unread),
 );
 const mineHaveUnread = computed(
     () =>
-        (page.props.unread_mine_count ?? 0) > 0 ||
+        page.props.has_unread_mine ||
         orders.value
             .filter((o) => o.is_customer)
             .some((o) => o.unread),
 );
 const incomingHaveUnread = computed(
     () =>
-        (page.props.unread_incoming_count ?? 0) > 0 ||
+        page.props.has_unread_incoming ||
         orders.value
             .filter((o) => !o.is_customer)
             .some((o) => o.unread),
@@ -434,11 +434,11 @@ async function openConversation(conv) {
         if (order) order.unread = false;
         router.reload({
             only: [
-                "unread_messages_count",
-                "unread_direct_count",
-                "unread_orders_count",
-                "unread_mine_count",
-                "unread_incoming_count",
+                "has_unread_messages",
+                "has_unread_direct",
+                "has_unread_orders",
+                "has_unread_mine",
+                "has_unread_incoming",
             ],
         });
     } finally {
@@ -740,7 +740,7 @@ async function markRead(conversationId) {
         (o) => o.conversation_id === conversationId,
     );
     if (order) order.unread = false;
-    router.reload({ only: ["unread_messages_count"] });
+    router.reload({ only: ["has_unread_messages"] });
 }
 
 function updateLastMessage(convId, msg) {
@@ -1037,11 +1037,11 @@ watch(isOpen, (val, oldVal) => {
         // Refresh lazy unread counters so dots are visible immediately on open
         router.reload({
             only: [
-                "unread_messages_count",
-                "unread_direct_count",
-                "unread_orders_count",
-                "unread_mine_count",
-                "unread_incoming_count",
+                "has_unread_messages",
+                "has_unread_direct",
+                "has_unread_orders",
+                "has_unread_mine",
+                "has_unread_incoming",
             ],
         });
     }
@@ -1070,9 +1070,9 @@ watch(activeTab, (tab) => {
         fetchOrders(true);
         router.reload({
             only: [
-                "unread_orders_count",
-                "unread_mine_count",
-                "unread_incoming_count",
+                "has_unread_orders",
+                "has_unread_mine",
+                "has_unread_incoming",
             ],
         });
     }

@@ -216,7 +216,7 @@ onMounted(() => {
         msgChannel = window.Echo.private(
             `App.Models.User.${user.value.id}`,
         ).listen(".message.received", () => {
-            router.reload({ only: ["unread_messages_count"] });
+            router.reload({ only: ["has_unread_messages"] });
         });
 
         onlineChannel = window.Echo.join("presence-online")

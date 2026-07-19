@@ -49,6 +49,9 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
+        if ($user) {
+            $user->loadMissing('activeFrame');
+        }
         $application = $user?->idolApplication;
 
         $idolStatus = null;
@@ -93,16 +96,16 @@ class HandleInertiaRequests extends Middleware
             'pending_review_disputes_count' => fn() => auth('admin')->check()
                 ? ReviewDispute::where('status', 'pending')->count()
                 : 0,
-            'unread_messages_count'  => fn() => $user?->unreadMessagesCount() ?? 0,
-            'unread_direct_count'    => fn() => $user?->unreadDirectCount() ?? 0,
-            'unread_orders_count'    => fn() => $user?->unreadOrdersCount() ?? 0,
-            'unread_mine_count'      => fn() => $user?->unreadMineCount() ?? 0,
-            'unread_incoming_count'  => fn() => $user?->unreadIncomingCount() ?? 0,
+            'has_unread_messages'  => fn() => $user ? $user->hasUnreadMessages() : false,
+            'has_unread_direct'    => fn() => $user ? $user->hasUnreadDirect() : false,
+            'has_unread_orders'    => fn() => $user ? $user->hasUnreadOrders() : false,
+            'has_unread_mine'      => fn() => $user ? $user->hasUnreadMine() : false,
+            'has_unread_incoming'  => fn() => $user ? $user->hasUnreadIncoming() : false,
             'chat_block_reasons' => fn() => $user
-                ? BanReason::forChatBlock()->get()->map(fn($r) => $r->label)->unique()->values()
+                ? cache()->rememberForever('chat_block_reasons_list', fn() => BanReason::forChatBlock()->get()->map(fn($r) => $r->label)->unique()->values())
                 : [],
             'user_ban_reasons' => fn() => auth('admin')->check()
-                ? BanReason::forUserBan()->get()->map(fn($r) => $r->label)->unique()->values()
+                ? cache()->rememberForever('user_ban_reasons_list', fn() => BanReason::forUserBan()->get()->map(fn($r) => $r->label)->unique()->values())
                 : [],
             'flash' => [
                 'success'         => $request->session()->get('success'),

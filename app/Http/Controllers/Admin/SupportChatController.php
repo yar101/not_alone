@@ -238,13 +238,13 @@ class SupportChatController extends Controller
         if ($c->admin_read_at) {
             $unreadQuery->where('created_at', '>', $c->admin_read_at);
         }
-        $unreadCount = $unreadQuery->count();
+        $hasUnread = $unreadQuery->exists();
 
         return [
             'id'           => $c->id,
             'closed_at'    => $c->closed_at?->toISOString(),
             'updated_at'   => $c->updated_at->toISOString(),
-            'unread_count' => $unreadCount,
+            'unread'       => $hasUnread,
             'user'         => $user ? [
                 'id'     => $user->id,
                 'name'   => $user->name,

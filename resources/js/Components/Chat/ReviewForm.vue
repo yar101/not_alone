@@ -207,7 +207,7 @@ async function submit() {
 
 <style scoped>
 .rv-wrap {
-    margin: 1.2rem 1rem 2rem;
+    margin: 1.2rem 1rem 6rem;
     background: rgba(255,120,160,0.04);
     border: 1px dashed rgba(255,120,160,0.22);
     border-radius: 8px;

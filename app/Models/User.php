@@ -53,7 +53,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'remember_token',
     ];
 
-    protected $with = ['activeFrame'];
 
     protected $appends = ['age', 'avatar_url'];
 
@@ -215,51 +214,40 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->following()->where('idol_id', $userId)->exists();
     }
 
-    public function unreadMessagesCount(): int
+    public function hasUnreadMessages(): bool
     {
-        return $this->unreadConversationCount();
+        return $this->hasUnreadConversation();
     }
 
-    public function unreadDirectCount(): int
+    public function hasUnreadDirect(): bool
     {
-        return $this->unreadConversationCount(orderOnly: false);
+        return $this->hasUnreadConversation(orderOnly: false);
     }
 
-    public function unreadOrdersCount(): int
+    public function hasUnreadOrders(): bool
     {
-        return $this->unreadConversationCount(orderOnly: true);
+        return $this->hasUnreadConversation(orderOnly: true);
     }
 
-    public function unreadMineCount(): int
+    public function hasUnreadMine(): bool
     {
-        return $this->unreadConversationCount(orderOnly: true, role: 'customer');
+        return $this->hasUnreadConversation(orderOnly: true, role: 'customer');
     }
 
-    public function unreadIncomingCount(): int
+    public function hasUnreadIncoming(): bool
     {
-        return $this->unreadConversationCount(orderOnly: true, role: 'idol');
+        return $this->hasUnreadConversation(orderOnly: true, role: 'idol');
     }
 
-    private function unreadConversationCount(?bool $orderOnly = null, ?string $role = null): int
+    private function hasUnreadConversation(?bool $orderOnly = null, ?string $role = null): bool
     {
-        $participants = $this->conversationParticipants()
+        return $this->conversationParticipants()
+            ->where('has_unread', true)
             ->when($orderOnly === true, fn($q) => $q->whereHas('conversation', fn($c) => $c->whereNotNull('order_id')))
             ->when($orderOnly === false, fn($q) => $q->whereHas('conversation', fn($c) => $c->whereNull('order_id')))
             ->when($role === 'customer', fn($q) => $q->whereHas('conversation', fn($c) => $c->whereHas('order', fn($o) => $o->where('customer_id', $this->id))))
             ->when($role === 'idol',     fn($q) => $q->whereHas('conversation', fn($c) => $c->whereHas('order', fn($o) => $o->where('idol_id', $this->id))))
-            ->get();
-
-        return $participants->sum(function ($participant) {
-            $query = Message::where('conversation_id', $participant->conversation_id)
-                ->where(function ($q) {
-                    $q->whereNull('sender_id')
-                      ->orWhere('sender_id', '!=', $this->id);
-                });
-            if ($participant->last_read_at) {
-                $query->where('created_at', '>', $participant->last_read_at);
-            }
-            return $query->count();
-        });
+            ->exists();
     }
 
     public function sendEmailVerificationNotification(): void
