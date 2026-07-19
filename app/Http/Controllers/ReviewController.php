@@ -94,10 +94,11 @@ class ReviewController extends Controller
 
         $reviews = $query->paginate(10);
 
-        $reviewIds = Review::where('idol_id', $user->id)->where('is_hidden', false)->pluck('id');
         $epithetCounts = \DB::table('review_epithet_review')
             ->join('review_epithets', 'review_epithets.id', '=', 'review_epithet_review.review_epithet_id')
-            ->whereIn('review_epithet_review.review_id', $reviewIds)
+            ->join('reviews', 'reviews.id', '=', 'review_epithet_review.review_id')
+            ->where('reviews.idol_id', $user->id)
+            ->where('reviews.is_hidden', false)
             ->selectRaw('review_epithets.id, review_epithets.label, COUNT(*) as count')
             ->groupBy('review_epithets.id', 'review_epithets.label')
             ->orderByDesc('count')

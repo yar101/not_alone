@@ -171,9 +171,10 @@ class ContentPackController extends Controller
                 }
                 // Delete old file
                 Storage::delete($photo->path);
-                // Store new with compression
-                $path = $this->compressAndStorePhoto($file, $pack->id);
-                $photo->update(['path' => $path, 'original_filename' => $file->getClientOriginalName()]);
+                // Store new with async processing
+                [$tempPath, $finalPath] = $this->storeTempPhoto($file, $pack->id);
+                $photo->update(['path' => $tempPath, 'original_filename' => $file->getClientOriginalName()]);
+                \App\Jobs\ProcessImageUpload::dispatch($tempPath, $finalPath, \App\Models\ContentPackPhoto::class, $photo->id, 'path');
             }
         }
 
