@@ -35,7 +35,7 @@ registry:
 
 env:
   clear:
-    APP_NAME: "No Alone"
+    APP_NAME: "Not Alone"
     APP_ENV: production
     APP_DEBUG: false
     APP_LOCALE: ru

@@ -102,10 +102,10 @@ function openFeature(f) {
 
 <template>
     <Head>
-        <title>О проекте — no alone</title>
-        <meta name="description" content="no alone — платформа для поиска компании и общения. Узнайте о нашем проекте, его возможностях и последних новостях." />
-        <meta property="og:title" content="О проекте — no alone" />
-        <meta property="og:description" content="no alone — платформа для поиска компании и общения. Никто не должен чувствовать себя в одиночестве." />
+        <title>О проекте — not alone</title>
+        <meta name="description" content="not alone — платформа для поиска компании и общения. Узнайте о нашем проекте, его возможностях и последних новостях." />
+        <meta property="og:title" content="О проекте — not alone" />
+        <meta property="og:description" content="not alone — платформа для поиска компании и общения. Никто не должен чувствовать себя в одиночестве." />
         <meta property="og:type" content="website" />
     </Head>
 
@@ -134,7 +134,7 @@ function openFeature(f) {
                                 <em>чувствовать себя одиноким</em>
                             </h1>
                             <p class="ab-hero-desc">
-                                no alone — платформа, где люди находят собеседников, компанию и живое общение.
+                                not alone — платформа, где люди находят собеседников, компанию и живое общение.
                                 Айдолы предлагают своё время, ты выбираешь тех, кто близок по духу.
                             </p>
                         </div>

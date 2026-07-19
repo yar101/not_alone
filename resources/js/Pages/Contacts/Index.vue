@@ -22,7 +22,7 @@ const contacts = [
 </script>
 
 <template>
-    <Head title="Контакты — no alone" />
+    <Head title="Контакты — not alone" />
 
     <LocaleLoader />
 
