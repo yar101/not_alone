@@ -73,7 +73,9 @@ function onTabClick(tab) {
     }
 
     setTimeout(() => {
-        router.visit(getHref(tab));
+        router.visit(getHref(tab), {
+            viewTransition: true
+        });
     }, 200);
 }
 </script>

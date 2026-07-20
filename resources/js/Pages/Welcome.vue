@@ -63,7 +63,7 @@ const handleStartClick = () => {
             >
                 <!-- Главная кнопка (START) -->
                 <div
-                    class="scale-110 sm:scale-105 backdrop-blur bg-black/60 rounded-[12px] md:scale-125 mb-14 md:mb-16 transform transition-transform wlc-fade-start"
+                    class="scale-110 sm:scale-105 md:scale-125 mb-14 md:mb-16 transform transition-transform"
                 >
                     <StartBtn
                         :label="startBtnLabel"
@@ -103,21 +103,29 @@ const handleStartClick = () => {
     background: rgba(60, 60, 190, 0.03);
     box-shadow: inset 0 0 30px rgba(255, 255, 255, 0.015);
     position: absolute;
-    right: -12%;
-    top: -8%;
+    right: -10vw;
+    top: -10vw;
 }
 
 .circle1 {
-    width: 900px;
-    height: 900px;
+    width: clamp(350px, 60vw, 900px);
+    height: clamp(350px, 60vw, 900px);
 }
 .circle2 {
-    width: 700px;
-    height: 700px;
+    width: clamp(250px, 45vw, 700px);
+    height: clamp(250px, 45vw, 700px);
 }
 .circle3 {
-    width: 500px;
-    height: 500px;
+    width: clamp(150px, 30vw, 500px);
+    height: clamp(150px, 30vw, 500px);
+}
+
+@media (max-width: 768px) {
+    .circle1, .circle2, .circle3 {
+        right: 0;
+        top: 0;
+        transform: translate(40%, -40%);
+    }
 }
 
 /* Стили кнопок-ссылок */
@@ -156,18 +164,4 @@ html {
     scroll-behavior: smooth;
 }
 
-@keyframes wlc-fade-in {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-.wlc-fade-start {
-    animation: wlc-fade-in 0.55s ease-out 0.1s both;
-}
-.wlc-fade-btns {
-    animation: wlc-fade-in 0.5s ease-out 0.35s both;
-}
 </style>

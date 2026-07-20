@@ -342,10 +342,11 @@ function openFeature(f) {
 }
 
 /* ── Декор ─────────────────────────────────────────────────── */
-.ab-circle { border-radius: 50%; background: rgba(60,60,190,0.03); box-shadow: inset 0 0 30px rgba(255,255,255,0.015); position: absolute; right: -12%; top: -8%; }
-.ab-circle--1 { width: 900px; height: 900px; }
-.ab-circle--2 { width: 700px; height: 700px; }
-.ab-circle--3 { width: 500px; height: 500px; }
+.ab-circle { border-radius: 50%; background: rgba(60,60,190,0.03); box-shadow: inset 0 0 30px rgba(255,255,255,0.015); position: absolute; right: -10vw; top: -10vw; }
+.ab-circle--1 { width: clamp(350px, 60vw, 900px); height: clamp(350px, 60vw, 900px); }
+.ab-circle--2 { width: clamp(250px, 45vw, 700px); height: clamp(250px, 45vw, 700px); }
+.ab-circle--3 { width: clamp(150px, 30vw, 500px); height: clamp(150px, 30vw, 500px); }
+@media (max-width: 768px) { .ab-circle { right: 0; top: 0; transform: translate(40%, -40%); } }
 .ab-orb { position: absolute; border-radius: 50%; filter: blur(100px); pointer-events: none; }
 .ab-orb--pink { width: 500px; height: 500px; background: radial-gradient(circle, rgba(236,72,153,0.12) 0%, transparent 70%); top: -10%; left: -5%; }
 .ab-orb--cyan { width: 400px; height: 400px; background: radial-gradient(circle, rgba(34,211,238,0.08) 0%, transparent 70%); bottom: 5%; right: 5%; }
@@ -384,12 +385,7 @@ function openFeature(f) {
     flex-basis: 50%;
 }
 
-/* Entrance animations */
-@keyframes ab-fade-in { from { opacity: 0; } to { opacity: 1; } }
-.ab-hero-title  { animation: ab-fade-in 0.5s  ease-out 0.1s  both; }
-.ab-hero-desc   { animation: ab-fade-in 0.45s ease-out 0.2s  both; }
-.ab-detail-col  { animation: ab-fade-in 0.5s  ease-out 0.15s both; transition: opacity 0.25s ease-out; }
-
+/* No entrance animations */
 /* Hero */
 .ab-hero { display: flex; flex-direction: column; gap: 1rem; }
 .ab-hero-title { font-family: "Brygada 1918", serif; font-size: clamp(2.2rem, 4.2vw, 3.6rem); font-weight: 400; color: rgba(255,255,255,0.92); line-height: 1.15; margin: 0; }

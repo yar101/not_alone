@@ -48,11 +48,14 @@ const handleClick = (event) => {
     min-width: 320px;
 
     /* Яркий фон: насыщенный градиент для глубины */
-    background: linear-gradient(
+    background-image: linear-gradient(
         135deg,
         rgba(56, 194, 194, 0.2) 0%,
         rgba(199, 40, 130, 0.2) 100%
     );
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 
     /* Эффект внутренней обводки через spread (spread = 2px) + стеклянный блик сверху */
     box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.2);

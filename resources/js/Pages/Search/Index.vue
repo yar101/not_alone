@@ -237,8 +237,8 @@ function toggleSortDir() {
 }
 
 const sortOptions = computed(() => [
-    { value: "rating", label: __("search.sort.rating") },
-    { value: "created_at", label: __("search.sort.date") },
+    { value: "rating", label: "по рейтингу" },
+    { value: "created_at", label: "по дате регистрации" },
 ]);
 
 // ── Active chips ─────────────────────────────────────────────
@@ -819,17 +819,13 @@ function genderLabel(g) {
 /* ── Transitions ── */
 .results-fade-enter-active,
 .results-fade-leave-active {
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.15s ease-in-out, transform 0.15s ease-in-out;
 }
 
-.results-fade-enter-from {
-    opacity: 0;
-    transform: translateY(12px);
-}
-
+.results-fade-enter-from,
 .results-fade-leave-to {
     opacity: 0;
-    transform: translateY(-12px);
+    transform: scale(0.98);
 }
 
 /* ── Sort bar ────────────────────────────────────────────── */
@@ -853,7 +849,7 @@ function genderLabel(g) {
 }
 
 .sort-select {
-    width: 180px;
+    width: 220px;
 }
 
 .sort-dir-btn {

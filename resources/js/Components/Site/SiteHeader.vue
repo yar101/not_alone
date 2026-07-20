@@ -13,6 +13,7 @@ defineProps({
         <component
             :is="activePage === 'home' ? 'span' : Link"
             :href="activePage !== 'home' ? '/' : undefined"
+            :view-transition="activePage !== 'home' ? true : undefined"
             class="site-header__logo"
         >
             <img src="/app-logo-v3.webp" alt="Not Alone" class="site-header__logo-img" />
