@@ -2,8 +2,22 @@
 import { Head, Link } from '@inertiajs/vue3';
 import SiteHeader from '@/Components/Site/SiteHeader.vue';
 import LocaleLoader from '@/Components/LocaleLoader.vue';
+import StartBtn from '@/Components/Site/StartBtn.vue';
+import AuthModal from '@/Components/Site/AuthModal.vue';
+import { ref } from 'vue';
+import { usePage, router } from '@inertiajs/vue3';
 import '@fontsource-variable/inter';
-import '@fontsource-variable/brygada-1918';
+
+const page = usePage();
+const showAuthModal = ref(false);
+
+const handleStartClick = () => {
+    if (page.props.auth?.user) {
+        router.visit(route('profile'));
+    } else {
+        showAuthModal.value = true;
+    }
+};
 </script>
 
 <template>
@@ -37,49 +51,34 @@ import '@fontsource-variable/brygada-1918';
                         Никто не должен чувствовать себя одиноким
                     </h1>
                     <p class="ab-text">
-                        Наш проект создан для тех, кому не с кем поговорить. Если вы задаетесь вопросом: «почему я одна/один?», вы попали в правильное место. Найдите собеседника и искреннюю поддержку прямо сейчас.
+                        Иногда каждому нужен человек, который просто выслушает. Здесь вы можете найти собеседника для общения, совместного досуга или дружеской поддержки — <span class="pink-highlight">без осуждения и неловкости</span>.
                     </p>
                 </div>
 
                 <!-- 3 Columns Grid -->
                 <div class="ab-grid">
-                    
+
                     <!-- Блок 1 -->
                     <div class="ab-glass-block">
-                        <div class="ab-card-header">
-                            <div class="ab-icon-wrap" style="color: #ffb2ef;">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                            </div>
-                            <h2 class="ab-subtitle">Безопасное общение</h2>
-                        </div>
+                        <h2 class="ab-subtitle">Открытое общение</h2>
                         <p class="ab-text">
-                            Наш анонимный чат позволяет безопасно делиться мыслями. Вас ждет слушатель онлайн, готовый проявить эмпатию. Узнайте, как справиться с одиночеством и найти приятного парня или девушку для общения.
+                            Общайтесь открыто и без лишнего волнения. Найдите собеседника, который готов выслушать, поддержать разговор или просто составить компанию в любое время.
                         </p>
                     </div>
 
                     <!-- Блок 2 -->
                     <div class="ab-glass-block">
-                        <div class="ab-card-header">
-                            <div class="ab-icon-wrap" style="color: #67e8f9;">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-                            </div>
-                            <h2 class="ab-subtitle">Совместный досуг</h2>
-                        </div>
+                        <h2 class="ab-subtitle">Совместный досуг</h2>
                         <p class="ab-text">
-                            Не знаете, с кем поиграть? Найдите тиммейта для игр! Мы предлагаем совместный просмотр фильмов или аниме, рисование и изучение иностранных языков. Разделите свои увлечения.
+                            Не знаете, с кем провести время? Найдите человека со схожими интересами для игр, просмотра фильмов или аниме, рисования, занятий спортом, совместных тренировок и других увлечений.
                         </p>
                     </div>
 
                     <!-- Блок 3 -->
                     <div class="ab-glass-block">
-                        <div class="ab-card-header">
-                            <div class="ab-icon-wrap" style="color: #86efac;">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                            </div>
-                            <h2 class="ab-subtitle">Первый шаг</h2>
-                        </div>
+                        <h2 class="ab-subtitle">Первый шаг</h2>
                         <p class="ab-text">
-                            Волнуетесь о том, как начать диалог или о чем переписываться? Платформа стирает эти барьеры. Узнайте, как познакомиться в интернете и обрести друзей онлайн без малейшего осуждения.
+                            Вам не придется искать повод для разговора — здесь уже есть люди, которые хотят с вами общаться. Выбирайте собеседника по интересам, начинайте диалог и приятно проводите время.
                         </p>
                     </div>
 
@@ -87,11 +86,16 @@ import '@fontsource-variable/brygada-1918';
 
                 <!-- CTA -->
                 <div class="ab-cta">
-                    <h3 class="ab-cta-title">Готовы присоединиться?</h3>
-                    <Link :href="route('register')" class="ab-btn">
+                    <h3 class="ab-cta-title">Сделайте первый шаг</h3>
+                    <button class="ab-cta-btn" @click="handleStartClick">
                         Начать общение
-                    </Link>
+                    </button>
                 </div>
+
+                <AuthModal
+                    :show="showAuthModal"
+                    @close="showAuthModal = false"
+                />
 
             </div>
         </div>
@@ -152,9 +156,9 @@ import '@fontsource-variable/brygada-1918';
 }
 
 .ab-title {
-    font-family: "Brygada 1918", serif;
+    font-family: "Inter Variable", system-ui, -apple-system, sans-serif;
     font-size: clamp(1.8rem, 3.5vw, 3rem);
-    font-weight: 400;
+    font-weight: 600;
     line-height: 1.15;
     margin-bottom: 1rem;
     background: linear-gradient(90deg, #ffb2ef, #ec4899);
@@ -182,30 +186,12 @@ import '@fontsource-variable/brygada-1918';
     flex-direction: column;
 }
 
-.ab-card-header {
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-    margin-bottom: 0.8rem;
-}
-
-.ab-icon-wrap {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.5rem;
-    border-radius: 10px;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.08);
-    flex-shrink: 0;
-}
-
 .ab-subtitle {
-    font-family: "Brygada 1918", serif;
+    font-family: "Inter Variable", system-ui, -apple-system, sans-serif;
     font-size: clamp(1.1rem, 1.8vw, 1.3rem);
-    font-weight: 400;
+    font-weight: 600;
     color: rgba(255,255,255,0.95);
-    margin: 0;
+    margin: 0 0 0.8rem 0;
     line-height: 1.2;
 }
 
@@ -214,6 +200,12 @@ import '@fontsource-variable/brygada-1918';
     line-height: 1.6;
     color: rgba(255,255,255,0.7);
     margin: 0;
+}
+
+.pink-highlight {
+    color: #ffb2ef;
+    font-weight: 500;
+    text-shadow: 0 0 10px rgba(255, 178, 239, 0.4);
 }
 
 /* CTA */
@@ -232,9 +224,9 @@ import '@fontsource-variable/brygada-1918';
 }
 
 .ab-cta-title {
-    font-family: "Brygada 1918", serif;
+    font-family: "Inter Variable", system-ui, -apple-system, sans-serif;
     font-size: 1.5rem;
-    font-weight: 400;
+    font-weight: 600;
     color: rgba(255,255,255,0.95);
     margin: 0;
 }
@@ -258,6 +250,38 @@ import '@fontsource-variable/brygada-1918';
     background: rgba(255, 178, 239, 0.25);
     border-color: rgba(255, 178, 239, 0.4);
     color: #fff;
+}
+
+/* ab-cta-btn - розовая стеклянная кнопка */
+.ab-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.7rem 2rem;
+    background: rgba(255, 178, 239, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 178, 239, 0.3);
+    border-radius: 10px;
+    color: #ffb2ef;
+    font-family: "Inter Variable", system-ui, -apple-system, sans-serif;
+    font-weight: 600;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.ab-cta-btn:hover {
+    background: rgba(255, 178, 239, 0.15);
+    border-color: rgba(255, 178, 239, 0.5);
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.25);
+}
+
+.ab-cta-btn:active {
+    transform: scale(0.97);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 @media (max-width: 900px) {

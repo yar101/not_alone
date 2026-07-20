@@ -23,6 +23,10 @@ const handleStartClick = () => {
         showAuthModal.value = true;
     }
 };
+
+const handleLearnMoreClick = () => {
+    router.visit(route("about"));
+};
 </script>
 
 <template>
@@ -63,12 +67,22 @@ const handleStartClick = () => {
             >
                 <!-- Главная кнопка (START) -->
                 <div
-                    class="scale-110 sm:scale-105 md:scale-125 mb-14 md:mb-16 transform transition-transform"
+                    class="scale-110 sm:scale-105 md:scale-125 mb-8 md:mb-12 transform transition-transform"
                 >
                     <StartBtn
                         :label="startBtnLabel"
                         @click="handleStartClick"
                     />
+                </div>
+
+                <!-- Кнопка "Узнать подробнее" -->
+                <div class="mt-3 md:mt-4">
+                    <button
+                        class="learn-more-btn"
+                        @click="handleLearnMoreClick"
+                    >
+                        Узнать подробнее
+                    </button>
                 </div>
 
 
@@ -158,6 +172,47 @@ const handleStartClick = () => {
     box-shadow:
         inset 2px 0 20px rgba(255, 42, 191, 0.12),
         0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Кнопка "Узнать подробнее" */
+.learn-more-btn {
+    min-width: 320px;
+    width: 100%;
+    max-width: 380px;
+    padding: 0.9rem 2.5rem;
+    background: rgba(20, 20, 20, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    font-family: "Inter Variable", system-ui, -apple-system, sans-serif;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.learn-more-btn:hover {
+    background: rgba(20, 20, 20, 0.75);
+    border-color: rgba(255, 178, 239, 0.3);
+    color: #ffb2ef;
+    box-shadow: 0 6px 25px rgba(255, 178, 239, 0.15);
+}
+
+.learn-more-btn:active {
+    transform: scale(0.98);
+}
+
+@media (max-width: 480px) {
+    .learn-more-btn {
+        width: 100%;
+        max-width: none;
+        font-size: 1.1rem;
+        padding: 0.8rem 2rem;
+    }
 }
 
 html {

@@ -33,7 +33,6 @@ defineProps({
     padding: 2rem 4rem 1.2rem;
     flex-shrink: 0;
     position: relative;
-    z-index: 10;
     width: 100%;
 }
 
@@ -47,7 +46,6 @@ defineProps({
     left: 4rem;
     top: 65%;
     transform: translateY(-50%);
-    z-index: 20;
     transition: opacity 0.2s;
 }
 a.site-header__logo {
@@ -82,7 +80,6 @@ a.site-header__logo:hover {
 .site-header__nav {
     display: flex;
     justify-content: center;
-    z-index: 100;
 }
 .site-header__nav > * {
     pointer-events: auto;

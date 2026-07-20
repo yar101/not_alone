@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { router, Link } from "@inertiajs/vue3";
 import { useTranslations } from "@/composables/useTranslations";
 import LocaleSwitcher from "@/Components/Site/LocaleSwitcher.vue";
@@ -37,15 +37,29 @@ const visualActive = ref(props.activePage);
 const mobileMenuOpen = ref(false);
 let navigating = false;
 
+// Запрещаем скролл когда мобильное меню открыто
+function toggleBodyScroll(enable) {
+    if (enable) {
+        document.body.style.overflow = 'auto';
+    } else {
+        document.body.style.overflow = 'hidden';
+    }
+}
+
 // Закрываем мобильное меню при ресайзе на десктопный размер
 function handleResize() {
     if (window.innerWidth > 768 && mobileMenuOpen.value) {
         mobileMenuOpen.value = false;
+        toggleBodyScroll(true);
     }
 }
 
 onMounted(() => window.addEventListener("resize", handleResize));
-onUnmounted(() => window.removeEventListener("resize", handleResize));
+onUnmounted(() => {
+    window.removeEventListener("resize", handleResize);
+    // Сбрасываем скролл при размонтировании
+    document.body.style.overflow = 'auto';
+});
 
 function getHref(tab) {
     if (tab.key === "home") return "/";
@@ -56,20 +70,28 @@ function getHref(tab) {
 
 function toggleMobileMenu() {
     mobileMenuOpen.value = !mobileMenuOpen.value;
+    // Задержка вызова toggleBodyScroll до следующего цикла, чтобы mobileMenuOpen.value обновилось
+    nextTick(() => {
+        toggleBodyScroll(!mobileMenuOpen.value);
+    });
 }
 
 function closeMobileMenu() {
-    mobileMenuOpen.value = false;
+    if (mobileMenuOpen.value) {
+        mobileMenuOpen.value = false;
+        toggleBodyScroll(true);
+    }
 }
 
 function onTabClick(tab) {
-    if (tab.key === visualActive.value || navigating) return;
+    if (navigating) return;
     navigating = true;
     visualActive.value = tab.key;
 
     // Закрываем мобильное меню перед переходом
     if (mobileMenuOpen.value) {
         mobileMenuOpen.value = false;
+        toggleBodyScroll(true);
     }
 
     setTimeout(() => {
@@ -261,7 +283,7 @@ function onTabClick(tab) {
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
-    z-index: 98;
+    z-index: 999;
 }
 
 /* Анимация появления оверлея */
@@ -279,12 +301,12 @@ function onTabClick(tab) {
     .pub-nav {
         justify-content: flex-end; /* бургер справа */
         padding: 0;
-        position: static; /* Позволяет выпадающему меню быть на всю ширину шапки */
+        /* position: relative сохраняется с десктопной версии */
     }
 
     .pub-mobile-toggle {
         display: flex;
-        z-index: 100;
+        z-index: 1000;
         flex: 1;
         justify-content: space-between;
         padding: 0.6rem 1rem;
@@ -293,21 +315,21 @@ function onTabClick(tab) {
     /* Скрываем десктопную панель, готовим мобильное меню */
     .pub-tabs {
         display: none;
-        position: absolute;
-        top: 100%;
+        position: fixed;
+        top: 100px;
         right: 1rem;
         left: 1rem;
         flex-direction: column;
-        background: rgba(10, 7, 20, 0.7);
+        background: rgba(10, 7, 20, 0.85);
         backdrop-filter: blur(24px);
         -webkit-backdrop-filter: blur(24px);
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 12px;
         padding: 0.5rem;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 4px 20px rgba(0, 0, 0, 0.3);
-        z-index: 99;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        z-index: 1000;
         animation: none; /* убираем анимацию загрузки, добавим свою */
-        transform-origin: top right;
+        transform-origin: top center;
     }
 
     .pub-nav-logo-wrapper {
@@ -317,14 +339,15 @@ function onTabClick(tab) {
     /* Открытое мобильное меню */
     .pub-tabs--open {
         display: flex;
+        z-index: 1000;
         animation: mobile-menu-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
 
     .pub-tab {
         width: 100%;
         justify-content: flex-start;
-        padding: 0.7rem 1rem;
-        font-size: 1rem; /* фиксированный читаемый размер */
+        padding: 0.9rem 1rem;
+        font-size: 1.1rem; /* увеличенный читаемый размер для мобилки */
     }
 
     .pub-mobile-locale {
@@ -338,7 +361,7 @@ function onTabClick(tab) {
     @keyframes mobile-menu-in {
         from {
             opacity: 0;
-            transform: scale(0.95) translateY(-8px);
+            transform: scale(0.95) translateY(-10px);
         }
         to {
             opacity: 1;
