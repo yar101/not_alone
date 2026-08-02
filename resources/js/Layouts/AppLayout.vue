@@ -344,7 +344,7 @@ onUnmounted(() => {
                     </button>
                     <button
                         @click="openAuth('register')"
-                        class="guest-btn guest-btn--fill"
+                        class="guest-btn guest-btn--outline"
                     >
                         {{ __("common.register") }}
                     </button>
@@ -591,11 +591,7 @@ onUnmounted(() => {
     font-weight: 600;
     letter-spacing: 0.04em;
     text-decoration: none;
-    transition:
-        background 0.18s,
-        border-color 0.18s,
-        color 0.18s,
-        box-shadow 0.18s;
+    transition: ease-in-out 0.2s;
     white-space: nowrap;
 }
 .guest-btn--outline {
@@ -607,27 +603,6 @@ onUnmounted(() => {
     border-color: color-mix(in srgb, var(--color-base-1), transparent 30%);
     color: color-mix(in srgb, var(--color-base-1), white 40%);
     background: color-mix(in srgb, var(--color-base-1), transparent 92%);
-}
-.guest-btn--fill {
-    border: 1px solid transparent;
-    background: linear-gradient(
-        135deg,
-        color-mix(in srgb, var(--color-base-1), transparent 78%) 0%,
-        color-mix(in srgb, var(--color-base-1), black 20%) 100%
-    );
-    color: color-mix(in srgb, var(--color-base-1), white 40%);
-    box-shadow: 0 0 12px
-        color-mix(in srgb, var(--color-base-1), transparent 80%);
-}
-.guest-btn--fill:hover {
-    background: linear-gradient(
-        135deg,
-        color-mix(in srgb, var(--color-base-1), transparent 65%) 0%,
-        color-mix(in srgb, var(--color-base-1), black 10%) 100%
-    );
-    box-shadow: 0 0 18px
-        color-mix(in srgb, var(--color-base-1), transparent 60%);
-    color: color-mix(in srgb, var(--color-base-1), white 50%);
 }
 
 /* ── Tablet (640–899px) ──────────────────────────────────── */

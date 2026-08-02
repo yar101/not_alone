@@ -1,8 +1,7 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import SiteHeader from '@/Components/Site/SiteHeader.vue';
 import LocaleLoader from '@/Components/LocaleLoader.vue';
-import StartBtn from '@/Components/Site/StartBtn.vue';
 import AuthModal from '@/Components/Site/AuthModal.vue';
 import { ref } from 'vue';
 import { usePage, router } from '@inertiajs/vue3';
@@ -44,7 +43,7 @@ const handleStartClick = () => {
 
         <div class="ab-content">
             <div class="ab-blocks-container">
-                
+
                 <!-- Hero -->
                 <div class="ab-hero">
                     <h1 class="ab-title">
@@ -225,7 +224,7 @@ const handleStartClick = () => {
 
 .ab-cta-title {
     font-family: "Inter Variable", system-ui, -apple-system, sans-serif;
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     font-weight: 600;
     color: rgba(255,255,255,0.95);
     margin: 0;
