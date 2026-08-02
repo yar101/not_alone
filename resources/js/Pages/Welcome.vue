@@ -3,9 +3,13 @@ import { ref, computed } from "vue";
 import { usePage, router } from "@inertiajs/vue3";
 import StartBtn from "@/Components/Site/StartBtn.vue";
 import AuthModal from "@/Components/Site/AuthModal.vue";
-import SiteHeader from "@/Components/Site/SiteHeader.vue";
 import { useTranslations } from "@/composables/useTranslations";
 import LocaleLoader from "@/Components/LocaleLoader.vue";
+import PublicLayout from "@/Layouts/PublicLayout.vue";
+
+defineOptions({
+    layout: (h, page) => h(PublicLayout, { activePage: "home" }, () => page),
+});
 
 const page = usePage();
 const showAuthModal = ref(false);
@@ -31,13 +35,6 @@ const handleLearnMoreClick = () => {
 
 <template>
     <LocaleLoader />
-    <!-- Декоративные фоновые элементы (круги) -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div class="circle1" />
-        <div class="circle2" />
-        <div class="circle3" />
-    </div>
-
     <!-- Фоновое изображение (Пикачу) с адаптивным позиционированием -->
     <img
         src="/pika.webp"
@@ -45,103 +42,45 @@ const handleLearnMoreClick = () => {
         class="fixed max-w-[800px] md:max-w-[1400px] left-1/2 -translate-x-1/3 max-[756px]:-translate-y-[20%] md:left-[20rem] md:translate-x-0 opacity-20 md:opacity-100 pointer-events-none z-0"
     />
 
-    <!-- Адаптивное изображение звезды (фиксировано в правой нижней части) -->
+    <!-- Адаптивное изображение звезды -->
     <img
         src="/star.webp"
         alt="star"
         class="fixed w-[200px] sm:w-[350px] md:w-[500px] lg:w-[570px] rotate-[15deg] opacity-[30%] md:opacity-[50%] right-[2%] bottom-[5%] md:right-[5%] md:bottom-[8%] pointer-events-none z-0 transition-all duration-700 ease-in-out"
     />
 
-    <!-- Основной контейнер с градиентным фоном -->
-    <div
-        class="min-h-screen text-white overflow-x-hidden main-gradient relative z-10 flex flex-col"
-    >
-        <SiteHeader activePage="home" />
-
-        <div
-            class="max-w-[1440px] w-full mx-auto flex flex-col justify-between flex-1"
-        >
-            <!-- Основной контент -->
-            <main
-                class="flex-1 flex flex-col items-center justify-center py-10 md:pb-[12%] px-6"
-            >
-                <!-- Главная кнопка (START) -->
-                <div
-                    class="scale-110 sm:scale-105 md:scale-125 mb-8 md:mb-12 transform transition-transform"
-                >
-                    <StartBtn
-                        :label="startBtnLabel"
-                        @click="handleStartClick"
-                    />
-                </div>
-
-                <!-- Кнопка "Узнать подробнее" -->
-                <div class="mt-3 md:mt-4">
-                    <button
-                        class="learn-more-btn"
-                        @click="handleLearnMoreClick"
-                    >
-                        Узнать подробнее
-                    </button>
-                </div>
-
-
-                <AuthModal
-                    :show="showAuthModal"
-                    @close="showAuthModal = false"
+    <!-- Основной контент страницы -->
+    <div class="max-w-[1440px] w-full mx-auto flex flex-col justify-between flex-1 relative z-10">
+        <main class="flex-1 flex flex-col items-center justify-center py-10 md:pb-[12%] px-6">
+            <!-- Главная кнопка (START) -->
+            <div class="scale-110 sm:scale-105 md:scale-125 mb-8 md:mb-12 transform transition-transform">
+                <StartBtn
+                    :label="startBtnLabel"
+                    @click="handleStartClick"
                 />
-            </main>
+            </div>
 
-            <!-- Балансировочный отступ -->
-            <div class="h-8 md:h-16"></div>
-        </div>
+            <!-- Кнопка "Узнать подробнее" -->
+            <div class="mt-3 md:mt-4">
+                <button
+                    class="learn-more-btn"
+                    @click="handleLearnMoreClick"
+                >
+                    Узнать подробнее
+                </button>
+            </div>
+
+            <AuthModal
+                :show="showAuthModal"
+                @close="showAuthModal = false"
+            />
+        </main>
+
+        <div class="h-8 md:h-16"></div>
     </div>
 </template>
 
 <style scoped>
-/* Кастомный градиент фона */
-.main-gradient {
-    background: linear-gradient(
-            180deg,
-            rgba(255, 42, 191, 0.09) 0%,
-            rgba(0, 0, 0, 0.56) 100%
-        )
-        fixed;
-}
-
-/* Фоновые круги */
-.circle1,
-.circle2,
-.circle3 {
-    border-radius: 50%;
-    background: rgba(60, 60, 190, 0.03);
-    box-shadow: inset 0 0 30px rgba(255, 255, 255, 0.015);
-    position: absolute;
-    right: -10vw;
-    top: -10vw;
-}
-
-.circle1 {
-    width: clamp(350px, 60vw, 900px);
-    height: clamp(350px, 60vw, 900px);
-}
-.circle2 {
-    width: clamp(250px, 45vw, 700px);
-    height: clamp(250px, 45vw, 700px);
-}
-.circle3 {
-    width: clamp(150px, 30vw, 500px);
-    height: clamp(150px, 30vw, 500px);
-}
-
-@media (max-width: 768px) {
-    .circle1, .circle2, .circle3 {
-        right: 0;
-        top: 0;
-        transform: translate(40%, -40%);
-    }
-}
-
 /* Стили кнопок-ссылок */
 .link-button {
     background: rgba(20, 20, 20, 0.5);
@@ -218,5 +157,4 @@ const handleLearnMoreClick = () => {
 html {
     scroll-behavior: smooth;
 }
-
 </style>

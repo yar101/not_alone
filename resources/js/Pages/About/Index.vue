@@ -1,11 +1,14 @@
 <script setup>
-import { Head } from '@inertiajs/vue3';
-import SiteHeader from '@/Components/Site/SiteHeader.vue';
+import { Head, usePage, router } from '@inertiajs/vue3';
 import LocaleLoader from '@/Components/LocaleLoader.vue';
 import AuthModal from '@/Components/Site/AuthModal.vue';
+import PublicLayout from '@/Layouts/PublicLayout.vue';
 import { ref } from 'vue';
-import { usePage, router } from '@inertiajs/vue3';
 import '@fontsource-variable/inter';
+
+defineOptions({
+    layout: (h, page) => h(PublicLayout, { activePage: 'about' }, () => page),
+});
 
 const page = usePage();
 const showAuthModal = ref(false);
@@ -30,17 +33,13 @@ const handleStartClick = () => {
 
     <LocaleLoader />
 
+    <!-- Декор Orbs -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div class="ab-circle ab-circle--1" />
-        <div class="ab-circle ab-circle--2" />
-        <div class="ab-circle ab-circle--3" />
         <div class="ab-orb ab-orb--pink" />
         <div class="ab-orb ab-orb--cyan" />
     </div>
 
     <div class="ab-shell">
-        <SiteHeader activePage="about" />
-
         <div class="ab-content">
             <div class="ab-blocks-container">
 
@@ -56,7 +55,6 @@ const handleStartClick = () => {
 
                 <!-- 3 Columns Grid -->
                 <div class="ab-grid">
-
                     <!-- Блок 1 -->
                     <div class="ab-glass-block">
                         <h2 class="ab-subtitle">Открытое общение</h2>
@@ -80,7 +78,6 @@ const handleStartClick = () => {
                             Вам не придется искать повод для разговора — здесь уже есть люди, которые хотят с вами общаться. Выбирайте собеседника по интересам, начинайте диалог и приятно проводите время.
                         </p>
                     </div>
-
                 </div>
 
                 <!-- CTA -->
@@ -103,22 +100,14 @@ const handleStartClick = () => {
 
 <style scoped>
 .ab-shell {
-    min-height: 100vh;
+    flex: 1;
     display: flex;
     flex-direction: column;
     position: relative;
     z-index: 1;
-    background: linear-gradient(180deg, rgba(255, 42, 191, 0.05) 0%, rgba(0, 0, 0, 0.6) 100%) fixed;
     color: rgba(255,255,255,0.85);
     font-family: "Inter Variable", system-ui, -apple-system, sans-serif;
 }
-
-/* Декор */
-.ab-circle { border-radius: 50%; background: rgba(60,60,190,0.03); box-shadow: inset 0 0 30px rgba(255,255,255,0.015); position: absolute; right: -10vw; top: -10vw; }
-.ab-circle--1 { width: clamp(350px, 60vw, 900px); height: clamp(350px, 60vw, 900px); }
-.ab-circle--2 { width: clamp(250px, 45vw, 700px); height: clamp(250px, 45vw, 700px); }
-.ab-circle--3 { width: clamp(150px, 30vw, 500px); height: clamp(150px, 30vw, 500px); }
-@media (max-width: 768px) { .ab-circle { right: 0; top: 0; transform: translate(40%, -40%); } }
 
 .ab-orb { position: absolute; border-radius: 50%; filter: blur(100px); pointer-events: none; }
 .ab-orb--pink { width: 500px; height: 500px; background: radial-gradient(circle, rgba(236,72,153,0.08) 0%, transparent 70%); top: -10%; left: -5%; }

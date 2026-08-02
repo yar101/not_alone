@@ -1,7 +1,11 @@
 <script setup>
 import { Head } from "@inertiajs/vue3";
-import SiteHeader from "@/Components/Site/SiteHeader.vue";
 import LocaleLoader from "@/Components/LocaleLoader.vue";
+import PublicLayout from "@/Layouts/PublicLayout.vue";
+
+defineOptions({
+    layout: (h, page) => h(PublicLayout, { activePage: "contacts" }, () => page),
+});
 
 const contacts = [
     {
@@ -26,90 +30,33 @@ const contacts = [
 
     <LocaleLoader />
 
-    <!-- Декоративные фоновые элементы (круги) -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div class="circle1" />
-        <div class="circle2" />
-        <div class="circle3" />
-    </div>
+    <main class="flex-1 flex flex-col items-center justify-center px-6 relative z-10">
+        <div class="w-full max-w-[500px] flex flex-col gap-3">
+            <a
+                v-for="c in contacts"
+                :key="c.title"
+                :href="c.link"
+                target="_blank"
+                class="minimal-link group"
+            >
+                <div class="minimal-link__icon" :style="{ color: c.color }">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path :d="c.icon" />
+                    </svg>
+                </div>
+                <div class="minimal-link__content">
+                    <span class="minimal-link__value">{{ c.value }}</span>
+                    <span class="minimal-link__label">{{ c.title }}</span>
+                </div>
+            </a>
+        </div>
 
-    <!-- Основной контейнер с градиентным фоном -->
-    <div
-        class="min-h-screen text-white overflow-x-hidden main-gradient relative z-10 flex flex-col"
-    >
-        <SiteHeader activePage="contacts" />
-
-        <main class="flex-1 flex flex-col items-center justify-center px-6">
-            <div class="w-full max-w-[500px] flex flex-col gap-3">
-                <a
-                    v-for="c in contacts"
-                    :key="c.title"
-                    :href="c.link"
-                    target="_blank"
-                    class="minimal-link group"
-                >
-                    <div class="minimal-link__icon" :style="{ color: c.color }">
-                        <svg viewBox="0 0 24 24" fill="currentColor">
-                            <path :d="c.icon" />
-                        </svg>
-                    </div>
-                    <div class="minimal-link__content">
-                        <span class="minimal-link__value">{{ c.value }}</span>
-                        <span class="minimal-link__label">{{ c.title }}</span>
-                    </div>
-                </a>
-            </div>
-
-            <!-- Балансировочный отступ снизу -->
-            <div class="h-32"></div>
-        </main>
-    </div>
+        <!-- Балансировочный отступ снизу -->
+        <div class="h-32"></div>
+    </main>
 </template>
 
 <style scoped>
-/* Кастомный градиент фона */
-.main-gradient {
-    background: linear-gradient(
-            180deg,
-            rgba(255, 42, 191, 0.09) 0%,
-            rgba(0, 0, 0, 0.56) 100%
-        )
-        fixed;
-}
-
-/* Фоновые круги */
-.circle1,
-.circle2,
-.circle3 {
-    border-radius: 50%;
-    background: rgba(60, 60, 190, 0.03);
-    box-shadow: inset 0 0 30px rgba(255, 255, 255, 0.015);
-    position: absolute;
-    right: -10vw;
-    top: -10vw;
-}
-
-.circle1 {
-    width: clamp(350px, 60vw, 900px);
-    height: clamp(350px, 60vw, 900px);
-}
-.circle2 {
-    width: clamp(250px, 45vw, 700px);
-    height: clamp(250px, 45vw, 700px);
-}
-.circle3 {
-    width: clamp(150px, 30vw, 500px);
-    height: clamp(150px, 30vw, 500px);
-}
-
-@media (max-width: 768px) {
-    .circle1, .circle2, .circle3 {
-        right: 0;
-        top: 0;
-        transform: translate(40%, -40%);
-    }
-}
-
 .minimal-link {
     display: flex;
     align-items: center;

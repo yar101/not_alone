@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { router, Link } from "@inertiajs/vue3";
 import { useTranslations } from "@/composables/useTranslations";
 import LocaleSwitcher from "@/Components/Site/LocaleSwitcher.vue";
@@ -35,7 +35,13 @@ const tabs = computed(() => [
 
 const visualActive = ref(props.activePage);
 const mobileMenuOpen = ref(false);
-let navigating = false;
+
+watch(
+    () => props.activePage,
+    (val) => {
+        visualActive.value = val;
+    }
+);
 
 // Запрещаем скролл когда мобильное меню открыто
 function toggleBodyScroll(enable) {
@@ -84,8 +90,7 @@ function closeMobileMenu() {
 }
 
 function onTabClick(tab) {
-    if (navigating) return;
-    navigating = true;
+    if (props.activePage === tab.key) return;
     visualActive.value = tab.key;
 
     // Закрываем мобильное меню перед переходом
@@ -94,11 +99,7 @@ function onTabClick(tab) {
         toggleBodyScroll(true);
     }
 
-    setTimeout(() => {
-        router.visit(getHref(tab), {
-            viewTransition: true
-        });
-    }, 200);
+    router.visit(getHref(tab));
 }
 </script>
 
