@@ -33,7 +33,7 @@ onUnmounted(() => heroObserver?.disconnect());
 
 <template>
     <Head>
-        <title>{{ item.title }} — not alone</title>
+        <title>{{ item.title }}</title>
         <meta property="og:title"   :content="item.title" />
         <meta property="og:type"    content="article" />
         <meta v-if="item.image" property="og:image" :content="item.image" />

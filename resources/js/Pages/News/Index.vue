@@ -87,7 +87,7 @@ onUnmounted(() => {
 
 <template>
     <Head>
-        <title>{{ __('news.title') }} — not alone</title>
+        <title>{{ __('news.title') }}</title>
         <meta name="description" content="Последние новости проекта not alone." />
     </Head>
 

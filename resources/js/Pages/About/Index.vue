@@ -24,7 +24,7 @@ const handleStartClick = () => {
 
 <template>
     <Head>
-        <title>О нас — not alone</title>
+        <title>О нас</title>
         <meta name="description" content="not alone — анонимный чат и платформа для тех, кому не с кем поговорить. Найдите онлайн собеседника, напарника для игр или совместного просмотра фильмов." />
         <meta property="og:title" content="О нас — not alone" />
         <meta property="og:description" content="Бывают моменты, когда очень одиноко и нужен слушатель онлайн. Наша платформа поможет найти понимание и безопасное общение." />

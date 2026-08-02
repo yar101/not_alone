@@ -26,7 +26,7 @@ const contacts = [
 </script>
 
 <template>
-    <Head title="Контакты — not alone" />
+    <Head title="Контакты" />
 
     <LocaleLoader />
 

@@ -12,7 +12,7 @@
         <link rel="apple-touch-icon" href="/apple-touch-icon-180x180-v3.png">
         <link rel="manifest" href="/build/manifest.webmanifest">
 
-        <title inertia>{{ config('app.name', 'Laravel') }}</title>
+        <title inertia>{{ config('app.name', 'Not Alone') }}</title>
 
         <!-- Scripts -->
         @routes

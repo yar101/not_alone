@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from "vue";
-import { usePage, router } from "@inertiajs/vue3";
+import { Head, usePage, router } from "@inertiajs/vue3";
 import StartBtn from "@/Components/Site/StartBtn.vue";
 import AuthModal from "@/Components/Site/AuthModal.vue";
 import { useTranslations } from "@/composables/useTranslations";
@@ -34,6 +34,7 @@ const handleLearnMoreClick = () => {
 </script>
 
 <template>
+    <Head title="Главная" />
     <LocaleLoader />
     <!-- Фоновое изображение (Пикачу) с адаптивным позиционированием -->
     <img
