@@ -178,6 +178,15 @@ onUnmounted(() => {
     inset: 0;
     z-index: 2000;
     pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 768px) {
+    .site-modal-root {
+        align-items: flex-end;
+    }
 }
 
 /* ── Backdrop ──────────────────────────────────────── */
@@ -192,10 +201,7 @@ onUnmounted(() => {
 
 /* ── Sheet ─────────────────────────────────────────── */
 .site-modal-sheet {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translateX(-50%) translateY(-50%);
+    position: relative;
     width: 60%;
     height: 80%;
     max-height: 90vh;
@@ -210,20 +216,17 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 @media (max-width: 768px) {
     .site-modal-sheet {
-        top: auto;
-        left: 0;
-        right: 0;
-        bottom: 0;
         width: 100% !important;
         max-width: 100% !important;
         min-height: unset !important;
         height: 88svh;
         max-height: 88svh;
-        transform: none;
         border-radius: 16px 16px 0 0;
     }
 }
@@ -275,7 +278,6 @@ onUnmounted(() => {
         rgba(255, 178, 239, 0.18) 0%,
         transparent 70%
     );
-    animation: orb-drift-a 9s ease-in-out infinite alternate;
 }
 
 .ambient-pink::after {
@@ -288,7 +290,6 @@ onUnmounted(() => {
         rgba(255, 178, 239, 0.12) 0%,
         transparent 70%
     );
-    animation: orb-drift-b 13s ease-in-out infinite alternate;
 }
 
 .ambient-blue::before {
@@ -301,7 +302,6 @@ onUnmounted(() => {
         color-mix(in srgb, var(--color-base-2), transparent 90%) 0%,
         transparent 70%
     );
-    animation: orb-drift-a 9s ease-in-out infinite alternate;
 }
 
 .ambient-blue::after {
@@ -314,25 +314,6 @@ onUnmounted(() => {
         color-mix(in srgb, var(--color-base-2), transparent 90%) 0%,
         transparent 70%
     );
-    animation: orb-drift-b 13s ease-in-out infinite alternate;
-}
-
-@keyframes orb-drift-a {
-    from {
-        transform: translate(0, 0) scale(1);
-    }
-    to {
-        transform: translate(25px, 18px) scale(1.12);
-    }
-}
-
-@keyframes orb-drift-b {
-    from {
-        transform: translate(0, 0) scale(1);
-    }
-    to {
-        transform: translate(-20px, -25px) scale(1.08);
-    }
 }
 
 /* ── Body ──────────────────────────────────────────── */
@@ -406,12 +387,12 @@ onUnmounted(() => {
 }
 .sheet-enter-from,
 .sheet-leave-to {
-    transform: translateX(-50%) translateY(calc(-50% + 14px));
+    transform: translateY(14px);
     opacity: 0;
 }
 .sheet-enter-to,
 .sheet-leave-from {
-    transform: translateX(-50%) translateY(-50%);
+    transform: translateY(0);
     opacity: 1;
 }
 
