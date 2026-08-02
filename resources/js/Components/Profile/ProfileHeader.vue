@@ -167,7 +167,9 @@ function deleteAvatar() {
 
         <!-- Рейтинг — верхний левый угол -->
         <div v-if="isIdol && rating !== null" class="header-rating">
-            <img src="/stars/10.webp" class="star-img" alt="rating" />
+            <svg class="star-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="currentColor" d="M12 1.5l3.09 6.26L22 8.77l-5 4.87 1.18 6.88L12 17.27l-6.18 3.25L7 13.64 2 8.77l6.91-1.01L12 1.5z" />
+            </svg>
             <span class="rating-num">{{ rating }}</span>
         </div>
 
@@ -549,13 +551,13 @@ function deleteAvatar() {
     padding: 0;
 }
 
-.star-img {
+.star-icon {
     width: 20px;
     height: 20px;
-    object-fit: contain;
+    color: var(--color-base-1);
     display: block;
-    opacity: 0.85;
     flex-shrink: 0;
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-base-1), transparent 30%));
 }
 
 .rating-num {
