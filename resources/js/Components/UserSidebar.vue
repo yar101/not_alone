@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { usePage, Link } from '@inertiajs/vue3';
-import { User, UserFilled, Search, Picture, Star } from '@element-plus/icons-vue';
+import { User, UserFilled, Search, Picture, Star, Brush } from '@element-plus/icons-vue';
 import AvatarUploader from '@/Components/AvatarUploader.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
 import HelpModal from '@/Components/Site/HelpModal.vue';
@@ -82,7 +82,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
                 <!-- Hero header -->
                 <div class="usb-hero">
                     <button class="usb-close" @click="close" aria-label="Закрыть">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/>
                         </svg>
                     </button>
@@ -99,13 +99,15 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
                         </div>
                     </div>
 
-                    <div class="usb-name">{{ user.name }}</div>
+                    <div class="usb-user-info">
+                        <div class="usb-name">{{ user.name }}</div>
 
-                    <div class="usb-badges">
-                        <IdolBadge v-if="isIdol" :gender="user.gender" />
-                        <span v-if="user.gender" class="usb-badge" :class="'usb-badge--' + user.gender">{{ user.gender === 'female' ? '\u2640\uFE0F' : '\u2642\uFE0F' }}</span>
-                        <span v-if="user.age" class="usb-badge usb-badge--age">{{ ageLabel(user.age) }}</span>
-                        <span v-if="!isIdol && !user.gender && !user.age" class="usb-badge usb-badge--default">{{ __('nav.user') }}</span>
+                        <div class="usb-badges">
+                            <IdolBadge v-if="isIdol" :gender="user.gender" />
+                            <span v-if="user.gender" class="usb-badge" :class="'usb-badge--' + user.gender">{{ user.gender === 'female' ? '\u2640\uFE0F' : '\u2642\uFE0F' }}</span>
+                            <span v-if="user.age" class="usb-badge usb-badge--age">{{ ageLabel(user.age) }}</span>
+                            <span v-if="!isIdol && !user.gender && !user.age" class="usb-badge usb-badge--default">{{ __('nav.user') }}</span>
+                        </div>
                     </div>
                 </div>
 
@@ -188,6 +190,13 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
                         </div>
                         <span class="usb-feature-card__label">{{ __('nav.orders') }}</span>
                     </Link>
+
+                    <Link :href="route('profile.customization')" class="usb-feature-card usb-feature-card--blue usb-feature-card--full" @click="closeForNav">
+                        <div class="usb-feature-card__icon-wrap usb-feature-card__icon-wrap--blue">
+                            <el-icon size="20"><Brush /></el-icon>
+                        </div>
+                        <span class="usb-feature-card__label">Кастомизация</span>
+                    </Link>
                 </div>
 
                 <!-- Footer -->
@@ -200,7 +209,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
                     </div>
 
                     <!-- Language switcher -->
-                    <div class="usb-locale">
+                    <div class="usb-locale" v-if="false">
                         <button
                             v-for="(label, code) in locale?.available"
                             :key="code"
@@ -226,32 +235,50 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 .usb-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     z-index: 1100;
 }
 
 /* ── Panel ────────────────────────────────────────────────── */
 .usb-panel {
     position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
+    top: 1.25rem;
+    right: 1.25rem;
+    bottom: 1.25rem;
     width: 360px;
+    border-radius: 8px;
+    overflow-y: auto;
+    overflow-x: hidden;
     z-index: 1101;
     display: flex;
     flex-direction: column;
     background: linear-gradient(175deg, #121228 0%, #0a0a1a 55%, #080814 100%);
-    border-left: 1px solid rgba(255, 178, 239, 0.18);
+    border: 1px solid rgba(255, 178, 239, 0.18);
     box-shadow: -14px 0 70px rgba(0, 0, 0, 0.65), -2px 0 20px rgba(255, 178, 239, 0.14);
+}
+
+@media (max-width: 480px) {
+    .usb-panel {
+        top: 1rem;
+        right: 1rem;
+        left: 1rem;
+        bottom: 1rem;
+        width: auto;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 178, 239, 0.28);
+    }
 }
 
 /* ── Hero header ──────────────────────────────────────────── */
 .usb-hero {
     position: relative;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    padding: 2.2rem 1.5rem 1.5rem;
+    padding: 3rem 1.5rem 1.5rem;
+    gap: 1.25rem;
     border-bottom: 1px solid rgba(255, 178, 239, 0.1);
     background:
         radial-gradient(ellipse 280px 160px at 50% 0%, rgba(255, 178, 239, 0.1) 0%, transparent 100%);
@@ -260,12 +287,13 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 .usb-close {
     position: absolute;
     top: 1rem;
-    left: 1rem;
+    right: 1rem;
+    left: auto;
     background: none;
     border: none;
     color: rgba(255, 255, 255, 0.55);
     cursor: pointer;
-    padding: 0.3rem;
+    padding: 0.4rem;
     border-radius: 6px;
     display: flex;
     align-items: center;
@@ -297,7 +325,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
     font-size: 1.05rem;
     font-weight: 700;
     color: rgba(255, 255, 255, 0.94);
-    text-align: center;
+    text-align: left;
     letter-spacing: 0.01em;
     max-width: 100%;
     overflow: hidden;
@@ -309,17 +337,22 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 .usb-badges {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 0.35rem;
     margin-top: 0.45rem;
+}
+
+.usb-badges :deep(.idol-badge) {
+    padding: 0.15rem 0.5rem;
+    font-size: 0.72rem;
 }
 
 .usb-badge {
     display: inline-flex;
     align-items: center;
-    padding: 0.28rem 0.75rem;
+    padding: 0.15rem 0.5rem;
     border-radius: 3px;
-    font-size: 0.85rem;
+    font-size: 0.72rem;
     letter-spacing: 0.04em;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.04);
@@ -339,7 +372,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
     color: rgba(255, 255, 255, 0.45);
 }
 .usb-badge--default {
-    font-size: 0.72rem;
+    font-size: 0.65rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: rgba(255, 178, 239, 0.5);
@@ -350,7 +383,13 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 /* Avatar wrap */
 .usb-avatar-wrap {
     position: relative;
-    margin-bottom: 0.9rem;
+    flex-shrink: 0;
+}
+
+.usb-user-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
 }
 
 /* ── Rating badge ── */
@@ -373,7 +412,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
     font-weight: 700;
     white-space: nowrap;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    z-index: 1;
+    z-index: 10;
 }
 
 .usb-rating-badge__star {
@@ -399,11 +438,11 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
     align-items: center;
     justify-content: center;
     width: 100%;
-    padding: 0.55rem;
-    background: linear-gradient(135deg, rgba(255, 178, 239, 0.12) 0%, rgba(255, 178, 239, 0.05) 100%);
+    padding: 0.85rem;
+    background: linear-gradient(135deg, rgba(255, 178, 239, 0.15) 0%, rgba(100, 210, 255, 0.1) 100%);
     color: var(--color-base-1);
     font-weight: 700;
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     border-radius: 8px;
@@ -417,7 +456,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 
 @media (hover: hover) {
     .usb-become-btn:hover {
-        background: linear-gradient(135deg, rgba(255, 178, 239, 0.22) 0%, rgba(255, 178, 239, 0.1) 100%);
+        background: linear-gradient(135deg, rgba(255, 178, 239, 0.25) 0%, rgba(100, 210, 255, 0.2) 100%);
         color: #fff;
     }
 }
@@ -560,6 +599,25 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
     border-color: rgba(255, 178, 239, 0.3);
 }
 
+/* Кастомизация — синий/голубой */
+.usb-feature-card--blue::before {
+    background: linear-gradient(90deg, transparent 0%, rgba(100, 210, 255, 0.25) 50%, transparent 100%);
+}
+.usb-feature-card--blue {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(100, 210, 255, 0.15);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    transition: background 0.2s, border-color 0.2s;
+}
+.usb-feature-card--blue:hover {
+    background: rgba(100, 210, 255, 0.06);
+    border-color: rgba(100, 210, 255, 0.3);
+}
+
+.usb-feature-card--full {
+    grid-column: 1 / -1;
+}
+
 /* Icon */
 .usb-feature-card__icon-wrap {
     width: 38px;
@@ -580,6 +638,11 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
     background: rgba(255, 178, 239, 0.08);
     border: 1px solid rgba(255, 178, 239, 0.15);
     color: rgba(255, 178, 239, 0.7);
+}
+.usb-feature-card__icon-wrap--blue {
+    background: rgba(100, 210, 255, 0.08);
+    border: 1px solid rgba(100, 210, 255, 0.15);
+    color: rgba(100, 210, 255, 0.9);
 }
 
 /* Text */
@@ -602,9 +665,9 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 .sidebar-backdrop-leave-to    { opacity: 0; }
 
 .sidebar-panel-enter-active,
-.sidebar-panel-leave-active { transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1); }
+.sidebar-panel-leave-active { transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.26s; }
 .sidebar-panel-enter-from,
-.sidebar-panel-leave-to    { transform: translateX(100%); }
+.sidebar-panel-leave-to    { transform: translateX(calc(100% + 2rem)); opacity: 0; }
 
 /* ── Language switcher ────────────────────────────────────── */
 .usb-locale {
@@ -658,5 +721,11 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 .usb-locale__flag {
     font-size: 0.9rem;
     line-height: 1;
+}
+
+@media (max-width: 768px) {
+    .usb-become-footer {
+        padding-bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px));
+    }
 }
 </style>

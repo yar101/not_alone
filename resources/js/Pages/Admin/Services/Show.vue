@@ -57,7 +57,7 @@ const showReject  = ref(false);
 
 const hasAnyFlag = computed(() => {
     const flagged = Object.values(flaggedFields).some(v => v);
-    if (flagged) isApproved.value = false;
+    // if (flagged) isApproved.value = false; removed to allow approve with remarks
     return flagged;
 });
 
@@ -147,9 +147,9 @@ function closeHistoryModal() {
                         <div class="sps-idol">
                             <img v-if="service.user.avatar_url" :src="service.user.avatar_url" class="sps-idol__avatar" alt="" />
                             <div v-else class="sps-idol__avatar sps-idol__avatar--empty">{{ service.user.name?.charAt(0) }}</div>
-                            <div>
-                                <div class="sps-idol__name">{{ service.user.name }}</div>
-                                <div class="sps-idol__email">{{ service.user.email }}</div>
+                            <div style="min-width: 0; flex: 1;">
+                                <div class="sps-idol__name" :title="service.user.name">{{ service.user.name }}</div>
+                                <div class="sps-idol__email" :title="service.user.email">{{ service.user.email }}</div>
                             </div>
                         </div>
                     </a>
@@ -281,16 +281,16 @@ function closeHistoryModal() {
                 <div class="sps-card sps-card--sticky">
                     <h2 class="sps-card__title">Решение</h2>
 
-                    <label class="sps-approved-label" :class="{ 'sps-approved-label--disabled': hasAnyFlag }">
-                        <input type="checkbox" v-model="isApproved" :disabled="hasAnyFlag" class="sps-checkbox" />
+                    <label class="sps-approved-label">
+                        <input type="checkbox" v-model="isApproved" class="sps-checkbox" />
                         <span>Одобрить услугу</span>
                     </label>
 
-                    <p v-if="hasAnyFlag" class="sps-decision-hint">
-                        Есть пометки — будет отправлено решение «Есть замечания».
+                    <p v-if="isApproved" class="sps-decision-hint sps-decision-hint--ok">
+                        Услуга будет одобрена и появится в профиле айдола. <span v-if="hasAnyFlag">При этом айдолу придут ваши замечания.</span>
                     </p>
-                    <p v-else-if="isApproved" class="sps-decision-hint sps-decision-hint--ok">
-                        Услуга будет одобрена и появится в профиле айдола.
+                    <p v-else-if="hasAnyFlag" class="sps-decision-hint">
+                        Есть пометки, но галочка "Одобрить" не стоит — услуга вернется на доработку («Есть замечания»).
                     </p>
 
                     <div v-if="errors._" class="sps-err">{{ errors._ }}</div>
@@ -356,7 +356,7 @@ function closeHistoryModal() {
     background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.07);
     border-radius: 10px;
-    padding: 1.1rem;
+    padding: 0.9rem 1rem;
     margin-bottom: 1rem;
 }
 
@@ -373,8 +373,8 @@ function closeHistoryModal() {
 .sps-idol { display: flex; align-items: center; gap: 0.75rem; }
 .sps-idol__avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .sps-idol__avatar--empty { background: rgba(255,178,239,0.15); display: flex; align-items: center; justify-content: center; color: rgba(255,178,239,0.7); font-weight: 600; }
-.sps-idol__name  { font-size: 0.95rem; font-weight: 600; color: rgba(255,255,255,0.85); }
-.sps-idol__email { font-size: 0.8rem; color: rgba(255,255,255,0.4); margin-top: 2px; }
+.sps-idol__name  { font-size: 0.95rem; font-weight: 600; color: rgba(255,255,255,0.85); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sps-idol__email { font-size: 0.8rem; color: rgba(255,255,255,0.4); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .sps-meta { display: flex; flex-direction: column; gap: 0.55rem; }
 .sps-meta__row { display: flex; gap: 0.75rem; font-size: 0.88rem; align-items: baseline; }

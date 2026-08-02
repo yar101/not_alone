@@ -19,14 +19,21 @@ const props = defineProps({
     compact: {
         type: Boolean,
         default: false
+    },
+    showNewbieBadge: {
+        type: Boolean,
+        default: true
     }
 });
 
 const { __ } = useTranslations();
 
 const avatarUrl = computed(() => {
-    if (!props.user.avatar_path) return null;
-    return "/storage/" + props.user.avatar_path;
+    return props.user.avatar_url || (props.user.avatar_path ? "/storage/" + props.user.avatar_path : null);
+});
+
+const activeFrameUrl = computed(() => {
+    return props.user.active_frame_url || props.user.active_frame?.image_url || null;
 });
 
 const initial = computed(() => {
@@ -35,16 +42,29 @@ const initial = computed(() => {
 </script>
 
 <template>
-    <div class="card-avatar-wrap" :class="{ 'is-compact': compact }">
-        <div class="card-avatar" :class="{ 'is-male': user.gender === 'male' }">
+    <div class="card-avatar-wrap" :class="{ 'is-compact': compact, 'is-male': user.gender === 'male' }">
+        <div class="card-avatar">
             <img v-if="avatarUrl" :src="avatarUrl" :alt="__('common.avatar')"
                 class="card-avatar__img" />
             <span v-else class="card-avatar__initials">{{ initial }}</span>
         </div>
-        <div class="card-avatar-badges" v-if="(showIdolBadge && user.is_idol) || (showRating && user.rating)">
+        <img v-if="activeFrameUrl" :src="activeFrameUrl" class="user-active-frame" alt="" />
+
+        <div v-if="showNewbieBadge && user.is_idol && user.is_newbie" class="newbie-badge" @click.prevent.stop>
+            <el-tooltip :trigger="['hover', 'click']" placement="top" effect="dark" popper-class="newbie-dark-tooltip">
+                <template #content>
+                    Этот айдол — новичок, у него менее 25 выполненных заказов.<br>
+                    Не судите строго, у него лапки.
+                </template>
+                <img src="/not_alone_icon_without_background.png" alt="Newbie" />
+            </el-tooltip>
+        </div>
+
+        <div class="card-avatar-badges" v-if="user.is_idol && (showIdolBadge || (showRating && user.rating))">
             <IdolBadge
-                v-if="showIdolBadge && user.is_idol"
+                v-if="showIdolBadge"
                 class="card-idol-badge"
+                :gender="user.gender"
             />
             <span v-if="showRating && user.rating" class="card-rating">
                 ★ {{ user.rating }}
@@ -58,6 +78,54 @@ const initial = computed(() => {
     position: relative;
     align-self: center;
     margin-bottom: 0.25rem;
+}
+
+.user-active-frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1.15);
+    width: 110px;
+    height: 110px;
+    object-fit: contain;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.is-compact .user-active-frame {
+    width: 90px;
+    height: 90px;
+}
+
+
+.newbie-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    cursor: help;
+    transition: filter 0.3s ease;
+}
+.newbie-badge:hover {
+    filter: drop-shadow(0 0 8px rgba(255, 178, 239, 0.7));
+}
+.newbie-badge img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.is-compact .newbie-badge {
+    width: 42px;
+    height: 42px;
+    top: -4px;
+    right: -4px;
 }
 
 .card-avatar {
@@ -79,7 +147,7 @@ const initial = computed(() => {
     height: 90px;
 }
 
-.card-avatar.is-male {
+.card-avatar-wrap.is-male .card-avatar {
     background: rgba(100, 210, 255, 0.12);
     border-color: rgba(100, 210, 255, 0.3);
 }
@@ -101,7 +169,7 @@ const initial = computed(() => {
     font-size: 2rem;
 }
 
-.card-avatar.is-male .card-avatar__initials {
+.card-avatar-wrap.is-male .card-avatar__initials {
     color: var(--color-base-2);
     text-shadow: 0 0 20px rgba(100, 210, 255, 0.4);
 }
@@ -115,7 +183,7 @@ const initial = computed(() => {
     align-items: center;
     gap: 0.35rem;
     white-space: nowrap;
-    z-index: 2;
+    z-index: 10;
 }
 
 .is-compact .card-avatar-badges {
@@ -146,7 +214,7 @@ const initial = computed(() => {
     font-size: 0.7rem;
 }
 
-.card-avatar.is-male + .card-avatar-badges .card-rating {
+.card-avatar-wrap.is-male .card-rating {
     border-color: rgba(100, 210, 255, 0.4);
     color: var(--color-base-2);
 }
@@ -173,7 +241,7 @@ const initial = computed(() => {
     font-size: 0.7rem;
 }
 
-.card-avatar.is-male + .card-avatar-badges :deep(.card-idol-badge) {
+.card-avatar-wrap.is-male :deep(.card-idol-badge) {
     border-color: rgba(100, 210, 255, 0.4);
     color: var(--color-base-2);
 }

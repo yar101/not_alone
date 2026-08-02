@@ -1,0 +1,28 @@
+# Frontend builds & compiled assets
+/public/build/
+/public/build/**
+/public/hot
+/public/storage
+dist/
+
+# IDE helpers & generated declarations
+_ide_helper.php
+_ide_helper_models.php
+.phpstorm.meta.php
+components.d.ts
+auto-imports.d.ts
+
+# Dependency lockfiles
+package-lock.json
+composer.lock
+
+# Caches & IDE configs
+.phpunit.cache
+.phpunit.result.cache
+.php-cs-fixer.cache
+.idea/
+.vscode/
+
+# Laravel storage & logs
+/storage/logs/
+/storage/framework/

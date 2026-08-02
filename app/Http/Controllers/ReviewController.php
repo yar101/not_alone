@@ -79,7 +79,7 @@ class ReviewController extends Controller
 
         $query = Review::where('idol_id', $user->id)
                        ->where('is_hidden', false)
-                       ->with(['reviewer', 'epithets']);
+                       ->with(['reviewer.activeFrame', 'epithets']);
 
         if ($isOwner) {
             $query->with(['disputes' => fn($q) => $q->latest('created_at')->limit(1)]);
@@ -94,10 +94,11 @@ class ReviewController extends Controller
 
         $reviews = $query->paginate(10);
 
-        $reviewIds = Review::where('idol_id', $user->id)->where('is_hidden', false)->pluck('id');
         $epithetCounts = \DB::table('review_epithet_review')
             ->join('review_epithets', 'review_epithets.id', '=', 'review_epithet_review.review_epithet_id')
-            ->whereIn('review_epithet_review.review_id', $reviewIds)
+            ->join('reviews', 'reviews.id', '=', 'review_epithet_review.review_id')
+            ->where('reviews.idol_id', $user->id)
+            ->where('reviews.is_hidden', false)
             ->selectRaw('review_epithets.id, review_epithets.label, COUNT(*) as count')
             ->groupBy('review_epithets.id', 'review_epithets.label')
             ->orderByDesc('count')
@@ -111,9 +112,11 @@ class ReviewController extends Controller
                 'services_snapshot'=> $r->services_snapshot,
                 'epithets'         => $r->epithets->map(fn($e) => ['id' => $e->id, 'label' => $e->label])->values(),
                 'reviewer'         => [
-                    'id'         => $r->reviewer->id,
-                    'name'       => $r->reviewer->name,
-                    'avatar_url' => $r->reviewer->avatar_url,
+                    'id'                => $r->reviewer->id,
+                    'name'              => $r->reviewer->name,
+                    'avatar_url'        => $r->reviewer->avatar_url,
+                    'active_frame'      => $r->reviewer->activeFrame,
+                    'gender'            => $r->reviewer->gender,
                 ],
                 'created_at'       => $r->created_at->toISOString(),
                 'dispute_status'   => $isOwner ? ($r->disputes->first()?->status ?? null) : null,

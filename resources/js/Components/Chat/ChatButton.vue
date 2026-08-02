@@ -7,7 +7,7 @@ const props = defineProps({ active: { type: Boolean, default: false } });
 const emit = defineEmits(['click']);
 const page = usePage();
 const { __ } = useTranslations();
-const unreadMessages = computed(() => page.props.unread_messages_count ?? 0);
+const unreadMessages = computed(() => page.props.has_unread_messages ?? false);
 </script>
 
 <template>
@@ -15,7 +15,7 @@ const unreadMessages = computed(() => page.props.unread_messages_count ?? 0);
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
         </svg>
-        <span v-if="unreadMessages > 0" class="chat-btn__badge"></span>
+        <span v-if="unreadMessages" class="chat-btn__badge"></span>
     </button>
 </template>
 
@@ -63,12 +63,25 @@ const unreadMessages = computed(() => page.props.unread_messages_count ?? 0);
 }
 .chat-btn__badge {
     position: absolute;
-    top: 4px;
-    right: 4px;
+    top: 2px;
+    right: 2px;
     width: 8px;
     height: 8px;
+    background: #ff4757;
+    border: 1px solid var(--color-base-1);
     border-radius: 50%;
-    background: #e0558f;
+    
+    box-shadow: 0 0 5px rgba(255, 71, 87, 0.4);
     pointer-events: none;
+    z-index: 10;
+}
+
+@media (max-width: 768px) {
+    .chat-btn__badge {
+        top: 1px;
+        right: 1px;
+        width: 10px;
+        height: 10px;
+    }
 }
 </style>

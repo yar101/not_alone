@@ -18,4 +18,11 @@ class InterestCategory extends Model
     {
         return $this->hasMany(Interest::class, 'category_id')->orderBy('sort_order');
     }
+
+    protected static function booted()
+    {
+        $clearCache = fn() => \Illuminate\Support\Facades\Cache::forget('search_interest_categories');
+        static::saved($clearCache);
+        static::deleted($clearCache);
+    }
 }

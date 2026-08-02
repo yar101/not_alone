@@ -2,13 +2,14 @@
 
 namespace App\Notifications;
 
+use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Models\AdminBroadcast;
 use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 
-class AdminBroadcastNotification extends Notification
+class AdminBroadcastNotification extends Notification implements ShouldQueue
 {
     use Queueable;
     use SendsWebPush;

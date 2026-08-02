@@ -104,11 +104,11 @@ async function openConversation(conv) {
         echoChannel = null;
     }
 
-    activeConv.value  = { ...conv, unread_count: 0 };
+    activeConv.value  = { ...conv, unread: 0 };
     messages.value    = [];
     hasMore.value     = false;
     loadingMsgs.value = true;
-    updateConvInList(conv.id, { unread_count: 0 });
+    updateConvInList(conv.id, { unread: 0 });
 
     try {
         const res = await axios.get(route('admin.support.messages', conv.id));
@@ -156,7 +156,7 @@ function subscribeGlobalEcho() {
             .listen('.message.sent', (data) => {
                 if (data.sender_id !== null) { // user message
                     updateConvInList(conv.id, {
-                        unread_count: (conversations.value.find(c => c.id === conv.id)?.unread_count ?? 0) + 1,
+                        unread: true,
                         last_message: { body: data.type === 'image' ? '[фото]' : data.body, created_at: data.created_at },
                     });
                 }
@@ -339,7 +339,7 @@ const SYSTEM_LABELS = {
                     </div>
                     <div class="conv-item__meta">
                         <span class="conv-item__time">{{ fmtTime(conv.last_message?.created_at ?? conv.updated_at) }}</span>
-                        <span v-if="conv.unread_count > 0" class="conv-item__unread">{{ conv.unread_count }}</span>
+                        <span v-if="conv.unread" class="conv-item__unread"></span>
                         <span v-else-if="conv.closed_at" class="conv-item__closed-badge">🔒</span>
                     </div>
                 </div>

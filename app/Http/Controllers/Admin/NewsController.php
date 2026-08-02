@@ -38,7 +38,7 @@ class NewsController extends Controller
         $data['is_pinned']    = (bool) ($data['is_pinned'] ?? false);
 
         if ($request->hasFile('image')) {
-            $data['image'] = '/storage/' . $request->file('image')->store('news', 'public');
+            $data['image'] = $request->file('image')->store('news');
         } else {
             unset($data['image']);
         }
@@ -63,10 +63,8 @@ class NewsController extends Controller
         $data['is_pinned']    = (bool) ($data['is_pinned'] ?? false);
 
         if ($request->hasFile('image')) {
-            if ($news->image && str_starts_with($news->image, '/storage/')) {
-                Storage::disk('public')->delete(str_replace('/storage/', '', $news->image));
-            }
-            $data['image'] = '/storage/' . $request->file('image')->store('news', 'public');
+            $this->deleteImage($news->getRawOriginal('image'));
+            $data['image'] = $request->file('image')->store('news');
         } else {
             unset($data['image']);
         }
@@ -78,13 +76,20 @@ class NewsController extends Controller
 
     public function destroy(News $news): RedirectResponse
     {
-        if ($news->image && str_starts_with($news->image, '/storage/')) {
-            Storage::disk('public')->delete(str_replace('/storage/', '', $news->image));
-        }
+        $this->deleteImage($news->getRawOriginal('image'));
 
         $news->delete();
 
         return back()->with('success', 'Новость удалена.');
     }
 
+    private function deleteImage(?string $image)
+    {
+        if (!$image) return;
+        if (str_starts_with($image, '/storage/')) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete(str_replace('/storage/', '', $image));
+        } else if (!str_starts_with($image, 'http')) {
+            \Illuminate\Support\Facades\Storage::delete($image);
+        }
+    }
 }

@@ -9,13 +9,14 @@ defineProps({
 
 <template>
     <header class="site-header">
-        <!-- Логотип -->
+        <!-- Основной логотип (слева на десктопе) -->
         <component
             :is="activePage === 'home' ? 'span' : Link"
             :href="activePage !== 'home' ? '/' : undefined"
+            :view-transition="activePage !== 'home' ? true : undefined"
             class="site-header__logo"
         >
-            <img src="/app-logo-v3.png" alt="NoAlone" class="site-header__logo-img" />
+            <img src="/app-logo-v3.webp" alt="Not Alone" class="site-header__logo-img" />
         </component>
 
         <!-- Навигация по центру -->
@@ -26,13 +27,12 @@ defineProps({
 <style scoped>
 .site-header {
     display: flex;
+    flex-direction: row;
     align-items: center;
-    justify-content: space-between;
-    gap: 1.5rem;
-    padding: 1.2rem 4rem 1.2rem;
+    justify-content: center; /* Центрируем навбар */
+    padding: 2rem 4rem 1.2rem;
     flex-shrink: 0;
     position: relative;
-    z-index: 10;
     width: 100%;
 }
 
@@ -42,10 +42,11 @@ defineProps({
     flex-shrink: 0;
     text-decoration: none;
     cursor: default;
-    position: relative;
-    z-index: 100;
+    position: absolute;
+    left: 4rem;
+    top: 65%;
+    transform: translateY(-50%);
     transition: opacity 0.2s;
-    overflow: visible;
 }
 a.site-header__logo {
     cursor: pointer;
@@ -55,18 +56,30 @@ a.site-header__logo:hover {
 }
 
 .site-header__logo-img {
-    height: 168px;
+    height: 100px; /* Размер для мобильных по умолчанию */
     width: auto;
     display: block;
+    filter: drop-shadow(0 8px 16px rgba(0,0,0,0.2)) brightness(1);
+    transition: filter 0.3s ease, height 0.3s ease;
 }
 
+@media (min-width: 768px) {
+    .site-header__logo-img {
+        height: 160px; /* Увеличенный размер для десктопа */
+    }
+}
+
+.site-header__logo:hover .site-header__logo-img {
+    filter: drop-shadow(0 0 18px rgba(255, 178, 239, 0.5)) brightness(1.12);
+}
+
+/* .mobile-only-logo {
+    display: none !important;
+} */
+
 .site-header__nav {
-    position: absolute;
-    left: 0;
-    right: 0;
     display: flex;
     justify-content: center;
-    pointer-events: none;
 }
 .site-header__nav > * {
     pointer-events: auto;
@@ -112,17 +125,20 @@ a.site-header__logo:hover {
     .site-header {
         padding: 0.75rem 1rem 0.75rem;
         gap: 1.25rem;
+        justify-content: space-between; /* На мобилке разносим лого и бургер */
     }
     .site-header__nav {
-        position: static;
         flex: 1;
-        transform: none;
     }
     .site-header__contact-label {
         display: none;
     }
-    .site-header__logo-img {
-        height: 72px;
+    .site-header__logo {
+        position: static;
+        transform: none;
     }
+    /* .mobile-only-logo {
+        display: flex !important;
+    } */
 }
 </style>

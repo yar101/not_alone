@@ -10,7 +10,7 @@ use Illuminate\Console\Command;
 
 class SeedUserServices extends Command
 {
-    protected $signature = 'services:seed {userId?} {--all : Заполнить всех айдолов}';
+    protected $signature = 'services:seed {userId?} {--all : Заполнить всех айдолов} {--force : Выполнить без подтверждения}';
 
     protected $description = 'Создаёт тестовые услуги во всех активных категориях для указанного пользователя (или всех айдолов)';
 
@@ -36,7 +36,7 @@ class SeedUserServices extends Command
                 return;
             }
             $this->line("Айдолов: {$users->count()}");
-            if (!$this->confirm('Создать услуги для всех?')) {
+            if (!$this->option('force') && !$this->confirm('Создать услуги для всех?')) {
                 return;
             }
             $bar = $this->output->createProgressBar($users->count());
@@ -59,7 +59,7 @@ class SeedUserServices extends Command
             }
             $user = User::findOrFail($userId);
             $this->line("Пользователь: {$user->name} <{$user->email}>");
-            if (!$this->confirm('Продолжить?')) {
+            if (!$this->option('force') && !$this->confirm('Продолжить?')) {
                 return;
             }
             $bar = $this->output->createProgressBar($categories->count());
@@ -83,10 +83,15 @@ class SeedUserServices extends Command
                 [$timeUnits[0], rand(300, 700)],
                 [$timeUnits[min(1, count($timeUnits) - 1)], rand(800, 1500)],
             ];
-            foreach ($pairs as [$unit, $price]) {
+            foreach ($pairs as $index => [$unit, $price]) {
+                $suggestions = $cat->name_suggestions['ru'] ?? null;
+                $serviceName = ($suggestions && isset($suggestions[$index])) 
+                    ? $suggestions[$index] 
+                    : $cat->name . ($index === 0 ? ' (Базовая)' : ' (Продвинутая)');
+                    
                 Service::firstOrCreate(
                     ['user_id' => $user->id, 'category_id' => $cat->id, 'time_unit_id' => $unit->id],
-                    ['name' => $cat->name, 'price' => $price, 'is_active' => true]
+                    ['name' => $serviceName, 'price' => $price, 'is_active' => true]
                 );
             }
             if ($bar) {

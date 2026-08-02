@@ -35,6 +35,8 @@ use App\Http\Controllers\Admin\SupportChatController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\HelpCategoryController;
 use App\Http\Controllers\Admin\HelpArticleController;
+use App\Http\Controllers\Admin\StrikeController;
+use App\Http\Controllers\Admin\AvatarFrameController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -59,9 +61,20 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/questions', [QuizQuestionController::class, 'store'])->name('questions.store');
             Route::patch('/questions/{question}', [QuizQuestionController::class, 'update'])->name('questions.update');
             Route::delete('/questions/{question}', [QuizQuestionController::class, 'destroy'])->name('questions.destroy');
+            Route::get('/questions/export', [QuizQuestionController::class, 'exportQuestions'])->name('questions.export');
+            Route::get('/questions/template', [QuizQuestionController::class, 'downloadTemplate'])->name('questions.template');
+            Route::post('/questions/import', [QuizQuestionController::class, 'importQuestions'])->name('questions.import');
 
+            // Article versioning
             Route::get('/article', [QuizQuestionController::class, 'showArticle'])->name('article.index');
-            Route::patch('/article', [QuizQuestionController::class, 'updateArticle'])->name('article.update');
+            Route::post('/article/versions', [QuizQuestionController::class, 'storeVersion'])->name('article.versions.store');
+            Route::get('/article/versions/{version}', [QuizQuestionController::class, 'getVersion'])->name('article.versions.show');
+            Route::patch('/article/versions/{version}/activate', [QuizQuestionController::class, 'activateVersion'])->name('article.versions.activate');
+            Route::delete('/article/versions/{version}', [QuizQuestionController::class, 'destroyVersion'])->name('article.versions.destroy');
+            Route::get('/article/versions/{version}/diff/{other}', [QuizQuestionController::class, 'diffVersions'])->name('article.versions.diff');
+            Route::get('/article/export', [QuizQuestionController::class, 'exportArticle'])->name('article.export');
+            Route::patch('/article/active', [QuizQuestionController::class, 'updateActiveVersion'])->name('article.active.update');
+            Route::post('/article/import', [QuizQuestionController::class, 'importArticle'])->name('article.import');
         });
 
         // Users — static routes before parameterized
@@ -73,6 +86,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('/users/{user}/reset-quiz', [UserController::class, 'resetQuizProgress'])->name('users.reset-quiz');
         Route::post('/users/{user}/ban', [UserController::class, 'ban'])->name('users.ban');
         Route::delete('/users/{user}/ban', [UserController::class, 'unban'])->name('users.unban');
+
+        Route::get('/strikes', [StrikeController::class, 'index'])->name('strikes.index');
+        Route::post('/strikes', [StrikeController::class, 'store'])->name('strikes.store');
 
         // Idol rating (manual adjustment)
         Route::patch('/users/{user}/rating', [IdolRatingController::class, 'update'])->name('users.rating.update');
@@ -127,6 +143,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/price-limits', [ServicePriceLimitController::class, 'store'])->name('price-limits.store');
             Route::patch('/price-limits/{priceLimit}', [ServicePriceLimitController::class, 'update'])->name('price-limits.update');
             Route::delete('/price-limits/{priceLimit}', [ServicePriceLimitController::class, 'destroy'])->name('price-limits.destroy');
+        });
+
+        // Avatar Frames
+        Route::prefix('avatar-frames')->name('avatar-frames.')->group(function () {
+            Route::get('/', [AvatarFrameController::class, 'index'])->name('index');
+            Route::post('/', [AvatarFrameController::class, 'store'])->name('store');
+            Route::patch('/{avatarFrame}', [AvatarFrameController::class, 'update'])->name('update');
+            Route::delete('/{avatarFrame}', [AvatarFrameController::class, 'destroy'])->name('destroy');
         });
 
         // Platform settings
@@ -205,12 +229,12 @@ Route::patch('/{trait}', [PersonalityTraitController::class, 'update'])->name('u
         });
 
         // News (О проекте)
-        Route::prefix('news')->name('news.')->group(function () {
-            Route::get('/',          [NewsController::class, 'index'])->name('index');
-            Route::post('/',         [NewsController::class, 'store'])->name('store');
-            Route::patch('/{news}',  [NewsController::class, 'update'])->name('update');
-            Route::delete('/{news}', [NewsController::class, 'destroy'])->name('destroy');
-        });
+        // Route::prefix('news')->name('news.')->group(function () {
+        //     Route::get('/',          [NewsController::class, 'index'])->name('index');
+        //     Route::post('/',         [NewsController::class, 'store'])->name('store');
+        //     Route::patch('/{news}',  [NewsController::class, 'update'])->name('update');
+        //     Route::delete('/{news}', [NewsController::class, 'destroy'])->name('destroy');
+        // });
 
         // Help / FAQ CRUD
         Route::prefix('help-categories')->name('help-categories.')->group(function () {
@@ -246,6 +270,7 @@ Route::patch('/{trait}', [PersonalityTraitController::class, 'update'])->name('u
         });
 
         // Conversations (read-only for admin)
+        Route::get('/conversations', [ConversationController::class, 'index'])->name('conversations.index');
         Route::get('/conversations/{conversation}/messages', [ConversationController::class, 'messages'])->name('conversations.messages');
 
         // Support chat

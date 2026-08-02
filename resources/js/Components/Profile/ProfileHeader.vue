@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
-import { Edit, Setting, MoreFilled } from '@element-plus/icons-vue';
+import { Edit, Setting, MoreFilled, Picture, Location } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppSelect from '@/Components/AppSelect.vue';
 import AvatarUploader from '@/Components/AvatarUploader.vue';
@@ -76,13 +76,28 @@ function validateName(value) {
 }
 
 const TIMEZONES = [
-    'Europe/Moscow', 'Europe/Kiev', 'Europe/Minsk', 'Europe/London',
-    'Europe/Berlin', 'Europe/Paris', 'Europe/Amsterdam', 'Europe/Warsaw',
-    'Asia/Almaty', 'Asia/Tashkent', 'Asia/Yekaterinburg', 'Asia/Novosibirsk',
-    'Asia/Krasnoyarsk', 'Asia/Irkutsk', 'Asia/Yakutsk', 'Asia/Vladivostok',
-    'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
-    'Asia/Tokyo', 'Asia/Seoul', 'Asia/Shanghai', 'Asia/Dubai', 'Asia/Kolkata',
+    { value: 'Europe/Kaliningrad', label: 'Калининград UTC+2' },
+    { value: 'Europe/Moscow', label: 'Москва UTC+3' },
+    { value: 'Europe/Samara', label: 'Самара UTC+4' },
+    { value: 'Asia/Yekaterinburg', label: 'Екатеринбург UTC+5' },
+    { value: 'Asia/Omsk', label: 'Омск UTC+6' },
+    { value: 'Asia/Krasnoyarsk', label: 'Красноярск UTC+7' },
+    { value: 'Asia/Irkutsk', label: 'Иркутск UTC+8' },
+    { value: 'Asia/Yakutsk', label: 'Якутск UTC+9' },
+    { value: 'Asia/Vladivostok', label: 'Владивосток UTC+10' },
+    { value: 'Asia/Magadan', label: 'Магадан UTC+11' },
+    { value: 'Asia/Kamchatka', label: 'Камчатка UTC+12' },
 ];
+
+function detectTimezone() {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz) {
+        const found = TIMEZONES.find(t => t.value === tz);
+        if (found) {
+            form.timezone = tz;
+        }
+    }
+}
 
 const currentYear = new Date().getFullYear();
 
@@ -114,7 +129,7 @@ const monthOptions = computed(() =>
 );
 const timezoneOptions = computed(() => [
     { value: '', label: __('common.not_specified') },
-    ...TIMEZONES.map(tz => ({ value: tz, label: tz })),
+    ...TIMEZONES,
 ]);
 
 function submitEdit() {
@@ -148,11 +163,13 @@ function deleteAvatar() {
 </script>
 
 <template>
-    <div id="tour-header" class="profile-header">
+    <div id="tour-header" class="profile-header glass-panel">
 
         <!-- Рейтинг — верхний левый угол -->
         <div v-if="isIdol && rating !== null" class="header-rating">
-            <img src="/stars/10.png" class="star-img" alt="rating" />
+            <svg class="star-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="currentColor" d="M12 1.5l3.09 6.26L22 8.77l-5 4.87 1.18 6.88L12 17.27l-6.18 3.25L7 13.64 2 8.77l6.91-1.01L12 1.5z" />
+            </svg>
             <span class="rating-num">{{ rating }}</span>
         </div>
 
@@ -176,6 +193,17 @@ function deleteAvatar() {
         <div class="header-avatar-area">
             <div class="avatar-wrapper" :class="{ 'avatar-clickable': !isOwner && user.avatar_url }" @click="onAvatarClick">
                 <AvatarUploader :user="user" :size="190" :editable="isOwner" />
+
+                <!-- Бейдж новичка — правый нижний угол аватарки -->
+                <div v-if="isIdol && user.is_newbie" class="newbie-badge" @click.prevent.stop>
+                    <el-tooltip :trigger="['hover', 'click']" placement="top" effect="dark" popper-class="newbie-dark-tooltip">
+                        <template #content>
+                            Этот айдол — новичок, у него менее 25 выполненных заказов.<br>
+                            Не судите строго, у него лапки.
+                        </template>
+                        <img src="/not_alone_icon_without_background.png" alt="Newbie" />
+                    </el-tooltip>
+                </div>
             </div>
         </div>
 
@@ -208,7 +236,7 @@ function deleteAvatar() {
                 <h3 class="edit-title">{{ __('profile.header.edit') }}</h3>
 
                 <div class="edit-field">
-                    <label class="edit-label">{{ __('auth.name') }}</label>
+                    <label class="edit-label">Логин</label>
                     <input v-model="form.name" class="edit-input" type="text" :placeholder="__('profile.header.name_ph')"
                         @input="nameError = ''" />
                     <span v-if="nameError || form.errors.name" class="edit-field-error">
@@ -239,7 +267,13 @@ function deleteAvatar() {
                 </div>
 
                 <div class="edit-field">
-                    <label class="edit-label">{{ __('search.filters.timezone') }}</label>
+                    <label class="edit-label label-with-btn">
+                        {{ __('search.filters.timezone') }}
+                        <button type="button" class="btn-auto-detect" @click="detectTimezone" title="Определить автоматически">
+                            <el-icon><Location /></el-icon>
+                            Определить
+                        </button>
+                    </label>
                     <AppSelect v-model="form.timezone" :options="timezoneOptions" :placeholder="__('profile.header.tz_ph')" />
                 </div>
 
@@ -259,10 +293,6 @@ function deleteAvatar() {
     flex-shrink: 0;
     position: relative;
     overflow: visible;
-    background: #06060e;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 3px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -281,11 +311,35 @@ function deleteAvatar() {
     z-index: 10;
 }
 
+/* Бейдж новичка — в нижнем правом углу аватарки */
+.newbie-badge {
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    width: 70px;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    cursor: help;
+    transition: filter 0.3s ease;
+}
+.newbie-badge:hover {
+    filter: drop-shadow(0 0 10px rgba(255, 178, 239, 0.7));
+}
+.newbie-badge img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
 .action-pill {
     width: 32px;
     height: 32px;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     background: transparent;
     color: rgba(255, 255, 255, 0.55);
     display: flex;
@@ -341,7 +395,7 @@ function deleteAvatar() {
     right: 0;
     background: rgb(16, 11, 20);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 4px;
+    border-radius: var(--profile-border-radius, 8px);
     overflow: hidden;
     min-width: 180px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
@@ -387,6 +441,20 @@ function deleteAvatar() {
     display: flex;
     justify-content: center;
     padding: 1.5rem 0 1.25rem;
+    position: relative;
+    z-index: 2;
+}
+
+.profile-active-frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1.15);
+    width: 190px;
+    height: 190px;
+    object-fit: contain;
+    z-index: 5;
+    pointer-events: none;
 }
 
 .avatar-wrapper {
@@ -440,7 +508,7 @@ function deleteAvatar() {
     align-items: center;
     gap: 0.35rem;
     padding: 0.3rem 0.85rem;
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     font-size: 0.92rem;
     letter-spacing: 0.04em;
     line-height: 1;
@@ -483,13 +551,13 @@ function deleteAvatar() {
     padding: 0;
 }
 
-.star-img {
+.star-icon {
     width: 20px;
     height: 20px;
-    object-fit: contain;
+    color: var(--color-base-1);
     display: block;
-    opacity: 0.85;
     flex-shrink: 0;
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--color-base-1), transparent 30%));
 }
 
 .rating-num {
@@ -533,7 +601,7 @@ function deleteAvatar() {
 .edit-input {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     padding: 0.6rem 0.75rem;
     color: rgba(255, 255, 255, 0.85);
     font-size: 0.9rem;
@@ -557,7 +625,7 @@ function deleteAvatar() {
 .edit-select {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     padding: 0.6rem 0.75rem;
     color: rgba(255, 255, 255, 0.85);
     font-size: 0.9rem;
@@ -587,7 +655,7 @@ function deleteAvatar() {
     flex: 1;
     padding: 0.45rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     background: transparent;
     color: rgba(255, 255, 255, 0.4);
     font-size: 0.88rem;
@@ -605,7 +673,7 @@ function deleteAvatar() {
     padding: 0.4rem 0.85rem;
     font-size: 0.85rem;
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 65%);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     background: transparent;
     color: color-mix(in srgb, var(--color-base-1), white 20%);
     cursor: pointer;
@@ -624,7 +692,7 @@ function deleteAvatar() {
     margin-top: 0.5rem;
     padding: 0.8rem;
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 55%);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     background: color-mix(in srgb, var(--color-base-1), transparent 92%);
     color: #fff;
     font-size: 0.95rem;
@@ -703,7 +771,7 @@ function deleteAvatar() {
     width: 38px;
     height: 38px;
     border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     background: transparent;
     color: rgba(255, 255, 255, 0.55);
     font-size: 1.1rem;
@@ -723,7 +791,7 @@ function deleteAvatar() {
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 60%);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     background: color-mix(in srgb, var(--color-base-1), transparent 94%);
     color: color-mix(in srgb, var(--color-base-1), white 10%);
     font-size: 0.9rem;
@@ -750,7 +818,7 @@ function deleteAvatar() {
     max-width: min(80vw, 640px);
     max-height: 80vh;
     object-fit: contain;
-    border-radius: 8px;
+    border-radius: var(--profile-border-radius, 8px);
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 60%);
     box-shadow: 0 0 60px color-mix(in srgb, var(--color-base-1), transparent 85%);
     cursor: default;
@@ -764,5 +832,29 @@ function deleteAvatar() {
 .lb-enter-from,
 .lb-leave-to {
     opacity: 0;
+}
+.label-with-btn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.btn-auto-detect {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(255, 178, 239, 0.1);
+    border: 1px solid rgba(255, 178, 239, 0.2);
+    color: var(--color-base-1);
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: none;
+    letter-spacing: normal;
+}
+.btn-auto-detect:hover {
+    background: rgba(255, 178, 239, 0.2);
 }
 </style>

@@ -44,19 +44,23 @@ const handleClick = (event) => {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 440px;
-    height: 140px;
+    padding: 0.8rem 3rem;
+    min-width: 320px;
 
     /* Яркий фон: насыщенный градиент для глубины */
-    background: linear-gradient(
+    background-image: linear-gradient(
         135deg,
-        #2a1b2d 0%,
-        #121212 50%,
-        rgba(64, 166, 166, 0.18) 100%
+        rgba(56, 194, 194, 0.2) 0%,
+        rgba(199, 40, 130, 0.2) 100%
     );
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 
-    /* Эффект внутренней обводки через spread (spread = 2px) */
-    box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 3%);
+    /* Эффект внутренней обводки через spread (spread = 2px) + стеклянный блик сверху */
+    box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    
+    border-radius: 12px;
 
     /* Плавные переходы */
     transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -74,7 +78,7 @@ const handleClick = (event) => {
 
     /* Применяем шрифт Imbue */
     font-family: "Brygada 1918", serif;
-    font-weight: 100;
+    font-weight: 300;
 
     /* Усиленное свечение букв */
     text-shadow:
@@ -102,6 +106,7 @@ const handleClick = (event) => {
         rgba(255, 255, 255, 0.05) 0%,
         transparent 70%
     );
+    border-radius: 12px;
     pointer-events: none;
 }
 
@@ -109,7 +114,6 @@ const handleClick = (event) => {
 .start-button:hover {
     /* Усиливаем яркость обводки и фона */
     box-shadow: inset 0 0 0 2px rgba(255, 178, 239, 0.1);
-    /* transform: translateY(-15px); */
 }
 
 .start-button:hover .label {

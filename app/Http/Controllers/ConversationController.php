@@ -27,39 +27,17 @@ class ConversationController extends Controller
         $perPage  = 10;
 
         $query = Conversation::whereNull('order_id')
-            ->whereHas('participants', fn($q) => $q->where('user_id', $user->id))
-            ->with(['participants.user', 'lastMessage.sender'])
+            ->withUser($user->id)
+            ->with(['participants.user.activeFrame', 'lastMessage.sender.activeFrame'])
             ->orderByDesc('updated_at')
             ->orderByDesc('id');
 
         if ($search !== '') {
-            $like = '%' . $search . '%';
-            $query->where(function ($q) use ($user, $like) {
-                $q->where('is_support', true)
-                  ->orWhereHas('participants', function ($pq) use ($user, $like) {
-                      $pq->where('user_id', '!=', $user->id)
-                         ->whereHas('user', fn($uq) => $uq->whereRaw('LOWER(name) LIKE LOWER(?)', [$like]));
-                  });
-            });
+            $query->search($search, $user->id);
         }
 
         if ($request->boolean('unread')) {
-            $userId = $user->id;
-            $query->whereExists(function ($sub) use ($userId) {
-                $sub->from('messages as m')
-                    ->join('conversation_participants as cp', function ($j) use ($userId) {
-                        $j->on('cp.conversation_id', '=', 'm.conversation_id')
-                          ->where('cp.user_id', $userId);
-                    })
-                    ->whereColumn('m.conversation_id', 'conversations.id')
-                    ->where(function ($q) use ($userId) {
-                        $q->where('m.sender_id', '!=', $userId)->orWhereNull('m.sender_id');
-                    })
-                    ->where(function ($q) {
-                        $q->whereNull('cp.last_read_at')
-                          ->orWhereColumn('m.created_at', '>', 'cp.last_read_at');
-                    });
-            });
+            $query->unreadForUser($user->id);
         }
 
         if ($cursorAt && $cursorId) {
@@ -80,16 +58,7 @@ class ConversationController extends Controller
             $participantMe = $conversation->participants
                 ->firstWhere('user_id', $user->id);
 
-            $unread = 0;
-            if ($participantMe) {
-                $query = $conversation->messages()->where(function ($q) use ($user) {
-                    $q->where('sender_id', '!=', $user->id)->orWhereNull('sender_id');
-                });
-                if ($participantMe->last_read_at) {
-                    $query->where('created_at', '>', $participantMe->last_read_at);
-                }
-                $unread = $query->count();
-            }
+            $hasUnread = $participantMe->has_unread ?? false;
 
             return [
                 'id'           => $conversation->id,
@@ -99,6 +68,7 @@ class ConversationController extends Controller
                     'id'         => $other->id,
                     'name'       => $other->name,
                     'avatar_url' => $other->avatar_url,
+                    'active_frame' => $other->activeFrame,
                     'is_idol'    => $other->is_idol,
                     'gender'     => $other->gender,
                     ] : null,                'last_message' => $conversation->lastMessage ? [
@@ -108,7 +78,7 @@ class ConversationController extends Controller
                     'sender_id'  => $conversation->lastMessage->sender_id,
                     'created_at' => $conversation->lastMessage->created_at?->toISOString(),
                 ] : null,
-                'unread_count' => $unread,
+                'unread'       => $hasUnread,
                 'updated_at'   => $conversation->updated_at?->toISOString(),
                 'block'        => $this->blockStatus($conversation, $user),
             ];
@@ -126,7 +96,7 @@ class ConversationController extends Controller
             403
         );
 
-        $query = $conversation->messages()->with('sender')->latest();
+        $query = $conversation->messages()->with(['sender.activeFrame'])->latest();
         if ($request->before_id) {
             $query->where('id', '<', $request->before_id);
         }
@@ -143,6 +113,7 @@ class ConversationController extends Controller
             'sender_id'       => $m->sender_id,
             'sender_name'     => $m->sender?->name,
             'sender_avatar'   => $m->sender?->avatar_url,
+            'sender_frame'    => $m->sender?->activeFrame,
             'created_at'      => $m->created_at->toISOString(),
             'conversation_id' => $m->conversation_id,
         ]);
@@ -150,7 +121,10 @@ class ConversationController extends Controller
         // Mark as read and broadcast
         $conversation->participants()
             ->where('user_id', $user->id)
-            ->update(['last_read_at' => now()]);
+            ->update([
+                'last_read_at' => now(),
+                'has_unread' => false,
+            ]);
 
         broadcast(new MessageRead($conversation->id, $user->id, now()->toISOString()));
 
@@ -164,8 +138,8 @@ class ConversationController extends Controller
         $orderData = null;
         if ($conversation->order_id) {
             $conversation->load([
-                'order.customer',
-                'order.idol',
+                'order.customer.activeFrame',
+                'order.idol.activeFrame',
                 'order.cancelledBy',
                 'order.items.service.category',
                 'order.items.service.timeUnit',
@@ -184,8 +158,8 @@ class ConversationController extends Controller
                     'completed_at'  => $o->completed_at?->toISOString(),
                     'completion_confirmed_by_idol'     => $o->completion_confirmed_by_idol,
                     'completion_confirmed_by_customer' => $o->completion_confirmed_by_customer,
-                    'customer'      => ['id' => $o->customer->id, 'name' => $o->customer->name, 'avatar_url' => $o->customer->avatar_url],
-                    'idol'          => ['id' => $o->idol->id, 'name' => $o->idol->name, 'avatar_url' => $o->idol->avatar_url, 'gender' => $o->idol->gender],
+                    'customer'      => ['id' => $o->customer->id, 'name' => $o->customer->name, 'avatar_url' => $o->customer->avatar_url, 'active_frame' => $o->customer->activeFrame],
+                    'idol'          => ['id' => $o->idol->id, 'name' => $o->idol->name, 'avatar_url' => $o->idol->avatar_url, 'active_frame' => $o->idol->activeFrame, 'gender' => $o->idol->gender],
                     'items'         => $o->items->map(fn($item) => [
                         'id'       => $item->id,
                         'quantity' => $item->quantity ?? 1,
@@ -212,6 +186,7 @@ class ConversationController extends Controller
                 'id'         => $other->id,
                 'name'       => $other->name,
                 'avatar_url' => $other->avatar_url,
+                'active_frame' => $other->activeFrame,
                 'is_idol'    => $other->is_idol,
                 'gender'     => $other->gender,
                 ] : null,            'other_last_read_at' => $otherParticipant?->last_read_at?->toISOString(),
@@ -337,6 +312,7 @@ class ConversationController extends Controller
         ]);
 
         $conversation->touch();
+        $conversation->participants()->where('user_id', '!=', $user->id)->update(['has_unread' => true]);
 
         $msg->load('sender');
 
@@ -416,6 +392,7 @@ class ConversationController extends Controller
         ]);
 
         $conversation->touch();
+        $conversation->participants()->where('user_id', '!=', $user->id)->update(['has_unread' => true]);
         $msg->load('sender');
 
         try {
@@ -465,7 +442,7 @@ class ConversationController extends Controller
             'file' => ['required', 'file', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
         ]);
 
-        $path = $request->file('file')->store("chat/{$conversation->id}", 'public');
+        $path = $request->file('file')->store("chat/{$conversation->id}");
 
         return response()->json(['url' => Storage::url($path)]);
     }

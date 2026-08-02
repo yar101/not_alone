@@ -24,6 +24,7 @@ const LABELS = computed(() => {
         has_remarks: __("profile.services.status.remarks"),
         rejected: __("profile.services.status.rejected"),
         hidden: __("profile.services.status.hidden"),
+        trial: "1-й заказ 0 ₽",
     };
 });
 
@@ -58,6 +59,12 @@ const STYLES = {
         border: "rgba(180,180,200,0.18)",
         shine: "rgba(220,220,230,0.38)",
     },
+    trial: {
+        color: "#5bc0de",
+        bg: "rgba(91,192,222,0.14)",
+        border: "rgba(91,192,222,0.28)",
+        shine: "rgba(150,220,250,0.60)",
+    },
 };
 
 const label = computed(() => LABELS.value[props.status] ?? props.status);
@@ -83,7 +90,7 @@ const style = computed(() => STYLES[props.status] ?? STYLES.pending);
     align-self: flex-start;
     align-items: center;
     padding: 0.2rem 0.65rem;
-    margin: 0.4rem;
+    margin: 0 0.4rem;
     border-radius: 5px;
     font-size: 0.8rem;
     font-weight: 600;

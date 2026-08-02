@@ -4,66 +4,122 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0e0e1a">
-  <title>Нет соединения — NoAlone</title>
+  <title>Нет соединения — Not Alone</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       height: 100%;
-      background: #0e0e1a;
+      background: linear-gradient(180deg, rgba(255, 42, 191, 0.09) 0%, rgba(0, 0, 0, 0.56) 100%) fixed, #0e0e1a;
       color: rgba(255,255,255,0.82);
       font-family: system-ui, -apple-system, sans-serif;
+      overflow: hidden;
     }
+    .background-circles {
+      position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0;
+    }
+    .circle {
+      border-radius: 50%;
+      background: rgba(60, 60, 190, 0.03);
+      box-shadow: inset 0 0 30px rgba(255, 255, 255, 0.015);
+      position: absolute;
+      right: -10vw;
+      top: -10vw;
+    }
+    .circle1 { width: clamp(350px, 60vw, 900px); height: clamp(350px, 60vw, 900px); }
+    .circle2 { width: clamp(250px, 45vw, 700px); height: clamp(250px, 45vw, 700px); }
+    .circle3 { width: clamp(150px, 30vw, 500px); height: clamp(150px, 30vw, 500px); }
+
+    @media (max-width: 768px) {
+        .circle {
+            right: 50%;
+            top: 0;
+            transform: translate(50%, -20%);
+        }
+    }
+    
     .wrap {
+      position: relative;
+      z-index: 10;
       min-height: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 1rem;
       padding: 2rem;
+    }
+    .glass-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.2rem;
       text-align: center;
+      background: rgba(10, 7, 20, 0.7);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 4px 20px rgba(0, 0, 0, 0.3);
+      border-radius: 20px;
+      padding: 3rem 2rem;
+      max-width: 400px;
+      width: 100%;
     }
     .icon {
-      font-size: 3rem;
+      font-size: 3.5rem;
       line-height: 1;
-      opacity: 0.5;
+      opacity: 0.9;
+      filter: drop-shadow(0 0 15px rgba(255, 178, 239, 0.4));
     }
     h1 {
-      font-size: 1.5rem;
+      font-size: 1.6rem;
       font-weight: 700;
       letter-spacing: -0.02em;
       color: #fff;
     }
     p {
       font-size: 0.95rem;
-      color: rgba(255,255,255,0.45);
-      max-width: 280px;
+      color: rgba(255,255,255,0.65);
       line-height: 1.5;
     }
     button {
       margin-top: 0.5rem;
-      padding: 0.6rem 1.6rem;
-      background: rgba(160,160,255,0.12);
-      border: 1px solid rgba(160,160,255,0.3);
+      padding: 0.8rem 2rem;
+      background: rgba(20, 20, 20, 0.5);
+      border: 1px solid rgba(255, 178, 239, 0.2);
       border-radius: 8px;
-      color: rgba(200,200,255,0.9);
-      font-size: 0.9rem;
+      color: #ffb2ef;
+      font-size: 0.95rem;
       font-family: inherit;
       cursor: pointer;
-      transition: background 0.15s, border-color 0.15s;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
     }
     button:hover {
-      background: rgba(160,160,255,0.2);
-      border-color: rgba(160,160,255,0.5);
+      background: rgba(15, 12, 25, 0.85);
+      border-color: rgba(255, 178, 239, 0.5);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 6px 24px rgba(0, 0, 0, 0.4);
+      transform: translateY(-2px);
+    }
+    button:active {
+      transform: translateY(0);
     }
   </style>
 </head>
 <body>
+  <div class="background-circles">
+    <div class="circle circle1"></div>
+    <div class="circle circle2"></div>
+    <div class="circle circle3"></div>
+  </div>
   <div class="wrap">
-    <p class="icon">⚡</p>
-    <h1>Нет соединения</h1>
-    <p>Проверьте подключение к интернету и попробуйте ещё раз</p>
-    <button onclick="location.reload()">Обновить</button>
+    <div class="glass-card">
+      <div class="icon">⚡</div>
+      <h1>Нет соединения</h1>
+      <p>Проверьте подключение к интернету и попробуйте ещё раз</p>
+      <button onclick="location.reload()">Обновить</button>
+    </div>
   </div>
 </body>
 </html>

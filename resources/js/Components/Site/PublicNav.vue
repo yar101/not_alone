@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
-import { router } from "@inertiajs/vue3";
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
+import { router, Link } from "@inertiajs/vue3";
 import { useTranslations } from "@/composables/useTranslations";
 import LocaleSwitcher from "@/Components/Site/LocaleSwitcher.vue";
 
@@ -18,14 +18,14 @@ const tabs = computed(() => [
     },
     {
         key: "about",
-        label: __("nav.about"),
+        label: "О нас",
         icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L13.8 9.2L21 12L13.8 14.8L12 22L10.2 14.8L3 12L10.2 9.2L12 2Z"/></svg>`,
     },
-    {
+    /* {
         key: "news",
         label: __("nav.news"),
         icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8M15 18h-5M10 6h8v4h-8z"/></svg>`,
-    },
+    }, */
     {
         key: "contacts",
         label: __("nav.contacts"),
@@ -35,46 +35,71 @@ const tabs = computed(() => [
 
 const visualActive = ref(props.activePage);
 const mobileMenuOpen = ref(false);
-let navigating = false;
+
+watch(
+    () => props.activePage,
+    (val) => {
+        visualActive.value = val;
+    }
+);
+
+// Запрещаем скролл когда мобильное меню открыто
+function toggleBodyScroll(enable) {
+    if (enable) {
+        document.body.style.overflow = 'auto';
+    } else {
+        document.body.style.overflow = 'hidden';
+    }
+}
 
 // Закрываем мобильное меню при ресайзе на десктопный размер
 function handleResize() {
     if (window.innerWidth > 768 && mobileMenuOpen.value) {
         mobileMenuOpen.value = false;
+        toggleBodyScroll(true);
     }
 }
 
 onMounted(() => window.addEventListener("resize", handleResize));
-onUnmounted(() => window.removeEventListener("resize", handleResize));
+onUnmounted(() => {
+    window.removeEventListener("resize", handleResize);
+    // Сбрасываем скролл при размонтировании
+    document.body.style.overflow = 'auto';
+});
 
 function getHref(tab) {
     if (tab.key === "home") return "/";
     if (tab.key === "about") return route("about");
-    if (tab.key === "news") return route("news");
+    // if (tab.key === "news") return route("news");
     if (tab.key === "contacts") return route("contacts");
 }
 
 function toggleMobileMenu() {
     mobileMenuOpen.value = !mobileMenuOpen.value;
+    // Задержка вызова toggleBodyScroll до следующего цикла, чтобы mobileMenuOpen.value обновилось
+    nextTick(() => {
+        toggleBodyScroll(!mobileMenuOpen.value);
+    });
 }
 
 function closeMobileMenu() {
-    mobileMenuOpen.value = false;
+    if (mobileMenuOpen.value) {
+        mobileMenuOpen.value = false;
+        toggleBodyScroll(true);
+    }
 }
 
 function onTabClick(tab) {
-    if (tab.key === visualActive.value || navigating) return;
-    navigating = true;
+    if (props.activePage === tab.key) return;
     visualActive.value = tab.key;
 
     // Закрываем мобильное меню перед переходом
     if (mobileMenuOpen.value) {
         mobileMenuOpen.value = false;
+        toggleBodyScroll(true);
     }
 
-    setTimeout(() => {
-        router.visit(getHref(tab));
-    }, 200);
+    router.visit(getHref(tab));
 }
 </script>
 
@@ -106,22 +131,22 @@ function onTabClick(tab) {
 
         <!-- Основная навигация -->
         <nav class="pub-tabs" :class="{ 'pub-tabs--open': mobileMenuOpen }">
-            <button
-                v-for="tab in tabs"
-                :key="tab.key"
-                class="pub-tab"
-                :class="{ 'pub-tab--active': visualActive === tab.key }"
-                @click="onTabClick(tab)"
-            >
-                <span class="pub-tab__icon" v-html="tab.icon" />
-                {{ tab.label }}
-            </button>
+            <template v-for="(tab, index) in tabs" :key="tab.key">
+                <button
+                    class="pub-tab"
+                    :class="{ 'pub-tab--active': visualActive === tab.key }"
+                    @click="onTabClick(tab)"
+                >
+                    <span class="pub-tab__icon" v-html="tab.icon" />
+                    {{ tab.label }}
+                </button>
+            </template>
 
             <!-- Разделитель для десктопа -->
-            <div class="pub-tabs__divider" />
+            <div v-show="false" class="pub-tabs__divider" />
 
             <!-- Свитчер языков -->
-            <div class="pub-locale-wrap">
+            <div v-show="false" class="pub-locale-wrap">
                 <LocaleSwitcher />
             </div>
         </nav>
@@ -156,13 +181,13 @@ function onTabClick(tab) {
 .pub-tabs {
     display: inline-flex;
     gap: 0.25rem;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(10, 7, 20, 0.7);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    padding: 0.3rem;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    animation: pub-tabs-appear 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 4px 20px rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    padding: 0.35rem;
 }
 
 /* Масштабирование для всех экранов (включая 4K) */
@@ -171,37 +196,35 @@ function onTabClick(tab) {
     align-items: center;
     justify-content: center;
     gap: 0.45rem;
-    border-radius: 7px;
+    border-radius: 8px; /* Идеально вписывается в 12px обертки с padding 0.35rem */
     border: 1px solid transparent;
     background: transparent;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(255, 255, 255, 0.75);
     font-family: "Rubik", sans-serif;
     font-size: 1rem;
     padding: 0.5rem 1.1rem;
     cursor: pointer;
     white-space: nowrap;
-    transition:
-        color 0.18s,
-        background 0.18s,
-        border-color 0.18s;
+    transition: all 0.2s ease;
 }
 
-.pub-tab:hover {
-    color: rgba(255, 255, 255, 0.7);
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.08);
+.pub-tab:not(.pub-tab--active):hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.05);
 }
 
 .pub-tab--active {
-    color: rgba(255, 255, 255, 0.92);
+    color: #ffb2ef;
     background: rgba(255, 178, 239, 0.15);
     border-color: rgba(255, 178, 239, 0.3);
+    box-shadow: inset 0 1px 0 rgba(255, 178, 239, 0.4);
 }
 
 .pub-tab__icon {
     flex-shrink: 0;
-    opacity: 0.5;
-    transition: opacity 0.18s;
+    opacity: 0.75;
+    transition: opacity 0.2s ease;
     display: flex;
     align-items: center;
 }
@@ -215,12 +238,13 @@ function onTabClick(tab) {
 
 .pub-tab--active .pub-tab__icon {
     opacity: 1;
-    color: var(--color-base-1, #ffffff);
+    color: #ffb2ef; /* Явный розовый для иконки активного таба */
 }
 
-.pub-tab:hover .pub-tab__icon {
-    opacity: 0.8;
+.pub-tab:not(.pub-tab--active):hover .pub-tab__icon {
+    opacity: 1;
 }
+
 
 /* Кнопка-бургер */
 .pub-mobile-toggle {
@@ -228,14 +252,15 @@ function onTabClick(tab) {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(10, 7, 20, 0.7);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255, 255, 255, 0.9);
     padding: 0.5rem 0.8rem;
     cursor: pointer;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 4px 20px rgba(0, 0, 0, 0.3);
     transition:
         background 0.2s,
         color 0.2s;
@@ -250,10 +275,7 @@ function onTabClick(tab) {
     opacity: 0.9;
 }
 
-.pub-mobile-toggle:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-}
+
 
 /* Оверлей */
 .pub-nav__overlay {
@@ -262,7 +284,7 @@ function onTabClick(tab) {
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
-    z-index: 98;
+    z-index: 999;
 }
 
 /* Анимация появления оверлея */
@@ -275,30 +297,17 @@ function onTabClick(tab) {
     opacity: 0;
 }
 
-/* Анимация появления панели при первой загрузке */
-@keyframes pub-tabs-appear {
-    from {
-        opacity: 0;
-        transform: translateY(-6px) scale(0.97);
-        filter: blur(4px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        filter: blur(0);
-    }
-}
-
 /* ========== МОБИЛЬНАЯ ВЕРСИЯ (≤768px) ========== */
 @media (max-width: 768px) {
     .pub-nav {
         justify-content: flex-end; /* бургер справа */
         padding: 0;
+        /* position: relative сохраняется с десктопной версии */
     }
 
     .pub-mobile-toggle {
         display: flex;
-        z-index: 100;
+        z-index: 1000;
         flex: 1;
         justify-content: space-between;
         padding: 0.6rem 1rem;
@@ -307,35 +316,39 @@ function onTabClick(tab) {
     /* Скрываем десктопную панель, готовим мобильное меню */
     .pub-tabs {
         display: none;
-        position: absolute;
-        top: calc(100% + 0.5rem);
-        right: 0.5rem;
-        left: 0.5rem;
+        position: fixed;
+        top: 100px;
+        right: 1rem;
+        left: 1rem;
         flex-direction: column;
-        background: rgba(20, 20, 30, 0.85);
-        backdrop-filter: blur(30px);
-        -webkit-backdrop-filter: blur(30px);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 14px;
-        padding: 0.8rem;
-        gap: 0.5rem;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-        z-index: 99;
+        background: rgba(10, 7, 20, 0.85);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 0.5rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        z-index: 1000;
         animation: none; /* убираем анимацию загрузки, добавим свою */
-        transform-origin: top right;
+        transform-origin: top center;
+    }
+
+    .pub-nav-logo-wrapper {
+        display: none; /* Прячем центральный логотип на мобилках */
     }
 
     /* Открытое мобильное меню */
     .pub-tabs--open {
         display: flex;
+        z-index: 1000;
         animation: mobile-menu-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
 
     .pub-tab {
         width: 100%;
         justify-content: flex-start;
-        padding: 0.7rem 1rem;
-        font-size: 1rem; /* фиксированный читаемый размер */
+        padding: 0.9rem 1rem;
+        font-size: 1.1rem; /* увеличенный читаемый размер для мобилки */
     }
 
     .pub-mobile-locale {
@@ -349,7 +362,7 @@ function onTabClick(tab) {
     @keyframes mobile-menu-in {
         from {
             opacity: 0;
-            transform: scale(0.95) translateY(-8px);
+            transform: scale(0.95) translateY(-10px);
         }
         to {
             opacity: 1;

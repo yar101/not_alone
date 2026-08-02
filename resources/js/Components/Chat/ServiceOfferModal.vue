@@ -114,7 +114,7 @@ onMounted(() => window.addEventListener('resize', onResize));
 onUnmounted(() => window.removeEventListener('resize', onResize));
 
 function toggleAccordion(catId) {
-    activeCategory.value = activeCategory.value === catId ? null : catId;
+    activeCategory.value = catId;
 }
 
 watch(() => props.modelValue, (val) => {
@@ -298,6 +298,11 @@ watch(() => props.modelValue, (val) => {
 </template>
 
 <style scoped>
+:deep(.site-modal-body) {
+    display: flex;
+    flex-direction: column;
+}
+
 .sof-title {
     font-size: 0.82rem;
     font-weight: 700;
@@ -613,20 +618,24 @@ watch(() => props.modelValue, (val) => {
 
 /* ── Footer (selected + submit) ──────────────────── */
 .sof-footer {
-    margin: 1rem -2rem -2rem;
-    padding: 1rem 2rem 1.5rem;
-    background: rgba(7,6,11,0.82);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border-top: 1px solid rgba(255,255,255,0.05);
+    position: sticky;
+    bottom: -2rem;
+    margin: auto -2rem -2rem;
+    padding: 1.5rem 2rem 1.5rem;
+    background: rgb(10, 7, 20);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-top: 1px solid color-mix(in srgb, var(--color-base-2), transparent 80%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    z-index: 10;
 }
 
 @media (max-width: 768px) {
     .sof-footer {
         position: sticky;
         bottom: -1.25rem;
-        margin: 0 -1.25rem -1.25rem;
-        padding: 0.75rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom));
+        margin: auto -1.25rem -1.25rem;
+        padding: 0.75rem 1.25rem calc(2rem + env(safe-area-inset-bottom));
     }
 }
 </style>

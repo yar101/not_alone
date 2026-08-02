@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useTranslations } from '@/composables/useTranslations';
+import { Check } from '@element-plus/icons-vue';
 
 const { __ } = useTranslations();
 
@@ -31,7 +32,7 @@ const sortedItems = computed(() => [
 </script>
 
 <template>
-    <div v-if="remaining > 0" class="pcl">
+    <div v-if="remaining > 0" class="pcl glass-panel">
         <!-- Header -->
         <div class="pcl__header">
             <span class="pcl__title">{{ __('checklist.title') }}</span>
@@ -53,10 +54,7 @@ const sortedItems = computed(() => [
                 :style="{ '--idx': idx }"
             >
                 <span class="pcl__check-wrap" :class="{ 'pcl__check-wrap--done': item.done }">
-                    <svg class="pcl__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline v-if="item.done" points="20 6 9 17 4 12" stroke-width="2.5" />
-                        <circle v-else cx="12" cy="12" r="8" stroke-width="1.75" />
-                    </svg>
+                    <el-icon v-if="item.done" class="pcl__check"><Check /></el-icon>
                 </span>
                 <span class="pcl__label">{{ item.label }}</span>
             </li>
@@ -68,9 +66,6 @@ const sortedItems = computed(() => [
 .pcl {
     margin-top: 0.65rem;
     padding: 0.875rem 1rem 0.75rem;
-    background: linear-gradient(135deg, color-mix(in srgb, var(--color-base-1), transparent 94%) 0%, rgba(255, 255, 255, 0.02) 100%);
-    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 82%);
-    border-radius: 3px;
     font-family: 'Rubik', sans-serif;
     position: relative;
     overflow: hidden;

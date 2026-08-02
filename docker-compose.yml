@@ -57,6 +57,14 @@ services:
       VITE_REVERB_HOST: ${DEV_HOST}
       VITE_REVERB_PORT: 8443
       VITE_REVERB_SCHEME: https
+      AWS_ACCESS_KEY_ID: sail
+      AWS_SECRET_ACCESS_KEY: password
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_BUCKET: not-alone
+      AWS_ENDPOINT: http://minio:9000
+      AWS_URL: https://${DEV_HOST}:8443/not-alone
+      AWS_USE_PATH_STYLE_ENDPOINT: "true"
+      FILESYSTEM_DISK: s3
     volumes:
       - .:/var/www/html
       - ./docker/nginx-dev.conf:/etc/nginx/nginx.conf:ro
@@ -74,6 +82,7 @@ services:
       CONTAINER_ROLE: worker
       APP_ENV: local
       APP_DEBUG: "true"
+      APP_URL: https://${DEV_HOST}:8443
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
@@ -88,6 +97,14 @@ services:
       REVERB_HOST: reverb
       REVERB_PORT: 8080
       REVERB_SCHEME: http
+      AWS_ACCESS_KEY_ID: sail
+      AWS_SECRET_ACCESS_KEY: password
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_BUCKET: not-alone
+      AWS_ENDPOINT: http://minio:9000
+      AWS_URL: https://${DEV_HOST}:8443/not-alone
+      AWS_USE_PATH_STYLE_ENDPOINT: "true"
+      FILESYSTEM_DISK: s3
     volumes:
       - .:/var/www/html
     depends_on:
@@ -103,6 +120,7 @@ services:
       CONTAINER_ROLE: scheduler
       APP_ENV: local
       APP_DEBUG: "true"
+      APP_URL: https://${DEV_HOST}:8443
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
@@ -117,6 +135,14 @@ services:
       REVERB_HOST: reverb
       REVERB_PORT: 8080
       REVERB_SCHEME: http
+      AWS_ACCESS_KEY_ID: sail
+      AWS_SECRET_ACCESS_KEY: password
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_BUCKET: not-alone
+      AWS_ENDPOINT: http://minio:9000
+      AWS_URL: https://${DEV_HOST}:8443/not-alone
+      AWS_USE_PATH_STYLE_ENDPOINT: "true"
+      FILESYSTEM_DISK: s3
     volumes:
       - .:/var/www/html
     depends_on:
@@ -172,5 +198,36 @@ services:
     command: npm run dev
     restart: unless-stopped
 
+  minio:
+    image: minio/minio:latest
+    container_name: no_alone_minio
+    ports:
+      - "9000:9000"
+      - "8900:8900"
+    environment:
+      MINIO_ROOT_USER: sail
+      MINIO_ROOT_PASSWORD: password
+    volumes:
+      - minio_data:/data/minio
+    command: minio server /data/minio --console-address ":8900"
+    restart: unless-stopped
+
+  minio-setup:
+    image: minio/mc
+    container_name: no_alone_minio_setup
+    depends_on:
+      - minio
+    volumes:
+      - ./storage/app/public/cat_images:/cat_images:ro
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 sail password;
+      /usr/bin/mc mb myminio/not-alone || true;
+      /usr/bin/mc anonymous set download myminio/not-alone;
+      /usr/bin/mc cp -r /cat_images myminio/not-alone/;
+      exit 0;
+      "
+
 volumes:
   db_data:
+  minio_data:

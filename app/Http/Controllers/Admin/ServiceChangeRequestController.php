@@ -146,7 +146,7 @@ class ServiceChangeRequestController extends Controller
         $service = $changeRequest->service;
 
         if ($data['decision'] === 'approved') {
-            DB::transaction(function () use ($changeRequest, $service, $admin) {
+            DB::transaction(function () use ($changeRequest, $service, $admin, $data) {
                 $updates = [];
                 foreach ($changeRequest->changed_fields as $field) {
                     if ($field === 'name') {
@@ -158,12 +158,14 @@ class ServiceChangeRequestController extends Controller
                 $service->update($updates);
 
                 $changeRequest->update([
-                    'status'      => 'approved',
-                    'reviewed_by' => $admin->id,
-                    'reviewed_at' => now(),
+                    'status'         => 'approved',
+                    'flagged_fields' => $data['flagged_fields'] ?? null,
+                    'field_comments' => $data['field_comments'] ?? null,
+                    'reviewed_by'    => $admin->id,
+                    'reviewed_at'    => now(),
                 ]);
 
-                $service->user->notify(new ServiceChangeApprovedNotification($service, $changeRequest->changed_fields));
+                $service->user->notify(new ServiceChangeApprovedNotification($service, $changeRequest->changed_fields, $data['flagged_fields'] ?? null, $data['field_comments'] ?? null));
                 broadcast(new NewNotification('private', $service->user->id));
             });
 

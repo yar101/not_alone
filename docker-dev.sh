@@ -42,5 +42,7 @@ echo "  📦 Redis Port:          $DEV_HOST:6379"
 echo "================================================================="
 echo ""
 
+# Seeding is now handled completely in the container's entrypoint.sh -> DatabaseSeeder
+
 # Run Docker Compose
 docker compose up --build

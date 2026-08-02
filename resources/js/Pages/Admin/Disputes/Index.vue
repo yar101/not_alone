@@ -308,7 +308,7 @@ function systemLabel(msg) {
                                     class="decision-btn decision-btn--reject"
                                     :class="{ 'decision-btn--active': decision === 'rejected' }"
                                     @click="decision = 'rejected'"
-                                >Отклонить → Выполнен</button>
+                                >Отклонить → Завершён</button>
                             </div>
 
                             <div class="section-label" style="margin-top:0.75rem;">Заметка (необязательно)</div>

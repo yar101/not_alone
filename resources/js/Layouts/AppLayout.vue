@@ -11,6 +11,7 @@ import AuthModal from "@/Components/Site/AuthModal.vue";
 import UserSidebar from "@/Components/UserSidebar.vue";
 import LocaleLoader from "@/Components/LocaleLoader.vue";
 import PwaUpdateModal from "@/Components/PwaUpdateModal.vue";
+import StrikeAlertModal from "@/Components/Site/StrikeAlertModal.vue";
 import { useTranslations } from "@/composables/useTranslations";
 
 const { __ } = useTranslations();
@@ -42,6 +43,11 @@ const cartDropdown = ref(null);
 const cartInitialTab = ref("services");
 const sidebarOpen = ref(false);
 const pwaUpdateAvailable = ref(false);
+const isScrolled = ref(false);
+
+function handleScroll() {
+    isScrolled.value = window.scrollY > 10;
+}
 
 function handleToggleChatEvent(e) {
     cartOpen.value = false;
@@ -210,7 +216,7 @@ onMounted(() => {
         msgChannel = window.Echo.private(
             `App.Models.User.${user.value.id}`,
         ).listen(".message.received", () => {
-            router.reload({ only: ["unread_messages_count"] });
+            router.reload({ only: ["has_unread_messages"] });
         });
 
         onlineChannel = window.Echo.join("presence-online")
@@ -241,6 +247,8 @@ function handleUserBannedEvent() {
 }
 
 onMounted(() => {
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
     window.addEventListener("noalone:open-order", handleOpenOrderEvent);
     window.addEventListener("noalone:user-banned", handleUserBannedEvent);
     window.addEventListener("noalone:toggle-chat", handleToggleChatEvent);
@@ -257,6 +265,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+    window.removeEventListener("scroll", handleScroll);
     window.removeEventListener("noalone:open-order", handleOpenOrderEvent);
     window.removeEventListener("noalone:user-banned", handleUserBannedEvent);
     window.removeEventListener("noalone:toggle-chat", handleToggleChatEvent);
@@ -269,10 +278,11 @@ onUnmounted(() => {
 <template>
     <LocaleLoader />
     <PwaUpdateModal :show="pwaUpdateAvailable" />
+    <StrikeAlertModal />
     <div class="app-wrap">
-        <header class="app-header">
+        <header class="app-header" :class="{ 'app-header--scrolled': isScrolled }">
             <Link href="/" class="app-logo">
-                <img src="/app-logo-v3.png" alt="NoAlone" class="app-logo__img" />
+                <img src="/app-logo-v3.webp" alt="Not Alone" class="app-logo__img" />
             </Link>
 
             <div class="header-right">
@@ -293,10 +303,11 @@ onUnmounted(() => {
 
                 <template v-if="user">
                     <button @click="sidebarOpen = true" id="tour-user-chip" class="user-chip">
-                        <div
-                            class="user-avatar"
-                            :class="{ 'is-male': user.gender === 'male' }"
-                        >
+                        <div class="user-avatar-wrap">
+                            <div
+                                class="user-avatar"
+                                :class="{ 'is-male': user.gender === 'male' }"
+                            >
                             <template v-if="user.avatar_url">
                                 <div
                                     v-if="!avatarLoaded"
@@ -316,6 +327,8 @@ onUnmounted(() => {
                             <span v-else class="user-avatar__initials">{{
                                 initials
                             }}</span>
+                            </div>
+                            <img v-if="user.active_frame_url || user.active_frame?.image_url" :src="user.active_frame_url || user.active_frame.image_url" class="applayout-active-frame" alt="" />
                         </div>
                         <span class="user-name-clip">
                             <span class="user-name">{{ user.name }}</span>
@@ -331,7 +344,7 @@ onUnmounted(() => {
                     </button>
                     <button
                         @click="openAuth('register')"
-                        class="guest-btn guest-btn--fill"
+                        class="guest-btn guest-btn--outline"
                     >
                         {{ __("common.register") }}
                     </button>
@@ -387,7 +400,7 @@ onUnmounted(() => {
 /* ── Layout wrap ─────────────────────────────────────────── */
 .app-wrap {
     min-height: 100vh;
-    background: #0a0a14;
+    background: transparent;
     display: flex;
     flex-direction: column;
 }
@@ -402,10 +415,18 @@ onUnmounted(() => {
     align-items: center;
     justify-content: space-between;
     padding: 0 2rem;
-    background: rgba(10, 10, 20, 0.96);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: transparent;
     flex-shrink: 0;
+    border-bottom: 1px solid transparent;
+    transition: background 0.3s, backdrop-filter 0.3s, -webkit-backdrop-filter 0.3s, border-color 0.3s;
+}
+
+.app-header--scrolled {
+    background: rgba(10, 7, 20, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
 /* ── Logo ────────────────────────────────────────────────── */
@@ -440,6 +461,24 @@ onUnmounted(() => {
         background 0.18s,
         border-color 0.18s;
 }
+
+.user-avatar-wrap {
+    position: relative;
+    display: flex;
+}
+
+.applayout-active-frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1.15);
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    z-index: 5;
+    pointer-events: none;
+}
+
 @media (hover: hover) {
     .user-chip:hover {
         background: rgba(255, 178, 239, 0.08);
@@ -552,11 +591,7 @@ onUnmounted(() => {
     font-weight: 600;
     letter-spacing: 0.04em;
     text-decoration: none;
-    transition:
-        background 0.18s,
-        border-color 0.18s,
-        color 0.18s,
-        box-shadow 0.18s;
+    transition: ease-in-out 0.2s;
     white-space: nowrap;
 }
 .guest-btn--outline {
@@ -568,27 +603,6 @@ onUnmounted(() => {
     border-color: color-mix(in srgb, var(--color-base-1), transparent 30%);
     color: color-mix(in srgb, var(--color-base-1), white 40%);
     background: color-mix(in srgb, var(--color-base-1), transparent 92%);
-}
-.guest-btn--fill {
-    border: 1px solid transparent;
-    background: linear-gradient(
-        135deg,
-        color-mix(in srgb, var(--color-base-1), transparent 78%) 0%,
-        color-mix(in srgb, var(--color-base-1), black 20%) 100%
-    );
-    color: color-mix(in srgb, var(--color-base-1), white 40%);
-    box-shadow: 0 0 12px
-        color-mix(in srgb, var(--color-base-1), transparent 80%);
-}
-.guest-btn--fill:hover {
-    background: linear-gradient(
-        135deg,
-        color-mix(in srgb, var(--color-base-1), transparent 65%) 0%,
-        color-mix(in srgb, var(--color-base-1), black 10%) 100%
-    );
-    box-shadow: 0 0 18px
-        color-mix(in srgb, var(--color-base-1), transparent 60%);
-    color: color-mix(in srgb, var(--color-base-1), white 50%);
 }
 
 /* ── Tablet (640–899px) ──────────────────────────────────── */
@@ -603,7 +617,6 @@ onUnmounted(() => {
     .app-header {
         height: 60px;
         padding: 0 1rem;
-        border-bottom-color: transparent;
     }
     .app-logo__img {
         height: 36px;

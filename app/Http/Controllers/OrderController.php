@@ -43,67 +43,12 @@ class OrderController extends Controller
         $user  = $request->user();
         $idol  = User::findOrFail($request->idol_id);
 
-        $serviceIds  = collect($request->services)->pluck('id');
-        $quantityMap = collect($request->services)->keyBy('id');
-
-        $services = Service::whereIn('id', $serviceIds)
-            ->where('user_id', $idol->id)
-            ->where('is_active', true)
-            ->with(['category', 'timeUnit'])
-            ->get();
-
-        if ($services->count() !== $serviceIds->unique()->count()) {
-            return response()->json(['error' => 'Некоторые услуги недоступны'], 422);
+        try {
+            [$order, $conversation] = $this->service->createOrder($user, $idol, $request->services);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
         }
 
-        if ($idol->isActiveBanned()) {
-            return response()->json(['error' => 'Пользователь недоступен'], 422);
-        }
-
-        if (ChatBlock::active()->where('blocker_id', $idol->id)->where('blocked_id', $user->id)->exists()) {
-            return response()->json(['error' => 'Вы заблокированы этим пользователем'], 422);
-        }
-
-        $order = Order::create([
-            'customer_id' => $user->id,
-            'idol_id'     => $idol->id,
-            'status'      => OrderStatus::Pending,
-        ]);
-        $order->logStatusChange(null, OrderStatus::Pending->value, 'user', $user->id);
-
-        foreach ($services as $service) {
-            $qty = (int) ($quantityMap[$service->id]['quantity'] ?? 1);
-            $order->items()->create(['service_id' => $service->id, 'quantity' => $qty]);
-        }
-
-        $conversation = Conversation::create(['order_id' => $order->id]);
-        $conversation->participants()->createMany([
-            ['user_id' => $user->id],
-            ['user_id' => $idol->id],
-        ]);
-
-        $order->update(['conversation_id' => $conversation->id]);
-
-        $conversation->messages()->create([
-            'sender_id' => $user->id,
-            'body'      => '',
-            'type'      => 'system',
-            'metadata'  => [
-                'event'    => 'order_created',
-                'order_id' => $order->id,
-                'services' => $services->map(fn($s) => [
-                    'id'        => $s->id,
-                    'name'      => $s->name,
-                    'price'     => $s->price,
-                    'time_unit' => $s->timeUnit?->name,
-                    'quantity'  => (int) ($quantityMap[$s->id]['quantity'] ?? 1),
-                ])->values()->all(),
-            ],
-        ]);
-
-        $conversation->touch();
-
-        $order->load(['customer', 'idol', 'cancelledBy', 'items.service.timeUnit']);
         $this->safeBroadcast(new OrderChanged($idol->id,  $this->service->formatOrder($order, $idol->id),  'created'));
         $this->safeBroadcast(new OrderChanged($user->id,  $this->service->formatOrder($order, $user->id),  'created'));
 
@@ -119,9 +64,13 @@ class OrderController extends Controller
     public function accept(Request $request, Order $order): JsonResponse
     {
         abort_unless($order->idol_id === $request->user()->id, 403);
-        abort_unless($order->status === OrderStatus::Pending, 422);
 
-        $this->service->accept($order, $request->user());
+        DB::transaction(function () use ($request, $order) {
+            $lockedOrder = Order::lockForUpdate()->find($order->id);
+            abort_unless($lockedOrder->status === OrderStatus::Pending, 422);
+
+            $this->service->accept($lockedOrder, $request->user());
+        });
 
         return response()->json(['status' => 'accepted']);
     }
@@ -129,9 +78,13 @@ class OrderController extends Controller
     public function pay(Request $request, Order $order): JsonResponse
     {
         abort_unless($order->customer_id === $request->user()->id, 403);
-        abort_unless($order->status === OrderStatus::Accepted, 422);
 
-        $this->service->pay($order, $request->user());
+        DB::transaction(function () use ($request, $order) {
+            $lockedOrder = Order::lockForUpdate()->find($order->id);
+            abort_unless($lockedOrder->status === OrderStatus::Accepted, 422);
+
+            $this->service->pay($lockedOrder, $request->user());
+        });
 
         return response()->json(['status' => 'paid']);
     }
@@ -144,11 +97,15 @@ class OrderController extends Controller
             $order->customer_id === $user->id || $order->idol_id === $user->id,
             403
         );
-        abort_unless(in_array($order->status, [OrderStatus::Pending, OrderStatus::Accepted]), 422);
 
         $request->validate(['cancel_reason' => 'required|string|max:1000']);
 
-        $this->service->cancel($order, $user, $request->cancel_reason);
+        DB::transaction(function () use ($request, $order, $user) {
+            $lockedOrder = Order::lockForUpdate()->find($order->id);
+            abort_unless(in_array($lockedOrder->status, [OrderStatus::Pending, OrderStatus::Accepted]), 422);
+
+            $this->service->cancel($lockedOrder, $user, $request->cancel_reason);
+        });
 
         return response()->json(['status' => 'cancelled']);
     }
@@ -159,9 +116,13 @@ class OrderController extends Controller
             $order->customer_id === $request->user()->id || $order->idol_id === $request->user()->id,
             403
         );
-        abort_unless($order->status === OrderStatus::Paid, 422);
 
-        $result = $this->service->confirmCompletion($order, $request->user());
+        $result = DB::transaction(function () use ($request, $order) {
+            $lockedOrder = Order::lockForUpdate()->find($order->id);
+            abort_unless($lockedOrder->status === OrderStatus::Paid, 422);
+
+            return $this->service->confirmCompletion($lockedOrder, $request->user());
+        });
 
         return response()->json($result);
     }
@@ -193,9 +154,6 @@ class OrderController extends Controller
         $user = $request->user();
 
         abort_unless($order->customer_id === $user->id, 403);
-        abort_unless($order->status === OrderStatus::Completed, 422, 'Оспорить можно только выполненный заказ.');
-        abort_unless($order->completed_at && $order->completed_at->gte(now()->subHour()), 422, 'Время для оспаривания истекло. Спор можно открыть в течение 1 часа после завершения заказа.');
-        abort_unless(!$order->disputes()->exists(), 422, 'По этому заказу уже открыт спор.');
 
         $request->validate([
             'reason'  => ['required', Rule::in(self::DISPUTE_REASONS)],
@@ -205,7 +163,15 @@ class OrderController extends Controller
         $details = trim($request->details);
         abort_unless(mb_strlen($details) >= 100, 422);
 
-        $this->service->dispute($order, $user, $request->reason, $details);
+        DB::transaction(function () use ($request, $order, $user, $details) {
+            $lockedOrder = Order::lockForUpdate()->find($order->id);
+            
+            abort_unless($lockedOrder->status === OrderStatus::Completed, 422, 'Оспорить можно только выполненный заказ.');
+            abort_unless($lockedOrder->completed_at && $lockedOrder->completed_at->gte(now()->subHour()), 422, 'Время для оспаривания истекло. Спор можно открыть в течение 1 часа после завершения заказа.');
+            abort_unless(!$lockedOrder->disputes()->exists(), 422, 'По этому заказу уже открыт спор.');
+
+            $this->service->dispute($lockedOrder, $user, $request->reason, $details);
+        });
 
         return response()->json(['success' => true]);
     }
@@ -215,23 +181,27 @@ class OrderController extends Controller
         $user = $request->user();
 
         abort_unless($order->customer_id === $user->id, 403);
-        abort_unless($order->status === OrderStatus::Pending, 422);
 
         $request->validate(['service_id' => ['required', 'integer', 'exists:services,id']]);
 
-        $service = Service::where('id', $request->service_id)
-            ->where('user_id', $order->idol_id)
-            ->where('is_active', true)
-            ->where('status', 'approved')
-            ->with('timeUnit:id,name')
-            ->firstOrFail();
+        DB::transaction(function () use ($request, $order) {
+            $lockedOrder = Order::lockForUpdate()->find($order->id);
+            abort_unless($lockedOrder->status === \App\Enums\OrderStatus::Pending, 422);
 
-        $existing = $order->items()->where('service_id', $service->id)->first();
-        if ($existing) {
-            $existing->increment('quantity');
-        } else {
-            $order->items()->create(['service_id' => $service->id, 'quantity' => 1]);
-        }
+            $service = \App\Models\Service::where('id', $request->service_id)
+                ->where('user_id', $lockedOrder->idol_id)
+                ->where('is_active', true)
+                ->where('status', 'approved')
+                ->with('timeUnit:id,name')
+                ->firstOrFail();
+
+            $existing = $lockedOrder->items()->where('service_id', $service->id)->first();
+            if ($existing) {
+                $existing->increment('quantity');
+            } else {
+                $lockedOrder->items()->create(['service_id' => $service->id, 'quantity' => 1, 'price' => $service->price]);
+            }
+        });
 
         $order->touch();
 
@@ -242,7 +212,7 @@ class OrderController extends Controller
             $allItems = $order->items->map(fn($item) => [
                 'id'        => $item->service?->id,
                 'name'      => $item->service?->name,
-                'price'     => $item->service?->price,
+                'price'     => $item->price ?? $item->service?->price,
                 'time_unit' => $item->service?->timeUnit?->name,
                 'quantity'  => $item->quantity ?? 1,
             ])->values()->all();
@@ -336,22 +306,8 @@ class OrderController extends Controller
         }
         if ($request->boolean('unread')) {
             $userId = $user->id;
-            $query->whereHas('conversation', function ($cq) use ($userId) {
-                $cq->whereExists(function ($sub) use ($userId) {
-                    $sub->from('messages as m')
-                        ->join('conversation_participants as cp', function ($j) use ($userId) {
-                            $j->on('cp.conversation_id', '=', 'm.conversation_id')
-                              ->where('cp.user_id', $userId);
-                        })
-                        ->whereColumn('m.conversation_id', 'conversations.id')
-                        ->where(function ($q) use ($userId) {
-                            $q->where('m.sender_id', '!=', $userId)->orWhereNull('m.sender_id');
-                        })
-                        ->where(function ($q) {
-                            $q->whereNull('cp.last_read_at')
-                              ->orWhereColumn('m.created_at', '>', 'cp.last_read_at');
-                        });
-                });
+            $query->whereHas('conversation.participants', function ($pq) use ($userId) {
+                $pq->where('user_id', $userId)->where('has_unread', true);
             });
         }
 
@@ -367,7 +323,7 @@ class OrderController extends Controller
 
         $orders = $items->map(function (Order $order) use ($user) {
             $formatted                 = $this->service->formatOrder($order, $user->id);
-            $formatted['unread_count'] = $this->getOrderUnreadCount($order, $user->id);
+            $formatted['unread'] = $this->getOrderUnread($order, $user->id);
             return $formatted;
         });
 
@@ -378,16 +334,11 @@ class OrderController extends Controller
         return Inertia::render('Orders/Index', ['orders' => $orders]);
     }
 
-    private function getOrderUnreadCount(Order $order, int $userId): int
+    private function getOrderUnread(Order $order, int $userId): bool
     {
-        if (! $order->conversation) return 0;
+        if (! $order->conversation) return false;
         $participant = $order->conversation->participants->firstWhere('user_id', $userId);
-        return $order->conversation->messages()
-            ->where(function ($q) use ($userId) {
-                $q->whereNull('sender_id')->orWhere('sender_id', '!=', $userId);
-            })
-            ->when($participant?->last_read_at, fn($q, $date) => $q->where('created_at', '>', $date))
-            ->count();
+        return (bool) ($participant->has_unread ?? false);
     }
 
     private function safeBroadcast(mixed $event): void

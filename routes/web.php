@@ -13,6 +13,7 @@ use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\AboutController;
 use App\Http\Controllers\ContentPackController;
 use App\Http\Controllers\ContentPackPurchaseController;
+use App\Http\Controllers\AvatarFrameController;
 use App\Http\Controllers\FollowController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\MediaController;
@@ -32,9 +33,9 @@ Route::get('/about', AboutController::class)->name('about');
 Route::get('/contacts', function () {
     return Inertia::render('Contacts/Index');
 })->name('contacts');
-Route::get('/news',           [NewsPublicController::class, 'index'])->name('news');
-Route::get('/news/feed',      [NewsPublicController::class, 'feed'])->name('news.feed');
-Route::get('/news/{news}',    [NewsPublicController::class, 'show'])->name('news.show');
+// Route::get('/news',           [NewsPublicController::class, 'index'])->name('news');
+// Route::get('/news/feed',      [NewsPublicController::class, 'feed'])->name('news.feed');
+// Route::get('/news/{news}',    [NewsPublicController::class, 'show'])->name('news.show');
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -95,6 +96,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/settings',    [ProfileController::class, 'edit'])->name('settings.edit');
     Route::patch('/settings',  [ProfileController::class, 'update'])->name('settings.update');
     Route::delete('/settings', [ProfileController::class, 'destroy'])->name('settings.destroy');
+    
+    Route::get('/profile/customization', [App\Http\Controllers\CustomizationController::class, 'index'])->name('profile.customization');
 });
 
 // Idol routes
@@ -114,6 +117,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         [UserProfileController::class, 'updateCategoryDescription']
     )->name('profile.services.category.description');
     Route::patch('/profile/services/{service}',     [ServiceController::class, 'update'])->name('profile.services.update');
+    Route::post('/profile/services/{service}/toggle-trial', [ServiceController::class, 'toggleTrial'])->name('profile.services.toggle-trial');
     Route::post('/profile/services/{service}/fix-change-request', [ServiceController::class, 'fixChangeRequest'])->name('profile.services.fix-change-request');
     Route::delete('/profile/services/{service}/dismiss-change-request', [ServiceController::class, 'dismissChangeRequest'])->name('profile.services.dismiss-change-request');
     Route::delete('/profile/services/{service}',    [ServiceController::class, 'destroy'])->name('profile.services.destroy');
@@ -123,6 +127,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware(['auth', 'verified', 'not_banned'])->group(function () {
     Route::post('/content-packs',                     [ContentPackController::class, 'store'])->name('content-packs.store');
     Route::post('/content-packs/purchase',            [ContentPackPurchaseController::class, 'store'])->name('content-packs.purchase');
+    Route::post('/content-packs/{pack}/view',         [ContentPackPurchaseController::class, 'markAsViewed'])->name('content-packs.view');
     Route::patch('/content-packs/{pack}',             [ContentPackController::class, 'update'])->name('content-packs.update');
     Route::post('/content-packs/{pack}/publish',             [ContentPackController::class, 'publish'])->name('content-packs.publish');
     Route::post('/content-packs/{pack}/toggle-visibility',  [ContentPackController::class, 'toggleVisibility'])->name('content-packs.toggle-visibility');
@@ -156,6 +161,13 @@ Route::middleware(['auth', 'not_banned'])->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/push/subscribe',   [PushSubscriptionController::class, 'store'])->name('push.subscribe');
     Route::delete('/push/subscribe', [PushSubscriptionController::class, 'destroy'])->name('push.unsubscribe');
+});
+
+// Avatar Frames
+Route::middleware('auth')->group(function () {
+    Route::get('/api/avatar-frames', [AvatarFrameController::class, 'index'])->name('avatar-frames.index');
+    Route::post('/api/avatar-frames/{avatarFrame}/equip', [AvatarFrameController::class, 'equip'])->name('avatar-frames.equip');
+    Route::post('/api/avatar-frames/unequip', [AvatarFrameController::class, 'unequip'])->name('avatar-frames.unequip');
 });
 
 // Notification routes
@@ -213,8 +225,5 @@ Route::get('/users/{user}/reviews', [ReviewController::class, 'index'])->name('u
 
 Route::get('/api/help-center', [App\Http\Controllers\HelpController::class, 'index'])->name('help.data');
 
-Route::get('/media/{path}', [MediaController::class, 'serve'])
-    ->where('path', '.+')
-    ->name('media.serve');
 
 require __DIR__.'/auth.php';

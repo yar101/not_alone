@@ -1,15 +1,17 @@
 <script setup>
 import { ref, computed } from "vue";
-import { usePage } from "@inertiajs/vue3";
+import { Head, usePage, router } from "@inertiajs/vue3";
 import StartBtn from "@/Components/Site/StartBtn.vue";
-import HelpModal from "@/Components/Site/HelpModal.vue";
 import AuthModal from "@/Components/Site/AuthModal.vue";
-import SiteHeader from "@/Components/Site/SiteHeader.vue";
 import { useTranslations } from "@/composables/useTranslations";
 import LocaleLoader from "@/Components/LocaleLoader.vue";
+import PublicLayout from "@/Layouts/PublicLayout.vue";
+
+defineOptions({
+    layout: (h, page) => h(PublicLayout, { activePage: "home" }, () => page),
+});
 
 const page = usePage();
-const showHelpModal = ref(false);
 const showAuthModal = ref(false);
 
 const { __ } = useTranslations();
@@ -17,160 +19,69 @@ const { __ } = useTranslations();
 const startBtnLabel = computed(() => {
     return page.props.auth?.user ? __("welcome.enter") : __("welcome.start");
 });
+
+const handleStartClick = () => {
+    if (page.props.auth?.user) {
+        router.visit(route("profile"));
+    } else {
+        showAuthModal.value = true;
+    }
+};
+
+const handleLearnMoreClick = () => {
+    router.visit(route("about"));
+};
 </script>
 
 <template>
+    <Head title="Главная" />
     <LocaleLoader />
-    <!-- Декоративные фоновые элементы (круги) -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div class="circle1" />
-        <div class="circle2" />
-        <div class="circle3" />
-    </div>
-
     <!-- Фоновое изображение (Пикачу) с адаптивным позиционированием -->
     <img
-        src="/pika.png"
+        src="/pika.webp"
         alt="pika"
         class="fixed max-w-[800px] md:max-w-[1400px] left-1/2 -translate-x-1/3 max-[756px]:-translate-y-[20%] md:left-[20rem] md:translate-x-0 opacity-20 md:opacity-100 pointer-events-none z-0"
     />
 
-    <!-- Адаптивное изображение звезды (фиксировано в правой нижней части) -->
+    <!-- Адаптивное изображение звезды -->
     <img
-        src="/star.png"
+        src="/star.webp"
         alt="star"
         class="fixed w-[200px] sm:w-[350px] md:w-[500px] lg:w-[570px] rotate-[15deg] opacity-[30%] md:opacity-[50%] right-[2%] bottom-[5%] md:right-[5%] md:bottom-[8%] pointer-events-none z-0 transition-all duration-700 ease-in-out"
     />
 
-    <!-- Основной контейнер с градиентным фоном -->
-    <div
-        class="min-h-screen text-white overflow-x-hidden main-gradient relative z-10 flex flex-col"
-    >
-        <SiteHeader activePage="home" />
-
-        <div
-            class="max-w-[1440px] w-full mx-auto flex flex-col justify-between flex-1"
-        >
-            <!-- Основной контент -->
-            <main
-                class="flex-1 flex flex-col items-center justify-center py-10 md:pb-[12%] px-6"
-            >
-                <!-- Главная кнопка (START) -->
-                <div
-                    class="scale-110 sm:scale-105 backdrop-blur md:scale-125 mb-14 md:mb-16 transform transition-transform wlc-fade-start"
-                >
-                    <StartBtn
-                        :label="startBtnLabel"
-                        @click="showAuthModal = true"
-                    />
-                </div>
-
-                <!-- Кнопки -->
-                <div
-                    class="w-full flex flex-col items-center gap-3 wlc-fade-btns"
-                >
-                    <div class="w-full flex justify-center">
-                        <div class="w-full max-w-[550px]">
-                            <button
-                                class="flex items-center justify-center gap-4 py-3.5 md:py-4 px-4 md:px-6 link-button w-full transition-all duration-500 ease-out group link-left"
-                                @click="showHelpModal = true"
-                            >
-                                <span
-                                    class="text-gray-200 group-hover:text-white transition-colors"
-                                >
-                                    {{ __("welcome.help") }}
-                                </span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <HelpModal
-                    :show="showHelpModal"
-                    :show-dispute="false"
-                    @close="showHelpModal = false"
+    <!-- Основной контент страницы -->
+    <div class="max-w-[1440px] w-full mx-auto flex flex-col justify-between flex-1 relative z-10">
+        <main class="flex-1 flex flex-col items-center justify-center py-10 md:pb-[12%] px-6">
+            <!-- Главная кнопка (START) -->
+            <div class="scale-110 sm:scale-105 md:scale-125 mb-8 md:mb-12 transform transition-transform">
+                <StartBtn
+                    :label="startBtnLabel"
+                    @click="handleStartClick"
                 />
-                <AuthModal
-                    :show="showAuthModal"
-                    @close="showAuthModal = false"
-                />
-            </main>
+            </div>
 
-            <!-- Балансировочный отступ -->
-            <div class="h-8 md:h-16"></div>
-        </div>
+            <!-- Кнопка "Узнать подробнее" -->
+            <div class="mt-3 md:mt-4">
+                <button
+                    class="learn-more-btn"
+                    @click="handleLearnMoreClick"
+                >
+                    Узнать подробнее
+                </button>
+            </div>
+
+            <AuthModal
+                :show="showAuthModal"
+                @close="showAuthModal = false"
+            />
+        </main>
+
+        <div class="h-8 md:h-16"></div>
     </div>
 </template>
 
 <style scoped>
-/* Кастомный градиент фона */
-.main-gradient {
-    background: linear-gradient(
-            180deg,
-            rgba(255, 42, 191, 0.09) 0%,
-            rgba(0, 0, 0, 0.56) 100%
-        )
-        fixed;
-}
-
-/* Фоновые круги */
-.circle1,
-.circle2,
-.circle3 {
-    border-radius: 50%;
-    background: rgba(60, 60, 190, 0.04);
-    box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.02);
-    position: absolute;
-    right: -15%;
-    top: -10%;
-}
-
-.circle1 {
-    width: 1000px;
-    height: 1000px;
-}
-.circle2 {
-    width: 800px;
-    height: 800px;
-}
-.circle3 {
-    width: 600px;
-    height: 600px;
-}
-
-@media (max-width: 1024px) {
-    .circle1 {
-        width: 700px;
-        height: 700px;
-    }
-    .circle2 {
-        width: 550px;
-        height: 550px;
-    }
-    .circle3 {
-        width: 400px;
-        height: 400px;
-    }
-}
-
-@media (max-width: 640px) {
-    .circle1 {
-        width: 400px;
-        height: 400px;
-        right: -20%;
-    }
-    .circle2 {
-        width: 300px;
-        height: 300px;
-        right: -15%;
-    }
-    .circle3 {
-        width: 200px;
-        height: 200px;
-        right: -10%;
-    }
-}
-
 /* Стили кнопок-ссылок */
 .link-button {
     background: rgba(20, 20, 20, 0.5);
@@ -203,22 +114,48 @@ const startBtnLabel = computed(() => {
         0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
-html {
-    scroll-behavior: smooth;
+/* Кнопка "Узнать подробнее" */
+.learn-more-btn {
+    min-width: 320px;
+    width: 100%;
+    max-width: 380px;
+    padding: 0.9rem 2.5rem;
+    background: rgba(20, 20, 20, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    font-family: "Inter Variable", system-ui, -apple-system, sans-serif;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
-@keyframes wlc-fade-in {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
+.learn-more-btn:hover {
+    background: rgba(20, 20, 20, 0.75);
+    border-color: rgba(255, 178, 239, 0.3);
+    color: #ffb2ef;
+    box-shadow: 0 6px 25px rgba(255, 178, 239, 0.15);
+}
+
+.learn-more-btn:active {
+    transform: scale(0.98);
+}
+
+@media (max-width: 480px) {
+    .learn-more-btn {
+        width: 100%;
+        max-width: none;
+        font-size: 1.1rem;
+        padding: 0.8rem 2rem;
     }
 }
-.wlc-fade-start {
-    animation: wlc-fade-in 0.55s ease-out 0.1s both;
-}
-.wlc-fade-btns {
-    animation: wlc-fade-in 0.5s ease-out 0.35s both;
+
+html {
+    scroll-behavior: smooth;
 }
 </style>

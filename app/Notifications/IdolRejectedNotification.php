@@ -2,13 +2,14 @@
 
 namespace App\Notifications;
 
+use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Mail\IdolRejectedMail;
 use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 
-class IdolRejectedNotification extends Notification
+class IdolRejectedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
     use SendsWebPush;

@@ -50,7 +50,7 @@ function open() {
     const spaceBelow = window.innerHeight - rect.bottom;
     const style = {
         left: rect.left / zoom + "px",
-        width: rect.width / zoom + "px",
+        minWidth: rect.width / zoom + "px",
     };
 
     if (spaceBelow < 140 && rect.top > spaceBelow) {

@@ -321,8 +321,8 @@ function filteredInterests(cat) {
                 class="filter-input filter-select"
             >
                 <option value="">{{ __("search.filters.any_tz") }}</option>
-                <option v-for="tz in timezones" :key="tz" :value="tz">
-                    {{ tz }}
+                <option v-for="tz in timezones" :key="tz.value" :value="tz.value">
+                    {{ tz.label }}
                 </option>
             </select>
         </div>

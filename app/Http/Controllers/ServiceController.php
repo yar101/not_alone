@@ -44,7 +44,14 @@ class ServiceController extends Controller
 
         $servicesByCategory = $services->groupBy('category_id');
 
-        $result = $allCategories->map(function ($cat) use ($servicesByCategory, $descriptions, $isOwner) {
+        $hasUsedTrial = false;
+        if (auth()->check()) {
+            $hasUsedTrial = \App\Models\UserIdolTrial::where('user_id', auth()->id())
+                ->where('idol_id', $user->id)
+                ->exists();
+        }
+
+        $result = $allCategories->map(function ($cat) use ($servicesByCategory, $descriptions, $isOwner, $hasUsedTrial) {
             $group = $servicesByCategory->get($cat->id, collect());
             return [
                 'category' => [
@@ -59,13 +66,14 @@ class ServiceController extends Controller
                     'sort_order'     => $cat->sort_order,
                 ],
                 'idol_description' => $descriptions[$cat->id] ?? null,
-                'items'            => $group->map(function (Service $s) use ($isOwner) {
+                'items'            => $group->map(function (Service $s) use ($isOwner, $hasUsedTrial) {
                     $base = [
                         'id'               => $s->id,
                         'name_ru'          => $s->getTranslation('name', 'ru'),
                         'name_en'          => $s->getTranslation('name', 'en', false) ?: null,
                         'price'            => $s->price,
                         'is_active'        => $s->is_active,
+                        'is_trial'         => $isOwner ? $s->is_trial : ($hasUsedTrial ? false : $s->is_trial),
                         'status'           => $s->status,
                         'rejection_reason' => $s->rejection_reason,
                         'category_id'      => $s->category_id,
@@ -157,6 +165,7 @@ class ServiceController extends Controller
             'category_id'  => ['required', 'integer', 'exists:service_categories,id'],
             'time_unit_id' => ['required', 'integer', 'exists:service_time_units,id'],
             'price'        => ['required', 'integer', 'min:1', 'max:999999'],
+            'is_trial'     => ['boolean'],
         ]);
 
         if (empty($data['name_ru']) && empty($data['name_en'])) {
@@ -173,6 +182,7 @@ class ServiceController extends Controller
             'category_id'  => $data['category_id'],
             'time_unit_id' => $data['time_unit_id'],
             'price'        => $data['price'],
+            'is_trial'     => $data['is_trial'] ?? false,
             'is_active'    => true,
             'status'       => 'pending',
         ]);
@@ -182,7 +192,7 @@ class ServiceController extends Controller
 
     public function update(Request $request, Service $service): RedirectResponse
     {
-        abort_if($service->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $service);
 
         $data = $request->validate([
             'name_ru'      => ['sometimes', 'nullable', 'string', 'max:120'],
@@ -200,10 +210,35 @@ class ServiceController extends Controller
             $this->validatePriceLimit($request->user(), $timeUnitId, $price);
         }
 
-        // If service is approved and it's not just a visibility toggle, use ChangeRequest
-        $isModeratedFieldChange = array_intersect_key($data, array_flip(['name_ru', 'name_en', 'category_id', 'time_unit_id', 'price']));
+        // Check if moderated fields actually changed
+        $isModeratedFieldChange = [];
+        foreach (['name_ru', 'name_en', 'category_id', 'time_unit_id', 'price'] as $field) {
+            if (!array_key_exists($field, $data)) continue;
+            
+            $val = $data[$field];
+            $changed = false;
+            
+            if ($field === 'name_ru') {
+                $oldRu = $service->getTranslation('name', 'ru', false);
+                $changed = trim(empty($val) ? '' : $val) !== trim(empty($oldRu) ? '' : $oldRu);
+            } elseif ($field === 'name_en') {
+                $oldEn = $service->getTranslation('name', 'en', false);
+                $changed = trim(empty($val) ? '' : $val) !== trim(empty($oldEn) ? '' : $oldEn);
+            } else {
+                $changed = (int)$val !== (int)$service->{$field};
+            }
+
+            if ($changed) {
+                $isModeratedFieldChange[$field] = $val;
+            }
+        }
         
         if ($service->status === 'approved' && !empty($isModeratedFieldChange)) {
+            \Illuminate\Support\Facades\Log::info("False moderation trigger debug", [
+                'service_id' => $service->id,
+                'changed_fields' => $isModeratedFieldChange,
+                'data' => $data,
+            ]);
             $this->upsertChangeRequest($service, $isModeratedFieldChange);
             
             // Still allow updating non-moderated fields like is_active
@@ -252,7 +287,7 @@ class ServiceController extends Controller
 
     public function fixChangeRequest(Request $request, Service $service): RedirectResponse
     {
-        abort_if($service->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $service);
         
         $cr = $service->pendingChangeRequest;
         abort_if(!$cr || $cr->status !== 'has_remarks', 422);
@@ -341,15 +376,26 @@ class ServiceController extends Controller
 
     public function destroy(Request $request, Service $service): RedirectResponse
     {
-        abort_if($service->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $service);
         $service->delete();
 
         return back()->with('success', 'Услуга удалена.');
     }
 
+    public function toggleTrial(Request $request, Service $service): RedirectResponse
+    {
+        $this->authorize('update', $service);
+        
+        $request->validate(['is_trial' => 'required|boolean']);
+        
+        $service->update(['is_trial' => $request->is_trial]);
+        
+        return back()->with('success', 'Статус "1-й заказ 0 Р" обновлен.');
+    }
+
     public function dismissChangeRequest(Request $request, Service $service): RedirectResponse
     {
-        abort_if($service->user_id !== $request->user()->id, 403);
+        $this->authorize('update', $service);
         
         $cr = $service->pendingChangeRequest;
         if ($cr && $cr->status === 'rejected') {

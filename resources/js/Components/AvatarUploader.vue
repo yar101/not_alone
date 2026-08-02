@@ -102,6 +102,15 @@ function applyCrop() {
         <div v-if="editable" class="au-overlay">
             <el-icon class="au-overlay-icon"><Camera /></el-icon>
         </div>
+
+        <img
+            v-if="user?.active_frame?.image_url"
+            :src="user.active_frame.image_url"
+            class="au-frame"
+            alt="Рамка"
+            @dragstart.prevent
+            @contextmenu.prevent
+        />
     </div>
 
     <!-- Upload modal -->
@@ -147,7 +156,6 @@ function applyCrop() {
 .au-wrap {
     position: relative;
     border-radius: 50%;
-    overflow: hidden;
     flex-shrink: 0;
     background: color-mix(in srgb, var(--color-base-1), transparent 85%);
     border: 2px solid color-mix(in srgb, var(--color-base-1), transparent 55%);
@@ -171,8 +179,21 @@ function applyCrop() {
     border-radius: 50%;
     opacity: 0;
     transition: opacity 0.35s;
+    z-index: 1;
 }
 .au-img--loaded { opacity: 1; }
+
+.au-frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1.15);
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    z-index: 5;
+    pointer-events: none;
+}
 .au-shimmer {
     position: absolute;
     inset: 0;
@@ -207,6 +228,7 @@ function applyCrop() {
     border-radius: 50%;
     opacity: 0;
     transition: opacity 0.2s ease;
+    z-index: 6;
 }
 
 .au-wrap--editable:hover .au-overlay {

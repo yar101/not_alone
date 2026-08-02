@@ -464,22 +464,7 @@ const ownerSortOptions = computed(() => [
                 </div>
             </template>
 
-            <!-- Owner but not idol yet -->
-            <template v-else-if="isOwner && !isIdol">
-                <div class="pc-idol-cta-block">
-                    <div class="pc-idol-cta-content">
-                        <div class="pc-idol-cta-left">
-                            <span class="pc-idol-cta-eyebrow">{{ __('profile.content.become.eyebrow') }}</span>
-                            <p class="pc-idol-cta-title">{{ __('profile.content.become.tagline') }}</p>
-                            <div class="pc-idol-cta-tags">
-                                <span class="pc-idol-cta-tag">{{ __('profile.content.feature.packs') }}</span>
-                                <span class="pc-idol-cta-tag">{{ __('profile.content.feature.paid') }}</span>
-                            </div>
-                        </div>
-                        <Link href="/idol/apply" class="pc-idol-cta-btn">{{ __('profile.content.apply') }}</Link>
-                    </div>
-                </div>
-            </template>
+
 
             <!-- Owner + Idol view -->
             <template v-else-if="isOwner && isIdol">
@@ -1224,9 +1209,9 @@ const ownerSortOptions = computed(() => [
 
 .pc-card {
     border-radius: 12px;
-    background: rgba(20, 14, 40, 0.55);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(10, 7, 20, 0.7);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
     overflow: hidden;
@@ -1297,7 +1282,9 @@ const ownerSortOptions = computed(() => [
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.22);
     color: rgba(255, 255, 255, 0.9);
     font-size: 0.88rem;
@@ -1396,7 +1383,7 @@ const ownerSortOptions = computed(() => [
 }
 
 .pc-card__title {
-    font-size: 1.15rem;
+    font-size: clamp(0.95rem, 2.5vw + 0.4rem, 1.15rem);
     font-weight: 600;
     color: rgba(255, 255, 255, 0.88);
     line-height: 1.3;
@@ -1460,35 +1447,37 @@ const ownerSortOptions = computed(() => [
     border: 1px solid;
     cursor: pointer;
     font-family: inherit;
-    transition: opacity 0.15s, background 0.15s;
+    transition: opacity 0.15s, background 0.15s, border-color 0.15s;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .pc-btn--primary {
-    background: rgba(100, 210, 160, 0.15);
-    border-color: rgba(100, 210, 160, 0.4);
+    background: rgba(100, 210, 160, 0.2);
+    border-color: rgba(100, 210, 160, 0.5);
     border-top: none;
-    color: #64d2a0;
+    color: #8ceabb;
     box-shadow: inset 0 1px 0 rgba(120, 240, 175, 0.60);
 }
 
 .pc-btn--primary:hover {
-    background: rgba(100, 210, 160, 0.25);
+    background: rgba(100, 210, 160, 0.3);
 }
 
 .pc-btn--warn {
-    background: rgba(230, 180, 60, 0.12);
-    border-color: rgba(230, 180, 60, 0.35);
-    color: rgba(240, 195, 80, 0.9);
+    background: rgba(230, 180, 60, 0.18);
+    border-color: rgba(230, 180, 60, 0.45);
+    color: rgba(255, 210, 100, 1);
 }
 
 .pc-btn--warn:hover {
-    background: rgba(230, 180, 60, 0.22);
+    background: rgba(230, 180, 60, 0.28);
 }
 
 .pc-btn--danger {
-    background: rgba(180, 60, 60, 0.1);
-    border-color: rgba(180, 60, 60, 0.3);
-    color: rgba(255, 120, 120, 0.7);
+    background: rgba(180, 60, 60, 0.15);
+    border-color: rgba(180, 60, 60, 0.4);
+    color: rgba(255, 140, 140, 0.9);
 }
 
 .pc-btn--danger:hover {
@@ -1515,35 +1504,39 @@ const ownerSortOptions = computed(() => [
     align-items: center;
     justify-content: center;
     gap: 0.4rem;
-    border: none;
-    border-top: none;
-    border-radius: 8px;
+    border: 1px solid rgba(100, 160, 255, 0.3);
+    border-radius: 12px;
     font-size: 0.88rem;
-    font-weight: 500;
+    font-weight: 600;
     font-family: inherit;
     cursor: pointer;
-    transition: background 0.15s, color 0.15s, transform 0.1s ease;
-    background: rgba(100, 160, 255, 0.1);
-    color: rgba(160, 200, 255, 0.9);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s ease;
+    background: rgba(100, 160, 255, 0.22);
+    color: rgba(200, 230, 255, 1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
 .pc-btn--cart-full:hover {
-    background: rgba(100, 160, 255, 0.2);
+    background: rgba(100, 160, 255, 0.35);
+    border-color: rgba(100, 160, 255, 0.55);
 }
 
 .pc-btn--cart-full.pc-btn--in-cart {
-    background: rgba(50, 255, 150, 0.18);
-    color: rgb(80, 255, 170);
+    background: rgba(50, 255, 150, 0.25);
+    border-color: rgba(50, 255, 150, 0.5);
+    color: rgb(150, 255, 200);
     cursor: pointer;
 }
 
 .pc-btn--cart-full.pc-btn--in-cart:hover {
-    background: rgba(50, 255, 150, 0.26);
+    background: rgba(50, 255, 150, 0.32);
+    border-color: rgba(50, 255, 150, 0.55);
 }
 
 .pc-btn--cart-full.pc-btn--in-cart:active {
-    background: rgba(50, 255, 150, 0.35);
+    background: rgba(50, 255, 150, 0.4);
     transform: scale(0.97);
 }
 
@@ -1557,6 +1550,7 @@ const ownerSortOptions = computed(() => [
     color: rgb(100, 230, 170);
     cursor: pointer;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border-color: rgba(100, 210, 160, 0.4);
 }
 
 .pc-btn--cart-full.pc-btn--purchased:hover {
@@ -2501,139 +2495,6 @@ const ownerSortOptions = computed(() => [
 .pc-spin { animation: pc-spin 0.8s linear infinite; display: block; }
 
 /* ── Content idol CTA block ──────────────────────────────── */
-.pc-idol-cta-block {
-    position: relative;
-    overflow: hidden;
-    border: 1px solid rgba(255, 178, 239, 0.18);
-    border-top-color: rgba(255, 178, 239, 0.3);
-    border-radius: 6px;
-    background:
-        repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 23px,
-            rgba(255, 178, 239, 0.025) 24px
-        ),
-        linear-gradient(120deg,
-            rgba(255, 178, 239, 0.1) 0%,
-            rgba(100, 100, 200, 0.04) 50%,
-            rgba(100, 210, 255, 0.07) 100%
-        );
-    box-shadow:
-        inset 0 1px 0 rgba(255, 178, 239, 0.12),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.22),
-        0 6px 32px rgba(0, 0, 0, 0.2);
-}
 
-.pc-idol-cta-block::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse 70% 100% at 100% 50%, rgba(100, 210, 255, 0.08) 0%, transparent 70%);
-    pointer-events: none;
-}
-
-.pc-idol-cta-content {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1.5rem;
-    padding: 2rem;
-    min-height: 140px;
-}
-
-.pc-idol-cta-left {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-}
-
-.pc-idol-cta-eyebrow {
-    font-size: 0.58rem;
-    font-weight: 700;
-    letter-spacing: 0.32em;
-    text-transform: uppercase;
-    color: var(--color-base-1);
-    opacity: 0.5;
-}
-
-.pc-idol-cta-title {
-    font-size: 1.4rem;
-    font-weight: 800;
-    color: rgba(255, 255, 255, 0.92);
-    margin: 0;
-    line-height: 1.15;
-    letter-spacing: -0.02em;
-}
-
-.pc-idol-cta-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-top: 0.55rem;
-}
-
-.pc-idol-cta-tag {
-    font-size: 0.7rem;
-    font-weight: 500;
-    letter-spacing: 0.05em;
-    color: var(--color-base-1);
-    opacity: 0.8;
-    background: rgba(255, 178, 239, 0.08);
-    border: 1px solid rgba(255, 178, 239, 0.2);
-    border-radius: 3px;
-    padding: 0.2rem 0.55rem;
-    box-shadow: inset 0 1px 0 rgba(255, 178, 239, 0.08);
-}
-
-.pc-idol-cta-btn {
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    padding: 0.65rem 1.35rem;
-    border: 1px solid rgba(255, 178, 239, 0.3);
-    border-radius: 4px;
-    background: rgba(255, 178, 239, 0.09);
-    color: var(--color-base-1);
-    font-size: 0.74rem;
-    font-weight: 600;
-    letter-spacing: 0.13em;
-    text-transform: uppercase;
-    text-decoration: none;
-    white-space: nowrap;
-    box-shadow:
-        inset 0 1px 0 rgba(255, 178, 239, 0.1),
-        0 2px 12px rgba(255, 178, 239, 0.08);
-    transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.15s;
-}
-
-.pc-idol-cta-btn:hover {
-    background: rgba(255, 178, 239, 0.16);
-    border-color: rgba(255, 178, 239, 0.55);
-    color: rgba(200, 200, 255, 1);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 178, 239, 0.15),
-        0 0 20px rgba(255, 178, 239, 0.18),
-        0 4px 18px rgba(0, 0, 0, 0.25);
-    transform: translateY(-1px);
-}
-
-@media (max-width: 600px) {
-    .pc-idol-cta-content {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1.25rem;
-        padding: 1.5rem;
-        min-height: auto;
-    }
-    .pc-idol-cta-title {
-        font-size: 1.15rem;
-    }
-    .pc-idol-cta-btn {
-        width: 100%;
-        justify-content: center;
-    }
-}
 </style>
 

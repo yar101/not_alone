@@ -12,6 +12,10 @@ const props = defineProps({
     compact: {
         type: Boolean,
         default: false
+    },
+    showNewbieBadge: {
+        type: Boolean,
+        default: true
     }
 });
 
@@ -30,7 +34,7 @@ function calcAge(birthDate) {
         class="user-card"
         :class="{ 'is-compact': compact }"
     >
-        <UserCardAvatar :user="user" :compact="compact" />
+        <UserCardAvatar :user="user" :compact="compact" :show-newbie-badge="showNewbieBadge" />
         <div class="card-body">
             <div class="card-name-row">
                 <div class="card-name">{{ user.name }}</div>
@@ -68,6 +72,7 @@ function calcAge(birthDate) {
 
 <style scoped>
 .user-card {
+    position: relative;
     display: flex;
     flex-direction: column;
     background: linear-gradient(
@@ -95,7 +100,6 @@ function calcAge(birthDate) {
     box-shadow:
         0 6px 16px -4px rgba(0, 0, 0, 0.4),
         0 0 10px rgba(255, 178, 239, 0.05);
-    transform: translateY(-3px);
 }
 
 .user-card:hover :deep(.card-avatar) {
@@ -138,6 +142,8 @@ function calcAge(birthDate) {
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
+    max-width: 100%;
+    display: block;
     letter-spacing: 0.01em;
 }
 

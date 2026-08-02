@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { useForm, router, Link } from '@inertiajs/vue3';
 import { Plus } from '@element-plus/icons-vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppSelect from '@/Components/AppSelect.vue';
@@ -933,6 +933,7 @@ function destroyLimit(id) {
                             <td class="no-val">{{ s.created_at ? new Date(s.created_at).toLocaleDateString('ru') : '—' }}</td>
                             <td>
                                 <div v-if="s.status === 'pending'" class="actions">
+                                    <Link :href="route('admin.services.moderation.show', s.id)" class="btn-approve" style="background: rgba(255, 255, 255, 0.1); border-color: transparent; color: #fff; text-decoration: none;">Детали</Link>
                                     <button class="btn-approve" @click="approveService(s.id)">Одобрить</button>
                                     <button class="btn-danger" @click="openRejectModal(s)">Отклонить</button>
                                 </div>

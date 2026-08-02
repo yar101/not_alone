@@ -22,4 +22,14 @@ class BanReason extends Model
     {
         return $query->where('type', 'user_ban')->orderBy('sort_order');
     }
+
+    protected static function booted()
+    {
+        $clearCache = function () {
+            \Illuminate\Support\Facades\Cache::forget('chat_block_reasons_list');
+            \Illuminate\Support\Facades\Cache::forget('user_ban_reasons_list');
+        };
+        static::saved($clearCache);
+        static::deleted($clearCache);
+    }
 }

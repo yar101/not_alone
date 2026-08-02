@@ -9,6 +9,8 @@ import {
     inject,
 } from "vue";
 import { useForm, router, usePage } from "@inertiajs/vue3";
+import { ElTooltip, ElMessage, ElCheckbox, ElIcon, ElSwitch } from "element-plus";
+import { InfoFilled, Present } from "@element-plus/icons-vue";
 import axios from "axios";
 import AppSelect from "@/Components/AppSelect.vue";
 import CreateButton from "@/Components/CreateButton.vue";
@@ -117,6 +119,14 @@ function isInCart(serviceId) {
     );
 }
 
+const openCart = inject("openCart", null);
+
+function hasTrialConflict(item) {
+    if (!cart || !cart.value?.services) return false;
+    const c = cart.value.services;
+    return item.is_trial && c.items.some((i) => i.is_trial) && !isInCart(item.id);
+}
+
 function addToCart(item) {
     if (!page.props.auth?.user) {
         openAuth?.("register");
@@ -126,9 +136,20 @@ function addToCart(item) {
         showBlockError();
         return;
     }
+
+    if (isInCart(item.id)) {
+        openCart?.("services");
+        return;
+    }
+
     if (!cart) return;
     const c = cart.value.services;
     const idolId = props.profileUser?.id;
+
+    if (hasTrialConflict(item)) {
+        return;
+    }
+
     if (c.idol_id && c.idol_id !== idolId && c.items.length > 0) {
         // Different idol — show conflict modal
         pendingCartItem.value = item;
@@ -148,9 +169,10 @@ function doAddToCart(item) {
     c.items.push({
         service_id: item.id,
         name: localServiceName(item),
-        price: item.price,
+        price: item.is_trial ? 0 : item.price,
         time_unit: localUnitName(item.time_unit) || null,
         quantity: 1,
+        is_trial: item.is_trial,
     });
 }
 
@@ -279,6 +301,7 @@ const form = useForm({
     category_id: null,
     time_unit_id: null,
     price: "",
+    is_trial: false,
 });
 
 function openAdd() {
@@ -311,12 +334,14 @@ function openEdit(item) {
         form.category_id = source.pending_category?.id ?? item.category_id;
         form.time_unit_id = source.pending_time_unit?.id ?? item.time_unit?.id;
         form.price = source.pending_price ?? item.price;
+        form.is_trial = source.pending_is_trial ?? item.is_trial ?? false;
     } else {
         form.name_ru = item.name_ru ?? "";
         form.name_en = item.name_en ?? "";
         form.category_id = item.category_id ?? null;
         form.time_unit_id = item.time_unit?.id ?? null;
         form.price = item.price;
+        form.is_trial = item.is_trial ?? false;
     }
     
     showNameRu.value = !!form.name_ru;
@@ -395,7 +420,6 @@ const dismissChangeRequest = (item) => {
     router.delete(route("profile.services.dismiss-change-request", item.id), {
         onSuccess: () => {
             resyncSelectedCategory();
-            toast.success(__("profile.services.dismiss_success", "Отклоненные изменения скрыты"));
         },
     });
 };
@@ -447,6 +471,26 @@ function toggleActive(item) {
             preserveScroll: true,
             preserveState: true,
             onSuccess: resyncSelectedCategory,
+            onFinish: () => {
+                localeLoading.value = false;
+            },
+        },
+    );
+}
+
+function toggleTrialStatus(item, val = null) {
+    localeLoading.value = true;
+    router.post(
+        route("profile.services.toggle-trial", item.id),
+        {
+            is_trial: val !== null ? val : !item.is_trial,
+        },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                resyncSelectedCategory();
+            },
             onFinish: () => {
                 localeLoading.value = false;
             },
@@ -521,6 +565,7 @@ function loadDraft() {
         if (d.category_id) form.category_id = d.category_id;
         if (d.price) form.price = d.price;
         if (d.time_unit_id) form.time_unit_id = d.time_unit_id;
+        if (d.is_trial !== undefined) form.is_trial = d.is_trial;
     } catch {}
 }
 
@@ -534,6 +579,7 @@ function saveDraft() {
                 category_id: form.category_id,
                 price: form.price,
                 time_unit_id: form.time_unit_id,
+                is_trial: form.is_trial,
             }),
         );
     }
@@ -550,6 +596,7 @@ watch(
         () => form.category_id,
         () => form.price,
         () => form.time_unit_id,
+        () => form.is_trial,
     ],
     saveDraft,
 );
@@ -1053,44 +1100,53 @@ watch(selectedCategory, (cat) => {
                                 'svc-card--rejected': isOwner && item.status === 'rejected',
                             }"
                         >
-                            <!-- Badges: top-right corner -->
-                            <div v-if="isOwner" class="svc-card__badges">
-                                <ServiceStatusBadge
-                                    v-if="!item.is_active"
-                                    status="hidden"
-                                />
-                                <ServiceStatusBadge
-                                    v-else-if="item.status === 'rejected'"
-                                    status="rejected"
-                                />
-                                <ServiceStatusBadge
-                                    v-else-if="item.status === 'has_remarks' || item.pending_change?.status === 'has_remarks'"
-                                    status="has_remarks"
-                                    :is-change-request="item.pending_change?.status === 'has_remarks'"
-                                />
-                                <ServiceStatusBadge
-                                    v-else-if="item.pending_change?.status === 'pending'"
-                                    status="pending"
-                                    :is-change-request="true"
-                                />
-                                <ServiceStatusBadge
-                                    v-else-if="item.pending_change?.status === 'rejected'"
-                                    status="rejected"
-                                    :is-change-request="true"
-                                />
-                                <ServiceStatusBadge
-                                    v-else-if="item.status === 'pending'"
-                                    status="pending"
-                                />
-                            </div>
-
                             <!-- Info column -->
                             <div class="svc-card__info">
-                                <div class="svc-card__name-row">
-                                    <span class="svc-card__name" :class="{ 'svc-card__name--flagged': isFlagged(item, 'name_ru') || isFlagged(item, 'name_en') }">
-                                        {{ localServiceName(item) }}
-                                        <span v-if="isFlagged(item, 'name_ru') || isFlagged(item, 'name_en')" class="svc-card__flag-icon" :title="getFieldComment(item, 'name_ru') || getFieldComment(item, 'name_en') || 'Замечание модератора'">⚠️</span>
-                                    </span>
+                                <div class="svc-card__header">
+                                    <div class="svc-card__name-row">
+                                        <span class="svc-card__name" :class="{ 'svc-card__name--flagged': isFlagged(item, 'name_ru') || isFlagged(item, 'name_en') }">
+                                            {{ localServiceName(item) }}
+                                            <span v-if="isFlagged(item, 'name_ru') || isFlagged(item, 'name_en')" class="svc-card__flag-icon" :title="getFieldComment(item, 'name_ru') || getFieldComment(item, 'name_en') || 'Замечание модератора'">⚠️</span>
+                                        </span>
+                                    </div>
+                                    
+                                    <!-- Badges -->
+                                    <div class="svc-card__badges">
+                                        <ServiceStatusBadge
+                                            v-if="item.is_trial"
+                                            status="trial"
+                                            title="Бесплатно 1 раз для новых клиентов"
+                                        />
+                                        <template v-if="isOwner">
+                                            <ServiceStatusBadge
+                                                v-if="!item.is_active"
+                                                status="hidden"
+                                            />
+                                            <ServiceStatusBadge
+                                                v-else-if="item.status === 'rejected'"
+                                                status="rejected"
+                                            />
+                                            <ServiceStatusBadge
+                                                v-else-if="item.status === 'has_remarks' || item.pending_change?.status === 'has_remarks'"
+                                                status="has_remarks"
+                                                :is-change-request="item.pending_change?.status === 'has_remarks'"
+                                            />
+                                            <ServiceStatusBadge
+                                                v-else-if="item.pending_change?.status === 'pending'"
+                                                status="pending"
+                                                :is-change-request="true"
+                                            />
+                                            <ServiceStatusBadge
+                                                v-else-if="item.pending_change?.status === 'rejected'"
+                                                status="rejected"
+                                                :is-change-request="true"
+                                            />
+                                            <ServiceStatusBadge
+                                                v-else-if="item.status === 'pending'"
+                                                status="pending"
+                                            />
+                                        </template>
+                                    </div>
                                 </div>
                                 <span
                                     v-if="
@@ -1105,29 +1161,48 @@ watch(selectedCategory, (cat) => {
 
                             <!-- Footer: price + actions -->
                             <div class="svc-card__footer">
-                                <div class="svc-card__price-block">
-                                    <span class="svc-card__amount">{{ item.price.toLocaleString("ru") }}</span
-                                    ><span class="svc-card__rub">₽</span
-                                    ><span class="svc-card__sep">/</span
-                                    ><span class="svc-card__unit">{{ localUnitName(item.time_unit) }}</span>
+                                <div class="svc-card__price-block" :class="{'svc-card__price-block--trial': !isOwner && item.is_trial}">
+                                    <template v-if="!isOwner && item.is_trial">
+                                        <div class="svc-card__price-main">
+                                            <span class="svc-card__amount">0</span><span class="svc-card__rub">₽</span><span class="svc-card__sep">/</span><span class="svc-card__unit">{{ localUnitName(item.time_unit) }}</span>
+                                        </div>
+                                        <div class="svc-card__old-price">{{ item.price.toLocaleString("ru") }} ₽</div>
+                                    </template>
+                                    <template v-else>
+                                        <span class="svc-card__amount">{{ item.price.toLocaleString("ru") }}</span
+                                        ><span class="svc-card__rub">₽</span
+                                        ><span class="svc-card__sep">/</span
+                                        ><span class="svc-card__unit">{{ localUnitName(item.time_unit) }}</span>
+                                    </template>
                                 </div>
 
                                 <!-- Actions column -->
                                 <div class="svc-card__actions">
-                                    <button
+                                    <el-tooltip
                                         v-if="!isOwner && cart"
-                                        class="svc-buy-btn"
-                                        :class="{
-                                            'svc-buy-btn--in-cart': isInCart(
-                                                item.id,
-                                            ),
-                                        }"
-                                        @click="addToCart(item)"
+                                        placement="top"
+                                        effect="dark"
+                                        :disabled="!hasTrialConflict(item)"
+                                        popper-class="newbie-dark-tooltip"
                                     >
-                                        <template v-if="isInCart(item.id)">
+                                        <template #content>
+                                            В корзине уже есть услуга «1-й заказ 0 ₽».<br />
+                                            Вы можете оформить только одну такую услугу за раз.
+                                        </template>
+                                        <button
+                                            class="svc-buy-btn"
+                                            :class="{
+                                                'svc-buy-btn--in-cart': isInCart(
+                                                    item.id,
+                                                ),
+                                                'svc-buy-btn--conflict': hasTrialConflict(item)
+                                            }"
+                                            @click="addToCart(item)"
+                                        >
+                                            <template v-if="isInCart(item.id)">
                                             <svg
-                                                width="11"
-                                                height="11"
+                                                width="15"
+                                                height="15"
                                                 viewBox="0 0 24 24"
                                                 fill="none"
                                                 stroke="currentColor"
@@ -1145,8 +1220,8 @@ watch(selectedCategory, (cat) => {
                                         </template>
                                         <template v-else>
                                             <svg
-                                                width="11"
-                                                height="11"
+                                                width="15"
+                                                height="15"
                                                 viewBox="0 0 24 24"
                                                 fill="none"
                                                 stroke="currentColor"
@@ -1169,7 +1244,8 @@ watch(selectedCategory, (cat) => {
                                                 __("profile.services.to_cart")
                                             }}</span>
                                         </template>
-                                    </button>
+                                        </button>
+                                    </el-tooltip>
                                     <div v-if="isOwner" class="svc-menu">
                                         <button
                                             class="svc-menu__trigger"
@@ -1245,24 +1321,45 @@ watch(selectedCategory, (cat) => {
                                                             closeMenu();
                                                         "
                                                     >
-                                                        <svg
-                                                            width="13"
-                                                            height="13"
-                                                            viewBox="0 0 24 24"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            stroke-width="2"
-                                                            stroke-linecap="round"
-                                                            stroke-linejoin="round"
-                                                        >
-                                                            <path
-                                                                d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
-                                                            />
-                                                            <path
-                                                                d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
-                                                            />
+                                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                                         </svg>
                                                         {{ __("common.edit") }}
+                                                    </button>
+                                                    <button
+                                                        class="svc-menu__item"
+                                                        :class="{ 'svc-menu__item--active': item.is_trial }"
+                                                        @click="
+                                                            toggleTrialStatus(item);
+                                                            closeMenu();
+                                                        "
+                                                    >
+                                                        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                                            <span style="display: flex; align-items: center; gap: 0.6rem; white-space: nowrap;">
+                                                                <el-icon><Present /></el-icon>
+                                                                1-й заказ 0 ₽
+                                                            </span>
+                                                            <el-tooltip placement="top" effect="dark" popper-class="newbie-dark-tooltip" :hide-after="0" trigger="click">
+                                                                <template #content>
+                                                                    Новый клиент сможет заказать эту услугу за 0 ₽.<br>
+                                                                    Один клиент может взять только одну бесплатную услугу.<br>
+                                                                    <div style="margin-top: 6px; color: #ffb2ef; display: inline-flex; align-items: center; gap: 4px;">
+                                                                        <span>Это помогает привлечению новых клиентов</span>
+                                                                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width: 14px; height: 14px;">
+                                                                            <defs>
+                                                                                <radialGradient :id="`tooltip-heart-rg-${item.id}`" cx="50%" cy="35%" r="65%">
+                                                                                    <stop offset="0%" stop-color="rgba(255,190,210,0.95)" />
+                                                                                    <stop offset="100%" stop-color="rgba(210,50,100,0.9)" />
+                                                                                </radialGradient>
+                                                                            </defs>
+                                                                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" :fill="`url(#tooltip-heart-rg-${item.id})`" stroke="rgba(210,60,100,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                                                        </svg>
+                                                                    </div>
+                                                                </template>
+                                                                <el-icon :size="16" style="color: rgba(255, 255, 255, 0.4); cursor: help; outline: none;" @click.prevent.stop><InfoFilled /></el-icon>
+                                                            </el-tooltip>
+                                                        </div>
                                                     </button>
                                                     <div
                                                         class="svc-menu__divider"
@@ -1688,14 +1785,14 @@ watch(selectedCategory, (cat) => {
                                 </div>
                             </Transition>
 
-                            <button
+                            <!-- <button
                                 v-if="showNameRu && !showNameEn"
                                 type="button"
                                 class="sf-add-lang"
                                 @click="addSecondary"
                             >
                                 + {{ __("profile.services.form.add_en") }}
-                            </button>
+                            </button> -->
                             <button
                                 v-if="showNameEn && !showNameRu"
                                 type="button"
@@ -1833,6 +1930,35 @@ watch(selectedCategory, (cat) => {
                                         {{ form.errors.time_unit_id }}
                                     </p>
                                 </div>
+                            </div>
+
+                            <div v-if="!editingId" class="sf-field" style="flex-direction: row; align-items: center; justify-content: space-between; margin-top: 1.5rem; margin-bottom: 0.5rem; background: rgba(255, 255, 255, 0.03); padding: 1rem 1.25rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08);">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <input type="checkbox" id="is_trial" v-model="form.is_trial" class="svc-custom-checkbox" />
+                                    <label for="is_trial" style="color: rgba(255, 255, 255, 0.7); font-size: 0.9rem; cursor: pointer; user-select: none; margin: 0;">
+                                        Сделать <span style="color: var(--color-base-1); font-weight: 600;">1-й заказ 0 ₽</span>
+                                    </label>
+                                </div>
+                                
+                                <el-tooltip placement="top" effect="dark" popper-class="newbie-dark-tooltip" :hide-after="0" trigger="click">
+                                    <template #content>
+                                        Новый клиент сможет заказать эту услугу за 0 ₽.<br>
+                                        Один клиент может взять только одну бесплатную услугу.<br>
+                                        <div style="margin-top: 6px; color: #ffb2ef; display: inline-flex; align-items: center; gap: 4px;">
+                                            <span>Это помогает привлечению новых клиентов</span>
+                                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width: 14px; height: 14px;">
+                                                <defs>
+                                                    <radialGradient id="tooltip-heart-rg-form" cx="50%" cy="35%" r="65%">
+                                                        <stop offset="0%" stop-color="rgba(255,190,210,0.95)" />
+                                                        <stop offset="100%" stop-color="rgba(210,50,100,0.9)" />
+                                                    </radialGradient>
+                                                </defs>
+                                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="url(#tooltip-heart-rg-form)" stroke="rgba(210,60,100,0.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                        </div>
+                                    </template>
+                                    <el-icon :size="20" style="color: rgba(255, 255, 255, 0.4); cursor: help; outline: none;" @click.prevent.stop><InfoFilled /></el-icon>
+                                </el-tooltip>
                             </div>
 
                             <div class="sf-actions">
@@ -2735,11 +2861,19 @@ watch(selectedCategory, (cat) => {
 
 
 
+.svc-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
 .svc-card__name-row {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     flex-wrap: wrap;
+    flex: 1;
 }
 
 .svc-card__name {
@@ -2761,14 +2895,15 @@ watch(selectedCategory, (cat) => {
     text-overflow: ellipsis;
 }
 
-/* Badges wrapper — pinned to top-right of card */
+/* Badges wrapper */
 .svc-card__badges {
-    position: absolute;
-    top: 0;
-    right: 0;
     display: flex;
     flex-direction: row;
-    gap: 0;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    flex-shrink: 0;
+    margin: -0.4rem;
 }
 
 .svc-card__badges .svc-pill {
@@ -2953,9 +3088,9 @@ watch(selectedCategory, (cat) => {
     background: color-mix(in srgb, var(--cat-accent, #ffb2ef) 18%, transparent);
     color: var(--cat-accent, #ffb2ef);
     box-shadow:
-        0 0 20px color-mix(in srgb, var(--cat-accent, #ffb2ef) 20%, transparent),
-        inset 0 0 12px
-            color-mix(in srgb, var(--cat-accent, #ffb2ef) 8%, transparent);
+        0 0 10px color-mix(in srgb, var(--cat-accent, #ffb2ef) 12%, transparent),
+        inset 0 0 8px
+            color-mix(in srgb, var(--cat-accent, #ffb2ef) 5%, transparent);
 }
 
 .svc-buy-btn svg {
@@ -2964,7 +3099,6 @@ watch(selectedCategory, (cat) => {
 }
 
 .svc-buy-btn:hover svg {
-    transform: translateX(2px);
 }
 
 .svc-buy-btn--in-cart {
@@ -2983,6 +3117,19 @@ watch(selectedCategory, (cat) => {
 }
 
 .svc-buy-btn--in-cart:hover svg {
+    transform: none;
+}
+
+.svc-buy-btn--conflict {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.svc-buy-btn--conflict:hover {
+    box-shadow: none;
+}
+
+.svc-buy-btn--conflict:hover svg {
     transform: none;
 }
 
@@ -3035,7 +3182,7 @@ watch(selectedCategory, (cat) => {
     right: 0;
     top: calc(100% + 6px);
     z-index: 50;
-    min-width: 160px;
+    min-width: 190px;
     background: #0f0f18;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 6px;
@@ -3049,26 +3196,46 @@ watch(selectedCategory, (cat) => {
 .svc-menu__item {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.75rem;
     width: 100%;
-    padding: 0.48rem 0.65rem;
+    padding: 0.6rem 0.75rem;
     border: none;
     border-radius: 4px;
     background: transparent;
-    color: rgba(255, 255, 255, 0.65);
+    color: rgba(255, 255, 255, 0.75);
     font-family: inherit;
-    font-size: 0.82rem;
+    font-size: 0.95rem;
     text-align: left;
     cursor: pointer;
     transition:
         background 0.12s,
         color 0.12s;
+    white-space: nowrap;
 }
 
-.svc-menu__item svg {
+.svc-menu__item--active {
+    color: var(--color-base-1);
+    background: rgba(var(--color-base-1-rgb, 255, 178, 239), 0.1);
+}
+
+.svc-menu__item--active svg,
+.svc-menu__item--active .el-icon {
+    color: var(--color-base-1) !important;
+}
+
+.svc-menu__item--active:hover {
+    background: rgba(var(--color-base-1-rgb, 255, 178, 239), 0.2);
+    color: var(--color-base-1);
+}
+
+.svc-menu__item svg,
+.svc-menu__item .el-icon {
     flex-shrink: 0;
     color: rgba(255, 255, 255, 0.35);
     transition: color 0.12s;
+    width: 16px !important;
+    height: 16px !important;
+    font-size: 16px !important;
 }
 
 .svc-menu__item:hover {
@@ -3076,8 +3243,9 @@ watch(selectedCategory, (cat) => {
     color: rgba(255, 255, 255, 0.92);
 }
 
-.svc-menu__item:hover svg {
-    color: rgba(255, 255, 255, 0.65);
+.svc-menu__item:hover svg,
+.svc-menu__item:hover .el-icon {
+    color: rgba(255, 255, 255, 0.92);
 }
 
 .svc-menu__item--danger {
@@ -3252,9 +3420,41 @@ watch(selectedCategory, (cat) => {
 }
 
 .svc-err {
-    font-size: 0.75rem;
-    color: rgba(239, 68, 68, 0.8);
-    margin: 0;
+    font-size: 0.85rem;
+    color: var(--color-danger);
+    margin-top: 0.5rem;
+}
+
+.svc-trial-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 6px;
+    vertical-align: middle;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+.svc-card__price-block--trial {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+.svc-card__price-main {
+    display: flex;
+    align-items: baseline;
+    color: #10b981;
+}
+.svc-card__old-price {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-decoration: line-through;
 }
 
 /* ── Category drill-in (list → detail) ───────────────────── */
@@ -3758,5 +3958,46 @@ watch(selectedCategory, (cat) => {
     background: rgba(255, 178, 239, 0.16);
     border-color: rgba(255, 178, 239, 0.5);
     color: var(--color-base-1);
+}
+
+.svc-custom-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    margin: 0;
+    outline: none;
+}
+
+.svc-custom-checkbox:hover {
+    border-color: var(--color-base-1);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.svc-custom-checkbox:checked {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-color: var(--color-base-1);
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.svc-custom-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 2px;
+    width: 6px;
+    height: 11px;
+    border: solid var(--color-base-1);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
 }
 </style>

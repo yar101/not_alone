@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\ContentPackResource;
+use App\Http\Resources\ServiceResource;
 use App\Models\ContentPack;
 use App\Models\ContentPackPurchase;
 use App\Models\IdolCategoryDescription;
@@ -18,6 +20,7 @@ use App\Models\ServiceTimeUnit;
 use App\Jobs\NotifyFollowersJob;
 
 use App\Models\ChatBlock;
+use App\Models\Order;
 use App\Models\User;
 use App\Models\UserLanguage;
 use App\Services\IdolRatingService;
@@ -30,6 +33,8 @@ use Inertia\Response;
 
 class UserProfileController extends Controller
 {
+    public function __construct(private \App\Services\UserProfileService $profileService) {}
+
     public function show(User $user): Response
     {
         $checklistSnoozed = false;
@@ -50,6 +55,8 @@ class UserProfileController extends Controller
                 'timezone'         => $user->timezone,
                 'checklist_snoozed' => $checklistSnoozed,
                 'is_banned'        => $user->isActiveBanned(),
+                'active_frame'     => $user->activeFrame,
+                'is_newbie'        => \App\Models\Order::where('idol_id', $user->id)->where('status', 'completed')->count() < 25,
             ],
             'isOwner'          => auth()->id() === $user->id,
             'isIdol'           => (bool) $user->is_idol,
@@ -79,22 +86,21 @@ class UserProfileController extends Controller
                 ],
             ]), 'about'),
             'languages'     => Inertia::defer(fn () => $user->load('languages')->languages->pluck('language_code'), 'about'),
-            'allTraits'     => Inertia::defer(fn () => PersonalityTrait::orderBy('sort_order')->get(['id', 'name'])->map(fn ($t) => [
+            'allTraits'     => Inertia::defer(fn () => cache()->rememberForever('search_traits', fn() => PersonalityTrait::orderBy('sort_order')->get(['id', 'name'])->map(fn ($t) => [
                 'id'      => $t->id,
                 'name_ru' => $t->getTranslation('name', 'ru'),
                 'name_en' => $t->getTranslation('name', 'en', false) ?: null,
-            ]), 'about'),
-            'allCategories' => Inertia::defer(fn () => InterestCategory::with(['interests' => fn ($q) => $q->orderBy('sort_order')])->orderBy('sort_order')->get()->map(fn ($cat) => [
+            ])), 'about'),
+            'allCategories' => Inertia::defer(fn () => cache()->rememberForever('search_interest_categories', fn() => InterestCategory::with(['interests' => fn ($q) => $q->orderBy('sort_order')])->orderBy('sort_order')->get()->map(fn ($cat) => [
                 'id'        => $cat->id,
                 'name_ru'   => $cat->getTranslation('name', 'ru'),
                 'name_en'   => $cat->getTranslation('name', 'en', false) ?: null,
-                'sort_order' => $cat->sort_order,
                 'interests' => $cat->interests->map(fn ($i) => [
                     'id'      => $i->id,
                     'name_ru' => $i->getTranslation('name', 'ru'),
                     'name_en' => $i->getTranslation('name', 'en', false) ?: null,
                 ])->values(),
-            ]), 'about'),
+            ])), 'about'),
 
             // Deferred group "services"
             'services'     => Inertia::defer(function () use ($user) {
@@ -102,9 +108,18 @@ class UserProfileController extends Controller
                 $isOwner = $authId === $user->id;
 
                 // All active categories
-                $allCategories = ServiceCategory::where('is_active', true)
-                    ->orderBy('sort_order')
-                    ->get(['id', 'name', 'description', 'image_path', 'accent_color', 'sort_order', 'is_active']);
+                $allCategories = cache()->rememberForever('active_service_categories', fn() => 
+                    ServiceCategory::where('is_active', true)
+                        ->orderBy('sort_order')
+                        ->get(['id', 'name', 'description', 'image_path', 'accent_color', 'sort_order', 'is_active'])
+                );
+                
+                $hasUsedTrial = false;
+                if ($authId && !$isOwner) {
+                    $hasUsedTrial = \App\Models\UserIdolTrial::where('user_id', $authId)
+                        ->where('idol_id', $user->id)
+                        ->exists();
+                }
 
                 // Services for this user
                 $query = $user->services()->with(['timeUnit:id,name', 'latestReview', 'pendingChangeRequest.pendingCategory', 'pendingChangeRequest.pendingTimeUnit']);
@@ -121,7 +136,7 @@ class UserProfileController extends Controller
 
                 $servicesByCategory = $services->groupBy('category_id');
 
-                return $allCategories->map(function ($cat) use ($servicesByCategory, $descriptions, $isOwner) {
+                return $allCategories->map(function ($cat) use ($servicesByCategory, $descriptions, $isOwner, $hasUsedTrial) {
                     $group = $servicesByCategory->get($cat->id, collect());
                     return [
                         'category' => [
@@ -136,71 +151,27 @@ class UserProfileController extends Controller
                             'sort_order'   => $cat->sort_order,
                         ],
                         'idol_description' => $descriptions[$cat->id] ?? null,
-                        'items'            => $group->map(function (Service $s) use ($isOwner) {
-                            $base = [
-                                'id'               => $s->id,
-                                'name_ru'          => $s->getTranslation('name', 'ru'),
-                                'name_en'          => $s->getTranslation('name', 'en', false) ?: null,
-                                'price'            => $s->price,
-                                'is_active'        => $s->is_active,
-                                'status'           => $s->status,
-                                'rejection_reason' => $s->rejection_reason,
-                                'category_id'      => $s->category_id,
-                                'time_unit'        => [
-                                    'id'      => $s->timeUnit->id,
-                                    'name_ru' => $s->timeUnit->getTranslation('name', 'ru'),
-                                    'name_en' => $s->timeUnit->getTranslation('name', 'en', false) ?: null,
-                                ],
-                            ];
-
-                            if ($isOwner) {
-                                $base['latest_review'] = $s->latestReview ? [
-                                    'decision'       => $s->latestReview->decision,
-                                    'flagged_fields' => $s->latestReview->flagged_fields ?? [],
-                                    'field_comments' => $s->latestReview->field_comments ?? [],
-                                ] : null;
-
-                                $base['pending_change'] = $s->pendingChangeRequest ? [
-                                    'changed_fields'   => $s->pendingChangeRequest->changed_fields,
-                                    'pending_name'     => $s->pendingChangeRequest->pending_name,
-                                    'pending_price'    => $s->pendingChangeRequest->pending_price,
-                                    'pending_category' => $s->pendingChangeRequest->pendingCategory ? [
-                                        'id'      => $s->pendingChangeRequest->pendingCategory->id,
-                                        'name_ru' => $s->pendingChangeRequest->pendingCategory->getTranslation('name', 'ru'),
-                                    ] : null,
-                                    'pending_time_unit' => $s->pendingChangeRequest->pendingTimeUnit ? [
-                                        'id'      => $s->pendingChangeRequest->pendingTimeUnit->id,
-                                        'name_ru' => $s->pendingChangeRequest->pendingTimeUnit->getTranslation('name', 'ru'),
-                                    ] : null,
-                                    'status'           => $s->pendingChangeRequest->status,
-                                    'flagged_fields'   => $s->pendingChangeRequest->flagged_fields ?? [],
-                                    'field_comments'   => $s->pendingChangeRequest->field_comments ?? [],
-                                    'admin_comment'    => $s->pendingChangeRequest->admin_comment,
-                                ] : null;
-                            }
-
-                            return $base;
-                        })->values(),
+                        'items'            => $group->map(fn (Service $s) => (new ServiceResource($s, $isOwner, $hasUsedTrial))->resolve())->values(),
                     ];
                 })->values();
             }, 'services'),
             'serviceCategories' => Inertia::defer(
-                fn () => ServiceCategory::where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'name_suggestions', 'accent_color'])->map(fn ($c) => [
+                fn () => cache()->rememberForever('profile_service_categories', fn() => ServiceCategory::where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'name_suggestions', 'accent_color'])->map(fn ($c) => [
                     'id'             => $c->id,
                     'name'           => $c->getTranslation('name', 'ru'),
                     'name_ru'        => $c->getTranslation('name', 'ru'),
                     'name_en'        => $c->getTranslation('name', 'en', false) ?: null,
                     'name_suggestions' => $c->name_suggestions,
                     'accent_color'   => $c->accent_color,
-                ]),
+                ])),
                 'services'
             ),
             'serviceTimeUnits' => Inertia::defer(
-                fn () => ServiceTimeUnit::where('is_active', true)->orderBy('sort_order')->get()->map(fn ($u) => [
+                fn () => cache()->rememberForever('search_service_time_units', fn() => ServiceTimeUnit::where('is_active', true)->orderBy('sort_order')->get()->map(fn ($u) => [
                     'id'      => $u->id,
                     'name_ru' => $u->getTranslation('name', 'ru'),
                     'name_en' => $u->getTranslation('name', 'en', false) ?: null,
-                ]),
+                ])),
                 'services'
             ),
 
@@ -214,38 +185,7 @@ class UserProfileController extends Controller
                         ->with(['photos', 'latestReview', 'pendingChangeRequest'])
                         ->latest()
                         ->get()
-                        ->map(fn (ContentPack $p) => [
-                            'id'          => $p->id,
-                            'title'       => $p->title,
-                            'description' => $p->description,
-                            'price'       => $p->price,
-                            'status'      => $p->status,
-                            'cover_url'   => $p->cover_url,
-                            'photos_count' => $p->photos->count(),
-                            'published_at' => $p->published_at?->toIso8601String(),
-                            'hidden_at'    => $p->hidden_at?->toIso8601String(),
-                            'latest_review' => $p->latestReview ? [
-                                'decision'          => $p->latestReview->decision,
-                                'flagged_fields'    => $p->latestReview->flagged_fields ?? [],
-                                'field_comments'    => $p->latestReview->field_comments ?? [],
-                                'flagged_photo_ids' => $p->latestReview->flagged_photo_ids ?? [],
-                                'photo_comments'    => $p->latestReview->photo_comments ?? [],
-                            ] : null,
-                            'photos' => $p->photos->map(fn ($ph) => [
-                                'id'  => $ph->id,
-                                'url' => $ph->url,
-                            ])->values(),
-                            'pending_change' => $p->pendingChangeRequest ? [
-                                'changed_fields'      => $p->pendingChangeRequest->changed_fields,
-                                'pending_title'       => $p->pendingChangeRequest->pending_title,
-                                'pending_description' => $p->pendingChangeRequest->pending_description,
-                                'pending_price'       => $p->pendingChangeRequest->pending_price,
-                                'status'              => $p->pendingChangeRequest->status,
-                                'flagged_fields'      => $p->pendingChangeRequest->flagged_fields ?? [],
-                                'field_comments'      => $p->pendingChangeRequest->field_comments ?? [],
-                                'admin_comment'       => $p->pendingChangeRequest->admin_comment,
-                            ] : null,
-                        ])
+                        ->map(fn (ContentPack $p) => (new ContentPackResource($p, true))->resolve())
                         ->values();
                 }
 
@@ -255,18 +195,11 @@ class UserProfileController extends Controller
                     ->with(['photos'])
                     ->latest('published_at')
                     ->get()
-                    ->map(fn (ContentPack $p) => [
-                        'id'          => $p->id,
-                        'title'       => $p->title,
-                        'description' => $p->description,
-                        'price'       => $p->price,
-                        'status'      => $p->status,
-                        'cover_url'   => $p->cover_url,
-                        'photos_count' => $p->photos->count(),
-                        'published_at' => $p->published_at?->toIso8601String(),
-                        'idol_id'     => $user->id,
-                        'idol_name'   => $user->name,
-                    ])
+                    ->map(function (ContentPack $p) use ($user) {
+                        $p->idol_id = $user->id;
+                        $p->idol_name = $user->name;
+                        return (new ContentPackResource($p, false))->resolve();
+                    })
                     ->values();
             }, 'content'),
 
@@ -286,41 +219,8 @@ class UserProfileController extends Controller
 
     public function categoryIdols(User $user, ServiceCategory $category, Request $request): JsonResponse
     {
-        $page    = max(1, (int) $request->get('page', 1));
-        $perPage = min(8, max(1, (int) $request->get('per_page', 4)));
-
-        $idols = Service::where('is_active', true)
-            ->where('status', 'approved')
-            ->where('user_id', '!=', $user->id)
-            ->where('category_id', $category->id)
-            ->with(['user:id,name,avatar_path,rating'])
-            ->get(['id', 'user_id'])
-            ->unique('user_id');
-
-        // Стабильная рандомизация: seed из сессии, одинаковый на всех страницах пагинации
-        $seedKey = 'idol_shuffle_' . $user->id . '_' . $category->id;
-        $seed = $request->session()->get($seedKey);
-        if (!$seed || $page === 1) {
-            $seed = mt_rand();
-            $request->session()->put($seedKey, $seed);
-        }
-        mt_srand($seed);
-        $idols = $idols->shuffle();
-
-        $total = $idols->count();
-        $paged = $idols->slice(($page - 1) * $perPage, $perPage)->values();
-
-        return response()->json([
-            'idols'   => $paged->map(fn ($s) => [
-                'id'         => $s->user->id,
-                'name'       => $s->user->name,
-                'avatar_url' => $s->user->avatar_url,
-                'rating'     => $s->user->rating,
-            ])->values(),
-            'total'   => $total,
-            'page'    => $page,
-            'hasMore' => ($page * $perPage) < $total,
-        ]);
+        $result = $this->profileService->getCategoryIdols($user, $category, $request);
+        return response()->json($result);
     }
 
     public function updateAbout(Request $request): RedirectResponse
@@ -358,7 +258,7 @@ class UserProfileController extends Controller
     public function updateHeader(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'name'       => ['required', 'string', 'min:2', 'max:100', 'regex:/^\p{L}+(\s\p{L}+)?$/u'],
+            'name'       => ['required', 'string', 'min:2', 'max:100', 'regex:/^\p{L}+(\s\p{L}+)?$/u', \Illuminate\Validation\Rule::unique('users', 'name')->ignore($request->user()->id)],
             'gender'     => ['nullable', 'in:male,female'],
             'birth_date' => ['nullable', 'date', 'before:' . now()->subYears(18)->toDateString()],
             'timezone'   => ['nullable', 'string', 'max:60', 'timezone:all'],
@@ -367,6 +267,7 @@ class UserProfileController extends Controller
             'name.min'      => 'Имя слишком короткое.',
             'name.max'      => 'Имя слишком длинное.',
             'name.regex'    => 'Имя должно содержать одно или два слова (только буквы).',
+            'name.unique'   => 'Этот логин уже занят.',
         ]);
         $request->user()->update($data);
         return back();
@@ -400,7 +301,7 @@ class UserProfileController extends Controller
         $request->validate(['voice' => ['required', 'file', 'mimes:webm,mp4,ogg', 'max:5120']]);
         $user  = $request->user();
         $ext   = $request->file('voice')->getClientOriginalExtension() ?: 'webm';
-        $path  = $request->file('voice')->storeAs('voices', "{$user->id}.{$ext}", 'public');
+        $path  = $request->file('voice')->storeAs('voices', "{$user->id}.{$ext}");
         $user->update(['voice_path' => $path]);
         return back();
     }
@@ -409,7 +310,7 @@ class UserProfileController extends Controller
     {
         $user = $request->user();
         if ($user->voice_path) {
-            Storage::disk('public')->delete($user->voice_path);
+            Storage::disk(config('filesystems.default'))->delete($user->voice_path);
             $user->update(['voice_path' => null]);
         }
         return back();
@@ -433,7 +334,7 @@ class UserProfileController extends Controller
         $user = $request->user();
 
         if ($user->avatar_path) {
-            Storage::disk('public')->delete($user->avatar_path);
+            Storage::disk(config('filesystems.default'))->delete($user->avatar_path);
         }
 
         $file = $request->file('avatar');
@@ -445,7 +346,7 @@ class UserProfileController extends Controller
         }
 
         // Fix orientation from EXIF
-        $exif = @exif_read_data($realPath);
+        $exif = function_exists('exif_read_data') ? @exif_read_data($realPath) : false;
         if (!empty($exif['Orientation'])) {
             switch ($exif['Orientation']) {
                 case 3: $img = imagerotate($img, 180, 0); break;
@@ -485,7 +386,7 @@ class UserProfileController extends Controller
         imagejpeg($newImg, null, 70);
         $imageData = ob_get_clean();
         
-        Storage::disk('public')->put($path, $imageData);
+        Storage::disk(config('filesystems.default'))->put($path, $imageData);
 
         imagedestroy($img);
         imagedestroy($newImg);
@@ -499,7 +400,7 @@ class UserProfileController extends Controller
     {
         $user = $request->user();
         if ($user->avatar_path) {
-            Storage::disk('public')->delete($user->avatar_path);
+            Storage::disk(config('filesystems.default'))->delete($user->avatar_path);
             $user->update(['avatar_path' => null]);
         }
         return back();
@@ -526,86 +427,23 @@ class UserProfileController extends Controller
             'body'  => ['required', 'string', 'max:377'],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
         ]);
-        $user = $request->user();
-        $photoPath = null;
-        if ($request->hasFile('photo')) {
-            $file = $request->file('photo');
-            $realPath = $file->getRealPath();
-            $img = imagecreatefromstring(file_get_contents($realPath));
 
-            if ($img) {
-                // Fix orientation from EXIF
-                $exif = @exif_read_data($realPath);
-                if (!empty($exif['Orientation'])) {
-                    switch ($exif['Orientation']) {
-                        case 3: $img = imagerotate($img, 180, 0); break;
-                        case 6: $img = imagerotate($img, -90, 0); break;
-                        case 8: $img = imagerotate($img, 90, 0); break;
-                    }
-                }
-
-                $width  = imagesx($img);
-                $height = imagesy($img);
-                $maxDim = 1600;
-
-                if ($width > $maxDim || $height > $maxDim) {
-                    $ratio = $width / $height;
-                    if ($ratio > 1) {
-                        $newWidth  = $maxDim;
-                        $newHeight = (int)($maxDim / $ratio);
-                    } else {
-                        $newHeight = $maxDim;
-                        $newWidth  = (int)($maxDim * $ratio);
-                    }
-                } else {
-                    $newWidth  = $width;
-                    $newHeight = $height;
-                }
-
-                $newImg = imagecreatetruecolor($newWidth, $newHeight);
-                $white  = imagecolorallocate($newImg, 255, 255, 255);
-                imagefill($newImg, 0, 0, $white);
-                imagecopyresampled($newImg, $img, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-
-                $photoPath = "posts/{$user->id}/" . time() . ".jpg";
-                ob_start();
-                imagejpeg($newImg, null, 70);
-                $imageData = ob_get_clean();
-
-                Storage::disk('public')->put($photoPath, $imageData);
-                imagedestroy($img);
-                imagedestroy($newImg);
-            } else {
-                // Fallback to regular store if GD fails
-                $ext       = $file->getClientOriginalExtension() ?: 'jpg';
-                $photoPath = $file->storeAs("posts/{$user->id}", time() . '.' . $ext, 'public');
-            }
-        }
-        $post = Post::create([
-            'user_id'    => $user->id,
-            'body'       => $request->input('body'),
-            'photo_path' => $photoPath,
-        ]);
-
-        NotifyFollowersJob::dispatch($user, $post);
+        $this->profileService->createPost($user, ['body' => $request->input('body')], $request->file('photo'));
 
         return back();
     }
 
     public function destroyPost(Request $request, Post $post): RedirectResponse
     {
-        abort_if($post->user_id !== $request->user()->id, 403);
-        if ($post->photo_path) {
-            Storage::disk('public')->delete($post->photo_path);
-        }
-        $post->delete();
+        $this->authorize('delete', $post);
+        $this->profileService->deletePost($post);
         return back();
     }
 
     public function getPosts(Request $request, User $user): JsonResponse
     {
         $paginated = $user->posts()
-            ->with('user:id,name,avatar_path,gender')
+            ->with(['user:id,name,avatar_path,active_frame_id,gender', 'user.activeFrame'])
             ->withCount(['likes', 'comments'])
             ->latest()
             ->paginate(10);
@@ -651,7 +489,7 @@ class UserProfileController extends Controller
         $perPage = 15;
 
         $paginator = $post->comments()
-            ->with(['user:id,name,avatar_path,gender'])
+            ->with(['user:id,name,avatar_path,active_frame_id,gender', 'user.activeFrame'])
             ->withCount('replies')
             ->orderBy('created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
@@ -661,7 +499,7 @@ class UserProfileController extends Controller
         // For comments with exactly 1 reply, load it inline so it displays without a toggle button
         $singleIds = $comments->filter(fn ($c) => $c->replies_count === 1)->pluck('id');
         if ($singleIds->isNotEmpty()) {
-            $singleReplies = PostComment::with('user:id,name,avatar_path,gender')
+            $singleReplies = PostComment::with(['user:id,name,avatar_path,active_frame_id,gender', 'user.activeFrame'])
                 ->whereIn('parent_id', $singleIds)
                 ->orderBy('created_at')
                 ->get()
@@ -717,7 +555,7 @@ class UserProfileController extends Controller
         $perPage = 50;
 
         $paginator = PostComment::where('parent_id', $comment->id)
-            ->with('user:id,name,avatar_path,gender')
+            ->with(['user:id,name,avatar_path,active_frame_id,gender', 'user.activeFrame'])
             ->orderBy('created_at')
             ->paginate($perPage, ['*'], 'page', $page);
 
@@ -777,14 +615,8 @@ class UserProfileController extends Controller
             abort_if($parent->parent_id !== null, 422, 'Cannot reply to a reply.');
         }
 
-        $comment = PostComment::create([
-            'post_id'   => $post->id,
-            'user_id'   => $request->user()->id,
-            'parent_id' => $data['parent_id'] ?? null,
-            'body'      => $data['body'],
-        ]);
-
-        $comment->load('user:id,name,avatar_path');
+        $comment = $this->profileService->createComment($request->user(), $post, $data);
+        $comment->load(['user:id,name,avatar_path,active_frame_id', 'user.activeFrame']);
 
         return response()->json([
             'id'            => $comment->id,
@@ -798,7 +630,7 @@ class UserProfileController extends Controller
 
     public function destroyComment(Request $request, PostComment $comment): JsonResponse
     {
-        abort_if($comment->user_id !== $request->user()->id, 403);
+        $this->authorize('delete', $comment);
         $comment->delete();
         return response()->json(['deleted' => true]);
     }

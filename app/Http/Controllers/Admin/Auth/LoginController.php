@@ -27,7 +27,8 @@ class LoginController extends Controller
 
         if (Auth::guard('admin')->attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
-            return redirect()->intended(route('admin.dashboard'));
+            $intended = session()->pull('admin.url.intended', route('admin.dashboard'));
+            return redirect()->to($intended);
         }
 
         return back()->withErrors(['email' => 'Неверный email или пароль.']);

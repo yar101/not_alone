@@ -17,6 +17,15 @@ class News extends Model
         'is_pinned'    => 'boolean',
     ];
 
+    public function getImageAttribute($value)
+    {
+        if (!$value) return null;
+        if (str_starts_with($value, '/storage/') || str_starts_with($value, 'http')) {
+            return $value;
+        }
+        return \Illuminate\Support\Facades\Storage::url($value);
+    }
+
     public function scopePublished(Builder $query): Builder
     {
         return $query->whereNotNull('published_at')

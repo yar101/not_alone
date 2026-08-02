@@ -2,13 +2,14 @@
 
 namespace App\Notifications;
 
+use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Models\ContentPack;
 use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 
-class ContentPackChangeRejectedNotification extends Notification
+class ContentPackChangeRejectedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
     use SendsWebPush;

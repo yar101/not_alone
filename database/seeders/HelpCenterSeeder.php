@@ -10,15 +10,18 @@ class HelpCenterSeeder extends Seeder
 {
     public function run(): void
     {
+        HelpArticle::query()->delete();
+        HelpCategory::query()->delete();
+
         $data = [
             [
-                'title' => ['ru' => 'Что такое no alone?', 'en' => 'What is no alone?'],
+                'title' => ['ru' => 'Что такое not alone?', 'en' => 'What is not alone?'],
                 'articles' => [
                     [
                         'title' => ['ru' => 'О сервисе', 'en' => 'About service'],
                         'content' => [
-                            'ru' => '<p>no alone — это сервис для поиска собеседников и живого общения. Здесь вы можете найти людей со схожими интересами и просто поговорить.</p><p>Мы верим, что каждый человек заслуживает внимания и живого общения.</p>',
-                            'en' => '<p>no alone is a service for finding interlocutors and live communication. Here you can find people with similar interests and just talk.</p><p>We believe that everyone deserves attention and live communication.</p>'
+                            'ru' => '<p>not alone — это сервис для поиска собеседников и живого общения. Здесь вы можете найти людей со схожими интересами и просто поговорить.</p><p>Мы верим, что каждый человек заслуживает внимания и живого общения.</p>',
+                            'en' => '<p>not alone is a service for finding interlocutors and live communication. Here you can find people with similar interests and just talk.</p><p>We believe that everyone deserves attention and live communication.</p>'
                         ]
                     ],
                     [
@@ -38,8 +41,8 @@ class HelpCenterSeeder extends Seeder
                     [
                         'title' => ['ru' => 'Нужно ли устанавливать приложение?', 'en' => 'Do I need to install an app?'],
                         'content' => [
-                            'ru' => '<p>Нет, no alone работает прямо в браузере. Для удобства вы также можете установить мобильное приложение — оно доступно в App Store и Google Play.</p>',
-                            'en' => '<p>No, no alone works directly in the browser. For convenience, you can also install the mobile app — it is available in the App Store and Google Play.</p>'
+                            'ru' => '<p>Нет, not alone работает прямо в браузере. Для удобства вы также можете установить мобильное приложение — оно доступно в App Store и Google Play.</p>',
+                            'en' => '<p>No, not alone works directly in the browser. For convenience, you can also install the mobile app — it is available in the App Store and Google Play.</p>'
                         ]
                     ]
                 ]

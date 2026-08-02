@@ -112,6 +112,31 @@ class SupportChatController extends Controller
         ]);
     }
 
+    private function storeFile(Request $request, Conversation $conversation): ?Message
+    {
+        $path = $request->file('file')->store("chat/{$conversation->id}");
+
+        $admin = auth('admin')->user();
+
+        $msg = $conversation->messages()->create([
+            'sender_id' => null,
+            'body'      => '',
+            'type'      => 'image',
+            'metadata'  => [
+                'admin_id'  => $admin->id,
+                'admin_name' => self::ADMIN_NAME,
+                'image_url' => Storage::url($path),
+            ],
+        ]);
+
+        $conversation->touch();
+        $msg->load('sender');
+
+        $this->broadcastToAll($conversation, $msg);
+
+        return $msg;
+    }
+
     public function send(Request $request, Conversation $conversation): JsonResponse
     {
         $request->validate(['body' => ['required', 'string', 'max:5000']]);
@@ -139,7 +164,7 @@ class SupportChatController extends Controller
             'file' => ['required', 'file', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
         ]);
 
-        $path = $request->file('file')->store("chat/{$conversation->id}", 'public');
+        $path = $request->file('file')->store("chat/{$conversation->id}");
 
         return response()->json(['url' => Storage::url($path)]);
     }
@@ -213,13 +238,13 @@ class SupportChatController extends Controller
         if ($c->admin_read_at) {
             $unreadQuery->where('created_at', '>', $c->admin_read_at);
         }
-        $unreadCount = $unreadQuery->count();
+        $hasUnread = $unreadQuery->exists();
 
         return [
             'id'           => $c->id,
             'closed_at'    => $c->closed_at?->toISOString(),
             'updated_at'   => $c->updated_at->toISOString(),
-            'unread_count' => $unreadCount,
+            'unread'       => $hasUnread,
             'user'         => $user ? [
                 'id'     => $user->id,
                 'name'   => $user->name,

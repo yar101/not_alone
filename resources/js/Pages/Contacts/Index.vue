@@ -1,7 +1,11 @@
 <script setup>
 import { Head } from "@inertiajs/vue3";
-import SiteHeader from "@/Components/Site/SiteHeader.vue";
 import LocaleLoader from "@/Components/LocaleLoader.vue";
+import PublicLayout from "@/Layouts/PublicLayout.vue";
+
+defineOptions({
+    layout: (h, page) => h(PublicLayout, { activePage: "contacts" }, () => page),
+});
 
 const contacts = [
     {
@@ -22,135 +26,56 @@ const contacts = [
 </script>
 
 <template>
-    <Head title="Контакты — no alone" />
+    <Head title="Контакты" />
 
     <LocaleLoader />
 
-    <!-- Декоративные фоновые элементы (круги) -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div class="circle1" />
-        <div class="circle2" />
-        <div class="circle3" />
-    </div>
+    <main class="flex-1 flex flex-col items-center justify-center px-6 relative z-10">
+        <div class="w-full max-w-[500px] flex flex-col gap-3">
+            <a
+                v-for="c in contacts"
+                :key="c.title"
+                :href="c.link"
+                target="_blank"
+                class="minimal-link group"
+            >
+                <div class="minimal-link__icon" :style="{ color: c.color }">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path :d="c.icon" />
+                    </svg>
+                </div>
+                <div class="minimal-link__content">
+                    <span class="minimal-link__value">{{ c.value }}</span>
+                    <span class="minimal-link__label">{{ c.title }}</span>
+                </div>
+            </a>
+        </div>
 
-    <!-- Основной контейнер с градиентным фоном -->
-    <div
-        class="min-h-screen text-white overflow-x-hidden main-gradient relative z-10 flex flex-col"
-    >
-        <SiteHeader activePage="contacts" />
-
-        <main class="flex-1 flex flex-col items-center justify-center px-6">
-            <div class="w-full max-w-[500px] flex flex-col gap-3">
-                <a
-                    v-for="c in contacts"
-                    :key="c.title"
-                    :href="c.link"
-                    target="_blank"
-                    class="minimal-link group"
-                >
-                    <div class="minimal-link__icon" :style="{ color: c.color }">
-                        <svg viewBox="0 0 24 24" fill="currentColor">
-                            <path :d="c.icon" />
-                        </svg>
-                    </div>
-                    <div class="minimal-link__content">
-                        <span class="minimal-link__value">{{ c.value }}</span>
-                        <span class="minimal-link__label">{{ c.title }}</span>
-                    </div>
-                </a>
-            </div>
-
-            <!-- Балансировочный отступ снизу -->
-            <div class="h-32"></div>
-        </main>
-    </div>
+        <!-- Балансировочный отступ снизу -->
+        <div class="h-32"></div>
+    </main>
 </template>
 
 <style scoped>
-/* Кастомный градиент фона */
-.main-gradient {
-    background: linear-gradient(
-            180deg,
-            rgba(255, 42, 191, 0.09) 0%,
-            rgba(0, 0, 0, 0.56) 100%
-        )
-        fixed;
-}
-
-/* Фоновые круги */
-.circle1,
-.circle2,
-.circle3 {
-    border-radius: 50%;
-    background: rgba(60, 60, 190, 0.04);
-    box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.02);
-    position: absolute;
-    right: -15%;
-    top: -10%;
-}
-
-.circle1 {
-    width: 1000px;
-    height: 1000px;
-}
-.circle2 {
-    width: 800px;
-    height: 800px;
-}
-.circle3 {
-    width: 600px;
-    height: 600px;
-}
-
-@media (max-width: 1024px) {
-    .circle1 {
-        width: 700px;
-        height: 700px;
-    }
-    .circle2 {
-        width: 550px;
-        height: 550px;
-    }
-    .circle3 {
-        width: 400px;
-        height: 400px;
-    }
-}
-
-@media (max-width: 640px) {
-    .circle1 {
-        width: 400px;
-        height: 400px;
-        right: -20%;
-    }
-    .circle2 {
-        width: 300px;
-        height: 300px;
-        right: -15%;
-    }
-    .circle3 {
-        width: 200px;
-        height: 200px;
-        right: -10%;
-    }
-}
-
 .minimal-link {
     display: flex;
     align-items: center;
     gap: 1.25rem;
     padding: 1.1rem 1.5rem;
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 2px;
+    background: rgba(10, 7, 20, 0.7);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 4px 20px rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
     transition: all 0.3s ease;
     text-decoration: none;
 }
 
 .minimal-link:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 178, 239, 0.25);
+    background: rgba(15, 12, 25, 0.85);
+    border-color: rgba(255, 178, 239, 0.3);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 6px 24px rgba(0, 0, 0, 0.4);
     transform: translateX(4px);
 }
 

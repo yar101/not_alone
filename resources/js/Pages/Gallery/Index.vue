@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, reactive } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { ArrowLeft, ArrowRight, BellFilled } from '@element-plus/icons-vue';
 import { useTranslations } from '@/composables/useTranslations';
 
 const { __ } = useTranslations();
@@ -12,6 +13,7 @@ defineOptions({ layout: AppLayout });
 const props = defineProps({
     idols:   { type: Array,   default: () => [] },
     is_idol: { type: Boolean, default: false },
+    has_new_packs: { type: Boolean, default: false },
 });
 
 // ── Sidebar filter ────────────────────────────────────────
@@ -19,10 +21,15 @@ const props = defineProps({
 const selectedIdolId = ref(null);
 const searchQuery    = ref('');
 
+const idolsList = ref([...props.idols]);
+watch(() => props.idols, (newVal) => {
+    idolsList.value = [...newVal];
+});
+
 const filteredIdols = computed(() => {
-    if (!searchQuery.value) return props.idols;
+    if (!searchQuery.value) return idolsList.value;
     const q = searchQuery.value.toLowerCase();
-    return props.idols.filter(i => i.name.toLowerCase().includes(q));
+    return idolsList.value.filter(i => i.name.toLowerCase().includes(q));
 });
 
 // Единый список для сайдбара: "Мои" (если айдол) + все айдолы
@@ -39,6 +46,7 @@ const sidebarItems = computed(() => {
 
 // ── Sidebar pack sub-list ─────────────────────────────────
 const selectedPackId    = ref(null);
+const expandedIdolId    = ref(null);
 const sidebarPacks      = ref([]);
 const packCoverLoaded   = reactive({});
 const packsLoading      = ref(false);
@@ -57,11 +65,13 @@ async function loadSidebarPacks(append = false) {
             sidebarPacks.value    = [...cached.packs];
             hasMorePacks.value    = cached.hasMore;
             nextPacksCursor.value = cached.nextCursor;
+            expandedIdolId.value  = selectedIdolId.value;
             return;
         }
         sidebarPacks.value    = [];
         hasMorePacks.value    = false;
         nextPacksCursor.value = null;
+        expandedIdolId.value  = null;
     }
 
     packsLoading.value = true;
@@ -86,6 +96,9 @@ async function loadSidebarPacks(append = false) {
         console.error(e);
     } finally {
         packsLoading.value = false;
+        if (!append && sidebarPacks.value.length > 0) {
+            expandedIdolId.value = selectedIdolId.value;
+        }
     }
 }
 
@@ -190,10 +203,11 @@ const activeFilterLabel = computed(() => {
         const pack = sidebarPacks.value.find(p => p.id === selectedPackId.value);
         if (pack) return pack.title;
     }
-    if (selectedIdolId.value === null) return __('common.all');
+    if (selectedIdolId.value === null) return __('gallery.all_photos');
     if (selectedIdolId.value === 'mine') return __('gallery.mine');
+    if (selectedIdolId.value === 'new') return __('gallery.new_packs');
     const idol = props.idols.find(i => i.id === selectedIdolId.value);
-    return idol?.name ?? __('common.all');
+    return idol?.name ?? __('gallery.all_photos');
 });
 
 const isFilterActive = computed(() => selectedIdolId.value !== null || selectedPackId.value !== null);
@@ -224,8 +238,22 @@ function selectIdolItem(id) {
     selectedPackId.value = null;
 }
 
-function selectPack(id) {
-    selectedPackId.value = id;
+function selectPack(pack) {
+    selectedPackId.value = pack.id;
+    if (pack.is_new) {
+        pack.is_new = false;
+        axios.post(route('content-packs.view', pack.id)).catch(err => console.error('Failed to mark pack as viewed:', err));
+        
+        if (selectedIdolId.value !== 'mine' && selectedIdolId.value !== null) {
+            const hasMoreNew = sidebarPacks.value.some(p => p.is_new);
+            if (!hasMoreNew) {
+                const idol = idolsList.value.find(i => i.id === selectedIdolId.value);
+                if (idol) {
+                    idol.has_new_packs = false;
+                }
+            }
+        }
+    }
     closeFilters();
 }
 </script>
@@ -322,106 +350,8 @@ function selectPack(id) {
                 </button>
             </div>
 
-            <div class="gallery-idol-list">
-
-                <!-- Все -->
-                <button
-                    class="gallery-idol-item"
-                    :class="{ 'gallery-idol-item--active': selectedIdolId === null }"
-                    @click="selectAll"
-                >
-                    <div class="gallery-idol-item__avatar gallery-idol-item__avatar--all">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                            <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
-                        </svg>
-                    </div>
-                    <span class="gallery-idol-item__name">{{ __('common.all') }}</span>
-                </button>
-
-                <!-- Мои + айдолы — единый список -->
-                <template v-for="item in sidebarItems" :key="item.id">
-                    <button
-                        class="gallery-idol-item"
-                        :class="{ 'gallery-idol-item--active': selectedIdolId === item.id && !selectedPackId }"
-                        @click="selectIdolItem(item.id)"
-                    >
-                        <!-- Аватар: "Мои" — иконка пользователя, айдол — фото или инициал -->
-                        <div
-                            class="gallery-idol-item__avatar"
-                            :class="item.type === 'mine' ? 'gallery-idol-item__avatar--mine' : ''"
-                        >
-                            <template v-if="item.type === 'mine'">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                                    <circle cx="12" cy="7" r="4"/>
-                                </svg>
-                            </template>
-                            <template v-else>
-                                <img v-if="item.avatar_url" :src="item.avatar_url" :alt="item.name" />
-                                <span v-else>{{ item.name?.charAt(0)?.toUpperCase() }}</span>
-                            </template>
-                        </div>
-                        <span class="gallery-idol-item__name">{{ item.name }}</span>
-                    </button>
-
-                    <!-- Pack sub-list (одинаковый для всех пунктов) -->
-                    <div v-if="selectedIdolId === item.id" class="gallery-pack-list">
-                        <div v-if="packsLoading" class="gallery-pack-list__loading">
-                            <div class="gallery-loading__spinner gallery-loading__spinner--sm" />
-                        </div>
-                        <button
-                            v-for="pack in sidebarPacks"
-                            :key="pack.id"
-                            class="gallery-pack-item"
-                            :class="{ 'gallery-pack-item--active': selectedPackId === pack.id }"
-                            @click="selectPack(pack.id)"
-                        >
-                            <div class="gallery-pack-item__cover">
-                                <template v-if="pack.cover_url">
-                                    <div v-if="!packCoverLoaded[pack.id]" class="gallery-pack-item__cover-shimmer" />
-                                    <img
-                                        :src="pack.cover_url"
-                                        :alt="pack.title"
-                                        :class="{ 'gallery-pack-item__cover-img--loaded': packCoverLoaded[pack.id] }"
-                                        @load="packCoverLoaded[pack.id] = true"
-                                    />
-                                </template>
-                                <span v-else class="gallery-pack-item__cover-empty" />
-                            </div>
-                            <div class="gallery-pack-item__info">
-                                <span class="gallery-pack-item__title">{{ pack.title }}</span>
-                                <span class="gallery-pack-item__count">{{ __('pack.photos', { count: pack.photo_count }) }}</span>
-                            </div>
-                        </button>
-                        <button
-                            v-if="hasMorePacks && !packsLoading"
-                            class="gallery-pack-more"
-                            @click="loadSidebarPacks(true)"
-                        >
-                            {{ __('gallery.load_more') }}
-                        </button>
-                        <div v-if="packsLoading && sidebarPacks.length" class="gallery-pack-list__loading">
-                            <div class="gallery-loading__spinner--sm" />
-                        </div>
-                    </div>
-                </template>
-
-            </div>
-        </aside>
-
-        <!-- Backdrop for mobile filter drawer -->
-        <Teleport to="body">
-            <Transition name="mob-backdrop">
-                <div v-if="mobileFiltersOpen || mobileFilterClosing" class="gallery-mob-backdrop" @click="closeFilters" />
-            </Transition>
-        </Teleport>
-
-        <!-- Main area -->
-        <main class="gallery-main">
-
             <!-- Toolbar (desktop only) -->
-            <div class="gallery-toolbar">
+            <div class="gallery-toolbar desktop-only">
                 <div class="gallery-density-toggle">
                     <button
                         v-for="d in ['compact', 'medium', 'large']"
@@ -445,19 +375,128 @@ function selectPack(id) {
                         </svg>
                         <!-- medium: 2×2 grid -->
                         <svg v-else-if="d === 'medium'" width="15" height="15" viewBox="0 0 15 15" fill="currentColor">
-                            <rect x="0" y="0"   width="6.5" height="6.5" rx="0.5"/>
-                            <rect x="8.5" y="0"   width="6.5" height="6.5" rx="0.5"/>
-                            <rect x="0" y="8.5" width="6.5" height="6.5" rx="0.5"/>
+                            <rect x="0"  y="0"  width="6.5" height="6.5" rx="0.5"/>
+                            <rect x="8.5" y="0"  width="6.5" height="6.5" rx="0.5"/>
+                            <rect x="0"  y="8.5" width="6.5" height="6.5" rx="0.5"/>
                             <rect x="8.5" y="8.5" width="6.5" height="6.5" rx="0.5"/>
                         </svg>
-                        <!-- large: 1×2 rows -->
                         <svg v-else width="15" height="15" viewBox="0 0 15 15" fill="currentColor">
-                            <rect x="0" y="0"   width="15" height="6.5" rx="0.5"/>
+                            <rect x="0" y="0" width="15" height="6.5" rx="0.5"/>
                             <rect x="0" y="8.5" width="15" height="6.5" rx="0.5"/>
                         </svg>
                     </button>
                 </div>
             </div>
+
+            <div class="gallery-idol-list">
+
+                <!-- Все -->
+                <button
+                    class="gallery-idol-item"
+                    :class="{ 'gallery-idol-item--active': selectedIdolId === null }"
+                    @click="selectAll"
+                >
+                    <div class="gallery-idol-item__avatar gallery-idol-item__avatar--all">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                            <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+                        </svg>
+                    </div>
+                    <span class="gallery-idol-item__name">{{ __('gallery.all_photos') }}</span>
+                </button>
+
+                <!-- Мои + айдолы — единый список -->
+                <template v-for="(item, index) in sidebarItems" :key="item.id">
+                    <div v-if="item.type === 'idol' && (index === 0 || sidebarItems[index - 1].type !== 'idol')" class="gallery-sidebar-divider" />
+                    <button
+                        class="gallery-idol-item"
+                        :class="{ 'gallery-idol-item--active': selectedIdolId === item.id && !selectedPackId }"
+                        @click="selectIdolItem(item.id)"
+                    >
+                        <!-- Аватар: "Мои" — иконка пользователя, айдол — фото или инициал -->
+                        <div
+                            class="gallery-idol-item__avatar"
+                            :class="{
+                                'gallery-idol-item__avatar--mine': item.type === 'mine',
+                            }"
+                        >
+                            <template v-if="item.type === 'mine'">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                            </template>
+                            <template v-else>
+                                <img v-if="item.avatar_url" :src="item.avatar_url" :alt="item.name" />
+                                <span v-else>{{ item.name?.charAt(0)?.toUpperCase() }}</span>
+                            </template>
+                        </div>
+                        <span class="gallery-idol-item__name">{{ item.name }}</span>
+                        <div v-if="item.has_new_packs" class="gallery-idol-item__new-badge" :title="__('gallery.new_packs')"></div>
+                        <div v-if="packsLoading && selectedIdolId === item.id" style="margin-left: auto;">
+                            <div class="gallery-loading__spinner--sm" />
+                        </div>
+                    </button>
+
+                    <!-- Pack sub-list (одинаковый для всех пунктов) -->
+                    <Transition name="pack-list">
+                        <div v-if="expandedIdolId === item.id" class="gallery-pack-list">
+                        <button
+                            v-for="pack in sidebarPacks"
+                            :key="pack.id"
+                            class="gallery-pack-item"
+                            :class="{ 'gallery-pack-item--active': selectedPackId === pack.id }"
+                            @click="selectPack(pack)"
+                        >
+                            <div class="gallery-pack-item__cover">
+                                <template v-if="pack.cover_url">
+                                    <div v-if="!packCoverLoaded[pack.id]" class="gallery-pack-item__cover-shimmer" />
+                                    <img
+                                        :src="pack.cover_url"
+                                        :alt="pack.title"
+                                        :class="{ 'gallery-pack-item__cover-img--loaded': packCoverLoaded[pack.id] }"
+                                        @load="packCoverLoaded[pack.id] = true"
+                                    />
+                                </template>
+                                <template v-else>
+                                    <span class="gallery-pack-item__cover-empty" />
+                                </template>
+                            </div>
+                            <div class="gallery-pack-item__info">
+                                <span class="gallery-pack-item__title">
+                                    {{ pack.title }}
+                                </span>
+                                <span class="gallery-pack-item__count">{{ __('pack.photos', { count: pack.photo_count }) }}</span>
+                            </div>
+                            <div v-if="pack.is_new" class="gallery-pack-item__new-badge" :title="__('gallery.new_packs')"></div>
+                        </button>
+                        <button
+                            v-if="hasMorePacks && !packsLoading"
+                            class="gallery-pack-more"
+                            @click="loadSidebarPacks(true)"
+                        >
+                            {{ __('gallery.load_more') }}
+                        </button>
+                        <div v-if="packsLoading && sidebarPacks.length" class="gallery-pack-list__loading">
+                            <div class="gallery-loading__spinner--sm" />
+                        </div>
+                        </div>
+                    </Transition>
+                </template>
+
+            </div>
+        </aside>
+
+        <!-- Backdrop for mobile filter drawer -->
+        <Teleport to="body">
+            <Transition name="mob-backdrop">
+                <div v-if="mobileFiltersOpen || mobileFilterClosing" class="gallery-mob-backdrop" @click="closeFilters" />
+            </Transition>
+        </Teleport>
+
+        <!-- Main area -->
+        <main class="gallery-main">
+            <div class="gallery-content">
 
             <!-- Empty state -->
             <div v-if="!loading && !photos.length && !hasMore" class="gallery-empty">
@@ -515,6 +554,7 @@ function selectPack(id) {
                     {{ __('gallery.load_more') }}
                 </button>
             </div>
+            </div>
         </main>
 
         <!-- Lightbox -->
@@ -533,7 +573,7 @@ function selectPack(id) {
                     </button>
 
                     <!-- Prev arrow -->
-                    <button class="lb-arrow lb-arrow--prev" @click.stop="prevPhoto" :aria-label="__('gallery.prev')">&#8249;</button>
+                    <button class="lb-arrow lb-arrow--prev" @click.stop="prevPhoto" :aria-label="__('gallery.prev')"><el-icon><ArrowLeft /></el-icon></button>
 
                     <!-- Image -->
                     <div class="lb-content" @click.stop>
@@ -542,7 +582,7 @@ function selectPack(id) {
                     </div>
 
                     <!-- Next arrow -->
-                    <button class="lb-arrow lb-arrow--next" @click.stop="nextPhoto" :aria-label="__('gallery.next')">&#8250;</button>
+                    <button class="lb-arrow lb-arrow--next" @click.stop="nextPhoto" :aria-label="__('gallery.next')"><el-icon><ArrowRight /></el-icon></button>
 
                 </div>
             </Transition>
@@ -559,19 +599,24 @@ function selectPack(id) {
 .gallery-page {
     display: flex;
     min-height: calc(100vh - 60px);
-    background: #0a0a14;
 }
 
 /* ── Sidebar ─────────────────────────────────────────────── */
 .gallery-sidebar {
-    width: 270px;
+    width: 280px;
     flex-shrink: 0;
-    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    margin: 1.5rem;
     display: flex;
     flex-direction: column;
     position: sticky;
-    top: 60px;
-    height: calc(100vh - 60px);
+    top: calc(60px + 1.5rem);
+    height: calc(100vh - 60px - 3rem);
+    border-radius: 16px;
+    background: rgba(20, 15, 25, 0.4);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 4px 20px rgba(0,0,0,0.2);
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: rgba(255,255,255,0.08) transparent;
@@ -624,31 +669,46 @@ function selectPack(id) {
 }
 
 .gallery-idol-list {
-    padding: 0.5rem 0;
+    padding: 0.5rem 0.4rem;
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .gallery-idol-item {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.5rem;
     width: 100%;
-    padding: 0.55rem 1rem;
+    padding: 0.45rem 0.5rem;
     background: transparent;
     border: none;
+    border-radius: 12px;
     cursor: pointer;
     color: rgba(255,255,255,0.6);
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     font-family: inherit;
     text-align: left;
-    transition: background 0.15s, color 0.15s;
+    transition: all 0.2s ease;
 }
-.gallery-idol-item:hover { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.85); }
-.gallery-idol-item--active { background: rgba(255, 178, 239,0.08); color: rgba(200,200,255,0.9); }
+.gallery-idol-item:hover { 
+    background: rgba(255,255,255,0.05); 
+    color: rgba(255,255,255,0.9);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+.gallery-idol-item--active { 
+    background: rgba(255, 178, 239, 0.1); 
+    color: rgba(255, 178, 239, 1);
+    box-shadow: inset 0 0 0 1px rgba(255, 178, 239, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
 
 .gallery-idol-item__avatar {
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
@@ -660,14 +720,23 @@ function selectPack(id) {
     font-weight: 600;
     color: rgba(255, 178, 239,0.7);
 }
-.gallery-idol-item__avatar--all {
-    background: rgba(255,255,255,0.06);
-    color: rgba(255,255,255,0.4);
+.gallery-sidebar-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 0.25rem 0.25rem;
 }
-.gallery-idol-item__avatar--mine {
-    background: rgba(160,255,200,0.1);
-    color: rgba(160,255,200,0.6);
+
+.gallery-idol-item__avatar--mine,
+.gallery-idol-item__avatar--new,
+.gallery-idol-item__avatar--all { 
+    background: rgba(255, 255, 255, 0.05); 
+    backdrop-filter: blur(10px); 
+    -webkit-backdrop-filter: blur(10px); 
+    border: 1px solid rgba(255, 255, 255, 0.15); 
+    color: rgba(255,255,255,0.8); 
+    box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.02); 
 }
+
 .gallery-idol-item__avatar img {
     width: 100%;
     height: 100%;
@@ -682,10 +751,24 @@ function selectPack(id) {
 }
 
 /* ── Sidebar pack sub-list ───────────────────────────────── */
+.gallery-idol-item__new-badge {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 178, 239, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 178, 239, 0.7);
+    box-shadow: 0 0 4px rgba(255, 178, 239, 0.3);
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
 .gallery-pack-list {
-    padding: 2px 0 4px;
-    border-left: 1px solid rgba(255, 178, 239,0.12);
-    margin-left: 25px;
+    padding: 2px 0 6px 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .gallery-pack-list__loading {
@@ -699,17 +782,45 @@ function selectPack(id) {
     align-items: center;
     gap: 0.5rem;
     width: 100%;
-    padding: 0.32rem 0.75rem 0.32rem 0.5rem;
+    padding: 0.35rem 0.5rem;
     background: transparent;
     border: none;
+    border-radius: 10px;
     cursor: pointer;
     color: rgba(255,255,255,0.45);
     font-family: inherit;
     text-align: left;
-    transition: background 0.15s, color 0.15s;
+    transition: all 0.2s ease;
 }
-.gallery-pack-item:hover { background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.75); }
-.gallery-pack-item--active { color: rgba(255, 178, 239,0.9); background: rgba(255, 178, 239,0.07); }
+.gallery-pack-item:hover { 
+    background: rgba(255,255,255,0.04); 
+    color: rgba(255,255,255,0.8);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+.gallery-pack-item--active { 
+    background: rgba(255, 178, 239, 0.08); 
+    color: rgba(255, 178, 239, 1);
+    box-shadow: inset 0 0 0 1px rgba(255, 178, 239, 0.15);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+/* ── Transitions ─────────────────────────────────────────── */
+.pack-list-enter-active,
+.pack-list-leave-active {
+    transition: max-height 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.25s ease, padding 0.3s ease;
+    max-height: 1000px;
+    overflow: hidden;
+    opacity: 1;
+}
+.pack-list-enter-from,
+.pack-list-leave-to {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+}
 
 .gallery-pack-item__cover {
     position: relative;
@@ -729,6 +840,19 @@ function selectPack(id) {
     transition: opacity 0.3s;
 }
 .gallery-pack-item__cover img.gallery-pack-item__cover-img--loaded { opacity: 1; }
+
+.gallery-pack-item__new-badge {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 178, 239, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 178, 239, 0.7);
+    box-shadow: 0 0 4px rgba(255, 178, 239, 0.3);
+    flex-shrink: 0;
+}
+
 .gallery-pack-item__cover-shimmer {
     position: absolute;
     inset: 0;
@@ -756,7 +880,7 @@ function selectPack(id) {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     line-height: 1.3;
 }
 .gallery-pack-item__count {
@@ -790,12 +914,14 @@ function selectPack(id) {
 .gallery-toolbar {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    padding: 0 0 0.75rem;
+    justify-content: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
 .gallery-density-toggle {
     display: flex;
+    flex: 1;
     gap: 3px;
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.08);
@@ -804,6 +930,7 @@ function selectPack(id) {
 }
 
 .density-btn {
+    flex: 1;
     width: 30px;
     height: 30px;
     display: flex;
@@ -987,15 +1114,13 @@ function selectPack(id) {
     width: 46px;
     height: 46px;
     border-radius: 50%;
-    font-size: 2rem;
-    line-height: 1;
+    font-size: 1.5rem;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.15s, color 0.15s;
+    transition: background 0.15s;
     z-index: 1;
-    padding-bottom: 2px;
 }
 .lb-arrow:hover { background: rgba(255,255,255,0.15); color: #fff; }
 .lb-arrow--prev { left: 18px; }
@@ -1100,6 +1225,13 @@ function selectPack(id) {
     /* Sidebar: hidden from layout when not open or closing */
     .gallery-sidebar {
         display: none;
+        margin: 0;
+        width: 100%;
+        border-radius: 0;
+        height: auto;
+        background: rgba(20, 15, 25, 0.85);
+        border: none;
+        top: auto;
     }
 
     /* Shared styles for open and closing states */
@@ -1204,7 +1336,7 @@ function selectPack(id) {
     .gallery-main { padding: 0.75rem; }
 
     /* Lightbox arrows smaller */
-    .lb-arrow { width: 36px; height: 36px; font-size: 1.6rem; }
+    .lb-arrow { width: 36px; height: 36px; font-size: 1.2rem; }
     .lb-arrow--prev { left: 8px; }
     .lb-arrow--next { right: 8px; }
     .lb-content { max-width: calc(90vw - 90px); }

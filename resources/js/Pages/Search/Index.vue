@@ -49,31 +49,17 @@ const LANGUAGES = [
 ];
 
 const TIMEZONES = [
-    "Europe/Moscow",
-    "Europe/Kiev",
-    "Europe/Minsk",
-    "Europe/London",
-    "Europe/Berlin",
-    "Europe/Paris",
-    "Europe/Amsterdam",
-    "Europe/Warsaw",
-    "Asia/Almaty",
-    "Asia/Tashkent",
-    "Asia/Yekaterinburg",
-    "Asia/Novosibirsk",
-    "Asia/Krasnoyarsk",
-    "Asia/Irkutsk",
-    "Asia/Yakutsk",
-    "Asia/Vladivostok",
-    "America/New_York",
-    "America/Chicago",
-    "America/Denver",
-    "America/Los_Angeles",
-    "Asia/Tokyo",
-    "Asia/Seoul",
-    "Asia/Shanghai",
-    "Asia/Dubai",
-    "Asia/Kolkata",
+    { value: 'Europe/Kaliningrad', label: 'Калининградское время (UTC+2)' },
+    { value: 'Europe/Moscow', label: 'Московское время (UTC+3)' },
+    { value: 'Europe/Samara', label: 'Самарское время (UTC+4)' },
+    { value: 'Asia/Yekaterinburg', label: 'Екатеринбургское время (UTC+5)' },
+    { value: 'Asia/Omsk', label: 'Омское время (UTC+6)' },
+    { value: 'Asia/Krasnoyarsk', label: 'Красноярское время (UTC+7)' },
+    { value: 'Asia/Irkutsk', label: 'Иркутское время (UTC+8)' },
+    { value: 'Asia/Yakutsk', label: 'Якутское время (UTC+9)' },
+    { value: 'Asia/Vladivostok', label: 'Владивостокское время (UTC+10)' },
+    { value: 'Asia/Magadan', label: 'Магаданское время (UTC+11)' },
+    { value: 'Asia/Kamchatka', label: 'Камчатское время (UTC+12)' },
 ];
 
 // ── Reactive filters ────────────────────────────────────────
@@ -165,6 +151,17 @@ function apply() {
     router.get(route("users.search"), params, {
         preserveState: true,
         replace: true,
+        onStart: () => {
+            loading.value = true;
+            startTime = Date.now();
+        },
+        onFinish: () => {
+            const elapsed = Date.now() - startTime;
+            const delay = Math.max(0, MIN_LOADING_MS - elapsed);
+            setTimeout(() => {
+                loading.value = false;
+            }, delay);
+        }
     });
 }
 
@@ -198,7 +195,21 @@ function resetFilters() {
     router.get(
         route("users.search"),
         {},
-        { preserveState: false, replace: true },
+        { 
+            preserveState: false, 
+            replace: true,
+            onStart: () => {
+                loading.value = true;
+                startTime = Date.now();
+            },
+            onFinish: () => {
+                const elapsed = Date.now() - startTime;
+                const delay = Math.max(0, MIN_LOADING_MS - elapsed);
+                setTimeout(() => {
+                    loading.value = false;
+                }, delay);
+            }
+        },
     );
 }
 
@@ -206,32 +217,6 @@ const mobileFiltersOpen = ref(false);
 const loading = ref(false);
 let startTime = 0;
 const MIN_LOADING_MS = 400;
-
-let removeStartHook = null;
-let removeFinishHook = null;
-
-onMounted(() => {
-    removeStartHook = router.on("start", (event) => {
-        const url = event.detail.visit.url;
-        // Если это поиск и это НЕ переход по страницам (пагинация)
-        if (url.pathname.includes("/search") && !url.searchParams.has("page")) {
-            loading.value = true;
-            startTime = Date.now();
-        }
-    });
-    removeFinishHook = router.on("finish", () => {
-        const elapsed = Date.now() - startTime;
-        const delay = Math.max(0, MIN_LOADING_MS - elapsed);
-        setTimeout(() => {
-            loading.value = false;
-        }, delay);
-    });
-});
-
-onUnmounted(() => {
-    if (removeStartHook) removeStartHook();
-    if (removeFinishHook) removeFinishHook();
-});
 
 function applyAndClose() {
     mobileFiltersOpen.value = false;
@@ -252,8 +237,8 @@ function toggleSortDir() {
 }
 
 const sortOptions = computed(() => [
-    { value: "rating", label: __("search.sort.rating") },
-    { value: "created_at", label: __("search.sort.date") },
+    { value: "rating", label: "по рейтингу" },
+    { value: "created_at", label: "по дате регистрации" },
 ]);
 
 // ── Active chips ─────────────────────────────────────────────
@@ -321,8 +306,10 @@ const activeChips = computed(() => {
         const l = LANGUAGES.find((x) => x.code === code);
         if (l) chips.push({ label: l.label, key: "languages", value: code });
     });
-    if (f.value.timezone)
-        chips.push({ label: f.value.timezone, key: "timezone" });
+    if (f.value.timezone) {
+        const tzObj = TIMEZONES.find(t => t.value === f.value.timezone);
+        chips.push({ label: tzObj ? tzObj.label : f.value.timezone, key: "timezone" });
+    }
     f.value.service_categories.forEach((id) => {
         const c = props.serviceCategories.find((x) => x.id === id);
         if (c)
@@ -464,7 +451,7 @@ function genderLabel(g) {
                                 v-for="user in users.data"
                                 :key="user.id"
                                 :user="user"
-                                compact
+                                :show-newbie-badge="false"
                             />
                         </div>
 
@@ -624,11 +611,17 @@ function genderLabel(g) {
     max-width: 300px;
     min-width: 220px;
     flex-shrink: 0;
-    border-left: 1px solid rgba(255, 178, 239, 0.12);
-    height: 100%;
-    background: rgba(10, 10, 20, 0.6);
+    margin: 1.5rem;
     display: flex;
     flex-direction: column;
+    height: calc(100vh - 60px - 3rem);
+    border-radius: 16px;
+    background: rgba(20, 15, 25, 0.4);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 4px 20px rgba(0,0,0,0.2);
+    overflow: hidden;
 }
 
 .sidebar-inner {
@@ -666,8 +659,8 @@ function genderLabel(g) {
 .sidebar-footer {
     flex-shrink: 0;
     padding: 0.75rem 1.5rem;
-    border-top: 1px solid rgba(255, 178, 239, 0.15);
-    background: rgba(10, 10, 20, 0.95);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: transparent;
 }
 
 .apply-btn {
@@ -826,17 +819,13 @@ function genderLabel(g) {
 /* ── Transitions ── */
 .results-fade-enter-active,
 .results-fade-leave-active {
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.15s ease-in-out, transform 0.15s ease-in-out;
 }
 
-.results-fade-enter-from {
-    opacity: 0;
-    transform: translateY(12px);
-}
-
+.results-fade-enter-from,
 .results-fade-leave-to {
     opacity: 0;
-    transform: translateY(-12px);
+    transform: scale(0.98);
 }
 
 /* ── Sort bar ────────────────────────────────────────────── */
@@ -860,7 +849,7 @@ function genderLabel(g) {
 }
 
 .sort-select {
-    width: 180px;
+    width: 220px;
 }
 
 .sort-dir-btn {
@@ -898,34 +887,34 @@ function genderLabel(g) {
 /* Сайдбар ~540px, учитываем оставшееся пространство */
 .user-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 1rem;
     padding: 0.75rem;
 }
 
-/* ~1600px и меньше → 4 колонки */
+/* ~1600px и меньше */
 @media (max-width: 1600px) {
+    .user-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+
+/* ~1200px и меньше */
+@media (max-width: 1200px) {
     .user-grid {
         grid-template-columns: repeat(4, 1fr);
     }
 }
 
-/* ~1200px и меньше → 3 колонки */
-@media (max-width: 1200px) {
+/* ~900px и меньше */
+@media (max-width: 900px) {
     .user-grid {
         grid-template-columns: repeat(3, 1fr);
     }
 }
 
-/* ~900px и меньше → 2 колонки */
-@media (max-width: 900px) {
-    .user-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-/* ~500px и меньше → 2 колонки (оставляем компактными) */
-@media (max-width: 500px) {
+/* ~600px и меньше */
+@media (max-width: 600px) {
     .user-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 0.75rem;

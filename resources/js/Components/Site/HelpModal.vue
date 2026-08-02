@@ -230,9 +230,10 @@ async function submitDispute() {
                 class="faq-sidebar"
                 :class="{ 'faq-sidebar--mob-hidden': mobileNav !== 'cats' }"
             >
-                <div class="faq-sidebar__label">
-                    {{ __("help.sections.label") }}
-                </div>
+                <div class="faq-sidebar__scroll">
+                    <div class="faq-sidebar__label">
+                        {{ __("help.sections.label") }}
+                    </div>
 
                 <!-- Loading skeleton -->
                 <div v-if="helpLoading" class="faq-loading">
@@ -256,6 +257,7 @@ async function submitDispute() {
                         <span class="faq-article-btn__title">{{ article.q }}</span>
                     </button>
                 </template>
+                </div>
 
                 <!-- Sidebar action buttons -->
                 <div class="faq-sidebar__actions">
@@ -450,16 +452,20 @@ async function submitDispute() {
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
-    padding-bottom: 0.5rem;
     background: rgba(255, 255, 255, 0.025);
     border-right: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 12px 0 0 12px;
+}
+
+.faq-sidebar__scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 0.5rem;
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.07) transparent;
 }
-.faq-sidebar::-webkit-scrollbar { width: 3px; }
-.faq-sidebar::-webkit-scrollbar-thumb {
+.faq-sidebar__scroll::-webkit-scrollbar { width: 3px; }
+.faq-sidebar__scroll::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.07);
     border-radius: 3px;
 }
@@ -640,49 +646,48 @@ async function submitDispute() {
 }
 
 .faq-content__title {
-    font-family: "Imbue", serif;
-    font-size: 1.4rem;
-    font-weight: 200;
+    font-size: 1.3rem;
+    font-weight: 600;
     letter-spacing: 0.01em;
-    line-height: 1.25;
-    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.3;
+    color: rgba(255, 255, 255, 0.95);
 }
 
 .faq-answer-body {
-    font-size: 0.875rem;
-    color: rgba(255, 255, 255, 0.52);
-    line-height: 1.8;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.75);
+    line-height: 1.6;
 }
-.faq-answer-body :deep(p) { margin-bottom: 0.7rem; }
+.faq-answer-body :deep(p) { margin-bottom: 0.8rem; }
 .faq-answer-body :deep(p:last-child) { margin-bottom: 0; }
 .faq-answer-body :deep(strong) {
-    color: rgba(255, 255, 255, 0.72);
-    font-weight: 500;
+    color: rgba(255, 255, 255, 0.95);
+    font-weight: 600;
 }
 .faq-answer-body :deep(ul),
 .faq-answer-body :deep(ol) {
     padding-left: 1.25rem;
-    margin-bottom: 0.7rem;
+    margin-bottom: 0.8rem;
 }
-.faq-answer-body :deep(li) { margin-bottom: 0.28rem; }
+.faq-answer-body :deep(li) { margin-bottom: 0.35rem; }
 .faq-answer-body :deep(a) {
-    color: rgba(255, 178, 239, 0.82);
+    color: rgba(255, 178, 239, 0.9);
     text-decoration: none;
     transition: color 0.15s;
 }
 .faq-answer-body :deep(a:hover) {
-    color: rgba(200, 160, 255, 0.9);
+    color: rgba(255, 210, 245, 1);
     text-decoration: underline;
 }
 .faq-answer-body :deep(h2),
 .faq-answer-body :deep(h3) {
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.72);
-    margin: 1rem 0 0.35rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 1.2rem 0 0.5rem;
     line-height: 1.3;
 }
-.faq-answer-body :deep(h2) { font-size: 0.95rem; }
-.faq-answer-body :deep(h3) { font-size: 0.875rem; }
+.faq-answer-body :deep(h2) { font-size: 1.1rem; }
+.faq-answer-body :deep(h3) { font-size: 1rem; }
 
 .faq-empty-state {
     display: flex;

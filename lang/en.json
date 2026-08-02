@@ -12,11 +12,12 @@
     "nav.contacts": "Contacts",
     "nav.menu": "Menu",
     "nav.tracked": "Tracked",
-
+    "idol.apply.back_to_profile": "To Profile",
+    "idol.apply.warning_title": "Attention!",
+    "idol.apply.warning_text": "To successfully pass the test, you must read the article below very carefully. All test questions are compiled strictly based on these materials.",
     "welcome.start": "START",
     "welcome.enter": "ENTER",
     "welcome.help": "Help",
-
     "common.gallery": "Gallery",
     "common.close": "Close",
     "common.search": "Search",
@@ -30,14 +31,11 @@
     "common.idol": "Idol",
     "common.login": "Log in",
     "common.register": "Sign up",
-
     "layout.become_idol": "Become an Idol",
     "layout.banned_error": "Cannot interact with a banned user",
-
     "app.update.title": "Update Available",
     "app.update.message": "A new version of the app is available.",
     "app.update.button": "Refresh Page",
-
     "upload.drop": "Release to upload",
     "upload.hint": "Drag or paste from clipboard",
     "upload.hint.select": "or select a file",
@@ -52,7 +50,6 @@
     "upload.error.size": "File must not exceed :size MB",
     "upload.size.suffix": "MB",
     "upload.hint.up_to": "up to",
-
     "cart.title": "CART",
     "cart.icon.title": "Cart",
     "cart.order.error": "Failed to create order",
@@ -68,38 +65,32 @@
     "cart.order.submitting": "SUBMITTING…",
     "cart.pay.submit": "PAY",
     "cart.pay.loading": "PAYING…",
-
     "chat.messages": "Messages",
     "chat.idol": "Idol:",
     "chat.unavailable": "unavailable",
-
     "review.title": "LEAVE A REVIEW",
     "review.only_one": "This is your only review for this idol. It cannot be changed after publishing.",
     "review.submit": "Leave a review",
     "review.comment.placeholder": "Your comment (optional)",
     "review.important": "Important",
     "review.rating.aria": ":value out of 5",
-
     "profile.tabs.about": "About me",
     "profile.tabs.posts": "Posts",
     "profile.tabs.services": "Services",
     "profile.tabs.content": "Content",
     "profile.tabs.reviews": "Reviews",
     "profile.tabs.back_to_categories": "Back to categories",
-
     "profile.message.send": "Send Message",
     "profile.follow": "Follow",
     "profile.unfollow": "Tracked",
     "profile.unfollow_confirm_title": "Stop tracking?",
     "profile.unfollow_confirm_body": "Are you sure you want to stop tracking this user?",
-
     "profile.about.title": "About me",
     "profile.about.empty": "User hasn't written anything yet",
     "profile.about.placeholder": "Write something about yourself…",
     "profile.about.owner_hint_before": "Tell about yourself — click",
     "profile.about.owner_hint_after": "to add",
     "profile.guest.text": "Log in or sign up to leave comments and likes",
-
     "checklist.title": "Complete your profile",
     "checklist.about": "Fill in the \"About me\" text",
     "checklist.traits": "Specify character traits",
@@ -107,7 +98,6 @@
     "checklist.audio": "Record audio",
     "checklist.languages": "Specify languages",
     "checklist.timezone": "Specify timezone",
-
     "pack.status.pending": "Under review",
     "pack.status.approved": "Approved",
     "pack.status.published": "Published",
@@ -156,7 +146,6 @@
     "pack.photo.replaced": "Replaced",
     "pack.photo.restore": "Restore",
     "pack.remarks.empty": "No specific remarks",
-
     "reviews.error.reported": "Report already submitted and awaiting review.",
     "reviews.error.failed": "Failed to submit report. Please try again.",
     "reviews.sort.newest": "newest first",
@@ -178,26 +167,21 @@
     "reviews.dispute.ph": "Describe the reason…",
     "reviews.dispute.submit": "Submit report",
     "reviews.dispute.submitting": "Submitting…",
-
     "verify.title": "Verify your email",
     "verify.text": "We sent a confirmation link to your email address. Please check your inbox.",
     "verify.resent": "Email resent. Check your Inbox and Spam folders.",
     "verify.resend": "Resend",
     "verify.resending": "Sending…",
     "verify.logout": "Log out",
-
     "gallery.title": "Gallery",
-    "gallery.mine": "Mine",
+    "gallery.mine": "My packs",
     "gallery.search": "Search for an idol...",
-
     "news.title": "News",
     "news.search": "Search news…",
     "news.back": "All news",
-
     "orders.title": "Orders",
     "orders.search": "Search by name...",
     "orders.cancel_reason": "cancellation reason…",
-
     "search.title": "Search users",
     "search.name": "Search by name",
     "search.filter": "Search...",
@@ -229,7 +213,6 @@
     "search.active.idol": "Idol: :value",
     "search.active.rating": "Rating: :from–:to",
     "search.age.years": "year|years|years",
-
     "common.back": "Back",
     "common.edit": "Edit",
     "common.yes": "Yes",
@@ -254,13 +237,11 @@
     "common.leave_body": "Entered data will be lost.",
     "common.stay": "Stay",
     "common.leave": "Exit",
-
     "gender.any": "Any",
     "gender.male": "Male",
     "gender.female": "Female",
     "gender.abbr.male": "M",
     "gender.abbr.female": "F",
-
     "gallery.empty.my_packs": "You have no content packs yet",
     "gallery.empty.my_packs.sub": "Create packs in your profile to see them here",
     "gallery.empty.purchased": "You have no purchased content yet",
@@ -269,13 +250,11 @@
     "gallery.next": "Next",
     "gallery.filter.title": "Filters",
     "gallery.load_more": "Load more",
-
     "news.pinned": "Pinned",
     "news.sort.new": "Newest",
     "news.sort.old": "Oldest",
     "news.empty": "No news yet",
     "news.not_found": "Nothing found",
-
     "order.status.all": "All",
     "order.status.pending": "Created",
     "order.status.accepted": "Accepted",
@@ -315,7 +294,6 @@
     "order.cancel.idol.4": "Too large scope of work",
     "order.cancel.idol.5": "Not my specialization",
     "order.cancel.idol.6": "Personal reasons",
-
     "notification.title": "Notifications",
     "notification.tab.all": "All",
     "notification.tab.service": "Service",
@@ -402,7 +380,6 @@
     "notification.type.pack_change_approved": "Changes approved",
     "notification.type.pack_change_remarks": "Change remarks",
     "notification.type.pack_change_rejected": "Changes rejected",
-
     "chat.title": "Chat",
     "chat.tab.orders": "Orders",
     "chat.search": "Search…",
@@ -451,12 +428,12 @@
     "chat.user_blocked_label": "// USER IS BLOCKED //",
     "chat.btn.pay_order": "PAY FOR ORDER",
     "chat.btn.confirmed": "YOU CONFIRMED",
-    "chat.btn.order_done": "ORDER COMPLETED",
+    "chat.btn.order_done": "ORDER FINISHED",
     "chat.btn.accept": "ACCEPT",
     "chat.btn.cancel": "CANCEL",
     "chat.btn.offer": "✦ OFFER",
     "chat.order.cancelled_label": "// ORDER CANCELLED //",
-    "chat.order.done_label": "// ORDER COMPLETED //",
+    "chat.order.done_label": "// ORDER FINISHED //",
     "chat.order.accept_confirm": "Please confirm that you accept this order. The customer will then be able to pay.",
     "chat.order.complete_confirm": "Please confirm that the order is complete. This action cannot be undone.",
     "chat.order.dispute_label": "// DISPUTE OPEN — CHAT FROZEN //",
@@ -500,7 +477,6 @@
     "chat.block.time.m": "min.",
     "chat.block.time.s": "s.",
     "common.reason": "Reason",
-
     "help.support.btn": "Support",
     "help.support.title": "Support",
     "help.dispute.btn": "Dispute order",
@@ -532,7 +508,6 @@
     "help.dispute.reason.4": "Order not fulfilled",
     "help.dispute.reason.5": "Threats",
     "help.dispute.reason.6": "Spam and pushing",
-
     "profile.header.edit": "Personal Information",
     "profile.header.settings_btn": "Settings",
     "profile.header.report": "Report",
@@ -543,7 +518,6 @@
     "profile.header.name_ph": "Name or First Last",
     "profile.header.tz_ph": "Not specified",
     "profile.header.delete_avatar": "Delete photo",
-
     "profile.voice.err.mic": "Could not access microphone",
     "profile.voice.err.mic_denied": "Microphone access is denied. Enable it in your browser settings and reload the page.",
     "profile.voice.err.mic_unavailable": "No microphone found or the API is not available in this browser.",
@@ -554,7 +528,6 @@
     "profile.voice.empty": "No audio recorded",
     "profile.voice.record": "Record audio",
     "profile.voice.uploading": "Saving…",
-
     "profile.traits.title": "Character",
     "profile.traits.empty": "Add your character traits",
     "profile.traits.not_specified": "Not specified",
@@ -567,7 +540,6 @@
     "profile.traits.suggest.ph": "E.g.: Melancholic...",
     "profile.traits.sent": "Suggestion submitted!",
     "profile.traits.back": "← Back",
-
     "profile.interests.title": "Interests",
     "profile.interests.empty": "Add your interests",
     "profile.interests.not_specified": "Not specified",
@@ -579,7 +551,6 @@
     "profile.interests.suggest.ph": "E.g.: Board games...",
     "profile.interests.sent": "Suggestion submitted!",
     "profile.interests.back": "← Back",
-
     "profile.report.success": "Report submitted. We will review it shortly.",
     "profile.report.close": "Close",
     "profile.report.title": "Report :name",
@@ -594,20 +565,17 @@
     "profile.report.reasons.fraud": "Fraud",
     "profile.report.reasons.harassment": "Harassment",
     "profile.report.reasons.other": "Other",
-
     "Спам": "Spam",
     "Оскорбления": "Insults",
     "Нежелательный контент": "Inappropriate content",
     "Агрессивное поведение": "Aggressive behavior",
     "Домогательства": "Harassment",
     "Другое": "Other",
-
     "profile.services.become.eyebrow": "Services",
     "profile.services.become.title": "Start getting paid<br>for what you do best",
     "profile.services.become.tag1": "Chats, calls, collabs",
     "profile.services.become.tag2": "You set the price",
     "profile.services.become.apply": "Apply",
-
     "profile.content.become.eyebrow": "Content",
     "profile.content.become.tagline": "Sell exclusive content directly to your fans",
     "profile.content.feature.packs": "Exclusive packs",
@@ -642,7 +610,6 @@
     "profile.content.dismiss_success": "Rejected changes hidden",
     "profile.services.dismiss_cr": "Dismiss rejection",
     "profile.services.dismiss_success": "Rejected changes hidden",
-
     "profile.services.search_ph": "Service name",
     "profile.services.blocked_error": "You are blocked by this user and cannot place orders",
     "profile.services.empty": "This idol has no services in this category yet.",
@@ -683,10 +650,8 @@
     "profile.services.desc_edit_ph": "Tell about this service category…",
     "profile.services.categories_label": "Categories",
     "profile.services.new_btn": "New service",
-
     "profile.languages.title": "Languages",
     "profile.languages.empty.owner": "Tell us the languages you speak",
-
     "post.new": "New post",
     "post.empty.owner": "No posts yet — share something",
     "post.empty.guest": "No posts yet",
@@ -704,7 +669,6 @@
     "post.detail.error": "Error",
     "post.detail.load_more": "Load more",
     "post.read_more": "··· read more",
-
     "auth.welcome": "Welcome back",
     "auth.continue": "Continue",
     "auth.logout": "Log out",
@@ -746,31 +710,26 @@
     "auth.month.10": "October",
     "auth.month.11": "November",
     "auth.month.12": "December",
-
     "profile.services.form.name_ru": "Name (RU)",
     "profile.services.form.name_en": "Name (EN)",
     "profile.services.form.add_en": "Add name in English",
     "profile.services.form.add_ru": "Add name in Russian",
     "profile.services.search_ph_en": "e.g. Let's chat about hobbies",
-
     "auth.forgot": "Forgot password?",
     "auth.forgot.title": "Forgot password",
     "auth.forgot.hint": "Enter your email address and we'll send you a password reset link.",
     "auth.forgot.submit": "Send reset link",
     "auth.forgot.sending": "Sending…",
     "auth.forgot.sent": "A reset link has been sent to your email address.",
-
     "auth.reset.title": "Reset password",
     "auth.reset.new_password": "New password",
     "auth.reset.confirm_password": "Confirm password",
     "auth.reset.submit": "Reset password",
     "auth.reset.sending": "Resetting…",
-
     "auth.confirm.title": "Confirm password",
     "auth.confirm.hint": "This is a secure area of the application. Please confirm your password before continuing.",
     "auth.confirm.submit": "Confirm",
     "auth.confirm.sending": "Confirming…",
-
     "push.order_created": "New order from :name",
     "push.order_accepted": "Idol :name accepted your order",
     "push.order_paid": "Order paid by :name",
@@ -800,7 +759,6 @@
     "push.service_change_approved": "Your changes in service \":name\" have been reviewed and approved.",
     "push.service_change_remarks": "The moderator has left remarks for your changes in service \":name\".",
     "push.service_change_rejected": "Your changes in service \":name\" have been rejected by the moderator.",
-
     "push.new_message": "New message from :name",
     "push.title.new_message": "New Message",
     "push.title.order_created": "New Order",
@@ -831,7 +789,6 @@
     "push.title.service_change_approved": "Changes Approved",
     "push.title.service_change_remarks": "Change Remarks",
     "push.title.service_change_rejected": "Changes Rejected",
-
     "profile.tour.next": "Next →",
     "profile.tour.prev": "← Back",
     "profile.tour.done": "Done",
@@ -872,5 +829,7 @@
     "profile.tour.usb_features.desc": "Manage your balance and monitor the status of your services and purchases.",
     "profile.tour.usb_locale.title": "Language Option",
     "profile.tour.usb_locale.desc": "Switch the interface language between Russian and English with a single tap.",
-    "profile.tour.progressText": "{{current}} of {{total}}"
+    "profile.tour.progressText": "{{current}} of {{total}}",
+    "gallery.new_packs": "New packs",
+    "gallery.all_photos": "All photos"
 }

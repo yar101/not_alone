@@ -2,12 +2,13 @@
 
 namespace App\Notifications;
 
+use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 
-class ReviewDisputeRejectedNotification extends Notification
+class ReviewDisputeRejectedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
     use SendsWebPush;

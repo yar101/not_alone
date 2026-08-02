@@ -10,7 +10,8 @@
 }
 
 html {
-    background-color: #0e0e1a;
+    background: radial-gradient(circle at top right, #140f22 0%, #0a0814 50%, #05040a 100%);
+    background-attachment: fixed;
 }
 
 html.chat-scroll-locked {
@@ -27,7 +28,8 @@ html.chat-scroll-locked body {
 
 body {
     font-family: "Rubik", ui-sans-serif, system-ui, sans-serif;
-    background-color: #0e0e1a;
+    background: radial-gradient(circle at top right, #140f22 0%, #0a0814 50%, #05040a 100%);
+    background-attachment: fixed;
     padding-bottom: env(safe-area-inset-bottom);
 }
 
@@ -169,4 +171,19 @@ body {
 .icon--default {
     background: rgba(255, 255, 255, 0.06);
     color: rgba(255, 255, 255, 0.4);
+}
+
+/* Newbie Badge Tooltip */
+.el-popper.is-dark.newbie-dark-tooltip {
+    background: #0f0f1d !important;
+    color: #fff !important;
+    border: 1px solid rgba(255, 178, 239, 0.3) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8) !important;
+    font-size: 14.5px !important;
+    font-weight: 500 !important;
+    padding: 8px 14px !important;
+}
+.el-popper.is-dark.newbie-dark-tooltip .el-popper__arrow::before {
+    background: #0f0f1d !important;
+    border: 1px solid rgba(255, 178, 239, 0.3) !important;
 }

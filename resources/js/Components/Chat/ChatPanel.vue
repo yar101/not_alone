@@ -9,6 +9,7 @@ import {
     inject,
 } from "vue";
 import { usePage, router, Link } from "@inertiajs/vue3";
+import UserAvatar from "@/Components/UserAvatar.vue";
 import SiteModal from "@/Components/Site/SiteModal.vue";
 import axios from "axios";
 import { Check, Lock } from "@element-plus/icons-vue";
@@ -61,10 +62,10 @@ const onlineUserIds = inject("onlineUserIds", ref([]));
 const injectAddToCart = inject("addToCart", null);
 const showOfferModal = ref(false);
 const repeatOrderOpen = ref(false);
-const confirmAddModal = ref(false);
-const hasReview = ref(false);
-const confirmAddService = ref(null); // { id, name, price, time_unit }
-const confirmAddLoading = ref(false);
+const confirmOfferModal = ref(false);
+const confirmOfferMode = ref("create"); // 'create' | 'add'
+const confirmOfferServices = ref([]); // array of { id, name, price, time_unit }
+const confirmOfferLoading = ref(false);
 
 // ── Orders tab ────────────────────────────────────────────
 const activeTab = ref("messages"); // 'messages' | 'orders'
@@ -74,6 +75,7 @@ const loadingMoreOrders = ref(false);
 const ordersHasMore = ref(false);
 const ordersCursor = ref(null); // id последнего загруженного заказа
 const activeOrderData = ref(null); // order data for the current open conversation
+const hasReview = ref(false); // whether the current user has left a review for the order
 const ordersSubTab = ref("mine"); // 'mine' | 'incoming' — only used when authUser is idol
 
 const orderStatusFilter = ref("all"); // 'all' | 'pending' | 'accepted' | 'cancelled'
@@ -93,6 +95,16 @@ const convUnreadOnly = ref(false);
 const orderUnreadOnly = ref(false);
 
 const isMobile = ref(false);
+// Separate mobile nav state from data state to prevent flash
+// 'list' = show sidebar, 'detail' = show conversation
+const mobileView = ref('list');
+let mobileViewTimer = null;
+const mobileOpening = ref(false);
+
+function setMobileView(view) {
+    if (mobileViewTimer) clearTimeout(mobileViewTimer);
+    mobileView.value = view;
+}
 function checkMobile() {
     isMobile.value = window.innerWidth < 768;
 }
@@ -103,27 +115,27 @@ const pendingOrderUnread = ref(false);
 
 // Instant dots from server-shared props — no fetch required
 const messagesHaveUnread = computed(
-    () => (page.props.unread_direct_count ?? 0) > 0,
+    () => page.props.has_unread_direct,
 );
 const ordersHaveUnread = computed(
     () =>
         pendingOrderUnread.value ||
-        (page.props.unread_orders_count ?? 0) > 0 ||
-        orders.value.some((o) => (o.unread_count ?? 0) > 0),
+        page.props.has_unread_orders ||
+        orders.value.some((o) => o.unread),
 );
 const mineHaveUnread = computed(
     () =>
-        (page.props.unread_mine_count ?? 0) > 0 ||
+        page.props.has_unread_mine ||
         orders.value
             .filter((o) => o.is_customer)
-            .some((o) => (o.unread_count ?? 0) > 0),
+            .some((o) => o.unread),
 );
 const incomingHaveUnread = computed(
     () =>
-        (page.props.unread_incoming_count ?? 0) > 0 ||
+        page.props.has_unread_incoming ||
         orders.value
             .filter((o) => !o.is_customer)
-            .some((o) => (o.unread_count ?? 0) > 0),
+            .some((o) => o.unread),
 );
 
 const orderStatusLabels = computed(() => ({
@@ -317,7 +329,7 @@ const isAnyModalOpen = computed(() => {
     return (
         blockModal.value ||
         cancelModal.value ||
-        confirmAddModal.value ||
+        confirmOfferModal.value ||
         acceptModal.value ||
         completeModal.value ||
         showOfferModal.value ||
@@ -379,6 +391,16 @@ const filteredConversations = computed(() => conversations.value);
 async function openConversation(conv) {
     if (activeConversation.value?.id === conv.id && conv.id !== "draft") return;
     leaveEcho();
+
+    if (isMobile.value) {
+        // On mobile: first slide the panel in (empty/clean), then load
+        setMobileView('detail');
+        mobileOpening.value = true;
+        // Wait for slide animation to complete before showing any content
+        await new Promise(r => setTimeout(r, 300));
+        mobileOpening.value = false;
+    }
+
     loadingMsgs.value = true;
     activeConversation.value = conv;
     messages.value = [];
@@ -389,8 +411,6 @@ async function openConversation(conv) {
 
     if (conv.is_draft) {
         loadingMsgs.value = false;
-        coverMessages.value = true;
-        setTimeout(() => (coverMessages.value = false), 80);
         return;
     }
 
@@ -409,29 +429,25 @@ async function openConversation(conv) {
             closed_at: res.data.closed_at ?? null,
         };
         const local = conversations.value.find((c) => c.id === conv.id);
-        if (local) local.unread_count = 0;
+        if (local) local.unread = false;
         const order = orders.value.find((o) => o.conversation_id === conv.id);
-        if (order) order.unread_count = 0;
+        if (order) order.unread = false;
         router.reload({
             only: [
-                "unread_messages_count",
-                "unread_direct_count",
-                "unread_orders_count",
-                "unread_mine_count",
-                "unread_incoming_count",
+                "has_unread_messages",
+                "has_unread_direct",
+                "has_unread_orders",
+                "has_unread_mine",
+                "has_unread_incoming",
             ],
         });
     } finally {
-        coverMessages.value = true;
         loadingMsgs.value = false;
     }
 
     if (!conv.is_draft) subscribeEcho(conv.id);
     await nextTick();
     messagesEnd.value?.scrollIntoView({ behavior: "instant" });
-    setTimeout(() => {
-        coverMessages.value = false;
-    }, 80);
 }
 
 // ── Start conversation with user (called from outside) ───
@@ -452,7 +468,7 @@ async function startWith(userId) {
                 conv ?? {
                     id: conversation_id,
                     other_user: user,
-                    unread_count: 0,
+                    unread: false,
                 },
             );
         } else {
@@ -461,7 +477,7 @@ async function startWith(userId) {
             await openConversation({
                 id: "draft",
                 other_user: user,
-                unread_count: 0,
+                unread: false,
                 is_draft: true,
             });
         }
@@ -479,7 +495,7 @@ async function startConversation(convId) {
         conv = conversations.value.find((c) => c.id === convId);
     }
     await openConversation(
-        conv ?? { id: convId, other_user: null, unread_count: 0 },
+        conv ?? { id: convId, other_user: null, unread: false },
     );
 }
 
@@ -657,10 +673,10 @@ function subscribeOrdersEcho() {
         if (idx !== -1) {
             orders.value.splice(idx, 1, {
                 ...order,
-                unread_count: orders.value[idx].unread_count ?? 0,
+                unread: orders.value[idx].unread,
             });
         } else {
-            orders.value.unshift({ ...order, unread_count: 0 });
+            orders.value.unshift({ ...order, unread: false });
         }
         if (activeOrderData.value?.id === order.id) {
             activeOrderData.value = { ...activeOrderData.value, ...order };
@@ -704,14 +720,14 @@ function handleIncomingMessageForList(data) {
             (o) => o.conversation_id === conversation_id,
         );
         if (order) {
-            order.unread_count = (order.unread_count ?? 0) + 1;
+            order.unread = true;
         }
     } else {
         const conv = conversations.value.find((c) => c.id === conversation_id);
         if (conv) {
             conv.last_message = last_message;
             conv.updated_at = last_message?.created_at;
-            conv.unread_count = (conv.unread_count ?? 0) + 1;
+            conv.unread = true;
         }
     }
 }
@@ -719,12 +735,12 @@ function handleIncomingMessageForList(data) {
 async function markRead(conversationId) {
     await axios.get(route("conversations.show", conversationId));
     const local = conversations.value.find((c) => c.id === conversationId);
-    if (local) local.unread_count = 0;
+    if (local) local.unread = false;
     const order = orders.value.find(
         (o) => o.conversation_id === conversationId,
     );
-    if (order) order.unread_count = 0;
-    router.reload({ only: ["unread_messages_count"] });
+    if (order) order.unread = false;
+    router.reload({ only: ["has_unread_messages"] });
 }
 
 function updateLastMessage(convId, msg) {
@@ -887,7 +903,7 @@ async function onRepeatOrderCreated({ conversation_id }) {
     await fetchConversations();
     const conv = conversations.value.find((c) => c.id === conversation_id);
     await openConversation(
-        conv ?? { id: conversation_id, other_user: null, unread_count: 0 },
+        conv ?? { id: conversation_id, other_user: null, unread: false },
     );
 }
 
@@ -900,28 +916,46 @@ function onOfferSent(msg) {
     }
 }
 
-function addServiceToCart(svc) {
+function handleOfferAction(services) {
+    confirmOfferServices.value = services;
     if (activeOrderData.value && activeOrderData.value.status === "pending") {
-        confirmAddService.value = svc;
-        confirmAddModal.value = true;
-    } else if (injectAddToCart) {
-        const idol = activeConversation.value?.other_user;
-        if (idol) injectAddToCart(svc, idol);
+        confirmOfferMode.value = "add";
+        confirmOfferModal.value = true;
+    } else {
+        confirmOfferMode.value = "create";
+        confirmOfferModal.value = true;
     }
 }
 
-async function confirmAddToOrder() {
-    if (!confirmAddService.value || confirmAddLoading.value) return;
-    confirmAddLoading.value = true;
+async function confirmOfferAction() {
+    if (!confirmOfferServices.value.length || confirmOfferLoading.value) return;
+    confirmOfferLoading.value = true;
     try {
-        await axios.post(route("orders.items.add", activeOrderData.value.id), {
-            service_id: confirmAddService.value.id,
-        });
-        confirmAddModal.value = false;
+        if (confirmOfferMode.value === "add") {
+            await Promise.all(
+                confirmOfferServices.value.map((svc) =>
+                    axios.post(route("orders.items.add", activeOrderData.value.id), {
+                        service_id: svc.id,
+                    })
+                )
+            );
+            await openConversation(activeConversation.value);
+            activeTab.value = "orders";
+        } else {
+            const idol = activeConversation.value?.other_user;
+            if (!idol) throw new Error("Idol not found");
+            const res = await axios.post(route("orders.store"), {
+                idol_id: idol.id,
+                services: confirmOfferServices.value.map((svc) => ({ id: svc.id, quantity: 1 })),
+            });
+            await openConversation({ id: res.data.conversation_id, other_user: idol });
+            activeTab.value = "orders";
+        }
+        confirmOfferModal.value = false;
     } catch (e) {
-        alert(e.response?.data?.message ?? __("chat.add_service.error"));
+        alert(e.response?.data?.error || e.response?.data?.message || __("chat.add_service.error"));
     } finally {
-        confirmAddLoading.value = false;
+        confirmOfferLoading.value = false;
     }
 }
 
@@ -1000,10 +1034,22 @@ watch(isOpen, (val, oldVal) => {
         fetchConversations();
         fetchOrders();
         subscribeOrdersEcho();
+        // Refresh lazy unread counters so dots are visible immediately on open
+        router.reload({
+            only: [
+                "has_unread_messages",
+                "has_unread_direct",
+                "has_unread_orders",
+                "has_unread_mine",
+                "has_unread_incoming",
+            ],
+        });
     }
     if (!val && oldVal) {
         leaveEcho();
         leaveOrdersEcho();
+        if (mobileViewTimer) clearTimeout(mobileViewTimer);
+        mobileView.value = 'list';
         activeConversation.value = null;
         activeOrderData.value = null;
         searchQuery.value = "";
@@ -1020,7 +1066,16 @@ watch(activeConversation, (conv, oldConv) => {
 });
 
 watch(activeTab, (tab) => {
-    if (tab === "orders") fetchOrders(true);
+    if (tab === "orders") {
+        fetchOrders(true);
+        router.reload({
+            only: [
+                "has_unread_orders",
+                "has_unread_mine",
+                "has_unread_incoming",
+            ],
+        });
+    }
 });
 
 watch(ordersSubTab, () => {
@@ -1088,8 +1143,19 @@ watch(
 
 function backToList() {
     leaveEcho();
-    activeConversation.value = null;
-    activeOrderData.value = null;
+    // Switch mobile view immediately so slide OUT plays with content still visible
+    if (isMobile.value) {
+        setMobileView('list');
+        // Clear data only after slide animation completes (280ms)
+        if (mobileViewTimer) clearTimeout(mobileViewTimer);
+        mobileViewTimer = setTimeout(() => {
+            activeConversation.value = null;
+            activeOrderData.value = null;
+        }, 300);
+    } else {
+        activeConversation.value = null;
+        activeOrderData.value = null;
+    }
 }
 
 // ── Orders helpers ────────────────────────────────────────
@@ -1141,7 +1207,7 @@ async function openOrderConversation(order) {
     await openConversation({
         id: order.conversation_id,
         other_user: other,
-        unread_count: 0,
+        unread: false,
     });
 }
 
@@ -1311,7 +1377,7 @@ function formatDate(iso) {
                     class="chat-sidebar"
                     :class="{
                         'chat-sidebar--mobile-hidden':
-                            isMobile && activeConversation,
+                            isMobile && mobileView === 'detail',
                     }"
                 >
                     <div class="chat-sidebar__header">
@@ -1510,34 +1576,23 @@ function formatDate(iso) {
                                         'chat-conv-item--active':
                                             activeConversation?.id === conv.id,
                                         'chat-conv-item--unread':
-                                            conv.unread_count > 0,
+                                            conv.unread,
                                     }"
                                     @click="openConversation(conv)"
                                 >
                                     <div
-                                        class="chat-conv-avatar"
-                                        :class="{ 'is-male': conv.other_user?.gender === 'male' }"
+                                        class="chat-conv-avatar-wrapper"
                                     >
                                         <template v-if="conv.is_support">
-                                            <span class="chat-support-icon"
-                                                >✦</span
-                                            >
+                                            <div class="chat-conv-avatar chat-conv-avatar--support">
+                                                <span class="chat-support-icon">✦</span>
+                                            </div>
                                         </template>
                                         <template v-else>
-                                            <img
-                                                v-if="
-                                                    conv.other_user?.avatar_url
-                                                "
-                                                :src="
-                                                    conv.other_user.avatar_url
-                                                "
-                                                alt=""
+                                            <UserAvatar
+                                                :user="conv.other_user"
+                                                :size="48"
                                             />
-                                            <span v-else>{{
-                                                conv.other_user?.name?.charAt(
-                                                    0,
-                                                ) ?? "?"
-                                            }}</span>
                                         </template>
                                     </div>
                                     <div class="chat-conv-info">
@@ -1562,10 +1617,9 @@ function formatDate(iso) {
                                             )
                                         }}</span>
                                         <span
-                                            v-if="conv.unread_count > 0"
-                                            class="chat-conv-badge"
-                                            >{{ conv.unread_count }}</span
-                                        >
+                                            v-if="conv.unread"
+                                            class="chat-conv-badge chat-conv-badge--dot"
+                                        ></span>
                                     </div>
                                 </button>
                                 <!-- Load more conversations -->
@@ -1908,24 +1962,12 @@ function formatDate(iso) {
                                     >
                                         <div class="order-stub__head">
                                             <div
-                                                class="chat-conv-avatar chat-conv-avatar--sm"
-                                                :class="{ 'is-male': (order.is_customer ? order.idol : order.customer).gender === 'male' }"
+                                                class="chat-conv-avatar-wrapper"
                                             >
-                                                <img v-if="(order.is_customer ? order.idol : order.customer).avatar_url"
-                                                    :src="
-                                                        (order.is_customer
-                                                            ? order.idol
-                                                            : order.customer
-                                                        ).avatar_url
-                                                    "
-                                                    alt=""
+                                                <UserAvatar
+                                                    :user="(order.is_customer ? order.idol : order.customer)"
+                                                    :size="48"
                                                 />
-                                                <span v-else>{{
-                                                    (order.is_customer
-                                                        ? order.idol
-                                                        : order.customer
-                                                    ).name?.charAt(0) ?? "?"
-                                                }}</span>
                                             </div>
                                             <div class="order-stub__who">
                                                 <span
@@ -1957,13 +1999,9 @@ function formatDate(iso) {
                                                 }}
                                             </span>
                                             <span
-                                                v-if="
-                                                    (order.unread_count ?? 0) >
-                                                    0
-                                                "
-                                                class="chat-conv-badge"
-                                                >{{ order.unread_count }}</span
-                                            >
+                                                v-if="order.unread"
+                                                class="chat-conv-badge chat-conv-badge--dot"
+                                            ></span>
                                         </div>
                                         <div class="order-stub__perf">
                                             <span
@@ -2032,11 +2070,12 @@ function formatDate(iso) {
                     class="chat-main"
                     :class="{
                         'chat-main--mobile-hidden':
-                            isMobile && !activeConversation,
+                            isMobile && mobileView === 'list',
                     }"
                 >
                     <!-- Пусто — нет выбранного диалога -->
-                    <div v-if="!activeConversation" class="chat-main__empty">
+                    <!-- Пусто — нет выбранного диалога -->
+                    <div v-if="!activeConversation && !mobileOpening" class="chat-main__empty">
                         <svg
                             width="48"
                             height="48"
@@ -2055,7 +2094,18 @@ function formatDate(iso) {
                         <span>{{ __("chat.empty.select") }}</span>
                     </div>
 
-                    <template v-else>
+                    <!-- Единый лоадер: по центру всего chat-main, не прыгает при появлении шапки -->
+                    <Transition name="msgs-fade">
+                        <div v-show="mobileOpening || (loadingMsgs && activeConversation)" class="chat-msgs-loader">
+                            <div class="chat-msgs-loader__dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                    </Transition>
+
+                    <template v-if="activeConversation && !mobileOpening">
                         <!-- Шапка диалога -->
                         <div class="chat-main__header">
                             <button
@@ -2078,11 +2128,10 @@ function formatDate(iso) {
                             </button>
                             <div class="chat-main__avatar-wrapper">
                                 <div
-                                    class="chat-conv-avatar chat-conv-avatar--sm"
+                                    class="chat-conv-avatar"
                                     :class="{
-                                        'chat-conv-avatar--clickable':
-                                            !isSupport,
-                                        'is-male': activeConversation?.other_user?.gender === 'male'
+                                        'chat-conv-avatar--clickable': !isSupport,
+                                        'chat-conv-avatar--support': isSupport
                                     }"
                                     @click="
                                         !isSupport && (avatarFullscreen = true)
@@ -2097,22 +2146,10 @@ function formatDate(iso) {
                                         <span class="chat-support-icon">✦</span>
                                     </template>
                                     <template v-else>
-                                        <img
-                                            v-if="
-                                                activeConversation.other_user
-                                                    ?.avatar_url
-                                            "
-                                            :src="
-                                                activeConversation.other_user
-                                                    .avatar_url
-                                            "
-                                            alt=""
+                                        <UserAvatar
+                                            :user="activeConversation.other_user"
+                                            :size="44"
                                         />
-                                        <span v-else>{{
-                                            activeConversation.other_user?.name?.charAt(
-                                                0,
-                                            ) ?? "?"
-                                        }}</span>
                                     </template>
                                 </div>
                                 <!-- Индикаторы на аватарке -->
@@ -2162,6 +2199,10 @@ function formatDate(iso) {
                                                 ?.name ?? "…"
                                         }}</span>
                                     </template>
+                                </div>
+                                <div v-if="isTyping" class="chat-main__typing">
+                                    Печатает
+                                    <span class="chat-typing-dots"><span>.</span><span>.</span><span>.</span></span>
                                 </div>
                             </div>
                             <button
@@ -2244,99 +2285,6 @@ function formatDate(iso) {
                                 ref="messagesContainer"
                                 @scroll="onMessagesScroll"
                             >
-                                <div v-if="loadingMsgs" class="chat-skeleton">
-                                    <div
-                                        class="chat-skeleton__row chat-skeleton__row--left"
-                                    >
-                                        <div
-                                            class="chat-skeleton__avatar"
-                                        ></div>
-                                        <div class="chat-skeleton__bubbles">
-                                            <div
-                                                class="chat-skeleton__bubble"
-                                                style="width: 54%"
-                                            ></div>
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="chat-skeleton__row chat-skeleton__row--right"
-                                    >
-                                        <div class="chat-skeleton__bubbles">
-                                            <div
-                                                class="chat-skeleton__bubble"
-                                                style="width: 38%"
-                                            ></div>
-                                            <div
-                                                class="chat-skeleton__bubble"
-                                                style="width: 62%"
-                                            ></div>
-                                        </div>
-                                        <div
-                                            class="chat-skeleton__avatar"
-                                        ></div>
-                                    </div>
-                                    <div
-                                        class="chat-skeleton__row chat-skeleton__row--left"
-                                    >
-                                        <div
-                                            class="chat-skeleton__avatar"
-                                        ></div>
-                                        <div class="chat-skeleton__bubbles">
-                                            <div
-                                                class="chat-skeleton__bubble"
-                                                style="width: 72%"
-                                            ></div>
-                                            <div
-                                                class="chat-skeleton__bubble"
-                                                style="width: 45%"
-                                            ></div>
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="chat-skeleton__row chat-skeleton__row--right"
-                                    >
-                                        <div class="chat-skeleton__bubbles">
-                                            <div
-                                                class="chat-skeleton__bubble"
-                                                style="width: 48%"
-                                            ></div>
-                                        </div>
-                                        <div
-                                            class="chat-skeleton__avatar"
-                                        ></div>
-                                    </div>
-                                    <div
-                                        class="chat-skeleton__row chat-skeleton__row--left"
-                                    >
-                                        <div
-                                            class="chat-skeleton__avatar"
-                                        ></div>
-                                        <div class="chat-skeleton__bubbles">
-                                            <div
-                                                class="chat-skeleton__bubble"
-                                                style="width: 60%"
-                                            ></div>
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="chat-skeleton__row chat-skeleton__row--right"
-                                    >
-                                        <div class="chat-skeleton__bubbles">
-                                            <div
-                                                class="chat-skeleton__bubble"
-                                                style="width: 55%"
-                                            ></div>
-                                            <div
-                                                class="chat-skeleton__bubble"
-                                                style="width: 30%"
-                                            ></div>
-                                        </div>
-                                        <div
-                                            class="chat-skeleton__avatar"
-                                        ></div>
-                                    </div>
-                                </div>
-                                <template v-else>
                                     <!-- Индикатор подгрузки -->
                                     <div
                                         v-if="loadingMore"
@@ -2962,74 +2910,57 @@ function formatDate(iso) {
                                                 "
                                             >
                                                 <div
-                                                    v-for="(svc, svcIdx) in item
-                                                        .msg.metadata
-                                                        ?.services ?? []"
-                                                    :key="svc.id"
                                                     class="chat-msg"
                                                     :class="{
                                                         'chat-msg--mine':
-                                                            item.msg
-                                                                .sender_id ===
-                                                            authUser?.id,
+                                                            item.msg.sender_id === authUser?.id,
                                                         'chat-msg--first-in-group':
-                                                            item.isFirstInGroup &&
-                                                            svcIdx === 0,
+                                                            item.isFirstInGroup,
                                                         'chat-msg--last-in-group':
-                                                            item.isLastInGroup &&
-                                                            svcIdx ===
-                                                                (item.msg
-                                                                    .metadata
-                                                                    ?.services
-                                                                    ?.length ??
-                                                                    1) -
-                                                                    1,
+                                                            item.isLastInGroup,
                                                     }"
                                                 >
-                                                    <div
-                                                        class="svc-offer-bubble"
-                                                    >
-                                                        <div
-                                                            v-if="svcIdx === 0"
-                                                            class="svc-offer__header"
-                                                        >
-                                                            {{
-                                                                __(
-                                                                    "chat.msg.offer_label",
-                                                                )
-                                                            }}
+                                                    <div class="svc-offer-bubble">
+                                                        <div class="svc-offer__header">
+                                                            {{ __("chat.msg.offer_label") }}
                                                         </div>
-                                                        <div
-                                                            class="svc-offer__card"
-                                                        >
-                                                            <span
-                                                                class="svc-offer__svc"
-                                                                >{{ svc.name
-                                                                }}<template
-                                                                    v-if="
-                                                                        svc.time_unit
-                                                                    "
-                                                                    >&thinsp;/&thinsp;{{
-                                                                        svc.time_unit
-                                                                    }}</template
-                                                                ></span
+                                                        <div class="svc-offer__cards-wrapper">
+                                                            <div
+                                                                v-for="svc in item.msg.metadata?.services ?? []"
+                                                                :key="svc.id"
+                                                                class="svc-offer__card"
                                                             >
+                                                                <span class="svc-offer__svc-name">
+                                                                    {{ svc.name }}
+                                                                </span>
+                                                                <span class="svc-offer__svc-time" v-if="svc.time_unit">
+                                                                    <svg
+                                                                        width="12"
+                                                                        height="12"
+                                                                        viewBox="0 0 24 24"
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        stroke-width="2.5"
+                                                                        stroke-linecap="round"
+                                                                        stroke-linejoin="round"
+                                                                        style="margin-right: 4px;"
+                                                                    >
+                                                                        <circle cx="12" cy="12" r="10" />
+                                                                        <polyline points="12 6 12 12 16 14" />
+                                                                    </svg>
+                                                                    {{ svc.time_unit }}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="svc-offer__footer">
                                                             <button
                                                                 v-if="
-                                                                    item.msg
-                                                                        .sender_id !==
-                                                                        authUser?.id &&
-                                                                    (!activeOrderData ||
-                                                                        activeOrderData.status ===
-                                                                            'pending' ||
-                                                                        !activeOrderData.id)
+                                                                    item.msg.sender_id !== authUser?.id &&
+                                                                    (!activeOrderData || activeOrderData.status === 'pending' || !activeOrderData.id)
                                                                 "
                                                                 class="svc-offer__cart-btn"
-                                                                @click="
-                                                                    addServiceToCart(
-                                                                        svc,
-                                                                    )
-                                                                "
+                                                                @click="handleOfferAction(item.msg.metadata?.services ?? [])"
                                                             >
                                                                 <svg
                                                                     width="16"
@@ -3037,76 +2968,33 @@ function formatDate(iso) {
                                                                     viewBox="0 0 24 24"
                                                                     fill="none"
                                                                     stroke="currentColor"
-                                                                    stroke-width="1.8"
+                                                                    stroke-width="2"
                                                                     stroke-linecap="round"
                                                                     stroke-linejoin="round"
                                                                 >
-                                                                    <path
-                                                                        d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"
-                                                                    />
-                                                                    <line
-                                                                        x1="3"
-                                                                        y1="6"
-                                                                        x2="21"
-                                                                        y2="6"
-                                                                    />
-                                                                    <path
-                                                                        d="M16 10a4 4 0 01-8 0"
-                                                                    />
+                                                                    <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+                                                                    <line x1="3" y1="6" x2="21" y2="6" />
+                                                                    <path d="M16 10a4 4 0 01-8 0" />
                                                                 </svg>
+                                                                <span>{{ (!activeOrderData || !activeOrderData.id) ? 'Создать заказ' : 'Добавить к заказу' }}</span>
                                                             </button>
-                                                        </div>
-                                                        <span
-                                                            v-if="
-                                                                svcIdx ===
-                                                                (item.msg
-                                                                    .metadata
-                                                                    ?.services
-                                                                    ?.length ??
-                                                                    1) -
-                                                                    1
-                                                            "
-                                                            class="chat-msg__meta"
-                                                        >
-                                                            <span
-                                                                class="chat-msg__time"
-                                                                >{{
-                                                                    formatTime(
-                                                                        item.msg
-                                                                            .created_at,
-                                                                    )
-                                                                }}</span
-                                                            >
-                                                            <span
-                                                                v-if="
-                                                                    item.msg
-                                                                        .sender_id ===
-                                                                    authUser?.id
-                                                                "
-                                                                class="chat-msg__status"
-                                                                :class="{
-                                                                    'chat-msg__status--read':
-                                                                        isMessageRead(
-                                                                            item.msg,
-                                                                        ),
-                                                                }"
-                                                            >
+
+                                                            <span class="chat-msg__meta">
+                                                                <span class="chat-msg__time">{{ formatTime(item.msg.created_at) }}</span>
                                                                 <span
-                                                                    class="chat-ticks"
+                                                                    v-if="item.msg.sender_id === authUser?.id"
+                                                                    class="chat-msg__status"
+                                                                    :class="{
+                                                                        'chat-msg__status--read': isMessageRead(item.msg),
+                                                                    }"
                                                                 >
-                                                                    <el-icon
-                                                                        class="chat-tick chat-tick--1"
-                                                                    >
-                                                                        <Check />
-                                                                    </el-icon>
-                                                                    <el-icon
-                                                                        class="chat-tick chat-tick--2"
-                                                                    >
-                                                                        <Check />
-                                                                    </el-icon>
+                                                                    <span class="chat-ticks">
+                                                                        <el-icon class="chat-tick chat-tick--1"><Check /></el-icon>
+                                                                        <el-icon class="chat-tick chat-tick--2"><Check /></el-icon>
+                                                                    </span>
                                                                 </span>
                                                             </span>
-                                                        </span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </template>
@@ -3218,14 +3106,7 @@ function formatDate(iso) {
                                         </template>
                                     </TransitionGroup>
 
-                                    <div v-if="isTyping" class="chat-typing">
-                                        {{
-                                            __("chat.typing", {
-                                                name: activeConversation
-                                                    .other_user?.name,
-                                            })
-                                        }}
-                                    </div>
+
                                     <ReviewForm
                                         v-if="showReviewForm"
                                         :order-id="activeOrderData.id"
@@ -3240,7 +3121,6 @@ function formatDate(iso) {
                                         @close="repeatOrderOpen = false"
                                     />
                                     <div ref="messagesEnd" />
-                                </template>
                             </div>
 
                             <!-- Оверлей: скрывает скролл при открытии диалога -->
@@ -3582,30 +3462,22 @@ function formatDate(iso) {
                                             />
                                         </svg>
                                     </button>
-                                    <textarea
-                                        v-model="newMessage"
-                                        class="chat-input"
-                                        :placeholder="__('chat.placeholder')"
-                                        rows="3"
-                                        maxlength="500"
-                                        :disabled="
-                                            isChatClosed ||
-                                            (!!activeBlock?.active &&
-                                                !activeBlock?.i_am_blocker)
-                                        "
-                                        @keydown.enter="handleEnter"
-                                        @input="onInput"
-                                    />
-                                    <span
-                                        class="chat-char-count"
-                                        :class="{
-                                            'chat-char-count--warn':
-                                                newMessage.length > 450,
-                                        }"
-                                    >
-                                        {{ newMessage.length }}/500
-                                    </span>
-                                    <button
+                                    <div class="chat-input-box">
+                                        <textarea
+                                            v-model="newMessage"
+                                            class="chat-input"
+                                            :placeholder="__('chat.placeholder')"
+                                            rows="3"
+                                            maxlength="500"
+                                            :disabled="
+                                                isChatClosed ||
+                                                (!!activeBlock?.active &&
+                                                    !activeBlock?.i_am_blocker)
+                                            "
+                                            @keydown.enter="handleEnter"
+                                            @input="onInput"
+                                        />
+                                        <button
                                         class="chat-send"
                                         :disabled="
                                             !newMessage.trim() ||
@@ -3614,6 +3486,7 @@ function formatDate(iso) {
                                             (!!activeBlock?.active &&
                                                 !activeBlock?.i_am_blocker)
                                         "
+                                        @mousedown.prevent
                                         @click="sendMessage"
                                     >
                                         <template v-if="sending">
@@ -3621,8 +3494,8 @@ function formatDate(iso) {
                                         </template>
                                         <template v-else>
                                             <svg
-                                                width="12"
-                                                height="12"
+                                                width="22"
+                                                height="22"
                                                 viewBox="0 0 24 24"
                                                 fill="none"
                                                 stroke="currentColor"
@@ -3640,9 +3513,9 @@ function formatDate(iso) {
                                                     points="22 2 15 22 11 13 2 9 22 2"
                                                 />
                                             </svg>
-                                            Enter
                                         </template>
                                     </button>
+                                    </div>
                                 </div>
                             </div>
                         </Transition>
@@ -3774,42 +3647,49 @@ function formatDate(iso) {
         </div>
     </SiteModal>
 
-    <!-- ── Подтверждение добавления услуги к заказу ────────── -->
+    <!-- ── Подтверждение предложения (Создать или Добавить) ────────── -->
     <SiteModal
-        :show="confirmAddModal"
+        :show="confirmOfferModal"
         variant="blue"
         compact
         max-width="420px"
-        @close="confirmAddModal = false"
+        @close="confirmOfferModal = false"
     >
-        <div class="cm-title cm-title--cyan">{{ __("chat.add_to_order") }}</div>
-        <div class="confirm-add__svc">{{ confirmAddService?.name }}</div>
-        <div v-if="confirmAddService?.price" class="confirm-add__price">
-            {{
-                confirmAddService.price.toLocaleString("ru-RU")
-            }}&thinsp;₽<template v-if="confirmAddService.time_unit"
-                >&thinsp;/&thinsp;{{ confirmAddService.time_unit }}</template
-            >
+        <div class="cm-title cm-title--cyan">
+            {{ confirmOfferMode === 'create' ? 'Создать заказ' : __("chat.add_to_order") }}
         </div>
+        
+        <div v-for="(svc, idx) in confirmOfferServices" :key="idx" style="margin-bottom: 0.75rem;">
+            <div class="confirm-add__svc">{{ svc.name }}</div>
+            <div class="confirm-add__price">
+                {{ svc.price.toLocaleString("ru-RU") }}&thinsp;₽<template v-if="svc.time_unit">&thinsp;/&thinsp;{{ svc.time_unit }}</template>
+            </div>
+        </div>
+
         <div class="cm-perf">
             <span class="cm-perf__line cm-perf__line--cyan"></span>
         </div>
+        
+        <div class="confirm-add__total" style="text-align: center; margin: 1rem 0; font-weight: 600; font-size: 1.1rem; color: #fff;">
+            Итого: {{ confirmOfferServices.reduce((sum, svc) => sum + (svc.price || 0), 0).toLocaleString("ru-RU") }}&thinsp;₽
+        </div>
+        
         <div class="cm-footer">
             <button
                 class="cm-btn cm-btn--back"
-                @click="confirmAddModal = false"
+                @click="confirmOfferModal = false"
             >
                 {{ __("order.cancel.back") }}
             </button>
             <button
                 class="cm-btn cm-btn--confirm-cyan"
-                :disabled="confirmAddLoading"
-                @click="confirmAddToOrder"
+                :disabled="confirmOfferLoading"
+                @click="confirmOfferAction"
             >
                 {{
-                    confirmAddLoading
-                        ? __("chat.add_to_order.loading")
-                        : __("chat.add_to_order.btn")
+                    confirmOfferLoading
+                        ? (confirmOfferMode === 'create' ? 'Создание...' : __("chat.add_to_order.loading"))
+                        : (confirmOfferMode === 'create' ? 'Создать заказ' : __("chat.add_to_order.btn"))
                 }}
             </button>
         </div>
@@ -3863,7 +3743,7 @@ function formatDate(iso) {
         <div class="cm-title cm-title--green">
             {{ __("chat.btn.order_done") }}
         </div>
-        <div class="cm-body">{{ __("chat.order.complete_confirm") }}</div>
+        <div class="cm-body" style="white-space: pre-line">{{ __("chat.order.complete_confirm") }}</div>
         <div class="cm-perf">
             <span class="cm-perf__line cm-perf__line--green"></span>
         </div>
@@ -3955,7 +3835,9 @@ function formatDate(iso) {
     position: fixed;
     inset: 0;
     z-index: 1100;
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .backdrop-enter-active,
@@ -4026,6 +3908,12 @@ function formatDate(iso) {
     flex-shrink: 0;
 }
 
+@media (max-width: 768px) {
+    .chat-sidebar__header {
+        flex-direction: row-reverse;
+    }
+}
+
 .chat-sidebar__title {
     font-size: 1.05rem;
     font-weight: 700;
@@ -4058,7 +3946,7 @@ function formatDate(iso) {
 .chat-sticky-controls {
     position: sticky;
     top: 0;
-    z-index: 5;
+    z-index: 10;
     background: #0b0b18;
     border-bottom: 1px solid rgba(255, 178, 239, 0.1);
     padding-top: 1px;
@@ -4123,84 +4011,59 @@ function formatDate(iso) {
 }
 
 /* ── Messages skeleton loader ─────────────────────────── */
-.chat-skeleton {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 1.4rem;
-    padding: 1.5rem 1rem 2rem;
-    overflow: hidden;
-}
-
-.chat-skeleton__row {
-    display: flex;
-    align-items: flex-end;
-    gap: 0.6rem;
-}
-
-.chat-skeleton__row--right {
-    flex-direction: row-reverse;
-}
-
-.chat-skeleton__avatar {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    background: rgba(100, 200, 255, 0.07);
-    overflow: hidden;
-    position: relative;
-}
-
-.chat-skeleton__bubbles {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    flex: 1;
-    min-width: 0;
-}
-
-.chat-skeleton__row--right .chat-skeleton__bubbles {
-    align-items: flex-end;
-}
-
-.chat-skeleton__bubble {
-    height: 36px;
-    border-radius: 12px;
-    background: rgba(100, 200, 255, 0.07);
-    position: relative;
-    overflow: hidden;
-}
-
-.chat-skeleton__row--right .chat-skeleton__bubble {
-    background: rgba(160, 130, 255, 0.07);
-}
-
-/* GPU-accelerated shimmer via translateX on ::after */
-.chat-skeleton__bubble::after,
-.chat-skeleton__avatar::after {
-    content: "";
+/* ── Messages loader ───────────────────────────────── */
+.chat-msgs-loader {
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0.09) 50%,
-        transparent 100%
-    );
-    transform: translateX(-100%);
-    animation: skel-slide 1.2s ease-in-out infinite;
-    will-change: transform;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 5;
 }
 
-@keyframes skel-slide {
-    0% {
-        transform: translateX(-100%);
-    }
+.chat-msgs-loader__dots {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
 
-    100% {
-        transform: translateX(100%);
+.chat-msgs-loader__dots span {
+    display: block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: rgba(255, 178, 239, 0.85);
+    box-shadow:
+        0 0 8px rgba(255, 178, 239, 0.6),
+        0 0 20px rgba(255, 178, 239, 0.25);
+    animation: chat-dot-wave 1.3s ease-in-out infinite;
+    will-change: transform, opacity;
+}
+
+.chat-msgs-loader__dots span:nth-child(1) { animation-delay: 0s; }
+.chat-msgs-loader__dots span:nth-child(2) { animation-delay: 0.18s; background: rgba(180, 130, 255, 0.85); box-shadow: 0 0 8px rgba(180,130,255,0.6), 0 0 20px rgba(180,130,255,0.25); }
+.chat-msgs-loader__dots span:nth-child(3) { animation-delay: 0.36s; background: rgba(130, 100, 255, 0.75); box-shadow: 0 0 8px rgba(130,100,255,0.5), 0 0 20px rgba(130,100,255,0.2); }
+
+@keyframes chat-dot-wave {
+    0%, 60%, 100% {
+        transform: translateY(0) scale(1);
+        opacity: 0.5;
     }
+    30% {
+        transform: translateY(-8px) scale(1.15);
+        opacity: 1;
+    }
+}
+
+.msgs-fade-enter-active,
+.msgs-fade-leave-active {
+    transition: opacity 0.2s ease;
+}
+
+.msgs-fade-enter-from,
+.msgs-fade-leave-to {
+    opacity: 0;
 }
 
 /* ── Empty state ──────────────────────────────────────── */
@@ -4232,10 +4095,11 @@ function formatDate(iso) {
     align-items: center;
     gap: 0.75rem;
     width: calc(100% - 16px);
-    margin: 4px 8px;
+    margin: 8px;
     padding: 0.7rem 0.85rem;
-    background: transparent;
+    background: rgba(255, 255, 255, 0.015);
     border: none;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
     cursor: pointer;
     text-align: left;
     transition: background 0.15s, box-shadow 0.15s;
@@ -4244,17 +4108,18 @@ function formatDate(iso) {
 }
 
 .chat-conv-item:hover {
-    background: rgba(255, 178, 239, 0.05);
+    background: rgba(255, 178, 239, 0.04);
+    box-shadow: inset 0 0 0 1px rgba(255, 178, 239, 0.08);
 }
 
 .chat-conv-item--active {
-    background: rgba(255, 178, 239, 0.09);
+    background: rgba(255, 178, 239, 0.08);
     box-shadow: inset 0 0 0 1px rgba(255, 178, 239, 0.15);
 }
 
 .chat-conv-item--active:hover {
-    background: rgba(255, 178, 239, 0.13);
-    box-shadow: inset 0 0 0 1px rgba(255, 178, 239, 0.25);
+    background: rgba(255, 178, 239, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(255, 178, 239, 0.2);
     transform: none;
 }
 
@@ -4272,12 +4137,20 @@ function formatDate(iso) {
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: rgba(255, 178, 239, 0.15);
-    border: 1.5px solid rgba(255, 178, 239, 0.3);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+}
+.chat-conv-avatar-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.chat-conv-avatar--support {
+    background: rgba(255, 178, 239, 0.15);
+    border: 1.5px solid rgba(255, 178, 239, 0.3);
     overflow: hidden;
     color: #ffb2ef;
     font-weight: 700;
@@ -4312,6 +4185,12 @@ function formatDate(iso) {
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+.chat-header-avatar-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
 .chat-conv-info {
@@ -4355,13 +4234,22 @@ function formatDate(iso) {
     height: 20px;
     padding: 0 5px;
     border-radius: 999px;
-    background: linear-gradient(135deg, #e0558f, #b03070);
-    box-shadow: 0 2px 8px rgba(224, 85, 143, 0.4);
+    background: linear-gradient(160deg, rgba(230, 90, 155, 0.95) 0%, rgba(175, 45, 105, 0.9) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 210, 235, 0.35);
     color: #fff;
     font-size: 0.72rem;
     font-weight: 700;
     line-height: 20px;
     text-align: center;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.chat-conv-badge--dot {
+    min-width: 10px;
+    width: 10px;
+    height: 10px;
+    padding: 0;
+    line-height: 1;
 }
 
 /* ── Main area ────────────────────────────────────────── */
@@ -4389,9 +4277,9 @@ function formatDate(iso) {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.75rem;
+    gap: 1.25rem;
     padding: 1rem;
-    padding-bottom: 0.6rem;
+    padding-bottom: 1.2rem;
     border-bottom: none;
     box-shadow:
         0 1px 0 rgba(255, 178, 239, 0.12),
@@ -4400,11 +4288,40 @@ function formatDate(iso) {
 }
 
 .chat-main__header-info {
+    position: relative;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
+    justify-content: center;
     gap: 2px;
     flex: 1;
     min-width: 0;
+}
+
+.chat-main__typing {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    font-size: 0.75rem;
+    color: var(--cat-accent, #ffb2ef);
+    opacity: 0.9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.chat-typing-dots span {
+    animation: typingDots 1.4s infinite;
+    opacity: 0;
+}
+.chat-typing-dots span:nth-child(1) { animation-delay: 0s; }
+.chat-typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.chat-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingDots {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0; }
 }
 
 .chat-main__name-row {
@@ -4444,7 +4361,7 @@ function formatDate(iso) {
     background: #3ddc84;
     border: 2px solid #0f0f22;
     border-radius: 50%;
-    z-index: 2;
+    z-index: 6;
     box-shadow: 0 0 6px rgba(61, 220, 132, 0.4);
 }
 
@@ -4464,7 +4381,7 @@ function formatDate(iso) {
     padding: 1px 4px;
     border-radius: 3px;
     letter-spacing: 0.06em;
-    z-index: 3;
+    z-index: 7;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
     pointer-events: none;
     display: flex;
@@ -4482,7 +4399,7 @@ function formatDate(iso) {
     display: flex;
     flex-direction: column;
     scrollbar-width: thin;
-    scrollbar-color: rgba(100, 220, 180, 0.35) transparent;
+    scrollbar-color: rgba(255, 178, 239, 0.15) transparent;
 }
 
 .chat-messages::-webkit-scrollbar {
@@ -4494,19 +4411,19 @@ function formatDate(iso) {
 }
 
 .chat-messages::-webkit-scrollbar-thumb {
-    background: rgba(100, 220, 180, 0.35);
+    background: rgba(255, 178, 239, 0.15);
     border-radius: 99px;
 }
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
-    background: rgba(100, 220, 180, 0.6);
+    background: rgba(255, 178, 239, 0.3);
 }
 
 .chat-messages-inner {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-    padding-bottom: 1.5rem;
+    padding-bottom: 210px;
 }
 
 /* ── Load more indicator ──────────────────────────────── */
@@ -4588,13 +4505,13 @@ function formatDate(iso) {
     border-radius: 14px;
     background: linear-gradient(
         135deg,
-        rgba(80, 80, 160, 0.22) 0%,
-        rgba(60, 60, 130, 0.16) 100%
+        rgba(255, 255, 255, 0.05) 0%,
+        rgba(255, 255, 255, 0.02) 100%
     );
-    border: 1px solid rgba(130, 130, 210, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow:
         0 2px 10px rgba(0, 0, 0, 0.25),
-        inset 0 1px 0 rgba(180, 180, 255, 0.07);
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
     display: flex;
     flex-direction: column;
     gap: 3px;
@@ -4603,13 +4520,13 @@ function formatDate(iso) {
 .chat-msg--mine .chat-msg__bubble {
     background: linear-gradient(
         135deg,
-        rgba(130, 80, 255, 0.26) 0%,
-        rgba(100, 55, 215, 0.2) 100%
+        rgba(255, 178, 239, 0.12) 0%,
+        rgba(255, 178, 239, 0.05) 100%
     );
-    border-color: rgba(255, 178, 239, 0.22);
+    border-color: rgba(255, 178, 239, 0.15);
     box-shadow:
-        0 2px 12px rgba(100, 55, 215, 0.18),
-        inset 0 1px 0 rgba(200, 160, 255, 0.08);
+        0 2px 8px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 178, 239, 0.08);
 }
 
 /* Smart corners — theirs (left side) */
@@ -4748,20 +4665,20 @@ function formatDate(iso) {
 }
 
 .chat-input-wrap {
-    flex-shrink: 0;
-    padding: 0 0 0.85rem;
-    background: transparent;
-}
-
-.chat-input-fade {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    height: 60px;
-    background: linear-gradient(to bottom, transparent, #0e0e1c);
-    pointer-events: none;
-    z-index: 1;
+    z-index: 10;
+    padding: 0.85rem 0;
+    background: rgba(14, 14, 28, 0.65);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.chat-input-fade {
+    display: none;
 }
 
 .chat-input-inner {
@@ -4770,51 +4687,49 @@ function formatDate(iso) {
     padding: 0 1.1rem;
 }
 
-.chat-input-inner::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    border-radius: 6px 6px 0 0;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 178, 239, 0.4),
-        rgba(255, 178, 239, 0.7),
-        rgba(255, 178, 239, 0.4),
-        transparent
-    );
-    box-shadow: 0 0 12px rgba(255, 178, 239, 0.2);
-    z-index: 1;
-}
-
-.chat-input {
-    width: 100%;
-    box-sizing: border-box;
+.chat-input-box {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: flex-end;
     background: rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    padding: 0.65rem 5.25rem 0.65rem 0.85rem;
+    border-radius: 14px;
+    padding: 0.25rem;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.chat-input-box:focus-within {
+    border-color: rgba(255, 178, 239, 0.4);
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 0 3px rgba(130, 80, 255, 0.08);
+}
+
+
+
+.chat-input {
+    width: 100%;
+    flex: 1;
+    box-sizing: border-box;
+    background: transparent;
+    border: none;
+    padding: 0.5rem 3.5rem 0.5rem 0.75rem;
     color: rgba(255, 255, 255, 0.95);
     font-size: 0.95rem;
     resize: none;
     line-height: 1.55;
     outline: none;
     font-family: inherit;
-    transition:
-        border-color 0.15s,
-        background 0.15s;
     display: block;
 }
 
 .chat-input:focus {
-    border-color: rgba(255, 178, 239, 0.4);
-    background: rgba(255, 255, 255, 0.05);
-    box-shadow: 0 0 0 3px rgba(130, 80, 255, 0.08);
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
 }
 
 .chat-input::placeholder {
@@ -4823,8 +4738,8 @@ function formatDate(iso) {
 
 .chat-char-count {
     position: absolute;
-    right: 1.85rem;
-    top: 0.5rem;
+    right: 5rem;
+    top: 0.8rem;
     font-size: 0.7rem;
     color: rgba(255, 255, 255, 0.2);
     font-variant-numeric: tabular-nums;
@@ -4837,27 +4752,24 @@ function formatDate(iso) {
 }
 
 .chat-send {
-    position: absolute;
-    right: 1.6rem;
-    bottom: 0.5rem;
-    padding: 0.28rem 0.65rem;
+    position: relative;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    padding: 0;
     display: flex;
     align-items: center;
-    gap: 0.35rem;
+    justify-content: center;
     background: linear-gradient(
         135deg,
-        rgba(140, 90, 255, 0.3),
-        rgba(100, 55, 210, 0.25)
+        rgba(255, 178, 239, 0.15),
+        rgba(255, 178, 239, 0.08)
     );
-    border: 1px solid rgba(255, 178, 239, 0.4);
-    border-radius: 4px;
-    color: rgba(210, 170, 255, 0.95);
-    font-family: inherit;
-    font-size: 0.78rem;
-    font-weight: 500;
-    letter-spacing: 0.03em;
+    border: 1px solid rgba(255, 178, 239, 0.35);
+    border-radius: 12px;
+    color: rgba(255, 178, 239, 0.95);
     cursor: pointer;
-    box-shadow: 0 2px 10px rgba(100, 55, 210, 0.25);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 4px 10px rgba(0, 0, 0, 0.15);
     transition:
         background 0.15s,
         border-color 0.15s,
@@ -4868,12 +4780,12 @@ function formatDate(iso) {
 .chat-send:hover:not(:disabled) {
     background: linear-gradient(
         135deg,
-        rgba(155, 100, 255, 0.42),
-        rgba(110, 65, 220, 0.36)
+        rgba(255, 178, 239, 0.25),
+        rgba(255, 178, 239, 0.15)
     );
-    border-color: rgba(180, 120, 255, 0.6);
-    color: #d4aaff;
-    box-shadow: 0 2px 16px rgba(120, 60, 230, 0.4);
+    border-color: rgba(255, 178, 239, 0.6);
+    color: #fff;
+    box-shadow: 0 2px 16px rgba(255, 178, 239, 0.3);
 }
 
 .chat-send:disabled {
@@ -5680,10 +5592,13 @@ function formatDate(iso) {
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: #e0558f;
+    background: linear-gradient(160deg, rgba(240, 120, 175, 0.95) 0%, rgba(190, 55, 110, 0.9) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 220, 235, 0.45);
     vertical-align: middle;
-    margin-left: 4px;
+    margin-left: 5px;
     flex-shrink: 0;
+    position: relative;
+    top: -0.5px;
 }
 
 /* ── Order stub cards ───────────────────────────────────── */
@@ -5717,10 +5632,10 @@ function formatDate(iso) {
 }
 
 .order-stub--active {
-    background: rgba(255, 178, 239, 0.1);
+    background: rgba(255, 178, 239, 0.08);
     box-shadow:
-        0 2px 14px rgba(255, 178, 239, 0.18),
-        inset 0 0 0 1px rgba(255, 178, 239, 0.28);
+        0 2px 10px rgba(0, 0, 0, 0.2),
+        inset 0 0 0 1px rgba(255, 178, 239, 0.2);
 }
 
 .order-stub--active:hover {
@@ -6632,9 +6547,7 @@ function formatDate(iso) {
     flex-direction: column;
 }
 
-.svc-offer-bubble .chat-msg__meta {
-    padding: 0.1rem 0.7rem 0.3rem;
-}
+
 
 .chat-msg--mine .svc-offer-bubble {
     border-bottom-left-radius: 10px;
@@ -6651,56 +6564,96 @@ function formatDate(iso) {
     border-bottom: 1px solid rgba(255, 178, 239, 0.13);
 }
 
+.svc-offer__cards-wrapper {
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    margin-bottom: 0.4rem;
+    overflow: hidden;
+}
+
 .svc-offer__card {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.5rem;
-    padding: 0.35rem 0.7rem;
-    border-bottom: 1px solid rgba(255, 178, 239, 0.08);
+    gap: 0.75rem;
+    padding: 0.6rem 0.8rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .svc-offer__card:last-of-type {
     border-bottom: none;
 }
 
-.svc-offer__svc {
-    font-size: 1.05rem;
-    color: rgba(255, 255, 255, 0.88);
-    line-height: 1.3;
+.svc-offer__svc-name {
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.95);
+    line-height: 1.35;
     flex: 1;
-    min-width: 0;
-    white-space: normal;
-    overflow: visible;
-    text-overflow: unset;
     word-break: break-word;
 }
 
-.svc-offer__cart-btn {
+.svc-offer__svc-time {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--cat-accent, #ffb2ef);
+    background: color-mix(in srgb, var(--cat-accent, #ffb2ef) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--cat-accent, #ffb2ef) 25%, transparent);
+    border-radius: 6px;
+    white-space: nowrap;
     flex-shrink: 0;
-    width: 2.2rem;
-    height: 2.2rem;
+}
+
+.svc-offer__footer {
+    display: flex;
+    flex-direction: column;
+    padding: 0 0.7rem 0.5rem;
+}
+
+.svc-offer-bubble .chat-msg__meta {
     padding: 0;
+    margin-top: 0.3rem;
+    align-self: flex-end;
+}
+
+.svc-offer__cart-btn {
+    width: 100%;
+    margin-top: 0.4rem;
+    padding: 0.65rem 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 178, 239, 0.18);
-    border: 1px solid rgba(255, 178, 239, 0.4);
-    border-radius: 6px;
-    color: rgba(160, 150, 255, 0.9);
+    gap: 0.5rem;
+    background: rgba(28, 205, 178, 0.12);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(28, 205, 178, 0.3);
+    border-radius: 8px;
+    color: #1ccdb2;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
     cursor: pointer;
-    transition:
-        background 0.15s,
-        color 0.15s;
-    line-height: 0;
-}
-
-.svc-offer__cart-btn svg {
-    display: block;
+    transition: all 0.2s ease;
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .svc-offer__cart-btn:hover {
-    background: rgba(255, 178, 239, 0.32);
+    background: rgba(28, 205, 178, 0.2);
+    border-color: rgba(28, 205, 178, 0.5);
+    color: #26e6c9;
+    box-shadow: 
+        0 6px 16px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+.svc-offer__cart-btn:active {
+    background: rgba(28, 205, 178, 0.08);
+    box-shadow: none;
 }
 
 /* ── Cancelled by in sidebar ────────────────────────────── */
@@ -7115,6 +7068,14 @@ function formatDate(iso) {
 
 @media (max-width: 767px) {
     .chat-panel {
+        top: 1rem;
+        left: 1rem;
+        right: 1rem;
+        bottom: 1rem;
+        max-width: none;
+        width: auto;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 178, 239, 0.28);
         overflow: hidden;
     }
 
@@ -7153,7 +7114,23 @@ function formatDate(iso) {
 
     .chat-main__header {
         justify-content: flex-start;
-        gap: 0.6rem;
+        gap: 1rem;
+    }
+
+    .chat-textarea {
+        padding-right: 0.5rem;
+    }
+
+    .chat-char-count {
+        right: 4rem;
+    }
+
+    .chat-input-wrap {
+        padding: 0.8rem 0 calc(1.5rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .chat-messages-inner {
+        padding-bottom: calc(210px + env(safe-area-inset-bottom, 0px));
     }
 }
 
@@ -7336,7 +7313,7 @@ function formatDate(iso) {
         right: 16px;
         bottom: 16px;
         max-width: calc(100vw - 32px);
-        border-radius: 12px;
+        border-radius: 8px;
         border: 1px solid rgba(255, 178, 239, 0.28);
         box-shadow: 0 12px 48px rgba(0, 0, 0, 0.85);
         overflow: hidden;

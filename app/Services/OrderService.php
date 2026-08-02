@@ -23,6 +23,100 @@ class OrderService
 {
     // ── Public transitions (user actions) ────────────────────────────────────
 
+    public function createOrder(User $customer, User $idol, array $requestedServices): array
+    {
+        $serviceIds  = collect($requestedServices)->pluck('id');
+        $quantityMap = collect($requestedServices)->keyBy('id');
+
+        $services = \App\Models\Service::whereIn('id', $serviceIds)
+            ->where('user_id', $idol->id)
+            ->where('is_active', true)
+            ->with(['category', 'timeUnit'])
+            ->get();
+
+        if ($services->count() !== $serviceIds->unique()->count()) {
+            throw new \Exception('Некоторые услуги недоступны');
+        }
+
+        if ($idol->isActiveBanned()) {
+            throw new \Exception('Пользователь недоступен');
+        }
+
+        if (\App\Models\ChatBlock::active()->where('blocker_id', $idol->id)->where('blocked_id', $customer->id)->exists()) {
+            throw new \Exception('Вы заблокированы этим пользователем');
+        }
+
+        $trialServicesCount = $services->where('is_trial', true)->count();
+        if ($trialServicesCount > 1) {
+            throw new \Exception('Нельзя заказать более одной бесплатной услуги одновременно');
+        }
+
+        $hasUsedTrial = false;
+        if ($trialServicesCount > 0) {
+            $hasUsedTrial = \App\Models\UserIdolTrial::where('user_id', $customer->id)
+                ->where('idol_id', $idol->id)
+                ->exists();
+
+            if ($hasUsedTrial) {
+                throw new \Exception('Вы уже использовали бесплатный первый заказ у этого пользователя');
+            }
+        }
+
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($customer, $idol, $services, $quantityMap, $trialServicesCount, $hasUsedTrial) {
+            $order = Order::create([
+                'customer_id' => $customer->id,
+                'idol_id'     => $idol->id,
+                'status'      => OrderStatus::Pending,
+            ]);
+            $order->logStatusChange(null, OrderStatus::Pending->value, 'user', $customer->id);
+
+            foreach ($services as $service) {
+                $qty = (int) ($quantityMap[$service->id]['quantity'] ?? 1);
+                $price = ($service->is_trial && !$hasUsedTrial) ? 0 : $service->price;
+                $order->items()->create(['service_id' => $service->id, 'quantity' => $qty, 'price' => $price]);
+            }
+
+            if ($trialServicesCount > 0 && !$hasUsedTrial) {
+                \App\Models\UserIdolTrial::create([
+                    'user_id' => $customer->id,
+                    'idol_id' => $idol->id,
+                    'order_id' => $order->id,
+                ]);
+            }
+
+            $conversation = \App\Models\Conversation::create(['order_id' => $order->id]);
+            $conversation->participants()->createMany([
+                ['user_id' => $customer->id],
+                ['user_id' => $idol->id],
+            ]);
+
+            $order->update(['conversation_id' => $conversation->id]);
+
+            $conversation->messages()->create([
+                'sender_id' => $customer->id,
+                'body'      => '',
+                'type'      => 'system',
+                'metadata'  => [
+                    'event'    => 'order_created',
+                    'order_id' => $order->id,
+                    'services' => $services->map(fn($s) => [
+                        'id'        => $s->id,
+                        'name'      => $s->name,
+                        'price'     => ($s->is_trial && !$hasUsedTrial) ? 0 : $s->price,
+                        'time_unit' => $s->timeUnit?->name,
+                        'quantity'  => (int) ($quantityMap[$s->id]['quantity'] ?? 1),
+                    ])->values()->all(),
+                ],
+            ]);
+
+            $conversation->touch();
+
+            $order->load(['customer', 'idol', 'cancelledBy', 'items.service.timeUnit']);
+
+            return [$order, $conversation];
+        });
+    }
+
     public function accept(Order $order, User $actor): void
     {
         $order->logStatusChange(OrderStatus::Pending->value, OrderStatus::Accepted->value, 'user', $actor->id);
@@ -84,6 +178,8 @@ class OrderService
             'cancelled_by'  => $actor->id,
         ]);
 
+        \App\Models\UserIdolTrial::where('order_id', $order->id)->delete();
+
         $this->broadcastSystemMessage($order, [
             'sender_id' => $actor->id,
             'body'      => '',
@@ -124,9 +220,17 @@ class OrderService
             'metadata'  => ['event' => $event, 'actor_name' => $actor->name],
         ]);
 
-        if ($order->completion_confirmed_by_idol && $order->completion_confirmed_by_customer) {
+        // Customer confirmation is prioritised: the order completes immediately
+        // when the customer confirms, regardless of whether the idol has confirmed.
+        // Idol confirmation alone only sets the flag and waits for the customer.
+        if (!$isIdol) {
+            // Customer clicked → complete right away
+            $this->complete($order, 'user', $actor->id);
+        } elseif ($order->completion_confirmed_by_idol && $order->completion_confirmed_by_customer) {
+            // Both have confirmed (idol was last) → complete
             $this->complete($order, 'user', $actor->id);
         } else {
+            // Idol confirmed first, waiting for customer
             $this->broadcastOrderChanged($order);
         }
 
@@ -227,6 +331,8 @@ class OrderService
                     ]);
                     $order->conversation->touch();
                 }
+
+                \App\Models\UserIdolTrial::where('order_id', $order->id)->delete();
                 break;
 
             case OrderStatus::Refunded:
@@ -275,12 +381,14 @@ class OrderService
                 'id'         => $order->customer->id,
                 'name'       => $order->customer->name,
                 'avatar_url' => $order->customer->avatar_url,
+                'active_frame' => $order->customer->activeFrame,
                 'gender'     => $order->customer->gender,
             ],
             'idol' => [
                 'id'         => $order->idol->id,
                 'name'       => $order->idol->name,
                 'avatar_url' => $order->idol->avatar_url,
+                'active_frame' => $order->idol->activeFrame,
                 'gender'     => $order->idol->gender,
             ],
             'items' => $order->items->map(fn($item) => [
@@ -289,7 +397,7 @@ class OrderService
                 'service'  => $item->service ? [
                     'id'        => $item->service->id,
                     'name'      => $item->service->name,
-                    'price'     => $item->service->price,
+                    'price'     => $item->price ?? $item->service->price,
                     'time_unit' => $item->service->timeUnit?->name,
                 ] : null,
             ])->values()->all(),
@@ -308,6 +416,8 @@ class OrderService
         $order->update(['status' => OrderStatus::Completed, 'completed_at' => now()]);
 
         IdolRatingService::adjust($order->idol, 'order_completed');
+
+        \App\Events\OrderCompletedEvent::dispatch($order);
 
         $this->broadcastSystemMessage($order, [
             'sender_id' => null,

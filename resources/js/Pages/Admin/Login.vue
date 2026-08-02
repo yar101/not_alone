@@ -19,7 +19,7 @@ function submit() {
     <div class="login-wrap">
         <div class="login-card">
             <div class="login-logo-wrap">
-                <img src="/app-logo-v3.png" alt="NoAlone" class="login-logo" />
+                <img src="/app-logo-v3.webp" alt="Not Alone" class="login-logo" />
             </div>
             <h1 class="login-title">Admin</h1>
             <p class="login-sub">Панель управления</p>

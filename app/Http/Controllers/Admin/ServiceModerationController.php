@@ -155,7 +155,7 @@ class ServiceModerationController extends Controller
             ]);
 
             if ($service->user) {
-                $service->user->notify(new ServiceApprovedNotification($service));
+                $service->user->notify(new ServiceApprovedNotification($service, $data['flagged_fields'] ?? null, $data['field_comments'] ?? null));
                 broadcast(new NewNotification('private', $service->user->id));
                 NotifyFollowersJob::dispatch($service->user, $service);
             }
@@ -220,7 +220,7 @@ class ServiceModerationController extends Controller
             ]);
             
             if ($service->user) {
-                $service->user->notify(new ServiceApprovedNotification($service));
+                $service->user->notify(new ServiceApprovedNotification($service, $data['flagged_fields'] ?? null, $data['field_comments'] ?? null));
                 broadcast(new NewNotification('private', $service->user->id));
                 NotifyFollowersJob::dispatch($service->user, $service);
             }

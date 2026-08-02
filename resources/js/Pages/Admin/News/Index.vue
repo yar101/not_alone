@@ -121,10 +121,10 @@ function store() {
 <template>
     <div>
         <div class="page-header">
-            <h1 class="page-title">Новости</h1>
+            <h1 class="page-title">Статьи</h1>
         </div>
 
-        <!-- Список новостей -->
+        <!-- Список статей -->
         <div class="section">
             <div class="news-list">
                 <div v-for="item in news" :key="item.id" class="news-row">
@@ -151,7 +151,7 @@ function store() {
                         <div class="edit-form">
                             <input v-model="editTitle" class="edit-input" placeholder="Заголовок" maxlength="255" />
                             <textarea v-model="editExcerpt" class="edit-textarea edit-textarea--short" placeholder="Краткое описание (для карточки, необязательно)" rows="2" maxlength="500" />
-                            <textarea v-model="editBody" class="edit-textarea" placeholder="Полный текст новости" rows="5" />
+                            <textarea v-model="editBody" class="edit-textarea" placeholder="Полный текст статьи" rows="5" />
 
                             <div class="fields-row">
                                 <div class="field-group field-group--pin">
@@ -187,17 +187,17 @@ function store() {
                     </template>
 
                 </div>
-                <div v-if="!news.length" class="empty-msg">Новостей пока нет</div>
+                <div v-if="!news.length" class="empty-msg">Статей пока нет</div>
             </div>
         </div>
 
         <!-- Добавить -->
         <div class="section">
-            <h2 class="section-title">Добавить новость</h2>
+            <h2 class="section-title">Добавить статью</h2>
             <div class="add-form">
                 <input v-model="newTitle" class="add-input" placeholder="Заголовок" maxlength="255" />
                 <textarea v-model="newExcerpt" class="add-textarea add-textarea--short" placeholder="Краткое описание (для карточки, необязательно)" rows="2" maxlength="500" />
-                <textarea v-model="newBody" class="add-textarea" placeholder="Полный текст новости" rows="5" />
+                <textarea v-model="newBody" class="add-textarea" placeholder="Полный текст статьи" rows="5" />
 
                 <div class="fields-row">
                     <div class="field-group field-group--pin">

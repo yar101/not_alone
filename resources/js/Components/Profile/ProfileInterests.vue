@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { useForm, router } from '@inertiajs/vue3';
 import { EditPen } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import { useTranslations } from '@/composables/useTranslations';
@@ -67,7 +67,9 @@ function submit() {
     form.patch(route('profile.update.interests'), {
         preserveState: true,
         preserveScroll: true,
-        onSuccess: () => editModal.value = false,
+        onSuccess: () => {
+            editModal.value = false;
+        },
     });
 }
 
@@ -110,7 +112,7 @@ function submitSuggestion() {
         <p v-else-if="isOwner" class="empty">{{ __('profile.interests.empty') }}</p>
         <p v-else class="empty">{{ __('profile.interests.not_specified') }}</p>
 
-        <SiteModal :show="editModal" variant="pink" :compact="true" @close="editModal = false">
+        <SiteModal :show="editModal" variant="pink" :compact="true" :no-history="true" @close="editModal = false">
             <div class="edit-form">
                 <h3 class="edit-title">{{ __('profile.interests.title') }}</h3>
 
@@ -135,16 +137,20 @@ function submitSuggestion() {
                                     </span>
                                     <span class="cat-arrow" :class="{ open: expandedCats.has(cat.id) }">›</span>
                                 </button>
-                                <div v-if="expandedCats.has(cat.id)" class="cat-interests">
-                                    <button
-                                        v-for="i in cat.interests"
-                                        :key="i.id"
-                                        type="button"
-                                        class="interest-btn"
-                                        :class="{ active: selected.has(i.id) }"
-                                        @click="toggleInterest(i.id)"
-                                        :disabled="!selected.has(i.id) && selected.size >= 10"
-                                    >{{ localName(i) }}</button>
+                                <div class="cat-interests-wrapper" :class="{ 'is-open': expandedCats.has(cat.id) }">
+                                    <div class="cat-interests-inner">
+                                        <div class="cat-interests">
+                                            <button
+                                                v-for="i in cat.interests"
+                                                :key="i.id"
+                                                type="button"
+                                                class="interest-btn"
+                                                :class="{ active: selected.has(i.id) }"
+                                                @click="toggleInterest(i.id)"
+                                                :disabled="!selected.has(i.id) && selected.size >= 10"
+                                            >{{ localName(i) }}</button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </template>
@@ -212,7 +218,7 @@ function submitSuggestion() {
     justify-content: center;
     width: 26px; height: 26px;
     padding: 0;
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     border: 1px solid transparent;
     background: transparent;
     cursor: pointer;
@@ -237,7 +243,7 @@ function submitSuggestion() {
 .tags-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .tag {
     padding: 0.28rem 0.65rem;
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     border: 1px solid rgba(255,255,255,0.12);
     background: rgba(255,255,255,0.04);
     color: rgba(255,255,255,0.8);
@@ -252,27 +258,38 @@ function submitSuggestion() {
 .search-input {
     width: 100%; padding: 0.55rem 0.9rem; margin-bottom: 0.75rem;
     background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 3px; color: rgba(255,255,255,0.88); font-size: 0.9rem; font-family: inherit;
+    border-radius: var(--profile-border-radius, 8px); color: rgba(255,255,255,0.88); font-size: 0.9rem; font-family: inherit;
     box-sizing: border-box; outline: none; transition: border-color 0.15s;
 }
 .search-input::placeholder { color: rgba(255,255,255,0.25); }
 .search-input:focus { border-color: color-mix(in srgb, var(--color-base-1), transparent 50%); }
 .categories { display: flex; flex-direction: column; gap: 0.2rem; margin-bottom: 1rem; }
-.cat-block { border: 1px solid rgba(255,255,255,0.07); border-radius: 3px; }
+.cat-block { border: 1px solid rgba(255,255,255,0.07); border-radius: var(--profile-border-radius, 8px); }
 .cat-header {
     width: 100%; display: flex; align-items: center;
     padding: 0.6rem 0.9rem;
     background: rgba(255,255,255,0.03); border: none; color: rgba(255,255,255,0.75);
     font-size: 0.9rem; cursor: pointer; font-family: inherit; text-align: left;
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
 }
 .cat-count { color: color-mix(in srgb, var(--color-base-1), transparent 25%); font-size: 0.8rem; margin-left: 0.4rem; }
 .cat-arrow { color: rgba(255,255,255,0.35); font-size: 1.1rem; transition: transform 0.2s; margin-left: auto; }
 .cat-arrow.open { transform: rotate(90deg); }
-.cat-interests { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0.6rem 0.9rem; background: rgba(0,0,0,0.12); border-radius: 0 0 3px 3px; }
+.cat-interests-wrapper {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.cat-interests-wrapper.is-open {
+    grid-template-rows: 1fr;
+}
+.cat-interests-inner {
+    overflow: hidden;
+}
+.cat-interests { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0.6rem 0.9rem; background: rgba(0,0,0,0.12); border-radius: 0 0 var(--profile-border-radius, 8px) var(--profile-border-radius, 8px); }
 .interest-btn {
     padding: 0.25rem 0.65rem;
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     border: 1px solid rgba(255,255,255,0.1); background: transparent;
     color: rgba(255,255,255,0.5); font-size: 0.88rem; cursor: pointer; font-family: inherit; transition: all 0.15s;
 }
@@ -281,7 +298,7 @@ function submitSuggestion() {
 .no-results { color: rgba(255,255,255,0.3); font-size: 0.9rem; text-align: center; padding: 1rem 0; margin: 0; }
 .save-btn {
     width: 100%; padding: 0.75rem;
-    border-radius: 3px; border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 60%);
+    border-radius: var(--profile-border-radius, 8px); border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 60%);
     background: color-mix(in srgb, var(--color-base-1), transparent 90%);
     color: #fff; font-size: 0.95rem; cursor: pointer; font-family: inherit; transition: background 0.15s;
 }
@@ -292,7 +309,7 @@ function submitSuggestion() {
 .suggest-btn {
     flex-shrink: 0;
     padding: 0.5rem 0.85rem;
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 70%);
     background: color-mix(in srgb, var(--color-base-1), transparent 93%);
     color: color-mix(in srgb, var(--color-base-1), transparent 15%);
@@ -326,7 +343,7 @@ function submitSuggestion() {
     padding: 0.6rem 0.9rem;
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 6px;
+    border-radius: var(--profile-border-radius, 8px);
     color: rgba(255,255,255,0.88);
     font-size: 0.9rem;
     font-family: inherit;

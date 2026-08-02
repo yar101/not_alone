@@ -7,9 +7,11 @@ import {
     provide,
     reactive,
     watch,
+    nextTick,
 } from "vue";
 import { Head, Link, useForm, usePage, router } from "@inertiajs/vue3";
 import { useTranslations } from "@/composables/useTranslations.js";
+
 import SiteModal from "@/Components/Site/SiteModal.vue";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import {
@@ -118,7 +120,7 @@ function resendVerification() {
 // ── Tabs ─────────────────────────────────────────────────────
 const TAB_ORDER = props.isIdol
     ? ["about", "posts", "services", "content", "reviews"]
-    : ["about", "posts", "services", "content"];
+    : ["about"];
 const storedTab = sessionStorage.getItem(`profile_tab_${props.profileUser.id}`);
 const hashTab = window.location.hash.slice(1);
 const initialTab = TAB_ORDER.includes(hashTab)
@@ -187,6 +189,8 @@ function submitReport() {
 const TOUR_KEY = "profile_tour_done";
 let activeDriverObj = null;
 
+const tourIsActive = ref(false);
+
 onMounted(async () => {
     if (!props.isOwner) return;
     if (localStorage.getItem(TOUR_KEY)) return;
@@ -194,12 +198,34 @@ onMounted(async () => {
     const { driver } = await import("driver.js");
     await import("driver.js/dist/driver.css");
 
+    tourIsActive.value = true;
+
     activeDriverObj = driver({
         showProgress: true,
+        allowClose: true,
+        disableActiveInteraction: true,
+        overlayClickBehavior: () => {
+            // Do nothing on overlay click, as requested by user
+        },
         progressText: __("profile.tour.progressText"),
         nextBtnText: __("profile.tour.next"),
         prevBtnText: __("profile.tour.prev"),
         doneBtnText: __("profile.tour.done"),
+        closeBtnText: "✕",
+        showButtons: ["next", "close"],
+        onPopoverRender: (popover, opts) => {
+            if (popover.closeButton) {
+                popover.closeButton.innerText = "✕";
+            }
+            // On last step, rename "Next" to "Закончить тур"
+            const steps = opts?.config?.steps || [];
+            const idx = opts?.state?.activeIndex;
+            if (idx !== undefined && idx === steps.length - 1 && popover.nextButton) {
+                popover.nextButton.innerText = "Закончить тур";
+            }
+        },
+        onHighlightStarted: (element, step, { state }) => {
+        },
         steps: [
             {
                 element: "#tour-header",
@@ -238,7 +264,7 @@ onMounted(async () => {
                 popover: {
                     title: __("profile.tour.traits.title"),
                     description: __("profile.tour.traits.desc"),
-                    side: "bottom",
+                    side: "top",
                 },
             },
             {
@@ -310,6 +336,17 @@ onMounted(async () => {
                     title: __("profile.tour.chat_search.title"),
                     description: __("profile.tour.chat_search.desc"),
                     side: "left",
+                    // Hide chat via CSS instead of closing through Vue (v-if).
+                    // Closing via event removes chat DOM mid-animation, breaking
+                    // driver.js on mobile. CSS hiding keeps DOM intact.
+                    // The chat is properly closed in onDestroyed.
+                    onNextClick: (el, step, opts) => {
+                        const panel = document.querySelector('.chat-panel');
+                        const backdrop = document.querySelector('.chat-backdrop');
+                        if (panel) panel.style.display = 'none';
+                        if (backdrop) backdrop.style.display = 'none';
+                        opts.driver.moveNext();
+                    },
                 },
             },
             {
@@ -319,21 +356,6 @@ onMounted(async () => {
                     description: __("profile.tour.user_chip.desc"),
                     side: "bottom",
                 },
-                onHighlightStarted: () => {
-                    window.dispatchEvent(new CustomEvent("noalone:toggle-chat", { detail: false }));
-                    window.dispatchEvent(new CustomEvent("noalone:toggle-sidebar", { detail: false }));
-                },
-            },
-            {
-                element: ".usb-hero",
-                popover: {
-                    title: __("profile.tour.usb_hero.title"),
-                    description: __("profile.tour.usb_hero.desc"),
-                    side: "left",
-                },
-                onHighlightStarted: () => {
-                    window.dispatchEvent(new CustomEvent("noalone:toggle-sidebar", { detail: true }));
-                },
             },
             {
                 element: ".usb-nav",
@@ -341,6 +363,9 @@ onMounted(async () => {
                     title: __("profile.tour.usb_nav.title"),
                     description: __("profile.tour.usb_nav.desc"),
                     side: "left",
+                },
+                onHighlightStarted: () => {
+                    window.dispatchEvent(new CustomEvent("noalone:toggle-sidebar", { detail: true }));
                 },
             },
             {
@@ -350,29 +375,20 @@ onMounted(async () => {
                     description: __("profile.tour.usb_features.desc"),
                     side: "left",
                 },
-            },
-            {
-                element: ".usb-locale",
-                popover: {
-                    title: __("profile.tour.usb_locale.title"),
-                    description: __("profile.tour.usb_locale.desc"),
-                    side: "left",
-                    onNextClick: () => {
-                        activeDriverObj.destroy();
-                    },
-                },
                 onHighlightStarted: () => {
                     window.dispatchEvent(new CustomEvent("noalone:toggle-sidebar", { detail: true }));
                 },
             },
         ],
         onDestroyed: () => {
+            tourIsActive.value = false;
             localStorage.setItem(TOUR_KEY, "1");
             window.dispatchEvent(new CustomEvent("noalone:toggle-chat", { detail: false }));
             window.dispatchEvent(new CustomEvent("noalone:toggle-sidebar", { detail: false }));
         },
     });
 
+    
     activeDriverObj.drive();
 });
 </script>
@@ -573,6 +589,7 @@ onMounted(async () => {
                             }}</span>
                         </button>
                         <button
+                            v-if="isIdol"
                             class="tab-btn"
                             :class="{ active: tab === 'services' }"
                             @click="switchTab('services')"
@@ -583,6 +600,7 @@ onMounted(async () => {
                             }}</span>
                         </button>
                         <button
+                            v-if="isIdol"
                             class="tab-btn"
                             :class="{ active: tab === 'content' }"
                             @click="switchTab('content')"
@@ -653,28 +671,29 @@ onMounted(async () => {
                                 key="about"
                                 class="tab-panel"
                             >
-                                <!-- Верх: bio слева, диск+плеер справа (eager — не defer) -->
-                                <div class="about-top-grid anim-block">
-                                    <ProfileAbout
-                                        :about="profileUser.about"
-                                        :is-owner="isOwner"
-                                    />
-                                    <div
-                                        id="tour-voice"
-                                        class="about-voice-col"
-                                    >
-                                        <ProfileVoice
-                                            :voice-url="profileUser.voice_url"
+                                <div class="about-fused-container glass-panel">
+                                    <!-- Верх: bio слева, диск+плеер справа (eager — не defer) -->
+                                    <div class="about-top-grid anim-block" :class="{ 'about-top-grid--has-bio': profileUser.about }">
+                                        <ProfileAbout
+                                            :about="profileUser.about"
                                             :is-owner="isOwner"
                                         />
+                                        <div
+                                            id="tour-voice"
+                                            class="about-voice-col"
+                                        >
+                                            <ProfileVoice
+                                                :voice-url="profileUser.voice_url"
+                                                :is-owner="isOwner"
+                                            />
+                                        </div>
                                     </div>
-                                </div>
 
-                                <!-- Слитая панель: характер + интересы + языки (deferred) -->
-                                <div
-                                    v-if="Array.isArray(traits)"
-                                    class="fused-panel"
-                                >
+                                    <!-- Слитая панель: характер + интересы + языки (deferred) -->
+                                    <div
+                                        v-if="Array.isArray(traits)"
+                                        class="fused-panel"
+                                    >
                                     <div id="tour-traits" class="anim-block">
                                         <ProfileTraits
                                             :traits="traits"
@@ -707,6 +726,7 @@ onMounted(async () => {
                                     <div
                                         class="skeleton-row skeleton-row--short"
                                     />
+                                </div>
                                 </div>
                             </div>
 
@@ -748,67 +768,6 @@ onMounted(async () => {
                                                 isBlockedByIdol
                                             "
                                         />
-                                    </div>
-                                </template>
-                                <!-- Owner but not idol yet -->
-                                <template v-else-if="isOwner">
-                                    <div class="anim-block idol-cta-block">
-                                        <div class="idol-cta-content">
-                                            <div class="idol-cta-left">
-                                                <span
-                                                    class="idol-cta-eyebrow"
-                                                    >{{
-                                                        __(
-                                                            "profile.services.become.eyebrow",
-                                                        )
-                                                    }}</span
-                                                >
-                                                <p
-                                                    class="idol-cta-title"
-                                                    v-html="
-                                                        __(
-                                                            'profile.services.become.title',
-                                                        )
-                                                    "
-                                                ></p>
-                                                <div class="idol-cta-tags">
-                                                    <span
-                                                        class="idol-cta-tag"
-                                                        >{{
-                                                            __(
-                                                                "profile.services.become.tag1",
-                                                            )
-                                                        }}</span
-                                                    >
-                                                    <span
-                                                        class="idol-cta-tag"
-                                                        >{{
-                                                            __(
-                                                                "profile.services.become.tag2",
-                                                            )
-                                                        }}</span
-                                                    >
-                                                </div>
-                                            </div>
-                                            <Link
-                                                href="/idol/apply"
-                                                class="idol-cta-btn"
-                                                >{{
-                                                    __(
-                                                        "profile.services.become.apply",
-                                                    )
-                                                }}</Link
-                                            >
-                                        </div>
-                                    </div>
-                                </template>
-                                <!-- Visitor viewing a non-idol profile -->
-                                <template v-else>
-                                    <div class="anim-block coming-soon-block">
-                                        <p class="coming-soon-title">Услуги</p>
-                                        <p class="coming-soon-text">
-                                            У этого пользователя нет услуг
-                                        </p>
                                     </div>
                                 </template>
                             </div>
@@ -985,44 +944,83 @@ onMounted(async () => {
 
 <!-- driver.js dark theme override (non-scoped) -->
 <style>
+:root {
+    --profile-border-radius: 8px;
+}
+.glass-panel {
+    background: rgba(10, 7, 20, 0.7) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+    border-radius: var(--profile-border-radius, 8px) !important;
+    overflow: hidden;
+}
+.driver-overlay {
+    opacity: 0.97 !important; 
+}
 .driver-popover {
-    background: #0c0c14 !important;
-    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    background: #1a1a26 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
     color: rgba(255, 255, 255, 0.9) !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8),
-                0 0 16px color-mix(in srgb, var(--color-base-1), transparent 92%),
-                0 0 24px color-mix(in srgb, var(--color-base-2), transparent 94%) !important;
-    border-radius: 8px !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6) !important;
+    border-radius: var(--profile-border-radius, 8px) !important;
     font-family: "Rubik", sans-serif !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+    max-width: 350px !important;
+    overflow: hidden !important;
+}
+.driver-popover::before {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        color-mix(in srgb, var(--color-base-1), transparent 40%) 25%, 
+        color-mix(in srgb, var(--color-base-1), transparent 40%) 75%, 
+        transparent 100%
+    ) !important;
+    z-index: 10 !important;
 }
 .driver-popover-title {
     color: #ffffff !important;
-    font-size: 1rem !important;
+    font-size: 1.15rem !important;
+    padding-right: 45px !important; /* Space for the square close button */
 }
 .driver-popover-description {
     color: rgba(255, 255, 255, 0.6) !important;
-    font-size: 0.9rem !important;
+    font-size: 1rem !important;
     line-height: 1.6 !important;
 }
 .driver-popover-footer {
     border-top: 1px solid rgba(255, 255, 255, 0.07) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 20px !important;
+    padding-top: 12px !important;
+    margin-top: 12px !important;
 }
 .driver-popover-prev-btn {
     background: color-mix(in srgb, var(--color-base-1), transparent 90%) !important;
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 60%) !important;
     color: var(--color-base-1) !important;
-    border-radius: 4px !important;
+    border-radius: var(--profile-border-radius, 8px) !important;
     text-shadow: none !important;
     font-weight: 500 !important;
     transition: all 0.2s ease !important;
+    padding: 10px 20px !important;
+    font-size: 1rem !important;
 }
 .driver-popover-prev-btn:hover {
     background: color-mix(in srgb, var(--color-base-1), transparent 75%) !important;
     border-color: var(--color-base-1) !important;
     color: #fff !important;
-    box-shadow: 0 0 10px color-mix(in srgb, var(--color-base-1), transparent 50%) !important;
+    box-shadow: 0 0 4px color-mix(in srgb, var(--color-base-1), transparent 80%) !important;
 }
 .driver-popover-next-btn,
 .driver-popover-done-btn {
@@ -1033,31 +1031,95 @@ onMounted(async () => {
     text-shadow: none !important;
     font-weight: 500 !important;
     transition: all 0.2s ease !important;
+    padding: 10px 20px !important;
+    font-size: 1rem !important;
 }
 .driver-popover-next-btn:hover,
 .driver-popover-done-btn:hover {
     background: color-mix(in srgb, var(--color-base-2), transparent 75%) !important;
     border-color: var(--color-base-2) !important;
     color: #fff !important;
-    box-shadow: 0 0 10px color-mix(in srgb, var(--color-base-2), transparent 50%) !important;
+    box-shadow: 0 0 4px color-mix(in srgb, var(--color-base-2), transparent 80%) !important;
 }
 .driver-popover-navigation-btns {
     margin-top: 10px !important;
 }
 .driver-popover-progress-text {
     color: rgba(255, 255, 255, 0.3) !important;
+    font-size: 0.95rem !important;
 }
-.driver-popover-arrow-side-left.driver-popover-arrow {
-    border-right-color: #0c0c14 !important;
+.driver-popover-arrow {
+    display: none !important;
 }
-.driver-popover-arrow-side-right.driver-popover-arrow {
-    border-left-color: #0c0c14 !important;
+
+/* Red close button styling (no background/border, muted color) */
+.driver-popover-close-btn {
+    all: unset;
+    cursor: pointer;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 28px !important;
+    height: 28px !important;
+    background: transparent !important;
+    border: none !important;
+    color: rgba(239, 68, 68, 0.6) !important;
+    border-radius: 50% !important;
+    font-size: 1.1rem !important;
+    font-weight: normal !important;
+    top: 12px !important;
+    right: 12px !important;
+    position: absolute !important;
+    pointer-events: auto !important;
+    transition: all 0.2s ease !important;
+    box-shadow: none !important;
 }
-.driver-popover-arrow-side-top.driver-popover-arrow {
-    border-bottom-color: #0c0c14 !important;
+.driver-popover-close-btn:hover {
+    color: #ff4b4b !important;
+    background: rgba(255, 255, 255, 0.08) !important;
 }
-.driver-popover-arrow-side-bottom.driver-popover-arrow {
-    border-top-color: #0c0c14 !important;
+
+/* Desktop size reductions for clean visual layout */
+@media (min-width: 769px) {
+    .driver-popover-title {
+        font-size: 0.95rem !important;
+    }
+    .driver-popover-description {
+        font-size: 0.82rem !important;
+        line-height: 1.5 !important;
+    }
+    .driver-popover-prev-btn,
+    .driver-popover-next-btn,
+    .driver-popover-done-btn {
+        padding: 6px 14px !important;
+        font-size: 0.8rem !important;
+    }
+    .driver-popover-progress-text {
+        font-size: 0.8rem !important;
+    }
+    .driver-popover-close-btn {
+        font-size: 0.95rem !important;
+        width: 22px !important;
+        height: 22px !important;
+        top: 10px !important;
+        right: 10px !important;
+    }
+}
+
+/* Mobile full-width tooltip layout with margins */
+@media (max-width: 768px) {
+    .driver-popover {
+        width: calc(100% - 24px) !important;
+        max-width: calc(100% - 24px) !important;
+        left: 12px !important;
+        right: 12px !important;
+        border-radius: 12px !important;
+    }
+}
+
+/* Forbid scrolling when driver is active */
+body.driver-active {
+    overflow: hidden !important;
 }
 </style>
 
@@ -1072,7 +1134,7 @@ onMounted(async () => {
     padding: 0.65rem 1rem;
     margin-bottom: 0.75rem;
     border: 1px solid rgba(234, 179, 8, 0.3);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     background: rgba(234, 179, 8, 0.06);
     flex-shrink: 0;
     flex-wrap: wrap;
@@ -1110,7 +1172,7 @@ onMounted(async () => {
     flex-shrink: 0;
     padding: 0.3rem 0.75rem;
     border: 1px solid rgba(234, 179, 8, 0.35);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
     background: transparent;
     color: rgba(234, 179, 8, 0.85);
     font-size: 0.8rem;
@@ -1240,6 +1302,7 @@ onMounted(async () => {
     width: min(640px, 90%);
     background: rgb(10, 8, 20);
     border: 1px solid rgba(200, 60, 60, 0.2);
+    border-radius: var(--profile-border-radius, 8px);
     box-shadow:
         inset 0 1px 0 rgba(255, 100, 100, 0.12),
         inset 0 -1px 0 rgba(0, 0, 0, 0.4),
@@ -1315,7 +1378,7 @@ onMounted(async () => {
     border: none;
     padding: 0.25rem 0;
     position: relative;
-    gap: 0;
+    gap: 0.35rem;
 
     overflow-x: auto;
     scrollbar-width: none;
@@ -1352,7 +1415,7 @@ onMounted(async () => {
         );
         border: 1px solid
             color-mix(in srgb, var(--cat-accent, #ffb2ef) 25%, transparent);
-        border-radius: 6px;
+        border-radius: var(--profile-border-radius, 8px);
         color: color-mix(in srgb, var(--cat-accent, #ffb2ef) 80%, white);
         font-size: 0.85rem;
         font-weight: 600;
@@ -1365,24 +1428,22 @@ onMounted(async () => {
 }
 
 .tab-btn {
-    padding: 0.55rem 0.85rem;
-    border: none;
-    border-radius: 6px;
+    padding: 0.5rem 1.1rem;
+    border: 1px solid transparent;
+    border-radius: var(--profile-border-radius, 8px);
     background: transparent;
     color: rgba(255, 255, 255, 0.45);
-    font-size: 0.88rem;
-    letter-spacing: 0.06em;
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
     cursor: pointer;
     font-family: inherit;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    transition:
-        color 0.18s ease,
-        background 0.18s ease,
-        box-shadow 0.18s ease;
+    gap: 0.45rem;
+    transition: all 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     white-space: nowrap;
     flex-shrink: 0;
 }
@@ -1397,18 +1458,16 @@ onMounted(async () => {
 }
 .tab-btn.active {
     color: color-mix(in srgb, var(--color-base-1), white 20%);
-    background: linear-gradient(
-        160deg,
-        color-mix(in srgb, var(--color-base-1), transparent 82%) 0%,
-        color-mix(in srgb, var(--color-base-1), transparent 90%) 100%
-    );
-    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 85%);
-    box-shadow: inset 0 1px 0
-        color-mix(in srgb, var(--color-base-1), transparent 60%);
+    background: color-mix(in srgb, var(--color-base-1) 10%, rgba(10, 7, 20, 0.6));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid color-mix(in srgb, var(--color-base-1) 25%, rgba(255, 255, 255, 0.08));
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-base-1) 30%, rgba(255, 255, 255, 0.2)), 0 4px 15px rgba(0, 0, 0, 0.35);
 }
 .tab-btn:hover:not(.active) {
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.03);
     color: rgba(255, 255, 255, 0.75);
+    border-color: rgba(255, 255, 255, 0.03);
 }
 
 /* ── Контент ──────────────────────────────────────────────── */
@@ -1463,10 +1522,8 @@ onMounted(async () => {
 .about-top-grid {
     display: grid;
     grid-template-columns: 1fr 300px;
-    background: #06060e;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 3px 3px 0 0;
-    overflow: hidden;
+    background: transparent;
+    border: none;
     margin-bottom: 0;
 }
 
@@ -1476,7 +1533,6 @@ onMounted(async () => {
 
 .about-top-grid :deep(.block-section) {
     border: none;
-    border-right: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .about-voice-col {
@@ -1488,16 +1544,13 @@ onMounted(async () => {
 
 /* ── Слитая панель ────────────────────────────────────────── */
 .fused-panel {
-    background: #06060e;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-top: none;
-    border-radius: 0 0 3px 3px;
-    overflow: hidden;
+    background: transparent;
+    border: none;
 }
 
 .fused-panel :deep(.block-section) {
-    border-top: 1px solid rgba(255, 255, 255, 0.18);
-    background: #06060e;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: transparent;
 }
 
 .fused-panel > :first-child :deep(.block-section) {
@@ -1513,7 +1566,7 @@ onMounted(async () => {
     padding: 4rem 2rem;
     text-align: center;
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 3px;
+    border-radius: var(--profile-border-radius, 8px);
 }
 .coming-soon-title {
     font-size: 1.1rem;
@@ -1527,152 +1580,7 @@ onMounted(async () => {
     margin: 0;
 }
 
-/* ── Idol CTA block ──────────────────────────────────────── */
-.idol-cta-block {
-    position: relative;
-    overflow: hidden;
-    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 82%);
-    border-top-color: color-mix(in srgb, var(--color-base-1), transparent 70%);
-    border-radius: 6px;
-    background:
-        repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 23px,
-            color-mix(in srgb, var(--color-base-1), transparent 97.5%) 24px
-        ),
-        linear-gradient(
-            120deg,
-            color-mix(in srgb, var(--color-base-1), transparent 90%) 0%,
-            color-mix(in srgb, var(--color-base-1), transparent 96%) 50%,
-            rgba(100, 210, 255, 0.07) 100%
-        );
-    box-shadow:
-        inset 0 1px 0 color-mix(in srgb, var(--color-base-1), transparent 88%),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.22),
-        0 6px 32px rgba(0, 0, 0, 0.2);
-}
 
-.idol-cta-block::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(
-        ellipse 70% 100% at 100% 50%,
-        rgba(100, 210, 255, 0.08) 0%,
-        transparent 70%
-    );
-    pointer-events: none;
-}
-
-.idol-cta-content {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1.5rem;
-    padding: 2rem;
-    min-height: 140px;
-}
-
-.idol-cta-left {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-}
-
-.idol-cta-eyebrow {
-    font-size: 0.58rem;
-    font-weight: 700;
-    letter-spacing: 0.32em;
-    text-transform: uppercase;
-    color: var(--color-base-1);
-    opacity: 0.5;
-}
-
-.idol-cta-title {
-    font-size: 1.4rem;
-    font-weight: 800;
-    color: rgba(255, 255, 255, 0.92);
-    margin: 0;
-    line-height: 1.15;
-    letter-spacing: -0.02em;
-}
-
-.idol-cta-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-top: 0.55rem;
-}
-
-.idol-cta-tag {
-    font-size: 0.7rem;
-    font-weight: 500;
-    letter-spacing: 0.05em;
-    color: var(--color-base-1);
-    opacity: 0.8;
-    background: color-mix(in srgb, var(--color-base-1), transparent 92%);
-    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 80%);
-    border-radius: 3px;
-    padding: 0.2rem 0.55rem;
-    box-shadow: inset 0 1px 0
-        color-mix(in srgb, var(--color-base-1), transparent 92%);
-}
-
-.idol-cta-btn {
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    padding: 0.65rem 1.35rem;
-    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 70%);
-    border-radius: 4px;
-    background: color-mix(in srgb, var(--color-base-1), transparent 91%);
-    color: var(--color-base-1);
-    font-size: 0.74rem;
-    font-weight: 600;
-    letter-spacing: 0.13em;
-    text-transform: uppercase;
-    text-decoration: none;
-    white-space: nowrap;
-    box-shadow:
-        inset 0 1px 0 color-mix(in srgb, var(--color-base-1), transparent 90%),
-        0 2px 12px color-mix(in srgb, var(--color-base-1), transparent 92%);
-    transition:
-        background 0.2s,
-        border-color 0.2s,
-        color 0.2s,
-        box-shadow 0.2s,
-        transform 0.15s;
-}
-
-.idol-cta-btn:hover {
-    background: color-mix(in srgb, var(--color-base-1), transparent 84%);
-    border-color: color-mix(in srgb, var(--color-base-1), transparent 45%);
-    color: color-mix(in srgb, var(--color-base-1), white 20%);
-    box-shadow:
-        inset 0 1px 0 color-mix(in srgb, var(--color-base-1), transparent 85%),
-        0 0 20px color-mix(in srgb, var(--color-base-1), transparent 82%),
-        0 4px 18px rgba(0, 0, 0, 0.25);
-    transform: translateY(-1px);
-}
-
-@media (max-width: 600px) {
-    .idol-cta-content {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1.25rem;
-        padding: 1.5rem;
-        min-height: auto;
-    }
-    .idol-cta-title {
-        font-size: 1.15rem;
-    }
-    .idol-cta-btn {
-        width: 100%;
-        justify-content: center;
-    }
-}
 
 .sidebar-actions {
     display: flex;
@@ -1694,6 +1602,7 @@ onMounted(async () => {
         color-mix(in srgb, var(--color-base-2), transparent 96%)
     );
     border: 1px solid color-mix(in srgb, var(--color-base-2), transparent 60%);
+    border-radius: var(--profile-border-radius, 8px);
     color: var(--color-base-2);
     font-family: inherit;
     font-size: 0.8rem;
@@ -1727,6 +1636,7 @@ onMounted(async () => {
         color-mix(in srgb, var(--color-base-1), transparent 92%)
     );
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 50%);
+    border-radius: var(--profile-border-radius, 8px);
     color: var(--color-base-1);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
@@ -1795,6 +1705,7 @@ onMounted(async () => {
 .unfollow-confirm__btn--cancel {
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--profile-border-radius, 8px);
     color: color-mix(in srgb, #fff, transparent 20%);
 }
 .unfollow-confirm__btn--cancel:hover {
@@ -1807,6 +1718,7 @@ onMounted(async () => {
         color-mix(in srgb, var(--color-base-1), transparent 92%)
     );
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 50%);
+    border-radius: var(--profile-border-radius, 8px);
     color: var(--color-base-1);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
@@ -1829,6 +1741,7 @@ onMounted(async () => {
     border-radius: 6px;
     background: transparent;
     border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 65%);
+    border-radius: var(--profile-border-radius, 8px);
     color: var(--color-base-1);
     font-family: inherit;
     font-size: 0.88rem;
@@ -1887,7 +1800,7 @@ onMounted(async () => {
     font-size: 0.82rem;
     cursor: pointer;
     transition: all 0.15s;
-    border-radius: 2px;
+    border-radius: var(--profile-border-radius, 8px);
 }
 .report-reason-btn:hover {
     border-color: rgba(239, 68, 68, 0.35);
@@ -1911,7 +1824,7 @@ onMounted(async () => {
     transition: border-color 0.15s;
     box-sizing: border-box;
     width: 100%;
-    border-radius: 2px;
+    border-radius: var(--profile-border-radius, 8px);
 }
 .report-textarea:focus {
     border-color: color-mix(in srgb, var(--color-base-1), transparent 65%);
@@ -1941,7 +1854,7 @@ onMounted(async () => {
     font-family: "Rubik", sans-serif;
     font-size: 0.85rem;
     cursor: pointer;
-    border-radius: 2px;
+    border-radius: var(--profile-border-radius, 8px);
     transition:
         color 0.15s,
         border-color 0.15s;
@@ -1958,7 +1871,7 @@ onMounted(async () => {
     font-family: "Rubik", sans-serif;
     font-size: 0.85rem;
     cursor: pointer;
-    border-radius: 2px;
+    border-radius: var(--profile-border-radius, 8px);
     transition:
         background 0.15s,
         border-color 0.15s;
@@ -1993,7 +1906,7 @@ onMounted(async () => {
     font-family: "Rubik", sans-serif;
     font-size: 0.85rem;
     cursor: pointer;
-    border-radius: 2px;
+    border-radius: var(--profile-border-radius, 8px);
     transition: background 0.15s;
 }
 .report-btn-close:hover {
@@ -2046,7 +1959,7 @@ onMounted(async () => {
 }
 @media (max-width: 600px) {
     .profile-tabs {
-        gap: 0.2rem;
+        gap: 0.25rem;
     }
     .tab-btn {
         flex: 1;
@@ -2055,6 +1968,7 @@ onMounted(async () => {
         padding: 0.5rem 0.25rem;
         font-size: 0.62rem;
         letter-spacing: 0.03em;
+        border-radius: 10px;
     }
     .tab-icon {
         font-size: 1.25rem;
@@ -2102,6 +2016,9 @@ onMounted(async () => {
     .about-top-grid :deep(.block-section) {
         border-right: none;
         border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    }
+    .about-top-grid--has-bio :deep(.block-section) {
+        border-bottom: none;
     }
     .about-voice-col {
         padding: 1.25rem;

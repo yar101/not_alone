@@ -20,7 +20,7 @@ fi
 
 if [ "${CONTAINER_ROLE}" = "worker" ]; then
     if [ "${APP_ENV}" = "local" ]; then
-        exec php artisan queue:listen --tries=3
+        exec php artisan queue:work --tries=3
     else
         exec php artisan queue:work --sleep=3 --tries=3 --max-time=3600
     fi

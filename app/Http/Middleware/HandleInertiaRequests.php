@@ -12,23 +12,24 @@ use App\Models\UserReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Inertia\Middleware;
+use Inertia\Inertia;
 
 class HandleInertiaRequests extends Middleware
 {
     protected $rootView = 'app';
 
-    private const SERVICE_TYPES = [
-        'idol_approved', 'idol_rejected', 'admin_broadcast', 'low_rating_warning', 'admin_rating',
-        'review_dispute_approved', 'review_dispute_rejected', 'content_pack_approved',
-        'content_pack_remarks', 'content_pack_rejected', 'content_pack_change_approved',
-        'content_pack_change_remarks', 'content_pack_change_rejected',
-        'service_approved', 'service_rejected', 'service_remarks',
-        'service_change_approved', 'service_change_remarks', 'service_change_rejected',
-        'test', 'chat_status', 'new_review'
-    ];
-    private const ORDER_TYPES   = ['order_created', 'order_accepted', 'order_cancelled', 'order_paid', 'order_completed'];
-    private const MESSAGE_TYPES = ['new_message'];
-    private const FOLLOW_TYPES  = ['new_post', 'new_service', 'new_content_pack'];
+    use \App\Traits\NotificationTypes;
+
+    public function handle(Request $request, \Closure $next)
+    {
+        $response = parent::handle($request, $next);
+        
+        $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        $response->headers->set('Pragma', 'no-cache');
+        $response->headers->set('Expires', '0');
+
+        return $response;
+    }
 
     public function version(Request $request): ?string
     {
@@ -38,6 +39,9 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
+        if ($user) {
+            $user->loadMissing('activeFrame');
+        }
         $application = $user?->idolApplication;
 
         $idolStatus = null;
@@ -45,47 +49,53 @@ class HandleInertiaRequests extends Middleware
             $idolStatus = $application->status;
         }
 
+        $unreadStrike = $user ? $user->unreadNotifications()->where('type', \App\Notifications\UserStrikeNotification::class)->first() : null;
+
         return [
             ...parent::share($request),
             'auth' => [
                 'user' => $user,
             ],
+            'unread_strike' => $unreadStrike ? [
+                'id' => $unreadStrike->id,
+                'data' => $unreadStrike->data,
+            ] : null,
             'auth_admin' => auth('admin')->user(),
-            'notifications_unread' => $user ? $this->countUnreadNotifications($user) : 0,
-            'service_unread' => $user ? $this->countUnreadService($user) : 0,
-            'order_notifications_unread' => $user ? $this->countUnreadOrders($user) : 0,
-            'messages_notifications_unread' => $user ? $this->countUnreadMessages($user) : 0,
-            'follows_unread' => $user ? $this->countUnreadFollows($user) : 0,
+            'notifications_unread' => Inertia::defer(fn() => $user ? $this->hasUnreadNotifications($user) : false, 'badges'),
+            'service_unread' => Inertia::defer(fn() => $user ? $this->hasUnreadService($user) : false, 'badges'),
+            'order_notifications_unread' => Inertia::defer(fn() => $user ? $this->hasUnreadOrders($user) : false, 'badges'),
+            'messages_notifications_unread' => Inertia::defer(fn() => $user ? $this->hasUnreadMessages($user) : false, 'badges'),
+            'follows_unread' => Inertia::defer(fn() => $user ? $this->hasUnreadFollows($user) : false, 'badges'),
             'is_idol' => $user?->is_idol ?? false,
             'idol_status' => $idolStatus,
-            'pending_applications_count' => fn() => auth('admin')->check()
+            'pending_applications_count' => Inertia::defer(fn() => auth('admin')->check()
                 ? IdolApplication::where('status', 'pending')->count()
-                : 0,
-            'pending_services_count' => fn() => auth('admin')->check()
+                : 0, 'admin_badges'),
+            'pending_services_count' => Inertia::defer(fn() => auth('admin')->check()
                 ? Service::where('status', 'pending')->count()
-                : 0,
-            'pending_reports_count' => fn() => auth('admin')->check()
+                : 0, 'admin_badges'),
+            'pending_reports_count' => Inertia::defer(fn() => auth('admin')->check()
                 ? UserReport::where('status', 'pending')->count()
-                : 0,
-            'pending_trait_suggestions_count' => fn() => auth('admin')->check()
+                : 0, 'admin_badges'),
+            'pending_trait_suggestions_count' => Inertia::defer(fn() => auth('admin')->check()
                 ? TraitSuggestion::where('status', 'pending')->count()
-                : 0,
-            'pending_interest_suggestions_count' => fn() => auth('admin')->check()
+                : 0, 'admin_badges'),
+            'pending_interest_suggestions_count' => Inertia::defer(fn() => auth('admin')->check()
                 ? InterestSuggestion::where('status', 'pending')->count()
-                : 0,
-            'pending_review_disputes_count' => fn() => auth('admin')->check()
+                : 0, 'admin_badges'),
+            'pending_review_disputes_count' => Inertia::defer(fn() => auth('admin')->check()
                 ? ReviewDispute::where('status', 'pending')->count()
-                : 0,
-            'unread_messages_count'  => fn() => $user?->unreadMessagesCount() ?? 0,
-            'unread_direct_count'    => fn() => $user?->unreadDirectCount() ?? 0,
-            'unread_orders_count'    => fn() => $user?->unreadOrdersCount() ?? 0,
-            'unread_mine_count'      => fn() => $user?->unreadMineCount() ?? 0,
-            'unread_incoming_count'  => fn() => $user?->unreadIncomingCount() ?? 0,
+                : 0, 'admin_badges'),
+            'has_unread_messages'  => Inertia::defer(fn() => $user ? $user->hasUnreadMessages() : false, 'badges'),
+            'has_unread_direct'    => Inertia::defer(fn() => $user ? $user->hasUnreadDirect() : false, 'badges'),
+            'has_unread_orders'    => Inertia::defer(fn() => $user ? $user->hasUnreadOrders() : false, 'badges'),
+            'has_unread_mine'      => Inertia::defer(fn() => $user ? $user->hasUnreadMine() : false, 'badges'),
+            'has_unread_incoming'  => Inertia::defer(fn() => $user ? $user->hasUnreadIncoming() : false, 'badges'),
             'chat_block_reasons' => fn() => $user
-                ? BanReason::forChatBlock()->get()->map(fn($r) => $r->label)->unique()->values()
+                ? cache()->rememberForever('chat_block_reasons_list', fn() => BanReason::forChatBlock()->get()->map(fn($r) => $r->label)->unique()->values())
                 : [],
             'user_ban_reasons' => fn() => auth('admin')->check()
-                ? BanReason::forUserBan()->get()->map(fn($r) => $r->label)->unique()->values()
+                ? cache()->rememberForever('user_ban_reasons_list', fn() => BanReason::forUserBan()->get()->map(fn($r) => $r->label)->unique()->values())
                 : [],
             'flash' => [
                 'success'         => $request->session()->get('success'),
@@ -109,62 +119,64 @@ class HandleInertiaRequests extends Middleware
         return [];
     }
 
-    private function countUnreadNotifications($user): int
+    private function hasUnreadNotifications($user): bool
     {
-        $excluded = array_merge(self::SERVICE_TYPES, self::ORDER_TYPES, self::MESSAGE_TYPES, self::FOLLOW_TYPES);
-        $placeholders = implode(',', array_fill(0, count($excluded), '?'));
+        $excluded = array_merge($this->SERVICE_TYPES, $this->ORDER_TYPES, $this->MESSAGE_TYPES, $this->FOLLOW_TYPES);
+        $excludedClasses = $this->getClassesForTypes($excluded);
         return $user->unreadNotifications()
-            ->whereRaw("(data::jsonb->>'type') NOT IN ($placeholders)", $excluded)
-            ->count();
+            ->whereNotIn('type', $excludedClasses)
+            ->exists();
     }
 
-    private function countUnreadFollows($user): int
+    private function hasUnreadFollows($user): bool
     {
-        $placeholders = implode(',', array_fill(0, count(self::FOLLOW_TYPES), '?'));
+        $followClasses = $this->getClassesForTypes($this->FOLLOW_TYPES);
         return $user->unreadNotifications()
-            ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::FOLLOW_TYPES)
-            ->count();
+            ->whereIn('type', $followClasses)
+            ->exists();
     }
 
-    private function countUnreadService($user): int
+    private function hasUnreadService($user): bool
     {
-        $servicePlaceholders = implode(',', array_fill(0, count(self::SERVICE_TYPES), '?'));
-        $messagePlaceholders = implode(',', array_fill(0, count(self::MESSAGE_TYPES), '?'));
+        $serviceClasses = $this->getClassesForTypes($this->SERVICE_TYPES);
+        $messageClasses = $this->getClassesForTypes($this->MESSAGE_TYPES);
         
         // 1. Считаем персональные уведомления
-        $count = $user->unreadNotifications()
-            ->where(function($q) use ($servicePlaceholders, $messagePlaceholders) {
-                $q->whereRaw("(data::jsonb->>'type') IN ($servicePlaceholders)", self::SERVICE_TYPES)
-                  ->orWhere(function($sq) use ($messagePlaceholders) {
-                      $sq->whereRaw("(data::jsonb->>'type') IN ($messagePlaceholders)", self::MESSAGE_TYPES)
+        $hasPersonal = $user->unreadNotifications()
+            ->where(function($q) use ($serviceClasses, $messageClasses) {
+                $q->whereIn('type', $serviceClasses)
+                  ->orWhere(function($sq) use ($messageClasses) {
+                      $sq->whereIn('type', $messageClasses)
                          ->whereRaw("data::jsonb->>'sender_id' IS NULL");
                   });
             })
-            ->count();
+            ->exists();
+
+        if ($hasPersonal) {
+            return true;
+        }
 
         // 2. Считаем общие рассылки, которые пользователь еще не читал
-        $broadcastsCount = \App\Models\AdminBroadcast::where('target', '!=', 'user')
+        return \App\Models\AdminBroadcast::where('target', '!=', 'user')
             ->forUser($user)
             ->whereDoesntHave('reads', fn($q) => $q->where('user_id', $user->id))
-            ->count();
-
-        return $count + $broadcastsCount;
+            ->exists();
     }
 
-    private function countUnreadOrders($user): int
+    private function hasUnreadOrders($user): bool
     {
-        $placeholders = implode(',', array_fill(0, count(self::ORDER_TYPES), '?'));
+        $orderClasses = $this->getClassesForTypes($this->ORDER_TYPES);
         return $user->unreadNotifications()
-            ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::ORDER_TYPES)
-            ->count();
+            ->whereIn('type', $orderClasses)
+            ->exists();
     }
 
-    private function countUnreadMessages($user): int
+    private function hasUnreadMessages($user): bool
     {
-        $placeholders = implode(',', array_fill(0, count(self::MESSAGE_TYPES), '?'));
+        $messageClasses = $this->getClassesForTypes($this->MESSAGE_TYPES);
         return $user->unreadNotifications()
-            ->whereRaw("(data::jsonb->>'type') IN ($placeholders)", self::MESSAGE_TYPES)
+            ->whereIn('type', $messageClasses)
             ->whereRaw("data::jsonb->>'sender_id' IS NOT NULL")
-            ->count();
+            ->exists();
     }
 }

@@ -39,6 +39,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    noHistory: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const emit = defineEmits(["close"]);
@@ -52,7 +56,7 @@ const isOpen = computed({
     },
 });
 
-const modalHistory = useModalHistory(isOpen, "sm");
+const modalHistory = props.noHistory ? null : useModalHistory(isOpen, "sm");
 
 defineExpose({
     skipHistoryBack: () => modalHistory?.skipHistoryBack?.(),
@@ -174,6 +178,15 @@ onUnmounted(() => {
     inset: 0;
     z-index: 2000;
     pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 768px) {
+    .site-modal-root {
+        align-items: flex-end;
+    }
 }
 
 /* ── Backdrop ──────────────────────────────────────── */
@@ -188,37 +201,33 @@ onUnmounted(() => {
 
 /* ── Sheet ─────────────────────────────────────────── */
 .site-modal-sheet {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translateX(-50%) translateY(-50%);
+    position: relative;
     width: 60%;
     height: 80%;
     max-height: 90vh;
-    background:
-        linear-gradient(135deg, rgba(255, 178, 239, 0.05) 0%, transparent 45%),
-        linear-gradient(160deg, rgb(16, 11, 20) 0%, rgb(7, 6, 11) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 3px;
+    background: rgba(10, 7, 20, 0.7);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: none;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    border-radius: 12px;
     pointer-events: all;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 @media (max-width: 768px) {
     .site-modal-sheet {
-        top: auto;
-        left: 0;
-        right: 0;
-        bottom: 0;
         width: 100% !important;
         max-width: 100% !important;
         min-height: unset !important;
         height: 88svh;
         max-height: 88svh;
-        transform: none;
-        border-radius: 3px 3px 0 0;
+        border-radius: 16px 16px 0 0;
     }
 }
 
@@ -231,16 +240,15 @@ onUnmounted(() => {
 }
 
 .site-modal-pink {
-    border-top-color: rgba(255, 178, 239, 0.3);
+    box-shadow: inset 0 1px 0 rgba(255, 178, 239, 0.3);
 }
 
 .site-modal-blue {
-    border-top-color: color-mix(in srgb, var(--color-base-2), transparent 45%);
     box-shadow:
         0 0 0 1px color-mix(in srgb, var(--color-base-2), transparent 94%),
         0 -30px 80px color-mix(in srgb, var(--color-base-2), transparent 92%),
         0 40px 100px rgba(0, 0, 0, 0.6),
-        inset 0 1px 0 color-mix(in srgb, var(--color-base-2), transparent 85%),
+        inset 0 1px 0 color-mix(in srgb, var(--color-base-2), transparent 45%),
         inset 0 0 80px color-mix(in srgb, var(--color-base-2), transparent 97%);
 }
 
@@ -270,7 +278,6 @@ onUnmounted(() => {
         rgba(255, 178, 239, 0.18) 0%,
         transparent 70%
     );
-    animation: orb-drift-a 9s ease-in-out infinite alternate;
 }
 
 .ambient-pink::after {
@@ -283,7 +290,6 @@ onUnmounted(() => {
         rgba(255, 178, 239, 0.12) 0%,
         transparent 70%
     );
-    animation: orb-drift-b 13s ease-in-out infinite alternate;
 }
 
 .ambient-blue::before {
@@ -296,7 +302,6 @@ onUnmounted(() => {
         color-mix(in srgb, var(--color-base-2), transparent 90%) 0%,
         transparent 70%
     );
-    animation: orb-drift-a 9s ease-in-out infinite alternate;
 }
 
 .ambient-blue::after {
@@ -309,25 +314,6 @@ onUnmounted(() => {
         color-mix(in srgb, var(--color-base-2), transparent 90%) 0%,
         transparent 70%
     );
-    animation: orb-drift-b 13s ease-in-out infinite alternate;
-}
-
-@keyframes orb-drift-a {
-    from {
-        transform: translate(0, 0) scale(1);
-    }
-    to {
-        transform: translate(25px, 18px) scale(1.12);
-    }
-}
-
-@keyframes orb-drift-b {
-    from {
-        transform: translate(0, 0) scale(1);
-    }
-    to {
-        transform: translate(-20px, -25px) scale(1.08);
-    }
 }
 
 /* ── Body ──────────────────────────────────────────── */
@@ -372,7 +358,7 @@ onUnmounted(() => {
 }
 .site-modal-body::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.08);
-    border-radius: 3px;
+    border-radius: 8px;
 }
 
 /* ── Transitions ───────────────────────────────────── */
@@ -401,12 +387,12 @@ onUnmounted(() => {
 }
 .sheet-enter-from,
 .sheet-leave-to {
-    transform: translateX(-50%) translateY(calc(-50% + 14px));
+    transform: translateY(14px);
     opacity: 0;
 }
 .sheet-enter-to,
 .sheet-leave-from {
-    transform: translateX(-50%) translateY(-50%);
+    transform: translateY(0);
     opacity: 1;
 }
 
