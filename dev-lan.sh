@@ -2,9 +2,9 @@
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
-IP=$(ip -4 addr show wlp39s0f3u2 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -n 1)
+IP=$(ip -4 addr show scope global 2>/dev/null | grep -vE '(docker|br-|veth|amn|wg|tun|tap)' | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -n 1)
 if [ -z "$IP" ]; then
-    IP=$(hostname -I | awk '{print $1}')
+    IP=$(ip -4 addr show 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v '^127\.' | grep -v '^172\.' | head -n 1)
 fi
 
 echo "LAN (HTTPS): https://$IP:8443"
