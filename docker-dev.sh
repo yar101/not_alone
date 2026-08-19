@@ -28,6 +28,11 @@ if [ ! -f "${IP}.pem" ] || [ ! -f "${IP}-key.pem" ]; then
     fi
 fi
 
+# Source .env
+set -a
+[ -f .env ] && . ./.env 2>/dev/null || true
+set +a
+
 export DEV_HOST="$IP"
 
 echo "================================================================="

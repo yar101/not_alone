@@ -170,7 +170,7 @@ function destroy(id) {
                         </td>
                         <td>
                             <img v-if="cat.image_path" :src="`/storage/${cat.image_path}`" class="thumb" alt="" />
-                            <span v-else class="no-img">—</span>
+                            <div v-else class="thumb thumb--star" :style="{ backgroundColor: cat.accent_color || '#ffb2ef' }"></div>
                         </td>
                         <td><span :class="['badge', cat.is_active ? 'badge--on' : 'badge--off']">{{ cat.is_active ? 'Да'
                             : 'Нет'
@@ -210,7 +210,7 @@ function destroy(id) {
                                     <div class="sort-card__img-wrap">
                                         <img v-if="cat.image_path" :src="`/storage/${cat.image_path}`"
                                             class="sort-card__img" alt="" />
-                                        <div v-else class="sort-card__no-img">{{ cat.name.slice(0, 2) }}</div>
+                                        <div v-else class="sort-card__star-mask" :style="{ backgroundColor: cat.accent_color || '#ffb2ef' }"></div>
                                     </div>
                                     <div class="sort-card__name">{{ cat.name }}</div>
                                 </div>
@@ -369,6 +369,17 @@ function destroy(id) {
     height: 40px;
     object-fit: cover;
     border-radius: 3px;
+}
+
+.thumb--star {
+    -webkit-mask-image: url('/cat_images/cat_star.svg');
+    mask-image: url('/cat_images/cat_star.svg');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
 }
 
 .no-img {
@@ -711,6 +722,19 @@ function destroy(id) {
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+.sort-card__star-mask {
+    width: 100%;
+    height: 100%;
+    -webkit-mask-image: url('/cat_images/cat_star.svg');
+    mask-image: url('/cat_images/cat_star.svg');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
 }
 
 .sort-card__no-img {

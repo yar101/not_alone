@@ -512,7 +512,7 @@ function destroyLimit(id) {
                             </td>
                             <td>
                                 <img v-if="cat.image_path" :src="`/storage/${cat.image_path}`" class="thumb" alt="" />
-                                <span v-else class="no-val">—</span>
+                                <div v-else class="thumb thumb--star" :style="{ backgroundColor: cat.accent_color || '#ffb2ef' }"></div>
                             </td>
                             <td><span :class="['badge', cat.is_active ? 'badge--on' : 'badge--off']">{{ cat.is_active ? 'Да' : 'Нет' }}</span></td>
                             <td>
@@ -630,7 +630,7 @@ function destroyLimit(id) {
                                         </div>
                                         <div class="sort-card__img-wrap">
                                             <img v-if="cat.image_path" :src="`/storage/${cat.image_path}`" class="sort-card__img" alt="" />
-                                            <div v-else class="sort-card__no-img">{{ (cat.name_ru ?? '').slice(0, 2) }}</div>
+                                            <div v-else class="sort-card__star-mask" :style="{ backgroundColor: cat.accent_color || '#ffb2ef' }"></div>
                                         </div>
                                         <div class="sort-card__name">{{ cat.name_ru }}</div>
                                     </div>
@@ -1054,6 +1054,16 @@ function destroyLimit(id) {
 .td-suggestions { max-width: 180px; color: rgba(255,255,255,0.45); font-size: 0.8rem; }
 .empty-row { text-align: center; color: rgba(255,255,255,0.25); padding: 2rem; }
 .thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 3px; }
+.thumb--star {
+    -webkit-mask-image: url('/cat_images/cat_star.svg');
+    mask-image: url('/cat_images/cat_star.svg');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
 .no-val { color: rgba(255,255,255,0.2); }
 
 .badge { padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.72rem; font-weight: 600; }
@@ -1236,6 +1246,18 @@ function destroyLimit(id) {
 .arrow-btn:disabled { opacity: 0.25; cursor: default; }
 .sort-card__img-wrap { width: 90px; height: 90px; border-radius: 4px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); }
 .sort-card__img { width: 100%; height: 100%; object-fit: cover; }
+.sort-card__star-mask {
+    width: 100%;
+    height: 100%;
+    -webkit-mask-image: url('/cat_images/cat_star.svg');
+    mask-image: url('/cat_images/cat_star.svg');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
 .sort-card__no-img {
     width: 100%;
     height: 100%;

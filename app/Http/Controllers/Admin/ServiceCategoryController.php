@@ -64,7 +64,10 @@ class ServiceCategoryController extends Controller
             ServiceCategory::where('id', $id)->update(['sort_order' => $order]);
         }
 
+        ServiceCategory::clearCache();
+
         return back();
+
     }
 
     public function update(Request $request, ServiceCategory $category): RedirectResponse

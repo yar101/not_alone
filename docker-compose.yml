@@ -37,6 +37,7 @@ services:
       - "8443:8443"
     environment:
       CONTAINER_ROLE: web
+      APP_KEY: ${APP_KEY}
       APP_ENV: local
       APP_DEBUG: "true"
       APP_URL: https://${DEV_HOST}:8443
@@ -46,14 +47,21 @@ services:
       DB_DATABASE: noalone
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
+      SESSION_DRIVER: redis
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
       MAIL_HOST: mailpit
       MAIL_PORT: 1025
       BROADCAST_CONNECTION: reverb
+      REVERB_APP_ID: ${REVERB_APP_ID:-123456}
+      REVERB_APP_KEY: ${REVERB_APP_KEY:-notalonekey}
+      REVERB_APP_SECRET: ${REVERB_APP_SECRET:-notalonesecret}
       REVERB_HOST: reverb
       REVERB_PORT: 8080
       REVERB_SCHEME: http
+      VITE_REVERB_APP_KEY: ${REVERB_APP_KEY:-notalonekey}
       VITE_REVERB_HOST: ${DEV_HOST}
       VITE_REVERB_PORT: 8443
       VITE_REVERB_SCHEME: https
@@ -80,6 +88,7 @@ services:
     container_name: no_alone_worker
     environment:
       CONTAINER_ROLE: worker
+      APP_KEY: ${APP_KEY}
       APP_ENV: local
       APP_DEBUG: "true"
       APP_URL: https://${DEV_HOST}:8443
@@ -89,11 +98,17 @@ services:
       DB_DATABASE: noalone
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
+      SESSION_DRIVER: redis
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
       MAIL_HOST: mailpit
       MAIL_PORT: 1025
       BROADCAST_CONNECTION: reverb
+      REVERB_APP_ID: ${REVERB_APP_ID:-123456}
+      REVERB_APP_KEY: ${REVERB_APP_KEY:-notalonekey}
+      REVERB_APP_SECRET: ${REVERB_APP_SECRET:-notalonesecret}
       REVERB_HOST: reverb
       REVERB_PORT: 8080
       REVERB_SCHEME: http
@@ -118,6 +133,7 @@ services:
     container_name: no_alone_scheduler
     environment:
       CONTAINER_ROLE: scheduler
+      APP_KEY: ${APP_KEY}
       APP_ENV: local
       APP_DEBUG: "true"
       APP_URL: https://${DEV_HOST}:8443
@@ -127,11 +143,18 @@ services:
       DB_DATABASE: noalone
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
+      SESSION_DRIVER: redis
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
+
       MAIL_HOST: mailpit
       MAIL_PORT: 1025
       BROADCAST_CONNECTION: reverb
+      REVERB_APP_ID: ${REVERB_APP_ID:-123456}
+      REVERB_APP_KEY: ${REVERB_APP_KEY:-notalonekey}
+      REVERB_APP_SECRET: ${REVERB_APP_SECRET:-notalonesecret}
       REVERB_HOST: reverb
       REVERB_PORT: 8080
       REVERB_SCHEME: http
@@ -158,6 +181,7 @@ services:
       - "8080:8080"
     environment:
       CONTAINER_ROLE: reverb
+      APP_KEY: ${APP_KEY}
       APP_ENV: local
       APP_DEBUG: "true"
       DB_CONNECTION: pgsql
@@ -171,9 +195,13 @@ services:
       MAIL_HOST: mailpit
       MAIL_PORT: 1025
       BROADCAST_CONNECTION: reverb
+      REVERB_APP_ID: ${REVERB_APP_ID:-123456}
+      REVERB_APP_KEY: ${REVERB_APP_KEY:-notalonekey}
+      REVERB_APP_SECRET: ${REVERB_APP_SECRET:-notalonesecret}
       REVERB_HOST: 0.0.0.0
       REVERB_PORT: 8080
       REVERB_SCHEME: http
+
     volumes:
       - .:/var/www/html
     depends_on:
@@ -218,13 +246,13 @@ services:
     depends_on:
       - minio
     volumes:
-      - ./storage/app/public/cat_images:/cat_images:ro
+      - ./public/cat_images:/cat_images:ro
     entrypoint: >
       /bin/sh -c "
       /usr/bin/mc alias set myminio http://minio:9000 sail password;
       /usr/bin/mc mb myminio/not-alone || true;
       /usr/bin/mc anonymous set download myminio/not-alone;
-      /usr/bin/mc cp -r /cat_images myminio/not-alone/;
+      [ -d /cat_images ] && /usr/bin/mc cp -r /cat_images myminio/not-alone/ || true;
       exit 0;
       "
 

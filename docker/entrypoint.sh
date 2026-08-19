@@ -3,6 +3,7 @@ set -e
 
 # Только web-контейнер запускает миграции
 if [ "${CONTAINER_ROLE}" = "web" ] || [ -z "${CONTAINER_ROLE}" ]; then
+    chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache 2>/dev/null || true
     php artisan migrate --force
     php artisan db:seed --force
     if [ "${APP_ENV}" = "local" ]; then

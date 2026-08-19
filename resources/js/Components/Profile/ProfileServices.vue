@@ -794,27 +794,14 @@ watch(selectedCategory, (cat) => {
                                 :alt="catName(group.category)"
                                 class="cat-tile__img"
                             />
-                            <div v-else class="cat-tile__img-placeholder">
-                                <svg
-                                    width="22"
-                                    height="22"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="1.5"
-                                    opacity="0.25"
-                                >
-                                    <rect
-                                        x="3"
-                                        y="3"
-                                        width="18"
-                                        height="18"
-                                        rx="2"
-                                    />
-                                    <circle cx="8.5" cy="8.5" r="1.5" />
-                                    <path d="M21 15l-5-5L5 21" />
-                                </svg>
-                            </div>
+                            <div
+                                v-else
+                                class="cat-tile__star-mask"
+                                :style="{
+                                    backgroundColor:
+                                        group.category.accent_color || '#ffb2ef',
+                                }"
+                            ></div>
                         </div>
                         <div class="cat-tile__body">
                             <span class="cat-tile__name">{{
@@ -864,27 +851,14 @@ watch(selectedCategory, (cat) => {
                                 :alt="catName(group.category)"
                                 class="cat-tile__img"
                             />
-                            <div v-else class="cat-tile__img-placeholder">
-                                <svg
-                                    width="22"
-                                    height="22"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="1.5"
-                                    opacity="0.25"
-                                >
-                                    <rect
-                                        x="3"
-                                        y="3"
-                                        width="18"
-                                        height="18"
-                                        rx="2"
-                                    />
-                                    <circle cx="8.5" cy="8.5" r="1.5" />
-                                    <path d="M21 15l-5-5L5 21" />
-                                </svg>
-                            </div>
+                            <div
+                                v-else
+                                class="cat-tile__star-mask"
+                                :style="{
+                                    backgroundColor:
+                                        group.category.accent_color || '#ffb2ef',
+                                }"
+                            ></div>
                         </div>
                         <div class="cat-tile__body">
                             <span class="cat-tile__name">{{
@@ -2186,6 +2160,30 @@ watch(selectedCategory, (cat) => {
     object-fit: contain;
 }
 
+.cat-tile__star-mask {
+    position: absolute;
+    width: 100%;
+    height: 140%;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    -webkit-mask-image: url('/cat_images/cat_star.svg');
+    mask-image: url('/cat_images/cat_star.svg');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    transition: filter 0.25s ease, transform 0.25s ease;
+    pointer-events: none;
+}
+
+.cat-tile:hover .cat-tile__star-mask {
+    filter: drop-shadow(0 0 10px var(--cat-accent));
+    transform: translateY(-50%) scale(1.05);
+}
+
 .cat-tile__img-placeholder {
     display: flex;
     align-items: center;
@@ -2221,6 +2219,19 @@ watch(selectedCategory, (cat) => {
         object-position: center 30%;
     }
 
+    .cat-tile__star-mask {
+        position: absolute;
+        width: 90%;
+        height: 90%;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    .cat-tile:hover .cat-tile__star-mask {
+        transform: translate(-50%, -50%) scale(1.05);
+    }
+
     .cat-tile__img-placeholder {
         height: 100%;
     }
@@ -2229,6 +2240,7 @@ watch(selectedCategory, (cat) => {
         order: 1;
     }
 }
+
 
 .cat-tile__body {
     padding: 0.6rem 0.9rem;
