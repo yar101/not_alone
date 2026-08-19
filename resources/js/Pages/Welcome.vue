@@ -47,14 +47,14 @@ const handleLearnMoreClick = () => {
     <img
         src="/star.webp"
         alt="star"
-        class="fixed w-[200px] sm:w-[350px] md:w-[500px] lg:w-[570px] rotate-[15deg] opacity-[30%] md:opacity-[50%] right-[2%] bottom-[5%] md:right-[5%] md:bottom-[8%] pointer-events-none z-0 transition-all duration-700 ease-in-out"
+        class="fixed w-[200px] sm:w-[350px] md:w-[500px] lg:w-[570px] rotate-[15deg] opacity-[30%] md:opacity-[50%] right-[2%] bottom-[5%] md:right-[5%] md:bottom-[8%] pointer-events-none select-none z-0"
     />
 
     <!-- Основной контент страницы -->
     <div class="max-w-[1440px] w-full mx-auto flex flex-col justify-between flex-1 relative z-10">
         <main class="flex-1 flex flex-col items-center justify-center py-10 md:pb-[12%] px-6">
             <!-- Главная кнопка (START) -->
-            <div class="scale-110 sm:scale-105 md:scale-125 mb-8 md:mb-12 transform transition-transform">
+            <div class="scale-110 sm:scale-105 md:scale-125 mb-8 md:mb-12">
                 <StartBtn
                     :label="startBtnLabel"
                     @click="handleStartClick"
@@ -86,23 +86,25 @@ const handleLearnMoreClick = () => {
 .link-button {
     background: rgba(20, 20, 20, 0.5);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 3px;
     position: relative;
     overflow: hidden;
     font-family: "Brygada 1918", serif;
     font-weight: 400;
     color: #ffb2ef;
-    text-shadow: 0 0 30px rgba(255, 178, 239, 0.25);
+    text-shadow: 0 0 20px rgba(255, 178, 239, 0.25);
     line-height: 0.9;
     letter-spacing: 0.08em;
     font-size: 1.6rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .link-left {
     background: linear-gradient(
         90deg,
-        rgba(45, 20, 45, 0.25) 0%,
+        rgba(45, 20, 45, 0.35) 0%,
         rgba(20, 20, 20, 0.5) 100%
     );
 }
@@ -116,20 +118,25 @@ const handleLearnMoreClick = () => {
 
 /* Кнопка "Узнать подробнее" */
 .learn-more-btn {
-    min-width: 320px;
+    min-width: 300px;
     width: 100%;
     max-width: 380px;
-    padding: 0.9rem 2.5rem;
+    padding: 0.9rem 1.8rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
     background: rgba(20, 20, 20, 0.6);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 10px;
     font-family: "Inter Variable", system-ui, -apple-system, sans-serif;
     font-weight: 700;
     color: rgba(255, 255, 255, 0.95);
-    font-size: 1.2rem;
+    font-size: 1.15rem;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
     text-transform: uppercase;
     letter-spacing: 0.03em;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
@@ -137,7 +144,7 @@ const handleLearnMoreClick = () => {
 
 .learn-more-btn:hover {
     background: rgba(20, 20, 20, 0.75);
-    border-color: rgba(255, 178, 239, 0.3);
+    border-color: rgba(255, 178, 239, 0.4);
     color: #ffb2ef;
     box-shadow: 0 6px 25px rgba(255, 178, 239, 0.15);
 }
@@ -148,10 +155,11 @@ const handleLearnMoreClick = () => {
 
 @media (max-width: 480px) {
     .learn-more-btn {
+        min-width: 0;
         width: 100%;
         max-width: none;
-        font-size: 1.1rem;
-        padding: 0.8rem 2rem;
+        font-size: 1rem;
+        padding: 0.8rem 1.2rem;
     }
 }
 

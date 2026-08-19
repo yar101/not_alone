@@ -1,6 +1,7 @@
 import { precacheAndRoute } from 'workbox-precaching'
 import { registerRoute } from 'workbox-routing'
-import { NetworkFirst } from 'workbox-strategies'
+import { NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies'
+import { ExpirationPlugin } from 'workbox-expiration'
 
 precacheAndRoute(self.__WB_MANIFEST)
 
@@ -13,6 +14,19 @@ registerRoute(
             {
                 handlerDidError: async () => caches.match('/offline.html'),
             },
+        ],
+    })
+)
+
+registerRoute(
+    ({ request }) => request.destination === 'image' || /\.(?:png|jpg|jpeg|svg|webp|ico)$/i.test(request.url),
+    new StaleWhileRevalidate({
+        cacheName: 'images-cache',
+        plugins: [
+            new ExpirationPlugin({
+                maxEntries: 100,
+                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 дней
+            }),
         ],
     })
 )

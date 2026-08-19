@@ -36,11 +36,10 @@ defineProps({
 
 .main-gradient {
     background: linear-gradient(
-            180deg,
-            rgba(255, 42, 191, 0.09) 0%,
-            rgba(0, 0, 0, 0.56) 100%
-        )
-        fixed;
+        180deg,
+        rgba(255, 42, 191, 0.09) 0%,
+        rgba(0, 0, 0, 0.56) 100%
+    );
 }
 
 .circle1,
@@ -52,6 +51,7 @@ defineProps({
     position: absolute;
     right: -10vw;
     top: -10vw;
+    contain: paint;
 }
 
 .circle1 {

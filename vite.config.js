@@ -49,7 +49,7 @@ export default defineConfig({
             registerType: 'autoUpdate',
             injectRegister: null,
             injectManifest: {
-                globPatterns: ['**/*.{js,css,woff2,ico,png,svg}'],
+                globPatterns: ['**/*.{js,css,woff2,ico,png,svg,webp}'],
                 additionalManifestEntries: [
                     { url: '/offline.html', revision: null },
                 ],

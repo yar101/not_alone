@@ -152,13 +152,11 @@ function onTabClick(tab) {
         </nav>
 
         <!-- Оверлей для мобильного меню -->
-        <Transition name="overlay-fade">
-            <div
-                v-if="mobileMenuOpen"
-                class="pub-nav__overlay"
-                @click="closeMobileMenu"
-            />
-        </Transition>
+        <div
+            v-if="mobileMenuOpen"
+            class="pub-nav__overlay"
+            @click="closeMobileMenu"
+        />
     </div>
 </template>
 
@@ -205,7 +203,6 @@ function onTabClick(tab) {
     padding: 0.5rem 1.1rem;
     cursor: pointer;
     white-space: nowrap;
-    transition: all 0.2s ease;
 }
 
 .pub-tab:not(.pub-tab--active):hover {
@@ -224,7 +221,6 @@ function onTabClick(tab) {
 .pub-tab__icon {
     flex-shrink: 0;
     opacity: 0.75;
-    transition: opacity 0.2s ease;
     display: flex;
     align-items: center;
 }
@@ -253,17 +249,14 @@ function onTabClick(tab) {
     justify-content: center;
     gap: 0.5rem;
     background: rgba(10, 7, 20, 0.7);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
     color: rgba(255, 255, 255, 0.9);
     padding: 0.5rem 0.8rem;
     cursor: pointer;
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 4px 20px rgba(0, 0, 0, 0.3);
-    transition:
-        background 0.2s,
-        color 0.2s;
 }
 
 .pub-mobile-toggle__text {
@@ -285,16 +278,6 @@ function onTabClick(tab) {
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
     z-index: 999;
-}
-
-/* Анимация появления оверлея */
-.overlay-fade-enter-active,
-.overlay-fade-leave-active {
-    transition: opacity 0.3s ease;
-}
-.overlay-fade-enter-from,
-.overlay-fade-leave-to {
-    opacity: 0;
 }
 
 /* ========== МОБИЛЬНАЯ ВЕРСИЯ (≤768px) ========== */
@@ -329,7 +312,6 @@ function onTabClick(tab) {
         padding: 0.5rem;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
         z-index: 1000;
-        animation: none; /* убираем анимацию загрузки, добавим свою */
         transform-origin: top center;
     }
 
@@ -341,7 +323,6 @@ function onTabClick(tab) {
     .pub-tabs--open {
         display: flex;
         z-index: 1000;
-        animation: mobile-menu-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
 
     .pub-tab {
@@ -357,17 +338,6 @@ function onTabClick(tab) {
         padding-top: 0.8rem;
         margin-top: 0.3rem;
         border-top: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    @keyframes mobile-menu-in {
-        from {
-            opacity: 0;
-            transform: scale(0.95) translateY(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-        }
     }
 }
 @media (min-width: 2000px) {

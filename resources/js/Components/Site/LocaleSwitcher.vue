@@ -48,7 +48,7 @@ function onLocaleClick(code) {
     setTimeout(() => {
         switchLocale(code);
         switching = false;
-    }, 300);
+    }, 180);
 }
 
 function init() {
@@ -120,8 +120,8 @@ onUnmounted(() => {
     width: var(--loc-w, 0px);
     transform: translateX(var(--loc-x, 0px));
     transition:
-        transform 0.28s cubic-bezier(0.45, 0, 0.55, 1),
-        width 0.28s cubic-bezier(0.45, 0, 0.55, 1);
+        transform 0.15s ease,
+        width 0.15s ease;
 }
 
 .locale-sw__btn {
@@ -137,7 +137,7 @@ onUnmounted(() => {
     font-size: 0.8rem;
     font-weight: 500;
     cursor: pointer;
-    transition: color 0.22s;
+    transition: color 0.15s ease;
     white-space: nowrap;
     position: relative;
     z-index: 1;

@@ -1503,6 +1503,7 @@ function formatDate(iso) {
                                         "
                                     >
                                         <svg
+                                            class="chat-unread-btn__icon"
                                             width="13"
                                             height="13"
                                             viewBox="0 0 24 24"
@@ -1513,9 +1514,15 @@ function formatDate(iso) {
                                             stroke-linejoin="round"
                                         >
                                             <path
-                                                d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+                                                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
                                             />
-                                            <polyline points="22,6 12,13 2,6" />
+                                            <circle
+                                                cx="12"
+                                                cy="9.5"
+                                                r="1.5"
+                                                fill="currentColor"
+                                                stroke="none"
+                                            />
                                         </svg>
                                         {{ __("chat.filter.unread_only") }}
                                     </button>
@@ -1788,6 +1795,7 @@ function formatDate(iso) {
                                             "
                                         >
                                             <svg
+                                                class="chat-unread-btn__icon"
                                                 width="13"
                                                 height="13"
                                                 viewBox="0 0 24 24"
@@ -1798,10 +1806,14 @@ function formatDate(iso) {
                                                 stroke-linejoin="round"
                                             >
                                                 <path
-                                                    d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+                                                    d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
                                                 />
-                                                <polyline
-                                                    points="22,6 12,13 2,6"
+                                                <circle
+                                                    cx="12"
+                                                    cy="9.5"
+                                                    r="1.5"
+                                                    fill="currentColor"
+                                                    stroke="none"
                                                 />
                                             </svg>
                                             {{ __("chat.filter.unread_only") }}
@@ -5819,31 +5831,47 @@ function formatDate(iso) {
 /* ── Unread-only toggle ──────────────────────────────────── */
 .chat-unread-toggle {
     padding: 0.3rem 0.75rem 0.55rem;
+    display: flex;
 }
 
 .chat-unread-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    padding: 0.3rem 0.65rem;
-    font-size: 0.74rem;
+    justify-content: center;
+    gap: 0.4rem;
+    height: 30px;
+    padding: 0 0.65rem;
+    font-size: 0.76rem;
     font-weight: 600;
-    border-radius: 4px;
+    border-radius: 6px;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    background: transparent;
-    color: rgba(255, 255, 255, 0.32);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.4);
     cursor: pointer;
     font-family: inherit;
+    white-space: nowrap;
+    flex-shrink: 0;
+    box-sizing: border-box;
     transition:
         background 0.15s,
         color 0.15s,
         border-color 0.15s;
 }
 
+.chat-unread-btn:hover {
+    color: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
 .chat-unread-btn--active {
-    color: rgba(255, 220, 245, 0.95);
-    border-color: rgba(255, 178, 239, 0.4);
+    color: #ffb2ef;
+    border-color: rgba(255, 178, 239, 0.35);
     background: rgba(255, 178, 239, 0.1);
+}
+
+.chat-unread-btn__icon {
+    flex-shrink: 0;
 }
 
 /* ── Order filters ───────────────────────────────────────── */
@@ -5855,6 +5883,10 @@ function formatDate(iso) {
 
 .order-filters__btns-row .order-filters__toggle {
     flex: 1;
+}
+
+.order-filters__btns-row .chat-unread-btn {
+    flex-shrink: 0;
 }
 
 .order-filters {
@@ -5872,18 +5904,21 @@ function formatDate(iso) {
 .order-filters__toggle {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.32rem 0.65rem;
-    font-size: 0.75rem;
+    justify-content: center;
+    gap: 0.35rem;
+    height: 30px;
+    padding: 0 0.65rem;
+    font-size: 0.76rem;
     font-weight: 600;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.04);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
     color: rgba(255, 255, 255, 0.4);
     cursor: pointer;
     font-family: inherit;
     white-space: nowrap;
     flex-shrink: 0;
+    box-sizing: border-box;
     transition:
         background 0.15s,
         color 0.15s,
@@ -5891,8 +5926,9 @@ function formatDate(iso) {
 }
 
 .order-filters__toggle:hover {
-    color: rgba(255, 255, 255, 0.65);
-    background: rgba(255, 255, 255, 0.07);
+    color: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
 .order-filters__toggle--open {

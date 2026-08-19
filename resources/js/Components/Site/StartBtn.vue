@@ -57,17 +57,18 @@ const handleClick = (event) => {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
 
-    /* Эффект внутренней обводки через spread (spread = 2px) + стеклянный блик сверху */
-    box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    /* Эффект внутренней обводки через spread + стеклянный блик сверху */
+    box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 4px 20px rgba(0, 0, 0, 0.3);
     
     border-radius: 12px;
 
     /* Плавные переходы */
-    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transition: box-shadow 0.15s ease, transform 0.08s ease;
     overflow: hidden;
 
     /* Предотвращение выделения текста */
     user-select: none;
+    white-space: nowrap;
 }
 
 .label {
@@ -76,21 +77,20 @@ const handleClick = (event) => {
     letter-spacing: 0.02em;
     text-transform: uppercase;
 
-    /* Применяем шрифт Imbue */
+    /* Применяем шрифт Brygada 1918 */
     font-family: "Brygada 1918", serif;
     font-weight: 300;
 
-    /* Усиленное свечение букв */
+    /* Мягкое свечение букв */
     text-shadow:
-        0 0 15px rgba(255, 255, 255, 0.3),
-        0 0 2px rgba(255, 255, 255, 0.5);
+        0 0 10px rgba(255, 255, 255, 0.2),
+        0 0 2px rgba(255, 255, 255, 0.35);
 
     /* Центровка (компенсация letter-spacing) */
     padding-left: 0.02em;
     position: relative;
     z-index: 2;
-    opacity: 0.95;
-    transition: all 0.4s ease;
+    transition: color 0.15s ease, text-shadow 0.15s ease;
 }
 
 /* Эффект мягкого блика по центру */
@@ -103,29 +103,31 @@ const handleClick = (event) => {
     bottom: 0;
     background: radial-gradient(
         circle at center,
-        rgba(255, 255, 255, 0.05) 0%,
+        rgba(255, 255, 255, 0.04) 0%,
         transparent 70%
     );
     border-radius: 12px;
     pointer-events: none;
 }
 
-/* Состояния при взаимодействии */
+/* Состояния при взаимодействии: мягкое свечение и аккуратный перекрас текста */
 .start-button:hover {
-    /* Усиливаем яркость обводки и фона */
-    box-shadow: inset 0 0 0 2px rgba(255, 178, 239, 0.1);
+    box-shadow:
+        inset 0 0 0 1.5px rgba(255, 178, 239, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+        0 4px 20px rgba(0, 0, 0, 0.3),
+        0 0 16px rgba(255, 178, 239, 0.12);
 }
 
 .start-button:hover .label {
-    opacity: 1;
-    text-shadow: 0 0 25px rgba(255, 178, 239, 1);
-    color: rgba(255, 178, 239, 1);
+    color: #ffb2ef;
+    text-shadow:
+        0 0 12px rgba(255, 178, 239, 0.45),
+        0 0 2px rgba(255, 178, 239, 0.3);
 }
 
 .start-button:active {
-    transform: scale(0.97);
-    box-shadow: inset 0 0 0 2px rgba(255, 178, 239, 0.3);
-    transition: all 0.1s ease;
+    transform: scale(0.98);
 }
 
 /* Адаптивность для мобильных устройств */

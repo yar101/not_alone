@@ -231,7 +231,7 @@ const handleStartClick = () => {
     color: #ffb2ef;
     font-weight: 400;
     text-decoration: none;
-    transition: all 0.2s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     font-size: 1rem;
 }
 .ab-btn:hover {
@@ -256,15 +256,16 @@ const handleStartClick = () => {
     font-weight: 600;
     font-size: 1.1rem;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
     text-decoration: none;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .ab-cta-btn:hover {
-    background: rgba(255, 178, 239, 0.15);
-    border-color: rgba(255, 178, 239, 0.5);
-    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.25);
+    background: rgba(255, 178, 239, 0.2);
+    border-color: rgba(255, 178, 239, 0.55);
+    color: #fff;
+    box-shadow: 0 6px 25px rgba(255, 178, 239, 0.2);
 }
 
 .ab-cta-btn:active {

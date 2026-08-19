@@ -299,7 +299,7 @@ onUnmounted(() => {
     height: 300px;
     background: radial-gradient(
         circle,
-        color-mix(in srgb, var(--color-base-2), transparent 90%) 0%,
+        color-mix(in srgb, var(--color-base-2), transparent 85%) 0%,
         transparent 70%
     );
 }
@@ -311,7 +311,7 @@ onUnmounted(() => {
     height: 360px;
     background: radial-gradient(
         circle,
-        color-mix(in srgb, var(--color-base-2), transparent 90%) 0%,
+        color-mix(in srgb, var(--color-base-2), transparent 88%) 0%,
         transparent 70%
     );
 }

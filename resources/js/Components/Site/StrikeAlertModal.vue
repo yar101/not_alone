@@ -110,11 +110,11 @@ async function markAsRead() {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: slideUp 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes slideUp {
-    0% { transform: translateY(40px) scale(0.95); opacity: 0; }
+    0% { transform: translateY(20px) scale(0.97); opacity: 0; }
     100% { transform: translateY(0) scale(1); opacity: 1; }
 }
 

@@ -68,13 +68,13 @@ const contacts = [
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 4px 20px rgba(0, 0, 0, 0.3);
     border-radius: 12px;
-    transition: all 0.3s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
     text-decoration: none;
 }
 
 .minimal-link:hover {
     background: rgba(15, 12, 25, 0.85);
-    border-color: rgba(255, 178, 239, 0.3);
+    border-color: rgba(255, 178, 239, 0.35);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 6px 24px rgba(0, 0, 0, 0.4);
     transform: translateX(4px);
 }
@@ -84,7 +84,7 @@ const contacts = [
     height: 20px;
     flex-shrink: 0;
     opacity: 0.7;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.15s ease;
 }
 
 .minimal-link:hover .minimal-link__icon {

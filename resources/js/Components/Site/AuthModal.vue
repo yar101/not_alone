@@ -760,7 +760,7 @@ function submitRegister() {
                 </div>
             </SiteModal>
 
-            <div class="auth-locale-wrap">
+            <div v-show="false" class="auth-locale-wrap">
                 <LocaleSwitcher />
             </div>
         </div>
@@ -843,7 +843,7 @@ function submitRegister() {
     color: rgba(239, 68, 68, 0.5);
     cursor: pointer;
     font-family: inherit;
-    transition: all 0.25s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     padding: 0.4rem 1.25rem;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -891,7 +891,7 @@ function submitRegister() {
     font-size: 0.88rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
     font-family: inherit;
     border: 1px solid transparent;
 }
@@ -917,15 +917,15 @@ function submitRegister() {
 }
 
 .logout-confirm__btn--danger:hover {
-    background: rgba(239, 68, 68, 0.12);
-    border-color: rgba(239, 68, 68, 0.4);
-    color: rgba(239, 68, 68, 0.9);
+    background: rgba(239, 68, 68, 0.18);
+    border-color: rgba(239, 68, 68, 0.45);
+    color: rgba(239, 68, 68, 0.95);
     box-shadow: 0 8px 24px rgba(239, 68, 68, 0.15);
 }
 
 .logout-confirm__btn--danger:active {
     transform: scale(0.98);
-    background: rgba(239, 68, 68, 0.15);
+    background: rgba(239, 68, 68, 0.22);
 }
 
 /* ── Tab switcher ──────────────────────────────────────── */
@@ -1220,18 +1220,18 @@ function submitRegister() {
 .tab-slide-enter-active,
 .tab-slide-leave-active {
     transition:
-        opacity 0.18s ease,
-        transform 0.18s ease;
+        opacity 0.12s ease,
+        transform 0.12s ease;
 }
 
 .tab-slide-enter-from {
     opacity: 0;
-    transform: translateX(12px);
+    transform: translateX(8px);
 }
 
 .tab-slide-leave-to {
     opacity: 0;
-    transform: translateX(-12px);
+    transform: translateX(-8px);
 }
 
 .err-fade-enter-active,
