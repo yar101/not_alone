@@ -20,6 +20,16 @@ class AvatarService
         }
 
         $realPath = $file->getRealPath();
+        $imageInfo = @getimagesize($realPath);
+        if (! $imageInfo) {
+            throw new \InvalidArgumentException('Не удалось определить формат изображения аватара.');
+        }
+
+        [$origWidth, $origHeight] = $imageInfo;
+        if ($origWidth > 6000 || $origHeight > 6000) {
+            throw new \InvalidArgumentException('Разрешение изображения слишком велико (максимум 6000x6000 px).');
+        }
+
         $img = @imagecreatefromstring(file_get_contents($realPath));
 
         if (! $img) {

@@ -352,94 +352,101 @@ class OrderService
      */
     public function adminTransition(Order $order, OrderStatus $to, int $adminId, ?string $note = null): void
     {
-        $from = $order->status->value;
-        $attrs = ['status' => $to];
+        \Illuminate\Support\Facades\DB::transaction(function () use ($order, $to, $adminId, $note) {
+            $lockedOrder = Order::lockForUpdate()->find($order->id);
+            if (! $lockedOrder) {
+                return;
+            }
 
-        switch ($to) {
-            case OrderStatus::Paid:
-                // Preserve an existing paid_at so we don't reset a running timer
-                $isNewPaid = $order->status !== OrderStatus::Paid;
-                $attrs['paid_at'] = $order->paid_at ?? now();
+            $from = $lockedOrder->status->value;
+            $attrs = ['status' => $to];
 
-                if ($order->conversation_id) {
-                    $order->conversation->messages()->create([
-                        'sender_id' => null,
-                        'body' => '',
-                        'type' => 'system',
-                        'metadata' => ['event' => 'order_paid', 'by_admin' => true],
-                    ]);
-                    $order->conversation->touch();
-                }
+            switch ($to) {
+                case OrderStatus::Paid:
+                    // Preserve an existing paid_at so we don't reset a running timer
+                    $isNewPaid = $lockedOrder->status !== OrderStatus::Paid;
+                    $attrs['paid_at'] = $lockedOrder->paid_at ?? now();
 
-                \Illuminate\Support\Facades\DB::afterCommit(function () use ($order, $isNewPaid) {
-                    $order->idol->notify(new OrderPaidNotification($order));
-                    $this->safeBroadcast(new NewNotification('private', $order->idol_id));
-
-                    if ($isNewPaid) {
-                        $delayHours = (float) PlatformSetting::get('order_auto_complete_delay', 72);
-                        CompleteOrderJob::dispatch($order)->delay(now()->addSeconds((int) ($delayHours * 3600)));
+                    if ($lockedOrder->conversation_id) {
+                        $lockedOrder->conversation->messages()->create([
+                            'sender_id' => null,
+                            'body' => '',
+                            'type' => 'system',
+                            'metadata' => ['event' => 'order_paid', 'by_admin' => true],
+                        ]);
+                        $lockedOrder->conversation->touch();
                     }
-                });
-                break;
 
-            case OrderStatus::Completed:
-                $attrs['completed_at'] = $order->completed_at ?? now();
+                    \Illuminate\Support\Facades\DB::afterCommit(function () use ($lockedOrder, $isNewPaid) {
+                        $lockedOrder->idol->notify(new OrderPaidNotification($lockedOrder));
+                        $this->safeBroadcast(new NewNotification('private', $lockedOrder->idol_id));
 
-                IdolRatingService::adjust($order->idol, 'order_completed');
+                        if ($isNewPaid) {
+                            $delayHours = (float) PlatformSetting::get('order_auto_complete_delay', 72);
+                            CompleteOrderJob::dispatch($lockedOrder)->delay(now()->addSeconds((int) ($delayHours * 3600)));
+                        }
+                    });
+                    break;
 
-                if ($order->conversation_id) {
-                    $order->conversation->messages()->create([
-                        'sender_id' => null,
-                        'body' => '',
-                        'type' => 'system',
-                        'metadata' => ['event' => 'order_completed', 'by_admin' => true],
-                    ]);
-                    $order->conversation->touch();
-                }
+                case OrderStatus::Completed:
+                    $attrs['completed_at'] = $lockedOrder->completed_at ?? now();
 
-                \Illuminate\Support\Facades\DB::afterCommit(function () use ($order) {
-                    $order->customer->notify(new OrderCompletedNotification($order));
-                    $order->idol->notify(new OrderCompletedNotification($order));
-                    $this->safeBroadcast(new NewNotification('private', $order->customer_id));
-                    $this->safeBroadcast(new NewNotification('private', $order->idol_id));
-                });
-                break;
+                    IdolRatingService::adjust($lockedOrder->idol, 'order_completed');
 
-            case OrderStatus::Cancelled:
-                if (! $order->cancelled_by) {
-                    $attrs['cancelled_by'] = null; // admin cancel has no specific actor
-                }
+                    if ($lockedOrder->conversation_id) {
+                        $lockedOrder->conversation->messages()->create([
+                            'sender_id' => null,
+                            'body' => '',
+                            'type' => 'system',
+                            'metadata' => ['event' => 'order_completed', 'by_admin' => true],
+                        ]);
+                        $lockedOrder->conversation->touch();
+                    }
 
-                if ($order->conversation_id) {
-                    $order->conversation->messages()->create([
-                        'sender_id' => null,
-                        'body' => '',
-                        'type' => 'system',
-                        'metadata' => [
-                            'event' => 'order_cancelled',
-                            'cancel_reason' => $note ?? 'Отменён администратором',
-                            'by_admin' => true,
-                        ],
-                    ]);
-                    $order->conversation->touch();
-                }
+                    \Illuminate\Support\Facades\DB::afterCommit(function () use ($lockedOrder) {
+                        $lockedOrder->customer->notify(new OrderCompletedNotification($lockedOrder));
+                        $lockedOrder->idol->notify(new OrderCompletedNotification($lockedOrder));
+                        $this->safeBroadcast(new NewNotification('private', $lockedOrder->customer_id));
+                        $this->safeBroadcast(new NewNotification('private', $lockedOrder->idol_id));
+                    });
+                    break;
 
-                \App\Models\UserIdolTrial::where('order_id', $order->id)->delete();
-                break;
+                case OrderStatus::Cancelled:
+                    if (! $lockedOrder->cancelled_by) {
+                        $attrs['cancelled_by'] = null; // admin cancel has no specific actor
+                    }
 
-            case OrderStatus::Refunded:
-                // Only status change + log; no dedicated notification
-                break;
+                    if ($lockedOrder->conversation_id) {
+                        $lockedOrder->conversation->messages()->create([
+                            'sender_id' => null,
+                            'body' => '',
+                            'type' => 'system',
+                            'metadata' => [
+                                'event' => 'order_cancelled',
+                                'cancel_reason' => $note ?? 'Отменён администратором',
+                                'by_admin' => true,
+                            ],
+                        ]);
+                        $lockedOrder->conversation->touch();
+                    }
 
-            default:
-                break;
-        }
+                    \App\Models\UserIdolTrial::where('order_id', $lockedOrder->id)->delete();
+                    break;
 
-        $order->logStatusChange($from, $to->value, 'admin', $adminId, $note);
-        $order->update($attrs);
+                case OrderStatus::Refunded:
+                    // Only status change + log; no dedicated notification
+                    break;
 
-        $this->broadcastStatusChanged($order, $to->value);
-        $this->broadcastOrderChanged($order);
+                default:
+                    break;
+            }
+
+            $lockedOrder->logStatusChange($from, $to->value, 'admin', $adminId, $note);
+            $lockedOrder->update($attrs);
+
+            $this->broadcastStatusChanged($lockedOrder, $to->value);
+            $this->broadcastOrderChanged($lockedOrder);
+        });
     }
 
     // ── Scheduled auto-complete ───────────────────────────────────────────────

@@ -25,6 +25,11 @@ class AdminBroadcast extends Model
         return $this->belongsTo(Admin::class);
     }
 
+    public function targetUser()
+    {
+        return $this->belongsTo(User::class, 'target_user_id')->withTrashed();
+    }
+
     public function reads()
     {
         return $this->hasMany(AdminBroadcastRead::class, 'broadcast_id');

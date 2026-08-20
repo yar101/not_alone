@@ -56,7 +56,9 @@ class UserProfileController extends Controller
                 'checklist_snoozed' => $checklistSnoozed,
                 'is_banned'        => $user->isActiveBanned(),
                 'active_frame'     => $user->activeFrame,
-                'is_newbie'        => \App\Models\Order::where('idol_id', $user->id)->where('status', 'completed')->count() < 25,
+                'is_newbie'        => cache()->remember("user_is_newbie_{$user->id}", 3600, fn () =>
+                    \App\Models\Order::where('idol_id', $user->id)->where('status', 'completed')->count() < 25
+                ),
             ],
             'isOwner'          => auth()->id() === $user->id,
             'isIdol'           => (bool) $user->is_idol,
@@ -249,9 +251,17 @@ class UserProfileController extends Controller
         $data = $request->validate(['languages' => ['array'], 'languages.*' => ['string', 'max:10']]);
         $user = $request->user();
         $user->languages()->delete();
-        foreach ($data['languages'] ?? [] as $code) {
-            UserLanguage::create(['user_id' => $user->id, 'language_code' => $code]);
+        if (! empty($data['languages'])) {
+            $now = now();
+            $rows = array_map(fn ($code) => [
+                'user_id' => $user->id,
+                'language_code' => $code,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ], array_unique($data['languages']));
+            UserLanguage::insert($rows);
         }
+
         return back();
     }
 
@@ -348,6 +358,8 @@ class UserProfileController extends Controller
 
     public function updateCategoryDescription(Request $request, ServiceCategory $category): RedirectResponse
     {
+        abort_unless($request->user()->is_idol, 403);
+
         $data = $request->validate(['description' => ['nullable', 'string', 'max:1000']]);
 
         IdolCategoryDescription::updateOrCreate(

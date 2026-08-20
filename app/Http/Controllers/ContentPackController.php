@@ -434,7 +434,7 @@ class ContentPackController extends Controller
         $rows       = $rows->take($perPage);
         $nextCursor = $hasMore ? $rows->last()?->id : null;
 
-        $packs = $rows->map(fn (ContentPack $p) => $this->packToArray($p, $isOwner, in_array($p->id, $purchasedIds)));
+        $packs = $rows->map(fn (ContentPack $p) => (new \App\Http\Resources\ContentPackResource($p, $isOwner, in_array($p->id, $purchasedIds)))->resolve());
 
         return response()->json([
             'packs'          => $packs,
@@ -442,53 +442,6 @@ class ContentPackController extends Controller
             'next_cursor'    => $nextCursor,
             'has_more'       => $hasMore,
         ]);
-    }
-
-    private function packToArray(ContentPack $pack, bool $isOwner, bool $isPurchased = false): array
-    {
-        $base = [
-            'id'           => $pack->id,
-            'title'        => $pack->title,
-            'description'  => $pack->description,
-            'price'        => $pack->price,
-            'status'       => $pack->status,
-            'cover_url'    => $pack->cover_url,
-            'photos_count' => $pack->photos->count(),
-            'published_at' => $pack->published_at?->toIso8601String(),
-            'hidden_at'    => $pack->hidden_at?->toIso8601String(),
-        ];
-
-        if ($isOwner || $isPurchased) {
-            $base['photos'] = $pack->photos->map(fn ($ph) => [
-                'id'  => $ph->id,
-                'url' => $ph->url,
-            ])->values();
-        }
-
-        if ($isOwner) {
-            $review = $pack->latestReview;
-            $base['latest_review'] = $review ? [
-                'decision'          => $review->decision,
-                'flagged_fields'    => $review->flagged_fields ?? [],
-                'field_comments'    => $review->field_comments ?? [],
-                'flagged_photo_ids' => $review->flagged_photo_ids ?? [],
-                'photo_comments'    => $review->photo_comments ?? [],
-            ] : null;
-
-            $cr = $pack->pendingChangeRequest;
-            $base['pending_change'] = $cr ? [
-                'changed_fields'      => $cr->changed_fields,
-                'pending_title'       => $cr->pending_title,
-                'pending_description' => $cr->pending_description,
-                'pending_price'       => $cr->pending_price,
-                'status'              => $cr->status,
-                'flagged_fields'      => $cr->flagged_fields ?? [],
-                'field_comments'      => $cr->field_comments ?? [],
-                'admin_comment'       => $cr->admin_comment,
-            ] : null;
-        }
-
-        return $base;
     }
 
     private function storeTempPhoto($file, $packId)

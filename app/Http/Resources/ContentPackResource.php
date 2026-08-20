@@ -7,7 +7,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class ContentPackResource extends JsonResource
 {
-    public function __construct($resource, public bool $isOwner = false)
+    public function __construct($resource, public bool $isOwner = false, public bool $isPurchased = false)
     {
         parent::__construct($resource);
     }
@@ -39,6 +39,13 @@ class ContentPackResource extends JsonResource
             $base['idol_name'] = $this->idol_name ?? $this->user->name ?? null;
         }
 
+        if ($this->isOwner || $this->isPurchased) {
+            $base['photos'] = $this->whenLoaded('photos', fn () => $this->photos->map(fn ($ph) => [
+                'id'  => $ph->id,
+                'url' => $ph->url,
+            ])->values());
+        }
+
         if ($this->isOwner) {
             $base['hidden_at'] = $this->hidden_at?->toIso8601String();
 
@@ -49,11 +56,6 @@ class ContentPackResource extends JsonResource
                 'flagged_photo_ids' => $this->latestReview->flagged_photo_ids ?? [],
                 'photo_comments'    => $this->latestReview->photo_comments ?? [],
             ] : null);
-
-            $base['photos'] = $this->whenLoaded('photos', fn () => $this->photos->map(fn ($ph) => [
-                'id'  => $ph->id,
-                'url' => $ph->url,
-            ])->values());
 
             $base['pending_change'] = $this->whenLoaded('pendingChangeRequest', fn () => $this->pendingChangeRequest ? [
                 'changed_fields'      => $this->pendingChangeRequest->changed_fields,

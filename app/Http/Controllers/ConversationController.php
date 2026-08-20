@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Storage;
 
 class ConversationController extends Controller
 {
+    use \App\Traits\SafeBroadcast;
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -156,7 +158,12 @@ class ConversationController extends Controller
                 'has_unread' => false,
             ]);
 
-        broadcast(new MessageRead($conversation->id, $user->id, now()->toISOString()));
+        $user->unreadNotifications()
+            ->where('type', \App\Notifications\NewMessageNotification::class)
+            ->whereRaw("(data::jsonb->>'conversation_id')::int = ?", [$conversation->id])
+            ->update(['read_at' => now()]);
+
+        $this->safeBroadcast(new MessageRead($conversation->id, $user->id, now()->toISOString()));
 
         $otherParticipant = $conversation->participants()
             ->with('user')
@@ -283,18 +290,18 @@ class ConversationController extends Controller
     {
         $user = $request->user();
 
-        abort_unless(
-            $conversation->participants()->where('user_id', $user->id)->exists(),
-            403
-        );
+        // 1 eager query: load participants and order
+        $conversation->loadMissing(['participants.user', 'order']);
+
+        $isParticipant = $conversation->participants->contains('user_id', $user->id);
+        abort_unless($isParticipant, 403);
 
         // Block messages in closed support conversations
         abort_if($conversation->closed_at !== null, 422, 'chat_closed');
 
         // Block messages in cancelled or completed order conversations
-        if ($conversation->order_id) {
-            $conversation->loadMissing('order');
-            $status = $conversation->order?->status;
+        if ($conversation->order) {
+            $status = $conversation->order->status;
             if ($status === OrderStatus::Cancelled) {
                 abort(422, 'order_cancelled');
             }
@@ -309,21 +316,22 @@ class ConversationController extends Controller
             }
         }
 
-        $otherId = $conversation->participants()
-            ->where('user_id', '!=', $user->id)
-            ->value('user_id');
+        $otherParticipant = $conversation->participants->firstWhere('user_id', '!=', $user->id);
+        $otherUser = $otherParticipant?->user;
 
-        $block = ChatBlock::active()
-            ->where(['blocker_id' => $otherId, 'blocked_id' => $user->id])
-            ->first();
+        if ($otherUser) {
+            if ($otherUser->isActiveBanned()) {
+                abort(422, 'user_banned');
+            }
 
-        if ($block) {
-            abort(403, 'blocked');
-        }
+            $isBlocked = ChatBlock::active()
+                ->where('blocker_id', $otherUser->id)
+                ->where('blocked_id', $user->id)
+                ->exists();
 
-        $other = User::select(['id', 'is_banned', 'banned_until'])->find($otherId);
-        if ($other && $other->isActiveBanned()) {
-            abort(422, 'user_banned');
+            if ($isBlocked) {
+                abort(403, 'blocked');
+            }
         }
 
         $type = $request->input('type', 'user');
@@ -344,26 +352,22 @@ class ConversationController extends Controller
         $conversation->touch();
         $conversation->participants()->where('user_id', '!=', $user->id)->update(['has_unread' => true]);
 
-        $msg->load('sender');
+        $msg->setRelation('sender', $user);
 
-        broadcast(new MessageSent($msg));
+        $this->safeBroadcast(new MessageSent($msg));
 
         // Notify each recipient via their private user channel (for badge update)
-        $conversation->participants()
-            ->where('user_id', '!=', $user->id)
-            ->with('user')
-            ->get()
-            ->each(function ($participant) use ($conversation, $msg) {
-                broadcast(new NewMessageReceived(
-                    $participant->user_id,
-                    $conversation->id,
-                    $msg,
-                    $conversation->order_id,
-                ));
+        if ($otherParticipant && $otherUser) {
+            $this->safeBroadcast(new NewMessageReceived(
+                $otherParticipant->user_id,
+                $conversation->id,
+                $msg,
+                $conversation->order_id,
+            ));
 
-                $participant->user->notify(new NewMessageNotification($msg));
-                broadcast(new NewNotification('private', $participant->user_id));
-            });
+            $otherUser->notify(new NewMessageNotification($msg));
+            $this->safeBroadcast(new NewNotification('private', $otherParticipant->user_id));
+        }
 
         return response()->json([
             'id' => $msg->id,
@@ -371,8 +375,8 @@ class ConversationController extends Controller
             'type' => $msg->type,
             'metadata' => $msg->metadata,
             'sender_id' => $msg->sender_id,
-            'sender_name' => $msg->sender->name,
-            'sender_avatar' => $msg->sender->avatar_url,
+            'sender_name' => $user->name,
+            'sender_avatar' => $user->avatar_url,
             'created_at' => $msg->created_at->toISOString(),
             'conversation_id' => $msg->conversation_id,
         ]);

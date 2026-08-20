@@ -36,38 +36,47 @@ class QuizController extends Controller
         $failedCount = $user->idolQuizSessions()->where('status', 'failed')->count();
         $attemptNumber = min($failedCount + 1, 2);
 
-        // Pick one random question per stage (1-10)
-        $sessionQuestions = [];
-        for ($stage = 1; $stage <= 10; $stage++) {
-            $q = IdolQuizQuestion::where('stage', $stage)->inRandomOrder()->first();
-            if (! $q) {
-                return response()->json(['error' => "Нет вопросов для этапа {$stage}"], 422);
-            }
-            $sessionQuestions[] = ['stage' => $stage, 'question' => $q];
+        // Pick one random question per stage (1-10) using a single partitioned query
+        $questions = IdolQuizQuestion::query()
+            ->fromSub(function ($query) {
+                $query->from('idol_quiz_questions')
+                    ->select('*')
+                    ->selectRaw('ROW_NUMBER() OVER (PARTITION BY stage ORDER BY RANDOM()) as rn')
+                    ->whereBetween('stage', [1, 10]);
+            }, 'ranked_questions')
+            ->where('rn', 1)
+            ->orderBy('stage')
+            ->get();
+
+        if ($questions->count() < 10) {
+            return response()->json(['error' => 'Недостаточно вопросов для формирования теста.'], 422);
         }
 
+        $now = now();
         $session = IdolQuizSession::create([
             'user_id' => $user->id,
             'attempt_number' => $attemptNumber,
             'status' => 'active',
             'errors_count' => 0,
-            'started_at' => now(),
+            'started_at' => $now,
         ]);
 
-        $questionsPayload = [];
-        foreach ($sessionQuestions as $item) {
-            $sq = IdolQuizSessionQuestion::create([
-                'session_id' => $session->id,
-                'question_id' => $item['question']->id,
-                'stage' => $item['stage'],
-            ]);
-            $questionsPayload[] = [
-                'stage' => $item['stage'],
-                'question_id' => $item['question']->id,
-                'question' => $item['question']->question,
-                'options' => $item['question']->options,
-            ];
-        }
+        $sessionQuestionRecords = $questions->map(fn ($q) => [
+            'session_id' => $session->id,
+            'question_id' => $q->id,
+            'stage' => $q->stage,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ])->all();
+
+        IdolQuizSessionQuestion::insert($sessionQuestionRecords);
+
+        $questionsPayload = $questions->map(fn ($q) => [
+            'stage' => $q->stage,
+            'question_id' => $q->id,
+            'question' => $q->question,
+            'options' => $q->options,
+        ])->all();
 
         return response()->json([
             'session_id' => $session->id,

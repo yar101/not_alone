@@ -13,7 +13,7 @@ class MessageController extends Controller
 {
     public function index()
     {
-        $broadcasts = AdminBroadcast::with('admin')
+        $broadcasts = AdminBroadcast::with(['admin', 'targetUser:id,name,email'])
             ->latest()
             ->get()
             ->map(fn($b) => [
@@ -21,9 +21,9 @@ class MessageController extends Controller
                 'title'          => $b->getTranslations('title'),
                 'body'           => $b->getTranslations('body'),
                 'target'         => $b->target,
-                'target_user'    => $b->target_user_id ? User::find($b->target_user_id)?->only('id', 'name', 'email') : null,
+                'target_user'    => $b->targetUser ? ['id' => $b->targetUser->id, 'name' => $b->targetUser->name, 'email' => $b->targetUser->email] : null,
                 'target_filters' => $b->target_filters,
-                'admin'          => ['name' => $b->admin->name],
+                'admin'          => ['name' => $b->admin?->name],
                 'created_at'     => $b->created_at->toIso8601String(),
             ]);
 
