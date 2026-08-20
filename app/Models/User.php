@@ -9,10 +9,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 use NotificationChannels\WebPush\HasPushSubscriptions;
 
@@ -20,8 +20,9 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory;
-    use Notifiable;
+
     use HasPushSubscriptions;
+    use Notifiable;
     use SoftDeletes;
 
     protected $fillable = [
@@ -53,29 +54,31 @@ class User extends Authenticatable implements MustVerifyEmail
         'remember_token',
     ];
 
-
     protected $appends = ['age', 'avatar_url'];
 
     protected function casts(): array
     {
         return [
-            'email_verified_at'              => 'datetime',
-            'password'                       => 'hashed',
-            'birth_date'                     => 'date',
-            'profile_checklist_snoozed_until'=> 'datetime',
-            'is_idol'                        => 'boolean',
-            'idol_quiz_cooldown_until'       => 'datetime',
-            'idol_quiz_passed_at'            => 'datetime',
-            'rating'                         => 'integer',
-            'is_banned'                      => 'boolean',
-            'banned_at'                      => 'datetime',
-            'banned_until'                   => 'datetime',
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'birth_date' => 'date',
+            'profile_checklist_snoozed_until' => 'datetime',
+            'is_idol' => 'boolean',
+            'idol_quiz_cooldown_until' => 'datetime',
+            'idol_quiz_passed_at' => 'datetime',
+            'rating' => 'float',
+            'is_banned' => 'boolean',
+            'banned_at' => 'datetime',
+            'banned_until' => 'datetime',
         ];
     }
 
     public function isActiveBanned(): bool
     {
-        if (!$this->is_banned) return false;
+        if (! $this->is_banned) {
+            return false;
+        }
+
         return $this->banned_until === null || $this->banned_until->isFuture();
     }
 
@@ -243,10 +246,10 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->conversationParticipants()
             ->where('has_unread', true)
-            ->when($orderOnly === true, fn($q) => $q->whereHas('conversation', fn($c) => $c->whereNotNull('order_id')))
-            ->when($orderOnly === false, fn($q) => $q->whereHas('conversation', fn($c) => $c->whereNull('order_id')))
-            ->when($role === 'customer', fn($q) => $q->whereHas('conversation', fn($c) => $c->whereHas('order', fn($o) => $o->where('customer_id', $this->id))))
-            ->when($role === 'idol',     fn($q) => $q->whereHas('conversation', fn($c) => $c->whereHas('order', fn($o) => $o->where('idol_id', $this->id))))
+            ->when($orderOnly === true, fn ($q) => $q->whereHas('conversation', fn ($c) => $c->whereNotNull('order_id')))
+            ->when($orderOnly === false, fn ($q) => $q->whereHas('conversation', fn ($c) => $c->whereNull('order_id')))
+            ->when($role === 'customer', fn ($q) => $q->whereHas('conversation', fn ($c) => $c->whereHas('order', fn ($o) => $o->where('customer_id', $this->id))))
+            ->when($role === 'idol', fn ($q) => $q->whereHas('conversation', fn ($c) => $c->whereHas('order', fn ($o) => $o->where('idol_id', $this->id))))
             ->exists();
     }
 
@@ -270,7 +273,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
         $this->fill([
             'name' => 'Удалённый пользователь',
-            'email' => 'deleted_' . $this->id . '@deleted.ru',
+            'email' => 'deleted_'.$this->id.'@deleted.ru',
             'password' => bcrypt(Str::random(40)),
             'avatar_path' => null,
             'voice_path' => null,

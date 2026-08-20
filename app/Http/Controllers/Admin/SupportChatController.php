@@ -7,7 +7,7 @@ use App\Events\NewMessageReceived;
 use App\Events\NewNotification;
 use App\Http\Controllers\Controller;
 use App\Models\Conversation;
-use App\Models\ConversationParticipant;
+use App\Models\Message;
 use App\Models\User;
 use App\Notifications\NewMessageNotification;
 use Illuminate\Http\JsonResponse;
@@ -19,7 +19,8 @@ use Inertia\Response;
 class SupportChatController extends Controller
 {
     private const ADMIN_NAME = 'Поддержка Not Alone';
-    private const PER_PAGE   = 20;
+
+    private const PER_PAGE = 20;
 
     public function index(): Response
     {
@@ -27,7 +28,7 @@ class SupportChatController extends Controller
 
         return Inertia::render('Admin/Support/Index', [
             'conversations' => $conversations,
-            'has_more'      => $hasMore,
+            'has_more' => $hasMore,
         ]);
     }
 
@@ -37,7 +38,7 @@ class SupportChatController extends Controller
 
         return response()->json([
             'conversations' => $conversations,
-            'has_more'      => $hasMore,
+            'has_more' => $hasMore,
         ]);
     }
 
@@ -47,9 +48,8 @@ class SupportChatController extends Controller
             ->with(['participants.user', 'lastMessage']);
 
         if ($search = $request->search) {
-            $query->whereHas('participants.user', fn($q) =>
-                $q->where('name', 'ilike', "%{$search}%")
-                  ->orWhere('email', 'ilike', "%{$search}%")
+            $query->whereHas('participants.user', fn ($q) => $q->where('name', 'ilike', "%{$search}%")
+                ->orWhere('email', 'ilike', "%{$search}%")
             );
         }
 
@@ -64,7 +64,7 @@ class SupportChatController extends Controller
             ->skip(($page - 1) * self::PER_PAGE)
             ->take(self::PER_PAGE)
             ->get()
-            ->map(fn(Conversation $c) => $this->formatConversation($c));
+            ->map(fn (Conversation $c) => $this->formatConversation($c));
 
         return [$items, ($page * self::PER_PAGE) < $total];
     }
@@ -76,7 +76,7 @@ class SupportChatController extends Controller
         $user = User::findOrFail($request->user_id);
 
         $existing = Conversation::where('is_support', true)
-            ->whereHas('participants', fn($q) => $q->where('user_id', $user->id))
+            ->whereHas('participants', fn ($q) => $q->where('user_id', $user->id))
             ->latest('updated_at')
             ->first();
 
@@ -107,7 +107,7 @@ class SupportChatController extends Controller
         $conversation->update(['admin_read_at' => now()]);
 
         return response()->json([
-            'messages' => $messages->map(fn($m) => $this->formatMessage($m)),
+            'messages' => $messages->map(fn ($m) => $this->formatMessage($m)),
             'has_more' => $hasMore,
         ]);
     }
@@ -120,10 +120,10 @@ class SupportChatController extends Controller
 
         $msg = $conversation->messages()->create([
             'sender_id' => null,
-            'body'      => '',
-            'type'      => 'image',
-            'metadata'  => [
-                'admin_id'  => $admin->id,
+            'body' => '',
+            'type' => 'image',
+            'metadata' => [
+                'admin_id' => $admin->id,
                 'admin_name' => self::ADMIN_NAME,
                 'image_url' => Storage::url($path),
             ],
@@ -145,9 +145,9 @@ class SupportChatController extends Controller
 
         $msg = $conversation->messages()->create([
             'sender_id' => null,
-            'body'      => $request->body,
-            'type'      => 'support',
-            'metadata'  => ['admin_id' => $admin->id, 'admin_name' => self::ADMIN_NAME],
+            'body' => $request->body,
+            'type' => 'support',
+            'metadata' => ['admin_id' => $admin->id, 'admin_name' => self::ADMIN_NAME],
         ]);
 
         $conversation->touch();
@@ -177,12 +177,12 @@ class SupportChatController extends Controller
 
         $msg = $conversation->messages()->create([
             'sender_id' => null,
-            'body'      => '',
-            'type'      => 'image',
-            'metadata'  => [
-                'admin_id'   => $admin->id,
+            'body' => '',
+            'type' => 'image',
+            'metadata' => [
+                'admin_id' => $admin->id,
                 'admin_name' => self::ADMIN_NAME,
-                'image_url'  => $request->image_url,
+                'image_url' => $request->image_url,
             ],
         ]);
 
@@ -200,9 +200,9 @@ class SupportChatController extends Controller
 
         $msg = $conversation->messages()->create([
             'sender_id' => null,
-            'body'      => '',
-            'type'      => 'system',
-            'metadata'  => ['event' => 'chat_closed'],
+            'body' => '',
+            'type' => 'system',
+            'metadata' => ['event' => 'chat_closed'],
         ]);
         $msg->load('sender');
         $this->broadcastToAll($conversation, $msg);
@@ -216,9 +216,9 @@ class SupportChatController extends Controller
 
         $msg = $conversation->messages()->create([
             'sender_id' => null,
-            'body'      => '',
-            'type'      => 'system',
-            'metadata'  => ['event' => 'chat_opened'],
+            'body' => '',
+            'type' => 'system',
+            'metadata' => ['event' => 'chat_opened'],
         ]);
         $msg->load('sender');
         $this->broadcastToAll($conversation, $msg);
@@ -233,26 +233,25 @@ class SupportChatController extends Controller
         $participant = $c->participants->first();
         $user = $participant?->user;
 
-        // Unread = user messages newer than admin_read_at
-        $unreadQuery = $c->messages()->whereNotNull('sender_id');
-        if ($c->admin_read_at) {
-            $unreadQuery->where('created_at', '>', $c->admin_read_at);
+        // In-memory unread check using already eager-loaded lastMessage
+        $hasUnread = false;
+        if ($c->lastMessage && $c->lastMessage->sender_id !== null) {
+            $hasUnread = $c->admin_read_at === null || $c->lastMessage->created_at > $c->admin_read_at;
         }
-        $hasUnread = $unreadQuery->exists();
 
         return [
-            'id'           => $c->id,
-            'closed_at'    => $c->closed_at?->toISOString(),
-            'updated_at'   => $c->updated_at->toISOString(),
-            'unread'       => $hasUnread,
-            'user'         => $user ? [
-                'id'     => $user->id,
-                'name'   => $user->name,
+            'id' => $c->id,
+            'closed_at' => $c->closed_at?->toISOString(),
+            'updated_at' => $c->updated_at->toISOString(),
+            'unread' => $hasUnread,
+            'user' => $user ? [
+                'id' => $user->id,
+                'name' => $user->name,
                 'avatar' => $user->avatar_url,
             ] : null,
             'last_message' => $c->lastMessage ? [
-                'body'       => $c->lastMessage->type === 'image' ? '[фото]' : $c->lastMessage->body,
-                'type'       => $c->lastMessage->type,
+                'body' => $c->lastMessage->type === 'image' ? '[фото]' : $c->lastMessage->body,
+                'type' => $c->lastMessage->type,
                 'created_at' => $c->lastMessage->created_at->toISOString(),
             ] : null,
         ];
@@ -261,14 +260,14 @@ class SupportChatController extends Controller
     private function formatMessage($m): array
     {
         return [
-            'id'            => $m->id,
-            'body'          => $m->body,
-            'type'          => $m->type ?? 'user',
-            'metadata'      => $m->metadata,
-            'sender_id'     => $m->sender_id,
-            'sender_name'   => $m->sender?->name,
+            'id' => $m->id,
+            'body' => $m->body,
+            'type' => $m->type ?? 'user',
+            'metadata' => $m->metadata,
+            'sender_id' => $m->sender_id,
+            'sender_name' => $m->sender?->name,
             'sender_avatar' => $m->sender?->avatar_url,
-            'created_at'    => $m->created_at->toISOString(),
+            'created_at' => $m->created_at->toISOString(),
         ];
     }
 
@@ -277,7 +276,7 @@ class SupportChatController extends Controller
         try {
             broadcast(new MessageSent($msg));
         } catch (\Throwable $e) {
-            \Log::warning('Broadcast failed: ' . $e->getMessage());
+            \Log::warning('Broadcast failed: '.$e->getMessage());
         }
 
         $conversation->loadMissing('participants.user');
@@ -286,7 +285,7 @@ class SupportChatController extends Controller
             try {
                 broadcast(new NewMessageReceived($participant->user_id, $conversation->id, $msg));
             } catch (\Throwable $e) {
-                \Log::warning('Broadcast NewMessageReceived failed: ' . $e->getMessage());
+                \Log::warning('Broadcast NewMessageReceived failed: '.$e->getMessage());
             }
 
             $participant->user->notify(new NewMessageNotification($msg));

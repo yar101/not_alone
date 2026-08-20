@@ -40,7 +40,7 @@ class QuizController extends Controller
         $sessionQuestions = [];
         for ($stage = 1; $stage <= 10; $stage++) {
             $q = IdolQuizQuestion::where('stage', $stage)->inRandomOrder()->first();
-            if (!$q) {
+            if (! $q) {
                 return response()->json(['error' => "Нет вопросов для этапа {$stage}"], 422);
             }
             $sessionQuestions[] = ['stage' => $stage, 'question' => $q];
@@ -91,6 +91,16 @@ class QuizController extends Controller
             ->where('status', 'active')
             ->firstOrFail();
 
+        // Enforce sequential stage answering
+        $unansweredPrevious = IdolQuizSessionQuestion::where('session_id', $session->id)
+            ->where('stage', '<', $validated['stage'])
+            ->whereNull('answered_at')
+            ->exists();
+
+        if ($unansweredPrevious) {
+            return response()->json(['error' => 'Предыдущие этапы должны быть пройдены последовательно.'], 422);
+        }
+
         $sessionQuestion = IdolQuizSessionQuestion::where('session_id', $session->id)
             ->where('stage', $validated['stage'])
             ->whereNull('answered_at')
@@ -105,7 +115,7 @@ class QuizController extends Controller
             'answered_at' => now(),
         ]);
 
-        if (!$isCorrect) {
+        if (! $isCorrect) {
             $session->increment('errors_count');
             $session->refresh();
         }
@@ -117,10 +127,13 @@ class QuizController extends Controller
         ];
 
         $failedEarly = $session->errors_count > 2;
-        $isLastStage = $validated['stage'] === 10;
+        $totalAnswered = IdolQuizSessionQuestion::where('session_id', $session->id)
+            ->whereNotNull('answered_at')
+            ->count();
+        $isLastStage = ($validated['stage'] === 10 && $totalAnswered === 10);
 
         if ($failedEarly || $isLastStage) {
-            $passed = !$failedEarly;
+            $passed = ! $failedEarly && $totalAnswered === 10;
 
             if ($passed) {
                 $session->update(['status' => 'passed', 'completed_at' => now()]);
@@ -139,5 +152,4 @@ class QuizController extends Controller
 
         return response()->json($result);
     }
-
 }

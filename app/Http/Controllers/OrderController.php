@@ -5,15 +5,13 @@ namespace App\Http\Controllers;
 use App\Enums\OrderStatus;
 use App\Events\NewNotification;
 use App\Events\OrderChanged;
-use App\Models\ChatBlock;
-use App\Models\Conversation;
 use App\Models\Order;
-use App\Models\Service;
 use App\Models\User;
 use App\Notifications\OrderCreatedNotification;
 use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -34,14 +32,14 @@ class OrderController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'idol_id'              => 'required|exists:users,id',
-            'services'             => 'required|array|min:1',
-            'services.*.id'        => 'required|integer|exists:services,id',
-            'services.*.quantity'  => 'required|integer|min:1|max:99',
+            'idol_id' => 'required|exists:users,id',
+            'services' => 'required|array|min:1',
+            'services.*.id' => 'required|integer|exists:services,id',
+            'services.*.quantity' => 'required|integer|min:1|max:99',
         ]);
 
-        $user  = $request->user();
-        $idol  = User::findOrFail($request->idol_id);
+        $user = $request->user();
+        $idol = User::findOrFail($request->idol_id);
 
         try {
             [$order, $conversation] = $this->service->createOrder($user, $idol, $request->services);
@@ -49,14 +47,14 @@ class OrderController extends Controller
             return response()->json(['error' => $e->getMessage()], 422);
         }
 
-        $this->safeBroadcast(new OrderChanged($idol->id,  $this->service->formatOrder($order, $idol->id),  'created'));
-        $this->safeBroadcast(new OrderChanged($user->id,  $this->service->formatOrder($order, $user->id),  'created'));
+        $this->safeBroadcast(new OrderChanged($idol->id, $this->service->formatOrder($order, $idol->id), 'created'));
+        $this->safeBroadcast(new OrderChanged($user->id, $this->service->formatOrder($order, $user->id), 'created'));
 
         $idol->notify(new OrderCreatedNotification($order));
         $this->safeBroadcast(new NewNotification('private', $idol->id));
 
         return response()->json([
-            'order_id'        => $order->id,
+            'order_id' => $order->id,
             'conversation_id' => $conversation->id,
         ]);
     }
@@ -138,11 +136,11 @@ class OrderController extends Controller
             ->with(['idol', 'items.service'])
             ->latest('completed_at')
             ->get()
-            ->map(fn(Order $o) => [
-                'id'           => $o->id,
-                'idol_name'    => $o->idol->name,
-                'total'        => $o->items->sum(fn($i) => ($i->service?->price ?? 0) * ($i->quantity ?? 1)),
-                'created_at'   => $o->created_at->toISOString(),
+            ->map(fn (Order $o) => [
+                'id' => $o->id,
+                'idol_name' => $o->idol->name,
+                'total' => $o->items->sum(fn ($i) => ($i->service?->price ?? 0) * ($i->quantity ?? 1)),
+                'created_at' => $o->created_at->toISOString(),
                 'completed_at' => $o->completed_at->toISOString(),
             ]);
 
@@ -156,7 +154,7 @@ class OrderController extends Controller
         abort_unless($order->customer_id === $user->id, 403);
 
         $request->validate([
-            'reason'  => ['required', Rule::in(self::DISPUTE_REASONS)],
+            'reason' => ['required', Rule::in(self::DISPUTE_REASONS)],
             'details' => ['required', 'string', 'min:100'],
         ]);
 
@@ -165,10 +163,10 @@ class OrderController extends Controller
 
         DB::transaction(function () use ($request, $order, $user, $details) {
             $lockedOrder = Order::lockForUpdate()->find($order->id);
-            
+
             abort_unless($lockedOrder->status === OrderStatus::Completed, 422, 'Оспорить можно только выполненный заказ.');
             abort_unless($lockedOrder->completed_at && $lockedOrder->completed_at->gte(now()->subHour()), 422, 'Время для оспаривания истекло. Спор можно открыть в течение 1 часа после завершения заказа.');
-            abort_unless(!$lockedOrder->disputes()->exists(), 422, 'По этому заказу уже открыт спор.');
+            abort_unless(! $lockedOrder->disputes()->exists(), 422, 'По этому заказу уже открыт спор.');
 
             $this->service->dispute($lockedOrder, $user, $request->reason, $details);
         });
@@ -209,20 +207,20 @@ class OrderController extends Controller
             $conv = $order->conversation;
 
             $order->load(['items.service.timeUnit']);
-            $allItems = $order->items->map(fn($item) => [
-                'id'        => $item->service?->id,
-                'name'      => $item->service?->name,
-                'price'     => $item->price ?? $item->service?->price,
+            $allItems = $order->items->map(fn ($item) => [
+                'id' => $item->service?->id,
+                'name' => $item->service?->name,
+                'price' => $item->price ?? $item->service?->price,
                 'time_unit' => $item->service?->timeUnit?->name,
-                'quantity'  => $item->quantity ?? 1,
+                'quantity' => $item->quantity ?? 1,
             ])->values()->all();
 
-            $msg  = $conv->messages()->create([
+            $msg = $conv->messages()->create([
                 'sender_id' => null,
-                'body'      => '',
-                'type'      => 'system',
-                'metadata'  => [
-                    'event'    => 'item_added',
+                'body' => '',
+                'type' => 'system',
+                'metadata' => [
+                    'event' => 'item_added',
                     'services' => $allItems,
                 ],
             ]);
@@ -230,12 +228,12 @@ class OrderController extends Controller
             try {
                 broadcast(new \App\Events\MessageSent($msg));
             } catch (\Throwable $e) {
-                \Log::warning('Broadcast failed: ' . $e->getMessage());
+                \Log::warning('Broadcast failed: '.$e->getMessage());
             }
         }
 
         $order->load(['customer', 'idol', 'cancelledBy', 'items.service.timeUnit']);
-        $this->safeBroadcast(new OrderChanged($order->idol_id,     $this->service->formatOrder($order, $order->idol_id),     'updated'));
+        $this->safeBroadcast(new OrderChanged($order->idol_id, $this->service->formatOrder($order, $order->idol_id), 'updated'));
         $this->safeBroadcast(new OrderChanged($order->customer_id, $this->service->formatOrder($order, $order->customer_id), 'updated'));
 
         return response()->json(['success' => true]);
@@ -243,11 +241,11 @@ class OrderController extends Controller
 
     public function index(Request $request): JsonResponse|InertiaResponse
     {
-        $user    = $request->user();
+        $user = $request->user();
         $perPage = 10;
-        $cursor  = (int) $request->input('cursor', 0);
-        $status  = $request->input('status');          // конкретный статус или null = все
-        $role    = $request->input('role');             // 'customer' | 'idol' | null
+        $cursor = (int) $request->input('cursor', 0);
+        $status = $request->input('status');          // конкретный статус или null = все
+        $role = $request->input('role');             // 'customer' | 'idol' | null
 
         // Базовый скоуп по роли
         $scopeByRole = function ($q) use ($user, $role) {
@@ -256,8 +254,8 @@ class OrderController extends Controller
             } elseif ($role === 'idol') {
                 $q->where('idol_id', $user->id);
             } else {
-                $q->where(fn($q) => $q->where('customer_id', $user->id)
-                                      ->orWhere('idol_id', $user->id));
+                $q->where(fn ($q) => $q->where('customer_id', $user->id)
+                    ->orWhere('idol_id', $user->id));
             }
         };
 
@@ -270,7 +268,7 @@ class OrderController extends Controller
         $allStatuses = ['pending', 'accepted', 'paid', 'completed', 'cancelled', 'refunded', 'disputed'];
         $counts = ['all' => 0];
         foreach ($allStatuses as $s) {
-            $counts[$s]    = (int) ($rawCounts[$s] ?? 0);
+            $counts[$s] = (int) ($rawCounts[$s] ?? 0);
             $counts['all'] += $counts[$s];
         }
 
@@ -284,8 +282,8 @@ class OrderController extends Controller
                 'cancelledBy',
                 'items.service.category',
                 'items.service.timeUnit',
-                'conversation' => fn($q) => $q->with([
-                    'participants' => fn($q) => $q->where('user_id', $user->id),
+                'conversation' => fn ($q) => $q->with([
+                    'participants' => fn ($q) => $q->where('user_id', $user->id),
                 ]),
             ])
             ->orderByDesc('id');
@@ -294,13 +292,13 @@ class OrderController extends Controller
             $query->where('status', $status);
         }
         if ($search !== '') {
-            $like = '%' . $search . '%';
-            $query->where(function ($q) use ($like, $role, $user) {
-                if ($role === 'customer' || !$role) {
-                    $q->orWhereHas('idol', fn($r) => $r->whereRaw('LOWER(name) LIKE LOWER(?)', [$like]));
+            $like = '%'.$search.'%';
+            $query->where(function ($q) use ($like, $role) {
+                if ($role === 'customer' || ! $role) {
+                    $q->orWhereHas('idol', fn ($r) => $r->whereRaw('LOWER(name) LIKE LOWER(?)', [$like]));
                 }
-                if ($role === 'idol' || !$role) {
-                    $q->orWhereHas('customer', fn($r) => $r->whereRaw('LOWER(name) LIKE LOWER(?)', [$like]));
+                if ($role === 'idol' || ! $role) {
+                    $q->orWhereHas('customer', fn ($r) => $r->whereRaw('LOWER(name) LIKE LOWER(?)', [$like]));
                 }
             });
         }
@@ -315,15 +313,16 @@ class OrderController extends Controller
             $query->where('id', '<', $cursor);
         }
 
-        $items   = $query->limit($perPage + 1)->get();
+        $items = $query->limit($perPage + 1)->get();
         $hasMore = $items->count() > $perPage;
         if ($hasMore) {
             $items = $items->take($perPage);
         }
 
         $orders = $items->map(function (Order $order) use ($user) {
-            $formatted                 = $this->service->formatOrder($order, $user->id);
+            $formatted = $this->service->formatOrder($order, $user->id);
             $formatted['unread'] = $this->getOrderUnread($order, $user->id);
+
             return $formatted;
         });
 
@@ -336,8 +335,11 @@ class OrderController extends Controller
 
     private function getOrderUnread(Order $order, int $userId): bool
     {
-        if (! $order->conversation) return false;
+        if (! $order->conversation) {
+            return false;
+        }
         $participant = $order->conversation->participants->firstWhere('user_id', $userId);
+
         return (bool) ($participant->has_unread ?? false);
     }
 
@@ -346,7 +348,7 @@ class OrderController extends Controller
         try {
             broadcast($event);
         } catch (\Throwable $e) {
-            \Log::warning('Broadcast failed: ' . $e->getMessage());
+            \Log::warning('Broadcast failed: '.$e->getMessage());
         }
     }
 }

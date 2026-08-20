@@ -11,11 +11,14 @@ trait NotificationTypes
         'content_pack_change_remarks', 'content_pack_change_rejected',
         'service_approved', 'service_rejected', 'service_remarks',
         'service_change_approved', 'service_change_remarks', 'service_change_rejected',
-        'test', 'chat_status', 'new_review'
+        'test', 'new_review',
     ];
-    protected array $ORDER_TYPES   = ['order_created', 'order_accepted', 'order_cancelled', 'order_paid', 'order_completed'];
+
+    protected array $ORDER_TYPES = ['order_created', 'order_accepted', 'order_cancelled', 'order_paid', 'order_completed'];
+
     protected array $MESSAGE_TYPES = ['new_message'];
-    protected array $FOLLOW_TYPES  = ['new_post', 'new_service', 'new_content_pack'];
+
+    protected array $FOLLOW_TYPES = ['new_post', 'new_service', 'new_content_pack'];
 
     protected array $TYPE_MAP = [
         'idol_approved' => \App\Notifications\IdolApprovedNotification::class,
@@ -37,7 +40,6 @@ trait NotificationTypes
         'service_change_remarks' => \App\Notifications\ServiceChangeRemarksNotification::class,
         'service_change_rejected' => \App\Notifications\ServiceChangeRejectedNotification::class,
         'test' => \App\Notifications\TestNotification::class,
-        'chat_status' => \App\Notifications\ChatStatusNotification::class,
         'new_review' => \App\Notifications\NewReviewNotification::class,
         'order_created' => \App\Notifications\OrderCreatedNotification::class,
         'order_accepted' => \App\Notifications\OrderAcceptedNotification::class,
@@ -59,6 +61,7 @@ trait NotificationTypes
                 $classes[] = $this->TYPE_MAP[$type];
             }
         }
+
         return $classes;
     }
 }

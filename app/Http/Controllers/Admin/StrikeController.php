@@ -5,12 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\UserStrike;
-use App\Models\IdolRatingLog;
-use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Illuminate\Support\Facades\DB;
-use App\Services\AdminLogService;
 use App\Notifications\UserStrikeNotification;
+use App\Services\AdminLogService;
+use App\Services\IdolRatingService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 
 class StrikeController extends Controller
 {
@@ -23,28 +23,32 @@ class StrikeController extends Controller
             $users = User::withCount(['strikes' => function ($query) {
                 $query->where('expires_at', '>', now());
             }])
-            ->where('id', $search)
-            ->orWhere('name', 'ilike', '%' . $search . '%')
-            ->orWhere('email', 'ilike', '%' . $search . '%')
-            ->select('id', 'name', 'email', 'avatar_path', 'is_idol', 'rating')
-            ->take(20)
-            ->get()
-            ->map(function ($user) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'avatar_url' => $user->avatar_url,
-                    'is_idol' => $user->is_idol,
-                    'rating' => $user->rating,
-                    'active_strikes_count' => $user->strikes_count,
-                ];
-            });
+                ->where(function ($q) use ($search) {
+                    if (is_numeric($search)) {
+                        $q->where('id', (int) $search);
+                    }
+                    $q->orWhere('name', 'ilike', '%'.$search.'%')
+                        ->orWhere('email', 'ilike', '%'.$search.'%');
+                })
+                ->select('id', 'name', 'email', 'avatar_path', 'is_idol', 'rating')
+                ->take(20)
+                ->get()
+                ->map(function ($user) {
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'avatar_url' => $user->avatar_url,
+                        'is_idol' => $user->is_idol,
+                        'rating' => $user->rating,
+                        'active_strikes_count' => $user->strikes_count,
+                    ];
+                });
         }
 
         return Inertia::render('Admin/Strikes/Index', [
-            'search' => $search,
             'users' => $users,
+            'filters' => ['q' => $search],
         ]);
     }
 
@@ -54,7 +58,7 @@ class StrikeController extends Controller
             'user_id' => 'required|exists:users,id',
             'rating_deducted' => 'nullable|numeric|in:0,-0.1,-0.3,-0.5,-1.0',
             'admin_note' => 'nullable|string|max:2000',
-            
+
             // Ban fields if it's a 3rd strike
             'ban_reason' => 'nullable|string|max:1000',
             'banned_until' => 'nullable|date|after:now',
@@ -80,17 +84,14 @@ class StrikeController extends Controller
                 'expires_at' => now()->addMonths(6),
             ]);
 
-            // Deduct rating for idol
-            if ($user->is_idol && !empty($validated['rating_deducted']) && $validated['rating_deducted'] < 0) {
-                $user->decrement('rating', abs($validated['rating_deducted']));
-                
-                IdolRatingLog::create([
-                    'user_id' => $user->id,
-                    'event' => 'strike',
-                    'delta' => $validated['rating_deducted'],
-                    'note' => 'Страйк от администрации: ' . ($validated['admin_note'] ?? 'без причины'),
-                    'created_at' => now(),
-                ]);
+            // Deduct rating for idol via standard rating service
+            if ($user->is_idol && ! empty($validated['rating_deducted']) && (float) $validated['rating_deducted'] < 0) {
+                IdolRatingService::adjust(
+                    $user,
+                    'strike',
+                    (float) $validated['rating_deducted'],
+                    'Страйк от администрации: '.($validated['admin_note'] ?? 'без причины')
+                );
             }
 
             // Apply ban if needed
@@ -105,7 +106,7 @@ class StrikeController extends Controller
 
                 // Invalidate sessions
                 DB::table('sessions')->where('user_id', $user->id)->delete();
-                
+
                 AdminLogService::log(
                     auth('admin')->id(),
                     'ban_user',
@@ -119,6 +120,6 @@ class StrikeController extends Controller
             $user->notify(new UserStrikeNotification($strike));
         });
 
-        return back()->with('success', 'Страйк успешно выдан' . ($activeStrikes >= 2 ? ' и пользователь забанен' : ''));
+        return back()->with('success', 'Страйк успешно выдан'.($activeStrikes >= 2 ? ' и пользователь забанен' : ''));
     }
 }

@@ -24,7 +24,7 @@ class ServiceController extends Controller
      */
     public function indexForProfile(User $user): JsonResponse
     {
-        $authId  = auth()->id();
+        $authId = auth()->id();
         $isOwner = $authId === $user->id;
 
         $allCategories = ServiceCategory::where('is_active', true)
@@ -32,12 +32,12 @@ class ServiceController extends Controller
             ->get(['id', 'name', 'description', 'image_path', 'accent_color', 'sort_order', 'is_active']);
 
         $query = $user->services()->with(['timeUnit:id,name', 'latestReview', 'pendingChangeRequest.pendingCategory', 'pendingChangeRequest.pendingTimeUnit']);
-        if (!$isOwner) {
+        if (! $isOwner) {
             $query->where('is_active', true)->where('status', 'approved');
         }
         $services = $query->orderBy('created_at')->get();
 
-        $categoryIds  = $allCategories->pluck('id');
+        $categoryIds = $allCategories->pluck('id');
         $descriptions = IdolCategoryDescription::where('user_id', $user->id)
             ->whereIn('category_id', $categoryIds)
             ->pluck('description', 'category_id');
@@ -53,32 +53,33 @@ class ServiceController extends Controller
 
         $result = $allCategories->map(function ($cat) use ($servicesByCategory, $descriptions, $isOwner, $hasUsedTrial) {
             $group = $servicesByCategory->get($cat->id, collect());
+
             return [
                 'category' => [
-                    'id'             => $cat->id,
-                    'name'           => $cat->getTranslation('name', 'ru'),
-                    'name_ru'        => $cat->getTranslation('name', 'ru'),
-                    'name_en'        => $cat->getTranslation('name', 'en', false) ?: null,
+                    'id' => $cat->id,
+                    'name' => $cat->getTranslation('name', 'ru'),
+                    'name_ru' => $cat->getTranslation('name', 'ru'),
+                    'name_en' => $cat->getTranslation('name', 'en', false) ?: null,
                     'description_ru' => $cat->getTranslation('description', 'ru', false) ?: null,
                     'description_en' => $cat->getTranslation('description', 'en', false) ?: null,
-                    'image_url'      => $cat->image_path ? Storage::url($cat->image_path) : null,
-                    'accent_color'   => $cat->accent_color,
-                    'sort_order'     => $cat->sort_order,
+                    'image_url' => $cat->image_path ? Storage::url($cat->image_path) : null,
+                    'accent_color' => $cat->accent_color,
+                    'sort_order' => $cat->sort_order,
                 ],
                 'idol_description' => $descriptions[$cat->id] ?? null,
-                'items'            => $group->map(function (Service $s) use ($isOwner, $hasUsedTrial) {
+                'items' => $group->map(function (Service $s) use ($isOwner, $hasUsedTrial) {
                     $base = [
-                        'id'               => $s->id,
-                        'name_ru'          => $s->getTranslation('name', 'ru'),
-                        'name_en'          => $s->getTranslation('name', 'en', false) ?: null,
-                        'price'            => $s->price,
-                        'is_active'        => $s->is_active,
-                        'is_trial'         => $isOwner ? $s->is_trial : ($hasUsedTrial ? false : $s->is_trial),
-                        'status'           => $s->status,
+                        'id' => $s->id,
+                        'name_ru' => $s->getTranslation('name', 'ru'),
+                        'name_en' => $s->getTranslation('name', 'en', false) ?: null,
+                        'price' => $s->price,
+                        'is_active' => $s->is_active,
+                        'is_trial' => $isOwner ? $s->is_trial : ($hasUsedTrial ? false : $s->is_trial),
+                        'status' => $s->status,
                         'rejection_reason' => $s->rejection_reason,
-                        'category_id'      => $s->category_id,
-                        'time_unit'        => [
-                            'id'      => $s->timeUnit->id,
+                        'category_id' => $s->category_id,
+                        'time_unit' => [
+                            'id' => $s->timeUnit->id,
                             'name_ru' => $s->timeUnit->getTranslation('name', 'ru'),
                             'name_en' => $s->timeUnit->getTranslation('name', 'en', false) ?: null,
                         ],
@@ -86,27 +87,27 @@ class ServiceController extends Controller
 
                     if ($isOwner) {
                         $base['latest_review'] = $s->latestReview ? [
-                            'decision'       => $s->latestReview->decision,
+                            'decision' => $s->latestReview->decision,
                             'flagged_fields' => $s->latestReview->flagged_fields ?? [],
                             'field_comments' => $s->latestReview->field_comments ?? [],
                         ] : null;
 
                         $base['pending_change'] = $s->pendingChangeRequest ? [
-                            'changed_fields'    => $s->pendingChangeRequest->changed_fields,
-                            'pending_name'      => $s->pendingChangeRequest->pending_name,
-                            'pending_price'     => $s->pendingChangeRequest->pending_price,
-                            'pending_category'  => $s->pendingChangeRequest->pendingCategory ? [
-                                'id'      => $s->pendingChangeRequest->pendingCategory->id,
+                            'changed_fields' => $s->pendingChangeRequest->changed_fields,
+                            'pending_name' => $s->pendingChangeRequest->pending_name,
+                            'pending_price' => $s->pendingChangeRequest->pending_price,
+                            'pending_category' => $s->pendingChangeRequest->pendingCategory ? [
+                                'id' => $s->pendingChangeRequest->pendingCategory->id,
                                 'name_ru' => $s->pendingChangeRequest->pendingCategory->getTranslation('name', 'ru'),
                             ] : null,
                             'pending_time_unit' => $s->pendingChangeRequest->pendingTimeUnit ? [
-                                'id'      => $s->pendingChangeRequest->pendingTimeUnit->id,
+                                'id' => $s->pendingChangeRequest->pendingTimeUnit->id,
                                 'name_ru' => $s->pendingChangeRequest->pendingTimeUnit->getTranslation('name', 'ru'),
                             ] : null,
-                            'status'           => $s->pendingChangeRequest->status,
-                            'flagged_fields'   => $s->pendingChangeRequest->flagged_fields ?? [],
-                            'field_comments'   => $s->pendingChangeRequest->field_comments ?? [],
-                            'admin_comment'    => $s->pendingChangeRequest->admin_comment,
+                            'status' => $s->pendingChangeRequest->status,
+                            'flagged_fields' => $s->pendingChangeRequest->flagged_fields ?? [],
+                            'field_comments' => $s->pendingChangeRequest->field_comments ?? [],
+                            'admin_comment' => $s->pendingChangeRequest->admin_comment,
                         ] : null;
                     }
 
@@ -134,17 +135,17 @@ class ServiceController extends Controller
 
         $grouped = $services
             ->groupBy('category_id')
-            ->map(fn($items, $categoryId) => [
+            ->map(fn ($items, $categoryId) => [
                 'category' => [
-                    'id'      => $items->first()->category->id,
+                    'id' => $items->first()->category->id,
                     'name_ru' => $items->first()->category->getTranslation('name', 'ru'),
                     'name_en' => $items->first()->category->getTranslation('name', 'en', false) ?: null,
                 ],
-                'services' => $items->map(fn($s) => [
-                    'id'      => $s->id,
+                'services' => $items->map(fn ($s) => [
+                    'id' => $s->id,
                     'name_ru' => $s->getTranslation('name', 'ru'),
                     'name_en' => $s->getTranslation('name', 'en', false) ?: null,
-                    'price'   => $s->price,
+                    'price' => $s->price,
                     'time_unit_ru' => $s->timeUnit?->getTranslation('name', 'ru'),
                     'time_unit_en' => $s->timeUnit?->getTranslation('name', 'en', false) ?: null,
                 ])->values(),
@@ -157,15 +158,15 @@ class ServiceController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $idol = $request->user();
-        abort_if(!$idol->is_idol, 403);
+        abort_if(! $idol->is_idol, 403);
 
         $data = $request->validate([
-            'name_ru'      => ['nullable', 'string', 'max:120'],
-            'name_en'      => ['nullable', 'string', 'max:120', 'regex:/^[^\x{0400}-\x{04FF}\x{0500}-\x{052F}]*$/u'],
-            'category_id'  => ['required', 'integer', 'exists:service_categories,id'],
+            'name_ru' => ['nullable', 'string', 'max:120'],
+            'name_en' => ['nullable', 'string', 'max:120', 'regex:/^[^\x{0400}-\x{04FF}\x{0500}-\x{052F}]*$/u'],
+            'category_id' => ['required', 'integer', 'exists:service_categories,id'],
             'time_unit_id' => ['required', 'integer', 'exists:service_time_units,id'],
-            'price'        => ['required', 'integer', 'min:1', 'max:999999'],
-            'is_trial'     => ['boolean'],
+            'price' => ['required', 'integer', 'min:1', 'max:999999'],
+            'is_trial' => ['boolean'],
         ]);
 
         if (empty($data['name_ru']) && empty($data['name_en'])) {
@@ -177,14 +178,14 @@ class ServiceController extends Controller
         $this->validatePriceLimit($idol, $data['time_unit_id'], $data['price']);
 
         Service::create([
-            'name'         => array_filter(['ru' => $data['name_ru'] ?? null, 'en' => $data['name_en'] ?? null]),
-            'user_id'      => $idol->id,
-            'category_id'  => $data['category_id'],
+            'name' => array_filter(['ru' => $data['name_ru'] ?? null, 'en' => $data['name_en'] ?? null]),
+            'user_id' => $idol->id,
+            'category_id' => $data['category_id'],
             'time_unit_id' => $data['time_unit_id'],
-            'price'        => $data['price'],
-            'is_trial'     => $data['is_trial'] ?? false,
-            'is_active'    => true,
-            'status'       => 'pending',
+            'price' => $data['price'],
+            'is_trial' => $data['is_trial'] ?? false,
+            'is_active' => true,
+            'status' => 'pending',
         ]);
 
         return back()->with('service_pending', true);
@@ -195,16 +196,16 @@ class ServiceController extends Controller
         $this->authorize('update', $service);
 
         $data = $request->validate([
-            'name_ru'      => ['sometimes', 'nullable', 'string', 'max:120'],
-            'name_en'      => ['nullable', 'string', 'max:120', 'regex:/^[^\x{0400}-\x{04FF}\x{0500}-\x{052F}]*$/u'],
-            'category_id'  => ['sometimes', 'integer', 'exists:service_categories,id'],
+            'name_ru' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'name_en' => ['nullable', 'string', 'max:120', 'regex:/^[^\x{0400}-\x{04FF}\x{0500}-\x{052F}]*$/u'],
+            'category_id' => ['sometimes', 'integer', 'exists:service_categories,id'],
             'time_unit_id' => ['sometimes', 'integer', 'exists:service_time_units,id'],
-            'price'        => ['sometimes', 'integer', 'min:1', 'max:999999'],
-            'is_active'    => ['sometimes', 'boolean'],
+            'price' => ['sometimes', 'integer', 'min:1', 'max:999999'],
+            'is_active' => ['sometimes', 'boolean'],
         ]);
 
         $timeUnitId = $data['time_unit_id'] ?? $service->time_unit_id;
-        $price      = $data['price'] ?? $service->price;
+        $price = $data['price'] ?? $service->price;
 
         if (isset($data['price']) || isset($data['time_unit_id'])) {
             $this->validatePriceLimit($request->user(), $timeUnitId, $price);
@@ -213,11 +214,13 @@ class ServiceController extends Controller
         // Check if moderated fields actually changed
         $isModeratedFieldChange = [];
         foreach (['name_ru', 'name_en', 'category_id', 'time_unit_id', 'price'] as $field) {
-            if (!array_key_exists($field, $data)) continue;
-            
+            if (! array_key_exists($field, $data)) {
+                continue;
+            }
+
             $val = $data[$field];
             $changed = false;
-            
+
             if ($field === 'name_ru') {
                 $oldRu = $service->getTranslation('name', 'ru', false);
                 $changed = trim(empty($val) ? '' : $val) !== trim(empty($oldRu) ? '' : $oldRu);
@@ -225,27 +228,27 @@ class ServiceController extends Controller
                 $oldEn = $service->getTranslation('name', 'en', false);
                 $changed = trim(empty($val) ? '' : $val) !== trim(empty($oldEn) ? '' : $oldEn);
             } else {
-                $changed = (int)$val !== (int)$service->{$field};
+                $changed = (int) $val !== (int) $service->{$field};
             }
 
             if ($changed) {
                 $isModeratedFieldChange[$field] = $val;
             }
         }
-        
-        if ($service->status === 'approved' && !empty($isModeratedFieldChange)) {
-            \Illuminate\Support\Facades\Log::info("False moderation trigger debug", [
+
+        if ($service->status === 'approved' && ! empty($isModeratedFieldChange)) {
+            \Illuminate\Support\Facades\Log::info('False moderation trigger debug', [
                 'service_id' => $service->id,
                 'changed_fields' => $isModeratedFieldChange,
                 'data' => $data,
             ]);
             $this->upsertChangeRequest($service, $isModeratedFieldChange);
-            
+
             // Still allow updating non-moderated fields like is_active
             if (isset($data['is_active'])) {
                 $service->update(['is_active' => $data['is_active']]);
             }
-            
+
             return back()->with('success', 'Изменения отправлены на модерацию.');
         }
 
@@ -263,7 +266,7 @@ class ServiceController extends Controller
             $service->setTranslation('name', 'ru', $data['name_ru']);
         }
         if (array_key_exists('name_en', $data)) {
-            if (!empty($data['name_en'])) {
+            if (! empty($data['name_en'])) {
                 $service->setTranslation('name', 'en', $data['name_en']);
             } else {
                 $service->forgetTranslation('name', 'en');
@@ -271,7 +274,7 @@ class ServiceController extends Controller
         }
 
         $rest = array_diff_key($data, array_flip(['name_ru', 'name_en']));
-        if (!empty($rest)) {
+        if (! empty($rest)) {
             $service->fill($rest);
         }
 
@@ -288,16 +291,16 @@ class ServiceController extends Controller
     public function fixChangeRequest(Request $request, Service $service): RedirectResponse
     {
         $this->authorize('update', $service);
-        
+
         $cr = $service->pendingChangeRequest;
-        abort_if(!$cr || $cr->status !== 'has_remarks', 422);
+        abort_if(! $cr || $cr->status !== 'has_remarks', 422);
 
         $data = $request->validate([
-            'name_ru'      => ['sometimes', 'nullable', 'string', 'max:120'],
-            'name_en'      => ['nullable', 'string', 'max:120', 'regex:/^[^\x{0400}-\x{04FF}\x{0500}-\x{052F}]*$/u'],
-            'category_id'  => ['sometimes', 'integer', 'exists:service_categories,id'],
+            'name_ru' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'name_en' => ['nullable', 'string', 'max:120', 'regex:/^[^\x{0400}-\x{04FF}\x{0500}-\x{052F}]*$/u'],
+            'category_id' => ['sometimes', 'integer', 'exists:service_categories,id'],
             'time_unit_id' => ['sometimes', 'integer', 'exists:service_time_units,id'],
-            'price'        => ['sometimes', 'integer', 'min:1', 'max:999999'],
+            'price' => ['sometimes', 'integer', 'min:1', 'max:999999'],
         ]);
 
         $this->upsertChangeRequest($service, $data);
@@ -314,14 +317,14 @@ class ServiceController extends Controller
                 ->first();
 
             $pendingData = $changeRequest ? [
-                'name'         => $changeRequest->pending_name,
-                'price'        => $changeRequest->pending_price,
-                'category_id'  => $changeRequest->pending_category_id,
+                'name' => $changeRequest->pending_name,
+                'price' => $changeRequest->pending_price,
+                'category_id' => $changeRequest->pending_category_id,
                 'time_unit_id' => $changeRequest->pending_time_unit_id,
             ] : [
-                'name'         => $service->getTranslations('name'),
-                'price'        => $service->price,
-                'category_id'  => $service->category_id,
+                'name' => $service->getTranslations('name'),
+                'price' => $service->price,
+                'category_id' => $service->category_id,
                 'time_unit_id' => $service->time_unit_id,
             ];
 
@@ -340,33 +343,42 @@ class ServiceController extends Controller
 
             // Filter out fields that are same as current service
             $finalChangedFields = [];
-            if (isset($pendingData['name']) && $pendingData['name'] !== $service->getTranslations('name')) $finalChangedFields[] = 'name';
-            if (isset($pendingData['price']) && (int)$pendingData['price'] !== (int)$service->price) $finalChangedFields[] = 'price';
-            if (isset($pendingData['category_id']) && (int)$pendingData['category_id'] !== (int)$service->category_id) $finalChangedFields[] = 'category_id';
-            if (isset($pendingData['time_unit_id']) && (int)$pendingData['time_unit_id'] !== (int)$service->time_unit_id) $finalChangedFields[] = 'time_unit_id';
+            if (isset($pendingData['name']) && $pendingData['name'] !== $service->getTranslations('name')) {
+                $finalChangedFields[] = 'name';
+            }
+            if (isset($pendingData['price']) && (int) $pendingData['price'] !== (int) $service->price) {
+                $finalChangedFields[] = 'price';
+            }
+            if (isset($pendingData['category_id']) && (int) $pendingData['category_id'] !== (int) $service->category_id) {
+                $finalChangedFields[] = 'category_id';
+            }
+            if (isset($pendingData['time_unit_id']) && (int) $pendingData['time_unit_id'] !== (int) $service->time_unit_id) {
+                $finalChangedFields[] = 'time_unit_id';
+            }
 
             if (empty($finalChangedFields)) {
                 $changeRequest?->delete();
+
                 return;
             }
 
             $updateData = [
-                'changed_fields'       => $finalChangedFields,
-                'pending_name'         => in_array('name', $finalChangedFields) ? $pendingData['name'] : null,
-                'pending_price'        => in_array('price', $finalChangedFields) ? $pendingData['price'] : null,
-                'pending_category_id'  => in_array('category_id', $finalChangedFields) ? $pendingData['category_id'] : null,
+                'changed_fields' => $finalChangedFields,
+                'pending_name' => in_array('name', $finalChangedFields) ? $pendingData['name'] : null,
+                'pending_price' => in_array('price', $finalChangedFields) ? $pendingData['price'] : null,
+                'pending_category_id' => in_array('category_id', $finalChangedFields) ? $pendingData['category_id'] : null,
                 'pending_time_unit_id' => in_array('time_unit_id', $finalChangedFields) ? $pendingData['time_unit_id'] : null,
-                'status'               => 'pending',
+                'status' => 'pending',
             ];
 
             if ($changeRequest) {
                 // Remove flagged status for updated fields
                 $flaggedFields = array_diff($changeRequest->flagged_fields ?? [], $finalChangedFields);
                 $fieldComments = array_intersect_key($changeRequest->field_comments ?? [], array_flip($flaggedFields));
-                
+
                 $updateData['flagged_fields'] = array_values($flaggedFields);
                 $updateData['field_comments'] = $fieldComments;
-                
+
                 $changeRequest->update($updateData);
             } else {
                 ServiceChangeRequest::create(array_merge($updateData, ['service_id' => $service->id]));
@@ -385,18 +397,18 @@ class ServiceController extends Controller
     public function toggleTrial(Request $request, Service $service): RedirectResponse
     {
         $this->authorize('update', $service);
-        
+
         $request->validate(['is_trial' => 'required|boolean']);
-        
+
         $service->update(['is_trial' => $request->is_trial]);
-        
+
         return back()->with('success', 'Статус "1-й заказ 0 Р" обновлен.');
     }
 
     public function dismissChangeRequest(Request $request, Service $service): RedirectResponse
     {
         $this->authorize('update', $service);
-        
+
         $cr = $service->pendingChangeRequest;
         if ($cr && $cr->status === 'rejected') {
             $cr->delete();
@@ -407,14 +419,14 @@ class ServiceController extends Controller
 
     private function validatePriceLimit($idol, int $timeUnitId, int $price): void
     {
-        $threshold = (int) PlatformSetting::get('rating_low_threshold', 30);
-        $rating    = (int) ($idol->idol_rating ?? 50);
+        $threshold = (float) PlatformSetting::get('rating_low_threshold', 30);
+        $rating = (float) ($idol->rating ?? 50);
 
         if ($rating < $threshold) {
             $limit = ServicePriceLimit::where('time_unit_id', $timeUnitId)->first();
             if ($limit && $price > $limit->max_price) {
                 throw ValidationException::withMessages([
-                    'price' => 'При вашем рейтинге цена не может превышать ' . $limit->max_price . ' ₽ за эту единицу времени.',
+                    'price' => 'При вашем рейтинге цена не может превышать '.$limit->max_price.' ₽ за эту единицу времени.',
                 ]);
             }
         }

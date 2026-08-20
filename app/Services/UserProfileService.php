@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\ServiceCategory;
-use App\Models\User;
 use App\Models\Post;
 use App\Models\PostComment;
+use App\Models\ServiceCategory;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -16,12 +16,12 @@ class UserProfileService
      */
     public function getCategoryIdols(User $user, ServiceCategory $category, Request $request)
     {
-        $page    = max(1, (int) $request->get('page', 1));
+        $page = max(1, (int) $request->get('page', 1));
         $perPage = min(8, max(1, (int) $request->get('per_page', 4)));
 
-        $seedKey = 'idol_shuffle_' . $user->id . '_' . $category->id;
+        $seedKey = 'idol_shuffle_'.$user->id.'_'.$category->id;
         $seed = $request->session()->get($seedKey);
-        if (!$seed || $page === 1) {
+        if (! $seed || $page === 1) {
             $seed = (string) mt_rand();
             $request->session()->put($seedKey, $seed);
         }
@@ -32,19 +32,19 @@ class UserProfileService
             ->where('category_id', $category->id)
             ->select('user_id')
             ->groupBy('user_id')
-            ->orderByRaw("md5(user_id::text || ?)", [$seed])
+            ->orderByRaw('md5(user_id::text || ?)', [$seed])
             ->with(['user:id,name,avatar_path,active_frame_id,rating', 'user.activeFrame'])
             ->paginate($perPage, ['*'], 'page', $page);
 
         return [
-            'idols'   => collect($paginator->items())->map(fn ($s) => [
-                'id'         => $s->user->id,
-                'name'       => $s->user->name,
+            'idols' => collect($paginator->items())->map(fn ($s) => [
+                'id' => $s->user->id,
+                'name' => $s->user->name,
                 'avatar_url' => $s->user->avatar_url,
-                'rating'     => $s->user->rating,
+                'rating' => $s->user->rating,
             ])->values(),
-            'total'   => $paginator->total(),
-            'page'    => $page,
+            'total' => $paginator->total(),
+            'page' => $page,
             'hasMore' => $paginator->hasMorePages(),
         ];
     }
@@ -57,18 +57,18 @@ class UserProfileService
         $photoPath = null;
         $tempPath = null;
         $destinationPath = null;
-        
+
         if ($photoFile) {
             $ext = $photoFile->getClientOriginalExtension() ?: 'jpg';
             // Store original file temporarily
-            $tempPath = $photoFile->storeAs('temp/posts', uniqid() . '.' . $ext, config('filesystems.default'));
-            $destinationPath = "posts/{$user->id}/" . time() . ".jpg";
-            $photoPath = $tempPath; 
+            $tempPath = $photoFile->storeAs('temp/posts', uniqid().'.'.$ext, config('filesystems.default'));
+            $destinationPath = "posts/{$user->id}/".time().'.jpg';
+            $photoPath = $tempPath;
         }
-        
+
         $post = Post::create([
-            'user_id'    => $user->id,
-            'body'       => $data['body'],
+            'user_id' => $user->id,
+            'body' => $data['body'],
             'photo_path' => $photoPath,
         ]);
 
@@ -105,8 +105,10 @@ class UserProfileService
     {
         $comment = $post->comments()->create([
             'user_id' => $user->id,
-            'parent_id' => current($data['parent_id'] ?? []), // Not exactly correct, I'll remove parent_id for now if it's not used. Let me check storeComment.
+            'body' => $data['body'],
+            'parent_id' => ! empty($data['parent_id']) ? (int) $data['parent_id'] : null,
         ]);
+
         return $comment;
     }
 }
