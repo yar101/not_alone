@@ -45,12 +45,13 @@ class DashboardController extends Controller
                     'created_at' => $b->created_at->toIso8601String(),
                     'admin'      => ['name' => $b->admin->name],
                 ]),
-            'registrations_by_day' => DB::select("
-                SELECT DATE(created_at AT TIME ZONE 'UTC') as date, COUNT(*)::int as count
-                FROM users
-                WHERE created_at >= NOW() - INTERVAL '14 days'
-                GROUP BY 1 ORDER BY 1 ASC
-            "),
+            'registrations_by_day' => User::query()
+                ->where('created_at', '>=', now()->subDays(14)->startOfDay())
+                ->selectRaw('DATE(created_at) as date, count(*) as count')
+                ->groupByRaw('DATE(created_at)')
+                ->orderByRaw('DATE(created_at) ASC')
+                ->get()
+                ->map(fn ($row) => ['date' => (string) $row->date, 'count' => (int) $row->count]),
             'top_idols' => User::where('is_idol', true)
                 ->orderByDesc('rating')->limit(5)
                 ->get(['id', 'name', 'rating', 'avatar_path'])

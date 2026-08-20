@@ -12,15 +12,20 @@ use App\Notifications\NewReviewNotification;
 use App\Services\IdolRatingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ReviewController extends Controller
 {
     public function epithets(): JsonResponse
     {
-        return response()->json(ReviewEpithet::all(['id', 'label']));
+        $epithets = Cache::rememberForever('review_epithets_list', fn () => ReviewEpithet::all(['id', 'label']));
+
+        return response()->json($epithets);
     }
 
-    public function store(Request $request, Order $order): JsonResponse
+    public function store(\App\Http\Requests\Review\StoreReviewRequest $request, Order $order): JsonResponse
     {
         $user = $request->user();
 
@@ -35,16 +40,9 @@ class ReviewController extends Controller
         $order->loadMissing('idol');
         abort_if($order->idol->isActiveBanned(), 422, 'user_banned');
 
-        $request->validate([
-            'rating'   => 'required|integer|min:1|max:5',
-            'text'     => 'nullable|string|max:250',
-            'epithets' => 'nullable|array',
-            'epithets.*' => 'integer|exists:review_epithets,id',
-        ]);
-
         $order->loadMissing(['items.service.category', 'items.service.timeUnit']);
 
-        $snapshot = $order->items->map(fn($i) => [
+        $snapshot = $order->items->map(fn ($i) => [
             'name'          => $i->service?->name,
             'category_name' => $i->service?->category?->name,
             'price'         => $i->service?->price,
@@ -52,21 +50,29 @@ class ReviewController extends Controller
             'quantity'      => $i->quantity ?? 1,
         ])->values()->all();
 
-        $review = Review::create([
-            'reviewer_id'       => $user->id,
-            'idol_id'           => $order->idol_id,
-            'order_id'          => $order->id,
-            'rating'            => $request->rating,
-            'text'              => $request->text,
-            'services_snapshot' => $snapshot,
-        ]);
+        DB::transaction(function () use ($user, $order, $request, $snapshot) {
+            $review = Review::create([
+                'reviewer_id'       => $user->id,
+                'idol_id'           => $order->idol_id,
+                'order_id'          => $order->id,
+                'rating'            => $request->rating,
+                'text'              => $request->text,
+                'services_snapshot' => $snapshot,
+            ]);
 
-        $review->epithets()->sync($request->epithets ?? []);
+            $review->epithets()->sync($request->epithets ?? []);
 
-        IdolRatingService::adjust($order->idol, 'review_' . $review->rating . 'star');
+            IdolRatingService::adjust($order->idol, 'review_'.$review->rating.'star');
 
-        $order->idol->notify(new NewReviewNotification($review));
-        broadcast(new NewNotification('private', $order->idol_id));
+            DB::afterCommit(function () use ($order, $review) {
+                $order->idol->notify(new NewReviewNotification($review));
+                try {
+                    broadcast(new NewNotification('private', $order->idol_id));
+                } catch (\Throwable $e) {
+                    Log::warning('Broadcast failed in ReviewController::store: '.$e->getMessage());
+                }
+            });
+        });
 
         return response()->json(['success' => true]);
     }

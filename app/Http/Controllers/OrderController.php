@@ -29,17 +29,10 @@ class OrderController extends Controller
 
     public function __construct(private OrderService $service) {}
 
-    public function store(Request $request): JsonResponse
+    public function store(\App\Http\Requests\Order\CreateOrderRequest $request): JsonResponse
     {
-        $request->validate([
-            'idol_id' => 'required|exists:users,id',
-            'services' => 'required|array|min:1',
-            'services.*.id' => 'required|integer|exists:services,id',
-            'services.*.quantity' => 'required|integer|min:1|max:99',
-        ]);
-
         $user = $request->user();
-        $idol = User::findOrFail($request->idol_id);
+        $idol = User::findOrFail($request->integer('idol_id'));
 
         try {
             [$order, $conversation] = $this->service->createOrder($user, $idol, $request->services);
@@ -182,59 +175,12 @@ class OrderController extends Controller
 
         $request->validate(['service_id' => ['required', 'integer', 'exists:services,id']]);
 
-        DB::transaction(function () use ($request, $order) {
+        DB::transaction(function () use ($request, $order, $user) {
             $lockedOrder = Order::lockForUpdate()->find($order->id);
             abort_unless($lockedOrder->status === \App\Enums\OrderStatus::Pending, 422);
 
-            $service = \App\Models\Service::where('id', $request->service_id)
-                ->where('user_id', $lockedOrder->idol_id)
-                ->where('is_active', true)
-                ->where('status', 'approved')
-                ->with('timeUnit:id,name')
-                ->firstOrFail();
-
-            $existing = $lockedOrder->items()->where('service_id', $service->id)->first();
-            if ($existing) {
-                $existing->increment('quantity');
-            } else {
-                $lockedOrder->items()->create(['service_id' => $service->id, 'quantity' => 1, 'price' => $service->price]);
-            }
+            $this->service->addItem($lockedOrder, $request->integer('service_id'), $user);
         });
-
-        $order->touch();
-
-        if ($order->conversation_id) {
-            $conv = $order->conversation;
-
-            $order->load(['items.service.timeUnit']);
-            $allItems = $order->items->map(fn ($item) => [
-                'id' => $item->service?->id,
-                'name' => $item->service?->name,
-                'price' => $item->price ?? $item->service?->price,
-                'time_unit' => $item->service?->timeUnit?->name,
-                'quantity' => $item->quantity ?? 1,
-            ])->values()->all();
-
-            $msg = $conv->messages()->create([
-                'sender_id' => null,
-                'body' => '',
-                'type' => 'system',
-                'metadata' => [
-                    'event' => 'item_added',
-                    'services' => $allItems,
-                ],
-            ]);
-            $msg->load('sender');
-            try {
-                broadcast(new \App\Events\MessageSent($msg));
-            } catch (\Throwable $e) {
-                \Log::warning('Broadcast failed: '.$e->getMessage());
-            }
-        }
-
-        $order->load(['customer', 'idol', 'cancelledBy', 'items.service.timeUnit']);
-        $this->safeBroadcast(new OrderChanged($order->idol_id, $this->service->formatOrder($order, $order->idol_id), 'updated'));
-        $this->safeBroadcast(new OrderChanged($order->customer_id, $this->service->formatOrder($order, $order->customer_id), 'updated'));
 
         return response()->json(['success' => true]);
     }

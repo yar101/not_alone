@@ -13,6 +13,7 @@ use App\Notifications\ServiceRemarksNotification;
 use App\Services\AdminLogService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -217,7 +218,7 @@ class ServiceModerationController extends Controller
             $ids = collect($request->input('ids', []));
         }
 
-        $services = Service::whereIn('id', $ids)->get();
+        $services = Service::whereIn('id', $ids)->with('user')->get();
 
         foreach ($services as $service) {
             $service->update([
@@ -228,7 +229,11 @@ class ServiceModerationController extends Controller
 
             if ($service->user) {
                 $service->user->notify(new ServiceApprovedNotification($service));
-                broadcast(new NewNotification('private', $service->user->id));
+                try {
+                    broadcast(new NewNotification('private', $service->user->id));
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Broadcast failed in bulkApprove: '.$e->getMessage());
+                }
                 NotifyFollowersJob::dispatch($service->user, $service);
             }
         }
@@ -253,7 +258,7 @@ class ServiceModerationController extends Controller
             $ids = collect($request->input('ids', []));
         }
 
-        $services = Service::whereIn('id', $ids)->get();
+        $services = Service::whereIn('id', $ids)->with('user')->get();
 
         foreach ($services as $service) {
             $service->update([

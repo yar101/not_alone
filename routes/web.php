@@ -153,7 +153,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // Reports
-Route::middleware(['auth', 'not_banned'])->group(function () {
+Route::middleware(['auth', 'not_banned', 'throttle:10,1'])->group(function () {
     Route::post('/reports', [ReportController::class, 'store'])->name('reports.store');
 });
 
@@ -195,8 +195,8 @@ Route::middleware('auth')->group(function () {
 });
 Route::middleware(['auth', 'not_banned'])->group(function () {
     Route::post('/conversations', [ConversationController::class, 'store'])->name('conversations.store');
-    Route::post('/conversations/{conversation}/messages', [ConversationController::class, 'message'])->name('conversations.message');
-    Route::post('/conversations/{conversation}/upload', [ConversationController::class, 'upload'])->name('conversations.upload');
+    Route::post('/conversations/{conversation}/messages', [ConversationController::class, 'message'])->middleware('throttle:120,1')->name('conversations.message');
+    Route::post('/conversations/{conversation}/upload', [ConversationController::class, 'upload'])->middleware('throttle:30,1')->name('conversations.upload');
     Route::post('/conversations/{conversation}/offer-services', [ConversationController::class, 'offerServices'])->name('conversations.offer-services');
     Route::post('/conversations/{conversation}/block', [ConversationController::class, 'block'])->name('conversations.block');
     Route::delete('/conversations/{conversation}/block', [ConversationController::class, 'unblock'])->name('conversations.unblock');
@@ -216,8 +216,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/reviews/{review}/dispute',   [ReviewDisputeController::class, 'store'])->name('reviews.dispute.store');
 });
 Route::middleware(['auth', 'not_banned'])->group(function () {
-    Route::post('/orders',                     [OrderController::class, 'store'])->name('orders.store');
-    Route::post('/orders/{order}/review',      [ReviewController::class, 'store'])->name('orders.review.store');
+    Route::post('/orders',                     [OrderController::class, 'store'])->middleware('throttle:30,1')->name('orders.store');
+    Route::post('/orders/{order}/review',      [ReviewController::class, 'store'])->middleware('throttle:20,1')->name('orders.review.store');
 });
 
 Route::get('/reviews/epithets', [ReviewController::class, 'epithets'])->name('reviews.epithets');

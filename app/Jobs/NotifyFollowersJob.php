@@ -44,11 +44,15 @@ class NotifyFollowersJob implements ShouldQueue
             return;
         }
 
-        $this->author->followers()->chunk(200, function ($followers) use ($notification) {
+        $this->author->followers()->chunkById(200, function ($followers) use ($notification) {
             Notification::send($followers, $notification);
             foreach ($followers as $follower) {
-                broadcast(new \App\Events\NewNotification('private', $follower->id));
+                try {
+                    broadcast(new \App\Events\NewNotification('private', $follower->id));
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Broadcast failed in NotifyFollowersJob: '.$e->getMessage());
+                }
             }
-        });
+        }, 'users.id');
     }
 }

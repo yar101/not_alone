@@ -24,6 +24,10 @@ class OrderService
 
     public function createOrder(User $customer, User $idol, array $requestedServices): array
     {
+        if ($customer->id === $idol->id) {
+            throw new \Exception('Нельзя заказать услуги у самого себя');
+        }
+
         $serviceIds = collect($requestedServices)->pluck('id');
         $quantityMap = collect($requestedServices)->keyBy('id');
 
@@ -92,7 +96,7 @@ class OrderService
 
             $order->update(['conversation_id' => $conversation->id]);
 
-            $conversation->messages()->create([
+            $msg = $conversation->messages()->create([
                 'sender_id' => $customer->id,
                 'body' => '',
                 'type' => 'system',
@@ -110,6 +114,19 @@ class OrderService
             ]);
 
             $conversation->touch();
+
+            \Illuminate\Support\Facades\DB::afterCommit(function () use ($msg, $conversation, $order) {
+                $msg->load('sender');
+                $this->safeBroadcast(new MessageSent($msg));
+                foreach ($conversation->participants as $participant) {
+                    $this->safeBroadcast(new NewMessageReceived(
+                        $participant->user_id,
+                        $conversation->id,
+                        $msg,
+                        $order->id,
+                    ));
+                }
+            });
 
             $order->load(['customer', 'idol', 'cancelledBy', 'items.service.timeUnit']);
 
@@ -141,8 +158,10 @@ class OrderService
         $this->broadcastStatusChanged($order, 'accepted');
         $this->broadcastOrderChanged($order);
 
-        $order->customer->notify(new OrderAcceptedNotification($order));
-        $this->safeBroadcast(new NewNotification('private', $order->customer_id));
+        \Illuminate\Support\Facades\DB::afterCommit(function () use ($order) {
+            $order->customer->notify(new OrderAcceptedNotification($order));
+            $this->safeBroadcast(new NewNotification('private', $order->customer_id));
+        });
     }
 
     public function pay(Order $order, User $actor): void
@@ -168,12 +187,14 @@ class OrderService
         $this->broadcastStatusChanged($order, 'paid');
         $this->broadcastOrderChanged($order);
 
-        $order->idol->notify(new OrderPaidNotification($order));
-        $this->safeBroadcast(new NewNotification('private', $order->idol_id));
+        \Illuminate\Support\Facades\DB::afterCommit(function () use ($order) {
+            $order->idol->notify(new OrderPaidNotification($order));
+            $this->safeBroadcast(new NewNotification('private', $order->idol_id));
 
-        // Auto-complete after delay from settings
-        $delayHours = (float) PlatformSetting::get('order_auto_complete_delay', 72);
-        CompleteOrderJob::dispatch($order)->delay(now()->addSeconds((int) ($delayHours * 3600)));
+            // Auto-complete after delay from settings
+            $delayHours = (float) PlatformSetting::get('order_auto_complete_delay', 72);
+            CompleteOrderJob::dispatch($order)->delay(now()->addSeconds((int) ($delayHours * 3600)));
+        });
     }
 
     public function cancel(Order $order, User $actor, string $reason): void
@@ -213,8 +234,11 @@ class OrderService
 
         $otherId = $order->customer_id === $actor->id ? $order->idol_id : $order->customer_id;
         $other = User::find($otherId);
-        $other?->notify(new OrderCancelledNotification($order));
-        $this->safeBroadcast(new NewNotification('private', $otherId));
+
+        \Illuminate\Support\Facades\DB::afterCommit(function () use ($other, $otherId, $order) {
+            $other?->notify(new OrderCancelledNotification($order));
+            $this->safeBroadcast(new NewNotification('private', $otherId));
+        });
     }
 
     public function confirmCompletion(Order $order, User $actor): array
@@ -252,8 +276,8 @@ class OrderService
 
         return [
             'confirmed' => true,
-            'completion_confirmed_by_idol' => $order->completion_confirmed_by_idol,
-            'completion_confirmed_by_customer' => $order->completion_confirmed_by_customer,
+            'completion_confirmed_by_idol' => (bool) $order->completion_confirmed_by_idol,
+            'completion_confirmed_by_customer' => (bool) $order->completion_confirmed_by_customer,
         ];
     }
 
@@ -274,6 +298,48 @@ class OrderService
         $order->update(['status' => OrderStatus::Disputed]);
 
         $this->broadcastStatusChanged($order, 'disputed');
+        $this->broadcastOrderChanged($order);
+    }
+
+    public function addItem(Order $order, int $serviceId, User $actor): void
+    {
+        $service = \App\Models\Service::where('id', $serviceId)
+            ->where('user_id', $order->idol_id)
+            ->where('is_active', true)
+            ->where('status', 'approved')
+            ->with('timeUnit:id,name')
+            ->firstOrFail();
+
+        $existing = $order->items()->where('service_id', $service->id)->first();
+        if ($existing) {
+            $existing->increment('quantity');
+        } else {
+            $order->items()->create(['service_id' => $service->id, 'quantity' => 1, 'price' => $service->price]);
+        }
+
+        $order->touch();
+
+        if ($order->conversation_id) {
+            $order->load(['items.service.timeUnit']);
+            $allItems = $order->items->map(fn ($item) => [
+                'id' => $item->service?->id,
+                'name' => $item->service?->name,
+                'price' => $item->price ?? $item->service?->price,
+                'time_unit' => $item->service?->timeUnit?->name,
+                'quantity' => $item->quantity ?? 1,
+            ])->values()->all();
+
+            $this->broadcastSystemMessage($order, [
+                'sender_id' => null,
+                'body' => '',
+                'type' => 'system',
+                'metadata' => [
+                    'event' => 'item_added',
+                    'services' => $allItems,
+                ],
+            ]);
+        }
+
         $this->broadcastOrderChanged($order);
     }
 
@@ -304,13 +370,16 @@ class OrderService
                     ]);
                     $order->conversation->touch();
                 }
-                $order->idol->notify(new OrderPaidNotification($order));
-                $this->safeBroadcast(new NewNotification('private', $order->idol_id));
 
-                if ($isNewPaid) {
-                    $delayHours = (float) PlatformSetting::get('order_auto_complete_delay', 72);
-                    CompleteOrderJob::dispatch($order)->delay(now()->addSeconds((int) ($delayHours * 3600)));
-                }
+                \Illuminate\Support\Facades\DB::afterCommit(function () use ($order, $isNewPaid) {
+                    $order->idol->notify(new OrderPaidNotification($order));
+                    $this->safeBroadcast(new NewNotification('private', $order->idol_id));
+
+                    if ($isNewPaid) {
+                        $delayHours = (float) PlatformSetting::get('order_auto_complete_delay', 72);
+                        CompleteOrderJob::dispatch($order)->delay(now()->addSeconds((int) ($delayHours * 3600)));
+                    }
+                });
                 break;
 
             case OrderStatus::Completed:
@@ -327,10 +396,13 @@ class OrderService
                     ]);
                     $order->conversation->touch();
                 }
-                $order->customer->notify(new OrderCompletedNotification($order));
-                $order->idol->notify(new OrderCompletedNotification($order));
-                $this->safeBroadcast(new NewNotification('private', $order->customer_id));
-                $this->safeBroadcast(new NewNotification('private', $order->idol_id));
+
+                \Illuminate\Support\Facades\DB::afterCommit(function () use ($order) {
+                    $order->customer->notify(new OrderCompletedNotification($order));
+                    $order->idol->notify(new OrderCompletedNotification($order));
+                    $this->safeBroadcast(new NewNotification('private', $order->customer_id));
+                    $this->safeBroadcast(new NewNotification('private', $order->idol_id));
+                });
                 break;
 
             case OrderStatus::Cancelled:
@@ -437,8 +509,6 @@ class OrderService
 
         IdolRatingService::adjust($order->idol, 'order_completed');
 
-        \App\Events\OrderCompletedEvent::dispatch($order);
-
         $this->broadcastSystemMessage($order, [
             'sender_id' => null,
             'body' => '',
@@ -452,26 +522,31 @@ class OrderService
         $this->broadcastStatusChanged($order, 'completed');
         $this->broadcastOrderChanged($order);
 
-        $order->customer->notify(new OrderCompletedNotification($order));
-        $order->idol->notify(new OrderCompletedNotification($order));
-        $this->safeBroadcast(new NewNotification('private', $order->customer_id));
-        $this->safeBroadcast(new NewNotification('private', $order->idol_id));
+        \Illuminate\Support\Facades\DB::afterCommit(function () use ($order) {
+            \App\Events\OrderCompletedEvent::dispatch($order);
+            $order->customer->notify(new OrderCompletedNotification($order));
+            $order->idol->notify(new OrderCompletedNotification($order));
+            $this->safeBroadcast(new NewNotification('private', $order->customer_id));
+            $this->safeBroadcast(new NewNotification('private', $order->idol_id));
+        });
     }
 
     private function broadcastOrderChanged(Order $order): void
     {
-        $order->loadMissing(['customer', 'idol', 'cancelledBy', 'items.service.timeUnit']);
+        \Illuminate\Support\Facades\DB::afterCommit(function () use ($order) {
+            $order->loadMissing(['customer', 'idol', 'cancelledBy', 'items.service.timeUnit']);
 
-        $this->safeBroadcast(new OrderChanged(
-            $order->idol_id,
-            $this->formatOrder($order, $order->idol_id),
-            'updated'
-        ));
-        $this->safeBroadcast(new OrderChanged(
-            $order->customer_id,
-            $this->formatOrder($order, $order->customer_id),
-            'updated'
-        ));
+            $this->safeBroadcast(new OrderChanged(
+                $order->idol_id,
+                $this->formatOrder($order, $order->idol_id),
+                'updated'
+            ));
+            $this->safeBroadcast(new OrderChanged(
+                $order->customer_id,
+                $this->formatOrder($order, $order->customer_id),
+                'updated'
+            ));
+        });
     }
 
     private function broadcastStatusChanged(
@@ -485,19 +560,21 @@ class OrderService
             return;
         }
 
-        $this->safeBroadcast(new OrderStatusChanged(
-            conversationId: $order->conversation_id,
-            orderId: $order->id,
-            status: $status,
-            cancelledBy: $cancelledBy,
-            cancelledByName: $cancelledByName,
-            cancelReason: $cancelReason,
-            paidAt: $order->paid_at?->toISOString(),
-            completedAt: $order->completed_at?->toISOString(),
-            autoCompleteAt: $order->paid_at ? $order->paid_at->copy()->addSeconds((int) ((float) PlatformSetting::get('order_auto_complete_delay', 72) * 3600))->toISOString() : null,
-            confirmedByIdol: (bool) $order->completion_confirmed_by_idol,
-            confirmedByCustomer: (bool) $order->completion_confirmed_by_customer,
-        ));
+        \Illuminate\Support\Facades\DB::afterCommit(function () use ($order, $status, $cancelledBy, $cancelledByName, $cancelReason) {
+            $this->safeBroadcast(new OrderStatusChanged(
+                conversationId: $order->conversation_id,
+                orderId: $order->id,
+                status: $status,
+                cancelledBy: $cancelledBy,
+                cancelledByName: $cancelledByName,
+                cancelReason: $cancelReason,
+                paidAt: $order->paid_at?->toISOString(),
+                completedAt: $order->completed_at?->toISOString(),
+                autoCompleteAt: $order->paid_at ? $order->paid_at->copy()->addSeconds((int) ((float) PlatformSetting::get('order_auto_complete_delay', 72) * 3600))->toISOString() : null,
+                confirmedByIdol: (bool) $order->completion_confirmed_by_idol,
+                confirmedByCustomer: (bool) $order->completion_confirmed_by_customer,
+            ));
+        });
     }
 
     private function broadcastSystemMessage(Order $order, array $messageAttributes): void
@@ -508,18 +585,21 @@ class OrderService
 
         $msg = $order->conversation->messages()->create($messageAttributes);
         $order->conversation->touch();
-        $msg->load('sender');
-        $this->safeBroadcast(new MessageSent($msg));
 
-        $order->conversation->loadMissing('participants');
-        foreach ($order->conversation->participants as $participant) {
-            $this->safeBroadcast(new NewMessageReceived(
-                $participant->user_id,
-                $order->conversation_id,
-                $msg,
-                $order->id,
-            ));
-        }
+        \Illuminate\Support\Facades\DB::afterCommit(function () use ($msg, $order) {
+            $msg->load('sender');
+            $this->safeBroadcast(new MessageSent($msg));
+
+            $order->conversation->loadMissing('participants');
+            foreach ($order->conversation->participants as $participant) {
+                $this->safeBroadcast(new NewMessageReceived(
+                    $participant->user_id,
+                    $order->conversation_id,
+                    $msg,
+                    $order->id,
+                ));
+            }
+        });
     }
 
     private function safeBroadcast(mixed $event): void

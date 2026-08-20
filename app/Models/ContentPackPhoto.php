@@ -16,11 +16,13 @@ class ContentPackPhoto extends Model
         'sort_order',
     ];
 
-    protected $appends = ['url'];
-
     public function getUrlAttribute(): string
     {
-        return \Illuminate\Support\Facades\Storage::temporaryUrl($this->path, now()->addMinutes(60));
+        try {
+            return Storage::disk(config('filesystems.default'))->temporaryUrl($this->path, now()->addMinutes(60));
+        } catch (\Throwable) {
+            return Storage::disk(config('filesystems.default'))->url($this->path);
+        }
     }
 
     public function contentPack(): BelongsTo

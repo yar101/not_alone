@@ -328,81 +328,21 @@ class UserProfileController extends Controller
         return back();
     }
 
-    public function updateAvatar(Request $request): RedirectResponse
+    public function updateAvatar(\App\Http\Requests\Profile\UpdateAvatarRequest $request, \App\Services\Media\AvatarService $avatarService): RedirectResponse
     {
-        $request->validate(['avatar' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240']]);
-        $user = $request->user();
-
-        if ($user->avatar_path) {
-            Storage::disk(config('filesystems.default'))->delete($user->avatar_path);
+        try {
+            $avatarService->updateAvatar($request->user(), $request->file('avatar'));
+        } catch (\Throwable $e) {
+            return back()->withErrors(['avatar' => $e->getMessage()]);
         }
-
-        $file = $request->file('avatar');
-        $realPath = $file->getRealPath();
-        $img = imagecreatefromstring(file_get_contents($realPath));
-
-        if (!$img) {
-            return back()->withErrors(['avatar' => 'Could not process image.']);
-        }
-
-        // Fix orientation from EXIF
-        $exif = function_exists('exif_read_data') ? @exif_read_data($realPath) : false;
-        if (!empty($exif['Orientation'])) {
-            switch ($exif['Orientation']) {
-                case 3: $img = imagerotate($img, 180, 0); break;
-                case 6: $img = imagerotate($img, -90, 0); break;
-                case 8: $img = imagerotate($img, 90, 0); break;
-            }
-        }
-
-        $width  = imagesx($img);
-        $height = imagesy($img);
-        $targetSize = 600;
-
-        $newImg = imagecreatetruecolor($targetSize, $targetSize);
-
-        // Preserve transparency or fill with white for JPEGs
-        $white = imagecolorallocate($newImg, 255, 255, 255);
-        imagefill($newImg, 0, 0, $white);
-
-        // Calculate crop to maintain square aspect ratio (center crop)
-        if ($width > $height) {
-            $srcX = (int)(($width - $height) / 2);
-            $srcY = 0;
-            $srcW = $height;
-            $srcH = $height;
-        } else {
-            $srcX = 0;
-            $srcY = (int)(($height - $width) / 2);
-            $srcW = $width;
-            $srcH = $width;
-        }
-
-        imagecopyresampled($newImg, $img, 0, 0, $srcX, $srcY, $targetSize, $targetSize, $srcW, $srcH);
-
-        $path = "avatars/{$user->id}_" . time() . ".jpg";
-        
-        ob_start();
-        imagejpeg($newImg, null, 70);
-        $imageData = ob_get_clean();
-        
-        Storage::disk(config('filesystems.default'))->put($path, $imageData);
-
-        imagedestroy($img);
-        imagedestroy($newImg);
-
-        $user->update(['avatar_path' => $path]);
 
         return back();
     }
 
-    public function deleteAvatar(Request $request): RedirectResponse
+    public function deleteAvatar(Request $request, \App\Services\Media\AvatarService $avatarService): RedirectResponse
     {
-        $user = $request->user();
-        if ($user->avatar_path) {
-            Storage::disk(config('filesystems.default'))->delete($user->avatar_path);
-            $user->update(['avatar_path' => null]);
-        }
+        $avatarService->deleteAvatar($request->user());
+
         return back();
     }
 

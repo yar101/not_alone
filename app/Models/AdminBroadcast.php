@@ -9,7 +9,7 @@ class AdminBroadcast extends Model
 {
     use HasTranslations;
 
-    protected $fillable = ['admin_id', 'title', 'body', 'target', 'target_user_id', 'target_filters'];
+    protected $fillable = ['admin_id', 'title', 'body', 'target', 'target_user_id', 'target_filters', 'created_at'];
 
     public array $translatable = ['title', 'body'];
 

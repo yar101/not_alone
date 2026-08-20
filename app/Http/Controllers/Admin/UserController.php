@@ -118,11 +118,11 @@ class UserController extends Controller
         }
 
         if ($request->filled('age_from')) {
-            $query->whereRaw('EXTRACT(YEAR FROM AGE(birth_date)) >= ?', [(int) $request->age_from]);
+            $query->whereDate('birth_date', '<=', now()->subYears((int) $request->age_from)->toDateString());
         }
 
         if ($request->filled('age_to')) {
-            $query->whereRaw('EXTRACT(YEAR FROM AGE(birth_date)) <= ?', [(int) $request->age_to]);
+            $query->whereDate('birth_date', '>=', now()->subYears((int) $request->age_to + 1)->addDay()->toDateString());
         }
 
         if ($request->filled('registered_from')) {

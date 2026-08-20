@@ -60,38 +60,49 @@ class ContentPackController extends Controller
         $moderation = $this->moderationSettings();
         $status     = $moderation['new_packs'] ? 'pending_review' : 'approved';
 
-        $pack = ContentPack::create([
-            'user_id'      => $request->user()->id,
-            'title'        => $data['title'],
-            'description'  => $data['description'] ?? null,
-            'price'        => $data['price'],
-            'status'       => $status,
-            'published_at' => null,
-        ]);
-
-        $coverIndex = $data['cover_index'] ?? null;
-        $coverPath  = null;
-
-        foreach ($request->file('photos', []) as $index => $file) {
-            [$tempPath, $finalPath] = $this->storeTempPhoto($file, $pack->id);
-            
-            $photo = ContentPackPhoto::create([
-                'content_pack_id'   => $pack->id,
-                'path'              => $tempPath,
-                'original_filename' => $file->getClientOriginalName(),
-                'sort_order'        => $index,
+        $pack = DB::transaction(function () use ($request, $data, $status) {
+            $pack = ContentPack::create([
+                'user_id'      => $request->user()->id,
+                'title'        => $data['title'],
+                'description'  => $data['description'] ?? null,
+                'price'        => $data['price'],
+                'status'       => $status,
+                'published_at' => null,
             ]);
-            
-            \App\Jobs\ProcessImageUpload::dispatch($tempPath, $finalPath, ContentPackPhoto::class, $photo->id, 'path');
-            
-            if ((int)$index === (int)$coverIndex) {
-                $coverPath = $tempPath;
-            }
-        }
 
-        if ($coverPath) {
-            $pack->update(['cover_path' => $coverPath]);
-        }
+            $coverIndex = $data['cover_index'] ?? null;
+            $coverPath  = null;
+            $uploadJobs = [];
+
+            foreach ($request->file('photos', []) as $index => $file) {
+                [$tempPath, $finalPath] = $this->storeTempPhoto($file, $pack->id);
+
+                $photo = ContentPackPhoto::create([
+                    'content_pack_id'   => $pack->id,
+                    'path'              => $tempPath,
+                    'original_filename' => $file->getClientOriginalName(),
+                    'sort_order'        => $index,
+                ]);
+
+                $uploadJobs[] = [$tempPath, $finalPath, $photo->id];
+
+                if ((int) $index === (int) $coverIndex) {
+                    $coverPath = $tempPath;
+                }
+            }
+
+            if ($coverPath) {
+                $pack->update(['cover_path' => $coverPath]);
+            }
+
+            DB::afterCommit(function () use ($uploadJobs) {
+                foreach ($uploadJobs as [$tempPath, $finalPath, $photoId]) {
+                    \App\Jobs\ProcessImageUpload::dispatch($tempPath, $finalPath, ContentPackPhoto::class, $photoId, 'path');
+                }
+            });
+
+            return $pack;
+        });
 
         return response()->json(['id' => $pack->id, 'status' => $pack->status]);
     }

@@ -30,7 +30,7 @@ class ContentPackPurchaseController extends Controller
             $createdIds = [];
             foreach ($packIds as $packId) {
                 $pack = $packs->get($packId);
-                if (!$pack) {
+                if (! $pack || $pack->user_id === $userId) {
                     continue;
                 }
                 
