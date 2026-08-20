@@ -105,7 +105,11 @@ class StrikeController extends Controller
                 ]);
 
                 // Invalidate sessions
-                DB::table('sessions')->where('user_id', $user->id)->delete();
+                try {
+                    DB::table('sessions')->where('user_id', $user->id)->delete();
+                } catch (\Throwable) {
+                    // sessions table might not exist if driver is redis/file/array
+                }
 
                 AdminLogService::log(
                     auth('admin')->id(),

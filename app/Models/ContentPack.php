@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\URL;
 
 class ContentPack extends Model
 {
@@ -29,11 +28,11 @@ class ContentPack extends Model
     ];
 
     protected $casts = [
-        'price'           => 'integer',
-        'published_at'    => 'datetime',
-        'hidden_at'       => 'datetime',
-        'moderated_at'    => 'datetime',
-        'resubmitted_at'  => 'datetime',
+        'price' => 'integer',
+        'published_at' => 'datetime',
+        'hidden_at' => 'datetime',
+        'moderated_at' => 'datetime',
+        'resubmitted_at' => 'datetime',
     ];
 
     protected $appends = ['cover_url'];
@@ -42,16 +41,22 @@ class ContentPack extends Model
     {
         $path = $this->cover_path;
 
-        if (!$path) {
+        if (! $path) {
             $photo = $this->relationLoaded('coverPhoto')
                 ? $this->coverPhoto
                 : $this->photos->first();
             $path = $photo?->path;
         }
 
-        return $path 
-            ? \Illuminate\Support\Facades\Storage::temporaryUrl($path, now()->addMinutes(60))
-            : null;
+        if (! $path) {
+            return null;
+        }
+
+        try {
+            return Storage::disk(config('filesystems.default'))->temporaryUrl($path, now()->addMinutes(60));
+        } catch (\Throwable) {
+            return Storage::disk(config('filesystems.default'))->url($path);
+        }
     }
 
     public function coverPhoto(): HasOne

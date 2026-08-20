@@ -34,13 +34,13 @@ class NotifyFollowersJob implements ShouldQueue
     public function handle(): void
     {
         $notification = match (true) {
-            $this->content instanceof Post        => new NewPostNotification($this->content),
+            $this->content instanceof Post => new NewPostNotification($this->content),
             $this->content instanceof ContentPack => new NewContentPackNotification($this->content),
-            $this->content instanceof Service     => new NewServiceNotification($this->content),
+            $this->content instanceof Service => new NewServiceNotification($this->content),
             default => null,
         };
 
-        if (!$notification) {
+        if (! $notification) {
             return;
         }
 

@@ -18,8 +18,8 @@ class ReviewDisputeController extends Controller
 
         abort_if(
             ReviewDispute::where('review_id', $review->id)
-                         ->where('status', 'pending')
-                         ->exists(),
+                ->where('status', 'pending')
+                ->exists(),
             422,
             'dispute_pending'
         );
@@ -30,8 +30,8 @@ class ReviewDisputeController extends Controller
 
         ReviewDispute::create([
             'review_id' => $review->id,
-            'idol_id'   => $user->id,
-            'reason'    => $request->reason,
+            'idol_id' => $user->id,
+            'reason' => $request->reason,
         ]);
 
         return response()->json(['success' => true]);

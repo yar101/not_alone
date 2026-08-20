@@ -19,9 +19,8 @@ class UserController extends Controller
         $query = User::query()->with('bannedBy');
 
         if ($q = $request->q) {
-            $query->where(fn($qb) =>
-                $qb->where('name', 'ilike', "%{$q}%")
-                   ->orWhere('email', 'ilike', "%{$q}%")
+            $query->where(fn ($qb) => $qb->where('name', 'ilike', "%{$q}%")
+                ->orWhere('email', 'ilike', "%{$q}%")
             );
         }
 
@@ -42,24 +41,24 @@ class UserController extends Controller
         }
 
         $users = $query->orderByDesc('created_at')->paginate(30)->withQueryString()
-            ->through(fn(User $u) => [
-                'id'                       => $u->id,
-                'name'                     => $u->name,
-                'email'                    => $u->email,
-                'avatar_url'               => $u->avatar_url,
-                'gender'                   => $u->gender,
-                'is_idol'                  => $u->is_idol,
-                'rating'                   => $u->rating,
-                'is_banned'                => $u->is_banned,
-                'banned_until'             => $u->banned_until,
-                'ban_reason'               => $u->ban_reason,
-                'bannedBy'                 => $u->bannedBy ? ['name' => $u->bannedBy->name] : null,
+            ->through(fn (User $u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'avatar_url' => $u->avatar_url,
+                'gender' => $u->gender,
+                'is_idol' => $u->is_idol,
+                'rating' => $u->rating,
+                'is_banned' => $u->is_banned,
+                'banned_until' => $u->banned_until,
+                'ban_reason' => $u->ban_reason,
+                'bannedBy' => $u->bannedBy ? ['name' => $u->bannedBy->name] : null,
                 'idol_quiz_cooldown_until' => $u->idol_quiz_cooldown_until,
-                'created_at'               => $u->created_at,
+                'created_at' => $u->created_at,
             ]);
 
         return Inertia::render('Admin/Users/Index', [
-            'users'  => $users,
+            'users' => $users,
             'filter' => $request->only(['q', 'is_idol', 'is_banned', 'gender', 'registered_from', 'registered_to']),
         ]);
     }
@@ -105,7 +104,7 @@ class UserController extends Controller
         if ($q = $request->q) {
             $query->where(function ($qb) use ($q) {
                 $qb->where('name', 'ilike', "%{$q}%")
-                   ->orWhere('email', 'ilike', "%{$q}%");
+                    ->orWhere('email', 'ilike', "%{$q}%");
             });
         }
 
@@ -135,13 +134,13 @@ class UserController extends Controller
 
         $paginator = $query->orderByDesc('created_at')->paginate(20);
 
-        $data = $paginator->map(fn(User $u) => [
-            'id'         => $u->id,
-            'name'       => $u->name,
-            'email'      => $u->email,
-            'is_idol'    => $u->is_idol,
-            'gender'     => $u->gender,
-            'age'        => $u->age,
+        $data = $paginator->map(fn (User $u) => [
+            'id' => $u->id,
+            'name' => $u->name,
+            'email' => $u->email,
+            'is_idol' => $u->is_idol,
+            'gender' => $u->gender,
+            'age' => $u->age,
             'avatar_url' => $u->avatar_url,
             'created_at' => $u->created_at,
         ]);
@@ -150,8 +149,8 @@ class UserController extends Controller
             'data' => $data,
             'meta' => [
                 'current_page' => $paginator->currentPage(),
-                'last_page'    => $paginator->lastPage(),
-                'total'        => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+                'total' => $paginator->total(),
             ],
         ]);
     }
@@ -163,40 +162,40 @@ class UserController extends Controller
 
         return Inertia::render('Admin/Users/Show', [
             'user' => [
-                'id'                 => $user->id,
-                'name'               => $user->name,
-                'email'              => $user->email,
-                'avatar_url'         => $user->avatar_url,
-                'is_idol'            => $user->is_idol,
-                'rating'             => $user->rating,
-                'gender'             => $user->gender,
-                'age'                => $user->age,
-                'created_at'         => $user->created_at,
-                'idol_quiz_passed_at'=> $user->idol_quiz_passed_at,
-                'is_banned'          => $user->is_banned,
-                'banned_at'          => $user->banned_at,
-                'banned_until'       => $user->banned_until,
-                'ban_reason'         => $user->ban_reason,
-                'banned_by'          => $user->bannedBy ? ['name' => $user->bannedBy->name] : null,
-                'application'        => $user->idolApplication ? [
-                    'status'           => $user->idolApplication->status,
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'avatar_url' => $user->avatar_url,
+                'is_idol' => $user->is_idol,
+                'rating' => $user->rating,
+                'gender' => $user->gender,
+                'age' => $user->age,
+                'created_at' => $user->created_at,
+                'idol_quiz_passed_at' => $user->idol_quiz_passed_at,
+                'is_banned' => $user->is_banned,
+                'banned_at' => $user->banned_at,
+                'banned_until' => $user->banned_until,
+                'ban_reason' => $user->ban_reason,
+                'banned_by' => $user->bannedBy ? ['name' => $user->bannedBy->name] : null,
+                'application' => $user->idolApplication ? [
+                    'status' => $user->idolApplication->status,
                     'rejection_reason' => $user->idolApplication->rejection_reason,
-                    'created_at'       => $user->idolApplication->created_at,
+                    'created_at' => $user->idolApplication->created_at,
                 ] : null,
-                'rating_logs' => $ratingLogs->map(fn($log) => [
-                    'event'      => $log->event,
-                    'delta'      => $log->delta,
-                    'note'       => $log->note,
+                'rating_logs' => $ratingLogs->map(fn ($log) => [
+                    'event' => $log->event,
+                    'delta' => $log->delta,
+                    'note' => $log->note,
                     'created_at' => $log->created_at,
                 ]),
-                'services' => $user->services->map(fn($s) => [
-                    'id'        => $s->id,
-                    'name'      => $s->name,
-                    'category'  => $s->category?->name,
+                'services' => $user->services->map(fn ($s) => [
+                    'id' => $s->id,
+                    'name' => $s->name,
+                    'category' => $s->category?->name,
                     'time_unit' => $s->timeUnit?->name,
-                    'price'     => $s->price,
+                    'price' => $s->price,
                     'is_active' => $s->is_active,
-                    'status'    => $s->status,
+                    'status' => $s->status,
                 ]),
             ],
         ]);
@@ -205,20 +204,24 @@ class UserController extends Controller
     public function ban(Request $request, User $user): RedirectResponse
     {
         $validated = $request->validate([
-            'reason'       => 'required|string|max:500',
+            'reason' => 'required|string|max:500',
             'banned_until' => 'nullable|date|after:now',
         ]);
 
         $user->update([
-            'is_banned'    => true,
-            'banned_at'    => now(),
+            'is_banned' => true,
+            'banned_at' => now(),
             'banned_until' => $validated['banned_until'] ?? null,
-            'ban_reason'   => $validated['reason'],
-            'banned_by'    => auth('admin')->id(),
+            'ban_reason' => $validated['reason'],
+            'banned_by' => auth('admin')->id(),
         ]);
 
-        // Immediately invalidate all active sessions of the banned user
-        DB::table('sessions')->where('user_id', $user->id)->delete();
+        // Immediately invalidate active database sessions if table exists
+        try {
+            DB::table('sessions')->where('user_id', $user->id)->delete();
+        } catch (\Throwable) {
+            // sessions table might not exist if session driver is redis/file/array
+        }
 
         AdminLogService::log(
             auth('admin')->id(),
@@ -234,11 +237,11 @@ class UserController extends Controller
     public function unban(User $user): RedirectResponse
     {
         $user->update([
-            'is_banned'    => false,
-            'banned_at'    => null,
+            'is_banned' => false,
+            'banned_at' => null,
             'banned_until' => null,
-            'ban_reason'   => null,
-            'banned_by'    => null,
+            'ban_reason' => null,
+            'banned_by' => null,
         ]);
 
         AdminLogService::log(auth('admin')->id(), 'unban_user', 'user', $user->id);

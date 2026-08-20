@@ -2,10 +2,10 @@
 
 namespace App\Notifications;
 
-use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Models\Service;
 use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 
@@ -24,10 +24,10 @@ class ServiceChangeRejectedNotification extends Notification implements ShouldQu
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'         => 'service_change_rejected',
-            'service_id'   => $this->service->id,
+            'type' => 'service_change_rejected',
+            'service_id' => $this->service->id,
             'service_name' => $this->service->name,
-            'reason'       => $this->reason,
+            'reason' => $this->reason,
         ];
     }
 

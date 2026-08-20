@@ -9,13 +9,17 @@ use App\Notifications\ReviewDisputeApprovedNotification;
 use App\Notifications\ReviewDisputeRejectedNotification;
 use App\Services\AdminLogService;
 use App\Services\IdolRatingService;
+use App\Traits\SafeBroadcast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ReviewDisputeController extends Controller
 {
+    use SafeBroadcast;
+
     public function index(Request $request): Response
     {
         $statusFilter = $request->get('status', 'pending');
@@ -67,33 +71,38 @@ class ReviewDisputeController extends Controller
         $adminId = auth('admin')->id();
         $idol = $reviewDispute->idol;
 
-        $reviewDispute->update([
-            'status' => $request->decision,
-            'admin_note' => $request->admin_note,
-            'resolved_at' => now(),
-        ]);
+        DB::transaction(function () use ($reviewDispute, $request, $idol, $adminId) {
+            $reviewDispute->update([
+                'status' => $request->decision,
+                'admin_note' => $request->admin_note,
+                'resolved_at' => now(),
+            ]);
+
+            if ($request->decision === 'approved') {
+                $reviewDispute->review->update(['is_hidden' => true]);
+                IdolRatingService::adjust($idol, 'review_dispute_approved');
+            }
+
+            AdminLogService::log(
+                $adminId,
+                'resolve_review_dispute',
+                'review_dispute',
+                $reviewDispute->id,
+                [
+                    'decision' => $request->decision,
+                    'review_id' => $reviewDispute->review_id,
+                    'note' => $request->admin_note,
+                ]
+            );
+        });
 
         if ($request->decision === 'approved') {
-            $reviewDispute->review->update(['is_hidden' => true]);
-            IdolRatingService::adjust($idol, 'review_dispute_approved');
             $idol->notify(new ReviewDisputeApprovedNotification($request->admin_note));
         } else {
             $idol->notify(new ReviewDisputeRejectedNotification($request->admin_note));
         }
 
-        broadcast(new NewNotification('private', $idol->id));
-
-        AdminLogService::log(
-            $adminId,
-            'resolve_review_dispute',
-            'review_dispute',
-            $reviewDispute->id,
-            [
-                'decision' => $request->decision,
-                'review_id' => $reviewDispute->review_id,
-                'note' => $request->admin_note,
-            ]
-        );
+        $this->safeBroadcast(new NewNotification('private', $idol->id));
 
         return back();
     }

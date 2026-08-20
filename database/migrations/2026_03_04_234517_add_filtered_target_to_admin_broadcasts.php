@@ -10,7 +10,7 @@ return new class extends Migration
     public function up(): void
     {
         // PostgreSQL enum нельзя расширить ALTER TYPE без пересоздания — конвертируем в varchar
-        DB::statement("ALTER TABLE admin_broadcasts ALTER COLUMN target TYPE VARCHAR(20)");
+        DB::statement('ALTER TABLE admin_broadcasts ALTER COLUMN target TYPE VARCHAR(20)');
 
         Schema::table('admin_broadcasts', function (Blueprint $table) {
             $table->jsonb('target_filters')->nullable()->after('target_user_id');

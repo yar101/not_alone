@@ -17,7 +17,7 @@ class ServiceCategory extends Model
     protected function casts(): array
     {
         return [
-            'is_active'        => 'boolean',
+            'is_active' => 'boolean',
             'name_suggestions' => 'array',
         ];
     }
@@ -40,4 +40,3 @@ class ServiceCategory extends Model
         static::deleted(fn () => static::clearCache());
     }
 }
-

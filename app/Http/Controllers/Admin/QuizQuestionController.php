@@ -18,7 +18,7 @@ class QuizQuestionController extends Controller
     {
         $questions = IdolQuizQuestion::orderBy('stage')->orderBy('sort_order')->get()
             ->groupBy('stage')
-            ->map(fn($group) => $group->values());
+            ->map(fn ($group) => $group->values());
 
         return Inertia::render('Admin/Quiz/Index', [
             'questions_by_stage' => $questions,
@@ -28,12 +28,12 @@ class QuizQuestionController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'stage'                => 'required|integer|min:1|max:10',
-            'question'             => 'required|string',
-            'options'              => 'required|array|min:2|max:6',
-            'options.*'            => 'required|string',
+            'stage' => 'required|integer|min:1|max:10',
+            'question' => 'required|string',
+            'options' => 'required|array|min:2|max:6',
+            'options.*' => 'required|string',
             'correct_option_index' => 'required|integer|min:0',
-            'sort_order'           => 'integer|min:0',
+            'sort_order' => 'integer|min:0',
         ]);
 
         IdolQuizQuestion::create($validated);
@@ -44,12 +44,12 @@ class QuizQuestionController extends Controller
     public function update(Request $request, IdolQuizQuestion $question)
     {
         $validated = $request->validate([
-            'stage'                => 'required|integer|min:1|max:10',
-            'question'             => 'required|string',
-            'options'              => 'required|array|min:2|max:6',
-            'options.*'            => 'required|string',
+            'stage' => 'required|integer|min:1|max:10',
+            'question' => 'required|string',
+            'options' => 'required|array|min:2|max:6',
+            'options.*' => 'required|string',
             'correct_option_index' => 'required|integer|min:0',
-            'sort_order'           => 'integer|min:0',
+            'sort_order' => 'integer|min:0',
         ]);
 
         $question->update($validated);
@@ -76,17 +76,17 @@ class QuizQuestionController extends Controller
         $questions = IdolQuizQuestion::orderBy('stage')
             ->orderBy('sort_order')
             ->get(['stage', 'question', 'options', 'correct_option_index', 'sort_order'])
-            ->map(fn($q) => [
-                'stage'                => $q->stage,
-                'question'             => $q->question,
-                'options'              => $q->options,
+            ->map(fn ($q) => [
+                'stage' => $q->stage,
+                'question' => $q->question,
+                'options' => $q->options,
                 'correct_option_index' => $q->correct_option_index,
-                'sort_order'           => $q->sort_order,
+                'sort_order' => $q->sort_order,
             ])
             ->values();
 
         $payload = [
-            'version'   => 1,
+            'version' => 1,
             'exported_at' => now()->toISOString(),
             'questions' => $questions,
         ];
@@ -95,7 +95,7 @@ class QuizQuestionController extends Controller
 
         return response()->json($payload, 200, [
             'Content-Disposition' => "attachment; filename=\"quiz_questions_{$date}.json\"",
-            'Content-Type'        => 'application/json; charset=utf-8',
+            'Content-Type' => 'application/json; charset=utf-8',
         ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     }
 
@@ -105,37 +105,37 @@ class QuizQuestionController extends Controller
     public function downloadTemplate()
     {
         $payload = [
-            'version'   => 1,
+            'version' => 1,
             'questions' => [
                 [
-                    'stage'                => 1,
-                    'question'             => 'Пример вопроса для этапа 1?',
-                    'options'              => [
+                    'stage' => 1,
+                    'question' => 'Пример вопроса для этапа 1?',
+                    'options' => [
                         'Вариант ответа A',
                         'Вариант ответа B',
                         'Вариант ответа C',
-                        'Вариант ответа D'
+                        'Вариант ответа D',
                     ],
                     'correct_option_index' => 0,
-                    'sort_order'           => 0,
+                    'sort_order' => 0,
                 ],
                 [
-                    'stage'                => 2,
-                    'question'             => 'Пример вопроса для этапа 2?',
-                    'options'              => [
+                    'stage' => 2,
+                    'question' => 'Пример вопроса для этапа 2?',
+                    'options' => [
                         'Вариант ответа A',
                         'Вариант ответа B',
-                        'Вариант ответа C'
+                        'Вариант ответа C',
                     ],
                     'correct_option_index' => 1,
-                    'sort_order'           => 0,
-                ]
+                    'sort_order' => 0,
+                ],
             ],
         ];
 
         return response()->json($payload, 200, [
             'Content-Disposition' => 'attachment; filename="quiz_questions_template.json"',
-            'Content-Type'        => 'application/json; charset=utf-8',
+            'Content-Type' => 'application/json; charset=utf-8',
         ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     }
 
@@ -162,7 +162,7 @@ class QuizQuestionController extends Controller
 
         $questions = $data['questions'] ?? (is_array($data) && isset($data[0]) ? $data : null);
 
-        if (!is_array($questions) || empty($questions)) {
+        if (! is_array($questions) || empty($questions)) {
             return back()->withErrors(['file' => 'Файл не содержит массив вопросов (ключ "questions").']);
         }
 
@@ -170,16 +170,16 @@ class QuizQuestionController extends Controller
         $errors = [];
         foreach ($questions as $i => $q) {
             $n = $i + 1;
-            if (!isset($q['stage']) || !is_int((int) $q['stage']) || $q['stage'] < 1 || $q['stage'] > 10) {
+            if (! isset($q['stage']) || ! is_int((int) $q['stage']) || $q['stage'] < 1 || $q['stage'] > 10) {
                 $errors[] = "Вопрос #{$n}: поле «stage» должно быть числом от 1 до 10.";
             }
-            if (empty($q['question']) || !is_string($q['question'])) {
+            if (empty($q['question']) || ! is_string($q['question'])) {
                 $errors[] = "Вопрос #{$n}: поле «question» отсутствует или не является строкой.";
             }
-            if (!isset($q['options']) || !is_array($q['options']) || count($q['options']) < 2) {
+            if (! isset($q['options']) || ! is_array($q['options']) || count($q['options']) < 2) {
                 $errors[] = "Вопрос #{$n}: поле «options» должно быть массивом минимум из 2 вариантов.";
             }
-            if (!isset($q['correct_option_index']) || !is_numeric($q['correct_option_index'])) {
+            if (! isset($q['correct_option_index']) || ! is_numeric($q['correct_option_index'])) {
                 $errors[] = "Вопрос #{$n}: поле «correct_option_index» отсутствует или не является числом.";
             }
             if (count($errors) >= 5) {
@@ -201,11 +201,11 @@ class QuizQuestionController extends Controller
 
             foreach ($questions as $q) {
                 $attrs = [
-                    'stage'                => (int) $q['stage'],
-                    'question'             => trim($q['question']),
-                    'options'              => array_values(array_map('strval', $q['options'])),
+                    'stage' => (int) $q['stage'],
+                    'question' => trim($q['question']),
+                    'options' => array_values(array_map('strval', $q['options'])),
                     'correct_option_index' => (int) $q['correct_option_index'],
-                    'sort_order'           => isset($q['sort_order']) ? (int) $q['sort_order'] : 0,
+                    'sort_order' => isset($q['sort_order']) ? (int) $q['sort_order'] : 0,
                 ];
 
                 if ($mode === 'append') {
@@ -231,13 +231,13 @@ class QuizQuestionController extends Controller
 
     public function showArticle()
     {
-        $active   = IdolArticleVersion::active()->first();
+        $active = IdolArticleVersion::active()->first();
         $versions = IdolArticleVersion::orderByDesc('created_at')
             ->get(['id', 'label', 'is_active', 'created_at']);
 
         return Inertia::render('Admin/Quiz/Article', [
             'active_version' => $active,
-            'versions'       => $versions,
+            'versions' => $versions,
         ]);
     }
 
@@ -248,16 +248,16 @@ class QuizQuestionController extends Controller
     public function storeVersion(Request $request)
     {
         $validated = $request->validate([
-            'html'  => 'nullable|string',
+            'html' => 'nullable|string',
             'label' => 'nullable|string|max:120',
         ]);
 
-        $html  = $validated['html'] ?? '';
+        $html = $validated['html'] ?? '';
         $label = filled($validated['label']) ? trim($validated['label']) : null;
 
         $version = IdolArticleVersion::create([
-            'html'      => $html,
-            'label'     => $label,
+            'html' => $html,
+            'label' => $label,
             'is_active' => false,
         ]);
 
@@ -301,12 +301,13 @@ class QuizQuestionController extends Controller
 
         if ($active) {
             $active->update(['html' => $html]);
+
             return back()->with('success', 'Изменения в активной версии сохранены.');
         }
 
         IdolArticleVersion::create([
-            'html'      => $html,
-            'label'     => 'Изначальная версия',
+            'html' => $html,
+            'label' => 'Изначальная версия',
             'is_active' => true,
         ]);
 
@@ -340,7 +341,7 @@ class QuizQuestionController extends Controller
         return response()->json([
             'version_a' => ['id' => $other->id, 'label' => $other->label, 'created_at' => $other->created_at],
             'version_b' => ['id' => $version->id, 'label' => $version->label, 'created_at' => $version->created_at],
-            'diff'      => $diff,
+            'diff' => $diff,
         ]);
     }
 
@@ -350,10 +351,10 @@ class QuizQuestionController extends Controller
     public function exportArticle()
     {
         $active = IdolArticleVersion::active()->firstOrFail();
-        $date   = now()->format('Y-m-d');
+        $date = now()->format('Y-m-d');
 
         return response($active->html, 200, [
-            'Content-Type'        => 'text/html; charset=utf-8',
+            'Content-Type' => 'text/html; charset=utf-8',
             'Content-Disposition' => "attachment; filename=\"article_{$date}.html\"",
         ]);
     }
@@ -367,12 +368,12 @@ class QuizQuestionController extends Controller
             'file' => 'required|file|mimes:html,htm|max:2048',
         ]);
 
-        $html  = file_get_contents($request->file('file')->getRealPath());
-        $label = 'Импорт от ' . now()->format('d.m.Y H:i');
+        $html = file_get_contents($request->file('file')->getRealPath());
+        $label = 'Импорт от '.now()->format('d.m.Y H:i');
 
         IdolArticleVersion::create([
-            'html'      => $html,
-            'label'     => $label,
+            'html' => $html,
+            'label' => $label,
             'is_active' => false,
         ]);
 
@@ -384,8 +385,8 @@ class QuizQuestionController extends Controller
     {
         $result = [];
         $matrix = [];
-        $n      = count($old);
-        $m      = count($new);
+        $n = count($old);
+        $m = count($new);
 
         // Build LCS matrix
         for ($i = 0; $i <= $n; $i++) {

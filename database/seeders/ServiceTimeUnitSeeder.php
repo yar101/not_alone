@@ -25,9 +25,9 @@ class ServiceTimeUnitSeeder extends Seeder
 
         foreach ($units as $i => $name) {
             ServiceTimeUnit::create([
-                'name'       => $name,
+                'name' => $name,
                 'sort_order' => $i,
-                'is_active'  => true,
+                'is_active' => true,
             ]);
         }
     }

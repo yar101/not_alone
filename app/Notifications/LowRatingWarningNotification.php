@@ -2,9 +2,9 @@
 
 namespace App\Notifications;
 
-use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 
@@ -25,10 +25,10 @@ class LowRatingWarningNotification extends Notification implements ShouldQueue
         $locale = $notifiable->locale ?? config('app.locale');
 
         return [
-            'type'      => 'low_rating_warning',
+            'type' => 'low_rating_warning',
             'threshold' => $this->threshold,
-            'title'     => __('notification.type.low_rating', [], $locale),
-            'message'   => __('notification.msg.low_rating_warning', ['threshold' => $this->threshold], $locale),
+            'title' => __('notification.type.low_rating', [], $locale),
+            'message' => __('notification.msg.low_rating_warning', ['threshold' => $this->threshold], $locale),
         ];
     }
 

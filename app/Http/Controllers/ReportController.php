@@ -15,8 +15,8 @@ class ReportController extends Controller
 
         $validated = $request->validate([
             'reported_id' => ['required', 'integer', 'exists:users,id', Rule::notIn([$userId])],
-            'reason'      => ['required', Rule::in(['spam', 'inappropriate', 'fraud', 'harassment', 'other'])],
-            'details'     => ['required', 'string', 'min:10', 'max:1000'],
+            'reason' => ['required', Rule::in(['spam', 'inappropriate', 'fraud', 'harassment', 'other'])],
+            'details' => ['required', 'string', 'min:10', 'max:1000'],
         ]);
 
         UserReport::create([

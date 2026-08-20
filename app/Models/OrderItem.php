@@ -16,6 +16,6 @@ class OrderItem extends Model
 
     public function service(): BelongsTo
     {
-        return $this->belongsTo(Service::class)->withTrashed()->with(['category', 'timeUnit']);
+        return $this->belongsTo(Service::class)->withTrashed();
     }
 }

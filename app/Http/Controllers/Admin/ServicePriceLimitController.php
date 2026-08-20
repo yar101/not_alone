@@ -15,20 +15,20 @@ class ServicePriceLimitController extends Controller
     public function index(): Response
     {
         return Inertia::render('Admin/Services/Index', [
-            'limits'     => ServicePriceLimit::with('timeUnit')->get()->map(fn ($l) => [
-                'id'           => $l->id,
+            'limits' => ServicePriceLimit::with('timeUnit')->get()->map(fn ($l) => [
+                'id' => $l->id,
                 'time_unit_id' => $l->time_unit_id,
-                'max_price'    => $l->max_price,
-                'time_unit'    => $l->timeUnit ? [
-                    'id'      => $l->timeUnit->id,
+                'max_price' => $l->max_price,
+                'time_unit' => $l->timeUnit ? [
+                    'id' => $l->timeUnit->id,
                     'name_ru' => $l->timeUnit->getTranslation('name', 'ru'),
                 ] : null,
             ]),
-            'timeUnits'  => ServiceTimeUnit::where('is_active', true)
+            'timeUnits' => ServiceTimeUnit::where('is_active', true)
                 ->orderBy('sort_order')
                 ->get()
                 ->map(fn ($u) => [
-                    'id'      => $u->id,
+                    'id' => $u->id,
                     'name_ru' => $u->getTranslation('name', 'ru'),
                     'name_en' => $u->getTranslation('name', 'en', false) ?: '',
                 ]),
@@ -40,7 +40,7 @@ class ServicePriceLimitController extends Controller
     {
         $data = $request->validate([
             'time_unit_id' => ['required', 'integer', 'exists:service_time_units,id'],
-            'max_price'    => ['required', 'integer', 'min:1'],
+            'max_price' => ['required', 'integer', 'min:1'],
         ]);
 
         ServicePriceLimit::create($data);
@@ -52,7 +52,7 @@ class ServicePriceLimitController extends Controller
     {
         $data = $request->validate([
             'time_unit_id' => ['sometimes', 'integer', 'exists:service_time_units,id'],
-            'max_price'    => ['sometimes', 'integer', 'min:1'],
+            'max_price' => ['sometimes', 'integer', 'min:1'],
         ]);
 
         $priceLimit->update($data);

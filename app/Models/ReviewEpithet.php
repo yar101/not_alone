@@ -11,7 +11,7 @@ class ReviewEpithet extends Model
 
     protected static function booted(): void
     {
-        static::addGlobalScope('ordered', fn($q) => $q->orderBy('sort_order'));
+        static::addGlobalScope('ordered', fn ($q) => $q->orderBy('sort_order'));
         $clearCache = fn () => \Illuminate\Support\Facades\Cache::forget('review_epithets_list');
         static::saved($clearCache);
         static::deleted($clearCache);

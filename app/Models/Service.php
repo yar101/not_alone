@@ -3,10 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Translatable\HasTranslations;
 
 class Service extends Model
@@ -20,10 +20,10 @@ class Service extends Model
     protected function casts(): array
     {
         return [
-            'is_active'      => 'boolean',
-            'is_trial'       => 'boolean',
-            'price'          => 'integer',
-            'moderated_at'   => 'datetime',
+            'is_active' => 'boolean',
+            'is_trial' => 'boolean',
+            'price' => 'integer',
+            'moderated_at' => 'datetime',
             'resubmitted_at' => 'datetime',
         ];
     }

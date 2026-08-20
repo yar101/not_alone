@@ -20,7 +20,7 @@ class MessageRead implements ShouldBroadcast
 
     public function broadcastOn(): array
     {
-        return [new PrivateChannel('conversation.' . $this->conversationId)];
+        return [new PrivateChannel('conversation.'.$this->conversationId)];
     }
 
     public function broadcastAs(): string
@@ -32,7 +32,7 @@ class MessageRead implements ShouldBroadcast
     {
         return [
             'reader_id' => $this->readerId,
-            'read_at'   => $this->readAt,
+            'read_at' => $this->readAt,
         ];
     }
 }

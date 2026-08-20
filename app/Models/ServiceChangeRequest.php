@@ -23,14 +23,14 @@ class ServiceChangeRequest extends Model
     ];
 
     protected $casts = [
-        'changed_fields'       => 'array',
-        'pending_name'         => 'array', // HasTranslations uses array internally if needed, but we store as json
-        'pending_price'        => 'integer',
-        'pending_category_id'  => 'integer',
+        'changed_fields' => 'array',
+        'pending_name' => 'array', // HasTranslations uses array internally if needed, but we store as json
+        'pending_price' => 'integer',
+        'pending_category_id' => 'integer',
         'pending_time_unit_id' => 'integer',
-        'flagged_fields'       => 'array',
-        'field_comments'       => 'array',
-        'reviewed_at'          => 'datetime',
+        'flagged_fields' => 'array',
+        'field_comments' => 'array',
+        'reviewed_at' => 'datetime',
     ];
 
     public function service(): BelongsTo

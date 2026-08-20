@@ -4,8 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Admin;
 use App\Models\AdminBroadcast;
-use App\Models\Conversation;
-use App\Models\ConversationParticipant;
 use App\Models\IdolQuizQuestion;
 use App\Models\ServiceCategory;
 use App\Models\User;
@@ -92,14 +90,14 @@ class OptimizationAndIntegrityTest extends TestCase
 
     public function test_avatar_service_rejects_oversized_pixel_dimensions(): void
     {
-        $service = new AvatarService();
+        $service = new AvatarService;
         $user = User::factory()->create();
 
         // Create an image with dimension > 6000px
         $width = 6500;
         $height = 100;
         $image = imagecreatetruecolor($width, $height);
-        $tempPath = tempnam(sys_get_temp_dir(), 'test_avatar_') . '.jpg';
+        $tempPath = tempnam(sys_get_temp_dir(), 'test_avatar_').'.jpg';
         imagejpeg($image, $tempPath);
         imagedestroy($image);
 

@@ -13,7 +13,7 @@ class HelpCategoryController extends Controller
 {
     public function index(): Response
     {
-        $categories = HelpCategory::with(['articles' => fn($q) => $q->orderBy('sort_order')])
+        $categories = HelpCategory::with(['articles' => fn ($q) => $q->orderBy('sort_order')])
             ->orderBy('sort_order')
             ->get()
             ->map(fn ($cat) => array_merge(
@@ -47,10 +47,10 @@ class HelpCategoryController extends Controller
 
         $maxOrder = HelpCategory::max('sort_order') ?? -1;
 
-        $category = new HelpCategory();
+        $category = new HelpCategory;
         $category->sort_order = $maxOrder + 1;
         $category->setTranslation('title', 'ru', $data['title_ru']);
-        if (!empty($data['title_en'])) {
+        if (! empty($data['title_en'])) {
             $category->setTranslation('title', 'en', $data['title_en']);
         }
         $category->save();
@@ -66,7 +66,7 @@ class HelpCategoryController extends Controller
         ]);
 
         $category->setTranslation('title', 'ru', $data['title_ru']);
-        if (!empty($data['title_en'])) {
+        if (! empty($data['title_en'])) {
             $category->setTranslation('title', 'en', $data['title_en']);
         } else {
             $category->forgetTranslation('title', 'en');
@@ -79,6 +79,7 @@ class HelpCategoryController extends Controller
     public function destroy(HelpCategory $category): RedirectResponse
     {
         $category->delete();
+
         return back()->with('success', 'Раздел удален.');
     }
 

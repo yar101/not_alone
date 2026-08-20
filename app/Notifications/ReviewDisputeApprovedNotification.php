@@ -2,9 +2,9 @@
 
 namespace App\Notifications;
 
-use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 
@@ -23,7 +23,7 @@ class ReviewDisputeApprovedNotification extends Notification implements ShouldQu
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'       => 'review_dispute_approved',
+            'type' => 'review_dispute_approved',
             'admin_note' => $this->adminNote,
         ];
     }

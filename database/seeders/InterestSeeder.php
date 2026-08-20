@@ -87,15 +87,15 @@ class InterestSeeder extends Seeder
 
         foreach ($data as $catIndex => [$catName, $interests]) {
             $category = InterestCategory::create([
-                'name'       => ['ru' => $catName['ru'], 'en' => $catName['en']],
+                'name' => ['ru' => $catName['ru'], 'en' => $catName['en']],
                 'sort_order' => $catIndex + 1,
             ]);
 
             foreach ($interests as $intIndex => $int) {
                 Interest::create([
                     'category_id' => $category->id,
-                    'name'        => ['ru' => $int['ru'], 'en' => $int['en']],
-                    'sort_order'  => $intIndex + 1,
+                    'name' => ['ru' => $int['ru'], 'en' => $int['en']],
+                    'sort_order' => $intIndex + 1,
                 ]);
             }
         }

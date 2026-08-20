@@ -22,7 +22,7 @@ class AvatarFrameController extends Controller
             ->get()
             ->map(function ($f) {
                 $f->image_url = Storage::url($f->image_path);
-                
+
                 // Добавляем текстовое описание условия для фронта
                 if ($f->type === 'achievement' && $f->condition_class) {
                     $condition = ConditionRegistry::get($f->condition_class);
@@ -38,7 +38,7 @@ class AvatarFrameController extends Controller
         return response()->json([
             'frames' => $frames,
             'unlocked_ids' => $unlockedFrameIds,
-            'active_frame' => $user->activeFrame
+            'active_frame' => $user->activeFrame,
         ]);
     }
 
@@ -53,18 +53,18 @@ class AvatarFrameController extends Controller
         // Базовые (free) доступны всегда
         if ($avatarFrame->type !== 'free') {
             $owns = $user->avatarFrames()->where('avatar_frame_id', $avatarFrame->id)->exists();
-            if (!$owns) {
+            if (! $owns) {
                 return response()->json(['message' => 'Вы еще не открыли эту рамку.'], 403);
             }
         }
 
         $user->update([
-            'active_frame_id' => $avatarFrame->id
+            'active_frame_id' => $avatarFrame->id,
         ]);
 
         return response()->json([
-            'message' => 'Рамка надета!', 
-            'active_frame' => $avatarFrame
+            'message' => 'Рамка надета!',
+            'active_frame' => $avatarFrame,
         ]);
     }
 
@@ -74,9 +74,9 @@ class AvatarFrameController extends Controller
     public function unequip(Request $request)
     {
         $user = $request->user();
-        
+
         $user->update([
-            'active_frame_id' => null
+            'active_frame_id' => null,
         ]);
 
         return response()->json(['message' => 'Рамка снята.']);

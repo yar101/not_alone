@@ -2,10 +2,10 @@
 
 namespace App\Notifications;
 
-use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Models\ContentPack;
 use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 
@@ -27,9 +27,9 @@ class ContentPackChangeApprovedNotification extends Notification implements Shou
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'            => 'content_pack_change_approved',
-            'pack_id'         => $this->pack->id,
-            'pack_title'      => $this->pack->title,
+            'type' => 'content_pack_change_approved',
+            'pack_id' => $this->pack->id,
+            'pack_title' => $this->pack->title,
             'approved_fields' => $this->approvedFields,
         ];
     }
@@ -47,14 +47,14 @@ class ContentPackChangeApprovedNotification extends Notification implements Shou
     protected function webPushBody(): string
     {
         $fieldNames = array_map(fn ($f) => match ($f) {
-            'title'       => __('pack.field.title'),
+            'title' => __('pack.field.title'),
             'description' => __('pack.field.description'),
-            'price'       => __('pack.field.price'),
-            default       => $f,
+            'price' => __('pack.field.price'),
+            default => $f,
         }, $this->approvedFields);
 
         return __('push.content_pack_change_approved', [
-            'title'  => $this->pack->title,
+            'title' => $this->pack->title,
             'fields' => implode(', ', $fieldNames),
         ]);
     }

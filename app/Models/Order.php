@@ -20,8 +20,8 @@ class Order extends Model
     ];
 
     protected $casts = [
-        'status'       => OrderStatus::class,
-        'paid_at'      => 'datetime',
+        'status' => OrderStatus::class,
+        'paid_at' => 'datetime',
         'completed_at' => 'datetime',
     ];
 
@@ -64,10 +64,10 @@ class Order extends Model
     {
         $this->statusHistory()->create([
             'from_status' => $from,
-            'to_status'   => $to,
-            'actor_type'  => $actorType,
-            'actor_id'    => $actorId,
-            'note'        => $note,
+            'to_status' => $to,
+            'actor_type' => $actorType,
+            'actor_id' => $actorId,
+            'note' => $note,
         ]);
     }
 }

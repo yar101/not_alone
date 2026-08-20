@@ -16,7 +16,7 @@ class FollowController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        
+
         $idols = $user->following()
             ->select(['users.id', 'users.name', 'users.avatar_path', 'users.active_frame_id', 'users.gender', 'users.birth_date', 'users.rating', 'users.is_idol'])
             ->with('activeFrame')
@@ -40,7 +40,7 @@ class FollowController extends Controller
         }
 
         // Only idols can be followed (as per requirement)
-        if (!$user->is_idol) {
+        if (! $user->is_idol) {
             return back();
         }
 

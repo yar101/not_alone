@@ -38,27 +38,27 @@ class ContentPackChangeRequestController extends Controller
         $fields = [];
         foreach ($changeRequest->changed_fields as $field) {
             $fields[$field] = [
-                'current'        => $pack->{$field},
-                'pending'        => $changeRequest->{"pending_{$field}"},
-                'flagged'        => in_array($field, $changeRequest->flagged_fields ?? []),
-                'admin_comment'  => ($changeRequest->field_comments ?? [])[$field] ?? '',
+                'current' => $pack->{$field},
+                'pending' => $changeRequest->{"pending_{$field}"},
+                'flagged' => in_array($field, $changeRequest->flagged_fields ?? []),
+                'admin_comment' => ($changeRequest->field_comments ?? [])[$field] ?? '',
             ];
         }
 
         return Inertia::render('Admin/ContentPacks/ChangeRequestShow', [
             'changeRequest' => $changeRequest,
-            'pack'          => [
-                'id'         => $pack->id,
-                'title'      => $pack->title,
-                'cover_url'  => $pack->cover_url,
-                'status'     => $pack->status,
-                'user'       => [
-                    'id'         => $pack->user->id,
-                    'name'       => $pack->user->name,
+            'pack' => [
+                'id' => $pack->id,
+                'title' => $pack->title,
+                'cover_url' => $pack->cover_url,
+                'status' => $pack->status,
+                'user' => [
+                    'id' => $pack->user->id,
+                    'name' => $pack->user->name,
                     'avatar_url' => $pack->user->avatar_url,
                 ],
                 'photos' => $pack->photos->map(fn ($ph) => [
-                    'id'  => $ph->id,
+                    'id' => $ph->id,
                     'url' => $ph->url,
                 ])->values(),
             ],
@@ -68,19 +68,19 @@ class ContentPackChangeRequestController extends Controller
 
     public function decide(Request $request, ContentPackChangeRequest $changeRequest): RedirectResponse
     {
-        abort_if(!in_array($changeRequest->status, ['pending', 'has_remarks']), 422);
+        abort_if(! in_array($changeRequest->status, ['pending', 'has_remarks']), 422);
 
         $data = $request->validate([
-            'decision'                  => ['required', 'in:approved,has_remarks,rejected'],
-            'flagged_fields'            => ['sometimes', 'array'],
-            'flagged_fields.*'          => ['string', 'in:title,description,price'],
-            'field_comments'            => ['sometimes', 'array'],
-            'field_comments.*'          => ['nullable', 'string', 'max:500'],
-            'admin_comment'             => ['nullable', 'string', 'max:1000'],
+            'decision' => ['required', 'in:approved,has_remarks,rejected'],
+            'flagged_fields' => ['sometimes', 'array'],
+            'flagged_fields.*' => ['string', 'in:title,description,price'],
+            'field_comments' => ['sometimes', 'array'],
+            'field_comments.*' => ['nullable', 'string', 'max:500'],
+            'admin_comment' => ['nullable', 'string', 'max:1000'],
         ]);
 
         $admin = auth('admin')->user();
-        $pack  = $changeRequest->contentPack;
+        $pack = $changeRequest->contentPack;
 
         if ($data['decision'] === 'approved') {
             DB::transaction(function () use ($changeRequest, $pack, $admin) {
@@ -91,7 +91,7 @@ class ContentPackChangeRequestController extends Controller
                 $pack->update($updates);
 
                 $changeRequest->update([
-                    'status'      => 'approved',
+                    'status' => 'approved',
                     'reviewed_by' => $admin->id,
                     'reviewed_at' => now(),
                 ]);
@@ -111,11 +111,11 @@ class ContentPackChangeRequestController extends Controller
             $fieldComments = array_intersect_key($data['field_comments'] ?? [], array_flip($flaggedFields));
 
             $changeRequest->update([
-                'status'        => 'has_remarks',
+                'status' => 'has_remarks',
                 'flagged_fields' => $flaggedFields,
                 'field_comments' => $fieldComments ?: null,
-                'reviewed_by'   => $admin->id,
-                'reviewed_at'   => now(),
+                'reviewed_by' => $admin->id,
+                'reviewed_at' => now(),
             ]);
 
             $pack->user->notify(new ContentPackChangeRemarksNotification($pack));
@@ -127,9 +127,9 @@ class ContentPackChangeRequestController extends Controller
 
         } else { // rejected
             $changeRequest->update([
-                'status'        => 'rejected',
-                'reviewed_by'   => $admin->id,
-                'reviewed_at'   => now(),
+                'status' => 'rejected',
+                'reviewed_by' => $admin->id,
+                'reviewed_at' => now(),
                 'admin_comment' => $data['admin_comment'] ?? null,
             ]);
 

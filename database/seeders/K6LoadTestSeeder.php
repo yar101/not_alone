@@ -2,13 +2,13 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\User;
-use App\Models\Service;
 use App\Models\Conversation;
 use App\Models\IdolApplication;
-use Illuminate\Support\Facades\Hash;
+use App\Models\Service;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Hash;
 
 class K6LoadTestSeeder extends Seeder
 {
@@ -75,9 +75,9 @@ class K6LoadTestSeeder extends Seeder
             "K6_SERVICE_ID={$service->id}",
             "K6_CONV_ID={$conversation->id}",
         ]);
-        
+
         File::put(base_path('.env.k6'), $envData);
-        
-        $this->command->info("K6 Test Data seeded successfully!");
+
+        $this->command->info('K6 Test Data seeded successfully!');
     }
 }

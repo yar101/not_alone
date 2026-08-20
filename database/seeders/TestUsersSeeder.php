@@ -21,11 +21,11 @@ class TestUsersSeeder extends Seeder
             $isIdol = $i % 2 === 0;
             $gender = $isIdol ? 'female' : 'male';
             $email = "u{$i}@test.com";
-            $name = "u{$i}" . ($isIdol ? ' (Idol)' : '');
+            $name = "u{$i}".($isIdol ? ' (Idol)' : '');
 
             $user = User::where('email', $email)->orWhere('name', $name)->first();
 
-            if (!$user) {
+            if (! $user) {
                 $user = User::create([
                     'email' => $email,
                     'name' => $name,
@@ -45,7 +45,7 @@ class TestUsersSeeder extends Seeder
                     'user_id' => $user->id,
                     'title' => "Test Pack by {$user->name}",
                 ], [
-                    'description' => "This is a test pack.",
+                    'description' => 'This is a test pack.',
                     'price' => 500,
                     'status' => 'published',
                     'published_at' => now(),
@@ -85,10 +85,10 @@ class TestUsersSeeder extends Seeder
         [$r2, $g2, $b2] = $this->hsvToRgb(($hue + 60) % 360, 0.5, 0.7);
 
         for ($y = 0; $y < $height; $y++) {
-            $t   = $y / $height;
-            $r   = (int) ($r1 + ($r2 - $r1) * $t);
-            $g   = (int) ($g1 + ($g2 - $g1) * $t);
-            $b   = (int) ($b1 + ($b2 - $b1) * $t);
+            $t = $y / $height;
+            $r = (int) ($r1 + ($r2 - $r1) * $t);
+            $g = (int) ($g1 + ($g2 - $g1) * $t);
+            $b = (int) ($b1 + ($b2 - $b1) * $t);
             $col = imagecolorallocate($img, $r, $g, $b);
             imageline($img, 0, $y, $width - 1, $y, $col);
         }

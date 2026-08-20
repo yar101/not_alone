@@ -2,10 +2,10 @@
 
 namespace App\Notifications;
 
-use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Models\Service;
 use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 
@@ -24,8 +24,8 @@ class ServiceChangeRemarksNotification extends Notification implements ShouldQue
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'         => 'service_change_remarks',
-            'service_id'   => $this->service->id,
+            'type' => 'service_change_remarks',
+            'service_id' => $this->service->id,
             'service_name' => $this->service->name,
         ];
     }

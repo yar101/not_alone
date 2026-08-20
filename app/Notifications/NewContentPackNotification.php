@@ -2,10 +2,10 @@
 
 namespace App\Notifications;
 
-use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Models\ContentPack;
 use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 
@@ -24,11 +24,11 @@ class NewContentPackNotification extends Notification implements ShouldQueue
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'       => 'new_content_pack',
-            'pack_id'    => $this->pack->id,
+            'type' => 'new_content_pack',
+            'pack_id' => $this->pack->id,
             'pack_title' => $this->pack->title,
-            'user_id'    => $this->pack->user_id,
-            'user_name'  => $this->pack->user->name,
+            'user_id' => $this->pack->user_id,
+            'user_name' => $this->pack->user->name,
         ];
     }
 
@@ -44,7 +44,7 @@ class NewContentPackNotification extends Notification implements ShouldQueue
 
     protected function webPushBody(): string
     {
-        return __('push.new_content_pack', ['name' => $this->pack->user->name, 'title' => $this->pack->title]) 
+        return __('push.new_content_pack', ['name' => $this->pack->user->name, 'title' => $this->pack->title])
             ?: "{$this->pack->user->name} опубликовал(а) новый пак «{$this->pack->title}»";
     }
 

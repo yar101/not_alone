@@ -23,10 +23,10 @@ class ContentPackChangeRequest extends Model
 
     protected $casts = [
         'changed_fields' => 'array',
-        'pending_price'  => 'integer',
+        'pending_price' => 'integer',
         'flagged_fields' => 'array',
         'field_comments' => 'array',
-        'reviewed_at'    => 'datetime',
+        'reviewed_at' => 'datetime',
     ];
 
     public function contentPack(): BelongsTo

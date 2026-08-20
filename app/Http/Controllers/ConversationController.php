@@ -160,7 +160,10 @@ class ConversationController extends Controller
 
         $user->unreadNotifications()
             ->where('type', \App\Notifications\NewMessageNotification::class)
-            ->whereRaw("(data::jsonb->>'conversation_id')::int = ?", [$conversation->id])
+            ->where(function ($q) use ($conversation) {
+                $q->where('data', 'like', '%"conversation_id":'.$conversation->id.'%')
+                    ->orWhere('data', 'like', '%"conversation_id":"'.$conversation->id.'"%');
+            })
             ->update(['read_at' => now()]);
 
         $this->safeBroadcast(new MessageRead($conversation->id, $user->id, now()->toISOString()));
@@ -428,26 +431,16 @@ class ConversationController extends Controller
         $conversation->touch();
         $conversation->participants()->where('user_id', '!=', $user->id)->update(['has_unread' => true]);
         $msg->load('sender');
-
-        try {
-            broadcast(new MessageSent($msg));
-        } catch (\Throwable $e) {
-            \Log::warning('Broadcast failed: '.$e->getMessage());
-        }
+        $this->safeBroadcast(new MessageSent($msg));
 
         $conversation->participants()
             ->where('user_id', '!=', $user->id)
             ->with('user')
             ->get()
             ->each(function ($participant) use ($conversation, $msg) {
-                try {
-                    broadcast(new NewMessageReceived($participant->user_id, $conversation->id, $msg));
-                } catch (\Throwable $e) {
-                    \Log::warning('Broadcast NewMessageReceived failed: '.$e->getMessage());
-                }
-
+                $this->safeBroadcast(new NewMessageReceived($participant->user_id, $conversation->id, $msg));
                 $participant->user->notify(new NewMessageNotification($msg));
-                broadcast(new NewNotification('private', $participant->user_id));
+                $this->safeBroadcast(new NewNotification('private', $participant->user_id));
             });
 
         return response()->json([

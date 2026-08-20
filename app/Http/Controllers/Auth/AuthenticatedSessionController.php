@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+
 class AuthenticatedSessionController extends Controller
 {
     /**
@@ -47,9 +48,14 @@ class AuthenticatedSessionController extends Controller
     private function formatBanRemaining(\Carbon\Carbon $until): string
     {
         $secs = max(0, now()->diffInSeconds($until));
-        if ($secs >= 86400) return 'на ' . floor($secs / 86400) . ' дн';
-        if ($secs >= 3600)  return 'на ' . floor($secs / 3600) . ' ч ' . floor(($secs % 3600) / 60) . ' мин';
-        return 'на ' . max(1, floor($secs / 60)) . ' мин';
+        if ($secs >= 86400) {
+            return 'на '.floor($secs / 86400).' дн';
+        }
+        if ($secs >= 3600) {
+            return 'на '.floor($secs / 3600).' ч '.floor(($secs % 3600) / 60).' мин';
+        }
+
+        return 'на '.max(1, floor($secs / 60)).' мин';
     }
 
     /**

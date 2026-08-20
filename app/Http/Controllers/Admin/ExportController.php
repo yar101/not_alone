@@ -36,7 +36,7 @@ class ExportController extends Controller
 
             fclose($handle);
         }, 200, [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="users.csv"',
         ]);
     }
@@ -63,7 +63,7 @@ class ExportController extends Controller
 
             fclose($handle);
         }, 200, [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="applications.csv"',
         ]);
     }

@@ -19,7 +19,7 @@ class UserStrike extends Model
     {
         return [
             'rating_deducted' => 'decimal:2',
-            'expires_at'      => 'datetime',
+            'expires_at' => 'datetime',
         ];
     }
 

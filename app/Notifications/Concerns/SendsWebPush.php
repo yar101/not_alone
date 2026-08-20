@@ -26,7 +26,7 @@ trait SendsWebPush
 
         $oldLocale = app()->getLocale();
         $targetLocale = $notifiable->locale ?? $oldLocale;
-        
+
         if ($targetLocale !== $oldLocale) {
             app()->setLocale($targetLocale);
         }

@@ -46,7 +46,7 @@ class TraitSeeder extends Seeder
 
         foreach ($traits as $index => $t) {
             PersonalityTrait::create([
-                'name'       => ['ru' => $t['ru'], 'en' => $t['en']],
+                'name' => ['ru' => $t['ru'], 'en' => $t['en']],
                 'sort_order' => $index,
             ]);
         }

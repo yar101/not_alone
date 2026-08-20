@@ -17,17 +17,19 @@ class SeedReviews extends Command
     public function handle(): void
     {
         $idolId = $this->argument('idolId');
-        $count  = (int) $this->argument('count');
+        $count = (int) $this->argument('count');
 
         $idol = User::find($idolId);
 
-        if (!$idol) {
+        if (! $idol) {
             $this->error("Пользователь с ID {$idolId} не найден.");
+
             return;
         }
 
-        if (!$idol->is_idol) {
+        if (! $idol->is_idol) {
             $this->error("Пользователь «{$idol->name}» (ID {$idolId}) не является айдолом.");
+
             return;
         }
 
@@ -35,11 +37,12 @@ class SeedReviews extends Command
         $this->line("  Айдол : <fg=cyan>{$idol->name}</>");
         $this->line("  Email : {$idol->email}");
         $this->line("  ID    : {$idol->id}");
-        $this->line("  Отзывов сейчас: " . Review::where('idol_id', $idol->id)->count());
+        $this->line('  Отзывов сейчас: '.Review::where('idol_id', $idol->id)->count());
         $this->line('');
 
-        if (!$this->confirm("Создать {$count} отзыв(ов)?")) {
+        if (! $this->confirm("Создать {$count} отзыв(ов)?")) {
             $this->line('Отменено.');
+
             return;
         }
 
@@ -50,12 +53,12 @@ class SeedReviews extends Command
             ->get();
 
         $fakeSnapshot = $services->isNotEmpty()
-            ? $services->take(rand(1, min(3, $services->count())))->map(fn($s) => [
-                'name'          => $s->name,
+            ? $services->take(rand(1, min(3, $services->count())))->map(fn ($s) => [
+                'name' => $s->name,
                 'category_name' => $s->category?->name,
-                'price'         => $s->price,
-                'time_unit'     => $s->timeUnit?->name,
-                'quantity'      => 1,
+                'price' => $s->price,
+                'time_unit' => $s->timeUnit?->name,
+                'quantity' => 1,
             ])->values()->all()
             : [['name' => 'Общение', 'category_name' => 'Разное', 'price' => 500, 'time_unit' => '30 мин', 'quantity' => 1]];
 
@@ -81,6 +84,7 @@ class SeedReviews extends Command
 
         if ($candidates->isEmpty()) {
             $this->error('Нет доступных пользователей для создания отзывов (все уже оставили отзыв или пользователей нет).');
+
             return;
         }
 
@@ -95,21 +99,21 @@ class SeedReviews extends Command
         foreach ($candidates->take($count) as $reviewer) {
             $selectedEpithets = $epithets
                 ? array_slice(array_values(array_unique(
-                    array_map(fn() => $epithets[array_rand($epithets)], range(0, rand(1, 4)))
+                    array_map(fn () => $epithets[array_rand($epithets)], range(0, rand(1, 4)))
                 )), 0, rand(2, 5))
                 : [];
 
             $createdAt = now()->subDays(rand(0, 365))->subHours(rand(0, 23))->subMinutes(rand(0, 59));
 
             $review = Review::create([
-                'reviewer_id'      => $reviewer->id,
-                'idol_id'          => $idol->id,
-                'order_id'         => null,
-                'rating'           => rand(3, 5),
-                'text'             => $fakePhrases[array_rand($fakePhrases)],
-                'services_snapshot'=> $fakeSnapshot,
-                'created_at'       => $createdAt,
-                'updated_at'       => $createdAt,
+                'reviewer_id' => $reviewer->id,
+                'idol_id' => $idol->id,
+                'order_id' => null,
+                'rating' => rand(3, 5),
+                'text' => $fakePhrases[array_rand($fakePhrases)],
+                'services_snapshot' => $fakeSnapshot,
+                'created_at' => $createdAt,
+                'updated_at' => $createdAt,
             ]);
 
             if ($selectedEpithets) {
@@ -121,6 +125,6 @@ class SeedReviews extends Command
 
         $bar->finish();
         $this->newLine();
-        $this->info("Готово. Всего отзывов у айдола: " . Review::where('idol_id', $idol->id)->count());
+        $this->info('Готово. Всего отзывов у айдола: '.Review::where('idol_id', $idol->id)->count());
     }
 }

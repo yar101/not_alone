@@ -24,9 +24,9 @@ class ContentPackService
 
             $currentValue = $pack->{$field};
             $isSameAsCurrent = match ($field) {
-                'price'       => (int) $value === (int) $currentValue,
+                'price' => (int) $value === (int) $currentValue,
                 'description' => (string) ($value ?? '') === (string) ($currentValue ?? ''),
-                default       => (string) $value === (string) $currentValue,
+                default => (string) $value === (string) $currentValue,
             };
 
             if ($changeRequest) {
@@ -38,20 +38,21 @@ class ContentPackService
                     if (empty($changedFields)) {
                         $changeRequest->delete();
                         $changeRequest = null;
+
                         return;
                     }
                     // Also remove from flagged if it was flagged
                     $flaggedFields = array_values(array_filter($changeRequest->flagged_fields ?? [], fn ($f) => $f !== $field));
                     $fieldComments = array_filter($changeRequest->field_comments ?? [], fn ($k) => $k !== $field, ARRAY_FILTER_USE_KEY);
                     $changeRequest->update([
-                        'changed_fields'   => $changedFields,
+                        'changed_fields' => $changedFields,
                         "pending_{$field}" => null,
-                        'flagged_fields'   => $flaggedFields ?: null,
-                        'field_comments'   => $fieldComments ?: null,
-                        'status'           => 'pending',
+                        'flagged_fields' => $flaggedFields ?: null,
+                        'field_comments' => $fieldComments ?: null,
+                        'status' => 'pending',
                     ]);
                 } else {
-                    if (!in_array($field, $changedFields)) {
+                    if (! in_array($field, $changedFields)) {
                         $changedFields[] = $field;
                     }
                     // Remove this field from flagged (user fixed it)
@@ -60,11 +61,11 @@ class ContentPackService
                     // If no more flagged fields, reset status to pending
                     $newStatus = empty($flaggedFields) ? 'pending' : $changeRequest->status;
                     $changeRequest->update([
-                        'changed_fields'   => $changedFields,
+                        'changed_fields' => $changedFields,
                         "pending_{$field}" => $value,
-                        'flagged_fields'   => $flaggedFields ?: null,
-                        'field_comments'   => $fieldComments ?: null,
-                        'status'           => $newStatus,
+                        'flagged_fields' => $flaggedFields ?: null,
+                        'field_comments' => $fieldComments ?: null,
+                        'status' => $newStatus,
                     ]);
                 }
             } else {
@@ -72,10 +73,10 @@ class ContentPackService
                     return; // nothing to do
                 }
                 $changeRequest = ContentPackChangeRequest::create([
-                    'content_pack_id'  => $pack->id,
-                    'changed_fields'   => [$field],
+                    'content_pack_id' => $pack->id,
+                    'changed_fields' => [$field],
                     "pending_{$field}" => $value,
-                    'status'           => 'pending',
+                    'status' => 'pending',
                 ]);
             }
         });
@@ -83,20 +84,20 @@ class ContentPackService
         if ($changeRequest === null) {
             // Pending request was removed (user reverted to original value)
             return [
-                $field          => $value,
-                'pending'       => false,
+                $field => $value,
+                'pending' => false,
                 'pending_change' => null,
             ];
         }
 
         return [
-            $field          => $value,
-            'pending'       => true,
+            $field => $value,
+            'pending' => true,
             'pending_change' => [
-                'changed_fields'      => $changeRequest->changed_fields,
-                'pending_title'       => $changeRequest->pending_title,
+                'changed_fields' => $changeRequest->changed_fields,
+                'pending_title' => $changeRequest->pending_title,
                 'pending_description' => $changeRequest->pending_description,
-                'pending_price'       => $changeRequest->pending_price,
+                'pending_price' => $changeRequest->pending_price,
             ],
         ];
     }

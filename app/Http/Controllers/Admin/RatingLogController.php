@@ -27,18 +27,18 @@ class RatingLogController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
-        $logs = $query->paginate(50)->through(fn(IdolRatingLog $log) => [
-            'id'         => $log->id,
-            'idol'       => $log->user ? ['id' => $log->user->id, 'name' => $log->user->name] : null,
-            'event'      => $log->event,
-            'delta'      => $log->delta,
-            'note'       => $log->note,
+        $logs = $query->paginate(50)->through(fn (IdolRatingLog $log) => [
+            'id' => $log->id,
+            'idol' => $log->user ? ['id' => $log->user->id, 'name' => $log->user->name] : null,
+            'event' => $log->event,
+            'delta' => $log->delta,
+            'note' => $log->note,
             'created_at' => $log->created_at,
         ]);
 
         return Inertia::render('Admin/RatingLogs/Index', [
-            'logs'   => $logs,
-            'idols'  => User::where('is_idol', true)->orderBy('name')->get(['id', 'name']),
+            'logs' => $logs,
+            'idols' => User::where('is_idol', true)->orderBy('name')->get(['id', 'name']),
             'filter' => $request->only(['idol_id', 'date_from', 'date_to']),
         ]);
     }

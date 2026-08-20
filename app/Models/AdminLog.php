@@ -14,7 +14,7 @@ class AdminLog extends Model
     protected function casts(): array
     {
         return [
-            'details'    => 'array',
+            'details' => 'array',
             'created_at' => 'datetime',
         ];
     }

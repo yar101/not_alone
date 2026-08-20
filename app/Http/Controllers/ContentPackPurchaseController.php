@@ -13,16 +13,16 @@ class ContentPackPurchaseController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'items'   => ['required', 'array', 'min:1'],
+            'items' => ['required', 'array', 'min:1'],
             'items.*' => ['integer'],
         ]);
 
-        $userId   = $request->user()->id;
-        $packIds  = array_unique($data['items']);
+        $userId = $request->user()->id;
+        $packIds = array_unique($data['items']);
 
         $packs = ContentPack::whereIn('id', $packIds)
             ->where('status', 'published')
-            ->whereHas('user', fn($q) => $q->where('is_banned', false))
+            ->whereHas('user', fn ($q) => $q->where('is_banned', false))
             ->get()
             ->keyBy('id');
 
@@ -33,15 +33,15 @@ class ContentPackPurchaseController extends Controller
                 if (! $pack || $pack->user_id === $userId) {
                     continue;
                 }
-                
+
                 $purchase = ContentPackPurchase::firstOrCreate(
                     [
                         'content_pack_id' => $pack->id,
-                        'user_id'         => $userId,
+                        'user_id' => $userId,
                     ],
                     [
-                        'price_paid'      => $pack->price,
-                        'purchased_at'    => now(),
+                        'price_paid' => $pack->price,
+                        'purchased_at' => now(),
                     ]
                 );
 
@@ -49,6 +49,7 @@ class ContentPackPurchaseController extends Controller
                     $createdIds[] = $packId;
                 }
             }
+
             return $createdIds;
         });
 

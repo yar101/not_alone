@@ -2,10 +2,10 @@
 
 namespace App\Notifications;
 
-use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Models\Service;
 use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 
@@ -24,11 +24,11 @@ class NewServiceNotification extends Notification implements ShouldQueue
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'         => 'new_service',
-            'service_id'   => $this->service->id,
+            'type' => 'new_service',
+            'service_id' => $this->service->id,
             'service_name' => $this->service->getTranslation('name', 'ru'),
-            'user_id'      => $this->service->user_id,
-            'user_name'    => $this->service->user->name,
+            'user_id' => $this->service->user_id,
+            'user_name' => $this->service->user->name,
         ];
     }
 

@@ -2,10 +2,10 @@
 
 namespace App\Notifications;
 
-use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Models\Order;
 use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 
@@ -24,10 +24,10 @@ class OrderPaidNotification extends Notification implements ShouldQueue
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'            => 'order_paid',
-            'order_id'        => $this->order->id,
-            'customer_id'     => $this->order->customer_id,
-            'customer_name'   => $this->order->customer->name,
+            'type' => 'order_paid',
+            'order_id' => $this->order->id,
+            'customer_id' => $this->order->customer_id,
+            'customer_name' => $this->order->customer->name,
             'customer_gender' => $this->order->customer->gender,
         ];
     }

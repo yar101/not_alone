@@ -21,7 +21,7 @@ class BanReasonController extends Controller
 
         return Inertia::render('Admin/BanReasons/Index', [
             'chat_block_reasons' => BanReason::forChatBlock()->get()->map($mapFn),
-            'user_ban_reasons'   => BanReason::forUserBan()->get()->map($mapFn),
+            'user_ban_reasons' => BanReason::forUserBan()->get()->map($mapFn),
         ]);
     }
 
@@ -30,16 +30,16 @@ class BanReasonController extends Controller
         $data = $request->validate([
             'label_ru' => 'required|string|max:255',
             'label_en' => 'nullable|string|max:255',
-            'type'     => 'required|in:chat_block,user_ban',
+            'type' => 'required|in:chat_block,user_ban',
         ]);
 
         $maxOrder = BanReason::where('type', $data['type'])->max('sort_order') ?? -1;
 
-        $reason = new BanReason();
+        $reason = new BanReason;
         $reason->type = $data['type'];
         $reason->sort_order = $maxOrder + 1;
         $reason->setTranslation('label', 'ru', $data['label_ru']);
-        if (!empty($data['label_en'])) {
+        if (! empty($data['label_en'])) {
             $reason->setTranslation('label', 'en', $data['label_en']);
         }
         $reason->save();
@@ -75,8 +75,8 @@ class BanReasonController extends Controller
     public function reorder(Request $request)
     {
         $request->validate([
-            'items'             => 'required|array',
-            'items.*.id'        => 'required|integer|exists:ban_reasons,id',
+            'items' => 'required|array',
+            'items.*.id' => 'required|integer|exists:ban_reasons,id',
             'items.*.sort_order' => 'required|integer',
         ]);
 

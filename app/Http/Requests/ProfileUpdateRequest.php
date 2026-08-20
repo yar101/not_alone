@@ -16,7 +16,7 @@ class ProfileUpdateRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.regex'  => 'Имя не должно содержать пробелы.',
+            'name.regex' => 'Имя не должно содержать пробелы.',
             'name.unique' => 'Это имя уже занято.',
         ];
     }

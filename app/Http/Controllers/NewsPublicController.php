@@ -24,10 +24,9 @@ class NewsPublicController extends Controller
             ->orderBy('published_at', $sortDir);
 
         if ($search = $request->get('search')) {
-            $query->where(fn ($q) =>
-                $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('excerpt', 'like', "%{$search}%")
-                  ->orWhere('body', 'like', "%{$search}%")
+            $query->where(fn ($q) => $q->where('title', 'like', "%{$search}%")
+                ->orWhere('excerpt', 'like', "%{$search}%")
+                ->orWhere('body', 'like', "%{$search}%")
             );
         }
 
@@ -37,15 +36,15 @@ class NewsPublicController extends Controller
         ]);
 
         return response()->json([
-            'data'         => $paginated->items(),
+            'data' => $paginated->items(),
             'current_page' => $paginated->currentPage(),
-            'last_page'    => $paginated->lastPage(),
+            'last_page' => $paginated->lastPage(),
         ]);
     }
 
     public function show(News $news): Response
     {
-        abort_if(!$news->published_at || $news->published_at->isFuture(), 404);
+        abort_if(! $news->published_at || $news->published_at->isFuture(), 404);
 
         $news->increment('views_count');
 

@@ -17,15 +17,17 @@ class SeedUserServices extends Command
     public function handle(): void
     {
         $categories = ServiceCategory::where('is_active', true)->orderBy('sort_order')->get();
-        $timeUnits  = ServiceTimeUnit::where('is_active', true)->orderBy('sort_order')->get();
+        $timeUnits = ServiceTimeUnit::where('is_active', true)->orderBy('sort_order')->get();
 
         if ($categories->isEmpty()) {
             $this->error('Нет активных категорий услуг.');
+
             return;
         }
 
         if ($timeUnits->isEmpty()) {
             $this->error('Нет активных единиц времени.');
+
             return;
         }
 
@@ -33,10 +35,11 @@ class SeedUserServices extends Command
             $users = User::where('is_idol', true)->get();
             if ($users->isEmpty()) {
                 $this->error('Нет айдолов в базе.');
+
                 return;
             }
             $this->line("Айдолов: {$users->count()}");
-            if (!$this->option('force') && !$this->confirm('Создать услуги для всех?')) {
+            if (! $this->option('force') && ! $this->confirm('Создать услуги для всех?')) {
                 return;
             }
             $bar = $this->output->createProgressBar($users->count());
@@ -53,13 +56,14 @@ class SeedUserServices extends Command
             $this->info('Готово.');
         } else {
             $userId = $this->argument('userId');
-            if (!$userId) {
+            if (! $userId) {
                 $this->error('Укажите userId или используйте --all.');
+
                 return;
             }
             $user = User::findOrFail($userId);
             $this->line("Пользователь: {$user->name} <{$user->email}>");
-            if (!$this->option('force') && !$this->confirm('Продолжить?')) {
+            if (! $this->option('force') && ! $this->confirm('Продолжить?')) {
                 return;
             }
             $bar = $this->output->createProgressBar($categories->count());
@@ -69,7 +73,7 @@ class SeedUserServices extends Command
             $bar->setMessage('готово');
             $bar->finish();
             $this->newLine();
-            $this->info('Готово. Услуг: ' . Service::where('user_id', $user->id)->count());
+            $this->info('Готово. Услуг: '.Service::where('user_id', $user->id)->count());
         }
     }
 
@@ -85,10 +89,10 @@ class SeedUserServices extends Command
             ];
             foreach ($pairs as $index => [$unit, $price]) {
                 $suggestions = $cat->name_suggestions['ru'] ?? null;
-                $serviceName = ($suggestions && isset($suggestions[$index])) 
-                    ? $suggestions[$index] 
-                    : $cat->name . ($index === 0 ? ' (Базовая)' : ' (Продвинутая)');
-                    
+                $serviceName = ($suggestions && isset($suggestions[$index]))
+                    ? $suggestions[$index]
+                    : $cat->name.($index === 0 ? ' (Базовая)' : ' (Продвинутая)');
+
                 Service::firstOrCreate(
                     ['user_id' => $user->id, 'category_id' => $cat->id, 'time_unit_id' => $unit->id],
                     ['name' => $serviceName, 'price' => $price, 'is_active' => true]

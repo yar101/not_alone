@@ -23,7 +23,7 @@ class PersonalityTrait extends Model
 
     protected static function booted()
     {
-        $clearCache = fn() => \Illuminate\Support\Facades\Cache::forget('search_traits');
+        $clearCache = fn () => \Illuminate\Support\Facades\Cache::forget('search_traits');
         static::saved($clearCache);
         static::deleted($clearCache);
     }

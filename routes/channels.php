@@ -16,6 +16,7 @@ Broadcast::channel('presence-conversation.{conversationId}', function ($user, $c
     if ($user->conversationParticipants()->where('conversation_id', $conversationId)->exists()) {
         return ['id' => $user->id, 'name' => $user->name, 'avatar_url' => $user->avatar_url];
     }
+
     return false;
 });
 

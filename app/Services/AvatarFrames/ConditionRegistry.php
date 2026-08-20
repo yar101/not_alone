@@ -2,8 +2,8 @@
 
 namespace App\Services\AvatarFrames;
 
-use App\Services\AvatarFrames\Conditions\FrameCondition;
 use App\Services\AvatarFrames\Conditions\Completed25OrdersCondition;
+use App\Services\AvatarFrames\Conditions\FrameCondition;
 
 class ConditionRegistry
 {
@@ -21,8 +21,9 @@ class ConditionRegistry
     {
         $instances = [];
         foreach (self::$conditions as $key => $class) {
-            $instances[$key] = new $class();
+            $instances[$key] = new $class;
         }
+
         return $instances;
     }
 
@@ -33,8 +34,10 @@ class ConditionRegistry
     {
         if (isset(self::$conditions[$key])) {
             $class = self::$conditions[$key];
-            return new $class();
+
+            return new $class;
         }
+
         return null;
     }
 }

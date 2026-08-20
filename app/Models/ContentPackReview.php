@@ -22,11 +22,11 @@ class ContentPackReview extends Model
     ];
 
     protected $casts = [
-        'flagged_fields'    => 'array',
-        'field_comments'    => 'array',
+        'flagged_fields' => 'array',
+        'field_comments' => 'array',
         'flagged_photo_ids' => 'array',
-        'photo_comments'    => 'array',
-        'created_at'        => 'datetime',
+        'photo_comments' => 'array',
+        'created_at' => 'datetime',
     ];
 
     public function contentPack(): BelongsTo

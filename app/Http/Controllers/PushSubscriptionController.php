@@ -10,9 +10,9 @@ class PushSubscriptionController extends Controller
     public function store(Request $request): Response
     {
         $request->validate([
-            'endpoint'         => ['required', 'url'],
-            'keys.p256dh'      => ['required', 'string'],
-            'keys.auth'        => ['required', 'string'],
+            'endpoint' => ['required', 'url'],
+            'keys.p256dh' => ['required', 'string'],
+            'keys.auth' => ['required', 'string'],
         ]);
 
         $request->user()->updatePushSubscription(

@@ -31,8 +31,8 @@ class IdolApprovedMail extends Mailable
         return new Content(
             view: 'mail.idol-approved',
             with: [
-                'name'       => $this->user->name,
-                'profileUrl' => url('/users/' . $this->user->id),
+                'name' => $this->user->name,
+                'profileUrl' => url('/users/'.$this->user->id),
             ],
         );
     }

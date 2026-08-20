@@ -11,10 +11,10 @@ class PostCommentFactory extends Factory
     public function definition(): array
     {
         return [
-            'post_id'   => Post::factory(),
-            'user_id'   => User::factory(),
+            'post_id' => Post::factory(),
+            'user_id' => User::factory(),
             'parent_id' => null,
-            'body'       => fake('ru_RU')->realText(fake()->numberBetween(15, 170)),
+            'body' => fake('ru_RU')->realText(fake()->numberBetween(15, 170)),
         ];
     }
 
@@ -22,7 +22,7 @@ class PostCommentFactory extends Factory
     {
         return $this->state([
             'parent_id' => $parentId,
-            'post_id'   => $postId,
+            'post_id' => $postId,
         ]);
     }
 }

@@ -17,10 +17,10 @@ class OrderFactory extends Factory
     public function definition(): array
     {
         return [
-            'customer_id'     => User::factory(),
-            'idol_id'         => User::factory()->create(['is_idol' => true])->id,
+            'customer_id' => User::factory(),
+            'idol_id' => User::factory()->create(['is_idol' => true])->id,
             'conversation_id' => \App\Models\Conversation::factory(),
-            'status'          => OrderStatus::Pending,
+            'status' => OrderStatus::Pending,
         ];
     }
 }

@@ -14,9 +14,9 @@ class CreateOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'idol_id'             => ['required', 'integer', 'exists:users,id'],
-            'services'            => ['required', 'array', 'min:1'],
-            'services.*.id'       => ['required', 'integer', 'exists:services,id'],
+            'idol_id' => ['required', 'integer', 'exists:users,id'],
+            'services' => ['required', 'array', 'min:1'],
+            'services.*.id' => ['required', 'integer', 'exists:services,id'],
             'services.*.quantity' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }

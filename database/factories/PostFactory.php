@@ -10,8 +10,8 @@ class PostFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id'    => User::factory(),
-            'body'       => fake('ru_RU')->realText(fake()->numberBetween(40, 350)),
+            'user_id' => User::factory(),
+            'body' => fake('ru_RU')->realText(fake()->numberBetween(40, 350)),
             'photo_path' => null,
         ];
     }

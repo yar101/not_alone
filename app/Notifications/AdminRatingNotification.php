@@ -2,9 +2,9 @@
 
 namespace App\Notifications;
 
-use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 
@@ -27,10 +27,10 @@ class AdminRatingNotification extends Notification implements ShouldQueue
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'       => 'admin_rating',
-            'delta'      => $this->delta,
+            'type' => 'admin_rating',
+            'delta' => $this->delta,
             'new_rating' => $this->newRating,
-            'note'       => $this->note,
+            'note' => $this->note,
         ];
     }
 
@@ -47,8 +47,9 @@ class AdminRatingNotification extends Notification implements ShouldQueue
     protected function webPushBody(): string
     {
         $sign = $this->delta > 0 ? '+' : '';
+
         return __('push.admin_rating', [
-            'delta'  => $sign . $this->delta,
+            'delta' => $sign.$this->delta,
             'rating' => $this->newRating,
         ]);
     }

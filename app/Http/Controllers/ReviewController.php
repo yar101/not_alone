@@ -43,20 +43,20 @@ class ReviewController extends Controller
         $order->loadMissing(['items.service.category', 'items.service.timeUnit']);
 
         $snapshot = $order->items->map(fn ($i) => [
-            'name'          => $i->service?->name,
+            'name' => $i->service?->name,
             'category_name' => $i->service?->category?->name,
-            'price'         => $i->service?->price,
-            'time_unit'     => $i->service?->timeUnit?->name,
-            'quantity'      => $i->quantity ?? 1,
+            'price' => $i->service?->price,
+            'time_unit' => $i->service?->timeUnit?->name,
+            'quantity' => $i->quantity ?? 1,
         ])->values()->all();
 
         DB::transaction(function () use ($user, $order, $request, $snapshot) {
             $review = Review::create([
-                'reviewer_id'       => $user->id,
-                'idol_id'           => $order->idol_id,
-                'order_id'          => $order->id,
-                'rating'            => $request->rating,
-                'text'              => $request->text,
+                'reviewer_id' => $user->id,
+                'idol_id' => $order->idol_id,
+                'order_id' => $order->id,
+                'rating' => $request->rating,
+                'text' => $request->text,
                 'services_snapshot' => $snapshot,
             ]);
 
@@ -84,18 +84,18 @@ class ReviewController extends Controller
         $isOwner = $request->user()?->id === $user->id;
 
         $query = Review::where('idol_id', $user->id)
-                       ->where('is_hidden', false)
-                       ->with(['reviewer.activeFrame', 'epithets']);
+            ->where('is_hidden', false)
+            ->with(['reviewer.activeFrame', 'epithets']);
 
         if ($isOwner) {
-            $query->with(['disputes' => fn($q) => $q->latest('created_at')->limit(1)]);
+            $query->with(['disputes' => fn ($q) => $q->latest('created_at')->limit(1)]);
         }
 
         match ($request->get('sort')) {
-            'oldest'      => $query->oldest(),
+            'oldest' => $query->oldest(),
             'rating_desc' => $query->orderByDesc('rating')->orderByDesc('created_at'),
-            'rating_asc'  => $query->orderBy('rating')->orderByDesc('created_at'),
-            default       => $query->latest(),
+            'rating_asc' => $query->orderBy('rating')->orderByDesc('created_at'),
+            default => $query->latest(),
         };
 
         $reviews = $query->paginate(10);
@@ -111,26 +111,26 @@ class ReviewController extends Controller
             ->get();
 
         return response()->json([
-            'reviews'    => $reviews->map(fn(Review $r) => [
-                'id'               => $r->id,
-                'rating'           => $r->rating,
-                'text'             => $r->text,
-                'services_snapshot'=> $r->services_snapshot,
-                'epithets'         => $r->epithets->map(fn($e) => ['id' => $e->id, 'label' => $e->label])->values(),
-                'reviewer'         => [
-                    'id'                => $r->reviewer->id,
-                    'name'              => $r->reviewer->name,
-                    'avatar_url'        => $r->reviewer->avatar_url,
-                    'active_frame'      => $r->reviewer->activeFrame,
-                    'gender'            => $r->reviewer->gender,
+            'reviews' => $reviews->map(fn (Review $r) => [
+                'id' => $r->id,
+                'rating' => $r->rating,
+                'text' => $r->text,
+                'services_snapshot' => $r->services_snapshot,
+                'epithets' => $r->epithets->map(fn ($e) => ['id' => $e->id, 'label' => $e->label])->values(),
+                'reviewer' => [
+                    'id' => $r->reviewer->id,
+                    'name' => $r->reviewer->name,
+                    'avatar_url' => $r->reviewer->avatar_url,
+                    'active_frame' => $r->reviewer->activeFrame,
+                    'gender' => $r->reviewer->gender,
                 ],
-                'created_at'       => $r->created_at->toISOString(),
-                'dispute_status'   => $isOwner ? ($r->disputes->first()?->status ?? null) : null,
+                'created_at' => $r->created_at->toISOString(),
+                'dispute_status' => $isOwner ? ($r->disputes->first()?->status ?? null) : null,
             ])->values(),
-            'total'      => $reviews->total(),
-            'has_more'   => $reviews->hasMorePages(),
-            'epithet_counts' => $epithetCounts->map(fn($e) => [
-                'id'    => $e->id,
+            'total' => $reviews->total(),
+            'has_more' => $reviews->hasMorePages(),
+            'epithet_counts' => $epithetCounts->map(fn ($e) => [
+                'id' => $e->id,
                 'label' => $e->label,
                 'count' => (int) $e->count,
             ])->values(),

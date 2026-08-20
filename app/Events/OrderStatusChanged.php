@@ -13,22 +13,22 @@ class OrderStatusChanged implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public function __construct(
-        public int     $conversationId,
-        public int     $orderId,
-        public string  $status,
-        public ?int    $cancelledBy          = null,
-        public ?string $cancelledByName      = null,
-        public ?string $cancelReason         = null,
-        public ?string $paidAt               = null,
-        public ?string $completedAt          = null,
-        public ?string $autoCompleteAt       = null,
-        public bool    $confirmedByIdol      = false,
-        public bool    $confirmedByCustomer  = false,
+        public int $conversationId,
+        public int $orderId,
+        public string $status,
+        public ?int $cancelledBy = null,
+        public ?string $cancelledByName = null,
+        public ?string $cancelReason = null,
+        public ?string $paidAt = null,
+        public ?string $completedAt = null,
+        public ?string $autoCompleteAt = null,
+        public bool $confirmedByIdol = false,
+        public bool $confirmedByCustomer = false,
     ) {}
 
     public function broadcastOn(): array
     {
-        return [new PrivateChannel('conversation.' . $this->conversationId)];
+        return [new PrivateChannel('conversation.'.$this->conversationId)];
     }
 
     public function broadcastAs(): string
@@ -39,15 +39,15 @@ class OrderStatusChanged implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-            'order_id'                         => $this->orderId,
-            'status'                           => $this->status,
-            'cancelled_by'                     => $this->cancelledBy,
-            'cancelled_by_name'                => $this->cancelledByName,
-            'cancel_reason'                    => $this->cancelReason,
-            'paid_at'                          => $this->paidAt,
-            'completed_at'                     => $this->completedAt,
-            'auto_complete_at'                 => $this->autoCompleteAt,
-            'completion_confirmed_by_idol'     => $this->confirmedByIdol,
+            'order_id' => $this->orderId,
+            'status' => $this->status,
+            'cancelled_by' => $this->cancelledBy,
+            'cancelled_by_name' => $this->cancelledByName,
+            'cancel_reason' => $this->cancelReason,
+            'paid_at' => $this->paidAt,
+            'completed_at' => $this->completedAt,
+            'auto_complete_at' => $this->autoCompleteAt,
+            'completion_confirmed_by_idol' => $this->confirmedByIdol,
             'completion_confirmed_by_customer' => $this->confirmedByCustomer,
         ];
     }

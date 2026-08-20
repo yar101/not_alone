@@ -36,7 +36,7 @@ class AppServiceProvider extends ServiceProvider
                     'token' => $token,
                     'email' => $notifiable->getEmailForPasswordReset(),
                 ], false)))
-                ->line('Эта ссылка для сброса пароля будет действительна в течение ' . config('auth.passwords.'.config('auth.defaults.passwords').'.expire') . ' минут.')
+                ->line('Эта ссылка для сброса пароля будет действительна в течение '.config('auth.passwords.'.config('auth.defaults.passwords').'.expire').' минут.')
                 ->line('Если вы не запрашивали сброс пароля, просто проигнорируйте это письмо.');
         });
 

@@ -22,7 +22,7 @@ class NewMessageReceived implements ShouldBroadcast
 
     public function broadcastOn(): array
     {
-        return [new PrivateChannel('App.Models.User.' . $this->userId)];
+        return [new PrivateChannel('App.Models.User.'.$this->userId)];
     }
 
     public function broadcastAs(): string
@@ -34,11 +34,11 @@ class NewMessageReceived implements ShouldBroadcast
     {
         return [
             'conversation_id' => $this->conversationId,
-            'order_id'        => $this->orderId,
-            'last_message'    => [
-                'body'       => $this->message->body,
-                'type'       => $this->message->type,
-                'sender_id'  => $this->message->sender_id,
+            'order_id' => $this->orderId,
+            'last_message' => [
+                'body' => $this->message->body,
+                'type' => $this->message->type,
+                'sender_id' => $this->message->sender_id,
                 'created_at' => $this->message->created_at->toISOString(),
             ],
         ];

@@ -11,6 +11,7 @@ use App\Notifications\ServiceApprovedNotification;
 use App\Notifications\ServiceRejectedNotification;
 use App\Notifications\ServiceRemarksNotification;
 use App\Services\AdminLogService;
+use App\Traits\SafeBroadcast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +20,8 @@ use Inertia\Response;
 
 class ServiceModerationController extends Controller
 {
+    use SafeBroadcast;
+
     public function index(Request $request): Response
     {
         $status = $request->input('status', 'pending');
@@ -143,67 +146,71 @@ class ServiceModerationController extends Controller
 
         $admin = auth('admin')->user();
 
-        $service->reviews()->create([
-            'admin_id' => $admin->id,
-            'decision' => $data['decision'],
-            'flagged_fields' => $data['flagged_fields'] ?? null,
-            'field_comments' => $data['field_comments'] ?? null,
-        ]);
-
-        if ($data['decision'] === 'approved') {
-            $service->update([
-                'status' => 'approved',
-                'moderated_by' => $admin->id,
-                'moderated_at' => now(),
-                'resubmitted_at' => null,
+        DB::transaction(function () use ($service, $data, $admin) {
+            $service->reviews()->create([
+                'admin_id' => $admin->id,
+                'decision' => $data['decision'],
+                'flagged_fields' => $data['flagged_fields'] ?? null,
+                'field_comments' => $data['field_comments'] ?? null,
             ]);
 
+            if ($data['decision'] === 'approved') {
+                $service->update([
+                    'status' => 'approved',
+                    'moderated_by' => $admin->id,
+                    'moderated_at' => now(),
+                    'resubmitted_at' => null,
+                ]);
+            } elseif ($data['decision'] === 'rejected') {
+                $service->update([
+                    'status' => 'rejected',
+                    'rejection_reason' => $data['rejection_reason'] ?? 'Нарушение правил платформы',
+                    'moderated_by' => $admin->id,
+                    'moderated_at' => now(),
+                    'resubmitted_at' => null,
+                ]);
+            } else { // has_remarks
+                $service->update(['status' => 'has_remarks', 'resubmitted_at' => null]);
+            }
+
+            AdminLogService::log(
+                $admin->id,
+                'decide_service',
+                'service',
+                $service->id,
+                ['decision' => $data['decision']]
+            );
+        });
+
+        // Notifications & Broadcasts after commit
+        if ($data['decision'] === 'approved') {
             if ($service->user) {
                 $service->user->notify(new ServiceApprovedNotification($service, $data['flagged_fields'] ?? null, $data['field_comments'] ?? null));
-                broadcast(new NewNotification('private', $service->user->id));
+                $this->safeBroadcast(new NewNotification('private', $service->user->id));
                 NotifyFollowersJob::dispatch($service->user, $service);
             }
         } elseif ($data['decision'] === 'rejected') {
-            $service->update([
-                'status' => 'rejected',
-                'rejection_reason' => $data['rejection_reason'] ?? 'Нарушение правил платформы',
-                'moderated_by' => $admin->id,
-                'moderated_at' => now(),
-                'resubmitted_at' => null,
-            ]);
-
             $service->user?->notify(new ServiceRejectedNotification($service));
             if ($service->user) {
-                broadcast(new NewNotification('private', $service->user->id));
+                $this->safeBroadcast(new NewNotification('private', $service->user->id));
             }
-        } else { // has_remarks
-            $service->update(['status' => 'has_remarks', 'resubmitted_at' => null]);
+        } else {
             $service->user?->notify(new ServiceRemarksNotification($service));
             if ($service->user) {
-                broadcast(new NewNotification('private', $service->user->id));
+                $this->safeBroadcast(new NewNotification('private', $service->user->id));
             }
         }
-
-        AdminLogService::log(
-            $admin->id,
-            'decide_service',
-            'service',
-            $service->id,
-            ['decision' => $data['decision']]
-        );
 
         return back()->with('success', 'Решение отправлено.');
     }
 
     public function approve(Service $service): RedirectResponse
     {
-        // For backwards compatibility or direct action from list
         return $this->decide(new Request(['decision' => 'approved']), $service);
     }
 
     public function reject(Request $request, Service $service): RedirectResponse
     {
-        // For backwards compatibility or direct action from list
         return $this->decide($request->merge(['decision' => 'rejected']), $service);
     }
 
@@ -218,27 +225,29 @@ class ServiceModerationController extends Controller
             $ids = collect($request->input('ids', []));
         }
 
+        if ($ids->isEmpty()) {
+            return back();
+        }
+
         $services = Service::whereIn('id', $ids)->with('user')->get();
 
-        foreach ($services as $service) {
-            $service->update([
+        DB::transaction(function () use ($ids, $adminId) {
+            Service::whereIn('id', $ids)->update([
                 'status' => 'approved',
                 'moderated_by' => $adminId,
                 'moderated_at' => now(),
             ]);
 
+            AdminLogService::log($adminId, 'bulk_approve_services', 'service', null, ['count' => $ids->count()]);
+        });
+
+        foreach ($services as $service) {
             if ($service->user) {
                 $service->user->notify(new ServiceApprovedNotification($service));
-                try {
-                    broadcast(new NewNotification('private', $service->user->id));
-                } catch (\Throwable $e) {
-                    \Illuminate\Support\Facades\Log::warning('Broadcast failed in bulkApprove: '.$e->getMessage());
-                }
+                $this->safeBroadcast(new NewNotification('private', $service->user->id));
                 NotifyFollowersJob::dispatch($service->user, $service);
             }
         }
-
-        AdminLogService::log($adminId, 'bulk_approve_services', 'service', null, ['count' => $ids->count()]);
 
         return back()->with('success', "Одобрено услуг: {$ids->count()}.");
     }
@@ -258,25 +267,32 @@ class ServiceModerationController extends Controller
             $ids = collect($request->input('ids', []));
         }
 
+        if ($ids->isEmpty()) {
+            return back();
+        }
+
         $services = Service::whereIn('id', $ids)->with('user')->get();
 
-        foreach ($services as $service) {
-            $service->update([
+        DB::transaction(function () use ($ids, $validated, $adminId) {
+            Service::whereIn('id', $ids)->update([
                 'status' => 'rejected',
                 'rejection_reason' => $validated['rejection_reason'],
                 'moderated_by' => $adminId,
                 'moderated_at' => now(),
             ]);
+
+            AdminLogService::log($adminId, 'bulk_reject_services', 'service', null, [
+                'count' => $ids->count(),
+                'reason' => $validated['rejection_reason'],
+            ]);
+        });
+
+        foreach ($services as $service) {
             $service->user?->notify(new ServiceRejectedNotification($service));
             if ($service->user) {
-                broadcast(new NewNotification('private', $service->user->id));
+                $this->safeBroadcast(new NewNotification('private', $service->user->id));
             }
         }
-
-        AdminLogService::log($adminId, 'bulk_reject_services', 'service', null, [
-            'count' => $ids->count(),
-            'reason' => $validated['rejection_reason'],
-        ]);
 
         return back()->with('success', "Отклонено услуг: {$ids->count()}.");
     }

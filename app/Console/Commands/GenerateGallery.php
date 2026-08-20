@@ -11,11 +11,14 @@ use Illuminate\Support\Facades\Storage;
 
 class GenerateGallery extends Command
 {
-    protected $signature   = 'gallery:generate';
+    protected $signature = 'gallery:generate';
+
     protected $description = 'Генерирует тестовые паки с фотографиями для айдола';
 
-    private const IMG_WIDTH   = 1080;
-    private const IMG_HEIGHT  = 1440;
+    private const IMG_WIDTH = 1080;
+
+    private const IMG_HEIGHT = 1440;
+
     private const IMG_QUALITY = 88;
 
     public function handle(): int
@@ -25,14 +28,18 @@ class GenerateGallery extends Command
         $this->newLine();
 
         $idol = $this->resolveUser('Айдол (email / имя / ID)', requireIdol: true);
-        if (!$idol) return self::FAILURE;
+        if (! $idol) {
+            return self::FAILURE;
+        }
 
         $buyer = $this->resolveUser('Покупатель (email / имя / ID)');
-        if (!$buyer) return self::FAILURE;
+        if (! $buyer) {
+            return self::FAILURE;
+        }
 
-        $packCount  = (int) $this->ask('Количество паков', 5);
+        $packCount = (int) $this->ask('Количество паков', 5);
         $photoCount = (int) $this->ask('Фото в каждом паке', 20);
-        $price      = (int) $this->ask('Цена каждого пака (₽)', 500);
+        $price = (int) $this->ask('Цена каждого пака (₽)', 500);
 
         $this->newLine();
         $this->table([], [
@@ -41,11 +48,11 @@ class GenerateGallery extends Command
             ['<fg=gray>Паков</>',    "<fg=white>{$packCount}</>"],
             ['<fg=gray>Фото/пак</>', "<fg=white>{$photoCount}</>"],
             ['<fg=gray>Цена</>',     "<fg=white>{$price} ₽</>"],
-            ['<fg=gray>Файлов</>', "<fg=white>" . ($packCount * $photoCount) . "</> (~" . round(self::IMG_QUALITY * 0.4) . " МБ/фото)"],
+            ['<fg=gray>Файлов</>', '<fg=white>'.($packCount * $photoCount).'</> (~'.round(self::IMG_QUALITY * 0.4).' МБ/фото)'],
         ]);
         $this->newLine();
 
-        if (!$this->confirm('Создать?', true)) {
+        if (! $this->confirm('Создать?', true)) {
             return self::SUCCESS;
         }
 
@@ -56,10 +63,10 @@ class GenerateGallery extends Command
 
         for ($p = 1; $p <= $packCount; $p++) {
             $pack = ContentPack::create([
-                'user_id'      => $idol->id,
-                'title'        => "Pack {$p}",
-                'price'        => $price,
-                'status'       => 'published',
+                'user_id' => $idol->id,
+                'title' => "Pack {$p}",
+                'price' => $price,
+                'status' => 'published',
                 'published_at' => now(),
             ]);
 
@@ -76,8 +83,8 @@ class GenerateGallery extends Command
 
                 ContentPackPhoto::create([
                     'content_pack_id' => $pack->id,
-                    'path'            => $filename,
-                    'sort_order'      => $ph,
+                    'path' => $filename,
+                    'sort_order' => $ph,
                 ]);
 
                 $bar->advance();
@@ -85,9 +92,9 @@ class GenerateGallery extends Command
 
             ContentPackPurchase::create([
                 'content_pack_id' => $pack->id,
-                'user_id'         => $buyer->id,
-                'price_paid'      => $price,
-                'purchased_at'    => now(),
+                'user_id' => $buyer->id,
+                'price_paid' => $price,
+                'purchased_at' => now(),
             ]);
         }
 
@@ -99,7 +106,7 @@ class GenerateGallery extends Command
         $this->newLine();
         $this->table([], [
             ['<fg=gray>Создано паков</>',  "<fg=white>{$packCount}</>"],
-            ['<fg=gray>Создано фото</>',   "<fg=white>" . ($packCount * $photoCount) . "</>"],
+            ['<fg=gray>Создано фото</>',   '<fg=white>'.($packCount * $photoCount).'</>'],
             ['<fg=gray>Покупок создано</>', "<fg=white>{$packCount}</>"],
         ]);
         $this->newLine();
@@ -115,13 +122,15 @@ class GenerateGallery extends Command
             ? User::find((int) $input)
             : User::where('email', $input)->orWhere('name', $input)->first();
 
-        if (!$user) {
+        if (! $user) {
             $this->error("Пользователь не найден: «{$input}»");
+
             return null;
         }
 
-        if ($requireIdol && !$user->is_idol) {
+        if ($requireIdol && ! $user->is_idol) {
             $this->error("Пользователь «{$user->name}» не является айдолом.");
+
             return null;
         }
 
@@ -137,7 +146,7 @@ class GenerateGallery extends Command
         [$r2, $g2, $b2] = $this->hsvToRgb(($hue + 60) % 360, 0.5, 0.7);
 
         for ($y = 0; $y < self::IMG_HEIGHT; $y++) {
-            $t   = $y / self::IMG_HEIGHT;
+            $t = $y / self::IMG_HEIGHT;
             $col = imagecolorallocate(
                 $img,
                 (int) ($r1 + ($r2 - $r1) * $t),
@@ -156,8 +165,8 @@ class GenerateGallery extends Command
             );
         }
 
-        $label  = "Pack #{$packId}  Photo #{$photoNum}";
-        $white  = imagecolorallocate($img, 255, 255, 255);
+        $label = "Pack #{$packId}  Photo #{$photoNum}";
+        $white = imagecolorallocate($img, 255, 255, 255);
         $shadow = imagecolorallocate($img, 0, 0, 0);
         imagestring($img, 5, 21, 21, $label, $shadow);
         imagestring($img, 5, 20, 20, $label, $white);
@@ -176,11 +185,11 @@ class GenerateGallery extends Command
         $t = $v * (1 - $s * (1 - $f));
 
         [$r, $g, $b] = match ($i % 6) {
-            0       => [$v, $t, $p],
-            1       => [$q, $v, $p],
-            2       => [$p, $v, $t],
-            3       => [$p, $q, $v],
-            4       => [$t, $p, $v],
+            0 => [$v, $t, $p],
+            1 => [$q, $v, $p],
+            2 => [$p, $v, $t],
+            3 => [$p, $q, $v],
+            4 => [$t, $p, $v],
             default => [$v, $p, $q],
         };
 

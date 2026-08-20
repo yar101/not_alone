@@ -44,15 +44,15 @@ class UserStrikeNotification extends Notification implements ShouldQueue
             ->subject('Уведомление от модерации платформы')
             ->greeting('Уведомление о нарушении')
             ->line('Вы получили это письмо, так как администрация зафиксировала нарушение правил платформы.')
-            ->line('Количество ваших активных страйков: ' . $activeStrikes . ' из 3.');
+            ->line('Количество ваших активных страйков: '.$activeStrikes.' из 3.');
 
         if ($this->strike->rating_deducted < 0) {
             $mail->line('В связи с нарушением ваш рейтинг был понижен.');
         }
 
-        if (!empty($this->strike->admin_note)) {
+        if (! empty($this->strike->admin_note)) {
             $mail->line('**Примечание от администрации:**');
-            $mail->line('"' . $this->strike->admin_note . '"');
+            $mail->line('"'.$this->strike->admin_note.'"');
         }
 
         if ($activeStrikes >= 3) {

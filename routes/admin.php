@@ -1,42 +1,42 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminLogController;
-use App\Http\Controllers\Admin\ContentPackChangeRequestController;
-use App\Http\Controllers\Admin\ContentPackModerationController;
-use App\Http\Controllers\Admin\RatingLogController;
 use App\Http\Controllers\Admin\ApplicationController;
+use App\Http\Controllers\Admin\Auth\LoginController;
+use App\Http\Controllers\Admin\AvatarFrameController;
 use App\Http\Controllers\Admin\BanReasonController;
 use App\Http\Controllers\Admin\ChatBlockController;
-use App\Http\Controllers\Admin\Auth\LoginController;
+use App\Http\Controllers\Admin\ContentPackChangeRequestController;
+use App\Http\Controllers\Admin\ContentPackModerationController;
+use App\Http\Controllers\Admin\ConversationController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DisputeController;
 use App\Http\Controllers\Admin\ExportController;
+use App\Http\Controllers\Admin\HelpArticleController;
+use App\Http\Controllers\Admin\HelpCategoryController;
 use App\Http\Controllers\Admin\IdolRatingController;
-use App\Http\Controllers\Admin\MessageController;
-use App\Http\Controllers\Admin\PlatformSettingsController;
-use App\Http\Controllers\Admin\QuizQuestionController;
-use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\InterestCategoryController;
 use App\Http\Controllers\Admin\InterestController;
 use App\Http\Controllers\Admin\InterestSuggestionController;
+use App\Http\Controllers\Admin\MessageController;
+use App\Http\Controllers\Admin\NewsController;
+use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\PersonalityTraitController;
-use App\Http\Controllers\Admin\TraitSuggestionController;
+use App\Http\Controllers\Admin\PlatformSettingsController;
+use App\Http\Controllers\Admin\QuizQuestionController;
+use App\Http\Controllers\Admin\RatingLogController;
+use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\ReviewDisputeController;
+use App\Http\Controllers\Admin\ReviewEpithetController;
 use App\Http\Controllers\Admin\ServiceCategoryController;
 use App\Http\Controllers\Admin\ServiceChangeRequestController;
 use App\Http\Controllers\Admin\ServiceModerationController;
 use App\Http\Controllers\Admin\ServicePriceLimitController;
 use App\Http\Controllers\Admin\ServiceTimeUnitController;
-use App\Http\Controllers\Admin\NewsController;
-use App\Http\Controllers\Admin\ConversationController;
-use App\Http\Controllers\Admin\DisputeController;
-use App\Http\Controllers\Admin\OrderController;
-use App\Http\Controllers\Admin\ReviewDisputeController;
-use App\Http\Controllers\Admin\ReviewEpithetController;
-use App\Http\Controllers\Admin\SupportChatController;
-use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\Admin\HelpCategoryController;
-use App\Http\Controllers\Admin\HelpArticleController;
 use App\Http\Controllers\Admin\StrikeController;
-use App\Http\Controllers\Admin\AvatarFrameController;
+use App\Http\Controllers\Admin\SupportChatController;
+use App\Http\Controllers\Admin\TraitSuggestionController;
+use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -101,9 +101,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/', [ContentPackModerationController::class, 'index'])->name('index');
             // Change requests (static prefix must come before /{pack})
             Route::prefix('change-requests')->name('change-requests.')->group(function () {
-                Route::get('/',                              [ContentPackChangeRequestController::class, 'index'])->name('index');
-                Route::get('/{changeRequest}',               [ContentPackChangeRequestController::class, 'show'])->name('show');
-                Route::post('/{changeRequest}/decide',       [ContentPackChangeRequestController::class, 'decide'])->name('decide');
+                Route::get('/', [ContentPackChangeRequestController::class, 'index'])->name('index');
+                Route::get('/{changeRequest}', [ContentPackChangeRequestController::class, 'show'])->name('show');
+                Route::post('/{changeRequest}/decide', [ContentPackChangeRequestController::class, 'decide'])->name('decide');
             });
             Route::get('/{pack}', [ContentPackModerationController::class, 'show'])->name('show');
             Route::post('/{pack}/decide', [ContentPackModerationController::class, 'decide'])->name('decide');
@@ -115,7 +115,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/moderation', [ServiceModerationController::class, 'index'])->name('moderation.index');
             Route::get('/moderation/{service}', [ServiceModerationController::class, 'show'])->name('moderation.show');
             Route::post('/moderation/{service}/decide', [ServiceModerationController::class, 'decide'])->name('moderation.decide');
-            
+
             // Change requests
             Route::prefix('change-requests')->name('change-requests.')->group(function () {
                 Route::get('/', [ServiceChangeRequestController::class, 'index'])->name('index');
@@ -173,7 +173,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('traits')->name('traits.')->group(function () {
             Route::get('/', [PersonalityTraitController::class, 'index'])->name('index');
             Route::post('/', [PersonalityTraitController::class, 'store'])->name('store');
-Route::patch('/{trait}', [PersonalityTraitController::class, 'update'])->name('update');
+            Route::patch('/{trait}', [PersonalityTraitController::class, 'update'])->name('update');
             Route::delete('/{trait}', [PersonalityTraitController::class, 'destroy'])->name('destroy');
 
             Route::prefix('suggestions')->name('suggestions.')->group(function () {
@@ -212,20 +212,20 @@ Route::patch('/{trait}', [PersonalityTraitController::class, 'update'])->name('u
 
         // Ban reasons
         Route::prefix('ban-reasons')->name('ban-reasons.')->group(function () {
-            Route::get('/',             [BanReasonController::class, 'index'])->name('index');
-            Route::post('/',            [BanReasonController::class, 'store'])->name('store');
+            Route::get('/', [BanReasonController::class, 'index'])->name('index');
+            Route::post('/', [BanReasonController::class, 'store'])->name('store');
             Route::patch('/{banReason}', [BanReasonController::class, 'update'])->name('update');
             Route::delete('/{banReason}', [BanReasonController::class, 'destroy'])->name('destroy');
-            Route::post('/reorder',     [BanReasonController::class, 'reorder'])->name('reorder');
+            Route::post('/reorder', [BanReasonController::class, 'reorder'])->name('reorder');
         });
 
         // Review epithets
         Route::prefix('review-epithets')->name('review-epithets.')->group(function () {
-            Route::get('/',              [ReviewEpithetController::class, 'index'])->name('index');
-            Route::post('/',             [ReviewEpithetController::class, 'store'])->name('store');
-            Route::patch('/{epithet}',   [ReviewEpithetController::class, 'update'])->name('update');
-            Route::delete('/{epithet}',  [ReviewEpithetController::class, 'destroy'])->name('destroy');
-            Route::post('/reorder',      [ReviewEpithetController::class, 'reorder'])->name('reorder');
+            Route::get('/', [ReviewEpithetController::class, 'index'])->name('index');
+            Route::post('/', [ReviewEpithetController::class, 'store'])->name('store');
+            Route::patch('/{epithet}', [ReviewEpithetController::class, 'update'])->name('update');
+            Route::delete('/{epithet}', [ReviewEpithetController::class, 'destroy'])->name('destroy');
+            Route::post('/reorder', [ReviewEpithetController::class, 'reorder'])->name('reorder');
         });
 
         // News (О проекте)
@@ -238,18 +238,18 @@ Route::patch('/{trait}', [PersonalityTraitController::class, 'update'])->name('u
 
         // Help / FAQ CRUD
         Route::prefix('help-categories')->name('help-categories.')->group(function () {
-            Route::get('/',             [HelpCategoryController::class, 'index'])->name('index');
-            Route::post('/',            [HelpCategoryController::class, 'store'])->name('store');
+            Route::get('/', [HelpCategoryController::class, 'index'])->name('index');
+            Route::post('/', [HelpCategoryController::class, 'store'])->name('store');
             Route::patch('/{category}', [HelpCategoryController::class, 'update'])->name('update');
             Route::delete('/{category}', [HelpCategoryController::class, 'destroy'])->name('destroy');
-            Route::post('/reorder',     [HelpCategoryController::class, 'reorder'])->name('reorder');
+            Route::post('/reorder', [HelpCategoryController::class, 'reorder'])->name('reorder');
         });
 
         Route::prefix('help-articles')->name('help-articles.')->group(function () {
-            Route::post('/',            [HelpArticleController::class, 'store'])->name('store');
-            Route::patch('/{article}',  [HelpArticleController::class, 'update'])->name('update');
+            Route::post('/', [HelpArticleController::class, 'store'])->name('store');
+            Route::patch('/{article}', [HelpArticleController::class, 'update'])->name('update');
             Route::delete('/{article}', [HelpArticleController::class, 'destroy'])->name('destroy');
-            Route::post('/reorder',     [HelpArticleController::class, 'reorder'])->name('reorder');
+            Route::post('/reorder', [HelpArticleController::class, 'reorder'])->name('reorder');
         });
 
         // Orders

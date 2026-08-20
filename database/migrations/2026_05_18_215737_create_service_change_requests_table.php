@@ -19,16 +19,16 @@ return new class extends Migration
             $table->unsignedInteger('pending_price')->nullable();
             $table->foreignId('pending_category_id')->nullable()->constrained('service_categories')->nullOnDelete();
             $table->foreignId('pending_time_unit_id')->nullable()->constrained('service_time_units')->nullOnDelete();
-            
+
             $table->string('status')->default('pending'); // pending, has_remarks, approved, rejected
-            
+
             $table->json('flagged_fields')->nullable();
             $table->json('field_comments')->nullable();
-            
+
             $table->foreignId('reviewed_by')->nullable()->constrained('admins')->nullOnDelete();
             $table->timestamp('reviewed_at')->nullable();
             $table->text('admin_comment')->nullable();
-            
+
             $table->timestamps();
         });
     }

@@ -9,14 +9,20 @@ use App\Events\NewNotification;
 use App\Events\OrderChanged;
 use App\Events\OrderStatusChanged;
 use App\Jobs\CompleteOrderJob;
+use App\Models\ChatBlock;
+use App\Models\Conversation;
 use App\Models\Order;
 use App\Models\OrderDispute;
 use App\Models\PlatformSetting;
+use App\Models\Service;
 use App\Models\User;
+use App\Models\UserIdolTrial;
 use App\Notifications\OrderAcceptedNotification;
 use App\Notifications\OrderCancelledNotification;
 use App\Notifications\OrderCompletedNotification;
 use App\Notifications\OrderPaidNotification;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class OrderService
 {
@@ -31,7 +37,7 @@ class OrderService
         $serviceIds = collect($requestedServices)->pluck('id');
         $quantityMap = collect($requestedServices)->keyBy('id');
 
-        $services = \App\Models\Service::whereIn('id', $serviceIds)
+        $services = Service::whereIn('id', $serviceIds)
             ->where('user_id', $idol->id)
             ->where('is_active', true)
             ->with(['category', 'timeUnit'])
@@ -45,7 +51,7 @@ class OrderService
             throw new \Exception('Пользователь недоступен');
         }
 
-        if (\App\Models\ChatBlock::active()->where('blocker_id', $idol->id)->where('blocked_id', $customer->id)->exists()) {
+        if (ChatBlock::active()->where('blocker_id', $idol->id)->where('blocked_id', $customer->id)->exists()) {
             throw new \Exception('Вы заблокированы этим пользователем');
         }
 
@@ -54,10 +60,10 @@ class OrderService
             throw new \Exception('Нельзя заказать более одной бесплатной услуги одновременно');
         }
 
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($customer, $idol, $services, $quantityMap, $trialServicesCount) {
+        return DB::transaction(function () use ($customer, $idol, $services, $quantityMap, $trialServicesCount) {
             $hasUsedTrial = false;
             if ($trialServicesCount > 0) {
-                $hasUsedTrial = \App\Models\UserIdolTrial::where('user_id', $customer->id)
+                $hasUsedTrial = UserIdolTrial::where('user_id', $customer->id)
                     ->where('idol_id', $idol->id)
                     ->lockForUpdate()
                     ->exists();
@@ -81,14 +87,14 @@ class OrderService
             }
 
             if ($trialServicesCount > 0 && ! $hasUsedTrial) {
-                \App\Models\UserIdolTrial::create([
+                UserIdolTrial::create([
                     'user_id' => $customer->id,
                     'idol_id' => $idol->id,
                     'order_id' => $order->id,
                 ]);
             }
 
-            $conversation = \App\Models\Conversation::create(['order_id' => $order->id]);
+            $conversation = Conversation::create(['order_id' => $order->id]);
             $conversation->participants()->createMany([
                 ['user_id' => $customer->id],
                 ['user_id' => $idol->id],
@@ -115,7 +121,7 @@ class OrderService
 
             $conversation->touch();
 
-            \Illuminate\Support\Facades\DB::afterCommit(function () use ($msg, $conversation, $order) {
+            DB::afterCommit(function () use ($msg, $conversation, $order) {
                 $msg->load('sender');
                 $this->safeBroadcast(new MessageSent($msg));
                 foreach ($conversation->participants as $participant) {
@@ -136,223 +142,256 @@ class OrderService
 
     public function accept(Order $order, User $actor): void
     {
-        if ($order->status !== OrderStatus::Pending) {
-            throw new \DomainException("Невозможно принять заказ в статусе {$order->status->label()}");
-        }
+        DB::transaction(function () use ($order, $actor) {
+            $lockedOrder = Order::lockForUpdate()->findOrFail($order->id);
 
-        $order->logStatusChange(OrderStatus::Pending->value, OrderStatus::Accepted->value, 'user', $actor->id);
-        $order->update(['status' => OrderStatus::Accepted]);
+            if ($lockedOrder->status !== OrderStatus::Pending) {
+                throw new \DomainException("Невозможно принять заказ в статусе {$lockedOrder->status->label()}");
+            }
 
-        $this->broadcastSystemMessage($order, [
-            'sender_id' => $actor->id,
-            'body' => '',
-            'type' => 'system',
-            'metadata' => [
-                'event' => 'order_accepted',
-                'idol_id' => $actor->id,
-                'idol_name' => $actor->name,
-                'idol_gender' => $actor->gender,
-            ],
-        ]);
+            $lockedOrder->logStatusChange(OrderStatus::Pending->value, OrderStatus::Accepted->value, 'user', $actor->id);
+            $lockedOrder->update(['status' => OrderStatus::Accepted]);
 
-        $this->broadcastStatusChanged($order, 'accepted');
-        $this->broadcastOrderChanged($order);
+            $this->broadcastSystemMessage($lockedOrder, [
+                'sender_id' => $actor->id,
+                'body' => '',
+                'type' => 'system',
+                'metadata' => [
+                    'event' => 'order_accepted',
+                    'idol_id' => $actor->id,
+                    'idol_name' => $actor->name,
+                    'idol_gender' => $actor->gender,
+                ],
+            ]);
 
-        \Illuminate\Support\Facades\DB::afterCommit(function () use ($order) {
-            $order->customer->notify(new OrderAcceptedNotification($order));
-            $this->safeBroadcast(new NewNotification('private', $order->customer_id));
+            $this->broadcastStatusChanged($lockedOrder, 'accepted');
+            $this->broadcastOrderChanged($lockedOrder);
+
+            DB::afterCommit(function () use ($lockedOrder) {
+                $lockedOrder->customer->notify(new OrderAcceptedNotification($lockedOrder));
+                $this->safeBroadcast(new NewNotification('private', $lockedOrder->customer_id));
+            });
         });
     }
 
     public function pay(Order $order, User $actor): void
     {
-        if ($order->status !== OrderStatus::Accepted) {
-            throw new \DomainException("Невозможно оплатить заказ в статусе {$order->status->label()}");
-        }
+        DB::transaction(function () use ($order, $actor) {
+            $lockedOrder = Order::lockForUpdate()->findOrFail($order->id);
 
-        $order->logStatusChange(OrderStatus::Accepted->value, OrderStatus::Paid->value, 'user', $actor->id);
-        $order->update(['status' => OrderStatus::Paid, 'paid_at' => now()]);
+            if ($lockedOrder->status !== OrderStatus::Accepted) {
+                throw new \DomainException("Невозможно оплатить заказ в статусе {$lockedOrder->status->label()}");
+            }
 
-        $this->broadcastSystemMessage($order, [
-            'sender_id' => $actor->id,
-            'body' => '',
-            'type' => 'system',
-            'metadata' => [
-                'event' => 'order_paid',
-                'customer_id' => $actor->id,
-                'customer_name' => $actor->name,
-            ],
-        ]);
+            $lockedOrder->logStatusChange(OrderStatus::Accepted->value, OrderStatus::Paid->value, 'user', $actor->id);
+            $lockedOrder->update(['status' => OrderStatus::Paid, 'paid_at' => now()]);
 
-        $this->broadcastStatusChanged($order, 'paid');
-        $this->broadcastOrderChanged($order);
+            $this->broadcastSystemMessage($lockedOrder, [
+                'sender_id' => $actor->id,
+                'body' => '',
+                'type' => 'system',
+                'metadata' => [
+                    'event' => 'order_paid',
+                    'customer_id' => $actor->id,
+                    'customer_name' => $actor->name,
+                ],
+            ]);
 
-        \Illuminate\Support\Facades\DB::afterCommit(function () use ($order) {
-            $order->idol->notify(new OrderPaidNotification($order));
-            $this->safeBroadcast(new NewNotification('private', $order->idol_id));
+            $this->broadcastStatusChanged($lockedOrder, 'paid');
+            $this->broadcastOrderChanged($lockedOrder);
 
-            // Auto-complete after delay from settings
-            $delayHours = (float) PlatformSetting::get('order_auto_complete_delay', 72);
-            CompleteOrderJob::dispatch($order)->delay(now()->addSeconds((int) ($delayHours * 3600)));
+            DB::afterCommit(function () use ($lockedOrder) {
+                $lockedOrder->idol->notify(new OrderPaidNotification($lockedOrder));
+                $this->safeBroadcast(new NewNotification('private', $lockedOrder->idol_id));
+
+                // Auto-complete after delay from settings
+                $delayHours = (float) PlatformSetting::get('order_auto_complete_delay', 72);
+                CompleteOrderJob::dispatch($lockedOrder)->delay(now()->addSeconds((int) ($delayHours * 3600)));
+            });
         });
     }
 
     public function cancel(Order $order, User $actor, string $reason): void
     {
-        if (! in_array($order->status, [OrderStatus::Pending, OrderStatus::Accepted, OrderStatus::Paid])) {
-            throw new \DomainException("Невозможно отменить заказ в статусе {$order->status->label()}");
-        }
+        DB::transaction(function () use ($order, $actor, $reason) {
+            $lockedOrder = Order::lockForUpdate()->findOrFail($order->id);
 
-        $from = $order->status->value;
-        $order->logStatusChange($from, OrderStatus::Cancelled->value, 'user', $actor->id, $reason);
-        $order->update([
-            'status' => OrderStatus::Cancelled,
-            'cancel_reason' => $reason,
-            'cancelled_by' => $actor->id,
-        ]);
+            if (! in_array($lockedOrder->status, [OrderStatus::Pending, OrderStatus::Accepted, OrderStatus::Paid])) {
+                throw new \DomainException("Невозможно отменить заказ в статусе {$lockedOrder->status->label()}");
+            }
 
-        \App\Models\UserIdolTrial::where('order_id', $order->id)->delete();
-
-        $this->broadcastSystemMessage($order, [
-            'sender_id' => $actor->id,
-            'body' => '',
-            'type' => 'system',
-            'metadata' => [
-                'event' => 'order_cancelled',
-                'cancelled_by' => $actor->id,
-                'cancelled_by_name' => $actor->name,
+            $from = $lockedOrder->status->value;
+            $lockedOrder->logStatusChange($from, OrderStatus::Cancelled->value, 'user', $actor->id, $reason);
+            $lockedOrder->update([
+                'status' => OrderStatus::Cancelled,
                 'cancel_reason' => $reason,
-            ],
-        ]);
+                'cancelled_by' => $actor->id,
+            ]);
 
-        $this->broadcastStatusChanged($order, 'cancelled',
-            cancelledBy: $actor->id,
-            cancelledByName: $actor->name,
-            cancelReason: $reason,
-        );
-        $this->broadcastOrderChanged($order);
+            UserIdolTrial::where('order_id', $lockedOrder->id)->delete();
 
-        $otherId = $order->customer_id === $actor->id ? $order->idol_id : $order->customer_id;
-        $other = User::find($otherId);
+            $this->broadcastSystemMessage($lockedOrder, [
+                'sender_id' => $actor->id,
+                'body' => '',
+                'type' => 'system',
+                'metadata' => [
+                    'event' => 'order_cancelled',
+                    'cancelled_by' => $actor->id,
+                    'cancelled_by_name' => $actor->name,
+                    'cancel_reason' => $reason,
+                ],
+            ]);
 
-        \Illuminate\Support\Facades\DB::afterCommit(function () use ($other, $otherId, $order) {
-            $other?->notify(new OrderCancelledNotification($order));
-            $this->safeBroadcast(new NewNotification('private', $otherId));
+            $this->broadcastStatusChanged($lockedOrder, 'cancelled',
+                cancelledBy: $actor->id,
+                cancelledByName: $actor->name,
+                cancelReason: $reason,
+            );
+            $this->broadcastOrderChanged($lockedOrder);
+
+            $otherId = $lockedOrder->customer_id === $actor->id ? $lockedOrder->idol_id : $lockedOrder->customer_id;
+            $other = User::find($otherId);
+
+            DB::afterCommit(function () use ($other, $otherId, $lockedOrder) {
+                $other?->notify(new OrderCancelledNotification($lockedOrder));
+                $this->safeBroadcast(new NewNotification('private', $otherId));
+            });
         });
     }
 
     public function confirmCompletion(Order $order, User $actor): array
     {
-        if ($order->status !== OrderStatus::Paid) {
-            throw new \DomainException("Невозможно подтвердить выполнение заказа в статусе {$order->status->label()}");
-        }
+        return DB::transaction(function () use ($order, $actor) {
+            $lockedOrder = Order::lockForUpdate()->findOrFail($order->id);
 
-        $isIdol = $order->idol_id === $actor->id;
-        $field = $isIdol ? 'completion_confirmed_by_idol' : 'completion_confirmed_by_customer';
-        $order->update([$field => true]);
-        $order->refresh();
+            if ($lockedOrder->status === OrderStatus::Completed) {
+                return [
+                    'confirmed' => true,
+                    'completion_confirmed_by_idol' => (bool) $lockedOrder->completion_confirmed_by_idol,
+                    'completion_confirmed_by_customer' => (bool) $lockedOrder->completion_confirmed_by_customer,
+                ];
+            }
 
-        $event = $isIdol ? 'completion_confirmed_by_idol' : 'completion_confirmed_by_customer';
-        $this->broadcastSystemMessage($order, [
-            'sender_id' => $actor->id,
-            'body' => '',
-            'type' => 'system',
-            'metadata' => ['event' => $event, 'actor_name' => $actor->name],
-        ]);
+            if ($lockedOrder->status !== OrderStatus::Paid) {
+                throw new \DomainException("Невозможно подтвердить выполнение заказа в статусе {$lockedOrder->status->label()}");
+            }
 
-        // Customer confirmation is prioritised: the order completes immediately
-        // when the customer confirms, regardless of whether the idol has confirmed.
-        // Idol confirmation alone only sets the flag and waits for the customer.
-        if (! $isIdol) {
-            // Customer clicked → complete right away
-            $this->complete($order, 'user', $actor->id);
-        } elseif ($order->completion_confirmed_by_idol && $order->completion_confirmed_by_customer) {
-            // Both have confirmed (idol was last) → complete
-            $this->complete($order, 'user', $actor->id);
-        } else {
-            // Idol confirmed first, waiting for customer
-            $this->broadcastOrderChanged($order);
-        }
+            $isIdol = $lockedOrder->idol_id === $actor->id;
+            $field = $isIdol ? 'completion_confirmed_by_idol' : 'completion_confirmed_by_customer';
+            $lockedOrder->update([$field => true]);
+            $lockedOrder->refresh();
 
-        return [
-            'confirmed' => true,
-            'completion_confirmed_by_idol' => (bool) $order->completion_confirmed_by_idol,
-            'completion_confirmed_by_customer' => (bool) $order->completion_confirmed_by_customer,
-        ];
+            $event = $isIdol ? 'completion_confirmed_by_idol' : 'completion_confirmed_by_customer';
+            $this->broadcastSystemMessage($lockedOrder, [
+                'sender_id' => $actor->id,
+                'body' => '',
+                'type' => 'system',
+                'metadata' => ['event' => $event, 'actor_name' => $actor->name],
+            ]);
+
+            // Customer confirmation completes immediately; Idol confirmation waits for customer
+            if (! $isIdol || ($lockedOrder->completion_confirmed_by_idol && $lockedOrder->completion_confirmed_by_customer)) {
+                $this->complete($lockedOrder, 'user', $actor->id);
+            } else {
+                $this->broadcastOrderChanged($lockedOrder);
+            }
+
+            return [
+                'confirmed' => true,
+                'completion_confirmed_by_idol' => (bool) $lockedOrder->completion_confirmed_by_idol,
+                'completion_confirmed_by_customer' => (bool) $lockedOrder->completion_confirmed_by_customer,
+            ];
+        });
     }
 
     public function dispute(Order $order, User $actor, string $reason, string $details): void
     {
-        if ($order->status !== OrderStatus::Paid && $order->status !== OrderStatus::Completed) {
-            throw new \DomainException("Невозможно открыть спор по заказу в статусе {$order->status->label()}");
-        }
+        DB::transaction(function () use ($order, $actor, $reason, $details) {
+            $lockedOrder = Order::lockForUpdate()->findOrFail($order->id);
 
-        OrderDispute::create([
-            'order_id' => $order->id,
-            'customer_id' => $actor->id,
-            'reason' => $reason,
-            'details' => $details,
-        ]);
+            if ($lockedOrder->status !== OrderStatus::Paid && $lockedOrder->status !== OrderStatus::Completed) {
+                throw new \DomainException("Невозможно открыть спор по заказу в статусе {$lockedOrder->status->label()}");
+            }
 
-        $order->logStatusChange(OrderStatus::Completed->value, OrderStatus::Disputed->value, 'user', $actor->id, $reason);
-        $order->update(['status' => OrderStatus::Disputed]);
+            if ($lockedOrder->completed_at && $lockedOrder->completed_at->lt(now()->subHour())) {
+                throw new \DomainException('Время для оспаривания истекло. Спор можно открыть в течение 1 часа после завершения заказа.');
+            }
 
-        $this->broadcastStatusChanged($order, 'disputed');
-        $this->broadcastOrderChanged($order);
+            if ($lockedOrder->disputes()->exists()) {
+                throw new \DomainException('По этому заказу уже открыт спор.');
+            }
+
+            OrderDispute::create([
+                'order_id' => $lockedOrder->id,
+                'customer_id' => $actor->id,
+                'reason' => $reason,
+                'details' => $details,
+            ]);
+
+            $fromStatus = $lockedOrder->status->value;
+            $lockedOrder->logStatusChange($fromStatus, OrderStatus::Disputed->value, 'user', $actor->id, $reason);
+            $lockedOrder->update(['status' => OrderStatus::Disputed]);
+
+            $this->broadcastStatusChanged($lockedOrder, 'disputed');
+            $this->broadcastOrderChanged($lockedOrder);
+        });
     }
 
     public function addItem(Order $order, int $serviceId, User $actor): void
     {
-        $service = \App\Models\Service::where('id', $serviceId)
-            ->where('user_id', $order->idol_id)
-            ->where('is_active', true)
-            ->where('status', 'approved')
-            ->with('timeUnit:id,name')
-            ->firstOrFail();
+        DB::transaction(function () use ($order, $serviceId) {
+            $lockedOrder = Order::lockForUpdate()->findOrFail($order->id);
 
-        $existing = $order->items()->where('service_id', $service->id)->first();
-        if ($existing) {
-            $existing->increment('quantity');
-        } else {
-            $order->items()->create(['service_id' => $service->id, 'quantity' => 1, 'price' => $service->price]);
-        }
+            if ($lockedOrder->status !== OrderStatus::Pending) {
+                throw new \DomainException('Добавлять услуги можно только к созданным заказам.');
+            }
 
-        $order->touch();
+            $service = Service::where('id', $serviceId)
+                ->where('user_id', $lockedOrder->idol_id)
+                ->where('is_active', true)
+                ->where('status', 'approved')
+                ->with('timeUnit:id,name')
+                ->firstOrFail();
 
-        if ($order->conversation_id) {
-            $order->load(['items.service.timeUnit']);
-            $allItems = $order->items->map(fn ($item) => [
-                'id' => $item->service?->id,
-                'name' => $item->service?->name,
-                'price' => $item->price ?? $item->service?->price,
-                'time_unit' => $item->service?->timeUnit?->name,
-                'quantity' => $item->quantity ?? 1,
-            ])->values()->all();
+            $existing = $lockedOrder->items()->where('service_id', $service->id)->first();
+            if ($existing) {
+                $existing->increment('quantity');
+            } else {
+                $lockedOrder->items()->create(['service_id' => $service->id, 'quantity' => 1, 'price' => $service->price]);
+            }
 
-            $this->broadcastSystemMessage($order, [
-                'sender_id' => null,
-                'body' => '',
-                'type' => 'system',
-                'metadata' => [
-                    'event' => 'item_added',
-                    'services' => $allItems,
-                ],
-            ]);
-        }
+            $lockedOrder->touch();
 
-        $this->broadcastOrderChanged($order);
+            if ($lockedOrder->conversation_id) {
+                $lockedOrder->load(['items.service.timeUnit']);
+                $allItems = $lockedOrder->items->map(fn ($item) => [
+                    'id' => $item->service?->id,
+                    'name' => $item->service?->name,
+                    'price' => $item->price ?? $item->service?->price,
+                    'time_unit' => $item->service?->timeUnit?->name,
+                    'quantity' => $item->quantity ?? 1,
+                ])->values()->all();
+
+                $this->broadcastSystemMessage($lockedOrder, [
+                    'sender_id' => null,
+                    'body' => '',
+                    'type' => 'system',
+                    'metadata' => [
+                        'event' => 'item_added',
+                        'services' => $allItems,
+                    ],
+                ]);
+            }
+
+            $this->broadcastOrderChanged($lockedOrder);
+        });
     }
 
     // ── Admin transition ──────────────────────────────────────────────────────
 
-    /**
-     * Force any status transition from the admin panel.
-     * Applies the same side effects (timestamps, notifications, broadcasts)
-     * as the corresponding user-facing action so that application logic stays consistent.
-     */
     public function adminTransition(Order $order, OrderStatus $to, int $adminId, ?string $note = null): void
     {
-        \Illuminate\Support\Facades\DB::transaction(function () use ($order, $to, $adminId, $note) {
+        DB::transaction(function () use ($order, $to, $adminId, $note) {
             $lockedOrder = Order::lockForUpdate()->find($order->id);
             if (! $lockedOrder) {
                 return;
@@ -363,7 +402,6 @@ class OrderService
 
             switch ($to) {
                 case OrderStatus::Paid:
-                    // Preserve an existing paid_at so we don't reset a running timer
                     $isNewPaid = $lockedOrder->status !== OrderStatus::Paid;
                     $attrs['paid_at'] = $lockedOrder->paid_at ?? now();
 
@@ -377,7 +415,7 @@ class OrderService
                         $lockedOrder->conversation->touch();
                     }
 
-                    \Illuminate\Support\Facades\DB::afterCommit(function () use ($lockedOrder, $isNewPaid) {
+                    DB::afterCommit(function () use ($lockedOrder, $isNewPaid) {
                         $lockedOrder->idol->notify(new OrderPaidNotification($lockedOrder));
                         $this->safeBroadcast(new NewNotification('private', $lockedOrder->idol_id));
 
@@ -403,7 +441,7 @@ class OrderService
                         $lockedOrder->conversation->touch();
                     }
 
-                    \Illuminate\Support\Facades\DB::afterCommit(function () use ($lockedOrder) {
+                    DB::afterCommit(function () use ($lockedOrder) {
                         $lockedOrder->customer->notify(new OrderCompletedNotification($lockedOrder));
                         $lockedOrder->idol->notify(new OrderCompletedNotification($lockedOrder));
                         $this->safeBroadcast(new NewNotification('private', $lockedOrder->customer_id));
@@ -413,7 +451,7 @@ class OrderService
 
                 case OrderStatus::Cancelled:
                     if (! $lockedOrder->cancelled_by) {
-                        $attrs['cancelled_by'] = null; // admin cancel has no specific actor
+                        $attrs['cancelled_by'] = null;
                     }
 
                     if ($lockedOrder->conversation_id) {
@@ -430,11 +468,10 @@ class OrderService
                         $lockedOrder->conversation->touch();
                     }
 
-                    \App\Models\UserIdolTrial::where('order_id', $lockedOrder->id)->delete();
+                    UserIdolTrial::where('order_id', $lockedOrder->id)->delete();
                     break;
 
                 case OrderStatus::Refunded:
-                    // Only status change + log; no dedicated notification
                     break;
 
                 default:
@@ -453,8 +490,15 @@ class OrderService
 
     public function autoCompleteOrder(Order $order): void
     {
-        $delayHours = (int) PlatformSetting::get('order_auto_complete_delay', 72);
-        $this->complete($order, 'system', 0, "Auto-completed after {$delayHours}h timeout");
+        DB::transaction(function () use ($order) {
+            $lockedOrder = Order::lockForUpdate()->find($order->id);
+            if (! $lockedOrder || $lockedOrder->status !== OrderStatus::Paid) {
+                return;
+            }
+
+            $delayHours = (int) PlatformSetting::get('order_auto_complete_delay', 72);
+            $this->complete($lockedOrder, 'system', 0, "Auto-completed after {$delayHours}h timeout");
+        });
     }
 
     // ── Order formatter (used by controllers & command) ───────────────────────
@@ -505,11 +549,12 @@ class OrderService
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    /**
-     * Common completion logic shared by confirmCompletion() and autoComplete().
-     */
     private function complete(Order $order, string $actorType, int $actorId, ?string $note = null): void
     {
+        if ($order->status === OrderStatus::Completed) {
+            return;
+        }
+
         $old = $order->status->value;
         $order->logStatusChange($old, OrderStatus::Completed->value, $actorType, $actorId, $note);
         $order->update(['status' => OrderStatus::Completed, 'completed_at' => now()]);
@@ -529,7 +574,7 @@ class OrderService
         $this->broadcastStatusChanged($order, 'completed');
         $this->broadcastOrderChanged($order);
 
-        \Illuminate\Support\Facades\DB::afterCommit(function () use ($order) {
+        DB::afterCommit(function () use ($order) {
             \App\Events\OrderCompletedEvent::dispatch($order);
             $order->customer->notify(new OrderCompletedNotification($order));
             $order->idol->notify(new OrderCompletedNotification($order));
@@ -540,7 +585,7 @@ class OrderService
 
     private function broadcastOrderChanged(Order $order): void
     {
-        \Illuminate\Support\Facades\DB::afterCommit(function () use ($order) {
+        DB::afterCommit(function () use ($order) {
             $order->loadMissing(['customer', 'idol', 'cancelledBy', 'items.service.timeUnit']);
 
             $this->safeBroadcast(new OrderChanged(
@@ -567,7 +612,7 @@ class OrderService
             return;
         }
 
-        \Illuminate\Support\Facades\DB::afterCommit(function () use ($order, $status, $cancelledBy, $cancelledByName, $cancelReason) {
+        DB::afterCommit(function () use ($order, $status, $cancelledBy, $cancelledByName, $cancelReason) {
             $this->safeBroadcast(new OrderStatusChanged(
                 conversationId: $order->conversation_id,
                 orderId: $order->id,
@@ -593,7 +638,7 @@ class OrderService
         $msg = $order->conversation->messages()->create($messageAttributes);
         $order->conversation->touch();
 
-        \Illuminate\Support\Facades\DB::afterCommit(function () use ($msg, $order) {
+        DB::afterCommit(function () use ($msg, $order) {
             $msg->load('sender');
             $this->safeBroadcast(new MessageSent($msg));
 
@@ -614,7 +659,7 @@ class OrderService
         try {
             broadcast($event);
         } catch (\Throwable $e) {
-            \Log::warning('Broadcast failed: '.$e->getMessage());
+            Log::warning('Broadcast failed: '.$e->getMessage());
         }
     }
 }

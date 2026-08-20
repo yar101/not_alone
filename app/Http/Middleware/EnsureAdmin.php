@@ -15,10 +15,11 @@ class EnsureAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!auth('admin')->check()) {
+        if (! auth('admin')->check()) {
             if ($request->isMethod('GET')) {
                 session()->put('admin.url.intended', $request->fullUrl());
             }
+
             return redirect()->route('admin.login');
         }
 

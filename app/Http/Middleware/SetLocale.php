@@ -16,7 +16,7 @@ class SetLocale
 
         if (in_array($locale, $available)) {
             App::setLocale($locale);
-            if (!$request->has('locale')) {
+            if (! $request->has('locale')) {
                 Session::put('locale', $locale);
             }
         }

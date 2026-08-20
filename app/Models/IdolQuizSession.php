@@ -46,7 +46,7 @@ class IdolQuizSession extends Model
                 'question' => $question->question->question,
                 'options' => $question->question->options,
             ] : null,
-            'all_questions' => $this->questions()->with('question')->get()->map(fn($sq) => [
+            'all_questions' => $this->questions()->with('question')->get()->map(fn ($sq) => [
                 'stage' => $sq->stage,
                 'question_id' => $sq->question_id,
                 'question' => $sq->question->question,

@@ -15,7 +15,7 @@ class IdolRatingController extends Controller
     {
         $data = $request->validate([
             'delta' => ['required', 'integer', 'min:-100', 'max:100'],
-            'note'  => ['nullable', 'string', 'max:255'],
+            'note' => ['nullable', 'string', 'max:255'],
         ]);
 
         IdolRatingService::adjust($user, 'admin_manual', $data['delta'], $data['note'] ?? null);
@@ -28,6 +28,6 @@ class IdolRatingController extends Controller
             ['delta' => $data['delta'], 'note' => $data['note'] ?? null]
         );
 
-        return back()->with('success', 'Рейтинг изменён. Новое значение: ' . $user->fresh()->rating);
+        return back()->with('success', 'Рейтинг изменён. Новое значение: '.$user->fresh()->rating);
     }
 }

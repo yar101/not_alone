@@ -11,7 +11,8 @@ use Illuminate\Support\Facades\Hash;
 
 class MakeUser extends Command
 {
-    protected $signature   = 'user:make';
+    protected $signature = 'user:make';
+
     protected $description = 'Создать тестового пользователя интерактивно';
 
     public function handle(): int
@@ -24,8 +25,8 @@ class MakeUser extends Command
 
         match ($type) {
             'Обычный пользователь' => $this->makeUser(isIdol: false),
-            'Айдол'               => $this->makeUser(isIdol: true),
-            'Админ'               => $this->makeAdmin(),
+            'Айдол' => $this->makeUser(isIdol: true),
+            'Админ' => $this->makeAdmin(),
         };
 
         return self::SUCCESS;
@@ -33,33 +34,33 @@ class MakeUser extends Command
 
     private function makeUser(bool $isIdol): void
     {
-        $faker  = Factory::create('ru_RU');
+        $faker = Factory::create('ru_RU');
         $gender = ['male', 'female'][rand(0, 1)];
-        $now    = now();
+        $now = now();
 
-        $name  = $gender === 'male' ? $faker->firstNameMale() . ' ' . $faker->lastNameMale()
-                                    : $faker->firstNameFemale() . ' ' . $faker->lastNameFemale();
-        $email = 'user_' . uniqid() . '@example.com';
+        $name = $gender === 'male' ? $faker->firstNameMale().' '.$faker->lastNameMale()
+                                    : $faker->firstNameFemale().' '.$faker->lastNameFemale();
+        $email = 'user_'.uniqid().'@example.com';
         $birth = $faker->dateTimeBetween('-40 years', '-18 years')->format('Y-m-d');
 
         $user = User::create([
-            'name'                => $name,
-            'email'               => $email,
-            'password'            => Hash::make('123123'),
-            'email_verified_at'   => $now,
-            'gender'              => $gender,
-            'birth_date'          => $birth,
-            'is_idol'             => $isIdol,
-            'rating'              => $isIdol ? 20 : null,
+            'name' => $name,
+            'email' => $email,
+            'password' => Hash::make('123123'),
+            'email_verified_at' => $now,
+            'gender' => $gender,
+            'birth_date' => $birth,
+            'is_idol' => $isIdol,
+            'rating' => $isIdol ? 20 : null,
             'idol_quiz_passed_at' => $isIdol ? $now : null,
         ]);
 
         if ($isIdol) {
             IdolApplication::create([
-                'user_id'         => $user->id,
+                'user_id' => $user->id,
                 'face_photo_path' => 'generated',
-                'status'          => 'approved',
-                'reviewed_at'     => $now,
+                'status' => 'approved',
+                'reviewed_at' => $now,
             ]);
         }
 
@@ -74,7 +75,7 @@ class MakeUser extends Command
             ['<fg=gray>Email</>',          "<fg=white>{$email}</>"],
             ['<fg=gray>Email подтверждён</>', '<fg=green>да</>'],
             ['<fg=gray>Пароль</>',         '<fg=yellow>123123</>'],
-            ['<fg=gray>Пол</>',            '<fg=white>' . ($gender === 'male' ? 'Мужской' : 'Женский') . '</>'],
+            ['<fg=gray>Пол</>',            '<fg=white>'.($gender === 'male' ? 'Мужской' : 'Женский').'</>'],
             ['<fg=gray>Дата рождения</>',  "<fg=white>{$birth}</>"],
         ];
 
@@ -89,12 +90,12 @@ class MakeUser extends Command
     private function makeAdmin(): void
     {
         $faker = Factory::create('ru_RU');
-        $name  = $faker->firstName() . ' ' . $faker->lastName();
-        $email = 'admin_' . uniqid() . '@example.com';
+        $name = $faker->firstName().' '.$faker->lastName();
+        $email = 'admin_'.uniqid().'@example.com';
 
         $admin = Admin::create([
-            'name'     => $name,
-            'email'    => $email,
+            'name' => $name,
+            'email' => $email,
             'password' => Hash::make('123123'),
         ]);
 

@@ -17,47 +17,52 @@ class InterestSuggestionController extends Controller
         $search = $request->get('search', '');
 
         $suggestions = InterestSuggestion::with('user:id,name')
-            ->when($status !== 'all', fn($q) => $q->where('status', $status))
-            ->when($search, fn($q) => $q->where('name', 'ilike', "%{$search}%"))
+            ->when($status !== 'all', fn ($q) => $q->where('status', $status))
+            ->when($search, fn ($q) => $q->where('name', 'ilike', "%{$search}%"))
             ->latest()
             ->paginate(30)
             ->withQueryString();
 
         return Inertia::render('Admin/Interests/Suggestions', [
-            'suggestions'   => $suggestions,
+            'suggestions' => $suggestions,
             'currentStatus' => $status,
-            'pendingCount'  => InterestSuggestion::where('status', 'pending')->count(),
-            'search'        => $search,
+            'pendingCount' => InterestSuggestion::where('status', 'pending')->count(),
+            'search' => $search,
         ]);
     }
 
     public function implement(InterestSuggestion $interestSuggestion): RedirectResponse
     {
         $interestSuggestion->update(['status' => 'implemented']);
+
         return back()->with('success', 'Отмечено как реализованное.');
     }
 
     public function approve(InterestSuggestion $interestSuggestion): RedirectResponse
     {
         $interestSuggestion->update(['status' => 'approved']);
+
         return back()->with('success', 'Предложение одобрено.');
     }
 
     public function reject(InterestSuggestion $interestSuggestion): RedirectResponse
     {
         $interestSuggestion->update(['status' => 'rejected']);
+
         return back()->with('success', 'Предложение отклонено.');
     }
 
     public function reopen(InterestSuggestion $interestSuggestion): RedirectResponse
     {
         $interestSuggestion->update(['status' => 'pending']);
+
         return back()->with('success', 'Предложение возвращено на рассмотрение.');
     }
 
     public function destroy(InterestSuggestion $interestSuggestion): RedirectResponse
     {
         $interestSuggestion->delete();
+
         return back()->with('success', 'Предложение удалено.');
     }
 }

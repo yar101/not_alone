@@ -32,8 +32,8 @@ class IdolRejectedMail extends Mailable
         return new Content(
             view: 'mail.idol-rejected',
             with: [
-                'name'     => $this->user->name,
-                'reason'   => $this->reason,
+                'name' => $this->user->name,
+                'reason' => $this->reason,
                 'applyUrl' => url('/idol/apply'),
             ],
         );

@@ -6,6 +6,7 @@ use App\Events\NewNotification;
 use App\Models\AdminBroadcast;
 use App\Models\User;
 use App\Notifications\AdminBroadcastNotification;
+use App\Traits\SafeBroadcast;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -14,7 +15,7 @@ use Illuminate\Queue\SerializesModels;
 
 class FanOutAdminBroadcast implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SafeBroadcast, SerializesModels;
 
     public function __construct(private AdminBroadcast $broadcast) {}
 
@@ -22,26 +23,26 @@ class FanOutAdminBroadcast implements ShouldQueue
     {
         $broadcast = $this->broadcast;
 
-        // Для персональной рассылки (один пользователь) продолжаем использовать Fan-out,
-        // так как это удобно для пуш-уведомлений и личной истории.
         if ($broadcast->target === 'user') {
             $user = User::find($broadcast->target_user_id);
             if ($user) {
                 $alreadyNotified = $user->notifications()
-                    ->whereRaw("(data::jsonb->>'broadcast_id')::int = ?", [$broadcast->id])
+                    ->where(function ($q) use ($broadcast) {
+                        $q->where('data', 'like', '%"broadcast_id":'.$broadcast->id.'%')
+                            ->orWhere('data', 'like', '%"broadcast_id":"'.$broadcast->id.'"%');
+                    })
                     ->exists();
 
-                if (!$alreadyNotified) {
+                if (! $alreadyNotified) {
                     $user->notify(new AdminBroadcastNotification($broadcast));
                 }
             }
-            broadcast(new NewNotification('private', (int) $broadcast->target_user_id));
+            $this->safeBroadcast(new NewNotification('private', (int) $broadcast->target_user_id));
+
             return;
         }
 
-        // Для массовых рассылок (все или фильтр) мы больше не создаем тысячи записей в БД.
-        // Мы просто сигнализируем по вебсокету, что есть «что-то новое» для всех.
-        broadcast(new NewNotification('public'));
+        $this->safeBroadcast(new NewNotification('public'));
     }
 
     private function buildUserQuery(AdminBroadcast $broadcast)
@@ -71,17 +72,11 @@ class FanOutAdminBroadcast implements ShouldQueue
             $query->whereNotNull('birth_date');
 
             if (isset($filters['age_from'])) {
-                $query->whereRaw(
-                    "DATE_PART('year', AGE(birth_date::date)) >= ?",
-                    [(int) $filters['age_from']]
-                );
+                $query->whereDate('birth_date', '<=', now()->subYears((int) $filters['age_from'])->toDateString());
             }
 
             if (isset($filters['age_to'])) {
-                $query->whereRaw(
-                    "DATE_PART('year', AGE(birth_date::date)) <= ?",
-                    [(int) $filters['age_to']]
-                );
+                $query->whereDate('birth_date', '>=', now()->subYears((int) $filters['age_to'] + 1)->addDay()->toDateString());
             }
         }
 

@@ -11,21 +11,21 @@ class HelpController extends Controller
     {
         $locale = app()->getLocale();
 
-        $categories = HelpCategory::with(['articles' => fn($q) => $q->orderBy('sort_order')])
+        $categories = HelpCategory::with(['articles' => fn ($q) => $q->orderBy('sort_order')])
             ->orderBy('sort_order')
             ->get()
             ->map(fn ($cat) => [
-                'id'        => $cat->id,
-                'title'     => $cat->getTranslation('title', $locale),
+                'id' => $cat->id,
+                'title' => $cat->getTranslation('title', $locale),
                 'questions' => collect($cat->articles)->map(fn ($art) => [
                     'id' => $art->id,
-                    'q'  => $art->getTranslation('title', $locale),
-                    'a'  => $art->getTranslation('content', $locale),
-                ])->values()->toArray()
+                    'q' => $art->getTranslation('title', $locale),
+                    'a' => $art->getTranslation('content', $locale),
+                ])->values()->toArray(),
             ]);
 
         return response()->json([
-            'categories' => $categories
+            'categories' => $categories,
         ]);
     }
 }

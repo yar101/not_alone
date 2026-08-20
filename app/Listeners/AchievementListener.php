@@ -32,12 +32,12 @@ class AchievementListener implements ShouldQueue
 
         foreach ($potentialFrames as $frame) {
             $condition = ConditionRegistry::get($frame->condition_class);
-            
+
             if ($condition && $condition->check($user)) {
                 $user->avatarFrames()->attach($frame->id);
 
                 Log::info("User {$user->id} unlocked frame {$frame->id} ({$frame->name})");
-                
+
                 // TODO: Dispatch a real-time event/notification for UI popup
             }
         }

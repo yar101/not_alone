@@ -13,22 +13,23 @@ class AvatarFrameController extends Controller
 {
     public function index()
     {
-        $frames = AvatarFrame::latest()->get()->map(function($f) {
+        $frames = AvatarFrame::latest()->get()->map(function ($f) {
             $f->image_url = Storage::url($f->image_path);
+
             return $f;
         });
 
         // Отправляем список условий на фронт для селекта
-        $conditions = collect(ConditionRegistry::all())->map(function($cond) {
+        $conditions = collect(ConditionRegistry::all())->map(function ($cond) {
             return [
                 'key' => $cond->getKey(),
-                'description' => $cond->getDescription()
+                'description' => $cond->getDescription(),
             ];
         })->values();
 
         return Inertia::render('Admin/AvatarFrames/Index', [
             'frames' => $frames,
-            'conditions' => $conditions
+            'conditions' => $conditions,
         ]);
     }
 

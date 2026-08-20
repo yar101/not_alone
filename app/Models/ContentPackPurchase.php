@@ -18,9 +18,9 @@ class ContentPackPurchase extends Model
     ];
 
     protected $casts = [
-        'price_paid'   => 'integer',
+        'price_paid' => 'integer',
         'purchased_at' => 'datetime',
-        'viewed_at'    => 'datetime',
+        'viewed_at' => 'datetime',
     ];
 
     public function contentPack(): BelongsTo

@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class PlatformSetting extends Model
 {
     protected $primaryKey = 'key';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = ['key', 'value'];
@@ -16,6 +18,7 @@ class PlatformSetting extends Model
     {
         return \Illuminate\Support\Facades\Cache::rememberForever("setting_{$key}", function () use ($key, $default) {
             $record = static::find($key);
+
             return $record ? $record->value : $default;
         });
     }
@@ -27,7 +30,7 @@ class PlatformSetting extends Model
 
     protected static function booted()
     {
-        $clearCache = fn($model) => \Illuminate\Support\Facades\Cache::forget("setting_{$model->key}");
+        $clearCache = fn ($model) => \Illuminate\Support\Facades\Cache::forget("setting_{$model->key}");
         static::saved($clearCache);
         static::deleted($clearCache);
     }

@@ -23,7 +23,7 @@ class ApplicationController extends Controller
             $query->where('status', $request->status);
         }
 
-        $applications = $query->paginate(20)->through(fn($app) => [
+        $applications = $query->paginate(20)->through(fn ($app) => [
             'id' => $app->id,
             'user' => [
                 'id' => $app->user->id,
@@ -82,7 +82,7 @@ class ApplicationController extends Controller
         ]);
 
         $application->user->update(['is_idol' => true]);
-        $application->user->notify(new IdolApprovedNotification());
+        $application->user->notify(new IdolApprovedNotification);
         broadcast(new NewNotification('private', $application->user->id));
 
         AdminLogService::log(auth('admin')->id(), 'approve_application', 'application', $application->id);

@@ -2,10 +2,10 @@
 
 namespace App\Notifications;
 
-use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Models\Post;
 use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 
@@ -24,9 +24,9 @@ class NewPostNotification extends Notification implements ShouldQueue
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'      => 'new_post',
-            'post_id'   => $this->post->id,
-            'user_id'   => $this->post->user_id,
+            'type' => 'new_post',
+            'post_id' => $this->post->id,
+            'user_id' => $this->post->user_id,
             'user_name' => $this->post->user->name,
         ];
     }

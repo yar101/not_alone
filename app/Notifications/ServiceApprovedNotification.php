@@ -2,10 +2,10 @@
 
 namespace App\Notifications;
 
-use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Models\Service;
 use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 
@@ -21,12 +21,12 @@ class ServiceApprovedNotification extends Notification implements ShouldQueue
         return ['database', WebPushChannel::class];
     }
 
-        public function toDatabase(object $notifiable): array
+    public function toDatabase(object $notifiable): array
     {
         return [
-            'type'           => 'service_approved',
-            'service_id'     => $this->service->id,
-            'service_name'   => $this->service->name,
+            'type' => 'service_approved',
+            'service_id' => $this->service->id,
+            'service_name' => $this->service->name,
             'flagged_fields' => $this->flaggedFields,
             'field_comments' => $this->fieldComments,
         ];

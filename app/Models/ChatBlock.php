@@ -30,7 +30,7 @@ class ChatBlock extends Model
     {
         return $query->where(function ($q) {
             $q->whereNull('blocked_until')
-              ->orWhere('blocked_until', '>', now());
+                ->orWhere('blocked_until', '>', now());
         });
     }
 }

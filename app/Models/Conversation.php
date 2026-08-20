@@ -5,9 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Conversation extends Model
 {
@@ -16,8 +16,8 @@ class Conversation extends Model
     protected $fillable = ['order_id', 'is_support', 'closed_at', 'admin_read_at'];
 
     protected $casts = [
-        'is_support'    => 'boolean',
-        'closed_at'     => 'datetime',
+        'is_support' => 'boolean',
+        'closed_at' => 'datetime',
         'admin_read_at' => 'datetime',
     ];
 
@@ -25,7 +25,6 @@ class Conversation extends Model
     {
         return $this->belongsTo(Order::class);
     }
-
 
     public function messages(): HasMany
     {
@@ -88,23 +87,24 @@ class Conversation extends Model
 
     public function scopeWithUser($query, int $userId)
     {
-        return $query->whereHas('participants', fn($q) => $q->where('user_id', $userId));
+        return $query->whereHas('participants', fn ($q) => $q->where('user_id', $userId));
     }
 
     public function scopeSearch($query, string $search, int $userId)
     {
-        $like = '%' . $search . '%';
+        $like = '%'.$search.'%';
+
         return $query->where(function ($q) use ($userId, $like) {
             $q->where('is_support', true)
-              ->orWhereHas('participants', function ($pq) use ($userId, $like) {
-                  $pq->where('user_id', '!=', $userId)
-                     ->whereHas('user', fn($uq) => $uq->whereRaw('LOWER(name) LIKE LOWER(?)', [$like]));
-              });
+                ->orWhereHas('participants', function ($pq) use ($userId, $like) {
+                    $pq->where('user_id', '!=', $userId)
+                        ->whereHas('user', fn ($uq) => $uq->whereRaw('LOWER(name) LIKE LOWER(?)', [$like]));
+                });
         });
     }
 
     public function scopeUnreadForUser($query, int $userId)
     {
-        return $query->whereHas('participants', fn($q) => $q->where('user_id', $userId)->where('has_unread', true));
+        return $query->whereHas('participants', fn ($q) => $q->where('user_id', $userId)->where('has_unread', true));
     }
 }

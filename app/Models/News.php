@@ -14,22 +14,25 @@ class News extends Model
 
     protected $casts = [
         'published_at' => 'datetime',
-        'is_pinned'    => 'boolean',
+        'is_pinned' => 'boolean',
     ];
 
     public function getImageAttribute($value)
     {
-        if (!$value) return null;
+        if (! $value) {
+            return null;
+        }
         if (str_starts_with($value, '/storage/') || str_starts_with($value, 'http')) {
             return $value;
         }
+
         return \Illuminate\Support\Facades\Storage::url($value);
     }
 
     public function scopePublished(Builder $query): Builder
     {
         return $query->whereNotNull('published_at')
-                     ->where('published_at', '<=', now());
+            ->where('published_at', '<=', now());
     }
 
     public function scopePinned(Builder $query): Builder

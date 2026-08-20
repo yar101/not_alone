@@ -27,7 +27,7 @@ class Interest extends Model
 
     protected static function booted()
     {
-        $clearCache = fn() => \Illuminate\Support\Facades\Cache::forget('search_interest_categories');
+        $clearCache = fn () => \Illuminate\Support\Facades\Cache::forget('search_interest_categories');
         static::saved($clearCache);
         static::deleted($clearCache);
     }

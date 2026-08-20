@@ -5,20 +5,23 @@ namespace App\Http\Controllers;
 use App\Enums\OrderStatus;
 use App\Events\NewNotification;
 use App\Events\OrderChanged;
+use App\Http\Requests\Order\CreateOrderRequest;
 use App\Models\Order;
 use App\Models\User;
 use App\Notifications\OrderCreatedNotification;
 use App\Services\OrderService;
+use App\Traits\SafeBroadcast;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 
 class OrderController extends Controller
 {
-    const DISPUTE_REASONS = [
+    use SafeBroadcast;
+
+    public const DISPUTE_REASONS = [
         'Непристойное поведение',
         'Оскорбления',
         'Мошенничество',
@@ -29,7 +32,7 @@ class OrderController extends Controller
 
     public function __construct(private OrderService $service) {}
 
-    public function store(\App\Http\Requests\Order\CreateOrderRequest $request): JsonResponse
+    public function store(CreateOrderRequest $request): JsonResponse
     {
         $user = $request->user();
         $idol = User::findOrFail($request->integer('idol_id'));
@@ -54,66 +57,54 @@ class OrderController extends Controller
 
     public function accept(Request $request, Order $order): JsonResponse
     {
-        abort_unless($order->idol_id === $request->user()->id, 403);
+        $this->authorize('accept', $order);
 
-        DB::transaction(function () use ($request, $order) {
-            $lockedOrder = Order::lockForUpdate()->find($order->id);
-            abort_unless($lockedOrder->status === OrderStatus::Pending, 422);
-
-            $this->service->accept($lockedOrder, $request->user());
-        });
+        try {
+            $this->service->accept($order, $request->user());
+        } catch (\DomainException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
 
         return response()->json(['status' => 'accepted']);
     }
 
     public function pay(Request $request, Order $order): JsonResponse
     {
-        abort_unless($order->customer_id === $request->user()->id, 403);
+        $this->authorize('pay', $order);
 
-        DB::transaction(function () use ($request, $order) {
-            $lockedOrder = Order::lockForUpdate()->find($order->id);
-            abort_unless($lockedOrder->status === OrderStatus::Accepted, 422);
-
-            $this->service->pay($lockedOrder, $request->user());
-        });
+        try {
+            $this->service->pay($order, $request->user());
+        } catch (\DomainException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
 
         return response()->json(['status' => 'paid']);
     }
 
     public function cancel(Request $request, Order $order): JsonResponse
     {
-        $user = $request->user();
-
-        abort_unless(
-            $order->customer_id === $user->id || $order->idol_id === $user->id,
-            403
-        );
+        $this->authorize('cancel', $order);
 
         $request->validate(['cancel_reason' => 'required|string|max:1000']);
 
-        DB::transaction(function () use ($request, $order, $user) {
-            $lockedOrder = Order::lockForUpdate()->find($order->id);
-            abort_unless(in_array($lockedOrder->status, [OrderStatus::Pending, OrderStatus::Accepted]), 422);
-
-            $this->service->cancel($lockedOrder, $user, $request->cancel_reason);
-        });
+        try {
+            $this->service->cancel($order, $request->user(), $request->cancel_reason);
+        } catch (\DomainException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
 
         return response()->json(['status' => 'cancelled']);
     }
 
     public function confirmCompletion(Request $request, Order $order): JsonResponse
     {
-        abort_unless(
-            $order->customer_id === $request->user()->id || $order->idol_id === $request->user()->id,
-            403
-        );
+        $this->authorize('confirmCompletion', $order);
 
-        $result = DB::transaction(function () use ($request, $order) {
-            $lockedOrder = Order::lockForUpdate()->find($order->id);
-            abort_unless($lockedOrder->status === OrderStatus::Paid, 422);
-
-            return $this->service->confirmCompletion($lockedOrder, $request->user());
-        });
+        try {
+            $result = $this->service->confirmCompletion($order, $request->user());
+        } catch (\DomainException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
 
         return response()->json($result);
     }
@@ -142,9 +133,7 @@ class OrderController extends Controller
 
     public function dispute(Request $request, Order $order): JsonResponse
     {
-        $user = $request->user();
-
-        abort_unless($order->customer_id === $user->id, 403);
+        $this->authorize('dispute', $order);
 
         $request->validate([
             'reason' => ['required', Rule::in(self::DISPUTE_REASONS)],
@@ -154,33 +143,26 @@ class OrderController extends Controller
         $details = trim($request->details);
         abort_unless(mb_strlen($details) >= 100, 422);
 
-        DB::transaction(function () use ($request, $order, $user, $details) {
-            $lockedOrder = Order::lockForUpdate()->find($order->id);
-
-            abort_unless($lockedOrder->status === OrderStatus::Completed, 422, 'Оспорить можно только выполненный заказ.');
-            abort_unless($lockedOrder->completed_at && $lockedOrder->completed_at->gte(now()->subHour()), 422, 'Время для оспаривания истекло. Спор можно открыть в течение 1 часа после завершения заказа.');
-            abort_unless(! $lockedOrder->disputes()->exists(), 422, 'По этому заказу уже открыт спор.');
-
-            $this->service->dispute($lockedOrder, $user, $request->reason, $details);
-        });
+        try {
+            $this->service->dispute($order, $request->user(), $request->reason, $details);
+        } catch (\DomainException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
 
         return response()->json(['success' => true]);
     }
 
     public function addItem(Request $request, Order $order): JsonResponse
     {
-        $user = $request->user();
-
-        abort_unless($order->customer_id === $user->id, 403);
+        $this->authorize('addItem', $order);
 
         $request->validate(['service_id' => ['required', 'integer', 'exists:services,id']]);
 
-        DB::transaction(function () use ($request, $order, $user) {
-            $lockedOrder = Order::lockForUpdate()->find($order->id);
-            abort_unless($lockedOrder->status === \App\Enums\OrderStatus::Pending, 422);
-
-            $this->service->addItem($lockedOrder, $request->integer('service_id'), $user);
-        });
+        try {
+            $this->service->addItem($order, $request->integer('service_id'), $request->user());
+        } catch (\DomainException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
 
         return response()->json(['success' => true]);
     }
@@ -190,10 +172,9 @@ class OrderController extends Controller
         $user = $request->user();
         $perPage = 10;
         $cursor = (int) $request->input('cursor', 0);
-        $status = $request->input('status');          // конкретный статус или null = все
-        $role = $request->input('role');             // 'customer' | 'idol' | null
+        $status = $request->input('status');
+        $role = $request->input('role');
 
-        // Базовый скоуп по роли
         $scopeByRole = function ($q) use ($user, $role) {
             if ($role === 'customer') {
                 $q->where('customer_id', $user->id);
@@ -205,7 +186,6 @@ class OrderController extends Controller
             }
         };
 
-        // Реальное кол-во по каждому статусу из БД (без курсора и фильтра статуса)
         $rawCounts = Order::where($scopeByRole)
             ->selectRaw('status, count(*) as cnt')
             ->groupBy('status')
@@ -218,7 +198,6 @@ class OrderController extends Controller
             $counts['all'] += $counts[$s];
         }
 
-        // Пагинированный список
         $search = trim($request->input('search', ''));
 
         $query = Order::where($scopeByRole)
@@ -248,6 +227,7 @@ class OrderController extends Controller
                 }
             });
         }
+
         if ($request->boolean('unread')) {
             $userId = $user->id;
             $query->whereHas('conversation.participants', function ($pq) use ($userId) {
@@ -287,14 +267,5 @@ class OrderController extends Controller
         $participant = $order->conversation->participants->firstWhere('user_id', $userId);
 
         return (bool) ($participant->has_unread ?? false);
-    }
-
-    private function safeBroadcast(mixed $event): void
-    {
-        try {
-            broadcast($event);
-        } catch (\Throwable $e) {
-            \Log::warning('Broadcast failed: '.$e->getMessage());
-        }
     }
 }

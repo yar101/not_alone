@@ -2,24 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\NotifyFollowersJob;
 use App\Models\ContentPack;
-use App\Models\ContentPackChangeRequest;
 use App\Models\ContentPackPhoto;
 use App\Models\PlatformSetting;
 use App\Models\User;
-use App\Jobs\NotifyFollowersJob;
+use App\Services\ContentPackService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use App\Services\ContentPackService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class ContentPackController extends Controller
 {
-    public function __construct(private ContentPackService $contentPackService)
-    {
-    }
+    public function __construct(private ContentPackService $contentPackService) {}
+
     private function priceLimits(): array
     {
         return [
@@ -31,7 +29,7 @@ class ContentPackController extends Controller
     private function moderationSettings(): array
     {
         return [
-            'new_packs'      => (bool) (int) PlatformSetting::get('moderate_new_packs', 1),
+            'new_packs' => (bool) (int) PlatformSetting::get('moderate_new_packs', 1),
             'existing_packs' => (bool) (int) PlatformSetting::get('moderate_existing_packs', 0),
         ];
     }
@@ -39,18 +37,17 @@ class ContentPackController extends Controller
     /**
      * Settings moved out
      */
-
     public function store(Request $request): JsonResponse
     {
-        abort_if(!$request->user()->is_idol, 403);
+        abort_if(! $request->user()->is_idol, 403);
 
         $limits = $this->priceLimits();
         $data = $request->validate([
-            'title'       => ['required', 'string', 'max:120'],
+            'title' => ['required', 'string', 'max:120'],
             'description' => ['nullable', 'string', 'max:2000'],
-            'price'       => ['required', 'integer', 'min:' . $limits['min'], 'max:' . $limits['max']],
-            'photos'      => ['required', 'array', 'min:1', 'max:50'],
-            'photos.*'    => ['file', 'mimes:jpeg,jpg,png,webp', 'max:10240'],
+            'price' => ['required', 'integer', 'min:'.$limits['min'], 'max:'.$limits['max']],
+            'photos' => ['required', 'array', 'min:1', 'max:50'],
+            'photos.*' => ['file', 'mimes:jpeg,jpg,png,webp', 'max:10240'],
             'cover_index' => ['required', 'integer', 'min:0'],
         ], [
             'price.min' => "Цена слишком низкая, минимум {$limits['min']} ₽",
@@ -58,30 +55,30 @@ class ContentPackController extends Controller
         ]);
 
         $moderation = $this->moderationSettings();
-        $status     = $moderation['new_packs'] ? 'pending_review' : 'approved';
+        $status = $moderation['new_packs'] ? 'pending_review' : 'approved';
 
         $pack = DB::transaction(function () use ($request, $data, $status) {
             $pack = ContentPack::create([
-                'user_id'      => $request->user()->id,
-                'title'        => $data['title'],
-                'description'  => $data['description'] ?? null,
-                'price'        => $data['price'],
-                'status'       => $status,
+                'user_id' => $request->user()->id,
+                'title' => $data['title'],
+                'description' => $data['description'] ?? null,
+                'price' => $data['price'],
+                'status' => $status,
                 'published_at' => null,
             ]);
 
             $coverIndex = $data['cover_index'] ?? null;
-            $coverPath  = null;
+            $coverPath = null;
             $uploadJobs = [];
 
             foreach ($request->file('photos', []) as $index => $file) {
                 [$tempPath, $finalPath] = $this->storeTempPhoto($file, $pack->id);
 
                 $photo = ContentPackPhoto::create([
-                    'content_pack_id'   => $pack->id,
-                    'path'              => $tempPath,
+                    'content_pack_id' => $pack->id,
+                    'path' => $tempPath,
                     'original_filename' => $file->getClientOriginalName(),
-                    'sort_order'        => $index,
+                    'sort_order' => $index,
                 ]);
 
                 $uploadJobs[] = [$tempPath, $finalPath, $photo->id];
@@ -125,15 +122,15 @@ class ContentPackController extends Controller
             $rules['description'] = ['sometimes', 'nullable', 'string', 'max:2000'];
         }
         if (in_array('price', $flaggedFields)) {
-            $rules['price'] = ['sometimes', 'integer', 'min:' . $limits['min'], 'max:' . $limits['max']];
+            $rules['price'] = ['sometimes', 'integer', 'min:'.$limits['min'], 'max:'.$limits['max']];
         }
-        if (!empty($flaggedPhotoIds)) {
-            $rules['photos']   = ['sometimes', 'array'];
+        if (! empty($flaggedPhotoIds)) {
+            $rules['photos'] = ['sometimes', 'array'];
             $rules['photos.*'] = ['file', 'mimes:jpeg,jpg,png,webp', 'max:10240'];
-            $rules['replace_photo_ids']   = ['sometimes', 'array'];
+            $rules['replace_photo_ids'] = ['sometimes', 'array'];
             $rules['replace_photo_ids.*'] = ['integer'];
-            $rules['delete_photo_ids']    = ['sometimes', 'array'];
-            $rules['delete_photo_ids.*']  = ['integer'];
+            $rules['delete_photo_ids'] = ['sometimes', 'array'];
+            $rules['delete_photo_ids.*'] = ['integer'];
         }
 
         $data = $request->validate($rules, [
@@ -142,11 +139,17 @@ class ContentPackController extends Controller
         ]);
 
         $updateFields = [];
-        if (isset($data['title']))       $updateFields['title']       = $data['title'];
-        if (array_key_exists('description', $data)) $updateFields['description'] = $data['description'];
-        if (isset($data['price']))       $updateFields['price']       = $data['price'];
+        if (isset($data['title'])) {
+            $updateFields['title'] = $data['title'];
+        }
+        if (array_key_exists('description', $data)) {
+            $updateFields['description'] = $data['description'];
+        }
+        if (isset($data['price'])) {
+            $updateFields['price'] = $data['price'];
+        }
 
-        if (!empty($updateFields)) {
+        if (! empty($updateFields)) {
             $pack->update($updateFields);
         }
 
@@ -167,17 +170,17 @@ class ContentPackController extends Controller
         }
 
         // Handle photo replacements
-        if ($request->hasFile('photos') && !empty($flaggedPhotoIds)) {
+        if ($request->hasFile('photos') && ! empty($flaggedPhotoIds)) {
             $replaceIds = $data['replace_photo_ids'] ?? [];
-            $files      = $request->file('photos');
+            $files = $request->file('photos');
 
             foreach ($files as $i => $file) {
                 $photoId = $replaceIds[$i] ?? null;
-                if (!$photoId || !in_array((int)$photoId, $flaggedPhotoIds)) {
+                if (! $photoId || ! in_array((int) $photoId, $flaggedPhotoIds)) {
                     continue;
                 }
                 $photo = ContentPackPhoto::find($photoId);
-                if (!$photo || $photo->content_pack_id !== $pack->id) {
+                if (! $photo || $photo->content_pack_id !== $pack->id) {
                     continue;
                 }
                 // Delete old file
@@ -190,8 +193,8 @@ class ContentPackController extends Controller
         }
 
         $pack->update([
-            'status'          => 'pending_review',
-            'resubmitted_at'  => now(),
+            'status' => 'pending_review',
+            'resubmitted_at' => now(),
         ]);
 
         return back();
@@ -204,7 +207,7 @@ class ContentPackController extends Controller
 
         $limits = $this->priceLimits();
         $data = $request->validate(
-            ['price' => ['required', 'integer', 'min:' . $limits['min'], 'max:' . $limits['max']]],
+            ['price' => ['required', 'integer', 'min:'.$limits['min'], 'max:'.$limits['max']]],
             [
                 'price.min' => "Цена слишком низкая, минимум {$limits['min']} ₽",
                 'price.max' => "Цена слишком высокая, максимум {$limits['max']} ₽",
@@ -279,7 +282,7 @@ class ContentPackController extends Controller
         $this->authorize('update', $pack);
 
         $cr = $pack->pendingChangeRequest;
-        abort_if(!$cr || $cr->status !== 'has_remarks', 422);
+        abort_if(! $cr || $cr->status !== 'has_remarks', 422);
 
         $flaggedFields = $cr->flagged_fields ?? [];
         $limits = $this->priceLimits();
@@ -292,7 +295,7 @@ class ContentPackController extends Controller
             $rules['description'] = ['sometimes', 'nullable', 'string', 'max:2000'];
         }
         if (in_array('price', $flaggedFields)) {
-            $rules['price'] = ['sometimes', 'integer', 'min:' . $limits['min'], 'max:' . $limits['max']];
+            $rules['price'] = ['sometimes', 'integer', 'min:'.$limits['min'], 'max:'.$limits['max']];
         }
 
         $data = $request->validate($rules, [
@@ -312,14 +315,14 @@ class ContentPackController extends Controller
 
         return response()->json([
             'pending_change' => $newCr ? [
-                'changed_fields'      => $newCr->changed_fields,
-                'pending_title'       => $newCr->pending_title,
+                'changed_fields' => $newCr->changed_fields,
+                'pending_title' => $newCr->pending_title,
                 'pending_description' => $newCr->pending_description,
-                'pending_price'       => $newCr->pending_price,
-                'status'              => $newCr->status,
-                'flagged_fields'      => $newCr->flagged_fields ?? [],
-                'field_comments'      => $newCr->field_comments ?? [],
-                'admin_comment'       => $newCr->admin_comment,
+                'pending_price' => $newCr->pending_price,
+                'status' => $newCr->status,
+                'flagged_fields' => $newCr->flagged_fields ?? [],
+                'field_comments' => $newCr->field_comments ?? [],
+                'admin_comment' => $newCr->admin_comment,
             ] : null,
         ]);
     }
@@ -330,7 +333,7 @@ class ContentPackController extends Controller
         abort_if($pack->status !== 'approved', 422);
 
         $pack->update([
-            'status'       => 'published',
+            'status' => 'published',
             'published_at' => now(),
         ]);
 
@@ -368,6 +371,7 @@ class ContentPackController extends Controller
         // Published pack with purchases → soft delete so buyers keep gallery access
         if ($pack->status === 'published' && $pack->purchases()->exists()) {
             $pack->delete();
+
             return back();
         }
 
@@ -376,7 +380,7 @@ class ContentPackController extends Controller
             foreach ($pack->photos as $photo) {
                 Storage::delete($photo->path);
             }
-            Storage::deleteDirectory('content-packs/' . $pack->id);
+            Storage::deleteDirectory('content-packs/'.$pack->id);
         }
 
         $pack->forceDelete();
@@ -387,14 +391,14 @@ class ContentPackController extends Controller
     public function indexForProfile(User $user, Request $request): JsonResponse
     {
         $authUser = auth()->user();
-        $isOwner  = $authUser && $authUser->id === $user->id;
+        $isOwner = $authUser && $authUser->id === $user->id;
 
-        $sort    = $request->input('sort', 'newest') === 'oldest' ? 'oldest' : 'newest';
+        $sort = $request->input('sort', 'newest') === 'oldest' ? 'oldest' : 'newest';
         $perPage = 12;
-        $cursor  = $request->input('cursor');
+        $cursor = $request->input('cursor');
 
         $purchasedIds = [];
-        if ($authUser && !$isOwner) {
+        if ($authUser && ! $isOwner) {
             $purchasedIds = $authUser->contentPackPurchases()
                 ->pluck('content_pack_id')
                 ->toArray();
@@ -405,10 +409,14 @@ class ContentPackController extends Controller
                 ->with(['photos', 'latestReview', 'pendingChangeRequest']);
 
             if ($sort === 'newest') {
-                if ($cursor) $query->where('id', '<', (int) $cursor);
+                if ($cursor) {
+                    $query->where('id', '<', (int) $cursor);
+                }
                 $query->orderByDesc('id');
             } else {
-                if ($cursor) $query->where('id', '>', (int) $cursor);
+                if ($cursor) {
+                    $query->where('id', '>', (int) $cursor);
+                }
                 $query->orderBy('id');
             }
 
@@ -420,35 +428,39 @@ class ContentPackController extends Controller
                 ->with(['photos']);
 
             if ($sort === 'newest') {
-                if ($cursor) $query->where('id', '<', (int) $cursor);
+                if ($cursor) {
+                    $query->where('id', '<', (int) $cursor);
+                }
                 $query->orderByDesc('id');
             } else {
-                if ($cursor) $query->where('id', '>', (int) $cursor);
+                if ($cursor) {
+                    $query->where('id', '>', (int) $cursor);
+                }
                 $query->orderBy('id');
             }
 
             $rows = $query->limit($perPage + 1)->get();
         }
 
-        $hasMore    = $rows->count() > $perPage;
-        $rows       = $rows->take($perPage);
+        $hasMore = $rows->count() > $perPage;
+        $rows = $rows->take($perPage);
         $nextCursor = $hasMore ? $rows->last()?->id : null;
 
         $packs = $rows->map(fn (ContentPack $p) => (new \App\Http\Resources\ContentPackResource($p, $isOwner, in_array($p->id, $purchasedIds)))->resolve());
 
         return response()->json([
-            'packs'          => $packs,
-            'purchased_ids'  => $purchasedIds,
-            'next_cursor'    => $nextCursor,
-            'has_more'       => $hasMore,
+            'packs' => $packs,
+            'purchased_ids' => $purchasedIds,
+            'next_cursor' => $nextCursor,
+            'has_more' => $hasMore,
         ]);
     }
 
     private function storeTempPhoto($file, $packId)
     {
         $ext = $file->getClientOriginalExtension() ?: 'jpg';
-        $tempPath = $file->storeAs('temp/content-packs/' . $packId, uniqid() . '.' . $ext, config('filesystems.default'));
-        $finalPath = 'content-packs/' . $packId . '/' . time() . '_' . uniqid() . '.jpg';
+        $tempPath = $file->storeAs('temp/content-packs/'.$packId, uniqid().'.'.$ext, config('filesystems.default'));
+        $finalPath = 'content-packs/'.$packId.'/'.time().'_'.uniqid().'.jpg';
 
         return [$tempPath, $finalPath];
     }

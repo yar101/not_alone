@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\News;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -16,7 +15,7 @@ class NewsController extends Controller
     {
         $news = News::orderByDesc('created_at')
             ->get(['id', 'title', 'body', 'excerpt', 'image',
-                   'is_pinned', 'views_count', 'published_at', 'created_at']);
+                'is_pinned', 'views_count', 'published_at', 'created_at']);
 
         return Inertia::render('Admin/News/Index', [
             'news' => $news,
@@ -26,16 +25,16 @@ class NewsController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'title'        => 'required|string|max:255',
-            'body'         => 'required|string',
-            'excerpt'      => 'nullable|string|max:500',
-            'image'        => 'nullable|file|image|max:4096',
-            'is_pinned'    => 'boolean',
+            'title' => 'required|string|max:255',
+            'body' => 'required|string',
+            'excerpt' => 'nullable|string|max:500',
+            'image' => 'nullable|file|image|max:4096',
+            'is_pinned' => 'boolean',
             'published_at' => 'nullable|date',
         ]);
 
         $data['published_at'] = $data['published_at'] ?: null;
-        $data['is_pinned']    = (bool) ($data['is_pinned'] ?? false);
+        $data['is_pinned'] = (bool) ($data['is_pinned'] ?? false);
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('news');
@@ -51,16 +50,16 @@ class NewsController extends Controller
     public function update(Request $request, News $news): RedirectResponse
     {
         $data = $request->validate([
-            'title'        => 'required|string|max:255',
-            'body'         => 'required|string',
-            'excerpt'      => 'nullable|string|max:500',
-            'image'        => 'nullable|file|image|max:4096',
-            'is_pinned'    => 'boolean',
+            'title' => 'required|string|max:255',
+            'body' => 'required|string',
+            'excerpt' => 'nullable|string|max:500',
+            'image' => 'nullable|file|image|max:4096',
+            'is_pinned' => 'boolean',
             'published_at' => 'nullable|date',
         ]);
 
         $data['published_at'] = $data['published_at'] ?: null;
-        $data['is_pinned']    = (bool) ($data['is_pinned'] ?? false);
+        $data['is_pinned'] = (bool) ($data['is_pinned'] ?? false);
 
         if ($request->hasFile('image')) {
             $this->deleteImage($news->getRawOriginal('image'));
@@ -85,10 +84,12 @@ class NewsController extends Controller
 
     private function deleteImage(?string $image)
     {
-        if (!$image) return;
+        if (! $image) {
+            return;
+        }
         if (str_starts_with($image, '/storage/')) {
             \Illuminate\Support\Facades\Storage::disk('public')->delete(str_replace('/storage/', '', $image));
-        } else if (!str_starts_with($image, 'http')) {
+        } elseif (! str_starts_with($image, 'http')) {
             \Illuminate\Support\Facades\Storage::delete($image);
         }
     }

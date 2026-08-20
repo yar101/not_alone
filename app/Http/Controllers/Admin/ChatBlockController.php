@@ -25,20 +25,21 @@ class ChatBlockController extends Controller
             ->get()
             ->map(function ($row) {
                 $user = User::find($row->blocked_id);
+
                 return [
-                    'user'        => $user ? [
-                        'id'         => $user->id,
-                        'name'       => $user->name,
+                    'user' => $user ? [
+                        'id' => $user->id,
+                        'name' => $user->name,
                         'avatar_url' => $user->avatar_url,
                     ] : null,
                     'block_count' => $row->block_count,
                 ];
             })
-            ->filter(fn($r) => $r['user'] !== null)
+            ->filter(fn ($r) => $r['user'] !== null)
             ->values();
 
         return Inertia::render('Admin/ChatBlocks/Index', [
-            'blocks'      => $blocks,
+            'blocks' => $blocks,
             'top_blocked' => $topBlocked,
         ]);
     }

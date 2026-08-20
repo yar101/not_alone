@@ -2,10 +2,10 @@
 
 namespace App\Notifications;
 
-use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Models\ContentPack;
 use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 
@@ -26,8 +26,8 @@ class ContentPackChangeRemarksNotification extends Notification implements Shoul
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'       => 'content_pack_change_remarks',
-            'pack_id'    => $this->pack->id,
+            'type' => 'content_pack_change_remarks',
+            'pack_id' => $this->pack->id,
             'pack_title' => $this->pack->title,
         ];
     }

@@ -21,7 +21,7 @@ class Review extends Model
 
     protected $casts = [
         'services_snapshot' => 'array',
-        'is_hidden'         => 'boolean',
+        'is_hidden' => 'boolean',
     ];
 
     public function reviewer(): BelongsTo

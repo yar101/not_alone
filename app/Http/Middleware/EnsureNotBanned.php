@@ -22,18 +22,23 @@ class EnsureNotBanned
                 $request->session()->regenerateToken();
 
                 $msg = $user->banned_until
-                    ? 'Ваш аккаунт заблокирован (' . $this->formatBanRemaining($user->banned_until) . ').'
+                    ? 'Ваш аккаунт заблокирован ('.$this->formatBanRemaining($user->banned_until).').'
                     : 'Ваш аккаунт заблокирован навсегда.';
+
+                if ($request->expectsJson() || $request->is('api/*')) {
+                    return response()->json(['message' => $msg, 'error' => 'user_banned'], 403);
+                }
+
                 return redirect('/')->withErrors(['ban' => $msg]);
             }
 
             // Ban expired — lift it automatically
             $user->update([
-                'is_banned'   => false,
+                'is_banned' => false,
                 'banned_until' => null,
-                'banned_at'   => null,
-                'ban_reason'  => null,
-                'banned_by'   => null,
+                'banned_at' => null,
+                'ban_reason' => null,
+                'banned_by' => null,
             ]);
         }
 
@@ -43,8 +48,13 @@ class EnsureNotBanned
     private function formatBanRemaining(\Carbon\Carbon $until): string
     {
         $secs = max(0, now()->diffInSeconds($until));
-        if ($secs >= 86400) return 'на ' . floor($secs / 86400) . ' дн';
-        if ($secs >= 3600)  return 'на ' . floor($secs / 3600) . ' ч ' . floor(($secs % 3600) / 60) . ' мин';
-        return 'на ' . max(1, floor($secs / 60)) . ' мин';
+        if ($secs >= 86400) {
+            return 'на '.floor($secs / 86400).' дн';
+        }
+        if ($secs >= 3600) {
+            return 'на '.floor($secs / 3600).' ч '.floor(($secs % 3600) / 60).' мин';
+        }
+
+        return 'на '.max(1, floor($secs / 60)).' мин';
     }
 }

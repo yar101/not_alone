@@ -23,20 +23,20 @@ class AdminLogController extends Controller
             $query->where('admin_id', $request->admin_id);
         }
 
-        $logs = $query->paginate(50)->through(fn(AdminLog $log) => [
-            'id'          => $log->id,
-            'admin'       => $log->admin ? ['name' => $log->admin->name] : null,
-            'action'      => $log->action,
+        $logs = $query->paginate(50)->through(fn (AdminLog $log) => [
+            'id' => $log->id,
+            'admin' => $log->admin ? ['name' => $log->admin->name] : null,
+            'action' => $log->action,
             'target_type' => $log->target_type,
-            'target_id'   => $log->target_id,
-            'details'     => $log->details,
-            'created_at'  => $log->created_at,
+            'target_id' => $log->target_id,
+            'details' => $log->details,
+            'created_at' => $log->created_at,
         ]);
 
         return Inertia::render('Admin/Logs/Index', [
-            'logs'   => $logs,
+            'logs' => $logs,
             'filter' => [
-                'action'   => $request->action,
+                'action' => $request->action,
                 'admin_id' => $request->admin_id,
             ],
             'admins' => Admin::orderBy('name')->get(['id', 'name']),

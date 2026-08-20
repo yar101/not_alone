@@ -13,14 +13,14 @@ class OrderChanged implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public function __construct(
-        public int    $userId,
-        public array  $order,
+        public int $userId,
+        public array $order,
         public string $changeType,
     ) {}
 
     public function broadcastOn(): array
     {
-        return [new PrivateChannel('orders.' . $this->userId)];
+        return [new PrivateChannel('orders.'.$this->userId)];
     }
 
     public function broadcastAs(): string
@@ -32,7 +32,7 @@ class OrderChanged implements ShouldBroadcast
     {
         return [
             'change_type' => $this->changeType,
-            'order'       => $this->order,
+            'order' => $this->order,
         ];
     }
 }

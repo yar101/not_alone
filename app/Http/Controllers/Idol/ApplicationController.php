@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\IdolApplication;
 use App\Models\IdolArticleVersion;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class ApplicationController extends Controller
@@ -40,15 +39,15 @@ class ApplicationController extends Controller
         }
 
         $activeVersion = IdolArticleVersion::active()->first();
-        $articleHtml   = $activeVersion?->html ?? '';
+        $articleHtml = $activeVersion?->html ?? '';
 
         return Inertia::render('Idol/Apply', [
-            'phase'            => $phase,
-            'session'          => $sessionData,
-            'cooldown_until'   => $cooldownUntil,
+            'phase' => $phase,
+            'session' => $sessionData,
+            'cooldown_until' => $cooldownUntil,
             'rejection_reason' => $application?->rejection_reason,
-            'quiz_passed'      => (bool) $user->idol_quiz_passed_at,
-            'article_html'     => $articleHtml,
+            'quiz_passed' => (bool) $user->idol_quiz_passed_at,
+            'article_html' => $articleHtml,
         ]);
     }
 
@@ -56,7 +55,7 @@ class ApplicationController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->idol_quiz_passed_at) {
+        if (! $user->idol_quiz_passed_at) {
             return back()->withErrors(['error' => 'Сначала пройдите тест.']);
         }
 

@@ -13,13 +13,17 @@ use Illuminate\Support\Facades\Storage;
 class GallerySeeder extends Seeder
 {
     // Параметры — меняй под нужный сценарий
-    private int $idolCount    = 5;
+    private int $idolCount = 5;
+
     private int $packsPerIdol = 8;
+
     private int $photosPerPack = 20;
 
     // Разрешение и качество — влияют на вес файла (~2-5 МБ при quality=88)
-    private int $imgWidth   = 1080;
-    private int $imgHeight  = 1440;
+    private int $imgWidth = 1080;
+
+    private int $imgHeight = 1440;
+
     private int $imgQuality = 88;
 
     public function run(): void
@@ -31,20 +35,20 @@ class GallerySeeder extends Seeder
 
         for ($i = 1; $i <= $this->idolCount; $i++) {
             $idol = User::create([
-                'name'              => "Idol {$i}",
-                'email'             => "idol{$i}_seed@example.com",
-                'password'          => Hash::make('password'),
-                'is_idol'           => true,
+                'name' => "Idol {$i}",
+                'email' => "idol{$i}_seed@example.com",
+                'password' => Hash::make('password'),
+                'is_idol' => true,
                 'email_verified_at' => now(),
             ]);
 
             for ($j = 1; $j <= $this->packsPerIdol; $j++) {
                 $pack = ContentPack::create([
-                    'user_id'      => $idol->id,
-                    'title'        => "Pack {$j} by Idol {$i}",
-                    'description'  => "Seed pack {$j} for idol {$i}",
-                    'price'        => fake()->numberBetween(100, 1500),
-                    'status'       => 'published',
+                    'user_id' => $idol->id,
+                    'title' => "Pack {$j} by Idol {$i}",
+                    'description' => "Seed pack {$j} for idol {$i}",
+                    'price' => fake()->numberBetween(100, 1500),
+                    'status' => 'published',
                     'published_at' => now(),
                 ]);
 
@@ -59,16 +63,16 @@ class GallerySeeder extends Seeder
 
                     ContentPackPhoto::create([
                         'content_pack_id' => $pack->id,
-                        'path'            => $filename,
-                        'sort_order'      => $k,
+                        'path' => $filename,
+                        'sort_order' => $k,
                     ]);
                 }
 
                 ContentPackPurchase::create([
                     'content_pack_id' => $pack->id,
-                    'user_id'         => $buyer->id,
-                    'price_paid'      => $pack->price,
-                    'purchased_at'    => now(),
+                    'user_id' => $buyer->id,
+                    'price_paid' => $pack->price,
+                    'purchased_at' => now(),
                 ]);
 
                 $this->command->getOutput()->write('.');
@@ -77,7 +81,7 @@ class GallerySeeder extends Seeder
 
         $total = $this->idolCount * $this->packsPerIdol * $this->photosPerPack;
         $this->command->newLine();
-        $this->command->info("Готово. Создано {$total} фото, {$this->idolCount} айдолов, " . ($this->idolCount * $this->packsPerIdol) . " паков.");
+        $this->command->info("Готово. Создано {$total} фото, {$this->idolCount} айдолов, ".($this->idolCount * $this->packsPerIdol).' паков.');
     }
 
     private function ensureBuyer(): User
@@ -87,11 +91,12 @@ class GallerySeeder extends Seeder
         if ($existing) {
             return $existing;
         }
+
         return User::create([
-            'name'              => 'Gallery Buyer',
-            'email'             => $email,
-            'password'          => Hash::make('password'),
-            'is_idol'           => false,
+            'name' => 'Gallery Buyer',
+            'email' => $email,
+            'password' => Hash::make('password'),
+            'is_idol' => false,
             'email_verified_at' => now(),
         ]);
     }
@@ -106,18 +111,18 @@ class GallerySeeder extends Seeder
         [$r2, $g2, $b2] = $this->hsvToRgb(($hue + 60) % 360, 0.5, 0.7);
 
         for ($y = 0; $y < $this->imgHeight; $y++) {
-            $t   = $y / $this->imgHeight;
-            $r   = (int) ($r1 + ($r2 - $r1) * $t);
-            $g   = (int) ($g1 + ($g2 - $g1) * $t);
-            $b   = (int) ($b1 + ($b2 - $b1) * $t);
+            $t = $y / $this->imgHeight;
+            $r = (int) ($r1 + ($r2 - $r1) * $t);
+            $g = (int) ($g1 + ($g2 - $g1) * $t);
+            $b = (int) ($b1 + ($b2 - $b1) * $t);
             $col = imagecolorallocate($img, $r, $g, $b);
             imageline($img, 0, $y, $this->imgWidth - 1, $y, $col);
         }
 
         // Случайный шум для уникальности и реалистичного веса файла
         for ($n = 0; $n < 8000; $n++) {
-            $x   = rand(0, $this->imgWidth - 1);
-            $y   = rand(0, $this->imgHeight - 1);
+            $x = rand(0, $this->imgWidth - 1);
+            $y = rand(0, $this->imgHeight - 1);
             $col = imagecolorallocatealpha($img, rand(0, 255), rand(0, 255), rand(0, 255), rand(60, 100));
             imagesetpixel($img, $x, $y, $col);
         }

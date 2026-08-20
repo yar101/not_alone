@@ -22,7 +22,7 @@ class OrderDispute extends Model
     ];
 
     protected $casts = [
-        'created_at'  => 'datetime',
+        'created_at' => 'datetime',
         'resolved_at' => 'datetime',
     ];
 

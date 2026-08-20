@@ -2,8 +2,8 @@
 
 namespace App\Services\AvatarFrames\Conditions;
 
-use App\Models\User;
 use App\Enums\OrderStatus;
+use App\Models\User;
 
 class Completed25OrdersCondition implements FrameCondition
 {
@@ -20,7 +20,7 @@ class Completed25OrdersCondition implements FrameCondition
     public function check(User $user): bool
     {
         // Проверяем только для айдолов
-        if (!$user->is_idol) {
+        if (! $user->is_idol) {
             return false;
         }
 

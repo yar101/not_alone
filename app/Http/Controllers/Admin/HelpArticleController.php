@@ -13,25 +13,25 @@ class HelpArticleController extends Controller
     {
         $data = $request->validate([
             'category_id' => 'required|exists:help_categories,id',
-            'title_ru'    => 'required|string|max:255',
-            'title_en'    => 'nullable|string|max:255',
-            'content_ru'  => 'required|string',
-            'content_en'  => 'nullable|string',
+            'title_ru' => 'required|string|max:255',
+            'title_en' => 'nullable|string|max:255',
+            'content_ru' => 'required|string',
+            'content_en' => 'nullable|string',
         ]);
 
         $maxOrder = HelpArticle::where('category_id', $data['category_id'])->max('sort_order') ?? -1;
 
-        $article = new HelpArticle();
+        $article = new HelpArticle;
         $article->category_id = $data['category_id'];
         $article->sort_order = $maxOrder + 1;
-        
+
         $article->setTranslation('title', 'ru', $data['title_ru']);
-        if (!empty($data['title_en'])) {
+        if (! empty($data['title_en'])) {
             $article->setTranslation('title', 'en', $data['title_en']);
         }
 
         $article->setTranslation('content', 'ru', $data['content_ru']);
-        if (!empty($data['content_en'])) {
+        if (! empty($data['content_en'])) {
             $article->setTranslation('content', 'en', $data['content_en']);
         }
 
@@ -43,21 +43,21 @@ class HelpArticleController extends Controller
     public function update(Request $request, HelpArticle $article): RedirectResponse
     {
         $data = $request->validate([
-            'title_ru'   => 'required|string|max:255',
-            'title_en'   => 'nullable|string|max:255',
+            'title_ru' => 'required|string|max:255',
+            'title_en' => 'nullable|string|max:255',
             'content_ru' => 'required|string',
             'content_en' => 'nullable|string',
         ]);
 
         $article->setTranslation('title', 'ru', $data['title_ru']);
-        if (!empty($data['title_en'])) {
+        if (! empty($data['title_en'])) {
             $article->setTranslation('title', 'en', $data['title_en']);
         } else {
             $article->forgetTranslation('title', 'en');
         }
 
         $article->setTranslation('content', 'ru', $data['content_ru']);
-        if (!empty($data['content_en'])) {
+        if (! empty($data['content_en'])) {
             $article->setTranslation('content', 'en', $data['content_en']);
         } else {
             $article->forgetTranslation('content', 'en');

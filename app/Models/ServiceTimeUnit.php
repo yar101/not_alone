@@ -32,7 +32,7 @@ class ServiceTimeUnit extends Model
 
     protected static function booted()
     {
-        $clearCache = fn() => \Illuminate\Support\Facades\Cache::forget('search_service_time_units');
+        $clearCache = fn () => \Illuminate\Support\Facades\Cache::forget('search_service_time_units');
         static::saved($clearCache);
         static::deleted($clearCache);
     }

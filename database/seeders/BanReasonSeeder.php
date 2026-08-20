@@ -22,7 +22,7 @@ class BanReasonSeeder extends Seeder
         ];
 
         foreach ($chatBlockReasons as $i => $label) {
-            $reason = new BanReason();
+            $reason = new BanReason;
             $reason->type = 'chat_block';
             $reason->sort_order = $i;
             $reason->setTranslation('label', 'ru', $label['ru']);
@@ -39,7 +39,7 @@ class BanReasonSeeder extends Seeder
         ];
 
         foreach ($userBanReasons as $i => $label) {
-            $reason = new BanReason();
+            $reason = new BanReason;
             $reason->type = 'user_ban';
             $reason->sort_order = $i;
             $reason->setTranslation('label', 'ru', $label['ru']);

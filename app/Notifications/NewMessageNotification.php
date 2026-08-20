@@ -23,17 +23,17 @@ class NewMessageNotification extends Notification implements ShouldQueue
 
     public function toDatabase(object $notifiable): array
     {
-        $event      = $this->message->metadata['event'] ?? null;
+        $event = $this->message->metadata['event'] ?? null;
         $senderName = $this->getSenderName();
 
         $data = [
-            'type'            => 'new_message',
-            'message_id'      => $this->message->id,
+            'type' => 'new_message',
+            'message_id' => $this->message->id,
             'conversation_id' => $this->message->conversation_id,
-            'sender_id'       => $this->message->sender_id,
-            'sender_name'     => $senderName,
-            'message_type'    => $this->message->type,
-            'event'           => $event,
+            'sender_id' => $this->message->sender_id,
+            'sender_name' => $senderName,
+            'message_type' => $this->message->type,
+            'event' => $event,
         ];
 
         return $data;
@@ -53,6 +53,7 @@ class NewMessageNotification extends Notification implements ShouldQueue
         if ($this->message->type === 'support') {
             return __('notification.type.support_message');
         }
+
         return __('push.title.new_message');
     }
 
@@ -63,6 +64,7 @@ class NewMessageNotification extends Notification implements ShouldQueue
             return __("notification.msg.$event");
         }
         $name = $this->message->type === 'support' ? 'NOT ALONE' : $this->getSenderName();
+
         return __('push.new_message', ['name' => $name]);
     }
 

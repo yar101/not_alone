@@ -24,7 +24,7 @@ class NewNotification implements ShouldBroadcast
             return [new Channel('notifications.global')];
         }
 
-        return [new PrivateChannel('App.Models.User.' . $this->userId)];
+        return [new PrivateChannel('App.Models.User.'.$this->userId)];
     }
 
     public function broadcastAs(): string

@@ -23,18 +23,18 @@ class ServiceChangeRequestController extends Controller
             ->whereIn('status', ['pending', 'has_remarks'])
             ->latest()
             ->paginate(50)
-            ->through(fn(ServiceChangeRequest $r) => [
-                'id'             => $r->id,
-                'status'         => $r->status,
+            ->through(fn (ServiceChangeRequest $r) => [
+                'id' => $r->id,
+                'status' => $r->status,
                 'changed_fields' => $r->changed_fields,
-                'created_at'     => $r->created_at,
-                'service'        => $r->service ? [
-                    'id'   => $r->service->id,
+                'created_at' => $r->created_at,
+                'service' => $r->service ? [
+                    'id' => $r->service->id,
                     'name' => $r->service->getTranslation('name', 'ru'),
                     'user' => $r->service->user ? [
-                        'id'         => $r->service->user->id,
-                        'name'       => $r->service->user->name,
-                        'email'      => $r->service->user->email,
+                        'id' => $r->service->user->id,
+                        'name' => $r->service->user->name,
+                        'email' => $r->service->user->email,
                         'avatar_url' => $r->service->user->avatar_url,
                     ] : null,
                 ] : null,
@@ -53,7 +53,7 @@ class ServiceChangeRequestController extends Controller
 
         $fields = [];
         foreach ($changeRequest->changed_fields as $field) {
-            $current = match($field) {
+            $current = match ($field) {
                 'name' => [
                     'ru' => $service->getTranslation('name', 'ru'),
                     'en' => $service->getTranslation('name', 'en', false) ?: null,
@@ -69,7 +69,7 @@ class ServiceChangeRequestController extends Controller
                 default => $service->{$field},
             };
 
-            $pending = match($field) {
+            $pending = match ($field) {
                 'name' => $changeRequest->pending_name,
                 'category_id' => [
                     'id' => $changeRequest->pending_category_id,
@@ -83,45 +83,45 @@ class ServiceChangeRequestController extends Controller
             };
 
             $fields[$field] = [
-                'current'        => $current,
-                'pending'        => $pending,
-                'flagged'        => in_array($field, $changeRequest->flagged_fields ?? []),
-                'admin_comment'  => ($changeRequest->field_comments ?? [])[$field] ?? '',
+                'current' => $current,
+                'pending' => $pending,
+                'flagged' => in_array($field, $changeRequest->flagged_fields ?? []),
+                'admin_comment' => ($changeRequest->field_comments ?? [])[$field] ?? '',
             ];
         }
 
         return Inertia::render('Admin/Services/ChangeRequestShow', [
             'changeRequest' => $changeRequest,
-            'service'       => [
-                'id'         => $service->id,
-                'name'       => $service->name,
-                'status'     => $service->status,
-                'user'       => [
-                    'id'         => $service->user->id,
-                    'name'       => $service->user->name,
+            'service' => [
+                'id' => $service->id,
+                'name' => $service->name,
+                'status' => $service->status,
+                'user' => [
+                    'id' => $service->user->id,
+                    'name' => $service->user->name,
                     'avatar_url' => $service->user->avatar_url,
                 ],
-                'history' => $service->reviews->map(fn($r) => [
-                    'id'             => 'review_' . $r->id,
-                    'type'           => 'initial',
-                    'decision'       => $r->decision,
+                'history' => $service->reviews->map(fn ($r) => [
+                    'id' => 'review_'.$r->id,
+                    'type' => 'initial',
+                    'decision' => $r->decision,
                     'flagged_fields' => $r->flagged_fields ?? [],
                     'field_comments' => $r->field_comments ?? [],
-                    'created_at'     => $r->created_at->toIso8601String(),
-                    'admin'          => $r->admin ? ['name' => $r->admin->name] : null,
+                    'created_at' => $r->created_at->toIso8601String(),
+                    'admin' => $r->admin ? ['name' => $r->admin->name] : null,
                 ])->concat(
                     $service->changeRequests
                         ->where('id', '!=', $changeRequest->id)
                         ->whereNotNull('reviewed_at')
-                        ->map(fn($cr) => [
-                            'id'             => 'cr_' . $cr->id,
-                            'type'           => 'change_request',
-                            'decision'       => $cr->status,
+                        ->map(fn ($cr) => [
+                            'id' => 'cr_'.$cr->id,
+                            'type' => 'change_request',
+                            'decision' => $cr->status,
                             'flagged_fields' => $cr->flagged_fields ?? [],
                             'field_comments' => $cr->field_comments ?? [],
-                            'admin_comment'  => $cr->admin_comment,
-                            'created_at'     => $cr->reviewed_at->toIso8601String(),
-                            'admin'          => $cr->reviewedBy ? ['name' => $cr->reviewedBy->name] : null,
+                            'admin_comment' => $cr->admin_comment,
+                            'created_at' => $cr->reviewed_at->toIso8601String(),
+                            'admin' => $cr->reviewedBy ? ['name' => $cr->reviewedBy->name] : null,
                         ])
                 )->sortByDesc('created_at')->values(),
             ],
@@ -131,18 +131,18 @@ class ServiceChangeRequestController extends Controller
 
     public function decide(Request $request, ServiceChangeRequest $changeRequest): RedirectResponse
     {
-        abort_if(!in_array($changeRequest->status, ['pending', 'has_remarks']), 422);
+        abort_if(! in_array($changeRequest->status, ['pending', 'has_remarks']), 422);
 
         $data = $request->validate([
-            'decision'                  => ['required', 'in:approved,has_remarks,rejected'],
-            'flagged_fields'            => ['sometimes', 'array'],
-            'flagged_fields.*'          => ['string', 'in:name,price,category_id,time_unit_id'],
-            'field_comments'            => ['sometimes', 'array'],
-            'field_comments.*'          => ['nullable', 'string', 'max:500'],
-            'admin_comment'             => ['nullable', 'string', 'max:1000'],
+            'decision' => ['required', 'in:approved,has_remarks,rejected'],
+            'flagged_fields' => ['sometimes', 'array'],
+            'flagged_fields.*' => ['string', 'in:name,price,category_id,time_unit_id'],
+            'field_comments' => ['sometimes', 'array'],
+            'field_comments.*' => ['nullable', 'string', 'max:500'],
+            'admin_comment' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $admin   = auth('admin')->user();
+        $admin = auth('admin')->user();
         $service = $changeRequest->service;
 
         if ($data['decision'] === 'approved') {
@@ -158,11 +158,11 @@ class ServiceChangeRequestController extends Controller
                 $service->update($updates);
 
                 $changeRequest->update([
-                    'status'         => 'approved',
+                    'status' => 'approved',
                     'flagged_fields' => $data['flagged_fields'] ?? null,
                     'field_comments' => $data['field_comments'] ?? null,
-                    'reviewed_by'    => $admin->id,
-                    'reviewed_at'    => now(),
+                    'reviewed_by' => $admin->id,
+                    'reviewed_at' => now(),
                 ]);
 
                 $service->user->notify(new ServiceChangeApprovedNotification($service, $changeRequest->changed_fields, $data['flagged_fields'] ?? null, $data['field_comments'] ?? null));
@@ -180,11 +180,11 @@ class ServiceChangeRequestController extends Controller
             $fieldComments = array_intersect_key($data['field_comments'] ?? [], array_flip($flaggedFields));
 
             $changeRequest->update([
-                'status'        => 'has_remarks',
+                'status' => 'has_remarks',
                 'flagged_fields' => $flaggedFields,
                 'field_comments' => $fieldComments ?: null,
-                'reviewed_by'   => $admin->id,
-                'reviewed_at'   => now(),
+                'reviewed_by' => $admin->id,
+                'reviewed_at' => now(),
             ]);
 
             $service->user->notify(new ServiceChangeRemarksNotification($service));
@@ -196,9 +196,9 @@ class ServiceChangeRequestController extends Controller
 
         } else { // rejected
             $changeRequest->update([
-                'status'        => 'rejected',
-                'reviewed_by'   => $admin->id,
-                'reviewed_at'   => now(),
+                'status' => 'rejected',
+                'reviewed_by' => $admin->id,
+                'reviewed_at' => now(),
                 'admin_comment' => $data['admin_comment'] ?? null,
             ]);
 

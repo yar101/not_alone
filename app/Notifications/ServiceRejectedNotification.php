@@ -2,10 +2,10 @@
 
 namespace App\Notifications;
 
-use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Models\Service;
 use App\Notifications\Concerns\SendsWebPush;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use NotificationChannels\WebPush\WebPushChannel;
 
@@ -24,9 +24,9 @@ class ServiceRejectedNotification extends Notification implements ShouldQueue
     public function toDatabase(object $notifiable): array
     {
         return [
-            'type'             => 'service_rejected',
-            'service_id'       => $this->service->id,
-            'service_name'     => $this->service->name,
+            'type' => 'service_rejected',
+            'service_id' => $this->service->id,
+            'service_name' => $this->service->name,
             'rejection_reason' => $this->service->rejection_reason,
         ];
     }

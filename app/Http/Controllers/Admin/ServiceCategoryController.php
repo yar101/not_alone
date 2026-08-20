@@ -18,10 +18,10 @@ class ServiceCategoryController extends Controller
             'categories' => ServiceCategory::orderBy('sort_order')->get()->map(fn ($c) => array_merge(
                 $c->toArray(),
                 [
-                    'name_ru'             => $c->getTranslation('name', 'ru'),
-                    'name_en'             => $c->getTranslation('name', 'en', false) ?: '',
-                    'description_ru'      => $c->getTranslation('description', 'ru', false) ?: '',
-                    'description_en'      => $c->getTranslation('description', 'en', false) ?: '',
+                    'name_ru' => $c->getTranslation('name', 'ru'),
+                    'name_en' => $c->getTranslation('name', 'en', false) ?: '',
+                    'description_ru' => $c->getTranslation('description', 'ru', false) ?: '',
+                    'description_en' => $c->getTranslation('description', 'en', false) ?: '',
                     'name_suggestions_ru' => $c->name_suggestions['ru'] ?? [],
                     'name_suggestions_en' => $c->name_suggestions['en'] ?? [],
                 ]
@@ -33,16 +33,16 @@ class ServiceCategoryController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'name_ru'            => ['required', 'string', 'max:100'],
-            'name_en'            => ['nullable', 'string', 'max:100'],
-            'description_ru'     => ['nullable', 'string', 'max:1000'],
-            'description_en'     => ['nullable', 'string', 'max:1000'],
-            'name_suggestions_ru'   => ['nullable', 'array'],
+            'name_ru' => ['required', 'string', 'max:100'],
+            'name_en' => ['nullable', 'string', 'max:100'],
+            'description_ru' => ['nullable', 'string', 'max:1000'],
+            'description_en' => ['nullable', 'string', 'max:1000'],
+            'name_suggestions_ru' => ['nullable', 'array'],
             'name_suggestions_ru.*' => ['string', 'max:120'],
-            'name_suggestions_en'   => ['nullable', 'array'],
+            'name_suggestions_en' => ['nullable', 'array'],
             'name_suggestions_en.*' => ['string', 'max:120'],
-            'accent_color'          => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
-            'is_active'             => ['boolean'],
+            'accent_color' => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'is_active' => ['boolean'],
         ]);
 
         $data['sort_order'] = (ServiceCategory::max('sort_order') ?? -1) + 1;
@@ -73,34 +73,34 @@ class ServiceCategoryController extends Controller
     public function update(Request $request, ServiceCategory $category): RedirectResponse
     {
         $data = $request->validate([
-            'name_ru'            => ['sometimes', 'string', 'max:100'],
-            'name_en'            => ['nullable', 'string', 'max:100'],
-            'description_ru'     => ['nullable', 'string', 'max:1000'],
-            'description_en'     => ['nullable', 'string', 'max:1000'],
-            'name_suggestions_ru'   => ['nullable', 'array'],
+            'name_ru' => ['sometimes', 'string', 'max:100'],
+            'name_en' => ['nullable', 'string', 'max:100'],
+            'description_ru' => ['nullable', 'string', 'max:1000'],
+            'description_en' => ['nullable', 'string', 'max:1000'],
+            'name_suggestions_ru' => ['nullable', 'array'],
             'name_suggestions_ru.*' => ['string', 'max:120'],
-            'name_suggestions_en'   => ['nullable', 'array'],
+            'name_suggestions_en' => ['nullable', 'array'],
             'name_suggestions_en.*' => ['string', 'max:120'],
-            'accent_color'          => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
-            'sort_order'         => ['sometimes', 'integer', 'min:0'],
-            'is_active'          => ['sometimes', 'boolean'],
+            'accent_color' => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'sort_order' => ['sometimes', 'integer', 'min:0'],
+            'is_active' => ['sometimes', 'boolean'],
         ]);
 
         if (isset($data['name_ru']) || array_key_exists('name_en', $data)) {
             if (isset($data['name_ru'])) {
                 $category->setTranslation('name', 'ru', $data['name_ru']);
             }
-            if (!empty($data['name_en'])) {
+            if (! empty($data['name_en'])) {
                 $category->setTranslation('name', 'en', $data['name_en']);
             }
             unset($data['name_ru'], $data['name_en']);
         }
 
         if (array_key_exists('description_ru', $data) || array_key_exists('description_en', $data)) {
-            if (!empty($data['description_ru'])) {
+            if (! empty($data['description_ru'])) {
                 $category->setTranslation('description', 'ru', $data['description_ru']);
             }
-            if (!empty($data['description_en'])) {
+            if (! empty($data['description_en'])) {
                 $category->setTranslation('description', 'en', $data['description_en']);
             }
             unset($data['description_ru'], $data['description_en']);
@@ -118,7 +118,7 @@ class ServiceCategoryController extends Controller
         $category->save();
         $category->update($data);
 
-        if ($request->boolean('remove_image') && !$request->hasFile('image')) {
+        if ($request->boolean('remove_image') && ! $request->hasFile('image')) {
             if ($category->image_path) {
                 Storage::delete($category->image_path);
             }
@@ -128,7 +128,7 @@ class ServiceCategoryController extends Controller
             if ($category->image_path) {
                 Storage::delete($category->image_path);
             }
-            $ext  = $request->file('image')->getClientOriginalExtension() ?: 'jpg';
+            $ext = $request->file('image')->getClientOriginalExtension() ?: 'jpg';
             $path = $request->file('image')->storeAs('service-categories', "{$category->id}.{$ext}");
             $category->update(['image_path' => $path]);
         }

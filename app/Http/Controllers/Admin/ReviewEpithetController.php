@@ -50,8 +50,8 @@ class ReviewEpithetController extends Controller
     public function reorder(Request $request)
     {
         $request->validate([
-            'items'              => 'required|array',
-            'items.*.id'         => 'required|integer|exists:review_epithets,id',
+            'items' => 'required|array',
+            'items.*.id' => 'required|integer|exists:review_epithets,id',
             'items.*.sort_order' => 'required|integer',
         ]);
 

@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\OrderStatus;
 use App\Models\ContentPack;
 use App\Models\ContentPackPurchase;
 use App\Models\Order;
@@ -59,7 +58,7 @@ test('avatar service handles image upload, square center crop, and deletion', fu
     Storage::fake(config('filesystems.default'));
 
     $user = User::factory()->create();
-    $avatarService = new AvatarService();
+    $avatarService = new AvatarService;
 
     // Create a 800x600 test image
     $file = UploadedFile::fake()->image('avatar.jpg', 800, 600);

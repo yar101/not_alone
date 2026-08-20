@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('conversations', function (Blueprint $table) {
             $table->foreignId('order_id')->nullable()->after('id')
-                  ->constrained('orders')->nullOnDelete();
+                ->constrained('orders')->nullOnDelete();
         });
     }
 

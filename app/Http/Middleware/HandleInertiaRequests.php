@@ -2,13 +2,17 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\AdminBroadcast;
 use App\Models\BanReason;
 use App\Models\IdolApplication;
 use App\Models\InterestSuggestion;
 use App\Models\ReviewDispute;
 use App\Models\Service;
 use App\Models\TraitSuggestion;
+use App\Models\User;
 use App\Models\UserReport;
+use App\Notifications\UserStrikeNotification;
+use App\Traits\NotificationTypes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Inertia\Inertia;
@@ -16,9 +20,9 @@ use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
-    protected $rootView = 'app';
+    use NotificationTypes;
 
-    use \App\Traits\NotificationTypes;
+    protected $rootView = 'app';
 
     public function handle(Request $request, \Closure $next)
     {
@@ -44,14 +48,17 @@ class HandleInertiaRequests extends Middleware
         if ($user) {
             $user->loadMissing('activeFrame');
         }
-        $application = $user?->idolApplication;
 
         $idolStatus = null;
-        if ($application) {
-            $idolStatus = $application->status;
+        if ($user) {
+            if ($user->is_idol) {
+                $idolStatus = 'approved';
+            } else {
+                $idolStatus = $user->idolApplication?->status;
+            }
         }
 
-        $unreadStrike = $user ? $user->unreadNotifications()->where('type', \App\Notifications\UserStrikeNotification::class)->first() : null;
+        $unreadStrike = $user ? $user->unreadNotifications()->where('type', UserStrikeNotification::class)->first(['id', 'data']) : null;
         $isAdmin = auth('admin')->check();
 
         $userBadges = $user ? [
@@ -174,7 +181,7 @@ class HandleInertiaRequests extends Middleware
 
         $hasBroadcastService = false;
         if (! $hasPersonalService) {
-            $hasBroadcastService = \App\Models\AdminBroadcast::where('target', '!=', 'user')
+            $hasBroadcastService = AdminBroadcast::where('target', '!=', 'user')
                 ->forUser($user)
                 ->whereDoesntHave('reads', fn ($q) => $q->where('user_id', $user->id))
                 ->exists();

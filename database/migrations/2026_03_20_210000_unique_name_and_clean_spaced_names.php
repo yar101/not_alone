@@ -13,12 +13,12 @@ return new class extends Migration
         DB::table('users')->whereRaw("name LIKE '% %'")->delete();
 
         // Удаляем дубликаты имён (оставляем запись с наибольшим id)
-        DB::statement("
+        DB::statement('
             DELETE FROM users
             WHERE id NOT IN (
                 SELECT MAX(id) FROM users GROUP BY name
             )
-        ");
+        ');
 
         Schema::table('users', function (Blueprint $table) {
             $table->unique('name');

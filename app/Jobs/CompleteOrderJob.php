@@ -44,6 +44,7 @@ class CompleteOrderJob implements ShouldQueue
             $remainingSeconds = now()->diffInSeconds($deadline, false);
             if ($remainingSeconds > 0) {
                 $this->release($remainingSeconds);
+
                 return;
             }
         }

@@ -20,21 +20,21 @@ class ReportController extends Controller
             $query->where('status', $request->status);
         }
 
-        $reports = $query->paginate(30)->through(fn(UserReport $r) => [
-            'id'          => $r->id,
-            'reporter'    => $r->reporter ? ['id' => $r->reporter->id, 'name' => $r->reporter->name, 'email' => $r->reporter->email] : null,
-            'reported'    => $r->reported ? ['id' => $r->reported->id, 'name' => $r->reported->name, 'email' => $r->reported->email] : null,
-            'reason'      => $r->reason,
-            'details'     => $r->details,
-            'status'      => $r->status,
-            'admin_note'  => $r->admin_note,
-            'reviewer'    => $r->reviewer ? ['name' => $r->reviewer->name] : null,
+        $reports = $query->paginate(30)->through(fn (UserReport $r) => [
+            'id' => $r->id,
+            'reporter' => $r->reporter ? ['id' => $r->reporter->id, 'name' => $r->reporter->name, 'email' => $r->reporter->email] : null,
+            'reported' => $r->reported ? ['id' => $r->reported->id, 'name' => $r->reported->name, 'email' => $r->reported->email] : null,
+            'reason' => $r->reason,
+            'details' => $r->details,
+            'status' => $r->status,
+            'admin_note' => $r->admin_note,
+            'reviewer' => $r->reviewer ? ['name' => $r->reviewer->name] : null,
             'reviewed_at' => $r->reviewed_at,
-            'created_at'  => $r->created_at,
+            'created_at' => $r->created_at,
         ]);
 
         return Inertia::render('Admin/Reports/Index', [
-            'reports'       => $reports,
+            'reports' => $reports,
             'filter_status' => $request->status,
         ]);
     }
@@ -45,24 +45,24 @@ class ReportController extends Controller
 
         return Inertia::render('Admin/Reports/Show', [
             'report' => [
-                'id'          => $report->id,
-                'reason'      => $report->reason,
-                'details'     => $report->details,
-                'status'      => $report->status,
-                'admin_note'  => $report->admin_note,
-                'created_at'  => $report->created_at,
+                'id' => $report->id,
+                'reason' => $report->reason,
+                'details' => $report->details,
+                'status' => $report->status,
+                'admin_note' => $report->admin_note,
+                'created_at' => $report->created_at,
                 'reviewed_at' => $report->reviewed_at,
-                'reporter'    => $report->reporter ? [
-                    'id'    => $report->reporter->id,
-                    'name'  => $report->reporter->name,
+                'reporter' => $report->reporter ? [
+                    'id' => $report->reporter->id,
+                    'name' => $report->reporter->name,
                     'email' => $report->reporter->email,
                 ] : null,
-                'reported'    => $report->reported ? [
-                    'id'    => $report->reported->id,
-                    'name'  => $report->reported->name,
+                'reported' => $report->reported ? [
+                    'id' => $report->reported->id,
+                    'name' => $report->reported->name,
                     'email' => $report->reported->email,
                 ] : null,
-                'reviewer'    => $report->reviewer ? ['name' => $report->reviewer->name] : null,
+                'reviewer' => $report->reviewer ? ['name' => $report->reviewer->name] : null,
             ],
         ]);
     }
@@ -74,8 +74,8 @@ class ReportController extends Controller
         ]);
 
         $report->update([
-            'status'      => 'reviewed',
-            'admin_note'  => $validated['admin_note'] ?? null,
+            'status' => 'reviewed',
+            'admin_note' => $validated['admin_note'] ?? null,
             'reviewed_by' => auth('admin')->id(),
             'reviewed_at' => now(),
         ]);
@@ -95,8 +95,8 @@ class ReportController extends Controller
         ]);
 
         $report->update([
-            'status'      => 'dismissed',
-            'admin_note'  => $validated['admin_note'] ?? null,
+            'status' => 'dismissed',
+            'admin_note' => $validated['admin_note'] ?? null,
             'reviewed_by' => auth('admin')->id(),
             'reviewed_at' => now(),
         ]);
