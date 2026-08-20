@@ -128,9 +128,10 @@ function handleItemClick(item) {
         openConversation?.(item.data.conversation_id);
         return;
     }
-    if (item._cat === 'order' && item.order_id) {
+    const orderId = item.order_id || item.data?.order_id;
+    if (item._cat === 'order' && orderId) {
         open.value = false;
-        openOrder?.(item.order_id);
+        openOrder?.(orderId);
         return;
     }
     if (item.type === 'new_review' && authUser?.id) {
@@ -174,7 +175,7 @@ function handleItemClick(item) {
 
 function isClickable(item) {
     if (item.type === 'new_message' && item.data?.conversation_id) return true;
-    if (item._cat === 'order' && item.order_id) return true;
+    if (item._cat === 'order' && (item.order_id || item.data?.order_id)) return true;
     if (item._cat === 'follow' && item.data?.user_id) return true;
     const profileTypes = [
         'idol_approved', 'idol_rejected', 'low_rating_warning',

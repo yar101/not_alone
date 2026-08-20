@@ -470,7 +470,7 @@ async function deleteComment(commentId, parentId) {
                                             <div
                                                 v-if="
                                                     authUser &&
-                                                    cmt.user.id === authUser.id
+                                                    (cmt.user.id === authUser.id || isOwner)
                                                 "
                                                 class="detail__cmt-menu-wrap"
                                             >
@@ -632,9 +632,7 @@ async function deleteComment(commentId, parentId) {
                                                     <div
                                                         v-if="
                                                             authUser &&
-                                                            cmt.replies[0].user
-                                                                .id ===
-                                                                authUser.id
+                                                            (cmt.replies[0].user.id === authUser.id || isOwner)
                                                         "
                                                         class="detail__cmt-menu-wrap"
                                                     >
@@ -877,9 +875,7 @@ async function deleteComment(commentId, parentId) {
                                                             <div
                                                                 v-if="
                                                                     authUser &&
-                                                                    reply.user
-                                                                        .id ===
-                                                                        authUser.id
+                                                                    (reply.user.id === authUser.id || isOwner)
                                                                 "
                                                                 class="detail__cmt-menu-wrap"
                                                             >

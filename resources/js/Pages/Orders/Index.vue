@@ -105,7 +105,11 @@ const statusCounts = computed(() => ({
     all:       baseOrders.value.length,
     pending:   baseOrders.value.filter(o => o.status === 'pending').length,
     accepted:  baseOrders.value.filter(o => o.status === 'accepted').length,
+    paid:      baseOrders.value.filter(o => o.status === 'paid').length,
+    completed: baseOrders.value.filter(o => o.status === 'completed').length,
     cancelled: baseOrders.value.filter(o => o.status === 'cancelled').length,
+    refunded:  baseOrders.value.filter(o => o.status === 'refunded').length,
+    disputed:  baseOrders.value.filter(o => o.status === 'disputed').length,
 }));
 
 // ── Panel ─────────────────────────────────────────────────────

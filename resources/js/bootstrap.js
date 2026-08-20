@@ -7,7 +7,9 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 window.axios.interceptors.response.use(
     response => response,
     error => {
-        if (error.response?.status === 422 && error.response?.data?.message === 'user_banned') {
+        const status = error.response?.status;
+        const data = error.response?.data;
+        if ((status === 422 || status === 403) && (data?.message === 'user_banned' || data?.error === 'user_banned')) {
             window.dispatchEvent(new CustomEvent('noalone:user-banned'));
         }
         return Promise.reject(error);
