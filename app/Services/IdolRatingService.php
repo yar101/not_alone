@@ -11,23 +11,27 @@ use App\Notifications\LowRatingWarningNotification;
 class IdolRatingService
 {
     const EVENTS = [
-        'review_5star'            =>  0.8,
-        'review_4star'            =>  0.4,
-        'review_3star'            =>  0.0,
-        'review_2star'            => -0.5,
-        'review_1star'            => -1.2,
-        'order_completed'         =>  0.2,
-        'report_accepted'         => -2.0,
-        'review_dispute_approved' =>  0.6,
-        'admin_manual'            => null,
+        'review_5star' => 0.8,
+        'review_4star' => 0.4,
+        'review_3star' => 0.0,
+        'review_2star' => -0.5,
+        'review_1star' => -1.2,
+        'order_completed' => 0.2,
+        'report_accepted' => -2.0,
+        'review_dispute_approved' => 0.6,
+        'strike' => null,
+        'admin_manual' => null,
     ];
 
-    public static function getEventDelta(string $event): float|null
+    public static function getEventDelta(string $event): ?float
     {
         $default = self::EVENTS[$event] ?? 0;
-        if ($default === null) return null; // admin_manual — delta comes externally
+        if ($default === null) {
+            return null;
+        } // admin_manual — delta comes externally
 
-        $stored = PlatformSetting::get('rating_delta_' . $event);
+        $stored = PlatformSetting::get('rating_delta_'.$event);
+
         return $stored !== null ? (float) $stored : (float) $default;
     }
 
@@ -41,7 +45,7 @@ class IdolRatingService
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($user, $event, $delta, $note) {
             $lockedUser = User::lockForUpdate()->find($user->id);
-            if (!$lockedUser) {
+            if (! $lockedUser) {
                 return;
             }
 
@@ -60,10 +64,10 @@ class IdolRatingService
             $newRating = max(0, min(100, round($oldRating + $delta, 2)));
 
             IdolRatingLog::create([
-                'user_id'    => $lockedUser->id,
-                'event'      => $event,
-                'delta'      => $delta,
-                'note'       => $note,
+                'user_id' => $lockedUser->id,
+                'event' => $event,
+                'delta' => $delta,
+                'note' => $note,
                 'created_at' => now(),
             ]);
 
@@ -79,7 +83,7 @@ class IdolRatingService
             if ($oldRating >= $threshold && $newRating < $threshold) {
                 $lockedUser->notify(new LowRatingWarningNotification($threshold));
             }
-            
+
             // Sync updated rating back to original object
             $user->rating = $newRating;
         });

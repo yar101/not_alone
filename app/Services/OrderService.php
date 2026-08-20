@@ -17,7 +17,6 @@ use App\Notifications\OrderAcceptedNotification;
 use App\Notifications\OrderCancelledNotification;
 use App\Notifications\OrderCompletedNotification;
 use App\Notifications\OrderPaidNotification;
-use App\Services\IdolRatingService;
 
 class OrderService
 {
@@ -25,7 +24,7 @@ class OrderService
 
     public function createOrder(User $customer, User $idol, array $requestedServices): array
     {
-        $serviceIds  = collect($requestedServices)->pluck('id');
+        $serviceIds = collect($requestedServices)->pluck('id');
         $quantityMap = collect($requestedServices)->keyBy('id');
 
         $services = \App\Models\Service::whereIn('id', $serviceIds)
@@ -51,32 +50,33 @@ class OrderService
             throw new \Exception('Нельзя заказать более одной бесплатной услуги одновременно');
         }
 
-        $hasUsedTrial = false;
-        if ($trialServicesCount > 0) {
-            $hasUsedTrial = \App\Models\UserIdolTrial::where('user_id', $customer->id)
-                ->where('idol_id', $idol->id)
-                ->exists();
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($customer, $idol, $services, $quantityMap, $trialServicesCount) {
+            $hasUsedTrial = false;
+            if ($trialServicesCount > 0) {
+                $hasUsedTrial = \App\Models\UserIdolTrial::where('user_id', $customer->id)
+                    ->where('idol_id', $idol->id)
+                    ->lockForUpdate()
+                    ->exists();
 
-            if ($hasUsedTrial) {
-                throw new \Exception('Вы уже использовали бесплатный первый заказ у этого пользователя');
+                if ($hasUsedTrial) {
+                    throw new \Exception('Вы уже использовали бесплатный первый заказ у этого пользователя');
+                }
             }
-        }
 
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($customer, $idol, $services, $quantityMap, $trialServicesCount, $hasUsedTrial) {
             $order = Order::create([
                 'customer_id' => $customer->id,
-                'idol_id'     => $idol->id,
-                'status'      => OrderStatus::Pending,
+                'idol_id' => $idol->id,
+                'status' => OrderStatus::Pending,
             ]);
             $order->logStatusChange(null, OrderStatus::Pending->value, 'user', $customer->id);
 
             foreach ($services as $service) {
                 $qty = (int) ($quantityMap[$service->id]['quantity'] ?? 1);
-                $price = ($service->is_trial && !$hasUsedTrial) ? 0 : $service->price;
+                $price = ($service->is_trial && ! $hasUsedTrial) ? 0 : $service->price;
                 $order->items()->create(['service_id' => $service->id, 'quantity' => $qty, 'price' => $price]);
             }
 
-            if ($trialServicesCount > 0 && !$hasUsedTrial) {
+            if ($trialServicesCount > 0 && ! $hasUsedTrial) {
                 \App\Models\UserIdolTrial::create([
                     'user_id' => $customer->id,
                     'idol_id' => $idol->id,
@@ -94,17 +94,17 @@ class OrderService
 
             $conversation->messages()->create([
                 'sender_id' => $customer->id,
-                'body'      => '',
-                'type'      => 'system',
-                'metadata'  => [
-                    'event'    => 'order_created',
+                'body' => '',
+                'type' => 'system',
+                'metadata' => [
+                    'event' => 'order_created',
                     'order_id' => $order->id,
-                    'services' => $services->map(fn($s) => [
-                        'id'        => $s->id,
-                        'name'      => $s->name,
-                        'price'     => ($s->is_trial && !$hasUsedTrial) ? 0 : $s->price,
+                    'services' => $services->map(fn ($s) => [
+                        'id' => $s->id,
+                        'name' => $s->name,
+                        'price' => ($s->is_trial && ! $hasUsedTrial) ? 0 : $s->price,
                         'time_unit' => $s->timeUnit?->name,
-                        'quantity'  => (int) ($quantityMap[$s->id]['quantity'] ?? 1),
+                        'quantity' => (int) ($quantityMap[$s->id]['quantity'] ?? 1),
                     ])->values()->all(),
                 ],
             ]);
@@ -119,17 +119,21 @@ class OrderService
 
     public function accept(Order $order, User $actor): void
     {
+        if ($order->status !== OrderStatus::Pending) {
+            throw new \DomainException("Невозможно принять заказ в статусе {$order->status->label()}");
+        }
+
         $order->logStatusChange(OrderStatus::Pending->value, OrderStatus::Accepted->value, 'user', $actor->id);
         $order->update(['status' => OrderStatus::Accepted]);
 
         $this->broadcastSystemMessage($order, [
             'sender_id' => $actor->id,
-            'body'      => '',
-            'type'      => 'system',
-            'metadata'  => [
-                'event'       => 'order_accepted',
-                'idol_id'     => $actor->id,
-                'idol_name'   => $actor->name,
+            'body' => '',
+            'type' => 'system',
+            'metadata' => [
+                'event' => 'order_accepted',
+                'idol_id' => $actor->id,
+                'idol_name' => $actor->name,
                 'idol_gender' => $actor->gender,
             ],
         ]);
@@ -143,16 +147,20 @@ class OrderService
 
     public function pay(Order $order, User $actor): void
     {
+        if ($order->status !== OrderStatus::Accepted) {
+            throw new \DomainException("Невозможно оплатить заказ в статусе {$order->status->label()}");
+        }
+
         $order->logStatusChange(OrderStatus::Accepted->value, OrderStatus::Paid->value, 'user', $actor->id);
         $order->update(['status' => OrderStatus::Paid, 'paid_at' => now()]);
 
         $this->broadcastSystemMessage($order, [
             'sender_id' => $actor->id,
-            'body'      => '',
-            'type'      => 'system',
-            'metadata'  => [
-                'event'         => 'order_paid',
-                'customer_id'   => $actor->id,
+            'body' => '',
+            'type' => 'system',
+            'metadata' => [
+                'event' => 'order_paid',
+                'customer_id' => $actor->id,
                 'customer_name' => $actor->name,
             ],
         ]);
@@ -165,65 +173,73 @@ class OrderService
 
         // Auto-complete after delay from settings
         $delayHours = (float) PlatformSetting::get('order_auto_complete_delay', 72);
-        CompleteOrderJob::dispatch($order)->delay(now()->addSeconds((int)($delayHours * 3600)));
+        CompleteOrderJob::dispatch($order)->delay(now()->addSeconds((int) ($delayHours * 3600)));
     }
 
     public function cancel(Order $order, User $actor, string $reason): void
     {
+        if (! in_array($order->status, [OrderStatus::Pending, OrderStatus::Accepted, OrderStatus::Paid])) {
+            throw new \DomainException("Невозможно отменить заказ в статусе {$order->status->label()}");
+        }
+
         $from = $order->status->value;
         $order->logStatusChange($from, OrderStatus::Cancelled->value, 'user', $actor->id, $reason);
         $order->update([
-            'status'        => OrderStatus::Cancelled,
+            'status' => OrderStatus::Cancelled,
             'cancel_reason' => $reason,
-            'cancelled_by'  => $actor->id,
+            'cancelled_by' => $actor->id,
         ]);
 
         \App\Models\UserIdolTrial::where('order_id', $order->id)->delete();
 
         $this->broadcastSystemMessage($order, [
             'sender_id' => $actor->id,
-            'body'      => '',
-            'type'      => 'system',
-            'metadata'  => [
-                'event'             => 'order_cancelled',
-                'cancelled_by'      => $actor->id,
+            'body' => '',
+            'type' => 'system',
+            'metadata' => [
+                'event' => 'order_cancelled',
+                'cancelled_by' => $actor->id,
                 'cancelled_by_name' => $actor->name,
-                'cancel_reason'     => $reason,
+                'cancel_reason' => $reason,
             ],
         ]);
 
         $this->broadcastStatusChanged($order, 'cancelled',
-            cancelledBy:     $actor->id,
+            cancelledBy: $actor->id,
             cancelledByName: $actor->name,
-            cancelReason:    $reason,
+            cancelReason: $reason,
         );
         $this->broadcastOrderChanged($order);
 
         $otherId = $order->customer_id === $actor->id ? $order->idol_id : $order->customer_id;
-        $other   = User::find($otherId);
+        $other = User::find($otherId);
         $other?->notify(new OrderCancelledNotification($order));
         $this->safeBroadcast(new NewNotification('private', $otherId));
     }
 
     public function confirmCompletion(Order $order, User $actor): array
     {
+        if ($order->status !== OrderStatus::Paid) {
+            throw new \DomainException("Невозможно подтвердить выполнение заказа в статусе {$order->status->label()}");
+        }
+
         $isIdol = $order->idol_id === $actor->id;
-        $field  = $isIdol ? 'completion_confirmed_by_idol' : 'completion_confirmed_by_customer';
+        $field = $isIdol ? 'completion_confirmed_by_idol' : 'completion_confirmed_by_customer';
         $order->update([$field => true]);
         $order->refresh();
 
         $event = $isIdol ? 'completion_confirmed_by_idol' : 'completion_confirmed_by_customer';
         $this->broadcastSystemMessage($order, [
             'sender_id' => $actor->id,
-            'body'      => '',
-            'type'      => 'system',
-            'metadata'  => ['event' => $event, 'actor_name' => $actor->name],
+            'body' => '',
+            'type' => 'system',
+            'metadata' => ['event' => $event, 'actor_name' => $actor->name],
         ]);
 
         // Customer confirmation is prioritised: the order completes immediately
         // when the customer confirms, regardless of whether the idol has confirmed.
         // Idol confirmation alone only sets the flag and waits for the customer.
-        if (!$isIdol) {
+        if (! $isIdol) {
             // Customer clicked → complete right away
             $this->complete($order, 'user', $actor->id);
         } elseif ($order->completion_confirmed_by_idol && $order->completion_confirmed_by_customer) {
@@ -235,19 +251,23 @@ class OrderService
         }
 
         return [
-            'confirmed'                        => true,
-            'completion_confirmed_by_idol'     => $order->completion_confirmed_by_idol,
+            'confirmed' => true,
+            'completion_confirmed_by_idol' => $order->completion_confirmed_by_idol,
             'completion_confirmed_by_customer' => $order->completion_confirmed_by_customer,
         ];
     }
 
     public function dispute(Order $order, User $actor, string $reason, string $details): void
     {
+        if ($order->status !== OrderStatus::Paid && $order->status !== OrderStatus::Completed) {
+            throw new \DomainException("Невозможно открыть спор по заказу в статусе {$order->status->label()}");
+        }
+
         OrderDispute::create([
-            'order_id'    => $order->id,
+            'order_id' => $order->id,
             'customer_id' => $actor->id,
-            'reason'      => $reason,
-            'details'     => $details,
+            'reason' => $reason,
+            'details' => $details,
         ]);
 
         $order->logStatusChange(OrderStatus::Completed->value, OrderStatus::Disputed->value, 'user', $actor->id, $reason);
@@ -266,7 +286,7 @@ class OrderService
      */
     public function adminTransition(Order $order, OrderStatus $to, int $adminId, ?string $note = null): void
     {
-        $from  = $order->status->value;
+        $from = $order->status->value;
         $attrs = ['status' => $to];
 
         switch ($to) {
@@ -278,9 +298,9 @@ class OrderService
                 if ($order->conversation_id) {
                     $order->conversation->messages()->create([
                         'sender_id' => null,
-                        'body'      => '',
-                        'type'      => 'system',
-                        'metadata'  => ['event' => 'order_paid', 'by_admin' => true],
+                        'body' => '',
+                        'type' => 'system',
+                        'metadata' => ['event' => 'order_paid', 'by_admin' => true],
                     ]);
                     $order->conversation->touch();
                 }
@@ -289,7 +309,7 @@ class OrderService
 
                 if ($isNewPaid) {
                     $delayHours = (float) PlatformSetting::get('order_auto_complete_delay', 72);
-                    CompleteOrderJob::dispatch($order)->delay(now()->addSeconds((int)($delayHours * 3600)));
+                    CompleteOrderJob::dispatch($order)->delay(now()->addSeconds((int) ($delayHours * 3600)));
                 }
                 break;
 
@@ -301,9 +321,9 @@ class OrderService
                 if ($order->conversation_id) {
                     $order->conversation->messages()->create([
                         'sender_id' => null,
-                        'body'      => '',
-                        'type'      => 'system',
-                        'metadata'  => ['event' => 'order_completed', 'by_admin' => true],
+                        'body' => '',
+                        'type' => 'system',
+                        'metadata' => ['event' => 'order_completed', 'by_admin' => true],
                     ]);
                     $order->conversation->touch();
                 }
@@ -314,19 +334,19 @@ class OrderService
                 break;
 
             case OrderStatus::Cancelled:
-                if (!$order->cancelled_by) {
+                if (! $order->cancelled_by) {
                     $attrs['cancelled_by'] = null; // admin cancel has no specific actor
                 }
 
                 if ($order->conversation_id) {
                     $order->conversation->messages()->create([
                         'sender_id' => null,
-                        'body'      => '',
-                        'type'      => 'system',
-                        'metadata'  => [
-                            'event'         => 'order_cancelled',
+                        'body' => '',
+                        'type' => 'system',
+                        'metadata' => [
+                            'event' => 'order_cancelled',
                             'cancel_reason' => $note ?? 'Отменён администратором',
-                            'by_admin'      => true,
+                            'by_admin' => true,
                         ],
                     ]);
                     $order->conversation->touch();
@@ -365,39 +385,39 @@ class OrderService
         $isCustomer = $order->customer_id === $userId;
 
         return [
-            'id'              => $order->id,
-            'status'          => $order->status->value,
-            'cancel_reason'   => $order->cancel_reason,
-            'cancelled_by'    => $order->cancelled_by,
+            'id' => $order->id,
+            'status' => $order->status->value,
+            'cancel_reason' => $order->cancel_reason,
+            'cancelled_by' => $order->cancelled_by,
             'cancelled_by_name' => $order->cancelledBy?->name,
             'conversation_id' => $order->conversation_id,
-            'created_at'      => $order->created_at->toISOString(),
-            'paid_at'         => $order->paid_at?->toISOString(),
-            'completed_at'    => $order->completed_at?->toISOString(),
-            'is_customer'     => $isCustomer,
-            'completion_confirmed_by_idol'     => (bool) $order->completion_confirmed_by_idol,
+            'created_at' => $order->created_at->toISOString(),
+            'paid_at' => $order->paid_at?->toISOString(),
+            'completed_at' => $order->completed_at?->toISOString(),
+            'is_customer' => $isCustomer,
+            'completion_confirmed_by_idol' => (bool) $order->completion_confirmed_by_idol,
             'completion_confirmed_by_customer' => (bool) $order->completion_confirmed_by_customer,
             'customer' => [
-                'id'         => $order->customer->id,
-                'name'       => $order->customer->name,
+                'id' => $order->customer->id,
+                'name' => $order->customer->name,
                 'avatar_url' => $order->customer->avatar_url,
                 'active_frame' => $order->customer->activeFrame,
-                'gender'     => $order->customer->gender,
+                'gender' => $order->customer->gender,
             ],
             'idol' => [
-                'id'         => $order->idol->id,
-                'name'       => $order->idol->name,
+                'id' => $order->idol->id,
+                'name' => $order->idol->name,
                 'avatar_url' => $order->idol->avatar_url,
                 'active_frame' => $order->idol->activeFrame,
-                'gender'     => $order->idol->gender,
+                'gender' => $order->idol->gender,
             ],
-            'items' => $order->items->map(fn($item) => [
-                'id'       => $item->id,
+            'items' => $order->items->map(fn ($item) => [
+                'id' => $item->id,
                 'quantity' => $item->quantity ?? 1,
-                'service'  => $item->service ? [
-                    'id'        => $item->service->id,
-                    'name'      => $item->service->name,
-                    'price'     => $item->price ?? $item->service->price,
+                'service' => $item->service ? [
+                    'id' => $item->service->id,
+                    'name' => $item->service->name,
+                    'price' => $item->price ?? $item->service->price,
                     'time_unit' => $item->service->timeUnit?->name,
                 ] : null,
             ])->values()->all(),
@@ -421,10 +441,10 @@ class OrderService
 
         $this->broadcastSystemMessage($order, [
             'sender_id' => null,
-            'body'      => '',
-            'type'      => 'system',
-            'metadata'  => [
-                'event'    => $actorType === 'system' ? 'order_auto_completed' : 'order_completed',
+            'body' => '',
+            'type' => 'system',
+            'metadata' => [
+                'event' => $actorType === 'system' ? 'order_auto_completed' : 'order_completed',
                 'order_id' => $order->id,
             ],
         ]);
@@ -455,31 +475,36 @@ class OrderService
     }
 
     private function broadcastStatusChanged(
-        Order   $order,
-        string  $status,
-        ?int    $cancelledBy     = null,
+        Order $order,
+        string $status,
+        ?int $cancelledBy = null,
         ?string $cancelledByName = null,
-        ?string $cancelReason    = null,
+        ?string $cancelReason = null,
     ): void {
-        if (!$order->conversation_id) return;
+        if (! $order->conversation_id) {
+            return;
+        }
 
         $this->safeBroadcast(new OrderStatusChanged(
-            conversationId:   $order->conversation_id,
-            orderId:          $order->id,
-            status:           $status,
-            cancelledBy:      $cancelledBy,
-            cancelledByName:  $cancelledByName,
-            cancelReason:     $cancelReason,
-            paidAt:           $order->paid_at?->toISOString(),
-            completedAt:      $order->completed_at?->toISOString(),
-            autoCompleteAt:   $order->paid_at ? $order->paid_at->addSeconds((int)((float)PlatformSetting::get('order_auto_complete_delay', 72) * 3600))->toISOString() : null,
-            confirmedByIdol:  (bool) $order->completion_confirmed_by_idol,            confirmedByCustomer: (bool) $order->completion_confirmed_by_customer,
+            conversationId: $order->conversation_id,
+            orderId: $order->id,
+            status: $status,
+            cancelledBy: $cancelledBy,
+            cancelledByName: $cancelledByName,
+            cancelReason: $cancelReason,
+            paidAt: $order->paid_at?->toISOString(),
+            completedAt: $order->completed_at?->toISOString(),
+            autoCompleteAt: $order->paid_at ? $order->paid_at->copy()->addSeconds((int) ((float) PlatformSetting::get('order_auto_complete_delay', 72) * 3600))->toISOString() : null,
+            confirmedByIdol: (bool) $order->completion_confirmed_by_idol,
+            confirmedByCustomer: (bool) $order->completion_confirmed_by_customer,
         ));
     }
 
     private function broadcastSystemMessage(Order $order, array $messageAttributes): void
     {
-        if (! $order->conversation_id) return;
+        if (! $order->conversation_id) {
+            return;
+        }
 
         $msg = $order->conversation->messages()->create($messageAttributes);
         $order->conversation->touch();
@@ -502,7 +527,7 @@ class OrderService
         try {
             broadcast($event);
         } catch (\Throwable $e) {
-            \Log::warning('Broadcast failed: ' . $e->getMessage());
+            \Log::warning('Broadcast failed: '.$e->getMessage());
         }
     }
 }
