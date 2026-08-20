@@ -19,7 +19,7 @@ class ReviewDisputeController extends Controller
     public function index(Request $request): Response
     {
         $statusFilter = $request->get('status', 'pending');
-        $search       = $request->get('search', '');
+        $search = $request->get('search', '');
 
         $query = ReviewDispute::with([
             'review.reviewer:id,name,avatar_path',
@@ -31,19 +31,24 @@ class ReviewDisputeController extends Controller
         }
 
         if ($search) {
-            $query->whereHas('idol', fn($q) => $q->where('name', 'ilike', "%{$search}%"));
+            $query->whereHas('idol', fn ($q) => $q->where('name', 'ilike', "%{$search}%"));
         }
 
-        $disputes = $query->paginate(20)->through(fn(ReviewDispute $d) => $this->format($d));
+        $disputes = $query->paginate(20)->through(fn (ReviewDispute $d) => $this->format($d));
+
+        $rawCounts = ReviewDispute::query()
+            ->selectRaw('status, count(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status');
 
         return Inertia::render('Admin/ReviewDisputes/Index', [
-            'disputes'      => $disputes,
+            'disputes' => $disputes,
             'status_filter' => $statusFilter,
-            'search'        => $search,
-            'counts'        => [
-                'pending'  => ReviewDispute::where('status', 'pending')->count(),
-                'approved' => ReviewDispute::where('status', 'approved')->count(),
-                'rejected' => ReviewDispute::where('status', 'rejected')->count(),
+            'search' => $search,
+            'counts' => [
+                'pending' => (int) ($rawCounts['pending'] ?? 0),
+                'approved' => (int) ($rawCounts['approved'] ?? 0),
+                'rejected' => (int) ($rawCounts['rejected'] ?? 0),
             ],
         ]);
     }
@@ -51,7 +56,7 @@ class ReviewDisputeController extends Controller
     public function resolve(Request $request, ReviewDispute $reviewDispute): RedirectResponse
     {
         $request->validate([
-            'decision'   => ['required', 'in:approved,rejected'],
+            'decision' => ['required', 'in:approved,rejected'],
             'admin_note' => ['nullable', 'string', 'max:2000'],
         ]);
 
@@ -60,11 +65,11 @@ class ReviewDisputeController extends Controller
         }
 
         $adminId = auth('admin')->id();
-        $idol    = $reviewDispute->idol;
+        $idol = $reviewDispute->idol;
 
         $reviewDispute->update([
-            'status'      => $request->decision,
-            'admin_note'  => $request->admin_note,
+            'status' => $request->decision,
+            'admin_note' => $request->admin_note,
             'resolved_at' => now(),
         ]);
 
@@ -84,9 +89,9 @@ class ReviewDisputeController extends Controller
             'review_dispute',
             $reviewDispute->id,
             [
-                'decision'  => $request->decision,
+                'decision' => $request->decision,
                 'review_id' => $reviewDispute->review_id,
-                'note'      => $request->admin_note,
+                'note' => $request->admin_note,
             ]
         );
 
@@ -96,24 +101,24 @@ class ReviewDisputeController extends Controller
     private function format(ReviewDispute $d): array
     {
         return [
-            'id'          => $d->id,
-            'reason'      => $d->reason,
-            'status'      => $d->status,
-            'admin_note'  => $d->admin_note,
-            'created_at'  => $d->created_at->format('d.m.Y H:i'),
+            'id' => $d->id,
+            'reason' => $d->reason,
+            'status' => $d->status,
+            'admin_note' => $d->admin_note,
+            'created_at' => $d->created_at->format('d.m.Y H:i'),
             'resolved_at' => $d->resolved_at?->format('d.m.Y H:i'),
-            'idol'        => [
-                'id'     => $d->idol->id,
-                'name'   => $d->idol->name,
+            'idol' => [
+                'id' => $d->idol->id,
+                'name' => $d->idol->name,
                 'avatar' => $d->idol->avatar_url,
             ],
-            'review'      => [
-                'id'     => $d->review->id,
+            'review' => [
+                'id' => $d->review->id,
                 'rating' => $d->review->rating,
-                'text'   => $d->review->text,
+                'text' => $d->review->text,
                 'reviewer' => [
-                    'id'     => $d->review->reviewer->id,
-                    'name'   => $d->review->reviewer->name,
+                    'id' => $d->review->reviewer->id,
+                    'name' => $d->review->reviewer->name,
                     'avatar' => $d->review->reviewer->avatar_url,
                 ],
             ],

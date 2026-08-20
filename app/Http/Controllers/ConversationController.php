@@ -20,11 +20,11 @@ class ConversationController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $user     = $request->user();
-        $search   = trim($request->input('search', ''));
+        $user = $request->user();
+        $search = trim($request->input('search', ''));
         $cursorAt = $request->input('cursor_at');
         $cursorId = (int) $request->input('cursor_id', 0);
-        $perPage  = 10;
+        $perPage = 10;
 
         $query = Conversation::whereNull('order_id')
             ->withUser($user->id)
@@ -43,15 +43,29 @@ class ConversationController extends Controller
         if ($cursorAt && $cursorId) {
             $query->where(function ($q) use ($cursorAt, $cursorId) {
                 $q->where('updated_at', '<', $cursorAt)
-                  ->orWhere(fn($q) => $q->where('updated_at', $cursorAt)->where('id', '<', $cursorId));
+                    ->orWhere(fn ($q) => $q->where('updated_at', $cursorAt)->where('id', '<', $cursorId));
             });
         }
 
-        $items   = $query->limit($perPage + 1)->get();
+        $items = $query->limit($perPage + 1)->get();
         $hasMore = $items->count() > $perPage;
-        if ($hasMore) $items = $items->take($perPage);
+        if ($hasMore) {
+            $items = $items->take($perPage);
+        }
 
-        $conversations = $items->map(function (Conversation $conversation) use ($user) {
+        $otherUserIds = $items->flatMap(fn ($c) => $c->participants)
+            ->where('user_id', '!=', $user->id)
+            ->pluck('user_id')
+            ->unique();
+
+        $activeBlocks = $otherUserIds->isNotEmpty()
+            ? ChatBlock::active()->where(function ($q) use ($user, $otherUserIds) {
+                $q->where('blocker_id', $user->id)->whereIn('blocked_id', $otherUserIds)
+                    ->orWhere(fn ($sq) => $sq->whereIn('blocker_id', $otherUserIds)->where('blocked_id', $user->id));
+            })->get()
+            : collect();
+
+        $conversations = $items->map(function (Conversation $conversation) use ($user, $activeBlocks) {
             $other = $conversation->participants
                 ->firstWhere('user_id', '!=', $user->id)?->user;
 
@@ -60,27 +74,43 @@ class ConversationController extends Controller
 
             $hasUnread = $participantMe->has_unread ?? false;
 
+            $blockData = null;
+            if ($other) {
+                $block = $activeBlocks->first(fn ($b) => ($b->blocker_id === $user->id && $b->blocked_id === $other->id) ||
+                    ($b->blocker_id === $other->id && $b->blocked_id === $user->id)
+                );
+                if ($block) {
+                    $blockData = [
+                        'active' => true,
+                        'i_am_blocker' => $block->blocker_id === $user->id,
+                        'reason' => $block->reason,
+                        'blocked_until' => $block->blocked_until?->toISOString(),
+                    ];
+                }
+            }
+
             return [
-                'id'           => $conversation->id,
-                'is_support'   => (bool) $conversation->is_support,
-                'closed_at'    => $conversation->closed_at?->toISOString(),
-                'other_user'   => $other ? [
-                    'id'         => $other->id,
-                    'name'       => $other->name,
+                'id' => $conversation->id,
+                'is_support' => (bool) $conversation->is_support,
+                'closed_at' => $conversation->closed_at?->toISOString(),
+                'other_user' => $other ? [
+                    'id' => $other->id,
+                    'name' => $other->name,
                     'avatar_url' => $other->avatar_url,
                     'active_frame' => $other->activeFrame,
-                    'is_idol'    => $other->is_idol,
-                    'gender'     => $other->gender,
-                    ] : null,                'last_message' => $conversation->lastMessage ? [
-                    'body'       => $conversation->lastMessage->body,
-                    'type'       => $conversation->lastMessage->type,
-                    'metadata'   => $conversation->lastMessage->metadata,
-                    'sender_id'  => $conversation->lastMessage->sender_id,
+                    'is_idol' => $other->is_idol,
+                    'gender' => $other->gender,
+                ] : null,
+                'last_message' => $conversation->lastMessage ? [
+                    'body' => $conversation->lastMessage->body,
+                    'type' => $conversation->lastMessage->type,
+                    'metadata' => $conversation->lastMessage->metadata,
+                    'sender_id' => $conversation->lastMessage->sender_id,
                     'created_at' => $conversation->lastMessage->created_at?->toISOString(),
                 ] : null,
-                'unread'       => $hasUnread,
-                'updated_at'   => $conversation->updated_at?->toISOString(),
-                'block'        => $this->blockStatus($conversation, $user),
+                'unread' => $hasUnread,
+                'updated_at' => $conversation->updated_at?->toISOString(),
+                'block' => $blockData,
             ];
         })->values();
 
@@ -105,16 +135,16 @@ class ConversationController extends Controller
         $hasMore = $messages->isNotEmpty() &&
             $conversation->messages()->where('id', '<', $messages->first()->id)->exists();
 
-        $mapped = $messages->map(fn($m) => [
-            'id'              => $m->id,
-            'body'            => $m->body,
-            'type'            => $m->type ?? 'user',
-            'metadata'        => $m->metadata,
-            'sender_id'       => $m->sender_id,
-            'sender_name'     => $m->sender?->name,
-            'sender_avatar'   => $m->sender?->avatar_url,
-            'sender_frame'    => $m->sender?->activeFrame,
-            'created_at'      => $m->created_at->toISOString(),
+        $mapped = $messages->map(fn ($m) => [
+            'id' => $m->id,
+            'body' => $m->body,
+            'type' => $m->type ?? 'user',
+            'metadata' => $m->metadata,
+            'sender_id' => $m->sender_id,
+            'sender_name' => $m->sender?->name,
+            'sender_avatar' => $m->sender?->avatar_url,
+            'sender_frame' => $m->sender?->activeFrame,
+            'created_at' => $m->created_at->toISOString(),
             'conversation_id' => $m->conversation_id,
         ]);
 
@@ -147,26 +177,26 @@ class ConversationController extends Controller
             $o = $conversation->order;
             if ($o) {
                 $orderData = [
-                    'id'            => $o->id,
-                    'status'        => $o->status->value,
+                    'id' => $o->id,
+                    'status' => $o->status->value,
                     'cancel_reason' => $o->cancel_reason,
-                    'cancelled_by'      => $o->cancelled_by,
+                    'cancelled_by' => $o->cancelled_by,
                     'cancelled_by_name' => $o->cancelledBy?->name,
-                    'is_customer'   => $o->customer_id === $user->id,
-                    'paid_at'       => $o->paid_at?->toISOString(),
-                    'auto_complete_at' => $o->paid_at ? $o->paid_at->addSeconds((int)((float)PlatformSetting::get('order_auto_complete_delay', 72) * 3600))->toISOString() : null,
-                    'completed_at'  => $o->completed_at?->toISOString(),
-                    'completion_confirmed_by_idol'     => $o->completion_confirmed_by_idol,
+                    'is_customer' => $o->customer_id === $user->id,
+                    'paid_at' => $o->paid_at?->toISOString(),
+                    'auto_complete_at' => $o->paid_at ? $o->paid_at->addSeconds((int) ((float) PlatformSetting::get('order_auto_complete_delay', 72) * 3600))->toISOString() : null,
+                    'completed_at' => $o->completed_at?->toISOString(),
+                    'completion_confirmed_by_idol' => $o->completion_confirmed_by_idol,
                     'completion_confirmed_by_customer' => $o->completion_confirmed_by_customer,
-                    'customer'      => ['id' => $o->customer->id, 'name' => $o->customer->name, 'avatar_url' => $o->customer->avatar_url, 'active_frame' => $o->customer->activeFrame],
-                    'idol'          => ['id' => $o->idol->id, 'name' => $o->idol->name, 'avatar_url' => $o->idol->avatar_url, 'active_frame' => $o->idol->activeFrame, 'gender' => $o->idol->gender],
-                    'items'         => $o->items->map(fn($item) => [
-                        'id'       => $item->id,
+                    'customer' => ['id' => $o->customer->id, 'name' => $o->customer->name, 'avatar_url' => $o->customer->avatar_url, 'active_frame' => $o->customer->activeFrame],
+                    'idol' => ['id' => $o->idol->id, 'name' => $o->idol->name, 'avatar_url' => $o->idol->avatar_url, 'active_frame' => $o->idol->activeFrame, 'gender' => $o->idol->gender],
+                    'items' => $o->items->map(fn ($item) => [
+                        'id' => $item->id,
                         'quantity' => $item->quantity ?? 1,
-                        'service'  => $item->service ? [
-                            'id'        => $item->service->id,
-                            'name'      => $item->service->name,
-                            'price'     => $item->service->price,
+                        'service' => $item->service ? [
+                            'id' => $item->service->id,
+                            'name' => $item->service->name,
+                            'price' => $item->service->price,
                             'time_unit' => $item->service->timeUnit?->name,
                         ] : null,
                     ])->values()->all(),
@@ -181,21 +211,21 @@ class ConversationController extends Controller
             : false;
 
         return response()->json([
-            'messages'           => $mapped,
-            'other_user'         => $other ? [
-                'id'         => $other->id,
-                'name'       => $other->name,
+            'messages' => $mapped,
+            'other_user' => $other ? [
+                'id' => $other->id,
+                'name' => $other->name,
                 'avatar_url' => $other->avatar_url,
                 'active_frame' => $other->activeFrame,
-                'is_idol'    => $other->is_idol,
-                'gender'     => $other->gender,
-                ] : null,            'other_last_read_at' => $otherParticipant?->last_read_at?->toISOString(),
-            'has_more'           => $hasMore,
-            'block'              => $this->blockStatus($conversation, $user),
-            'order'              => $orderData,
-            'is_support'         => (bool) $conversation->is_support,
-            'closed_at'          => $conversation->closed_at?->toISOString(),
-            'has_review'         => $hasReview,
+                'is_idol' => $other->is_idol,
+                'gender' => $other->gender,
+            ] : null,            'other_last_read_at' => $otherParticipant?->last_read_at?->toISOString(),
+            'has_more' => $hasMore,
+            'block' => $this->blockStatus($conversation, $user),
+            'order' => $orderData,
+            'is_support' => (bool) $conversation->is_support,
+            'closed_at' => $conversation->closed_at?->toISOString(),
+            'has_review' => $hasReview,
         ]);
     }
 
@@ -206,20 +236,20 @@ class ConversationController extends Controller
         abort_if($user->is_idol, 422, 'target_is_idol');
 
         $conversation = Conversation::whereNull('order_id')
-            ->whereHas('participants', fn($q) => $q->where('user_id', $auth->id))
-            ->whereHas('participants', fn($q) => $q->where('user_id', $user->id))
+            ->whereHas('participants', fn ($q) => $q->where('user_id', $auth->id))
+            ->whereHas('participants', fn ($q) => $q->where('user_id', $user->id))
             ->first();
 
         $block = ChatBlock::active()->where(function ($q) use ($auth, $user) {
             $q->where(['blocker_id' => $auth->id, 'blocked_id' => $user->id])
-              ->orWhere(['blocker_id' => $user->id, 'blocked_id' => $auth->id]);
+                ->orWhere(['blocker_id' => $user->id, 'blocked_id' => $auth->id]);
         })->first();
 
         $blockData = $block ? [
-            'active'       => true,
+            'active' => true,
             'i_am_blocker' => $block->blocker_id === $auth->id,
-            'reason'       => $block->reason,
-            'blocked_until'=> $block->blocked_until?->toISOString(),
+            'reason' => $block->reason,
+            'blocked_until' => $block->blocked_until?->toISOString(),
         ] : null;
 
         return response()->json([
@@ -231,7 +261,7 @@ class ConversationController extends Controller
                 'is_idol' => $user->is_idol,
                 'gender' => $user->gender,
             ],
-            'block' => $blockData
+            'block' => $blockData,
         ]);
     }
 
@@ -299,16 +329,16 @@ class ConversationController extends Controller
         $type = $request->input('type', 'user');
 
         $request->validate([
-            'body'     => $type === 'image' ? 'nullable|string|max:5000' : 'required|string|max:5000',
-            'type'     => 'nullable|string|in:user,image',
+            'body' => $type === 'image' ? 'nullable|string|max:5000' : 'required|string|max:5000',
+            'type' => 'nullable|string|in:user,image',
             'metadata' => 'nullable|array',
         ]);
 
         $msg = $conversation->messages()->create([
             'sender_id' => $user->id,
-            'body'      => $request->body ?? '',
-            'type'      => $type,
-            'metadata'  => $request->metadata,
+            'body' => $request->body ?? '',
+            'type' => $type,
+            'metadata' => $request->metadata,
         ]);
 
         $conversation->touch();
@@ -336,15 +366,15 @@ class ConversationController extends Controller
             });
 
         return response()->json([
-            'id'             => $msg->id,
-            'body'           => $msg->body,
-            'type'           => $msg->type,
-            'metadata'       => $msg->metadata,
-            'sender_id'      => $msg->sender_id,
-            'sender_name'    => $msg->sender->name,
-            'sender_avatar'  => $msg->sender->avatar_url,
-            'created_at'     => $msg->created_at->toISOString(),
-            'conversation_id'=> $msg->conversation_id,
+            'id' => $msg->id,
+            'body' => $msg->body,
+            'type' => $msg->type,
+            'metadata' => $msg->metadata,
+            'sender_id' => $msg->sender_id,
+            'sender_name' => $msg->sender->name,
+            'sender_avatar' => $msg->sender->avatar_url,
+            'created_at' => $msg->created_at->toISOString(),
+            'conversation_id' => $msg->conversation_id,
         ]);
     }
 
@@ -364,7 +394,7 @@ class ConversationController extends Controller
         }
 
         $request->validate([
-            'services'   => ['required', 'array', 'min:1', 'max:2'],
+            'services' => ['required', 'array', 'min:1', 'max:2'],
             'services.*' => ['required', 'integer', 'exists:services,id'],
         ]);
 
@@ -378,14 +408,14 @@ class ConversationController extends Controller
 
         $msg = $conversation->messages()->create([
             'sender_id' => $user->id,
-            'body'      => '',
-            'type'      => 'service_offer',
-            'metadata'  => [
-                'services' => $services->map(fn($s) => [
-                    'id'            => $s->id,
-                    'name'          => $s->name,
-                    'price'         => $s->price,
-                    'time_unit'     => $s->timeUnit?->name,
+            'body' => '',
+            'type' => 'service_offer',
+            'metadata' => [
+                'services' => $services->map(fn ($s) => [
+                    'id' => $s->id,
+                    'name' => $s->name,
+                    'price' => $s->price,
+                    'time_unit' => $s->timeUnit?->name,
                     'category_name' => $s->category?->name,
                 ])->values()->all(),
             ],
@@ -398,7 +428,7 @@ class ConversationController extends Controller
         try {
             broadcast(new MessageSent($msg));
         } catch (\Throwable $e) {
-            \Log::warning('Broadcast failed: ' . $e->getMessage());
+            \Log::warning('Broadcast failed: '.$e->getMessage());
         }
 
         $conversation->participants()
@@ -409,7 +439,7 @@ class ConversationController extends Controller
                 try {
                     broadcast(new NewMessageReceived($participant->user_id, $conversation->id, $msg));
                 } catch (\Throwable $e) {
-                    \Log::warning('Broadcast NewMessageReceived failed: ' . $e->getMessage());
+                    \Log::warning('Broadcast NewMessageReceived failed: '.$e->getMessage());
                 }
 
                 $participant->user->notify(new NewMessageNotification($msg));
@@ -417,14 +447,14 @@ class ConversationController extends Controller
             });
 
         return response()->json([
-            'id'            => $msg->id,
-            'body'          => $msg->body,
-            'type'          => $msg->type,
-            'metadata'      => $msg->metadata,
-            'sender_id'     => $msg->sender_id,
-            'sender_name'   => $msg->sender->name,
+            'id' => $msg->id,
+            'body' => $msg->body,
+            'type' => $msg->type,
+            'metadata' => $msg->metadata,
+            'sender_id' => $msg->sender_id,
+            'sender_name' => $msg->sender->name,
             'sender_avatar' => $msg->sender->avatar_url,
-            'created_at'    => $msg->created_at->toISOString(),
+            'created_at' => $msg->created_at->toISOString(),
             'conversation_id' => $msg->conversation_id,
         ]);
     }
@@ -457,7 +487,7 @@ class ConversationController extends Controller
         );
 
         $request->validate([
-            'reason'   => 'required|string|max:255',
+            'reason' => 'required|string|max:255',
             'duration' => 'nullable|integer|min:1',
         ]);
 
@@ -502,20 +532,24 @@ class ConversationController extends Controller
         $participants = $conversation->participants;
         $otherId = $participants->firstWhere('user_id', '!=', $user->id)?->user_id;
 
-        if (!$otherId) return null;
+        if (! $otherId) {
+            return null;
+        }
 
         $block = ChatBlock::active()->where(function ($q) use ($user, $otherId) {
             $q->where(['blocker_id' => $user->id, 'blocked_id' => $otherId])
-              ->orWhere(['blocker_id' => $otherId, 'blocked_id' => $user->id]);
+                ->orWhere(['blocker_id' => $otherId, 'blocked_id' => $user->id]);
         })->first();
 
-        if (!$block) return null;
+        if (! $block) {
+            return null;
+        }
 
         return [
-            'active'       => true,
+            'active' => true,
             'i_am_blocker' => $block->blocker_id === $user->id,
-            'reason'       => $block->reason,
-            'blocked_until'=> $block->blocked_until?->toISOString(),
+            'reason' => $block->reason,
+            'blocked_until' => $block->blocked_until?->toISOString(),
         ];
     }
 }
