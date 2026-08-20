@@ -2,6 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\ContentPack;
+use App\Models\ContentPackPhoto;
+use App\Models\ContentPackPurchase;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -16,6 +19,7 @@ class TestUsersSeeder extends Seeder
     {
         $password = Hash::make('123123');
         $purchasesMade = 0;
+        $firstUser = null;
 
         for ($i = 1; $i <= 100; $i++) {
             $isIdol = $i % 2 === 0;
@@ -36,12 +40,16 @@ class TestUsersSeeder extends Seeder
                 ]);
             }
 
+            if ($i === 1) {
+                $firstUser = $user;
+            }
+
             if ($isIdol) {
                 $photoPath = "content-packs/{$user->id}-test/cover.jpg";
                 Storage::disk(config('filesystems.default'))->put($photoPath, $this->generateImageBuffer($i, 1));
 
                 // Generate a pack for this idol
-                $pack = \App\Models\ContentPack::firstOrCreate([
+                $pack = ContentPack::firstOrCreate([
                     'user_id' => $user->id,
                     'title' => "Test Pack by {$user->name}",
                 ], [
@@ -52,23 +60,26 @@ class TestUsersSeeder extends Seeder
                     'cover_path' => $photoPath,
                 ]);
 
-                \App\Models\ContentPackPhoto::firstOrCreate([
+                ContentPackPhoto::firstOrCreate([
                     'content_pack_id' => $pack->id,
                     'path' => $photoPath,
                     'sort_order' => 1,
                 ]);
 
                 if ($purchasesMade < 2) {
-                    // Give this pack to user 1 (the first test user) as a purchase, unviewed
-                    \App\Models\ContentPackPurchase::firstOrCreate([
-                        'content_pack_id' => $pack->id,
-                        'user_id' => 1,
-                    ], [
-                        'price_paid' => $pack->price,
-                        'purchased_at' => now(),
-                        'viewed_at' => null,
-                    ]);
-                    $purchasesMade++;
+                    $targetBuyer = $firstUser ?? User::where('email', 'u1@test.com')->first();
+                    if ($targetBuyer) {
+                        // Give this pack to user 1 (the first test user) as a purchase, unviewed
+                        ContentPackPurchase::firstOrCreate([
+                            'content_pack_id' => $pack->id,
+                            'user_id' => $targetBuyer->id,
+                        ], [
+                            'price_paid' => $pack->price,
+                            'purchased_at' => now(),
+                            'viewed_at' => null,
+                        ]);
+                        $purchasesMade++;
+                    }
                 }
             }
         }

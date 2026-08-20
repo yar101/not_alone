@@ -50,4 +50,4 @@ echo ""
 # Seeding is now handled completely in the container's entrypoint.sh -> DatabaseSeeder
 
 # Run Docker Compose
-docker compose up --build
+docker compose up --build --remove-orphans

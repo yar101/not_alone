@@ -67,7 +67,7 @@ const handleLearnMoreClick = () => {
                     class="learn-more-btn"
                     @click="handleLearnMoreClick"
                 >
-                    Узнать подробнее
+                    {{ __("welcome.learn_more") }}
                 </button>
             </div>
 

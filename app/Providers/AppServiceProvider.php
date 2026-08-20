@@ -26,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
         Model::preventSilentlyDiscardingAttributes(! $this->app->isProduction());
         Vite::prefetch(concurrency: 3);
         Carbon::setLocale('ru');
+        app()->setLocale('ru');
 
         \Illuminate\Auth\Notifications\ResetPassword::toMailUsing(function (object $notifiable, string $token) {
             return (new \Illuminate\Notifications\Messages\MailMessage)

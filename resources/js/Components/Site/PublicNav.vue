@@ -18,7 +18,7 @@ const tabs = computed(() => [
     },
     {
         key: "about",
-        label: "О нас",
+        label: __("nav.about"),
         icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L13.8 9.2L21 12L13.8 14.8L12 22L10.2 14.8L3 12L10.2 9.2L12 2Z"/></svg>`,
     },
     /* {

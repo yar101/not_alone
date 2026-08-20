@@ -16,6 +16,8 @@ const httpsConfig = devHost && fs.existsSync(`./${devHost}.pem`) ? {
 export default defineConfig({
     server: {
         host: '0.0.0.0',
+        port: 5173,
+        strictPort: true,
         cors: { origin: true },
         https: httpsConfig,
         ...(devHost ? {

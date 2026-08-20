@@ -10,6 +10,12 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d noalone"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 3s
     restart: unless-stopped
 
   redis:
@@ -17,6 +23,16 @@ services:
     container_name: no_alone_redis
     ports:
       - "6379:6379"
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 3s
     restart: unless-stopped
 
   mailpit:
@@ -40,7 +56,9 @@ services:
       APP_KEY: ${APP_KEY}
       APP_ENV: local
       APP_DEBUG: "true"
-      APP_URL: https://${DEV_HOST}:8443
+      APP_LOCALE: ru
+      APP_FALLBACK_LOCALE: ru
+      APP_URL: https://${DEV_HOST:-192.168.1.122}:8443
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
@@ -62,7 +80,7 @@ services:
       REVERB_PORT: 8080
       REVERB_SCHEME: http
       VITE_REVERB_APP_KEY: ${REVERB_APP_KEY:-notalonekey}
-      VITE_REVERB_HOST: ${DEV_HOST}
+      VITE_REVERB_HOST: ${DEV_HOST:-192.168.1.122}
       VITE_REVERB_PORT: 8443
       VITE_REVERB_SCHEME: https
       AWS_ACCESS_KEY_ID: sail
@@ -70,17 +88,25 @@ services:
       AWS_DEFAULT_REGION: us-east-1
       AWS_BUCKET: not-alone
       AWS_ENDPOINT: http://minio:9000
-      AWS_URL: https://${DEV_HOST}:8443/not-alone
+      AWS_URL: https://${DEV_HOST:-192.168.1.122}:8443/not-alone
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       FILESYSTEM_DISK: s3
     volumes:
       - .:/var/www/html
       - ./docker/nginx-dev.conf:/etc/nginx/nginx.conf:ro
-      - ./${DEV_HOST}.pem:/etc/nginx/certs/dev.pem:ro
-      - ./${DEV_HOST}-key.pem:/etc/nginx/certs/dev-key.pem:ro
+      - ./${DEV_HOST:-192.168.1.122}.pem:/etc/nginx/certs/dev.pem:ro
+      - ./${DEV_HOST:-192.168.1.122}-key.pem:/etc/nginx/certs/dev-key.pem:ro
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -k -f https://localhost:8443/up || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
     restart: unless-stopped
 
   worker:
@@ -91,7 +117,9 @@ services:
       APP_KEY: ${APP_KEY}
       APP_ENV: local
       APP_DEBUG: "true"
-      APP_URL: https://${DEV_HOST}:8443
+      APP_LOCALE: ru
+      APP_FALLBACK_LOCALE: ru
+      APP_URL: https://${DEV_HOST:-192.168.1.122}:8443
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
@@ -117,15 +145,18 @@ services:
       AWS_DEFAULT_REGION: us-east-1
       AWS_BUCKET: not-alone
       AWS_ENDPOINT: http://minio:9000
-      AWS_URL: https://${DEV_HOST}:8443/not-alone
+      AWS_URL: https://${DEV_HOST:-192.168.1.122}:8443/not-alone
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       FILESYSTEM_DISK: s3
     volumes:
       - .:/var/www/html
     depends_on:
-      - db
-      - redis
-      - app
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      app:
+        condition: service_healthy
     restart: unless-stopped
 
   scheduler:
@@ -136,7 +167,9 @@ services:
       APP_KEY: ${APP_KEY}
       APP_ENV: local
       APP_DEBUG: "true"
-      APP_URL: https://${DEV_HOST}:8443
+      APP_LOCALE: ru
+      APP_FALLBACK_LOCALE: ru
+      APP_URL: https://${DEV_HOST:-192.168.1.122}:8443
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
@@ -163,15 +196,18 @@ services:
       AWS_DEFAULT_REGION: us-east-1
       AWS_BUCKET: not-alone
       AWS_ENDPOINT: http://minio:9000
-      AWS_URL: https://${DEV_HOST}:8443/not-alone
+      AWS_URL: https://${DEV_HOST:-192.168.1.122}:8443/not-alone
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       FILESYSTEM_DISK: s3
     volumes:
       - .:/var/www/html
     depends_on:
-      - db
-      - redis
-      - app
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      app:
+        condition: service_healthy
     restart: unless-stopped
 
   reverb:
@@ -184,6 +220,8 @@ services:
       APP_KEY: ${APP_KEY}
       APP_ENV: local
       APP_DEBUG: "true"
+      APP_LOCALE: ru
+      APP_FALLBACK_LOCALE: ru
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
@@ -205,9 +243,12 @@ services:
     volumes:
       - .:/var/www/html
     depends_on:
-      - db
-      - redis
-      - app
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      app:
+        condition: service_healthy
     restart: unless-stopped
 
   vite:
@@ -217,8 +258,8 @@ services:
     ports:
       - "5173:5173"
     environment:
-      DEV_HOST: ${DEV_HOST}
-      VITE_REVERB_HOST: ${DEV_HOST}
+      DEV_HOST: ${DEV_HOST:-192.168.1.122}
+      VITE_REVERB_HOST: ${DEV_HOST:-192.168.1.122}
       VITE_REVERB_PORT: 8443
       VITE_REVERB_SCHEME: https
     volumes:
@@ -238,18 +279,28 @@ services:
     volumes:
       - minio_data:/data/minio
     command: minio server /data/minio --console-address ":8900"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 3s
     restart: unless-stopped
 
   minio-setup:
     image: minio/mc
     container_name: no_alone_minio_setup
     depends_on:
-      - minio
+      minio:
+        condition: service_healthy
     volumes:
       - ./public/cat_images:/cat_images:ro
     entrypoint: >
       /bin/sh -c "
-      /usr/bin/mc alias set myminio http://minio:9000 sail password;
+      until /usr/bin/mc alias set myminio http://minio:9000 sail password; do
+        echo 'Waiting for MinIO...';
+        sleep 1;
+      done;
       /usr/bin/mc mb myminio/not-alone || true;
       /usr/bin/mc anonymous set download myminio/not-alone;
       [ -d /cat_images ] && /usr/bin/mc cp -r /cat_images myminio/not-alone/ || true;
@@ -259,3 +310,4 @@ services:
 volumes:
   db_data:
   minio_data:
+
