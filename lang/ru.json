@@ -440,7 +440,7 @@
     "chat.btn.order_done": "ЗАКАЗ ЗАВЕРШЁН",
     "chat.btn.accept": "ПРИНЯТЬ",
     "chat.btn.cancel": "ОТМЕНИТЬ",
-    "chat.btn.offer": "✦ ПРЕДЛОЖИТЬ",
+    "chat.btn.offer": "ПРЕДЛОЖИТЬ",
     "chat.order.cancelled_label": "// ЗАКАЗ ОТМЕНЁН //",
     "chat.order.done_label": "// ЗАКАЗ ЗАВЕРШЁН //",
     "chat.order.accept_confirm": "Подтвердите принятие заказа. После принятия заказчик сможет его оплатить.",

@@ -632,11 +632,12 @@ const previewBase = computed(() =>
 }
 
 .modal-hint code {
-    font-family: 'Courier New', monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     font-size: 0.82rem;
     color: rgba(190,145,255,0.6);
     background: rgba(190,145,255,0.06);
     padding: 0.1rem 0.3rem;
+    border-radius: 4px;
 }
 
 /* ── Preview table ── */

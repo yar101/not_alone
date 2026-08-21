@@ -496,7 +496,7 @@ function formatDate(iso) {
 .pr-summary__epithet-count {
     font-size: 0.85rem;
     font-weight: 700;
-    font-family: 'Courier New', monospace;
+    font-variant-numeric: tabular-nums;
     color: var(--color-base-1);
     line-height: 1;
 }

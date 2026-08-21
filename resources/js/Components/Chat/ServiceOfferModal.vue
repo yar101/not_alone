@@ -493,8 +493,10 @@ watch(() => props.modelValue, (val) => {
 .sof-svc__name { flex: 1 1 auto; min-width: 0; font-size: 1rem; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sof-svc__price {
     flex-shrink: 0;
-    font-size: 0.9rem;
-    font-family: 'Courier New', monospace;
+    font-family: var(--font-receipt);
+    font-size: 0.88rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
     color: color-mix(in srgb, var(--color-base-2), transparent 25%);
 }
 
@@ -504,10 +506,9 @@ watch(() => props.modelValue, (val) => {
 }
 .sof-selected__label {
     display: block;
-    font-size: 0.7rem;
-    color: rgba(255,255,255,0.28);
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.35);
     margin-bottom: 0.5rem;
-    letter-spacing: 0.04em;
 }
 .sof-islands {
     display: flex;
@@ -525,8 +526,10 @@ watch(() => props.modelValue, (val) => {
 }
 .sof-island__name { font-size: 0.9rem; color: rgba(255,255,255,0.82); }
 .sof-island__price {
-    font-size: 0.85rem;
-    font-family: 'Courier New', monospace;
+    font-family: var(--font-receipt);
+    font-size: 0.82rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
     color: color-mix(in srgb, var(--color-base-2), transparent 30%);
 }
 .sof-island__remove {

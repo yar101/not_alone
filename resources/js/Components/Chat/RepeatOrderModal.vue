@@ -114,16 +114,16 @@ function formatPrice(n) {
 
 <style scoped>
 .rom {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-receipt);
     display: flex;
     flex-direction: column;
     gap: 0;
 }
 
 .rom__header {
-    font-size: 0.82rem;
+    font-family: var(--font-receipt);
+    font-size: 0.88rem;
     font-weight: 700;
-    letter-spacing: 0.14em;
     color: rgba(200, 185, 255, 0.7);
     margin-bottom: 0.9rem;
 }
@@ -179,6 +179,7 @@ function formatPrice(n) {
 }
 .rom__line-price {
     color: rgba(215, 205, 255, 0.85);
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
 .rom__line-unit {
@@ -197,7 +198,7 @@ function formatPrice(n) {
     font-size: 0.78rem;
     color: rgba(200, 100, 100, 0.55);
     border: 1px solid rgba(200, 100, 100, 0.2);
-    border-radius: 3px;
+    border-radius: 4px;
     padding: 0.1rem 0.3rem;
     white-space: nowrap;
     margin-left: auto;
@@ -211,14 +212,14 @@ function formatPrice(n) {
     padding: 0.2rem 0 0.5rem;
 }
 .rom__total-label {
-    font-size: 0.82rem;
+    font-size: 0.88rem;
     font-weight: 700;
-    letter-spacing: 0.1em;
     color: rgba(200, 185, 255, 0.5);
 }
 .rom__total-value {
     font-size: 1.15rem;
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
     color: rgba(230, 220, 255, 0.95);
 }
 
@@ -246,13 +247,12 @@ function formatPrice(n) {
 }
 .rom__btn {
     flex: 1;
-    padding: 1.1rem 0.8rem;
-    border-radius: 3px;
-    font-size: 0.88rem;
-    font-weight: 700;
-    font-family: 'Courier New', Courier, monospace;
-    letter-spacing: 0.06em;
-    line-height: 1;
+    padding: 0.75rem 0.8rem;
+    border-radius: 4px;
+    font-family: var(--font-receipt);
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.2;
     cursor: pointer;
     display: flex;
     align-items: center;

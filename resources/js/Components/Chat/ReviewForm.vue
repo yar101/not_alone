@@ -242,10 +242,9 @@ async function submit() {
     right: 0;
     text-align: center;
     pointer-events: none;
-    font-family: 'Courier New', monospace;
-    font-size: 0.82rem;
+    font-family: var(--font-receipt);
+    font-size: 0.88rem;
     font-weight: 700;
-    letter-spacing: 0.2em;
     color: rgba(255,160,185,0.8);
 }
 
@@ -398,9 +397,8 @@ async function submit() {
     border: 1.5px solid rgba(255,160,185,0.45);
     background: rgba(255,120,160,0.08);
     color: rgba(255,160,185,0.8);
-    font-size: 0.8rem;
-    font-weight: 700;
-    font-family: 'Courier New', monospace;
+    font-size: 0.82rem;
+    font-weight: 600;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -459,13 +457,12 @@ async function submit() {
     padding: 0.65rem 1rem;
     background: rgba(255,120,160,0.1);
     border: 1px solid rgba(255,120,160,0.3);
-    border-radius: 7px;
+    border-radius: 4px;
     color: rgba(255,190,210,0.95);
-    font-size: 0.92rem;
+    font-family: var(--font-receipt);
+    font-size: 0.88rem;
     font-weight: 600;
     cursor: pointer;
-    font-family: 'Courier New', monospace;
-    letter-spacing: 0.06em;
     transition: background 0.15s;
 }
 .rv-submit:hover:not(:disabled) { background: rgba(255,120,160,0.18); }

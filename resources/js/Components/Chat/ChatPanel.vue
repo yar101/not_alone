@@ -5161,34 +5161,31 @@ function formatDate(iso) {
     gap: 0.45rem;
     background: rgba(180, 20, 20, 0.1);
     border: 2px dashed rgba(220, 60, 60, 0.5);
-    border-radius: 3px;
+    border-radius: 4px;
     padding: 1.5rem 2rem;
     max-width: 320px;
-    font-family: "Courier New", Courier, monospace;
+    font-family: var(--font-receipt);
     text-align: center;
 }
 
 .chat-blocked-header {
     font-size: 0.75rem;
-    color: rgba(255, 80, 80, 0.35);
+    color: rgba(255, 80, 80, 0.45);
     margin: 0;
-    letter-spacing: 0.02em;
     user-select: none;
 }
 
 .chat-blocked-title {
-    font-size: 1rem;
+    font-size: 1.05rem;
     font-weight: 700;
     color: rgba(255, 90, 90, 0.95);
     margin: 0;
-    letter-spacing: 0.1em;
 }
 
 .chat-blocked-reason {
-    font-size: 0.9rem;
-    color: rgba(255, 200, 200, 0.75);
+    font-size: 0.88rem;
+    color: rgba(255, 200, 200, 0.8);
     margin: 0.2rem 0;
-    letter-spacing: 0.03em;
 }
 
 .chat-blocked-timer {
@@ -5200,18 +5197,16 @@ function formatDate(iso) {
 }
 
 .chat-blocked-timer__value {
-    font-size: 1.4rem;
+    font-size: 1.35rem;
     font-weight: 700;
     color: rgba(255, 90, 90, 0.95);
     font-variant-numeric: tabular-nums;
-    letter-spacing: 0.06em;
     line-height: 1.2;
 }
 
 .chat-blocked-timer__label {
     font-size: 0.7rem;
-    color: rgba(255, 90, 90, 0.5);
-    letter-spacing: 0.15em;
+    color: rgba(255, 90, 90, 0.55);
     text-transform: uppercase;
 }
 
@@ -5225,7 +5220,7 @@ function formatDate(iso) {
     background: rgba(200, 30, 30, 0.12);
     border-top: 2px dashed rgba(220, 60, 60, 0.4);
     border-bottom: 2px dashed rgba(220, 60, 60, 0.4);
-    font-family: "Courier New", Courier, monospace;
+    font-family: var(--font-receipt);
     flex-shrink: 0;
 }
 
@@ -5236,29 +5231,26 @@ function formatDate(iso) {
 }
 
 .chat-block-banner__label {
-    font-size: 0.95rem;
+    font-size: 0.92rem;
     font-weight: 700;
-    letter-spacing: 0.08em;
     color: rgba(255, 100, 100, 0.9);
 }
 
 .chat-block-banner__timer {
     font-size: 0.78rem;
-    letter-spacing: 0.05em;
-    color: rgba(255, 100, 100, 0.55);
+    color: rgba(255, 100, 100, 0.6);
 }
 
 .chat-block-unblock-btn {
     background: transparent;
     border: 1px solid rgba(220, 60, 60, 0.45);
     color: rgba(255, 100, 100, 0.85);
-    font-size: 0.88rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    padding: 0.3rem 0.9rem;
-    border-radius: 3px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: var(--font-receipt);
+    padding: 0.35rem 0.9rem;
+    border-radius: 4px;
     cursor: pointer;
-    font-family: "Courier New", Courier, monospace;
     transition:
         border-color 0.15s,
         color 0.15s,
@@ -5457,7 +5449,7 @@ function formatDate(iso) {
 
 /* ── Cancel order modal ─────────────────────────────────── */
 .cm-wrap {
-    font-family: "Courier New", Courier, monospace;
+    font-family: var(--font-receipt);
     color: rgba(210, 240, 255, 0.78);
     display: flex;
     flex-direction: column;
@@ -5477,9 +5469,9 @@ function formatDate(iso) {
 }
 
 .cm-title {
-    font-size: 1rem;
+    font-family: var(--font-receipt);
+    font-size: 1.05rem;
     font-weight: 700;
-    letter-spacing: 0.22em;
     color: rgba(255, 120, 120, 0.9);
     text-align: center;
     margin: 0.3rem 0;
@@ -5520,18 +5512,20 @@ function formatDate(iso) {
 }
 
 .confirm-add__price {
-    font-size: 0.95rem;
+    font-family: var(--font-receipt);
+    font-size: 0.92rem;
     color: rgba(100, 200, 255, 0.75);
     text-align: center;
-    font-family: "Courier New", monospace;
+    font-variant-numeric: tabular-nums;
     margin-bottom: 0.75rem;
 }
 
 .cm-section-label {
-    font-size: 0.68rem;
-    letter-spacing: 0.12em;
-    color: rgba(210, 240, 255, 0.3);
+    font-family: var(--font-receipt);
+    font-size: 0.72rem;
+    color: rgba(210, 240, 255, 0.45);
     margin: 0.9rem 0 0.45rem;
+    text-transform: uppercase;
 }
 
 .cm-tags {
@@ -5542,14 +5536,13 @@ function formatDate(iso) {
 }
 
 .cm-tag {
-    padding: 0.32rem 0.7rem;
-    border-radius: 3px;
+    font-family: var(--font-receipt);
+    padding: 0.35rem 0.75rem;
+    border-radius: 4px;
     border: 1px dashed rgba(210, 240, 255, 0.2);
     background: transparent;
-    color: rgba(210, 240, 255, 0.5);
-    font-family: "Courier New", Courier, monospace;
-    font-size: 0.75rem;
-    letter-spacing: 0.04em;
+    color: rgba(210, 240, 255, 0.65);
+    font-size: 0.8rem;
     cursor: pointer;
     transition:
         border-color 0.15s,
@@ -5571,14 +5564,14 @@ function formatDate(iso) {
 }
 
 .cm-textarea {
+    font-family: var(--font-receipt);
     width: 100%;
     box-sizing: border-box;
     background: rgba(100, 210, 255, 0.04);
     border: 1px dashed rgba(100, 210, 255, 0.22);
-    border-radius: 3px;
+    border-radius: 4px;
     color: rgba(210, 240, 255, 0.82);
-    font-family: "Courier New", Courier, monospace;
-    font-size: 0.82rem;
+    font-size: 0.85rem;
     padding: 0.65rem 0.85rem;
     resize: none;
     outline: none;
@@ -5638,13 +5631,12 @@ function formatDate(iso) {
 .cm-btn {
     flex: 1;
     padding: 0.65rem 1rem;
-    border-radius: 3px;
-    font-family: "Courier New", Courier, monospace;
-    font-size: 0.78rem;
-    font-weight: 700;
-    letter-spacing: 0.15em;
+    border-radius: 4px;
+    font-family: var(--font-receipt);
+    font-size: 0.85rem;
+    font-weight: 600;
     cursor: pointer;
-    line-height: 1;
+    line-height: 1.2;
     transition:
         background 0.15s,
         border-color 0.15s;
@@ -6583,11 +6575,10 @@ function formatDate(iso) {
 
 .chat-repeat-btn {
     padding: 0.75rem 2rem;
-    border-radius: 3px;
+    border-radius: 4px;
+    font-family: var(--font-receipt);
     font-size: 0.88rem;
-    font-weight: 700;
-    font-family: "Courier New", Courier, monospace;
-    letter-spacing: 0.1em;
+    font-weight: 600;
     cursor: pointer;
     position: relative;
     overflow: hidden;
@@ -6619,7 +6610,7 @@ function formatDate(iso) {
     content: "";
     position: absolute;
     inset: 2px;
-    border-radius: 2px;
+    border-radius: 4px;
     border: 1px dashed rgba(100, 210, 255, 0.18);
     opacity: 0;
     transition: opacity 0.15s;
@@ -6650,16 +6641,15 @@ function formatDate(iso) {
 }
 
 .chat-order-timer-bar__label {
-    font-size: 0.8rem;
-    letter-spacing: 0.02em;
+    font-size: 0.82rem;
 }
 
 .chat-order-timer-bar__value {
+    font-family: var(--font-receipt);
     font-size: 1.05rem;
     font-weight: 700;
-    font-family: "Courier New", Courier, monospace;
-    color: rgba(255, 255, 255, 0.82);
-    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.88);
+    font-variant-numeric: tabular-nums;
     min-width: 7ch;
     text-align: left;
 }
@@ -6687,20 +6677,18 @@ function formatDate(iso) {
     border-bottom: 1px dashed rgba(255, 100, 100, 0.25);
     margin: 0 0 0.4rem;
     flex-shrink: 0;
-    font-family: "Courier New", Courier, monospace;
+    font-family: var(--font-receipt);
 }
 
 .chat-order-cancelled-bar__label {
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     font-weight: 700;
     color: rgba(255, 120, 120, 0.8);
-    letter-spacing: 0.12em;
 }
 
 .chat-order-cancelled-bar__who {
     font-size: 0.75rem;
     color: rgba(255, 255, 255, 0.45);
-    letter-spacing: 0.04em;
 }
 
 .chat-order-cancelled-bar__reason {
@@ -6719,21 +6707,20 @@ function formatDate(iso) {
     border-bottom: 1px dashed rgba(80, 240, 160, 0.25);
     margin: 0 0 0.4rem;
     flex-shrink: 0;
-    font-family: "Courier New", Courier, monospace;
+    font-family: var(--font-receipt);
 }
 
 .chat-order-completed-bar__label {
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     font-weight: 700;
     color: rgba(80, 240, 160, 0.75);
-    letter-spacing: 0.12em;
 }
 
 .chat-order-completed-bar__time {
     margin-left: auto;
     font-size: 0.78rem;
     color: rgba(80, 240, 160, 0.7);
-    letter-spacing: 0.06em;
+    font-variant-numeric: tabular-nums;
 }
 
 /* ── Disputed bar ───────────────────────────────────────── */
@@ -6746,14 +6733,13 @@ function formatDate(iso) {
     border-bottom: 1px dashed rgba(255, 100, 100, 0.25);
     margin: 0 0 0.4rem;
     flex-shrink: 0;
-    font-family: "Courier New", Courier, monospace;
+    font-family: var(--font-receipt);
 }
 
 .chat-order-disputed-bar__label {
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     font-weight: 700;
     color: rgba(255, 120, 120, 0.8);
-    letter-spacing: 0.12em;
 }
 
 /* ── Service offer bubble ───────────────────────────────── */
@@ -6934,7 +6920,7 @@ function formatDate(iso) {
 
 /* base card */
 .sc-card {
-    font-family: "Courier New", Courier, monospace;
+    font-family: var(--font-receipt);
     background: rgba(100, 210, 255, 0.04);
     border: 1px dashed rgba(100, 210, 255, 0.2);
     border-radius: 4px;
@@ -7001,9 +6987,8 @@ function formatDate(iso) {
 
 /* title */
 .sc-title {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     font-weight: 700;
-    letter-spacing: 0.18em;
     color: rgba(100, 210, 255, 0.85);
     margin: 0.2rem 0;
     text-align: center;
@@ -7033,7 +7018,6 @@ function formatDate(iso) {
 .sc-who {
     font-size: 0.78rem;
     color: rgba(210, 240, 255, 0.45);
-    letter-spacing: 0.06em;
     text-align: center;
     margin: 0.1rem 0;
 }
@@ -7048,13 +7032,11 @@ function formatDate(iso) {
     color: rgba(255, 255, 255, 0.3);
     font-style: italic;
     margin: 0.15rem 0 0;
-    letter-spacing: 0.02em;
 }
 
 .sc-date {
     font-size: 0.82rem;
     color: rgba(255, 255, 255, 0.35);
-    letter-spacing: 0.1em;
     text-align: center;
     margin: 0.1rem 0 0;
 }
@@ -7157,9 +7139,8 @@ function formatDate(iso) {
 }
 
 .sc-total__label {
-    font-size: 0.72rem;
-    letter-spacing: 0.2em;
-    color: rgba(210, 240, 255, 0.38);
+    font-size: 0.78rem;
+    color: rgba(210, 240, 255, 0.45);
 }
 
 .sc-total__value {
@@ -7200,27 +7181,25 @@ function formatDate(iso) {
 }
 
 .chat-event-label {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.25);
-    letter-spacing: 0.06em;
-    font-family: "Courier New", monospace;
+    font-family: var(--font-receipt);
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.4);
     text-align: center;
     padding: 0.2rem 0;
 }
 
 .chat-event-label--review {
-    color: rgba(255, 140, 175, 0.6);
+    color: rgba(255, 140, 175, 0.75);
 }
 
 .chat-closed-banner {
     padding: 0.5rem 1rem;
     background: rgba(255, 150, 220, 0.12);
     border-top: 1px solid rgba(255, 178, 239, 0.2);
-    font-size: 0.78rem;
-    color: rgba(255, 200, 240, 0.65);
-    letter-spacing: 0.04em;
+    font-family: var(--font-receipt);
+    font-size: 0.8rem;
+    color: rgba(255, 200, 240, 0.75);
     text-align: center;
-    font-family: "Courier New", monospace;
 }
 
 /* ── Attach button ────────────────────────────────────── */

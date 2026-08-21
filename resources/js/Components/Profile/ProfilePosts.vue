@@ -515,7 +515,7 @@ function deletePost() {
 
 /* Delete confirmation */
 .confirm-delete {
-    font-family: "Courier New", Courier, monospace;
+    font-family: var(--font-receipt);
     display: flex;
     flex-direction: column;
     gap: 0;
@@ -534,9 +534,9 @@ function deletePost() {
 }
 
 .confirm-delete__title {
-    font-size: 1rem;
+    font-family: var(--font-receipt);
+    font-size: 1.05rem;
     font-weight: 700;
-    letter-spacing: 0.2em;
     color: rgba(255, 120, 120, 0.9);
     text-align: center;
     margin: 0.3rem 0;
@@ -577,14 +577,14 @@ function deletePost() {
 
 .confirm-delete__cancel {
     flex: 1;
-    padding: 0.5rem 1rem;
+    padding: 0.6rem 1rem;
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-    color: rgba(210, 240, 255, 0.45);
-    font-size: 0.78rem;
-    font-family: "Courier New", Courier, monospace;
-    letter-spacing: 0.08em;
+    border-radius: 4px;
+    color: rgba(210, 240, 255, 0.65);
+    font-family: var(--font-receipt);
+    font-size: 0.85rem;
+    font-weight: 600;
     cursor: pointer;
     transition:
         border-color 0.15s,
@@ -592,19 +592,19 @@ function deletePost() {
 }
 .confirm-delete__cancel:hover {
     border-color: rgba(255, 255, 255, 0.22);
-    color: rgba(210, 240, 255, 0.8);
+    color: rgba(210, 240, 255, 0.9);
 }
 
 .confirm-delete__confirm {
     flex: 1;
-    padding: 0.5rem 1rem;
+    padding: 0.6rem 1rem;
     background: rgba(180, 30, 60, 0.2);
     border: 1px solid rgba(210, 50, 80, 0.45);
-    border-radius: 3px;
+    border-radius: 4px;
     color: rgba(255, 120, 130, 0.9);
-    font-size: 0.78rem;
-    font-family: "Courier New", Courier, monospace;
-    letter-spacing: 0.08em;
+    font-family: var(--font-receipt);
+    font-size: 0.85rem;
+    font-weight: 600;
     cursor: pointer;
     transition:
         background 0.15s,

@@ -102,17 +102,16 @@ const contacts = [
 }
 
 .minimal-link__value {
-    font-family: "Courier New", Courier, monospace;
     font-size: 1.25rem;
+    font-weight: 500;
     color: rgba(255, 255, 255, 0.85);
     line-height: 1.2;
 }
 
 .minimal-link__label {
-    font-size: 0.65rem;
-    color: rgba(255, 255, 255, 0.25);
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.4);
     text-transform: uppercase;
-    letter-spacing: 0.2em;
     margin-top: 0.15rem;
 }
 

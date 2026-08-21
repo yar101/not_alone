@@ -994,7 +994,7 @@ onUnmounted(() => {
 
 /* ── Cancel modal (cm-* скопировано из ChatPanel, шрифты увеличены) ── */
 .cm-wrap {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-receipt);
     color: rgba(210,240,255,0.78);
     display: flex;
     flex-direction: column;
@@ -1009,18 +1009,19 @@ onUnmounted(() => {
 }
 .cm-rule--red { border-color: rgba(220,80,80,0.45); }
 .cm-title {
-    font-size: 1rem;
+    font-family: var(--font-receipt);
+    font-size: 1.05rem;
     font-weight: 700;
-    letter-spacing: 0.22em;
     color: rgba(255,120,120,0.9);
     text-align: center;
     margin: 0.3rem 0;
 }
 .cm-section-label {
-    font-size: 0.82rem;
-    letter-spacing: 0.12em;
-    color: rgba(210,240,255,0.3);
+    font-family: var(--font-receipt);
+    font-size: 0.78rem;
+    color: rgba(210,240,255,0.45);
     margin: 0.9rem 0 0.45rem;
+    text-transform: uppercase;
 }
 .cm-tags {
     display: flex;
@@ -1029,28 +1030,27 @@ onUnmounted(() => {
     margin-bottom: 0.25rem;
 }
 .cm-tag {
+    font-family: var(--font-receipt);
     padding: 0.38rem 0.8rem;
-    border-radius: 3px;
+    border-radius: 4px;
     border: 1px dashed rgba(210,240,255,0.2);
     background: transparent;
-    color: rgba(210,240,255,0.5);
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 0.9rem;
-    letter-spacing: 0.04em;
+    color: rgba(210,240,255,0.65);
+    font-size: 0.84rem;
     cursor: pointer;
     transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 .cm-tag:hover { border-color: rgba(210,240,255,0.45); color: rgba(210,240,255,0.85); background: rgba(100,210,255,0.05); }
 .cm-tag--selected { border-color: rgba(100,210,255,0.55); color: rgba(100,210,255,0.95); background: rgba(100,210,255,0.08); border-style: solid; }
 .cm-textarea {
+    font-family: var(--font-receipt);
     width: 100%;
     box-sizing: border-box;
     background: rgba(100,210,255,0.04);
     border: 1px dashed rgba(100,210,255,0.22);
-    border-radius: 3px;
+    border-radius: 4px;
     color: rgba(210,240,255,0.82);
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 0.95rem;
+    font-size: 0.88rem;
     padding: 0.65rem 0.85rem;
     resize: none;
     outline: none;
@@ -1084,13 +1084,12 @@ onUnmounted(() => {
 .cm-btn {
     flex: 1;
     padding: 0.65rem 1rem;
-    border-radius: 3px;
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 0.92rem;
-    font-weight: 700;
-    letter-spacing: 0.15em;
+    border-radius: 4px;
+    font-family: var(--font-receipt);
+    font-size: 0.85rem;
+    font-weight: 600;
     cursor: pointer;
-    line-height: 1;
+    line-height: 1.2;
     transition: background 0.15s, border-color 0.15s;
 }
 .cm-btn--back { background: transparent; border: 1px dashed rgba(210,240,255,0.18); color: rgba(210,240,255,0.4); }

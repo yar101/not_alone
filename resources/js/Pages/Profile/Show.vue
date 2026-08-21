@@ -1332,11 +1332,9 @@ body.driver-active {
 }
 
 .profile-banned-card__label {
-    font-size: 0.75rem;
-    font-family: "Courier New", monospace;
+    font-size: 0.78rem;
     font-weight: 700;
-    letter-spacing: 0.14em;
-    color: rgba(200, 60, 60, 0.7);
+    color: rgba(200, 60, 60, 0.75);
     text-transform: uppercase;
 }
 

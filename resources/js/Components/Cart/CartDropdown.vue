@@ -317,7 +317,7 @@ async function purchaseContent() {
     box-shadow: -12px 0 60px rgba(0, 0, 0, 0.75);
     display: flex;
     flex-direction: column;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-receipt);
     color: rgba(210, 240, 255, 0.78);
     overflow: hidden;
 }
@@ -433,15 +433,17 @@ async function purchaseContent() {
 }
 
 .rc-store-name {
-    font-size: 1.45rem;
+    font-family: var(--font-receipt);
+    font-size: 1.25rem;
     font-weight: 700;
-    letter-spacing: 0.3em;
+    letter-spacing: 0.04em;
     color: rgba(210, 240, 255, 0.95);
+    text-transform: uppercase;
 }
 
 .rc-store-sub {
-    font-size: 0.9rem;
-    letter-spacing: 0.08em;
+    font-family: var(--font-receipt);
+    font-size: 0.82rem;
     color: rgba(100, 200, 255, 0.7);
 }
 
@@ -707,15 +709,13 @@ async function purchaseContent() {
 }
 
 .rc-total__label {
-    font-size: 0.75rem;
-    letter-spacing: 0.1em;
+    font-size: 0.82rem;
     color: rgba(210, 240, 255, 0.45);
 }
 
 .rc-total__sum {
     font-size: 1.25rem;
     font-weight: 700;
-    letter-spacing: 0.04em;
     color: rgba(100, 210, 255, 1);
     font-variant-numeric: tabular-nums;
 }
@@ -733,20 +733,19 @@ async function purchaseContent() {
     font-size: 0.82rem;
     color: rgba(255, 110, 110, 0.85);
     margin: 0;
-    letter-spacing: 0.04em;
 }
 
 .rc-submit {
     width: 100%;
     padding: 0.8rem;
     border: 1px solid rgba(100, 210, 255, 0.35);
-    border-radius: 3px;
+    border-radius: 4px;
     background: rgba(100, 210, 255, 0.07);
     color: rgba(100, 210, 255, 0.95);
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-receipt);
     font-size: 0.9rem;
     font-weight: 700;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.04em;
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
 }

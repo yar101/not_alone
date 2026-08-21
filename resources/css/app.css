@@ -7,6 +7,7 @@
 :root {
     --color-base-1: #ffb2ef;
     --color-base-2: #64d2ff;
+    --font-receipt: "JetBrains Mono", "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 html {

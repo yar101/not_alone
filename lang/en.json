@@ -440,7 +440,7 @@
     "chat.btn.order_done": "ORDER FINISHED",
     "chat.btn.accept": "ACCEPT",
     "chat.btn.cancel": "CANCEL",
-    "chat.btn.offer": "✦ OFFER",
+    "chat.btn.offer": "OFFER",
     "chat.order.cancelled_label": "// ORDER CANCELLED //",
     "chat.order.done_label": "// ORDER FINISHED //",
     "chat.order.accept_confirm": "Please confirm that you accept this order. The customer will then be able to pay.",
