@@ -229,7 +229,9 @@ class ConversationController extends Controller
                 'active_frame' => $other->activeFrame,
                 'is_idol' => $other->is_idol,
                 'gender' => $other->gender,
-            ] : null,            'other_last_read_at' => $otherParticipant?->last_read_at?->toISOString(),
+            ] : null,
+            'other_last_read_at' => $otherParticipant?->last_read_at?->toISOString(),
+            'other_disallows_idol_messages' => (bool) ($other && $other->disallow_idol_messages && $user->is_idol && $conversation->order_id === null),
             'has_more' => $hasMore,
             'block' => $this->blockStatus($conversation, $user),
             'order' => $orderData,
@@ -271,6 +273,7 @@ class ConversationController extends Controller
                 'is_idol' => $user->is_idol,
                 'gender' => $user->gender,
             ],
+            'disallow_idol_messages' => (bool) $user->disallow_idol_messages,
             'block' => $blockData,
         ]);
     }
@@ -284,6 +287,7 @@ class ConversationController extends Controller
         $target = User::findOrFail($request->target_user_id);
         abort_if($target->isActiveBanned(), 422, 'user_banned');
         abort_if($target->is_idol, 422, 'target_is_idol');
+        abort_if($target->disallow_idol_messages, 403, 'target_disallows_idol_messages');
         $conversation = Conversation::findOrCreateBetween($request->user(), $target);
 
         return response()->json(['conversation_id' => $conversation->id]);
@@ -334,6 +338,10 @@ class ConversationController extends Controller
 
             if ($isBlocked) {
                 abort(403, 'blocked');
+            }
+
+            if ($conversation->order_id === null && $user->is_idol && $otherUser->disallow_idol_messages) {
+                abort(403, 'target_disallows_idol_messages');
             }
         }
 
@@ -389,8 +397,10 @@ class ConversationController extends Controller
     {
         $user = $request->user();
 
+        $conversation->loadMissing(['participants.user', 'order']);
+
         abort_unless(
-            $conversation->participants()->where('user_id', $user->id)->exists(),
+            $conversation->participants->contains('user_id', $user->id),
             403
         );
         abort_unless($user->is_idol, 403);
@@ -398,6 +408,9 @@ class ConversationController extends Controller
         if ($conversation->order_id) {
             $order = $conversation->order;
             abort_unless($order && $order->status === OrderStatus::Pending, 422, 'Предлагать услуги можно только для заказов со статусом «Создан»');
+        } else {
+            $targetUser = $conversation->participants->firstWhere('user_id', '!=', $user->id)?->user;
+            abort_if($targetUser?->disallow_idol_messages, 403, 'target_disallows_idol_messages');
         }
 
         $request->validate([
@@ -464,6 +477,11 @@ class ConversationController extends Controller
             $conversation->participants()->where('user_id', $user->id)->exists(),
             403
         );
+
+        $otherUser = $conversation->participants->firstWhere('user_id', '!=', $user->id)?->user;
+        if ($conversation->order_id === null && $user->is_idol && $otherUser?->disallow_idol_messages) {
+            abort(403, 'target_disallows_idol_messages');
+        }
 
         $request->validate([
             'file' => ['required', 'file', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],

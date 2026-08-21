@@ -17,7 +17,7 @@ const tUnit = (svc)  => {
 
 const props = defineProps({
     modelValue:     { type: Boolean, default: false },
-    conversationId: { type: Number, required: true },
+    conversationId: { type: [Number, String], default: null },
 });
 const emit = defineEmits(['update:modelValue', 'sent']);
 
@@ -87,7 +87,7 @@ async function loadCategories() {
 }
 
 async function submit() {
-    if (!selectedServices.value.length || sending.value) return;
+    if (!selectedServices.value.length || sending.value || !props.conversationId || props.conversationId === 'draft') return;
     sending.value = true;
     try {
         const res = await axios.post(route('conversations.offer-services', props.conversationId), {
@@ -95,6 +95,8 @@ async function submit() {
         });
         emit('sent', res.data);
         close();
+    } catch (e) {
+        console.error('Failed to send service offer', e);
     } finally {
         sending.value = false;
     }

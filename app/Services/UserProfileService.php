@@ -32,7 +32,7 @@ class UserProfileService
             ->where('category_id', $category->id)
             ->select('user_id')
             ->groupBy('user_id')
-            ->orderByRaw('md5(concat(user_id, ?))', [$seed])
+            ->orderByRaw('md5(concat(user_id, cast(? as text)))', [(string) $seed])
             ->with(['user:id,name,avatar_path,active_frame_id,rating', 'user.activeFrame'])
             ->paginate($perPage, ['*'], 'page', $page);
 

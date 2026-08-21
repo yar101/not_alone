@@ -138,6 +138,15 @@ class HandleInertiaRequests extends Middleware
     {
         $locale = app()->getLocale();
 
+        if (app()->isLocal()) {
+            $path = lang_path($locale.'.json');
+            if (File::exists($path)) {
+                return json_decode(File::get($path), true) ?? [];
+            }
+
+            return [];
+        }
+
         return cache()->rememberForever("locale_translations_{$locale}", function () use ($locale) {
             $path = lang_path($locale.'.json');
             if (File::exists($path)) {

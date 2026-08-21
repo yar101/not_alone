@@ -2,7 +2,9 @@ import '../css/app.css';
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/build/sw.js', { scope: '/' });
+        navigator.serviceWorker.register('/build/sw.js', { scope: '/' }).catch((err) => {
+            console.warn('ServiceWorker registration skipped or failed:', err.message || err);
+        });
     });
 }
 import 'element-plus/theme-chalk/dark/css-vars.css';

@@ -94,6 +94,7 @@ Route::middleware(['auth', 'not_banned'])->group(function () {
         // Account settings
         Route::get('/settings', [ProfileController::class, 'edit'])->name('settings.edit');
         Route::patch('/settings', [ProfileController::class, 'update'])->name('settings.update');
+        Route::patch('/profile/settings/disallow-idol-messages', [UserProfileController::class, 'toggleDisallowIdolMessages'])->name('profile.settings.disallow-idol-messages');
         Route::delete('/settings', [ProfileController::class, 'destroy'])->name('settings.destroy');
         Route::get('/profile/customization', [CustomizationController::class, 'index'])->name('profile.customization');
 

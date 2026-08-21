@@ -50,6 +50,45 @@ const uploading = ref(false);
 const fileInput = ref(null);
 const messagesEnd = ref(null);
 const messagesContainer = ref(null);
+const inputWrapRef = ref(null);
+const inputWrapHeight = ref(80);
+let inputResizeObserver = null;
+
+function isAtBottom(threshold = 60) {
+    if (!messagesContainer.value) return false;
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainer.value;
+    return scrollHeight - scrollTop - clientHeight <= threshold;
+}
+
+function observeInputWrap(el) {
+    if (!el || typeof ResizeObserver === "undefined") return;
+    if (!inputResizeObserver) {
+        inputResizeObserver = new ResizeObserver((entries) => {
+            const wasBottom = isAtBottom();
+            for (const entry of entries) {
+                const height =
+                    entry.borderBoxSize?.[0]?.blockSize ??
+                    entry.target.getBoundingClientRect().height;
+                if (height > 0) {
+                    inputWrapHeight.value = Math.round(height);
+                }
+            }
+            if (wasBottom) {
+                scrollToBottom(true);
+            }
+        });
+    }
+    inputResizeObserver.observe(el);
+}
+
+watch(inputWrapRef, (newEl, oldEl) => {
+    if (oldEl && inputResizeObserver) {
+        inputResizeObserver.unobserve(oldEl);
+    }
+    if (newEl) {
+        observeInputWrap(newEl);
+    }
+});
 
 // New state
 const otherLastReadAt = ref(null);
@@ -93,6 +132,33 @@ const orderCounts = ref({
 });
 const convUnreadOnly = ref(false);
 const orderUnreadOnly = ref(false);
+const togglingDisallow = ref(false);
+
+const otherDisallowsIdolMessages = computed(() => {
+    if (!authUser.value?.is_idol) return false;
+    if (activeConversation.value?.order_id) return false;
+    if (activeConversation.value?.other_disallows_idol_messages) return true;
+    if (activeConversation.value?.is_draft && activeConversation.value?.other_user?.disallow_idol_messages) return true;
+    return false;
+});
+
+async function toggleDisallowIdolMessages() {
+    if (!authUser.value || authUser.value.is_idol || togglingDisallow.value) return;
+    togglingDisallow.value = true;
+    const previous = !!authUser.value.disallow_idol_messages;
+    authUser.value.disallow_idol_messages = !previous;
+    try {
+        const res = await axios.patch(route("profile.settings.disallow-idol-messages"), {
+            disallow: !previous,
+        });
+        authUser.value.disallow_idol_messages = res.data.disallow_idol_messages;
+    } catch (e) {
+        authUser.value.disallow_idol_messages = previous;
+        console.error("Failed to toggle disallow idol messages", e);
+    } finally {
+        togglingDisallow.value = false;
+    }
+}
 
 const isMobile = ref(false);
 // Separate mobile nav state from data state to prevent flash
@@ -427,6 +493,7 @@ async function openConversation(conv) {
             ...(res.data.other_user ? { other_user: res.data.other_user } : {}),
             is_support: res.data.is_support ?? conv.is_support ?? false,
             closed_at: res.data.closed_at ?? null,
+            other_disallows_idol_messages: res.data.other_disallows_idol_messages ?? false,
         };
         const local = conversations.value.find((c) => c.id === conv.id);
         if (local) local.unread = false;
@@ -447,7 +514,10 @@ async function openConversation(conv) {
 
     if (!conv.is_draft) subscribeEcho(conv.id);
     await nextTick();
-    messagesEnd.value?.scrollIntoView({ behavior: "instant" });
+    scrollToBottom(true);
+    setTimeout(() => {
+        scrollToBottom(true);
+    }, 60);
 }
 
 // ── Start conversation with user (called from outside) ───
@@ -455,7 +525,10 @@ async function startWith(userId) {
     isOpen.value = true;
     try {
         const res = await axios.get(route("conversations.check", userId));
-        const { conversation_id, user, block } = res.data;
+        const { conversation_id, user, block, disallow_idol_messages } = res.data;
+        if (user) {
+            user.disallow_idol_messages = disallow_idol_messages ?? false;
+        }
 
         if (conversation_id) {
             // Already exists, just open
@@ -469,6 +542,7 @@ async function startWith(userId) {
                     id: conversation_id,
                     other_user: user,
                     unread: false,
+                    other_disallows_idol_messages: disallow_idol_messages ?? false,
                 },
             );
         } else {
@@ -479,6 +553,7 @@ async function startWith(userId) {
                 other_user: user,
                 unread: false,
                 is_draft: true,
+                other_disallows_idol_messages: disallow_idol_messages ?? false,
             });
         }
     } catch (e) {
@@ -526,6 +601,13 @@ async function ensureRealConversation() {
     }
 }
 
+async function openServiceOfferModal() {
+    if (activeConversation.value?.is_draft) {
+        if (!(await ensureRealConversation())) return;
+    }
+    showOfferModal.value = true;
+}
+
 async function sendMessage() {
     const body = newMessage.value.trim();
     if (!body || sending.value || !activeConversation.value) return;
@@ -546,6 +628,15 @@ async function sendMessage() {
         messages.value.push(res.data);
         scrollToBottom();
         updateLastMessage(convId, res.data);
+    } catch (e) {
+        newMessage.value = body;
+        if (e.response?.status === 403 && e.response?.data?.message === "target_disallows_idol_messages") {
+            if (activeConversation.value) {
+                activeConversation.value.other_disallows_idol_messages = true;
+            }
+        } else {
+            console.error("Failed to send message", e);
+        }
     } finally {
         sending.value = false;
     }
@@ -753,11 +844,18 @@ function updateLastMessage(convId, msg) {
 
 // ── Scroll helpers ────────────────────────────────────────
 function scrollToBottom(instant = false) {
-    setTimeout(() => {
-        messagesEnd.value?.scrollIntoView({
-            behavior: instant ? "instant" : "smooth",
-        });
-    }, 50);
+    nextTick(() => {
+        const el = messagesContainer.value;
+        if (!el) return;
+        if (instant) {
+            el.scrollTop = el.scrollHeight;
+        } else {
+            el.scrollTo({
+                top: el.scrollHeight,
+                behavior: "smooth",
+            });
+        }
+    });
 }
 
 // ── Pagination on scroll up ──────────────────────────────
@@ -1131,6 +1229,7 @@ onUnmounted(() => {
     clearInterval(nowTimer);
     window.removeEventListener("resize", checkMobile);
     setScrollLock(false);
+    inputResizeObserver?.disconnect();
 });
 
 watch(
@@ -1526,6 +1625,39 @@ function formatDate(iso) {
                                         </svg>
                                         {{ __("chat.filter.unread_only") }}
                                     </button>
+
+                                    <el-tooltip
+                                        v-if="!authUser?.is_idol"
+                                        :content="__('chat.disallow_idols_tooltip')"
+                                        placement="top"
+                                        :show-after="300"
+                                    >
+                                        <button
+                                            class="chat-unread-btn chat-disallow-btn"
+                                            :class="{
+                                                'chat-disallow-btn--active':
+                                                    authUser?.disallow_idol_messages,
+                                            }"
+                                            :disabled="togglingDisallow"
+                                            @click="toggleDisallowIdolMessages"
+                                        >
+                                            <svg
+                                                class="chat-unread-btn__icon"
+                                                width="13"
+                                                height="13"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            >
+                                                <circle cx="12" cy="12" r="10" />
+                                                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                                            </svg>
+                                            {{ __("chat.disallow_idols_button") }}
+                                        </button>
+                                    </el-tooltip>
                                 </div>
                             </div>
                             <template v-if="loadingConvs">
@@ -2295,6 +2427,7 @@ function formatDate(iso) {
                             <div
                                 class="chat-messages"
                                 ref="messagesContainer"
+                                :style="{ '--chat-input-height': `${inputWrapHeight}px` }"
                                 @scroll="onMessagesScroll"
                             >
                                     <!-- Индикатор подгрузки -->
@@ -3194,13 +3327,39 @@ function formatDate(iso) {
 
                         <!-- Поле ввода + панель заказа -->
                         <Transition name="chat-input-appear">
-                            <div v-if="!loadingMsgs" class="chat-input-wrap">
+                            <div
+                                v-if="!loadingMsgs"
+                                class="chat-input-wrap"
+                                ref="inputWrapRef"
+                            >
                                 <!-- Баннер: чат закрыт -->
                                 <div
                                     v-if="isChatClosed"
                                     class="chat-closed-banner"
                                 >
                                     {{ __("chat.wait_support") }}
+                                </div>
+
+                                <!-- Баннер: запрет сообщений от айдолов -->
+                                <div
+                                    v-if="otherDisallowsIdolMessages"
+                                    class="chat-closed-banner chat-disallow-notice-banner"
+                                >
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        width="15"
+                                        height="15"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        style="margin-right: 6px; flex-shrink: 0;"
+                                    >
+                                        <circle cx="12" cy="12" r="10" />
+                                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                                    </svg>
+                                    {{ __("chat.disallow_idols_notice") }}
                                 </div>
 
                                 <!-- Баннер блокировщика -->
@@ -3316,7 +3475,7 @@ function formatDate(iso) {
                                             activeOrderData.status === 'pending'
                                         "
                                         class="chat-order-btn chat-order-btn--offer"
-                                        @click="showOfferModal = true"
+                                        @click="openServiceOfferModal"
                                     >
                                         {{ __("chat.btn.offer") }}
                                     </button>
@@ -3328,13 +3487,14 @@ function formatDate(iso) {
                                         authUser?.is_idol &&
                                         !isSupport &&
                                         !activeOrderData &&
-                                        !isChatClosed
+                                        !isChatClosed &&
+                                        !otherDisallowsIdolMessages
                                     "
                                     class="chat-order-actions"
                                 >
                                     <button
                                         class="chat-order-btn chat-order-btn--offer"
-                                        @click="showOfferModal = true"
+                                        @click="openServiceOfferModal"
                                     >
                                         {{ __("chat.btn.offer") }}
                                     </button>
@@ -3452,6 +3612,7 @@ function formatDate(iso) {
                                         class="chat-attach-btn"
                                         :disabled="
                                             isChatClosed ||
+                                            otherDisallowsIdolMessages ||
                                             uploading ||
                                             (!!activeBlock?.active &&
                                                 !activeBlock?.i_am_blocker)
@@ -3483,6 +3644,7 @@ function formatDate(iso) {
                                             maxlength="500"
                                             :disabled="
                                                 isChatClosed ||
+                                                otherDisallowsIdolMessages ||
                                                 (!!activeBlock?.active &&
                                                     !activeBlock?.i_am_blocker)
                                             "
@@ -3495,6 +3657,7 @@ function formatDate(iso) {
                                             !newMessage.trim() ||
                                             sending ||
                                             isChatClosed ||
+                                            otherDisallowsIdolMessages ||
                                             (!!activeBlock?.active &&
                                                 !activeBlock?.i_am_blocker)
                                         "
@@ -4407,7 +4570,7 @@ function formatDate(iso) {
 .chat-messages {
     flex: 1;
     overflow-y: auto;
-    padding: 1.1rem 0 0.5rem;
+    padding: 1.1rem 0 calc(var(--chat-input-height, 80px) + 12px);
     display: flex;
     flex-direction: column;
     scrollbar-width: thin;
@@ -4435,7 +4598,7 @@ function formatDate(iso) {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-    padding-bottom: 210px;
+    padding-bottom: 0;
 }
 
 /* ── Load more indicator ──────────────────────────────── */
@@ -5832,6 +5995,8 @@ function formatDate(iso) {
 .chat-unread-toggle {
     padding: 0.3rem 0.75rem 0.55rem;
     display: flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
 .chat-unread-btn {
@@ -5868,6 +6033,33 @@ function formatDate(iso) {
     color: #ffb2ef;
     border-color: rgba(255, 178, 239, 0.35);
     background: rgba(255, 178, 239, 0.1);
+}
+
+.chat-disallow-btn--active {
+    color: #ff6b8b;
+    border-color: rgba(255, 107, 139, 0.4);
+    background: rgba(255, 107, 139, 0.12);
+}
+
+.chat-disallow-btn--active:hover {
+    color: #ff859d;
+    background: rgba(255, 107, 139, 0.18);
+    border-color: rgba(255, 107, 139, 0.55);
+}
+
+.chat-disallow-notice-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ff859d;
+    background: rgba(255, 80, 110, 0.08);
+    border: 1px solid rgba(255, 80, 110, 0.22);
+    border-radius: 6px;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin: 0.5rem 0.75rem;
+    text-align: center;
 }
 
 .chat-unread-btn__icon {
@@ -7163,10 +7355,6 @@ function formatDate(iso) {
 
     .chat-input-wrap {
         padding: 0.8rem 0 calc(1.5rem + env(safe-area-inset-bottom, 0px));
-    }
-
-    .chat-messages-inner {
-        padding-bottom: calc(210px + env(safe-area-inset-bottom, 0px));
     }
 }
 

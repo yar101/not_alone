@@ -623,4 +623,20 @@ class UserProfileController extends Controller
 
         return back();
     }
+
+    public function toggleDisallowIdolMessages(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_if($user->is_idol, 403, 'Idols cannot toggle this setting.');
+
+        $newValue = $request->has('disallow')
+            ? $request->boolean('disallow')
+            : ! $user->disallow_idol_messages;
+
+        $user->update(['disallow_idol_messages' => $newValue]);
+
+        return response()->json([
+            'disallow_idol_messages' => (bool) $user->disallow_idol_messages,
+        ]);
+    }
 }

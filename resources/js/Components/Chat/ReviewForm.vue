@@ -22,6 +22,16 @@ const warningOpen      = ref(false);
 const warnWrapEl       = ref(null);
 const poppingHeart     = ref(0);
 const isTouch          = ref(false);
+let popTimer           = null;
+
+function setRating(i) {
+    rating.value = i;
+    poppingHeart.value = i;
+    if (popTimer) clearTimeout(popTimer);
+    popTimer = setTimeout(() => {
+        poppingHeart.value = 0;
+    }, 350);
+}
 
 function onDocClick(e) {
     if (warningOpen.value && warnWrapEl.value && !warnWrapEl.value.contains(e.target)) {
@@ -41,6 +51,7 @@ onMounted(() => {
 onUnmounted(() => {
     document.removeEventListener('click', onDocClick, true);
     window.removeEventListener('touchstart', markTouch);
+    if (popTimer) clearTimeout(popTimer);
 });
 
 onMounted(async () => {
@@ -133,7 +144,7 @@ async function submit() {
                 :class="{ 'rv-heart--pop': poppingHeart === i }"
                 @mouseenter="hovered = i"
                 @mouseleave="hovered = 0"
-                @click="rating = i; poppingHeart = i; setTimeout(() => poppingHeart = 0, 350)"
+                @click="setRating(i)"
                 type="button"
                 :aria-label="__('review.rating.aria', { value: i })"
             >
@@ -207,7 +218,7 @@ async function submit() {
 
 <style scoped>
 .rv-wrap {
-    margin: 1.2rem 1rem 6rem;
+    margin: 1.2rem 1rem 0.5rem;
     background: rgba(255,120,160,0.04);
     border: 1px dashed rgba(255,120,160,0.22);
     border-radius: 8px;
