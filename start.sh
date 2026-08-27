@@ -2,6 +2,11 @@
 
 set -e
 
+if [ ! -f .env ] && [ -f .env.example ]; then
+    echo "📄 .env file not found. Creating from .env.example..."
+    cp .env.example .env
+fi
+
 echo ""
 echo "Выберите режим запуска:"
 echo "  1) local  — только localhost (как composer run dev)"

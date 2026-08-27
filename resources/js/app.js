@@ -1,14 +1,24 @@
 import '../css/app.css';
 
 if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/build/sw.js', { scope: '/' }).catch((err) => {
-            console.warn('ServiceWorker registration skipped or failed:', err.message || err);
+    if (import.meta.env.PROD) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/build/sw.js', { scope: '/' }).catch((err) => {
+                console.warn('ServiceWorker registration skipped or failed:', err.message || err);
+            });
         });
-    });
+    } else {
+        // Unregister service workers in development to prevent stale caching and Vite HMR conflicts
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+            for (const registration of registrations) {
+                registration.unregister();
+            }
+        });
+    }
 }
 import 'element-plus/theme-chalk/dark/css-vars.css';
 import 'element-plus/theme-chalk/el-notification.css';
+import '@fortawesome/fontawesome-free/css/all.min.css';
 import './bootstrap';
 
 import { createInertiaApp } from '@inertiajs/vue3';

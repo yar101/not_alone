@@ -24,9 +24,22 @@ wait_for_db() {
     fi
 }
 
-# Только web-контейнер запускает миграции
+# Ensure .env exists
+if [ ! -f /var/www/html/.env ] && [ -f /var/www/html/.env.example ]; then
+    echo "Creating .env from .env.example..."
+    cp /var/www/html/.env.example /var/www/html/.env
+fi
+
+# Только web-контейнер запускает миграции и первичную настройку
 if [ "${CONTAINER_ROLE}" = "web" ] || [ -z "${CONTAINER_ROLE}" ]; then
     chmod -R a+rwX /var/www/html/storage /var/www/html/bootstrap/cache 2>/dev/null || true
+
+    # Ensure APP_KEY is generated
+    if [ -f /var/www/html/.env ] && ! grep -q '^APP_KEY=base64:' /var/www/html/.env; then
+        echo "Generating application key (APP_KEY)..."
+        php artisan key:generate --force
+    fi
+
     wait_for_db
     php artisan migrate --force
     php artisan db:seed --force

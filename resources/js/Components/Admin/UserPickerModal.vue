@@ -213,8 +213,8 @@ function selectAll() {
                             </div>
                             <div class="upm-badges">
                                 <IdolBadge v-if="user.is_idol" />
-                                <span v-if="user.gender === 'male'"   class="upm-badge upm-badge--male">М</span>
-                                <span v-if="user.gender === 'female'" class="upm-badge upm-badge--female">Ж</span>
+                                <span v-if="user.gender === 'male'"   class="upm-badge upm-badge--male"><i class="fa-solid fa-mars"></i></span>
+                                <span v-if="user.gender === 'female'" class="upm-badge upm-badge--female"><i class="fa-solid fa-venus"></i></span>
                                 <span v-if="user.age" class="upm-badge upm-badge--age">{{ user.age }} {{ transChoice('search.age.years', user.age) }}</span>
                             </div>
                         </div>

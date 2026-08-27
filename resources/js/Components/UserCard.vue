@@ -48,12 +48,9 @@ function calcAge(birthDate) {
                             ? 'card-badge--female'
                             : 'card-badge--male'
                     "
-                    >{{
-                        user.gender === "female"
-                            ? "\u2640\uFE0F"
-                            : "\u2642\uFE0F"
-                    }}</span
                 >
+                    <i :class="user.gender === 'female' ? 'fa-solid fa-venus' : 'fa-solid fa-mars'"></i>
+                </span>
                 <span
                     v-if="calcAge(user.birth_date)"
                     class="card-badge card-badge--age"

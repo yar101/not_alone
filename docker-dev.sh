@@ -28,6 +28,17 @@ if [ ! -f "${IP}.pem" ] || [ ! -f "${IP}-key.pem" ]; then
     fi
 fi
 
+# Ensure .env exists
+if [ ! -f .env ]; then
+    if [ -f .env.example ]; then
+        echo "📄 .env file not found. Creating from .env.example..."
+        cp .env.example .env
+    else
+        echo "❌ Error: Neither .env nor .env.example found."
+        exit 1
+    fi
+fi
+
 # Source .env
 set -a
 [ -f .env ] && . ./.env 2>/dev/null || true

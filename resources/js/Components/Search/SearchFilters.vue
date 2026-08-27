@@ -125,14 +125,16 @@ function filteredInterests(cat) {
                 <button
                     :class="['btn-toggle', { active: modelValue.gender === 'male' }]"
                     @click="$emit('update:modelValue', { ...modelValue, gender: 'male' })"
+                    :title="__('gender.male')"
                 >
-                    {{ __("gender.male") }}
+                    <i class="fa-solid fa-mars"></i>
                 </button>
                 <button
                     :class="['btn-toggle', { active: modelValue.gender === 'female' }]"
                     @click="$emit('update:modelValue', { ...modelValue, gender: 'female' })"
+                    :title="__('gender.female')"
                 >
-                    {{ __("gender.female") }}
+                    <i class="fa-solid fa-venus"></i>
                 </button>
             </div>
         </div>

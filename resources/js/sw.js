@@ -36,8 +36,8 @@ self.addEventListener('push', (event) => {
     event.waitUntil(
         self.registration.showNotification(data.title ?? 'Not Alone', {
             body: data.body ?? '',
-            icon: data.icon ?? '/pwa-192x192.png',
-            badge: '/pwa-64x64.png',
+            icon: data.icon ?? '/pwa-192x192-v3.png',
+            badge: '/pwa-64x64-v3.png',
             data: { url: data.data?.url ?? '/' },
         })
     )

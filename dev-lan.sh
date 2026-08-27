@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
+if [ ! -f .env ] && [ -f .env.example ]; then
+    echo "📄 .env file not found. Creating from .env.example..."
+    cp .env.example .env
+fi
+
 DIR="$(cd "$(dirname "$0")" && pwd)"
 IP=$(ip -4 addr show scope global 2>/dev/null | grep -vE '(docker|br-|veth|amn|wg|tun|tap)' | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -n 1)
 if [ -z "$IP" ]; then

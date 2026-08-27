@@ -215,7 +215,7 @@ function deleteAvatar() {
             </div>
             <div v-if="isIdol || user.gender || user.age" class="header-meta">
                 <IdolBadge v-if="isIdol" :gender="user.gender" />
-                <span v-if="user.gender" class="meta-badge" :class="'meta-badge--' + user.gender">{{ user.gender === 'female' ? '\u2640\uFE0F' : '\u2642\uFE0F' }}</span>
+                <span v-if="user.gender" class="meta-badge" :class="'meta-badge--' + user.gender"><i :class="user.gender === 'female' ? 'fa-solid fa-venus' : 'fa-solid fa-mars'"></i></span>
                 <span v-if="user.age" class="meta-badge meta-badge--age">{{ ageLabel(user.age) }}</span>
             </div>
         </div>

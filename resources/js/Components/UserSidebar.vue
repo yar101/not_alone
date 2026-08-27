@@ -104,7 +104,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 
                         <div class="usb-badges">
                             <IdolBadge v-if="isIdol" :gender="user.gender" />
-                            <span v-if="user.gender" class="usb-badge" :class="'usb-badge--' + user.gender">{{ user.gender === 'female' ? '\u2640\uFE0F' : '\u2642\uFE0F' }}</span>
+                            <span v-if="user.gender" class="usb-badge" :class="'usb-badge--' + user.gender"><i :class="user.gender === 'female' ? 'fa-solid fa-venus' : 'fa-solid fa-mars'"></i></span>
                             <span v-if="user.age" class="usb-badge usb-badge--age">{{ ageLabel(user.age) }}</span>
                             <span v-if="!isIdol && !user.gender && !user.age" class="usb-badge usb-badge--default">{{ __('nav.user') }}</span>
                         </div>
