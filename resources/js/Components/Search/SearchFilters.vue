@@ -41,6 +41,71 @@ function interestCountForCat(cat) {
     return cat.interests.filter((i) => props.modelValue.interests.includes(i.id)).length;
 }
 
+function onRangeKeydown(e) {
+    if (
+        [
+            "Backspace",
+            "Delete",
+            "ArrowLeft",
+            "ArrowRight",
+            "Tab",
+            "Enter",
+            "Home",
+            "End",
+        ].includes(e.key) ||
+        e.ctrlKey ||
+        e.metaKey
+    ) {
+        return;
+    }
+    if (!/^\d$/.test(e.key)) {
+        e.preventDefault();
+    }
+}
+
+const RANGE_LIMITS = {
+    age_from: { min: 18, max: 120 },
+    age_to: { min: 18, max: 120 },
+    rating_from: { min: 0, max: 100 },
+    rating_to: { min: 0, max: 100 },
+};
+
+function onRangeInput(field, e) {
+    const raw = e.target.value ?? "";
+    let clean = raw.replace(/\D/g, "").slice(0, 3);
+    const limit = RANGE_LIMITS[field];
+    if (limit && clean !== "") {
+        const num = parseInt(clean, 10);
+        if (num > limit.max) {
+            clean = String(limit.max);
+        }
+    }
+    e.target.value = clean;
+    emit("update:modelValue", {
+        ...props.modelValue,
+        [field]: clean,
+    });
+}
+
+function onRangeBlur(field, e) {
+    const raw = e.target.value ?? "";
+    if (raw === "") return;
+    let num = parseInt(raw, 10);
+    const limit = RANGE_LIMITS[field];
+    if (limit) {
+        if (num < limit.min) num = limit.min;
+        if (num > limit.max) num = limit.max;
+    }
+    const clean = String(num);
+    if (clean !== raw) {
+        e.target.value = clean;
+        emit("update:modelValue", {
+            ...props.modelValue,
+            [field]: clean,
+        });
+    }
+}
+
 // Per-section search strings
 const sectionSearch = ref({
     traits: "",
@@ -143,25 +208,37 @@ function filteredInterests(cat) {
         <div class="filter-group">
             <label class="filter-label">{{ __("search.filters.age") }}</label>
             <div class="range-row">
-                <input
-                    :value="modelValue.age_from"
-                    @input="$emit('update:modelValue', { ...modelValue, age_from: $event.target.value })"
-                    type="number"
-                    min="18"
-                    max="120"
-                    class="filter-input filter-input--sm"
-                    :placeholder="__('search.price.from')"
-                />
+                <label class="range-field">
+                    <span class="range-prefix">{{ __("search.price.from") }}</span>
+                    <input
+                        :value="modelValue.age_from"
+                        type="text"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        maxlength="3"
+                        class="range-input"
+                        placeholder="18"
+                        @keydown="onRangeKeydown"
+                        @input="onRangeInput('age_from', $event)"
+                        @blur="onRangeBlur('age_from', $event)"
+                    />
+                </label>
                 <span class="range-sep">—</span>
-                <input
-                    :value="modelValue.age_to"
-                    @input="$emit('update:modelValue', { ...modelValue, age_to: $event.target.value })"
-                    type="number"
-                    min="18"
-                    max="120"
-                    class="filter-input filter-input--sm"
-                    :placeholder="__('search.price.to')"
-                />
+                <label class="range-field">
+                    <span class="range-prefix">{{ __("search.price.to") }}</span>
+                    <input
+                        :value="modelValue.age_to"
+                        type="text"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        maxlength="3"
+                        class="range-input"
+                        placeholder="120"
+                        @keydown="onRangeKeydown"
+                        @input="onRangeInput('age_to', $event)"
+                        @blur="onRangeBlur('age_to', $event)"
+                    />
+                </label>
             </div>
         </div>
 
@@ -194,25 +271,37 @@ function filteredInterests(cat) {
         <div class="filter-group">
             <label class="filter-label">{{ __("search.filters.rating") }}</label>
             <div class="range-row">
-                <input
-                    :value="modelValue.rating_from"
-                    @input="$emit('update:modelValue', { ...modelValue, rating_from: $event.target.value })"
-                    type="number"
-                    min="0"
-                    max="100"
-                    class="filter-input filter-input--sm"
-                    :placeholder="__('search.price.from')"
-                />
+                <label class="range-field">
+                    <span class="range-prefix">{{ __("search.price.from") }}</span>
+                    <input
+                        :value="modelValue.rating_from"
+                        type="text"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        maxlength="3"
+                        class="range-input"
+                        placeholder="0"
+                        @keydown="onRangeKeydown"
+                        @input="onRangeInput('rating_from', $event)"
+                        @blur="onRangeBlur('rating_from', $event)"
+                    />
+                </label>
                 <span class="range-sep">—</span>
-                <input
-                    :value="modelValue.rating_to"
-                    @input="$emit('update:modelValue', { ...modelValue, rating_to: $event.target.value })"
-                    type="number"
-                    min="0"
-                    max="100"
-                    class="filter-input filter-input--sm"
-                    :placeholder="__('search.price.to')"
-                />
+                <label class="range-field">
+                    <span class="range-prefix">{{ __("search.price.to") }}</span>
+                    <input
+                        :value="modelValue.rating_to"
+                        type="text"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        maxlength="3"
+                        class="range-input"
+                        placeholder="100"
+                        @keydown="onRangeKeydown"
+                        @input="onRangeInput('rating_to', $event)"
+                        @blur="onRangeBlur('rating_to', $event)"
+                    />
+                </label>
             </div>
         </div>
 
@@ -402,12 +491,6 @@ function filteredInterests(cat) {
     border-color: rgba(255, 178, 239, 0.5);
 }
 
-.filter-input--sm {
-    width: 80px;
-    text-align: center;
-    padding: 0.4rem;
-}
-
 .filter-select {
     cursor: pointer;
 }
@@ -446,11 +529,80 @@ function filteredInterests(cat) {
 .range-row {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.6rem;
+    width: 100%;
+}
+
+.range-field {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 178, 239, 0.2);
+    border-radius: 6px;
+    padding: 0.45rem 0.65rem;
+    gap: 0.45rem;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    cursor: text;
+}
+
+.range-field:hover {
+    border-color: rgba(255, 178, 239, 0.35);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.range-field:focus-within {
+    border-color: rgba(255, 178, 239, 0.6);
+    background: rgba(255, 178, 239, 0.06);
+    box-shadow: 0 0 0 1px rgba(255, 178, 239, 0.2);
+}
+
+.range-prefix {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: lowercase;
+    user-select: none;
+    font-weight: 500;
+    flex-shrink: 0;
+    cursor: text;
+}
+
+.range-input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-size: 0.9rem;
+    font-family: inherit;
+    padding: 0;
+    text-align: right;
+}
+
+.range-input::placeholder {
+    color: rgba(255, 255, 255, 0.25);
+}
+
+/* Полное отключение нативных спиннеров стрелок */
+.range-input::-webkit-outer-spin-button,
+.range-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.range-input {
+    -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 .range-sep {
-    color: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.25);
+    font-weight: 300;
+    font-size: 0.9rem;
+    user-select: none;
 }
 
 .filter-divider {
@@ -639,7 +791,6 @@ function filteredInterests(cat) {
     background: rgba(255, 178, 239, 0.12);
     border-color: rgba(255, 178, 239, 0.45);
     color: var(--color-base-1);
-    font-weight: 600;
 }
 
 .filter-toggle-btn.active::after {

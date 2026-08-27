@@ -206,6 +206,8 @@
     "search.filters.timezone": "Часовой пояс",
     "search.filters.services": "Категории услуг",
     "search.filters.reset": "Сбросить",
+    "search.filters.reset_confirm_title": "Сбросить фильтры?",
+    "search.filters.reset_confirm_text": "Вы уверены, что хотите сбросить все выбранные параметры поиска к значениям по умолчанию?",
     "search.filters.apply": "Применить",
     "search.filters.any_tz": "Любой",
     "search.active.name": "Имя: :value",

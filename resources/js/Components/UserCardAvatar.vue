@@ -67,7 +67,8 @@ const initial = computed(() => {
                 :gender="user.gender"
             />
             <span v-if="showRating && user.rating" class="card-rating">
-                ★ {{ user.rating }}
+                <i class="fa-solid fa-star card-rating__star"></i>
+                <span>{{ user.rating }}</span>
             </span>
         </div>
     </div>
@@ -177,13 +178,15 @@ const initial = computed(() => {
 .card-avatar-badges {
     position: absolute;
     bottom: -4px;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0;
+    right: 0;
     display: flex;
+    justify-content: center;
     align-items: center;
     gap: 0.35rem;
     white-space: nowrap;
     z-index: 10;
+    pointer-events: none;
 }
 
 .is-compact .card-avatar-badges {
@@ -192,57 +195,68 @@ const initial = computed(() => {
 }
 
 .card-rating {
-    background: rgba(20, 15, 30, 0.85);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 178, 239, 0.4);
+    background: rgba(13, 10, 23, 0.96);
+    border: 1px solid rgba(255, 178, 239, 0.35);
     border-radius: 4px;
-    padding: 0.2rem 0.6rem;
-    font-size: 0.75rem;
+    padding: 0.16rem 0.45rem;
+    font-size: 0.72rem;
     color: var(--color-base-1);
-    font-weight: 700;
+    font-weight: 600;
+    letter-spacing: 0.02em;
     white-space: nowrap;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    display: flex;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    display: inline-flex;
     align-items: center;
-    gap: 0.2rem;
-    line-height: 1;
+    gap: 0.25rem;
+    line-height: 1.2;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.card-rating__star {
+    font-size: 0.62rem;
+    color: var(--color-base-1);
 }
 
 .is-compact .card-rating {
-    padding: 0.15rem 0.45rem;
-    font-size: 0.7rem;
+    padding: 0.12rem 0.35rem;
+    font-size: 0.68rem;
 }
 
 .card-avatar-wrap.is-male .card-rating {
-    border-color: rgba(100, 210, 255, 0.4);
+    border-color: rgba(100, 210, 255, 0.35);
+    color: var(--color-base-2);
+}
+
+.card-avatar-wrap.is-male .card-rating__star {
     color: var(--color-base-2);
 }
 
 :deep(.card-idol-badge) {
-    background: rgba(20, 15, 30, 0.85);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 178, 239, 0.4);
+    background: rgba(13, 10, 23, 0.96);
+    border: 1px solid rgba(255, 178, 239, 0.35);
     border-radius: 4px;
-    padding: 0.2rem 0.6rem;
-    font-size: 0.75rem;
+    padding: 0.16rem 0.45rem;
+    font-size: 0.72rem;
     color: var(--color-base-1);
-    font-weight: 700;
+    font-weight: 600;
+    letter-spacing: 0.02em;
     white-space: nowrap;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    display: flex;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    display: inline-flex;
     align-items: center;
-    line-height: 1;
+    line-height: 1.2;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .is-compact :deep(.card-idol-badge) {
-    padding: 0.15rem 0.45rem;
-    font-size: 0.7rem;
+    padding: 0.12rem 0.35rem;
+    font-size: 0.68rem;
 }
 
 .card-avatar-wrap.is-male :deep(.card-idol-badge) {
-    border-color: rgba(100, 210, 255, 0.4);
+    border-color: rgba(100, 210, 255, 0.35);
     color: var(--color-base-2);
 }
 </style>

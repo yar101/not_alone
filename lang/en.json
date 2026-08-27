@@ -206,6 +206,8 @@
     "search.filters.timezone": "Timezone",
     "search.filters.services": "Service categories",
     "search.filters.reset": "Reset",
+    "search.filters.reset_confirm_title": "Reset filters?",
+    "search.filters.reset_confirm_text": "Are you sure you want to reset all selected search filters to default?",
     "search.filters.apply": "Apply",
     "search.filters.any_tz": "Any",
     "search.active.name": "Name: :value",

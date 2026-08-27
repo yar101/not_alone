@@ -141,6 +141,16 @@ const isDirty = computed(() =>
     ),
 );
 
+const hasNonDefaultFilters = computed(() =>
+    DIRTY_KEYS.some((k) => {
+        const val = f.value[k];
+        if (Array.isArray(val)) return val.length > 0;
+        return val !== "" && val !== null && val !== undefined;
+    }),
+);
+
+const showFooter = computed(() => isDirty.value || hasNonDefaultFilters.value);
+
 function apply() {
     const params = {};
     Object.entries(f.value).forEach(([k, v]) => {
@@ -230,6 +240,21 @@ function resetAndClose() {
     setTimeout(() => {
         resetFilters();
     }, 50);
+}
+
+const showResetConfirm = ref(false);
+
+function openResetConfirm() {
+    showResetConfirm.value = true;
+}
+
+function confirmReset() {
+    showResetConfirm.value = false;
+    if (mobileFiltersOpen.value) {
+        resetAndClose();
+    } else {
+        resetFilters();
+    }
 }
 
 function toggleSortDir() {
@@ -430,7 +455,7 @@ function genderLabel(g) {
                                 <line x1="10" y1="18" x2="14" y2="18" />
                             </svg>
                             {{ __("search.filters.title") }}
-                            <span v-if="isDirty" class="mobile-filters-dot"></span>
+                            <span v-if="isDirty || hasNonDefaultFilters" class="mobile-filters-dot"></span>
                         </button>
                     </div>
                 </div>
@@ -533,16 +558,16 @@ function genderLabel(g) {
                         :active-chips="activeChips"
                         @reset-chip="resetChip"
                     />
-
-                    <button @click="resetFilters" class="reset-btn">
-                        {{ __("search.filters.reset") }}
-                    </button>
                 </div>
 
                 <Transition name="slide-up">
-                    <div v-if="isDirty" class="sidebar-footer">
-                        <button class="apply-btn" @click="applyFilters">
+                    <div v-if="showFooter" class="sidebar-footer">
+                        <button v-if="isDirty" class="apply-btn" @click="applyFilters">
                             {{ __("search.filters.apply") }}
+                        </button>
+                        <button v-if="hasNonDefaultFilters || isDirty" class="reset-btn" @click="openResetConfirm">
+                            <i class="fa-solid fa-arrow-rotate-left"></i>
+                            {{ __("search.filters.reset") }}
                         </button>
                     </div>
                 </Transition>
@@ -570,27 +595,65 @@ function genderLabel(g) {
                 @reset-chip="resetChip"
             />
 
-            <!-- Сброс (всегда в контенте) -->
-            <button
-                type="button"
-                @click.stop="resetAndClose"
-                class="reset-btn mf-reset-btn"
-            >
-                {{ __("search.filters.reset") }}
-            </button>
-
-            <!-- Липкая кнопка Применить -->
+            <!-- Липкие кнопки Применить и Сбросить -->
             <Transition name="slide-up">
-                <div v-if="isDirty" class="mf-footer">
+                <div v-if="showFooter" class="mf-footer">
                     <button
+                        v-if="isDirty"
                         type="button"
                         class="apply-btn"
                         @click.stop="applyAndClose"
                     >
                         {{ __("search.filters.apply") }}
                     </button>
+                    <button
+                        v-if="hasNonDefaultFilters || isDirty"
+                        type="button"
+                        class="reset-btn"
+                        @click.stop="openResetConfirm"
+                    >
+                        <i class="fa-solid fa-arrow-rotate-left"></i>
+                        {{ __("search.filters.reset") }}
+                    </button>
                 </div>
             </Transition>
+        </div>
+    </SiteModal>
+
+    <!-- Confirm Reset Modal -->
+    <SiteModal
+        :show="showResetConfirm"
+        variant="pink"
+        :compact="true"
+        max-width="420px"
+        @close="showResetConfirm = false"
+    >
+        <div class="filter-reset-modal">
+            <div class="filter-reset-modal__icon">
+                <i class="fa-solid fa-arrow-rotate-left"></i>
+            </div>
+            <h3 class="filter-reset-modal__title">
+                {{ __("search.filters.reset_confirm_title") }}
+            </h3>
+            <p class="filter-reset-modal__text">
+                {{ __("search.filters.reset_confirm_text") }}
+            </p>
+            <div class="filter-reset-modal__actions">
+                <button
+                    type="button"
+                    class="filter-reset-modal__btn filter-reset-modal__btn--cancel"
+                    @click="showResetConfirm = false"
+                >
+                    {{ __("common.cancel") }}
+                </button>
+                <button
+                    type="button"
+                    class="filter-reset-modal__btn filter-reset-modal__btn--confirm"
+                    @click="confirmReset"
+                >
+                    {{ __("search.filters.reset") }}
+                </button>
+            </div>
         </div>
     </SiteModal>
 </template>
@@ -658,32 +721,40 @@ function genderLabel(g) {
 
 .sidebar-footer {
     flex-shrink: 0;
-    padding: 0.75rem 1.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    background: transparent;
+    padding: 0.85rem 1.25rem;
+    border-top: 1px solid rgba(255, 178, 239, 0.12);
+    background: rgba(14, 11, 24, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .apply-btn {
     width: 100%;
-    padding: 0.7rem;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 178, 239, 0.5);
-    background: rgba(255, 178, 239, 0.15);
+    padding: 0.65rem 1rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 178, 239, 0.25);
+    background: rgba(255, 178, 239, 0.08);
     color: var(--color-base-1);
-    font-size: 0.95rem;
-    font-weight: 600;
+    font-size: 0.92rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all 0.2s ease;
     font-family: inherit;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
 }
 
 .apply-btn:hover {
-    background: rgba(255, 178, 239, 0.28);
-    border-color: rgba(255, 178, 239, 0.8);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.18),
-        0 4px 12px rgba(0, 0, 0, 0.2);
+    background: rgba(255, 178, 239, 0.16);
+    border-color: rgba(255, 178, 239, 0.45);
+    color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .slide-up-enter-active,
@@ -710,21 +781,27 @@ function genderLabel(g) {
 
 /* ── Reset button ────────────────────────────────────────── */
 .reset-btn {
-    padding: 0.55rem 1.2rem;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 178, 239, 0.3);
-    background: transparent;
-    color: rgba(255, 178, 239, 0.7);
-    font-size: 0.9rem;
+    width: 100%;
+    padding: 0.55rem 1rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.88rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all 0.2s ease;
     font-family: inherit;
-    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
 }
 
 .reset-btn:hover {
-    border-color: rgba(224, 85, 143, 0.5);
-    color: #e0558f;
+    background: rgba(248, 113, 113, 0.12);
+    border-color: rgba(248, 113, 113, 0.4);
+    color: #fca5a5;
 }
 
 /* ── Results panel ───────────────────────────────────────── */
@@ -1168,16 +1245,96 @@ function genderLabel(g) {
     position: sticky;
     bottom: -1.25rem;
     margin: 1rem -1.25rem -1.25rem;
-    padding: 1rem 1.25rem;
-    background: rgba(10, 10, 20, 0.95);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    padding: 0.85rem 1.25rem;
+    background: rgba(14, 11, 24, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-top: 1px solid rgba(255, 178, 239, 0.15);
     z-index: 10;
     display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
-.mf-footer .apply-btn {
+/* ── Filter Reset Confirm Modal ──────────────────────────── */
+.filter-reset-modal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0.75rem 0.5rem 0.25rem;
+    gap: 0.75rem;
+}
+
+.filter-reset-modal__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(248, 113, 113, 0.12);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    color: #fca5a5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.filter-reset-modal__title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+    margin: 0;
+}
+
+.filter-reset-modal__text {
+    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.45;
+    margin: 0;
+    max-width: 320px;
+}
+
+.filter-reset-modal__actions {
+    display: flex;
+    gap: 0.6rem;
+    width: 100%;
+    margin-top: 0.5rem;
+}
+
+.filter-reset-modal__btn {
     flex: 1;
+    padding: 0.65rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+}
+
+.filter-reset-modal__btn--cancel {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.filter-reset-modal__btn--cancel:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+.filter-reset-modal__btn--confirm {
+    background: rgba(248, 113, 113, 0.2);
+    border-color: rgba(248, 113, 113, 0.5);
+    color: #fca5a5;
+}
+
+.filter-reset-modal__btn--confirm:hover {
+    background: rgba(248, 113, 113, 0.32);
+    border-color: rgba(248, 113, 113, 0.8);
+    color: #fff;
+    box-shadow: 0 0 12px rgba(248, 113, 113, 0.25);
 }
 </style>
