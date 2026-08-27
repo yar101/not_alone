@@ -11,9 +11,10 @@ const unreadMessages = computed(() => page.props.has_unread_messages ?? false);
 </script>
 
 <template>
-    <button class="chat-btn" :class="{ 'chat-btn--active': active }" @click="emit('click')" :title="__('chat.messages')">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    <button class="chat-btn" :class="{ 'chat-btn--active': active }" @click="emit('click')" :title="__('chat.title')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
         <span v-if="unreadMessages" class="chat-btn__badge"></span>
     </button>
@@ -34,6 +35,7 @@ const unreadMessages = computed(() => page.props.has_unread_messages ?? false);
     color: rgba(255, 255, 255, 0.45);
     transition: color 0.15s, background 0.15s, border-color 0.15s;
 }
+
 @media (hover: hover) {
     .chat-btn:hover {
         background: rgba(255, 255, 255, 0.06);
@@ -41,11 +43,13 @@ const unreadMessages = computed(() => page.props.has_unread_messages ?? false);
         color: rgba(255, 255, 255, 0.8);
     }
 }
+
 .chat-btn--active {
     background: rgba(255, 178, 239, 0.1);
     border-color: rgba(255, 178, 239, 0.3);
     color: var(--color-base-1);
 }
+
 @media (max-width: 768px) {
     .chat-btn {
         width: 42px;
@@ -55,12 +59,14 @@ const unreadMessages = computed(() => page.props.has_unread_messages ?? false);
         border-color: rgba(255, 255, 255, 0.08);
         color: rgba(255, 255, 255, 0.55);
     }
+
     .chat-btn--active {
         background: rgba(255, 178, 239, 0.12);
         border-color: rgba(255, 178, 239, 0.28);
         color: var(--color-base-1);
     }
 }
+
 .chat-btn__badge {
     position: absolute;
     top: 2px;
@@ -70,7 +76,7 @@ const unreadMessages = computed(() => page.props.has_unread_messages ?? false);
     background: #ff4757;
     border: 1px solid var(--color-base-1);
     border-radius: 50%;
-    
+
     box-shadow: 0 0 5px rgba(255, 71, 87, 0.4);
     pointer-events: none;
     z-index: 10;

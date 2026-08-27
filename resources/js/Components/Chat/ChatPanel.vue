@@ -1534,7 +1534,7 @@ function formatDate(iso) {
                         <!-- ── Сообщения ── -->
                         <template v-if="activeTab === 'messages'">
                             <div class="chat-sticky-controls">
-                                <div class="chat-sidebar__search">
+                                <div class="chat-messages-filters">
                                     <div class="search-row">
                                         <input
                                             v-model="searchQuery"
@@ -1588,58 +1588,17 @@ function formatDate(iso) {
                                             </svg>
                                         </button>
                                     </div>
-                                </div>
-                                <div class="chat-unread-toggle">
-                                    <button
-                                        class="chat-unread-btn"
-                                        :class="{
-                                            'chat-unread-btn--active':
-                                                convUnreadOnly,
-                                        }"
-                                        @click="
-                                            convUnreadOnly = !convUnreadOnly;
-                                            fetchConversations(true);
-                                        "
-                                    >
-                                        <svg
-                                            class="chat-unread-btn__icon"
-                                            width="13"
-                                            height="13"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="2"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                        >
-                                            <path
-                                                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-                                            />
-                                            <circle
-                                                cx="12"
-                                                cy="9.5"
-                                                r="1.5"
-                                                fill="currentColor"
-                                                stroke="none"
-                                            />
-                                        </svg>
-                                        {{ __("chat.filter.unread_only") }}
-                                    </button>
-
-                                    <el-tooltip
-                                        v-if="!authUser?.is_idol"
-                                        :content="__('chat.disallow_idols_tooltip')"
-                                        placement="top"
-                                        :show-after="300"
-                                    >
+                                    <div class="chat-messages-filters__btns-row">
                                         <button
-                                            class="chat-unread-btn chat-disallow-btn"
+                                            class="chat-unread-btn"
                                             :class="{
-                                                'chat-disallow-btn--active':
-                                                    authUser?.disallow_idol_messages,
+                                                'chat-unread-btn--active':
+                                                    convUnreadOnly,
                                             }"
-                                            :disabled="togglingDisallow"
-                                            @click="toggleDisallowIdolMessages"
+                                            @click="
+                                                convUnreadOnly = !convUnreadOnly;
+                                                fetchConversations(true);
+                                            "
                                         >
                                             <svg
                                                 class="chat-unread-btn__icon"
@@ -1652,12 +1611,57 @@ function formatDate(iso) {
                                                 stroke-linecap="round"
                                                 stroke-linejoin="round"
                                             >
-                                                <circle cx="12" cy="12" r="10" />
-                                                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                                                <path
+                                                    d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                                                />
+                                                <circle
+                                                    cx="12"
+                                                    cy="9.5"
+                                                    r="1.5"
+                                                    fill="currentColor"
+                                                    stroke="none"
+                                                />
                                             </svg>
-                                            {{ __("chat.disallow_idols_button") }}
+                                            <span>{{ __("chat.filter.unread_only") }}</span>
                                         </button>
-                                    </el-tooltip>
+
+                                        <div
+                                            v-if="!authUser?.is_idol"
+                                            class="chat-disallow-wrapper"
+                                        >
+                                            <el-tooltip
+                                                :content="__('chat.disallow_idols_tooltip')"
+                                                placement="top"
+                                                :show-after="300"
+                                            >
+                                                <button
+                                                    class="chat-unread-btn chat-disallow-btn"
+                                                    :class="{
+                                                        'chat-disallow-btn--active':
+                                                            authUser?.disallow_idol_messages,
+                                                    }"
+                                                    :disabled="togglingDisallow"
+                                                    @click="toggleDisallowIdolMessages"
+                                                >
+                                                    <svg
+                                                        class="chat-unread-btn__icon"
+                                                        width="13"
+                                                        height="13"
+                                                        viewBox="0 0 24 24"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        stroke-width="2"
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                    >
+                                                        <circle cx="12" cy="12" r="10" />
+                                                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                                                    </svg>
+                                                    <span>{{ __("chat.disallow_idols_button") }}</span>
+                                                </button>
+                                            </el-tooltip>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <template v-if="loadingConvs">
@@ -5983,12 +5987,42 @@ function formatDate(iso) {
     background: rgba(255, 178, 239, 0.18);
 }
 
-/* ── Unread-only toggle ──────────────────────────────────── */
-.chat-unread-toggle {
-    padding: 0.3rem 0.75rem 0.55rem;
+/* ── Messages filters ────────────────────────────────────── */
+.chat-messages-filters {
+    padding: 0.75rem 0.75rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.chat-messages-filters__btns-row {
     display: flex;
     align-items: center;
     gap: 0.4rem;
+    width: 100%;
+}
+
+.chat-messages-filters__btns-row .chat-unread-btn {
+    flex: 1;
+    min-width: 0;
+    padding: 0 0.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-disallow-wrapper {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+}
+
+.chat-disallow-wrapper .chat-disallow-btn {
+    width: 100%;
+    flex: 1;
+    min-width: 0;
+    padding: 0 0.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .chat-unread-btn {
