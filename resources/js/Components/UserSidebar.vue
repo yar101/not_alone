@@ -170,11 +170,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
                 <div class="usb-features">
                     <div class="usb-feature-card usb-feature-card--violet">
                         <div class="usb-feature-card__icon-wrap usb-feature-card__icon-wrap--violet">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="2" y="7" width="20" height="14" rx="2.5"/>
-                                <path d="M16 7V5a2 2 0 0 0-4 0v2"/>
-                                <circle cx="12" cy="14" r="2" fill="currentColor" stroke="none" opacity="0.55"/>
-                            </svg>
+                            <i class="fa-solid fa-coins"></i>
                         </div>
                         <span class="usb-feature-card__label">{{ __('nav.wallet') }}</span>
                     </div>
@@ -549,8 +545,8 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 
 .usb-feature-card {
     position: relative;
-    border-radius: 14px;
-    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    padding: 0.75rem 0.9rem;
     cursor: pointer;
     overflow: hidden;
     display: flex;
@@ -566,7 +562,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 1px;
-    border-radius: 14px 14px 0 0;
+    border-radius: 12px 12px 0 0;
     pointer-events: none;
 }
 /* Кошелёк — спокойный зелёный */
@@ -620,43 +616,48 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 
 /* Icon */
 .usb-feature-card__icon-wrap {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 1.05rem;
     position: relative;
     z-index: 1;
+    flex-shrink: 0;
 }
 .usb-feature-card__icon-wrap--violet {
     background: rgba(52, 211, 130, 0.08);
     border: 1px solid rgba(52, 211, 130, 0.15);
-    color: rgba(52, 211, 130, 0.7);
+    color: rgba(52, 211, 130, 0.85);
 }
 .usb-feature-card__icon-wrap--emerald {
     background: rgba(255, 178, 239, 0.08);
     border: 1px solid rgba(255, 178, 239, 0.15);
-    color: rgba(255, 178, 239, 0.7);
+    color: rgba(255, 178, 239, 0.85);
 }
 .usb-feature-card__icon-wrap--blue {
     background: rgba(100, 210, 255, 0.08);
     border: 1px solid rgba(100, 210, 255, 0.15);
-    color: rgba(100, 210, 255, 0.9);
+    color: rgba(100, 210, 255, 0.95);
 }
 
 /* Text */
 .usb-feature-card__label {
-    font-size: 0.88rem;
-    font-weight: 600;
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: rgba(255, 255, 255, 0.72);
     position: relative;
     z-index: 1;
+    -webkit-font-smoothing: antialiased;
+    transition: color 0.15s ease;
 }
-.usb-feature-card--violet .usb-feature-card__label  { color: rgba(255, 255, 255, 0.65); }
-.usb-feature-card--emerald .usb-feature-card__label { color: rgba(255, 255, 255, 0.65); }
 
-.usb-feature-card--violet:hover .usb-feature-card__label,
-.usb-feature-card--emerald:hover .usb-feature-card__label { color: rgba(255, 255, 255, 0.9); }
+.usb-feature-card:hover .usb-feature-card__label {
+    color: #fff;
+}
 
 /* ── Transitions ──────────────────────────────────────────── */
 .sidebar-backdrop-enter-active,
