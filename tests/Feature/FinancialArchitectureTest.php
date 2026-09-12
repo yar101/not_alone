@@ -244,23 +244,32 @@ it('handles content pack purchase with live wallet transactions', function () {
     expect((float) $seller->wallet->fresh()->balance)->toBe(450.00);
 });
 
-it('provides wallet data via JSON and Inertia routes and supports test deposits', function () {
+it('provides wallet data via JSON', function () {
     $user = User::factory()->create();
     $walletService = app(WalletService::class);
     $walletService->deposit($user, 500.00);
 
-    // 1. GET /api/wallet
     $response = $this->actingAs($user)->getJson(route('wallet.data'));
     $response->assertOk();
     $response->assertJsonPath('wallet.balance', 500);
     $response->assertJsonPath('wallet.currency', 'RUB');
     expect($response->json('transactions'))->toHaveCount(1);
+});
 
-    // 2. GET /wallet (Inertia)
-    $viewResponse = $this->actingAs($user)->get(route('wallet.show'));
-    $viewResponse->assertOk();
+it('renders wallet page with inertia', function () {
+    $user = User::factory()->create();
+    $walletService = app(WalletService::class);
+    $walletService->deposit($user, 300.00);
 
-    // 3. POST /api/wallet/deposit
+    $response = $this->actingAs($user)->get(route('wallet.show'));
+    $response->assertOk();
+});
+
+it('supports test deposits via API', function () {
+    $user = User::factory()->create();
+    $walletService = app(WalletService::class);
+    $walletService->deposit($user, 500.00);
+
     $depResponse = $this->actingAs($user)->postJson(route('wallet.deposit'), ['amount' => 250]);
     $depResponse->assertOk();
     $depResponse->assertJsonPath('success', true);
