@@ -43,6 +43,8 @@ class WalletController extends Controller
             ],
             'transactions' => $transactions,
             'canDeposit' => app()->environment('local', 'testing') || config('services.payments.mock_purchases', true),
+            'isIdol' => (bool) $user->is_idol,
+            'canWithdraw' => (bool) $user->is_idol,
         ]);
     }
 
@@ -76,6 +78,8 @@ class WalletController extends Controller
                 'is_active' => $wallet->is_active,
             ],
             'transactions' => $transactions,
+            'isIdol' => (bool) $user->is_idol,
+            'canWithdraw' => (bool) $user->is_idol,
         ]);
     }
 
@@ -100,5 +104,36 @@ class WalletController extends Controller
             'transaction' => $tx,
             'balance' => (float) $tx->balance_after,
         ]);
+    }
+
+    public function withdraw(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user->is_idol) {
+            return response()->json(['error' => 'Вывод средств доступен только айдолам.'], 403);
+        }
+
+        $data = $request->validate([
+            'amount' => ['required', 'numeric', 'min:10', 'max:1000000'],
+        ]);
+
+        try {
+            $tx = $this->walletService->withdraw(
+                user: $user,
+                amount: (float) $data['amount'],
+                description: 'Вывод средств на привязанную карту'
+            );
+
+            return response()->json([
+                'success' => true,
+                'transaction' => $tx,
+                'balance' => (float) $tx->balance_after,
+            ]);
+        } catch (\DomainException $e) {
+            return response()->json(['error' => $e->getMessage()], 403);
+        } catch (\App\Exceptions\InsufficientFundsException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
     }
 }

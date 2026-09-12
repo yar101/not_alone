@@ -276,3 +276,44 @@ it('supports test deposits via API', function () {
     $depResponse->assertJsonPath('balance', 750);
     expect((float) $user->wallet->fresh()->balance)->toBe(750.00);
 });
+
+it('forbids regular users from withdrawing funds', function () {
+    $regularUser = User::factory()->create(['is_idol' => false]);
+    $walletService = app(WalletService::class);
+    $walletService->deposit($regularUser, 1000.00);
+
+    $response = $this->actingAs($regularUser)->postJson(route('wallet.withdraw'), ['amount' => 300]);
+    $response->assertStatus(403);
+    expect((float) $regularUser->wallet->fresh()->balance)->toBe(1000.00);
+});
+
+it('allows idols to withdraw funds with sufficient balance', function () {
+    $idol = User::factory()->create(['is_idol' => true]);
+    $walletService = app(WalletService::class);
+    $walletService->deposit($idol, 2000.00);
+
+    $response = $this->actingAs($idol)->postJson(route('wallet.withdraw'), ['amount' => 500]);
+    $response->assertOk();
+    $response->assertJsonPath('success', true);
+    $response->assertJsonPath('balance', 1500);
+
+    $wallet = $idol->wallet->fresh();
+    expect((float) $wallet->balance)->toBe(1500.00);
+
+    $tx = WalletTransaction::where('wallet_id', $wallet->id)
+        ->where('type', WalletTransactionType::Withdrawal)
+        ->first();
+    expect($tx)->not->toBeNull();
+    expect((float) $tx->amount)->toBe(-500.00);
+    expect($tx->status)->toBe(WalletTransactionStatus::Completed);
+});
+
+it('prevents idols from withdrawing more than available balance', function () {
+    $idol = User::factory()->create(['is_idol' => true]);
+    $walletService = app(WalletService::class);
+    $walletService->deposit($idol, 300.00);
+
+    $response = $this->actingAs($idol)->postJson(route('wallet.withdraw'), ['amount' => 500]);
+    $response->assertStatus(422);
+    expect((float) $idol->wallet->fresh()->balance)->toBe(300.00);
+});

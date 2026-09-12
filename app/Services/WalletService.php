@@ -435,4 +435,61 @@ class WalletService
             );
         });
     }
+
+    /**
+     * Withdraw funds from an idol's available wallet balance.
+     */
+    public function withdraw(
+        User $user,
+        float $amount,
+        ?string $idempotencyKey = null,
+        ?string $description = null,
+        ?array $metadata = null
+    ): WalletTransaction {
+        if (! $user->is_idol) {
+            throw new \DomainException('Вывод средств разрешён только айдолам.');
+        }
+
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException('Сумма вывода должна быть больше нуля.');
+        }
+
+        return DB::transaction(function () use ($user, $amount, $idempotencyKey, $description, $metadata) {
+            if ($idempotencyKey) {
+                $existing = WalletTransaction::where('idempotency_key', $idempotencyKey)->first();
+                if ($existing) {
+                    return $existing;
+                }
+            }
+
+            $wallet = $this->getOrCreateWallet($user);
+            $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
+
+            if (! $lockedWallet->hasSufficientBalance($amount)) {
+                throw new InsufficientFundsException(
+                    "Недостаточно средств для вывода. Доступно: {$lockedWallet->balance} руб., запрошено: {$amount} руб."
+                );
+            }
+
+            $balanceBefore = $lockedWallet->balance;
+            $balanceAfter = (float) bcsub((string) $balanceBefore, (string) $amount, 2);
+
+            $lockedWallet->update(['balance' => $balanceAfter]);
+
+            return WalletTransaction::create([
+                'wallet_id' => $lockedWallet->id,
+                'user_id' => $user->id,
+                'type' => WalletTransactionType::Withdrawal,
+                'amount' => -$amount,
+                'balance_before' => $balanceBefore,
+                'balance_after' => $balanceAfter,
+                'held_balance_before' => $lockedWallet->held_balance,
+                'held_balance_after' => $lockedWallet->held_balance,
+                'status' => WalletTransactionStatus::Completed,
+                'idempotency_key' => $idempotencyKey,
+                'description' => $description ?? 'Вывод средств со счёта',
+                'metadata' => $metadata,
+            ]);
+        });
+    }
 }
