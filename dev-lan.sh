@@ -23,5 +23,5 @@ npx concurrently -c "#93c5fd,#c4b5fd,#fb7185,#fdba74,#86efac,#00D18F,#fbbf24,#f8
   "php artisan reverb:start --host=0.0.0.0" \
   "mailpit" \
   "php artisan schedule:work" \
-  "nginx -e /tmp/no-alone-nginx-error.log -c $DIR/nginx.conf -g 'daemon off;'" \
+  "nginx -e /tmp/not-alone-nginx-error.log -c $DIR/nginx.conf -g 'daemon off;'" \
   --names=fpm,queue,logs,vite,reverb,mailpit,schedule,nginx

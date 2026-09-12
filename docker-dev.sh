@@ -14,18 +14,23 @@ fi
 # Trim whitespace
 IP=$(echo "$IP" | xargs)
 
-# Check if certificates exist
+# Check if certificates exist, auto-generate if missing
 if [ ! -f "${IP}.pem" ] || [ ! -f "${IP}-key.pem" ]; then
-    echo "⚠️  Warning: Certificate files for IP '${IP}' (${IP}.pem / ${IP}-key.pem) not found in project root."
-    echo "Checking if we can find 192.168.1.100 certificates..."
-    if [ -f "192.168.1.100.pem" ] && [ -f "192.168.1.100-key.pem" ]; then
-        echo "Found 192.168.1.100 certificates. Forcing DEV_HOST=192.168.1.100 to match certificates."
-        IP="192.168.1.100"
+    echo "⚠️  Certificate files for IP '${IP}' (${IP}.pem / ${IP}-key.pem) not found in project root."
+    echo "🔐 Generating self-signed SSL certificates for ${IP}..."
+    if command -v mkcert >/dev/null 2>&1; then
+        mkcert -key-file "${IP}-key.pem" -cert-file "${IP}.pem" "$IP" "localhost" 127.0.0.1 ::1
+    elif command -v openssl >/dev/null 2>&1; then
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+            -keyout "${IP}-key.pem" -out "${IP}.pem" \
+            -subj "/CN=${IP}" \
+            -addext "subjectAltName=IP:${IP},IP:127.0.0.1,DNS:localhost" 2>/dev/null
     else
-        echo "❌ Error: No matching certificates found in project root."
-        echo "Please ensure you have '<IP>.pem' and '<IP>-key.pem' in the root directory."
+        echo "❌ Error: Neither mkcert nor openssl is installed to generate certificates."
+        echo "Please generate '${IP}.pem' and '${IP}-key.pem' manually."
         exit 1
     fi
+    echo "✅ Generated ${IP}.pem and ${IP}-key.pem successfully."
 fi
 
 # Ensure .env exists

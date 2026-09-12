@@ -27,7 +27,7 @@ cleanup() {
     DEV_HOST=1 docker compose exec app php artisan config:clear > /dev/null
     
     echo "🗑️  Удаляем тестовую базу..."
-    docker compose exec db psql -U postgres -c "DROP DATABASE IF EXISTS noalone_loadtest;" > /dev/null
+    docker compose exec db psql -U postgres -c "DROP DATABASE IF EXISTS not_alone_loadtest;" > /dev/null
     
     rm -f .env.k6
     echo "✅ Изолированная среда уничтожена. Вы вернулись в dev-режим."
@@ -35,14 +35,14 @@ cleanup() {
 trap cleanup EXIT
 
 # 2. Подмена на тестовую БД
-echo "🔧 Переключаемся на noalone_loadtest..."
-sed -i 's/DB_DATABASE=noalone/DB_DATABASE=noalone_loadtest/g' .env
+echo "🔧 Переключаемся на not_alone_loadtest..."
+sed -i 's/DB_DATABASE=not_alone/DB_DATABASE=not_alone_loadtest/g' .env
 DEV_HOST=1 docker compose exec app php artisan config:clear > /dev/null
 
 # 3. Создание чистой БД
-echo "💽 Создаём базу noalone_loadtest..."
-docker compose exec db psql -U postgres -c "DROP DATABASE IF EXISTS noalone_loadtest;" > /dev/null 2>&1 || true
-docker compose exec db psql -U postgres -c "CREATE DATABASE noalone_loadtest;" > /dev/null
+echo "💽 Создаём базу not_alone_loadtest..."
+docker compose exec db psql -U postgres -c "DROP DATABASE IF EXISTS not_alone_loadtest;" > /dev/null 2>&1 || true
+docker compose exec db psql -U postgres -c "CREATE DATABASE not_alone_loadtest;" > /dev/null
 
 # 4. Накат миграций, сидеров и нашего k6-сидера
 echo "🏗️  Выполняем migrate:fresh --seed..."

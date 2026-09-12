@@ -1,17 +1,17 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: no_alone_db
+    container_name: not_alone_db
     ports:
       - "5433:5432"
     environment:
-      POSTGRES_DB: noalone
+      POSTGRES_DB: not_alone
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d noalone"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d not_alone"]
       interval: 3s
       timeout: 3s
       retries: 10
@@ -20,7 +20,7 @@ services:
 
   redis:
     image: redis:alpine
-    container_name: no_alone_redis
+    container_name: not_alone_redis
     ports:
       - "6379:6379"
     ulimits:
@@ -37,7 +37,7 @@ services:
 
   mailpit:
     image: axllent/mailpit
-    container_name: no_alone_mailpit
+    container_name: not_alone_mailpit
     ports:
       - "8025:8025"
       - "1025:1025"
@@ -47,8 +47,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: no_alone_app:dev
-    container_name: no_alone_app
+    image: not_alone_app:dev
+    container_name: not_alone_app
     ports:
       - "8443:8443"
     environment:
@@ -61,7 +61,7 @@ services:
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
-      DB_DATABASE: noalone
+      DB_DATABASE: not_alone
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
       SESSION_DRIVER: redis
@@ -109,8 +109,8 @@ services:
     restart: unless-stopped
 
   worker:
-    image: no_alone_app:dev
-    container_name: no_alone_worker
+    image: not_alone_app:dev
+    container_name: not_alone_worker
     environment:
       CONTAINER_ROLE: worker
       APP_ENV: local
@@ -121,7 +121,7 @@ services:
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
-      DB_DATABASE: noalone
+      DB_DATABASE: not_alone
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
       SESSION_DRIVER: redis
@@ -158,8 +158,8 @@ services:
     restart: unless-stopped
 
   scheduler:
-    image: no_alone_app:dev
-    container_name: no_alone_scheduler
+    image: not_alone_app:dev
+    container_name: not_alone_scheduler
     environment:
       CONTAINER_ROLE: scheduler
       APP_ENV: local
@@ -170,7 +170,7 @@ services:
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
-      DB_DATABASE: noalone
+      DB_DATABASE: not_alone
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
       SESSION_DRIVER: redis
@@ -208,8 +208,8 @@ services:
     restart: unless-stopped
 
   reverb:
-    image: no_alone_app:dev
-    container_name: no_alone_reverb
+    image: not_alone_app:dev
+    container_name: not_alone_reverb
     ports:
       - "8080:8080"
     environment:
@@ -221,7 +221,7 @@ services:
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
-      DB_DATABASE: noalone
+      DB_DATABASE: not_alone
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
       REDIS_HOST: redis
@@ -249,7 +249,7 @@ services:
 
   vite:
     image: node:22-alpine
-    container_name: no_alone_vite
+    container_name: not_alone_vite
     working_dir: /var/www/html
     ports:
       - "5173:5173"
@@ -264,8 +264,8 @@ services:
     restart: unless-stopped
 
   minio:
-    image: minio/minio:latest
-    container_name: no_alone_minio
+    image: quay.io/minio/minio:latest
+    container_name: not_alone_minio
     ports:
       - "9000:9000"
       - "8900:8900"
@@ -284,8 +284,8 @@ services:
     restart: unless-stopped
 
   minio-setup:
-    image: minio/mc
-    container_name: no_alone_minio_setup
+    image: quay.io/minio/mc:latest
+    container_name: not_alone_minio_setup
     depends_on:
       minio:
         condition: service_healthy

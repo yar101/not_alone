@@ -42,7 +42,12 @@ if [ "${CONTAINER_ROLE}" = "web" ] || [ -z "${CONTAINER_ROLE}" ]; then
 
     wait_for_db
     php artisan migrate --force
-    php artisan db:seed --force
+    if [ "${RUN_SEEDERS}" = "true" ] || ! php artisan tinker --execute="exit(\App\Models\User::exists() ? 0 : 1);" 2>/dev/null; then
+        echo "Running database seeders..."
+        php artisan db:seed --force
+    else
+        echo "Skipping database seeders (database already initialized)."
+    fi
     if [ "${APP_ENV}" = "local" ]; then
         php artisan config:clear
         php artisan route:clear

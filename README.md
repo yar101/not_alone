@@ -1,5 +1,5 @@
 <!-- markdownlint-disable MD013 -->
-# NoAlone
+# Not Alone
 
 Платформа для айдолов и их фанатов. Laravel + Inertia.js v2 + Vue 3.
 
@@ -326,5 +326,5 @@ kamal app logs -r worker
 
 - **Ошибка `composer install` по поводу отсутствующих `ext-bcmath`, `ext-curl`:**
   Убедитесь, что расширения включены в вашем `php.ini` или в `/etc/php*/conf.d/`.
-- **Ошибка Docker `pull access denied for no_alone_app` при первом запуске:**
-  Сначала выполните `docker compose build`, чтобы образ `no_alone_app:dev` собрался локально.
+- **Ошибка Docker `pull access denied for not_alone_app` при первом запуске:**
+  Сначала выполните `docker compose build`, чтобы образ `not_alone_app:dev` собрался локально.

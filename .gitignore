@@ -28,3 +28,5 @@ _ide_helper.php
 _ide_helper_models.php
 auto-imports.d.ts
 components.d.ts
+*.pem
+*-key.pem

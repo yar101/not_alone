@@ -15,7 +15,7 @@ echo "========================================================"
 
 echo ""
 echo "⚠️  Для теста чата нужна ваша активная сессия."
-echo "Скопируйте значение куки no_alone_session (или laravel_session) из браузера."
+echo "Скопируйте значение куки not_alone_session (или laravel_session) из браузера."
 echo "Вставьте её сюда и нажмите Enter:"
 read -r SESSION_COOKIE
 
