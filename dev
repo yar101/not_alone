@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# Not Alone — Interactive Developer Console (TUI)
+# ==============================================================================
+set -e
+
+DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$DIR"
+
+# Launch Laravel Prompts TUI console
+php artisan dev:tui "$@"

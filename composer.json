@@ -82,6 +82,14 @@
         "pwa-lan": [
             "Composer\\Config::disableProcessTimeout",
             "bash pwa-lan.sh"
+        ],
+        "tui": [
+            "Composer\\Config::disableProcessTimeout",
+            "php artisan dev:tui"
+        ],
+        "dev:tui": [
+            "Composer\\Config::disableProcessTimeout",
+            "php artisan dev:tui"
         ]
     },
     "extra": {
