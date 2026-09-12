@@ -190,3 +190,22 @@ body {
     background: #0f0f1d !important;
     border: 1px solid rgba(255, 178, 239, 0.3) !important;
 }
+
+/* Wallet Info Tooltip with neat line wraps */
+.el-popper.is-dark.wallet-dark-tooltip {
+    background: #0f0f1d !important;
+    color: rgba(240, 240, 255, 0.95) !important;
+    border: 1px solid rgba(255, 178, 239, 0.3) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
+    font-size: 12.5px !important;
+    line-height: 1.45 !important;
+    padding: 8px 12px !important;
+    border-radius: 8px !important;
+    max-width: 280px !important;
+    white-space: normal !important;
+    text-align: center !important;
+}
+.el-popper.is-dark.wallet-dark-tooltip .el-popper__arrow::before {
+    background: #0f0f1d !important;
+    border: 1px solid rgba(255, 178, 239, 0.3) !important;
+}

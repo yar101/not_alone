@@ -281,9 +281,14 @@ function isHoldTx(type) {
                                 <el-tooltip
                                     placement="top"
                                     effect="dark"
-                                    popper-class="newbie-dark-tooltip"
-                                    :content="isIdol ? 'Свободные средства. Доступны для оплаты услуг или вывода на карту.' : 'Свободные средства. Доступны для оплаты заказов и контент-паков.'"
+                                    popper-class="wallet-dark-tooltip"
                                 >
+                                    <template #content>
+                                        <div class="wallet-tip-text">
+                                            <span v-if="isIdol">Свободные средства.<br>Доступны для оплаты услуг<br>или вывода на карту.</span>
+                                            <span v-else>Свободные средства.<br>Доступны для оплаты услуг<br>и контент-паков.</span>
+                                        </div>
+                                    </template>
                                     <div class="wcard__info-trigger">
                                         <el-icon><InfoFilled /></el-icon>
                                     </div>
@@ -310,9 +315,15 @@ function isHoldTx(type) {
                                 <el-tooltip
                                     placement="top"
                                     effect="dark"
-                                    popper-class="newbie-dark-tooltip"
-                                    content="Средства временно заморожены до подтверждения выполнения заказа. Исполнитель получает оплату только после завершения работы."
+                                    popper-class="wallet-dark-tooltip"
                                 >
+                                    <template #content>
+                                        <div class="wallet-tip-text">
+                                            Средства заморожены до сдачи заказа.<br>
+                                            Исполнитель получит оплату<br>
+                                            только после подтверждения работы.
+                                        </div>
+                                    </template>
                                     <div class="wcard__info-trigger">
                                         <el-icon><InfoFilled /></el-icon>
                                     </div>
