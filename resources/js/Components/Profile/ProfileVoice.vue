@@ -93,6 +93,15 @@ onUnmounted(() => {
     ws?.destroy();
     ws = null;
     clearInterval(timer);
+    if (mr) {
+        if (mr.state !== 'inactive') {
+            try { mr.stop(); } catch {}
+        }
+        try {
+            mr.stream?.getTracks().forEach(t => t.stop());
+        } catch {}
+        mr = null;
+    }
 });
 
 // ── Recording state (объявлено до isDiskSpinning) ───────────

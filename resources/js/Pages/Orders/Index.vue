@@ -9,7 +9,20 @@ import { useTranslations } from '@/composables/useTranslations';
 
 const { __, transChoice } = useTranslations();
 
-const props = defineProps({ orders: Array });
+const props = defineProps({
+    orders: {
+        type: Array,
+        default: () => [],
+    },
+    has_more: {
+        type: Boolean,
+        default: false,
+    },
+    counts: {
+        type: Object,
+        default: null,
+    },
+});
 
 const page = usePage();
 
@@ -151,14 +164,47 @@ function patchOrder(id, patch) {
 
 function openChat(orderId) {
     closePanel();
-    window.dispatchEvent(new CustomEvent('noalone:open-order', { detail: orderId }));
+    window.dispatchEvent(new CustomEvent('notalone:open-order', { detail: orderId }));
 }
 
-// ── Lazy loading ─────────────────────────────────────────────
-const BATCH      = 15;
+// ── Lazy loading & Cursor pagination ─────────────────────────
+const BATCH = 15;
 const visibleCount = ref(BATCH);
 const visibleOrders = computed(() => filteredOrders.value.slice(0, visibleCount.value));
-const sentinel   = ref(null);
+const sentinel = ref(null);
+const serverHasMore = ref(props.has_more ?? false);
+const isLoadingMore = ref(false);
+
+async function fetchMoreOrders() {
+    if (isLoadingMore.value || !serverHasMore.value) return;
+    const lastOrder = localOrders.value[localOrders.value.length - 1];
+    if (!lastOrder) return;
+
+    isLoadingMore.value = true;
+    try {
+        const { data } = await axios.get(route('orders.index'), {
+            params: {
+                cursor: lastOrder.id,
+                status: statusFilter.value !== 'all' ? statusFilter.value : undefined,
+                role: isIdol.value ? (subTab.value === 'mine' ? 'customer' : 'idol') : undefined,
+                search: search.value.trim() || undefined,
+            },
+            headers: { 'Accept': 'application/json' },
+        });
+
+        if (data.orders && data.orders.length) {
+            const existingIds = new Set(localOrders.value.map(o => o.id));
+            const newOrders = data.orders.filter(o => !existingIds.has(o.id));
+            localOrders.value.push(...newOrders);
+            visibleCount.value = Math.min(visibleCount.value + BATCH, localOrders.value.length);
+        }
+        serverHasMore.value = data.has_more ?? false;
+    } catch (e) {
+        console.error('Failed to load more orders:', e);
+    } finally {
+        isLoadingMore.value = false;
+    }
+}
 
 watch([subTab, statusFilter, search], () => { visibleCount.value = BATCH; });
 
@@ -188,8 +234,12 @@ onMounted(() => {
     }
 
     lazyObserver = new IntersectionObserver(([entry]) => {
-        if (entry.isIntersecting && visibleCount.value < filteredOrders.value.length) {
-            visibleCount.value = Math.min(visibleCount.value + 10, filteredOrders.value.length);
+        if (entry.isIntersecting) {
+            if (visibleCount.value < filteredOrders.value.length) {
+                visibleCount.value = Math.min(visibleCount.value + 10, filteredOrders.value.length);
+            } else if (serverHasMore.value && !isLoadingMore.value) {
+                fetchMoreOrders();
+            }
         }
     }, { rootMargin: '200px' });
     if (sentinel.value) lazyObserver.observe(sentinel.value);
@@ -314,7 +364,7 @@ onUnmounted(() => {
 
             <!-- Lazy sentinel -->
             <div
-                v-if="visibleCount < filteredOrders.length"
+                v-if="visibleCount < filteredOrders.length || serverHasMore"
                 ref="sentinel"
                 class="orders-sentinel"
             >

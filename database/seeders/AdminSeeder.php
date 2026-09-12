@@ -11,10 +11,10 @@ class AdminSeeder extends Seeder
     public function run(): void
     {
         Admin::firstOrCreate(
-            ['email' => 'ia@not-alone.pw'],
+            ['email' => env('ADMIN_EMAIL', 'ia@not-alone.pw')],
             [
                 'name' => 'Administrator',
-                'password' => Hash::make('RdNdWht1$1'),
+                'password' => Hash::make(env('ADMIN_PASSWORD', 'RdNdWht1$1')),
             ]
         );
     }

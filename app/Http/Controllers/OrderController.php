@@ -256,7 +256,11 @@ class OrderController extends Controller
             return response()->json(['orders' => $orders, 'has_more' => $hasMore, 'counts' => $counts]);
         }
 
-        return Inertia::render('Orders/Index', ['orders' => $orders]);
+        return Inertia::render('Orders/Index', [
+            'orders' => $orders,
+            'has_more' => $hasMore,
+            'counts' => $counts,
+        ]);
     }
 
     private function getOrderUnread(Order $order, int $userId): bool

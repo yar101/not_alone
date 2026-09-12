@@ -27,13 +27,18 @@ class QuizQuestionController extends Controller
 
     public function store(Request $request)
     {
+        $optionsCount = is_array($request->input('options')) ? count($request->input('options')) : 2;
+        $maxIndex = max(0, $optionsCount - 1);
+
         $validated = $request->validate([
             'stage' => 'required|integer|min:1|max:10',
             'question' => 'required|string',
             'options' => 'required|array|min:2|max:6',
             'options.*' => 'required|string',
-            'correct_option_index' => 'required|integer|min:0',
+            'correct_option_index' => "required|integer|min:0|max:{$maxIndex}",
             'sort_order' => 'integer|min:0',
+        ], [
+            'correct_option_index.max' => 'Индекс правильного ответа не может превышать количество вариантов.',
         ]);
 
         IdolQuizQuestion::create($validated);
@@ -43,13 +48,18 @@ class QuizQuestionController extends Controller
 
     public function update(Request $request, IdolQuizQuestion $question)
     {
+        $optionsCount = is_array($request->input('options')) ? count($request->input('options')) : 2;
+        $maxIndex = max(0, $optionsCount - 1);
+
         $validated = $request->validate([
             'stage' => 'required|integer|min:1|max:10',
             'question' => 'required|string',
             'options' => 'required|array|min:2|max:6',
             'options.*' => 'required|string',
-            'correct_option_index' => 'required|integer|min:0',
+            'correct_option_index' => "required|integer|min:0|max:{$maxIndex}",
             'sort_order' => 'integer|min:0',
+        ], [
+            'correct_option_index.max' => 'Индекс правильного ответа не может превышать количество вариантов.',
         ]);
 
         $question->update($validated);
@@ -181,6 +191,8 @@ class QuizQuestionController extends Controller
             }
             if (! isset($q['correct_option_index']) || ! is_numeric($q['correct_option_index'])) {
                 $errors[] = "Вопрос #{$n}: поле «correct_option_index» отсутствует или не является числом.";
+            } elseif (isset($q['options']) && is_array($q['options']) && ((int) $q['correct_option_index'] < 0 || (int) $q['correct_option_index'] >= count($q['options']))) {
+                $errors[] = "Вопрос #{$n}: «correct_option_index» выходит за границы вариантов ответа (0..".(count($q['options'])-1).").";
             }
             if (count($errors) >= 5) {
                 $errors[] = '…(и другие ошибки)';

@@ -200,9 +200,9 @@ const STORAGE_KEY = 'notif_active_filters';
 const savedFilters = localStorage.getItem(STORAGE_KEY);
 const activeFilters = ref(savedFilters ? JSON.parse(savedFilters) : ['service', 'order']);
 
-const POPUP_STORAGE_KEY = 'noalone_popups_enabled';
+const POPUP_STORAGE_KEY = 'notalone_popups_enabled';
 const showSettings = ref(false);
-const popupsEnabled = ref(localStorage.getItem(POPUP_STORAGE_KEY) === 'true');
+const popupsEnabled = ref(localStorage.getItem(POPUP_STORAGE_KEY) === 'true' || localStorage.getItem('noalone_popups_enabled') === 'true');
 
 watch(popupsEnabled, (val) => {
     localStorage.setItem(POPUP_STORAGE_KEY, val ? 'true' : 'false');
@@ -644,7 +644,7 @@ async function requestPush() {
 onMounted(() => {
     window.addEventListener('resize', onResize);
     document.addEventListener('click', closeOnOutside);
-    window.addEventListener('noalone:toggle-chat', onToggleChat);
+    window.addEventListener('notalone:toggle-chat', onToggleChat);
 
     if (isSupported() && page.props.auth?.user) {
         if (Notification.permission === 'granted') {
@@ -674,7 +674,7 @@ onUnmounted(() => {
     clearTimeout(autoReadTimer);
     window.removeEventListener('resize', onResize);
     document.removeEventListener('click', closeOnOutside);
-    window.removeEventListener('noalone:toggle-chat', onToggleChat);
+    window.removeEventListener('notalone:toggle-chat', onToggleChat);
     window.Echo.leaveChannel('notifications.global');
     const userId = page.props.auth?.user?.id;
     if (userId) {

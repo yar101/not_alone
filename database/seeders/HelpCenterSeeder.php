@@ -164,8 +164,8 @@ class HelpCenterSeeder extends Seeder
                     [
                         'title' => ['ru' => 'Как связаться с поддержкой?', 'en' => 'How to contact support?'],
                         'content' => [
-                            'ru' => '<p>Напишите нам на <strong>support@noalone.app</strong> — мы отвечаем в течение 24 часов в рабочие дни. Также можно воспользоваться формой обратной связи внутри приложения.</p>',
-                            'en' => '<p>Write to us at <strong>support@noalone.app</strong> — we respond within 24 hours on business days. You can also use the feedback form inside the application.</p>',
+                            'ru' => '<p>Напишите нам на <strong>support@notalone.app</strong> — мы отвечаем в течение 24 часов в рабочие дни. Также можно воспользоваться формой обратной связи внутри приложения.</p>',
+                            'en' => '<p>Write to us at <strong>support@notalone.app</strong> — we respond within 24 hours on business days. You can also use the feedback form inside the application.</p>',
                         ],
                     ],
                     [
@@ -178,8 +178,8 @@ class HelpCenterSeeder extends Seeder
                     [
                         'title' => ['ru' => 'Как стать партнёром?', 'en' => 'How to become a partner?'],
                         'content' => [
-                            'ru' => '<p>По вопросам сотрудничества и партнёрства пишите на <strong>partners@noalone.app</strong>. Расскажите о вашем проекте, и мы рассмотрим предложение.</p>',
-                            'en' => '<p>For cooperation and partnership questions, write to <strong>partners@noalone.app</strong>. Tell us about your project, and we will consider the proposal.</p>',
+                            'ru' => '<p>По вопросам сотрудничества и партнёрства пишите на <strong>partners@notalone.app</strong>. Расскажите о вашем проекте, и мы рассмотрим предложение.</p>',
+                            'en' => '<p>For cooperation and partnership questions, write to <strong>partners@notalone.app</strong>. Tell us about your project, and we will consider the proposal.</p>',
                         ],
                     ],
                 ],

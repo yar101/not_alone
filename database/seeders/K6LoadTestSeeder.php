@@ -18,7 +18,7 @@ class K6LoadTestSeeder extends Seeder
 
         // 1. Создаём бота-клиента
         $bot = User::firstOrCreate(
-            ['email' => 'k6_bot@noalone.test'],
+            ['email' => 'k6_bot@notalone.test'],
             [
                 'name' => 'K6 Load Bot',
                 'password' => Hash::make('password'),
@@ -31,7 +31,7 @@ class K6LoadTestSeeder extends Seeder
 
         // 2. Создаём бота-айдола
         $idol = User::firstOrCreate(
-            ['email' => 'k6_idol@noalone.test'],
+            ['email' => 'k6_idol@notalone.test'],
             [
                 'name' => 'K6 Idol Bot',
                 'password' => Hash::make('password'),

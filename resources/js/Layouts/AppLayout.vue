@@ -249,10 +249,10 @@ function handleUserBannedEvent() {
 onMounted(() => {
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
-    window.addEventListener("noalone:open-order", handleOpenOrderEvent);
-    window.addEventListener("noalone:user-banned", handleUserBannedEvent);
-    window.addEventListener("noalone:toggle-chat", handleToggleChatEvent);
-    window.addEventListener("noalone:toggle-sidebar", handleToggleSidebarEvent);
+    window.addEventListener("notalone:open-order", handleOpenOrderEvent);
+    window.addEventListener("notalone:user-banned", handleUserBannedEvent);
+    window.addEventListener("notalone:toggle-chat", handleToggleChatEvent);
+    window.addEventListener("notalone:toggle-sidebar", handleToggleSidebarEvent);
 
     if ("serviceWorker" in navigator) {
         let refreshing = false;
@@ -266,10 +266,10 @@ onMounted(() => {
 
 onUnmounted(() => {
     window.removeEventListener("scroll", handleScroll);
-    window.removeEventListener("noalone:open-order", handleOpenOrderEvent);
-    window.removeEventListener("noalone:user-banned", handleUserBannedEvent);
-    window.removeEventListener("noalone:toggle-chat", handleToggleChatEvent);
-    window.removeEventListener("noalone:toggle-sidebar", handleToggleSidebarEvent);
+    window.removeEventListener("notalone:open-order", handleOpenOrderEvent);
+    window.removeEventListener("notalone:user-banned", handleUserBannedEvent);
+    window.removeEventListener("notalone:toggle-chat", handleToggleChatEvent);
+    window.removeEventListener("notalone:toggle-sidebar", handleToggleSidebarEvent);
     if (msgChannel) msgChannel.stopListening(".message.received");
     if (window.Echo) window.Echo.leave("presence-online");
 });

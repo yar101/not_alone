@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class LoginController extends Controller
@@ -25,12 +27,24 @@ class LoginController extends Controller
             'password' => 'required',
         ]);
 
+        $throttleKey = Str::transliterate(Str::lower($credentials['email']).'|'.$request->ip());
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            return back()->withErrors([
+                'email' => "Слишком много неудачных попыток входа. Пожалуйста, повторите через {$seconds} сек.",
+            ]);
+        }
+
         if (Auth::guard('admin')->attempt($credentials, $request->boolean('remember'))) {
+            RateLimiter::clear($throttleKey);
             $request->session()->regenerate();
             $intended = session()->pull('admin.url.intended', route('admin.dashboard'));
 
             return redirect()->to($intended);
         }
+
+        RateLimiter::hit($throttleKey, 60);
 
         return back()->withErrors(['email' => 'Неверный email или пароль.']);
     }

@@ -427,9 +427,12 @@ class OrderService
                     break;
 
                 case OrderStatus::Completed:
+                    $wasAlreadyCompleted = $lockedOrder->completed_at !== null;
                     $attrs['completed_at'] = $lockedOrder->completed_at ?? now();
 
-                    IdolRatingService::adjust($lockedOrder->idol, 'order_completed');
+                    if (! $wasAlreadyCompleted) {
+                        IdolRatingService::adjust($lockedOrder->idol, 'order_completed');
+                    }
 
                     if ($lockedOrder->conversation_id) {
                         $lockedOrder->conversation->messages()->create([

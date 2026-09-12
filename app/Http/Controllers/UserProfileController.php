@@ -269,7 +269,7 @@ class UserProfileController extends Controller
     public function updateHeader(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'name' => ['required', 'string', 'min:2', 'max:100', 'regex:/^\p{L}+(\s\p{L}+)?$/u', \Illuminate\Validation\Rule::unique('users', 'name')->ignore($request->user()->id)],
+            'name' => ['required', 'string', 'min:2', 'max:100', 'regex:/^\S+$/u', \Illuminate\Validation\Rule::unique('users', 'name')->ignore($request->user()->id)],
             'gender' => ['nullable', 'in:male,female'],
             'birth_date' => ['nullable', 'date', 'before:'.now()->subYears(18)->toDateString()],
             'timezone' => ['nullable', 'string', 'max:60', 'timezone:all'],
@@ -277,7 +277,7 @@ class UserProfileController extends Controller
             'name.required' => 'Имя обязательно.',
             'name.min' => 'Имя слишком короткое.',
             'name.max' => 'Имя слишком длинное.',
-            'name.regex' => 'Имя должно содержать одно или два слова (только буквы).',
+            'name.regex' => 'Имя не должно содержать пробелы.',
             'name.unique' => 'Этот логин уже занят.',
         ]);
         $request->user()->update($data);

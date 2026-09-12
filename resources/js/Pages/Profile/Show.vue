@@ -308,7 +308,7 @@ onMounted(async () => {
                     side: "bottom",
                 },
                 onHighlightStarted: () => {
-                    window.dispatchEvent(new CustomEvent("noalone:toggle-chat", { detail: false }));
+                    window.dispatchEvent(new CustomEvent("notalone:toggle-chat", { detail: false }));
                 },
             },
             {
@@ -319,7 +319,7 @@ onMounted(async () => {
                     side: "left",
                 },
                 onHighlightStarted: () => {
-                    window.dispatchEvent(new CustomEvent("noalone:toggle-chat", { detail: true }));
+                    window.dispatchEvent(new CustomEvent("notalone:toggle-chat", { detail: true }));
                 },
             },
             {
@@ -365,7 +365,7 @@ onMounted(async () => {
                     side: "left",
                 },
                 onHighlightStarted: () => {
-                    window.dispatchEvent(new CustomEvent("noalone:toggle-sidebar", { detail: true }));
+                    window.dispatchEvent(new CustomEvent("notalone:toggle-sidebar", { detail: true }));
                 },
             },
             {
@@ -376,15 +376,15 @@ onMounted(async () => {
                     side: "left",
                 },
                 onHighlightStarted: () => {
-                    window.dispatchEvent(new CustomEvent("noalone:toggle-sidebar", { detail: true }));
+                    window.dispatchEvent(new CustomEvent("notalone:toggle-sidebar", { detail: true }));
                 },
             },
         ],
         onDestroyed: () => {
             tourIsActive.value = false;
             localStorage.setItem(TOUR_KEY, "1");
-            window.dispatchEvent(new CustomEvent("noalone:toggle-chat", { detail: false }));
-            window.dispatchEvent(new CustomEvent("noalone:toggle-sidebar", { detail: false }));
+            window.dispatchEvent(new CustomEvent("notalone:toggle-chat", { detail: false }));
+            window.dispatchEvent(new CustomEvent("notalone:toggle-sidebar", { detail: false }));
         },
     });
 

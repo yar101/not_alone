@@ -45,7 +45,7 @@ class IdolRatingService
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($user, $event, $delta, $note) {
             $lockedUser = User::lockForUpdate()->find($user->id);
-            if (! $lockedUser) {
+            if (! $lockedUser || ! $lockedUser->is_idol) {
                 return;
             }
 

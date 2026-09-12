@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { Head, usePage, router } from "@inertiajs/vue3";
+import { ElNotification } from "element-plus";
 import StartBtn from "@/Components/Site/StartBtn.vue";
 import AuthModal from "@/Components/Site/AuthModal.vue";
 import { useTranslations } from "@/composables/useTranslations";
@@ -15,6 +16,17 @@ const page = usePage();
 const showAuthModal = ref(false);
 
 const { __ } = useTranslations();
+
+onMounted(() => {
+    if (page.props.errors?.ban) {
+        ElNotification({
+            title: "Доступ ограничен",
+            message: page.props.errors.ban,
+            type: "error",
+            duration: 9000,
+        });
+    }
+});
 
 const startBtnLabel = computed(() => {
     return page.props.auth?.user ? __("welcome.enter") : __("welcome.start");

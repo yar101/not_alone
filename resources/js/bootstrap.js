@@ -10,7 +10,7 @@ window.axios.interceptors.response.use(
         const status = error.response?.status;
         const data = error.response?.data;
         if ((status === 422 || status === 403) && (data?.message === 'user_banned' || data?.error === 'user_banned')) {
-            window.dispatchEvent(new CustomEvent('noalone:user-banned'));
+            window.dispatchEvent(new CustomEvent('notalone:user-banned'));
         }
         return Promise.reject(error);
     }

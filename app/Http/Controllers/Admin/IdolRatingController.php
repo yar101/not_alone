@@ -14,11 +14,11 @@ class IdolRatingController extends Controller
     public function update(Request $request, User $user): RedirectResponse
     {
         $data = $request->validate([
-            'delta' => ['required', 'integer', 'min:-100', 'max:100'],
+            'delta' => ['required', 'numeric', 'min:-100', 'max:100'],
             'note' => ['nullable', 'string', 'max:255'],
         ]);
 
-        IdolRatingService::adjust($user, 'admin_manual', $data['delta'], $data['note'] ?? null);
+        IdolRatingService::adjust($user, 'admin_manual', (float) $data['delta'], $data['note'] ?? null);
 
         AdminLogService::log(
             auth('admin')->id(),

@@ -19,6 +19,17 @@ class ReportController extends Controller
             'details' => ['required', 'string', 'min:10', 'max:1000'],
         ]);
 
+        $hasPending = UserReport::where('reporter_id', $userId)
+            ->where('reported_id', $validated['reported_id'])
+            ->where('status', 'pending')
+            ->exists();
+
+        if ($hasPending) {
+            return back()->withErrors([
+                'reported_id' => 'Вы уже отправили жалобу на этого пользователя. Она находится на рассмотрении.',
+            ]);
+        }
+
         UserReport::create([
             ...$validated,
             'reporter_id' => $userId,
