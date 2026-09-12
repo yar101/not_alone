@@ -2,14 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\InsufficientFundsException;
 use App\Models\ContentPack;
 use App\Models\ContentPackPurchase;
+use App\Services\WalletService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ContentPackPurchaseController extends Controller
 {
+    public function __construct(private ?WalletService $walletService = null)
+    {
+        $this->walletService = $this->walletService ?? app(WalletService::class);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -17,7 +24,7 @@ class ContentPackPurchaseController extends Controller
             'items.*' => ['integer'],
         ]);
 
-        $userId = $request->user()->id;
+        $user = $request->user();
         $packIds = array_unique($data['items']);
 
         $packs = ContentPack::whereIn('id', $packIds)
@@ -26,32 +33,27 @@ class ContentPackPurchaseController extends Controller
             ->get()
             ->keyBy('id');
 
-        $created = DB::transaction(function () use ($packIds, $packs, $userId) {
-            $createdIds = [];
-            foreach ($packIds as $packId) {
-                $pack = $packs->get($packId);
-                if (! $pack || $pack->user_id === $userId) {
-                    continue;
+        try {
+            $created = DB::transaction(function () use ($packIds, $packs, $user) {
+                $createdIds = [];
+                foreach ($packIds as $packId) {
+                    $pack = $packs->get($packId);
+                    if (! $pack || $pack->user_id === $user->id) {
+                        continue;
+                    }
+
+                    $purchase = $this->walletService->purchaseContentPack($user, $pack);
+
+                    if ($purchase->wasRecentlyCreated) {
+                        $createdIds[] = $packId;
+                    }
                 }
 
-                $purchase = ContentPackPurchase::firstOrCreate(
-                    [
-                        'content_pack_id' => $pack->id,
-                        'user_id' => $userId,
-                    ],
-                    [
-                        'price_paid' => $pack->price,
-                        'purchased_at' => now(),
-                    ]
-                );
-
-                if ($purchase->wasRecentlyCreated) {
-                    $createdIds[] = $packId;
-                }
-            }
-
-            return $createdIds;
-        });
+                return $createdIds;
+            });
+        } catch (InsufficientFundsException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
 
         return response()->json(['success' => true, 'purchased' => $created]);
     }

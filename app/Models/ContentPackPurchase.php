@@ -32,4 +32,9 @@ class ContentPackPurchase extends Model
     {
         return $this->belongsTo(User::class)->withTrashed();
     }
+
+    public function walletTransactions(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    {
+        return $this->morphMany(WalletTransaction::class, 'reference');
+    }
 }

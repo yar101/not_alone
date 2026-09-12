@@ -19,7 +19,6 @@ class DatabaseSeeder extends Seeder
             ServiceCategorySeeder::class,
             ServiceTimeUnitSeeder::class,
             BanReasonSeeder::class,
-            NewsSeeder::class,
             ReviewEpithetSeeder::class,
             HelpCenterSeeder::class,
             TestUsersSeeder::class,

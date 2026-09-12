@@ -22,6 +22,7 @@ use App\Http\Controllers\ReviewDisputeController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\UserSearchController;
+use App\Http\Controllers\WalletController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -183,6 +184,11 @@ Route::middleware(['auth', 'not_banned'])->group(function () {
     Route::post('/reviews/{review}/dispute', [ReviewDisputeController::class, 'store'])->name('reviews.dispute.store');
     Route::post('/orders', [OrderController::class, 'store'])->middleware('throttle:30,1')->name('orders.store');
     Route::post('/orders/{order}/review', [ReviewController::class, 'store'])->middleware('throttle:20,1')->name('orders.review.store');
+
+    // Wallet
+    Route::get('/wallet', [WalletController::class, 'show'])->name('wallet.show');
+    Route::get('/api/wallet', [WalletController::class, 'showJson'])->name('wallet.data');
+    Route::post('/api/wallet/deposit', [WalletController::class, 'deposit'])->name('wallet.deposit');
 });
 
 require __DIR__.'/auth.php';

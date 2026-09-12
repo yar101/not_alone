@@ -168,12 +168,12 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 
                 <!-- Feature cards -->
                 <div class="usb-features">
-                    <div class="usb-feature-card usb-feature-card--violet">
+                    <Link :href="route('wallet.show')" class="usb-feature-card usb-feature-card--violet" @click="closeForNav">
                         <div class="usb-feature-card__icon-wrap usb-feature-card__icon-wrap--violet">
                             <i class="fa-solid fa-coins"></i>
                         </div>
                         <span class="usb-feature-card__label">{{ __('nav.wallet') }}</span>
-                    </div>
+                    </Link>
 
                     <Link :href="route('orders.index')" class="usb-feature-card usb-feature-card--emerald" @click="closeForNav">
                         <div class="usb-feature-card__icon-wrap usb-feature-card__icon-wrap--emerald">

@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'payments' => [
+        'mock_purchases' => env('PAYMENTS_MOCK_PURCHASES', true),
+        'platform_fee_percent' => (float) env('PLATFORM_FEE_PERCENT', 10.0),
+    ],
+
 ];

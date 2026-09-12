@@ -70,4 +70,21 @@ class Order extends Model
             'note' => $note,
         ]);
     }
+
+    public function getTotalPriceAttribute(): float
+    {
+        if ($this->relationLoaded('items')) {
+            return (float) $this->items->sum(function ($item) {
+                $price = $item->price ?? $item->service?->price ?? 0;
+                return $price * ($item->quantity ?? 1);
+            });
+        }
+
+        return (float) $this->items()->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(price, 0) * COALESCE(quantity, 1)'));
+    }
+
+    public function walletTransactions(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    {
+        return $this->morphMany(WalletTransaction::class, 'reference');
+    }
 }

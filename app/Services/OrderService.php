@@ -21,11 +21,17 @@ use App\Notifications\OrderAcceptedNotification;
 use App\Notifications\OrderCancelledNotification;
 use App\Notifications\OrderCompletedNotification;
 use App\Notifications\OrderPaidNotification;
+use App\Services\WalletService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class OrderService
 {
+    public function __construct(private ?WalletService $walletService = null)
+    {
+        $this->walletService = $this->walletService ?? app(WalletService::class);
+    }
+
     // ── Public transitions (user actions) ────────────────────────────────────
 
     public function createOrder(User $customer, User $idol, array $requestedServices): array
@@ -183,6 +189,18 @@ class OrderService
                 throw new \DomainException("Невозможно оплатить заказ в статусе {$lockedOrder->status->label()}");
             }
 
+            // Hold funds in escrow if order has a price
+            $totalAmount = $lockedOrder->total_price;
+            if ($totalAmount > 0) {
+                if (config('services.payments.mock_purchases', true)) {
+                    $wallet = $this->walletService->getOrCreateWallet($actor);
+                    if ($wallet->balance < $totalAmount) {
+                        $this->walletService->deposit($actor, $totalAmount, 'Тестовое пополнение для оплаты заказа');
+                    }
+                }
+                $this->walletService->hold($actor, $totalAmount, $lockedOrder, "Оплата заказа #{$lockedOrder->id}");
+            }
+
             $lockedOrder->logStatusChange(OrderStatus::Accepted->value, OrderStatus::Paid->value, 'user', $actor->id);
             $lockedOrder->update(['status' => OrderStatus::Paid, 'paid_at' => now()]);
 
@@ -221,12 +239,18 @@ class OrderService
             }
 
             $from = $lockedOrder->status->value;
+            $wasPaid = $lockedOrder->status === OrderStatus::Paid;
+
             $lockedOrder->logStatusChange($from, OrderStatus::Cancelled->value, 'user', $actor->id, $reason);
             $lockedOrder->update([
                 'status' => OrderStatus::Cancelled,
                 'cancel_reason' => $reason,
                 'cancelled_by' => $actor->id,
             ]);
+
+            if ($wasPaid) {
+                $this->walletService->refundHold($lockedOrder, $reason);
+            }
 
             UserIdolTrial::where('order_id', $lockedOrder->id)->delete();
 
@@ -405,6 +429,19 @@ class OrderService
                     $isNewPaid = $lockedOrder->status !== OrderStatus::Paid;
                     $attrs['paid_at'] = $lockedOrder->paid_at ?? now();
 
+                    if ($isNewPaid) {
+                        $totalAmount = $lockedOrder->total_price;
+                        if ($totalAmount > 0) {
+                            if (config('services.payments.mock_purchases', true)) {
+                                $wallet = $this->walletService->getOrCreateWallet($lockedOrder->customer);
+                                if ($wallet->balance < $totalAmount) {
+                                    $this->walletService->deposit($lockedOrder->customer, $totalAmount, 'Тестовое пополнение для оплаты заказа');
+                                }
+                            }
+                            $this->walletService->hold($lockedOrder->customer, $totalAmount, $lockedOrder, "Оплата заказа #{$lockedOrder->id}");
+                        }
+                    }
+
                     if ($lockedOrder->conversation_id) {
                         $lockedOrder->conversation->messages()->create([
                             'sender_id' => null,
@@ -434,6 +471,9 @@ class OrderService
                         IdolRatingService::adjust($lockedOrder->idol, 'order_completed');
                     }
 
+                    // Release escrow hold if still held
+                    $this->walletService->releaseHold($lockedOrder);
+
                     if ($lockedOrder->conversation_id) {
                         $lockedOrder->conversation->messages()->create([
                             'sender_id' => null,
@@ -457,6 +497,9 @@ class OrderService
                         $attrs['cancelled_by'] = null;
                     }
 
+                    // Refund escrow hold if previously paid
+                    $this->walletService->refundHold($lockedOrder, $note ?? 'Отменён администратором');
+
                     if ($lockedOrder->conversation_id) {
                         $lockedOrder->conversation->messages()->create([
                             'sender_id' => null,
@@ -475,6 +518,8 @@ class OrderService
                     break;
 
                 case OrderStatus::Refunded:
+                    // Refund escrow hold to customer
+                    $this->walletService->refundHold($lockedOrder, $note ?? 'Аннулирован администратором');
                     break;
 
                 default:
@@ -561,6 +606,9 @@ class OrderService
         $old = $order->status->value;
         $order->logStatusChange($old, OrderStatus::Completed->value, $actorType, $actorId, $note);
         $order->update(['status' => OrderStatus::Completed, 'completed_at' => now()]);
+
+        // Release escrow hold to idol
+        $this->walletService->releaseHold($order);
 
         IdolRatingService::adjust($order->idol, 'order_completed');
 

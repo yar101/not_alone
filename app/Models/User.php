@@ -293,4 +293,24 @@ class User extends Authenticatable implements MustVerifyEmail
 
         $this->save();
     }
+
+    public function wallet(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Wallet::class);
+    }
+
+    public function walletTransactions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(WalletTransaction::class);
+    }
+
+    public function getOrCreateWallet(): Wallet
+    {
+        return $this->wallet ?? $this->wallet()->firstOrCreate([], [
+            'balance' => 0.00,
+            'held_balance' => 0.00,
+            'currency' => 'RUB',
+            'is_active' => true,
+        ]);
+    }
 }
