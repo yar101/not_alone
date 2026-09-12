@@ -328,35 +328,6 @@ function isHoldTx(type) {
                                 Безопасные сделки по заказам
                             </div>
                         </div>
-
-                        <!-- Card 3: Total -->
-                        <div class="wcard wcard--total">
-                            <div class="wcard__top">
-                                <div class="wcard__badge wcard__badge--total">
-                                    <el-icon class="wcard__badge-icon"><Coin /></el-icon>
-                                    Всего на счёте
-                                </div>
-                                <el-tooltip
-                                    placement="top"
-                                    effect="dark"
-                                    popper-class="newbie-dark-tooltip"
-                                    content="Суммарный баланс вашего аккаунта: доступные средства плюс средства в заморозке."
-                                >
-                                    <div class="wcard__info-trigger">
-                                        <el-icon><InfoFilled /></el-icon>
-                                    </div>
-                                </el-tooltip>
-                            </div>
-                            <div class="wcard__amount-row">
-                                <span class="wcard__amount wcard__amount--total">
-                                    {{ formatMoney(currentWallet.total_balance) }}
-                                </span>
-                                <span class="wcard__currency">₽</span>
-                            </div>
-                            <div class="wcard__footer-note">
-                                Доступно + Заморожено
-                            </div>
-                        </div>
                     </div>
 
                     <!-- Financial Actions Panel (Deposit / Withdraw) -->
@@ -387,7 +358,6 @@ function isHoldTx(type) {
                         <div v-if="!isIdol || actionTab === 'deposit'" class="wallet-deposit-section">
                             <div class="wallet-action-header">
                                 <span class="wallet-action-title">Пополнение счёта</span>
-                                <span class="wallet-action-microtag">Моментально</span>
                             </div>
 
                             <!-- 3 Presets exactly: 250, 550, 950 -->
@@ -709,11 +679,11 @@ function isHoldTx(type) {
     color: var(--color-base-1);
 }
 
-/* ── 3 Compact Balance Cards ──────────────────────────────── */
+/* ── 2 Compact Balance Cards ──────────────────────────────── */
 .wallet-cards-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
     margin-bottom: 1.25rem;
 }
 
@@ -724,7 +694,7 @@ function isHoldTx(type) {
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 178, 239, 0.12);
     border-radius: 12px;
-    padding: 1.15rem 1.25rem;
+    padding: 1.25rem 1.4rem;
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
     overflow: hidden;
     transition: transform 0.15s ease;
@@ -750,10 +720,6 @@ function isHoldTx(type) {
 
 .wcard--frozen::before {
     background: linear-gradient(90deg, transparent 0%, rgba(251, 191, 36, 0.6) 50%, transparent 100%);
-}
-
-.wcard--total::before {
-    background: linear-gradient(90deg, transparent 0%, rgba(255, 178, 239, 0.6) 50%, transparent 100%);
 }
 
 .wcard__top {
@@ -785,12 +751,6 @@ function isHoldTx(type) {
     background: rgba(251, 191, 36, 0.12);
     border: 1px solid rgba(251, 191, 36, 0.25);
     color: #fbbf24;
-}
-
-.wcard__badge--total {
-    background: rgba(255, 178, 239, 0.1);
-    border: 1px solid rgba(255, 178, 239, 0.2);
-    color: var(--color-base-1);
 }
 
 .wcard__badge-icon {
@@ -845,10 +805,6 @@ function isHoldTx(type) {
 .wcard__amount--amber {
     color: #fbbf24;
     text-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
-}
-
-.wcard__amount--total {
-    color: rgba(245, 245, 255, 0.98);
 }
 
 .wcard__currency {
@@ -931,17 +887,6 @@ function isHoldTx(type) {
     font-size: 0.95rem;
     font-weight: 700;
     color: rgba(240, 240, 255, 0.95);
-}
-
-.wallet-action-microtag {
-    font-size: 0.72rem;
-    font-weight: 700;
-    padding: 0.15rem 0.5rem;
-    border-radius: 4px;
-    background: rgba(76, 222, 143, 0.1);
-    border: 1px solid rgba(76, 222, 143, 0.25);
-    color: #4cde8f;
-    text-transform: uppercase;
 }
 
 .wallet-action-available {
