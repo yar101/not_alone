@@ -59,6 +59,9 @@ const loginForm = useForm({
 
 function submitLogin() {
     loginForm.post(route("login"), {
+        onSuccess: () => {
+            emit("close");
+        },
         onFinish: () => loginForm.reset("password"),
     });
 }
@@ -113,6 +116,9 @@ function submitRegister() {
         registerForm.birth_date = "";
     }
     registerForm.post(route("register"), {
+        onSuccess: () => {
+            emit("close");
+        },
         onFinish: () => registerForm.reset("password", "password_confirmation"),
     });
 }

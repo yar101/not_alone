@@ -42,7 +42,12 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('profile', absolute: false));
+        $intended = $request->session()->pull('url.intended');
+        if (! $intended || $intended === url('/') || $intended === '/' || str_ends_with($intended, '/login')) {
+            return redirect(route('profile', absolute: false));
+        }
+
+        return redirect()->to($intended);
     }
 
     private function formatBanRemaining(\Carbon\Carbon $until): string
