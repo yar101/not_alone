@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, h } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
@@ -23,6 +23,9 @@ import {
     Check,
     Close,
     QuestionFilled,
+    CircleCloseFilled,
+    WarningFilled,
+    RefreshRight,
 } from '@element-plus/icons-vue';
 
 const props = defineProps({
@@ -75,12 +78,25 @@ watch(
 
 function onWalletUpdated(e) {
     if (e.detail) {
+        const prevBal = currentWallet.value.balance;
+        const newBal = Number(e.detail.balance);
+        const diff = newBal - prevBal;
+
         currentWallet.value = {
             ...currentWallet.value,
-            balance: Number(e.detail.balance),
+            balance: newBal,
             held_balance: Number(e.detail.held_balance),
             total_balance: Number(e.detail.total_balance),
         };
+
+        if (!isDepositing.value && !isWithdrawing.value && Math.abs(diff) > 0.001) {
+            const isPlus = diff > 0;
+            showWalletToast({
+                type: isPlus ? 'deposit' : 'admin',
+                title: 'Баланс обновлён',
+                message: `${isPlus ? '+' : '−'}${formatMoney(Math.abs(diff))} ₽`,
+            });
+        }
     }
     router.reload({
         only: ['transactions'],
@@ -215,15 +231,71 @@ const filteredTransactions = computed(() => {
     return props.transactions?.data || [];
 });
 
+// ── Wallet Toast (Glassmorphism) ─────────────────────────────
+function showWalletToast({
+    title,
+    message,
+    type = 'deposit', // 'deposit' | 'withdraw' | 'hold' | 'payout' | 'refund' | 'admin' | 'danger' | 'warning'
+    iconComp,
+    duration = 4500,
+}) {
+    let defaultIcon = Coin;
+    let iconClass = `icon--${type}`;
+
+    if (type === 'deposit') {
+        defaultIcon = Coin;
+        iconClass = 'icon--deposit';
+    } else if (type === 'withdraw') {
+        defaultIcon = Wallet;
+        iconClass = 'icon--withdraw';
+    } else if (type === 'hold') {
+        defaultIcon = Lock;
+        iconClass = 'icon--hold';
+    } else if (type === 'payout') {
+        defaultIcon = Check;
+        iconClass = 'icon--payout';
+    } else if (type === 'refund') {
+        defaultIcon = RefreshRight;
+        iconClass = 'icon--refund';
+    } else if (type === 'admin') {
+        defaultIcon = TopRight;
+        iconClass = 'icon--admin';
+    } else if (type === 'danger') {
+        defaultIcon = CircleCloseFilled;
+        iconClass = 'icon--danger';
+    } else if (type === 'warning') {
+        defaultIcon = WarningFilled;
+        iconClass = 'icon--warning';
+    }
+
+    const finalIcon = iconComp || defaultIcon;
+
+    ElNotification({
+        duration,
+        position: 'top-right',
+        offset: 70,
+        customClass: type === 'warning' ? 'app-notif app-notif--warn' : 'app-notif',
+        showClose: true,
+        message: h('div', { class: 'app-notif__body' }, [
+            h('div', { class: `app-notif__icon ${iconClass}` }, [
+                h(ElIcon, null, { default: () => h(finalIcon) }),
+            ]),
+            h('div', { class: 'app-notif__text' }, [
+                h('p', { class: 'app-notif__title' }, title),
+                ...(message ? [h('p', { class: 'app-notif__msg' }, message)] : []),
+            ]),
+        ]),
+    });
+}
+
 // ── Deposit ──────────────────────────────────────────────────
 async function handleDeposit() {
     const amt = Number(depositAmount.value);
     if (!amt || amt < 10) {
-        ElNotification({
-            title: 'Неверная сумма',
-            message: 'Минимальная сумма пополнения — 10 ₽',
+        showWalletToast({
             type: 'warning',
-            customClass: 'app-notif app-notif--warn',
+            title: 'Неверная сумма',
+            message: 'Минимум для пополнения — 10 ₽',
         });
         return;
     }
@@ -241,13 +313,18 @@ async function handleDeposit() {
             page.props.auth.user.wallet.balance = data.balance;
         }
 
+        showWalletToast({
+            type: 'deposit',
+            title: 'Пополнение счёта',
+            message: `+${formatMoney(amt)} ₽ зачислено на баланс`,
+        });
+
         router.reload({ only: ['transactions', 'wallet', 'auth'] });
     } catch (e) {
-        ElNotification({
+        showWalletToast({
+            type: 'danger',
             title: 'Ошибка пополнения',
             message: e.response?.data?.error || 'Не удалось выполнить пополнение',
-            type: 'error',
-            customClass: 'app-notif',
         });
     } finally {
         isDepositing.value = false;
@@ -258,21 +335,19 @@ async function handleDeposit() {
 async function handleWithdraw() {
     const amt = Number(withdrawAmount.value);
     if (!amt || amt < 100) {
-        ElNotification({
-            title: 'Неверная сумма',
-            message: 'Минимальная сумма для вывода — 100 ₽',
+        showWalletToast({
             type: 'warning',
-            customClass: 'app-notif app-notif--warn',
+            title: 'Неверная сумма',
+            message: 'Минимальная сумма вывода — 100 ₽',
         });
         return;
     }
 
     if (amt > Number(currentWallet.value.balance)) {
-        ElNotification({
-            title: 'Недостаточно средств',
-            message: 'Сумма вывода превышает доступный баланс',
+        showWalletToast({
             type: 'warning',
-            customClass: 'app-notif app-notif--warn',
+            title: 'Недостаточно средств',
+            message: 'Сумма превышает доступный баланс',
         });
         return;
     }
@@ -283,11 +358,10 @@ async function handleWithdraw() {
             amount: amt,
         });
 
-        ElNotification({
-            title: 'Заявка на вывод принята',
-            message: 'Средства в размере ' + formatMoney(amt) + ' ₽ отправлены на вывод',
-            type: 'success',
-            customClass: 'app-notif',
+        showWalletToast({
+            type: 'withdraw',
+            title: 'Заявка на вывод',
+            message: `${formatMoney(amt)} ₽ отправлены на выплату`,
         });
 
         currentWallet.value.balance = data.balance;
@@ -300,11 +374,10 @@ async function handleWithdraw() {
 
         router.reload({ only: ['transactions', 'wallet', 'auth'] });
     } catch (e) {
-        ElNotification({
+        showWalletToast({
+            type: 'danger',
             title: 'Ошибка вывода',
             message: e.response?.data?.error || 'Не удалось выполнить вывод средств',
-            type: 'error',
-            customClass: 'app-notif',
         });
     } finally {
         isWithdrawing.value = false;
