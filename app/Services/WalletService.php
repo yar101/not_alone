@@ -5,9 +5,11 @@ namespace App\Services;
 use App\Enums\WalletTransactionStatus;
 use App\Enums\WalletTransactionType;
 use App\Exceptions\InsufficientFundsException;
+use App\Models\Admin;
 use App\Models\ContentPack;
 use App\Models\ContentPackPurchase;
 use App\Models\Order;
+use App\Models\PlatformSetting;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
@@ -65,8 +67,21 @@ class WalletService
                 throw new \DomainException('Кошелёк деактивирован.');
             }
 
+            $feePercent = (float) PlatformSetting::get('deposit_fee_percent', 0.0);
+            $feeAmount = $feePercent > 0 ? round($amount * ($feePercent / 100), 2) : 0.0;
+            $netAmount = (float) bcsub((string) $amount, (string) $feeAmount, 2);
+
+            if ($feeAmount > 0) {
+                $metadata = array_merge($metadata, [
+                    'gross_amount' => $amount,
+                    'fee_percent' => $feePercent,
+                    'fee_amount' => $feeAmount,
+                    'net_amount' => $netAmount,
+                ]);
+            }
+
             $balanceBefore = $lockedWallet->balance;
-            $balanceAfter = (float) bcadd((string) $balanceBefore, (string) $amount, 2);
+            $balanceAfter = (float) bcadd((string) $balanceBefore, (string) $netAmount, 2);
 
             $lockedWallet->update(['balance' => $balanceAfter]);
 
@@ -74,7 +89,7 @@ class WalletService
                 'wallet_id' => $lockedWallet->id,
                 'user_id' => $user->id,
                 'type' => WalletTransactionType::Deposit,
-                'amount' => $amount,
+                'amount' => $netAmount,
                 'balance_before' => $balanceBefore,
                 'balance_after' => $balanceAfter,
                 'held_balance_before' => $lockedWallet->held_balance,
@@ -208,7 +223,7 @@ class WalletService
             $lockedCustWallet->update(['held_balance' => $custHeldAfter]);
 
             // 2. Calculate fee and payout
-            $feePercent = $platformFeePercent ?? (float) config('services.payments.platform_fee_percent', 10.0);
+            $feePercent = $platformFeePercent ?? (float) PlatformSetting::get('platform_fee_percent', config('services.payments.platform_fee_percent', 10.0));
             $feeAmount = round($heldAmount * ($feePercent / 100), 2);
 
             // 3. Gross payout to idol's balance
@@ -401,7 +416,7 @@ class WalletService
                 ]);
 
                 // 2. Credit seller gross, then deduct fee
-                $feePercent = $platformFeePercent ?? (float) config('services.payments.platform_fee_percent', 10.0);
+                $feePercent = $platformFeePercent ?? (float) PlatformSetting::get('platform_fee_percent', config('services.payments.platform_fee_percent', 10.0));
                 $feeAmount = round($price * ($feePercent / 100), 2);
 
                 $sellerBalBefore = $lockedSellerWallet->balance;
@@ -509,6 +524,20 @@ class WalletService
                 );
             }
 
+            $feePercent = (float) PlatformSetting::get('withdrawal_fee_percent', 0.0);
+            $feeAmount = $feePercent > 0 ? round($amount * ($feePercent / 100), 2) : 0.0;
+            $payoutAmount = (float) bcsub((string) $amount, (string) $feeAmount, 2);
+
+            $metadata = $metadata ?? [];
+            if ($feeAmount > 0) {
+                $metadata = array_merge($metadata, [
+                    'requested_amount' => $amount,
+                    'fee_percent' => $feePercent,
+                    'fee_amount' => $feeAmount,
+                    'payout_amount' => $payoutAmount,
+                ]);
+            }
+
             $balanceBefore = $lockedWallet->balance;
             $balanceAfter = (float) bcsub((string) $balanceBefore, (string) $amount, 2);
 
@@ -528,6 +557,101 @@ class WalletService
                 'description' => $description ?? 'Вывод средств со счёта',
                 'metadata' => $metadata,
             ]);
+        });
+    }
+
+    /**
+     * Perform an administrative balance adjustment (credit or debit).
+     */
+    public function adminAdjust(
+        User $user,
+        float $amount,
+        string $direction,
+        ?string $description = null,
+        ?int $adminId = null,
+        ?string $type = null
+    ): WalletTransaction {
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException('Сумма операции должна быть больше нуля.');
+        }
+
+        if (! in_array($direction, ['credit', 'debit'], true)) {
+            throw new \InvalidArgumentException('Некорректное направление операции.');
+        }
+
+        return DB::transaction(function () use ($user, $amount, $direction, $description, $adminId, $type) {
+            $wallet = $this->getOrCreateWallet($user);
+            $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
+
+            if (! $lockedWallet->is_active) {
+                throw new \DomainException('Кошелёк пользователя деактивирован.');
+            }
+
+            $balanceBefore = $lockedWallet->balance;
+            $heldBalance = $lockedWallet->held_balance;
+
+            if ($direction === 'debit') {
+                if (! $lockedWallet->hasSufficientBalance($amount)) {
+                    throw new InsufficientFundsException(
+                        "Недостаточно средств на балансе пользователя. Доступно: {$balanceBefore} руб., запрошено к списанию: {$amount} руб."
+                    );
+                }
+                $signedAmount = -$amount;
+                $balanceAfter = (float) bcsub((string) $balanceBefore, (string) $amount, 2);
+            } else {
+                $signedAmount = $amount;
+                $balanceAfter = (float) bcadd((string) $balanceBefore, (string) $amount, 2);
+            }
+
+            $lockedWallet->update(['balance' => $balanceAfter]);
+
+            $txType = match ($type) {
+                'deposit' => WalletTransactionType::Deposit,
+                'withdrawal' => WalletTransactionType::Withdrawal,
+                default => WalletTransactionType::AdminAdjustment,
+            };
+
+            $admin = $adminId ? Admin::find($adminId) : (auth('admin')->check() ? auth('admin')->user() : null);
+
+            $metadata = [
+                'admin_id' => $adminId ?? (auth('admin')->check() ? auth('admin')->id() : null),
+                'admin_name' => $admin?->name ?? 'Администратор',
+                'direction' => $direction,
+                'reason' => $description,
+            ];
+
+            $tx = WalletTransaction::create([
+                'wallet_id' => $lockedWallet->id,
+                'user_id' => $user->id,
+                'type' => $txType,
+                'amount' => $signedAmount,
+                'balance_before' => $balanceBefore,
+                'balance_after' => $balanceAfter,
+                'held_balance_before' => $heldBalance,
+                'held_balance_after' => $heldBalance,
+                'status' => WalletTransactionStatus::Completed,
+                'description' => $description ?: ($direction === 'credit' ? 'Начисление администратором' : 'Списание администратором'),
+                'metadata' => $metadata,
+            ]);
+
+            $actingAdminId = $adminId ?? (auth('admin')->check() ? auth('admin')->id() : null);
+            if ($actingAdminId) {
+                \App\Services\AdminLogService::log(
+                    $actingAdminId,
+                    'wallet_adjustment',
+                    'wallet',
+                    $lockedWallet->id,
+                    [
+                        'user_id' => $user->id,
+                        'transaction_id' => $tx->id,
+                        'direction' => $direction,
+                        'amount' => $amount,
+                        'reason' => $description,
+                    ]
+                );
+            }
+
+            return $tx;
         });
     }
 }

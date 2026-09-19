@@ -127,9 +127,14 @@ function submitRating() {
                     <div class="rating-display">
                         Рейтинг: <strong>{{ user.rating ?? 20 }}</strong>
                     </div>
-                    <a :href="route('profile.show', user.id)" class="btn-profile-link" target="_blank" rel="noopener">
-                        Страница пользователя ↗
-                    </a>
+                    <div class="user-links" style="display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap;">
+                        <a :href="route('profile.show', user.id)" class="btn-profile-link" target="_blank" rel="noopener">
+                            Страница пользователя ↗
+                        </a>
+                        <Link :href="route('admin.transactions.index', { user_id: user.id })" class="btn-profile-link">
+                            Транзакции кошелька →
+                        </Link>
+                    </div>
                 </div>
             </div>
         </div>

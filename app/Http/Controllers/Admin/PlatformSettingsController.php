@@ -21,6 +21,9 @@ class PlatformSettingsController extends Controller
                 'content_pack_price_max' => (int) PlatformSetting::get('content_pack_price_max', 10000),
                 'moderate_new_packs' => (bool) (int) PlatformSetting::get('moderate_new_packs', 1),
                 'moderate_existing_packs' => (bool) (int) PlatformSetting::get('moderate_existing_packs', 0),
+                'deposit_fee_percent' => (float) PlatformSetting::get('deposit_fee_percent', 0.0),
+                'withdrawal_fee_percent' => (float) PlatformSetting::get('withdrawal_fee_percent', 0.0),
+                'platform_fee_percent' => (float) PlatformSetting::get('platform_fee_percent', config('services.payments.platform_fee_percent', 10.0)),
             ],
             'rating_deltas' => [
                 'review_5star' => (float) PlatformSetting::get('rating_delta_review_5star', 0.8),
@@ -43,6 +46,9 @@ class PlatformSettingsController extends Controller
             'content_pack_price_max' => ['required', 'integer', 'gt:content_pack_price_min'],
             'moderate_new_packs' => ['required', 'boolean'],
             'moderate_existing_packs' => ['required', 'boolean'],
+            'deposit_fee_percent' => ['required', 'numeric', 'min:0', 'max:50'],
+            'withdrawal_fee_percent' => ['required', 'numeric', 'min:0', 'max:50'],
+            'platform_fee_percent' => ['required', 'numeric', 'min:0', 'max:50'],
             'rating_deltas.review_5star' => ['required', 'numeric', 'min:0', 'max:10'],
             'rating_deltas.review_4star' => ['required', 'numeric', 'min:0', 'max:10'],
             'rating_deltas.review_2star' => ['required', 'numeric', 'min:-10', 'max:0'],
@@ -58,6 +64,9 @@ class PlatformSettingsController extends Controller
         PlatformSetting::set('content_pack_price_max', $data['content_pack_price_max']);
         PlatformSetting::set('moderate_new_packs', $data['moderate_new_packs'] ? '1' : '0');
         PlatformSetting::set('moderate_existing_packs', $data['moderate_existing_packs'] ? '1' : '0');
+        PlatformSetting::set('deposit_fee_percent', $data['deposit_fee_percent']);
+        PlatformSetting::set('withdrawal_fee_percent', $data['withdrawal_fee_percent']);
+        PlatformSetting::set('platform_fee_percent', $data['platform_fee_percent']);
 
         foreach ($data['rating_deltas'] as $event => $delta) {
             PlatformSetting::set('rating_delta_'.$event, $delta);

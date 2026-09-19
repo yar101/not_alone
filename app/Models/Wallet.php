@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\WalletBalanceUpdated;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +11,20 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Wallet extends Model
 {
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        static::updated(function (Wallet $wallet) {
+            if ($wallet->wasChanged(['balance', 'held_balance'])) {
+                WalletBalanceUpdated::dispatch(
+                    $wallet->user_id,
+                    (float) $wallet->balance,
+                    (float) $wallet->held_balance,
+                    $wallet->total_balance,
+                );
+            }
+        });
+    }
 
     protected $fillable = [
         'user_id',

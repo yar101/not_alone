@@ -17,6 +17,9 @@ const form = useForm({
     content_pack_price_max:  props.settings.content_pack_price_max,
     moderate_new_packs:      props.settings.moderate_new_packs,
     moderate_existing_packs: props.settings.moderate_existing_packs,
+    deposit_fee_percent:     props.settings.deposit_fee_percent ?? 0,
+    withdrawal_fee_percent:  props.settings.withdrawal_fee_percent ?? 0,
+    platform_fee_percent:    props.settings.platform_fee_percent ?? 10,
     rating_deltas: { ...props.rating_deltas },
 });
 
@@ -95,6 +98,76 @@ const previewBase = computed(() =>
         <h1 class="page-title">Настройки платформы</h1>
 
         <form @submit.prevent="save" class="settings-form">
+
+            <!-- ── Раздел: Финансы и комиссии ── -->
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Финансы и комиссии</h2>
+                </div>
+
+                <div class="field">
+                    <div class="field-row">
+                        <div class="field-meta">
+                            <label class="field-label">Комиссия на ввод средств (пополнение), %</label>
+                            <p class="field-hint">Процент, удерживаемый платформой при пополнении кошелька (0% — без комиссии)</p>
+                        </div>
+                        <div class="field-control">
+                            <input
+                                v-model.number="form.deposit_fee_percent"
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="50"
+                                class="input input--sm"
+                                :class="{ 'input--err': form.errors.deposit_fee_percent }"
+                            />
+                        </div>
+                    </div>
+                    <p v-if="form.errors.deposit_fee_percent" class="err">{{ form.errors.deposit_fee_percent }}</p>
+                </div>
+
+                <div class="field">
+                    <div class="field-row">
+                        <div class="field-meta">
+                            <label class="field-label">Комиссия на вывод средств, %</label>
+                            <p class="field-hint">Процент, удерживаемый при выводе средств айдолом на карту/счёт</p>
+                        </div>
+                        <div class="field-control">
+                            <input
+                                v-model.number="form.withdrawal_fee_percent"
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="50"
+                                class="input input--sm"
+                                :class="{ 'input--err': form.errors.withdrawal_fee_percent }"
+                            />
+                        </div>
+                    </div>
+                    <p v-if="form.errors.withdrawal_fee_percent" class="err">{{ form.errors.withdrawal_fee_percent }}</p>
+                </div>
+
+                <div class="field">
+                    <div class="field-row">
+                        <div class="field-meta">
+                            <label class="field-label">Базовая комиссия сервиса по сделкам, %</label>
+                            <p class="field-hint">Процент платформы при выполнении заказов и покупке контент-паков</p>
+                        </div>
+                        <div class="field-control">
+                            <input
+                                v-model.number="form.platform_fee_percent"
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="50"
+                                class="input input--sm"
+                                :class="{ 'input--err': form.errors.platform_fee_percent }"
+                            />
+                        </div>
+                    </div>
+                    <p v-if="form.errors.platform_fee_percent" class="err">{{ form.errors.platform_fee_percent }}</p>
+                </div>
+            </div>
 
             <!-- ── Раздел: Заказы ── -->
             <div class="section">

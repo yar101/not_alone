@@ -50,6 +50,14 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    depositFeePercent: {
+        type: Number,
+        default: 0,
+    },
+    withdrawalFeePercent: {
+        type: Number,
+        default: 0,
+    },
 });
 
 const page = usePage();
@@ -64,6 +72,30 @@ watch(
     },
     { deep: true }
 );
+
+function onWalletUpdated(e) {
+    if (e.detail) {
+        currentWallet.value = {
+            ...currentWallet.value,
+            balance: Number(e.detail.balance),
+            held_balance: Number(e.detail.held_balance),
+            total_balance: Number(e.detail.total_balance),
+        };
+    }
+    router.reload({
+        only: ['transactions'],
+        preserveScroll: true,
+        preserveState: true,
+    });
+}
+
+onMounted(() => {
+    window.addEventListener('notalone:wallet-updated', onWalletUpdated);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('notalone:wallet-updated', onWalletUpdated);
+});
 
 // ── Navigation View ──────────────────────────────────────────
 const getInitialView = () => {
@@ -599,6 +631,12 @@ function formatFullDate(iso) {
                                     <span>{{ isDepositing ? 'Пополнение...' : 'Пополнить' }}</span>
                                 </button>
                             </div>
+                            <div v-if="props.depositFeePercent > 0" class="wallet-fee-hint" style="font-size: 0.76rem; color: rgba(255,255,255,0.5); margin-top: 0.45rem;">
+                                Комиссия сервиса {{ props.depositFeePercent }}%
+                                <span v-if="depositAmount && depositAmount > 0">
+                                    ({{ formatMoney(Math.round(depositAmount * props.depositFeePercent / 100 * 100) / 100) }} ₽, к зачислению: {{ formatMoney(Math.max(0, Math.round((depositAmount - depositAmount * props.depositFeePercent / 100) * 100) / 100)) }} ₽)
+                                </span>
+                            </div>
                         </div>
 
                         <!-- WITHDRAW SECTION (Idol Only) -->
@@ -626,6 +664,12 @@ function formatFullDate(iso) {
                                     <el-icon v-if="isWithdrawing" class="is-loading"><Loading /></el-icon>
                                     <span>{{ isWithdrawing ? 'Обработка...' : 'Вывести' }}</span>
                                 </button>
+                            </div>
+                            <div v-if="props.withdrawalFeePercent > 0" class="wallet-fee-hint" style="font-size: 0.76rem; color: rgba(255,255,255,0.5); margin-top: 0.45rem;">
+                                Комиссия на вывод {{ props.withdrawalFeePercent }}%
+                                <span v-if="withdrawAmount && withdrawAmount > 0">
+                                    ({{ formatMoney(Math.round(withdrawAmount * props.withdrawalFeePercent / 100 * 100) / 100) }} ₽, к получению: {{ formatMoney(Math.max(0, Math.round((withdrawAmount - withdrawAmount * props.withdrawalFeePercent / 100) * 100) / 100)) }} ₽)
+                                </span>
                             </div>
                         </div>
                     </div>

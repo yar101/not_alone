@@ -18,6 +18,7 @@ use App\Models\WalletTransaction;
 use App\Services\OrderService;
 use App\Services\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
@@ -26,7 +27,7 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     Queue::fake();
-    Event::fake();
+    Cache::flush();
 });
 
 it('creates a wallet for a user on demand with initial zero balance', function () {
@@ -450,3 +451,33 @@ it('runs TransactionSeeder with domain lifecycle and marks metadata as seeded', 
     $this->seed(\Database\Seeders\TransactionSeeder::class);
     expect(WalletTransaction::count())->toBe($countBefore);
 });
+
+it('dispatches WalletBalanceUpdated broadcast event when balance or held_balance changes', function () {
+    Event::fake([\App\Events\WalletBalanceUpdated::class]);
+
+    $user = User::factory()->create(['is_idol' => true]);
+    $service = app(WalletService::class);
+
+    // 1. Deposit
+    $service->deposit($user, 2500.00, 'Тестовое пополнение');
+
+    Event::assertDispatched(\App\Events\WalletBalanceUpdated::class, function ($event) use ($user) {
+        return $event->userId === $user->id
+            && $event->balance === 2500.00
+            && $event->heldBalance === 0.00
+            && $event->totalBalance === 2500.00
+            && $event->broadcastOn()[0]->name === 'private-App.Models.User.'.$user->id
+            && $event->broadcastAs() === 'wallet.updated';
+    });
+
+    // 2. Withdrawal (balance decrease)
+    $service->withdraw($user, 500.00);
+
+    Event::assertDispatched(\App\Events\WalletBalanceUpdated::class, function ($event) use ($user) {
+        return $event->userId === $user->id
+            && $event->balance === 2000.00
+            && $event->heldBalance === 0.00
+            && $event->totalBalance === 2000.00;
+    });
+});
+

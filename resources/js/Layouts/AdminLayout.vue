@@ -6,7 +6,7 @@ import {
     Picture, User, ChatDotRound, Tickets, ScaleToOriginal,
     Microphone, Headset, Star, Discount, Lock, ChatSquare,
     Document, QuestionFilled, WarningFilled, Monitor,
-    TrendCharts, Setting, RefreshRight, Help
+    TrendCharts, Setting, RefreshRight, Help, Coin
 } from '@element-plus/icons-vue';
 
 function logout() {
@@ -182,6 +182,15 @@ function isActive(routeName) {
                     >
                         <el-icon class="nav-icon"><Tickets /></el-icon>
                         <span class="nav-text">Заказы</span>
+                    </Link>
+
+                    <Link
+                        :href="route('admin.transactions.index')"
+                        class="nav-item"
+                        :class="{ 'nav-item--active': isActive('admin.transactions.*') }"
+                    >
+                        <el-icon class="nav-icon"><Coin /></el-icon>
+                        <span class="nav-text">Транзакции</span>
                     </Link>
                 </div>
 

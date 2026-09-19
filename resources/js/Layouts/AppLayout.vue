@@ -213,13 +213,28 @@ provide("onlineUserIds", onlineUserIds);
 // ── Global listeners ──────────────────────────────────────
 let msgChannel = null;
 let onlineChannel = null;
+
+function handleWalletUpdated(e) {
+    if (page.props.auth?.user) {
+        if (!page.props.auth.user.wallet) {
+            page.props.auth.user.wallet = {};
+        }
+        page.props.auth.user.wallet.balance = Number(e.balance);
+        page.props.auth.user.wallet.held_balance = Number(e.held_balance);
+        page.props.auth.user.wallet.total_balance = Number(e.total_balance);
+    }
+    window.dispatchEvent(new CustomEvent("notalone:wallet-updated", { detail: e }));
+}
+
 onMounted(() => {
     if (user.value && window.Echo) {
         msgChannel = window.Echo.private(
             `App.Models.User.${user.value.id}`,
-        ).listen(".message.received", () => {
-            router.reload({ only: ["has_unread_messages"] });
-        });
+        )
+            .listen(".message.received", () => {
+                router.reload({ only: ["has_unread_messages"] });
+            })
+            .listen(".wallet.updated", handleWalletUpdated);
 
         onlineChannel = window.Echo.join("presence-online")
             .here((members) => {
@@ -272,7 +287,10 @@ onUnmounted(() => {
     window.removeEventListener("notalone:user-banned", handleUserBannedEvent);
     window.removeEventListener("notalone:toggle-chat", handleToggleChatEvent);
     window.removeEventListener("notalone:toggle-sidebar", handleToggleSidebarEvent);
-    if (msgChannel) msgChannel.stopListening(".message.received");
+    if (msgChannel) {
+        msgChannel.stopListening(".message.received");
+        msgChannel.stopListening(".wallet.updated");
+    }
     if (window.Echo) window.Echo.leave("presence-online");
 });
 </script>

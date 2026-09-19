@@ -36,6 +36,7 @@ use App\Http\Controllers\Admin\ServiceTimeUnitController;
 use App\Http\Controllers\Admin\StrikeController;
 use App\Http\Controllers\Admin\SupportChatController;
 use App\Http\Controllers\Admin\TraitSuggestionController;
+use App\Http\Controllers\Admin\TransactionController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -259,6 +260,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/', [OrderController::class, 'index'])->name('index');
             Route::patch('/{order}/status', [OrderController::class, 'updateStatus'])->name('status');
             Route::get('/{order}/history', [OrderController::class, 'history'])->name('history');
+        });
+
+        // Transactions
+        Route::prefix('transactions')->name('transactions.')->group(function () {
+            Route::get('/', [TransactionController::class, 'index'])->name('index');
+            Route::post('/', [TransactionController::class, 'store'])->name('store');
+            Route::get('/{transaction}', [TransactionController::class, 'show'])->name('show');
         });
 
         // Disputes

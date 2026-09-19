@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PlatformSetting;
 use App\Models\WalletTransaction;
 use App\Services\WalletService;
 use Illuminate\Http\JsonResponse;
@@ -68,6 +69,8 @@ class WalletController extends Controller
             'canDeposit' => app()->environment('local', 'testing') || config('services.payments.mock_purchases', true),
             'isIdol' => (bool) $user->is_idol,
             'canWithdraw' => (bool) $user->is_idol,
+            'depositFeePercent' => (float) PlatformSetting::get('deposit_fee_percent', 0.0),
+            'withdrawalFeePercent' => (float) PlatformSetting::get('withdrawal_fee_percent', 0.0),
         ]);
     }
 

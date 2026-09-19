@@ -18,7 +18,23 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const page = usePage();
-const userBalance = computed(() => Number(props.user?.wallet?.balance ?? 0));
+const liveBalance = ref(null);
+const userBalance = computed(() => liveBalance.value ?? Number(props.user?.wallet?.balance ?? 0));
+
+watch(
+    () => props.user?.wallet?.balance,
+    (newVal) => {
+        if (newVal != null) {
+            liveBalance.value = Number(newVal);
+        }
+    }
+);
+
+function onWalletUpdated(e) {
+    if (e.detail?.balance != null) {
+        liveBalance.value = Number(e.detail.balance);
+    }
+}
 
 const isOpen = computed({
     get: () => props.modelValue,
@@ -59,12 +75,14 @@ watch(() => props.modelValue, (val) => {
 function onKey(e) { if (e.key === 'Escape') close(); }
 onMounted(() => {
     document.addEventListener('keydown', onKey);
+    window.addEventListener('notalone:wallet-updated', onWalletUpdated);
     if (props.modelValue) {
         document.documentElement.classList.add('chat-scroll-locked');
     }
 });
 onUnmounted(() => {
     document.removeEventListener('keydown', onKey);
+    window.removeEventListener('notalone:wallet-updated', onWalletUpdated);
     document.documentElement.classList.remove('chat-scroll-locked');
 });
 
