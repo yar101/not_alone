@@ -183,6 +183,31 @@ const isWithdrawing = ref(false);
 
 const quickAmounts = [250, 550, 950];
 
+// ── Fee & Net Calculations ────────────────────────────────────
+const depositFeeAmount = computed(() => {
+    const amt = Number(depositAmount.value) || 0;
+    if (amt <= 0 || !props.depositFeePercent) return 0;
+    return Math.round(amt * (props.depositFeePercent / 100) * 100) / 100;
+});
+
+const depositNetAmount = computed(() => {
+    const amt = Number(depositAmount.value) || 0;
+    if (amt <= 0) return 0;
+    return Math.max(0, Math.round((amt - depositFeeAmount.value) * 100) / 100);
+});
+
+const withdrawFeeAmount = computed(() => {
+    const amt = Number(withdrawAmount.value) || 0;
+    if (amt <= 0 || !props.withdrawalFeePercent) return 0;
+    return Math.round(amt * (props.withdrawalFeePercent / 100) * 100) / 100;
+});
+
+const withdrawPayoutAmount = computed(() => {
+    const amt = Number(withdrawAmount.value) || 0;
+    if (amt <= 0) return 0;
+    return Math.max(0, Math.round((amt - withdrawFeeAmount.value) * 100) / 100);
+});
+
 // ── History Filter ───────────────────────────────────────────
 const activeHistoryTab = ref(props.activeFilter || 'all');
 
@@ -704,10 +729,20 @@ function formatFullDate(iso) {
                                     <span>{{ isDepositing ? 'Пополнение...' : 'Пополнить' }}</span>
                                 </button>
                             </div>
-                            <div v-if="props.depositFeePercent > 0" class="wallet-fee-hint" style="font-size: 0.76rem; color: rgba(255,255,255,0.5); margin-top: 0.45rem;">
-                                Комиссия сервиса {{ props.depositFeePercent }}%
-                                <span v-if="depositAmount && depositAmount > 0">
-                                    ({{ formatMoney(Math.round(depositAmount * props.depositFeePercent / 100 * 100) / 100) }} ₽, к зачислению: {{ formatMoney(Math.max(0, Math.round((depositAmount - depositAmount * props.depositFeePercent / 100) * 100) / 100)) }} ₽)
+                            <div class="wallet-fee-info">
+                                <span class="wallet-fee-info__item">
+                                    <span>Комиссия:</span>
+                                    <strong class="wallet-fee-info__val">{{ props.depositFeePercent > 0 ? `${props.depositFeePercent}%` : '0%' }}</strong>
+                                    <span v-if="props.depositFeePercent > 0 && depositAmount > 0" class="wallet-fee-info__sub">
+                                        ({{ formatMoney(depositFeeAmount) }} ₽)
+                                    </span>
+                                </span>
+                                <span class="wallet-fee-info__dot">·</span>
+                                <span class="wallet-fee-info__item">
+                                    <span>К зачислению:</span>
+                                    <strong class="wallet-fee-info__highlight wallet-fee-info__highlight--deposit">
+                                        {{ depositAmount > 0 ? `${formatMoney(depositNetAmount)} ₽` : '—' }}
+                                    </strong>
                                 </span>
                             </div>
                         </div>
@@ -738,10 +773,20 @@ function formatFullDate(iso) {
                                     <span>{{ isWithdrawing ? 'Обработка...' : 'Вывести' }}</span>
                                 </button>
                             </div>
-                            <div v-if="props.withdrawalFeePercent > 0" class="wallet-fee-hint" style="font-size: 0.76rem; color: rgba(255,255,255,0.5); margin-top: 0.45rem;">
-                                Комиссия на вывод {{ props.withdrawalFeePercent }}%
-                                <span v-if="withdrawAmount && withdrawAmount > 0">
-                                    ({{ formatMoney(Math.round(withdrawAmount * props.withdrawalFeePercent / 100 * 100) / 100) }} ₽, к получению: {{ formatMoney(Math.max(0, Math.round((withdrawAmount - withdrawAmount * props.withdrawalFeePercent / 100) * 100) / 100)) }} ₽)
+                            <div class="wallet-fee-info">
+                                <span class="wallet-fee-info__item">
+                                    <span>Комиссия:</span>
+                                    <strong class="wallet-fee-info__val">{{ props.withdrawalFeePercent > 0 ? `${props.withdrawalFeePercent}%` : '0%' }}</strong>
+                                    <span v-if="props.withdrawalFeePercent > 0 && withdrawAmount > 0" class="wallet-fee-info__sub">
+                                        ({{ formatMoney(withdrawFeeAmount) }} ₽)
+                                    </span>
+                                </span>
+                                <span class="wallet-fee-info__dot">·</span>
+                                <span class="wallet-fee-info__item">
+                                    <span>К получению:</span>
+                                    <strong class="wallet-fee-info__highlight wallet-fee-info__highlight--withdraw">
+                                        {{ withdrawAmount > 0 ? `${formatMoney(withdrawPayoutAmount)} ₽` : '—' }}
+                                    </strong>
                                 </span>
                             </div>
                         </div>
@@ -1652,6 +1697,51 @@ function formatFullDate(iso) {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
+/* Fee and net amounts below action form */
+.wallet-fee-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.6rem;
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 1.4;
+}
+
+.wallet-fee-info__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.wallet-fee-info__val {
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 600;
+}
+
+.wallet-fee-info__sub {
+    color: rgba(255, 255, 255, 0.45);
+    font-weight: 400;
+}
+
+.wallet-fee-info__dot {
+    color: rgba(255, 255, 255, 0.25);
+}
+
+.wallet-fee-info__highlight {
+    font-weight: 600;
+    font-family: var(--font-receipt);
+}
+
+.wallet-fee-info__highlight--deposit {
+    color: #34d399;
+}
+
+.wallet-fee-info__highlight--withdraw {
+    color: #fbbf24;
+}
+
 /* ── VIEW 2: History Ledger ───────────────────────────────── */
 .wallet-history {
     position: relative;
@@ -2469,6 +2559,13 @@ function formatFullDate(iso) {
 
     .wallet-history {
         padding: 1rem 0.75rem;
+    }
+
+    .wallet-fee-info {
+        justify-content: center;
+        font-size: 0.78rem;
+        margin-top: 0.65rem;
+        text-align: center;
     }
 }
 </style>
