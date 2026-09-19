@@ -7,6 +7,7 @@ import IdolBadge from '@/Components/IdolBadge.vue';
 import HelpModal from '@/Components/Site/HelpModal.vue';
 import { useTranslations } from '@/composables/useTranslations';
 import { useModalHistory } from '@/composables/useModalHistory';
+import { formatMoney } from '@/Utils/money';
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -17,6 +18,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const page = usePage();
+const userBalance = computed(() => Number(props.user?.wallet?.balance ?? 0));
 
 const isOpen = computed({
     get: () => props.modelValue,
@@ -172,7 +174,10 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
                         <div class="usb-feature-card__icon-wrap usb-feature-card__icon-wrap--violet">
                             <i class="fa-solid fa-coins"></i>
                         </div>
-                        <span class="usb-feature-card__label">{{ __('nav.wallet') }}</span>
+                        <div class="usb-feature-card__content">
+                            <span class="usb-feature-card__label">{{ __('nav.wallet') }}</span>
+                            <span class="usb-feature-card__balance">{{ formatMoney(userBalance) }} ₽</span>
+                        </div>
                     </Link>
 
                     <Link :href="route('orders.index')" class="usb-feature-card usb-feature-card--emerald" @click="closeForNav">
@@ -644,6 +649,15 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 }
 
 /* Text */
+.usb-feature-card__content {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 0.1rem;
+    position: relative;
+    z-index: 1;
+}
+
 .usb-feature-card__label {
     font-size: 0.85rem;
     font-weight: 500;
@@ -657,6 +671,17 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 
 .usb-feature-card:hover .usb-feature-card__label {
     color: #fff;
+}
+
+.usb-feature-card__balance {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #34d399;
+    font-family: var(--font-receipt, monospace);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* ── Transitions ──────────────────────────────────────────── */

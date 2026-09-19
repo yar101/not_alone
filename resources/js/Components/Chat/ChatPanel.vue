@@ -4032,7 +4032,7 @@ function formatDate(iso) {
 /* ── Panel ────────────────────────────────────────────── */
 .chat-panel {
     position: fixed;
-    top: 60px;
+    top: 16px;
     right: 0;
     bottom: 0;
     width: 1100px;
@@ -7546,7 +7546,7 @@ function formatDate(iso) {
 
 @media (min-width: 768px) {
     .chat-panel {
-        top: 76px;
+        top: 16px;
         right: 16px;
         bottom: 16px;
         max-width: calc(100vw - 32px);

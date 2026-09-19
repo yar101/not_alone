@@ -306,7 +306,7 @@ async function purchaseContent() {
 /* ── Panel ────────────────────────────────────────────── */
 .rc-panel {
     position: fixed;
-    top: 60px;
+    top: 16px;
     right: 0;
     bottom: 0;
     width: 480px;
@@ -776,7 +776,7 @@ async function purchaseContent() {
 
 @media (min-width: 769px) {
     .rc-panel {
-        top: 76px;
+        top: 16px;
         right: 16px;
         bottom: 16px;
         max-width: calc(100vw - 32px);

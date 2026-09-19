@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppSelect from '@/Components/AppSelect.vue';
@@ -52,6 +52,7 @@ const props = defineProps({
     },
 });
 
+const page = usePage();
 const currentWallet = ref({ ...props.wallet });
 
 watch(
@@ -184,17 +185,14 @@ async function handleDeposit() {
             amount: amt,
         });
 
-        ElNotification({
-            title: 'Баланс пополнен',
-            message: 'Счёт успешно пополнен на ' + formatMoney(amt) + ' ₽',
-            type: 'success',
-            customClass: 'app-notif',
-        });
-
         currentWallet.value.balance = data.balance;
         currentWallet.value.total_balance = Number(data.balance) + Number(currentWallet.value.held_balance);
 
-        router.reload({ only: ['transactions', 'wallet'] });
+        if (page.props.auth?.user?.wallet) {
+            page.props.auth.user.wallet.balance = data.balance;
+        }
+
+        router.reload({ only: ['transactions', 'wallet', 'auth'] });
     } catch (e) {
         ElNotification({
             title: 'Ошибка пополнения',
@@ -247,7 +245,11 @@ async function handleWithdraw() {
         currentWallet.value.total_balance = Number(data.balance) + Number(currentWallet.value.held_balance);
         withdrawAmount.value = '';
 
-        router.reload({ only: ['transactions', 'wallet'] });
+        if (page.props.auth?.user?.wallet) {
+            page.props.auth.user.wallet.balance = data.balance;
+        }
+
+        router.reload({ only: ['transactions', 'wallet', 'auth'] });
     } catch (e) {
         ElNotification({
             title: 'Ошибка вывода',
@@ -658,7 +660,7 @@ function formatFullDate(iso) {
                             <div class="wallet-col wallet-col--id">ID</div>
                             <div class="wallet-col wallet-col--type">Операция</div>
                             <div class="wallet-col wallet-col--date">Дата и время</div>
-                            <div class="wallet-col wallet-col--amount">Сумма / Баланс</div>
+                            <div class="wallet-col wallet-col--amount">Сумма / Остаток</div>
                         </div>
 
                         <!-- Table Rows -->
@@ -754,7 +756,7 @@ function formatFullDate(iso) {
                                         {{ formatSignedAmount(tx) }}
                                     </div>
                                     <div class="wallet-tx-remain">
-                                        Баланс после: <span>{{ formatMoney(tx.balance_after) }} ₽</span>
+                                        Остаток: <span>{{ formatMoney(tx.balance_after) }} ₽</span>
                                     </div>
                                 </div>
                             </div>

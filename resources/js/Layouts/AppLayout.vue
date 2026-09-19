@@ -13,11 +13,13 @@ import LocaleLoader from "@/Components/LocaleLoader.vue";
 import PwaUpdateModal from "@/Components/PwaUpdateModal.vue";
 import StrikeAlertModal from "@/Components/Site/StrikeAlertModal.vue";
 import { useTranslations } from "@/composables/useTranslations";
+import { formatMoney } from "@/Utils/money";
 
 const { __ } = useTranslations();
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
+const userBalance = computed(() => Number(user.value?.wallet?.balance ?? 0));
 const initials = computed(
     () => user.value?.name?.charAt(0).toUpperCase() ?? "?",
 );
@@ -302,6 +304,15 @@ onUnmounted(() => {
                 <NotificationBell v-if="user" id="tour-notifications" />
 
                 <template v-if="user">
+                    <Link
+                        :href="route('wallet.show')"
+                        class="header-balance"
+                        :title="__('nav.wallet')"
+                    >
+                        <i class="fa-solid fa-coins header-balance__icon"></i>
+                        <span class="header-balance__val">{{ formatMoney(userBalance) }} ₽</span>
+                    </Link>
+
                     <button @click="sidebarOpen = true" id="tour-user-chip" class="user-chip">
                         <div class="user-avatar-wrap">
                             <div
@@ -581,6 +592,49 @@ onUnmounted(() => {
     gap: 0.5rem;
 }
 
+/* ── Header balance ───────────────────────────────────────── */
+.header-balance {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    height: 38px;
+    padding: 0 0.8rem;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(52, 211, 130, 0.22);
+    color: #34d399;
+    text-decoration: none;
+    font-size: 0.88rem;
+    font-weight: 600;
+    font-family: var(--font-receipt, monospace);
+    font-variant-numeric: tabular-nums;
+    transition: background 0.18s, border-color 0.18s, box-shadow 0.18s, transform 0.18s;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+@media (hover: hover) {
+    .header-balance:hover {
+        background: rgba(52, 211, 130, 0.08);
+        border-color: rgba(52, 211, 130, 0.45);
+        box-shadow: 0 0 14px rgba(52, 211, 130, 0.16);
+        color: #6ee7b7;
+    }
+}
+
+.header-balance:active {
+    transform: scale(0.97);
+}
+
+.header-balance__icon {
+    font-size: 0.95rem;
+    opacity: 0.9;
+}
+
+.header-balance__val {
+    letter-spacing: 0.02em;
+}
+
 /* ── Guest auth buttons ──────────────────────────────────── */
 .guest-btn {
     display: inline-flex;
@@ -631,6 +685,15 @@ onUnmounted(() => {
     .header-right {
         gap: 0.5rem;
     }
+    .header-balance {
+        height: 34px;
+        padding: 0 0.55rem;
+        font-size: 0.8rem;
+        gap: 0.35rem;
+    }
+    .header-balance__icon {
+        font-size: 0.85rem;
+    }
     .user-name-clip {
         display: none;
     }
@@ -653,5 +716,9 @@ onUnmounted(() => {
 
 /* ── Very small screens (≤480px) ────────────────────────── */
 @media (max-width: 480px) {
+    .header-balance {
+        padding: 0 0.45rem;
+        font-size: 0.76rem;
+    }
 }
 </style>
