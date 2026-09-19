@@ -123,6 +123,12 @@ function toggleDropdown() {
 function handleItemClick(item) {
     const authUser = page.props.auth?.user;
 
+    if (item.type === 'wallet_adjustment') {
+        open.value = false;
+        router.visit(route('wallet.index'));
+        return;
+    }
+
     if (item.type === 'new_message' && item.data?.conversation_id) {
         open.value = false;
         openConversation?.(item.data.conversation_id);
@@ -174,6 +180,7 @@ function handleItemClick(item) {
 }
 
 function isClickable(item) {
+    if (item.type === 'wallet_adjustment') return true;
     if (item.type === 'new_message' && item.data?.conversation_id) return true;
     if (item._cat === 'order' && (item.order_id || item.data?.order_id)) return true;
     if (item._cat === 'follow' && item.data?.user_id) return true;
@@ -319,6 +326,12 @@ function getNotificationTitle(item) {
         return data.title_locales?.[currentLocale] || data.title_locales?.[fallbackLocale] || data.title_raw || item.title || __('notification.type.broadcast');
     }
 
+    if (type === 'wallet_adjustment') {
+        return data.is_credit
+            ? __('notification.type.wallet_credit')
+            : __('notification.type.wallet_debit');
+    }
+
     return {
         service_approved: __('notification.type.service_approved'),
         service_remarks: __('notification.type.service_remarks'),
@@ -432,6 +445,15 @@ function getNotificationMessage(item) {
 
     if (type === 'review_dispute_approved' || type === 'review_dispute_rejected') {
         params.note = data.admin_note ? `${__('common.reason')}: ${data.admin_note}` : '';
+    }
+
+    if (type === 'wallet_adjustment') {
+        const sign = data.is_credit ? '+' : '-';
+        const formattedAmount = data.amount !== undefined
+            ? Math.abs(Number(data.amount)).toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+            : '';
+        params.amount = `${sign}${formattedAmount} ₽`;
+        params.description = data.description || '';
     }
 
     if (type === 'test') {
@@ -563,6 +585,7 @@ function itemIconComponent(item) {
             content_pack_change_rejected: PictureFilled,
             new_review: StarFilled,
             new_message: ChatDotRound,
+            wallet_adjustment: Coin,
         }[item.type] ?? Bell;
     }
     return Bell;
@@ -577,6 +600,9 @@ function itemIconClass(item) {
         return 'icon--default';
     }
     if (item._cat === 'service' || item._cat === 'message') {
+        if (item.type === 'wallet_adjustment') {
+            return item.data?.is_credit ? 'icon--deposit' : 'icon--withdraw';
+        }
         if (item.type === 'admin_broadcast') return 'icon--broadcast';
         if (
             item.type === 'idol_approved' ||
@@ -1234,6 +1260,16 @@ defineExpose({ toggleDropdown });
 .icon--success {
     background: rgba(76, 222, 143, 0.12);
     color: #4cde8f;
+}
+
+.icon--deposit {
+    background: rgba(16, 185, 129, 0.12);
+    color: #34d399;
+}
+
+.icon--withdraw {
+    background: rgba(245, 158, 11, 0.12);
+    color: #fbbf24;
 }
 
 .icon--danger {

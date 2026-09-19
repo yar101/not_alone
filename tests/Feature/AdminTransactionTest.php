@@ -4,12 +4,14 @@ namespace Tests\Feature;
 
 use App\Enums\WalletTransactionStatus;
 use App\Enums\WalletTransactionType;
+use App\Events\NewNotification;
 use App\Events\WalletBalanceUpdated;
 use App\Models\Admin;
 use App\Models\AdminLog;
 use App\Models\PlatformSetting;
 use App\Models\User;
 use App\Models\WalletTransaction;
+use App\Notifications\WalletAdjustmentNotification;
 use App\Services\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -216,3 +218,57 @@ it('allows admin to configure fee percentages in settings and applies them', fun
     expect((float) $wTx->metadata['fee_amount'])->toBe(25.0);
     expect((float) $wTx->metadata['payout_amount'])->toBe(475.0);
 });
+
+it('sends bell notification and dispatches NewNotification when notify_user is true', function () {
+    Event::fake([WalletBalanceUpdated::class, NewNotification::class]);
+    $admin = createAdmin();
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($admin, 'admin')->post(route('admin.transactions.store'), [
+        'user_id' => $user->id,
+        'direction' => 'credit',
+        'type' => 'admin_adjustment',
+        'amount' => 500.00,
+        'description' => 'Бонус за конкурс',
+        'notify_user' => true,
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    $response->assertRedirect();
+
+    // Check database notification
+    expect($user->notifications()->count())->toBe(1);
+    $notification = $user->notifications()->first();
+    expect($notification->type)->toBe(WalletAdjustmentNotification::class);
+    expect($notification->data['type'])->toBe('wallet_adjustment');
+    expect((float) $notification->data['amount'])->toBe(500.0);
+    expect($notification->data['is_credit'])->toBeTrue();
+    expect($notification->data['description'])->toBe('Бонус за конкурс');
+
+    // Check WebSocket NewNotification event
+    Event::assertDispatched(NewNotification::class, function ($e) use ($user) {
+        return $e->broadcastOn()[0]->name === 'private-App.Models.User.'.$user->id;
+    });
+});
+
+it('does not send notification when notify_user is false or omitted', function () {
+    Event::fake([WalletBalanceUpdated::class, NewNotification::class]);
+    $admin = createAdmin();
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($admin, 'admin')->post(route('admin.transactions.store'), [
+        'user_id' => $user->id,
+        'direction' => 'credit',
+        'type' => 'admin_adjustment',
+        'amount' => 300.00,
+        'description' => 'Корректировка без уведомления',
+        'notify_user' => false,
+    ]);
+
+    $response->assertSessionHasNoErrors();
+    $response->assertRedirect();
+
+    expect($user->notifications()->count())->toBe(0);
+    Event::assertNotDispatched(NewNotification::class);
+});
+

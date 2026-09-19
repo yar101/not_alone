@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\WalletTransactionStatus;
 use App\Enums\WalletTransactionType;
+use App\Events\NewNotification;
 use App\Exceptions\InsufficientFundsException;
 use App\Http\Controllers\Controller;
 use App\Models\PlatformSetting;
 use App\Models\User;
 use App\Models\WalletTransaction;
+use App\Notifications\WalletAdjustmentNotification;
 use App\Services\WalletService;
+use App\Traits\SafeBroadcast;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,6 +21,7 @@ use Inertia\Response;
 
 class TransactionController extends Controller
 {
+    use SafeBroadcast;
     public function __construct(
         protected WalletService $walletService
     ) {}
@@ -175,6 +179,7 @@ class TransactionController extends Controller
             'amount' => ['required', 'numeric', 'min:0.01', 'max:10000000', 'regex:/^\d+(\.\d{1,2})?$/'],
             'type' => ['required', 'in:admin_adjustment,deposit,withdrawal'],
             'description' => ['required', 'string', 'min:3', 'max:500'],
+            'notify_user' => ['sometimes', 'boolean'],
         ], [
             'user_id.required' => 'Выберите пользователя.',
             'user_id.exists' => 'Указанный пользователь не найден.',
@@ -194,6 +199,11 @@ class TransactionController extends Controller
                 adminId: auth('admin')->id(),
                 type: $validated['type']
             );
+
+            if ($request->boolean('notify_user')) {
+                $user->notify(new WalletAdjustmentNotification($tx));
+                $this->safeBroadcast(new NewNotification('private', $user->id));
+            }
 
             return back()->with('success', "Транзакция #{$tx->id} успешно проведена.");
         } catch (InsufficientFundsException $e) {

@@ -7,7 +7,7 @@ import AppSelect from '@/Components/AppSelect.vue';
 import { formatMoney } from '@/Utils/money';
 import {
     Coin, Plus, Search, Setting, Close, Check, Loading,
-    User, Tickets, InfoFilled, ArrowRight, Wallet, Document
+    User, Tickets, InfoFilled, ArrowRight, Wallet, Document, Bell
 } from '@element-plus/icons-vue';
 
 defineOptions({ layout: AdminLayout });
@@ -114,6 +114,7 @@ const createForm = useForm({
     type: 'admin_adjustment',
     amount: '',
     description: '',
+    notify_user: false,
 });
 
 function openCreateModal() {
@@ -129,6 +130,7 @@ function openCreateModal() {
     createForm.type = 'admin_adjustment';
     createForm.amount = '';
     createForm.description = '';
+    createForm.notify_user = false;
     createForm.clearErrors();
     showCreateModal.value = true;
 }
@@ -666,6 +668,25 @@ function isCredit(tx) {
                             placeholder="Обязательно укажите причину для аудита (например: 'Бонус за активность', 'Компенсация по тикету #123')…"
                         ></textarea>
                         <p v-if="createForm.errors.description" class="err">{{ createForm.errors.description }}</p>
+                    </div>
+
+                    <!-- Step 6: Notify User Checkbox -->
+                    <div class="field field--checkbox-card">
+                        <label class="checkbox-label">
+                            <input
+                                v-model="createForm.notify_user"
+                                type="checkbox"
+                                class="checkbox-input"
+                            />
+                            <span class="checkbox-custom">
+                                <el-icon v-if="createForm.notify_user"><Check /></el-icon>
+                            </span>
+                            <span class="checkbox-title">
+                                <el-icon class="checkbox-bell-icon"><Bell /></el-icon>
+                                Отправить уведомление пользователю в колокольчик
+                            </span>
+                        </label>
+                        <p class="checkbox-hint">Пользователь получит уведомление в колокольчик и WebPush с описанием операции</p>
                     </div>
 
                     <p v-if="createForm.errors.general" class="err err--box">{{ createForm.errors.general }}</p>
@@ -1360,6 +1381,71 @@ function isCredit(tx) {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
+}
+.field--checkbox-card {
+    padding: 0.75rem 0.85rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    transition: border-color 0.15s, background 0.15s;
+}
+.field--checkbox-card:hover {
+    border-color: rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.045);
+}
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    cursor: pointer;
+    user-select: none;
+}
+.checkbox-input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+.checkbox-custom {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    color: #000;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+}
+.checkbox-label:hover .checkbox-custom {
+    border-color: rgba(255, 178, 239, 0.6);
+}
+.checkbox-input:checked + .checkbox-custom {
+    background: #ffb2ef;
+    border-color: #ffb2ef;
+    color: #0d0f1a;
+}
+.checkbox-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+}
+.checkbox-bell-icon {
+    font-size: 0.95rem;
+    color: #ffb2ef;
+}
+.checkbox-hint {
+    margin: 0.25rem 0 0 1.8rem;
+    font-size: 0.76rem;
+    color: rgba(255, 255, 255, 0.45);
+    line-height: 1.35;
 }
 .field-title {
     font-size: 0.82rem;
