@@ -7,7 +7,8 @@ import AppSelect from '@/Components/AppSelect.vue';
 import { formatMoney } from '@/Utils/money';
 import {
     Coin, Plus, Search, Setting, Close, Check, Loading,
-    User, Tickets, InfoFilled, ArrowRight, Wallet, Document, Bell
+    User, Tickets, InfoFilled, ArrowRight, Wallet, Document, Bell,
+    Warning
 } from '@element-plus/icons-vue';
 
 defineOptions({ layout: AdminLayout });
@@ -108,6 +109,14 @@ const userSearching = ref(false);
 const selectedUserForCreate = ref(null);
 let userSearchTimer = null;
 
+const amountPresets = [100, 500, 1000, 5000];
+const reasonPresets = [
+    'Бонус за активность',
+    'Компенсация по тикету',
+    'Корректировка баланса',
+    'Тестовое начисление',
+];
+
 const createForm = useForm({
     user_id: '',
     direction: 'credit', // 'credit' | 'debit'
@@ -116,6 +125,59 @@ const createForm = useForm({
     description: '',
     notify_user: false,
 });
+
+const currentSelectedUserBalance = computed(() => {
+    return Number(selectedUserForCreate.value?.balance ?? 0);
+});
+
+const parsedAmount = computed(() => {
+    const val = Number(createForm.amount);
+    return isNaN(val) ? 0 : val;
+});
+
+const projectedBalance = computed(() => {
+    const current = currentSelectedUserBalance.value;
+    const amount = parsedAmount.value;
+    if (createForm.direction === 'credit') {
+        return current + amount;
+    } else {
+        return Math.max(0, current - amount);
+    }
+});
+
+const isInsufficientBalance = computed(() => {
+    if (!selectedUserForCreate.value) return false;
+    if (createForm.direction !== 'debit') return false;
+    return parsedAmount.value > currentSelectedUserBalance.value;
+});
+
+const submitButtonLabel = computed(() => {
+    if (createForm.processing) return 'Выполняем…';
+    if (!parsedAmount.value || parsedAmount.value <= 0) return 'Провести операцию';
+    const formatted = formatMoney(parsedAmount.value) + ' ₽';
+    if (createForm.direction === 'credit') {
+        return `Начислить ${formatted}`;
+    } else {
+        return `Списать ${formatted}`;
+    }
+});
+
+const isSubmitDisabled = computed(() => {
+    return createForm.processing
+        || !createForm.user_id
+        || !parsedAmount.value
+        || parsedAmount.value <= 0
+        || !createForm.description?.trim()
+        || isInsufficientBalance.value;
+});
+
+function setAmountPreset(val) {
+    createForm.amount = val;
+}
+
+function setReasonPreset(reason) {
+    createForm.description = reason;
+}
 
 function openCreateModal() {
     if (props.selectedUser) {
@@ -170,9 +232,12 @@ function selectUserForCreate(u) {
 function deselectUserForCreate() {
     selectedUserForCreate.value = null;
     createForm.user_id = '';
+    userQuery.value = '';
+    userSearchResults.value = [];
 }
 
 function submitCreate() {
+    if (isSubmitDisabled.value) return;
     createForm.post(route('admin.transactions.store'), {
         preserveScroll: true,
         onSuccess: () => {
@@ -230,7 +295,7 @@ function isCredit(tx) {
                     <span>Комиссии: ввод {{ fees?.deposit_fee_percent }}% / вывод {{ fees?.withdrawal_fee_percent }}%</span>
                 </Link>
                 <button class="btn-primary" @click="openCreateModal">
-                    <el-icon><Plus /></el-icon>
+                    <el-icon class="btn-icon"><Plus /></el-icon>
                     <span>Создать транзакцию</span>
                 </button>
             </div>
@@ -542,8 +607,16 @@ function isCredit(tx) {
         <div v-if="showCreateModal" class="overlay" @click.self="closeCreateModal">
             <div class="modal modal--create">
                 <div class="modal__header">
-                    <div class="modal__title">Создать транзакцию вручную</div>
-                    <button class="modal__close" @click="closeCreateModal">✕</button>
+                    <div class="modal__title-wrap">
+                        <div class="modal__icon-badge">
+                            <el-icon><Coin /></el-icon>
+                        </div>
+                        <div>
+                            <h3 class="modal__title">Создать транзакцию вручную</h3>
+                            <p class="modal__subtitle">Прямое начисление или списание средств с баланса пользователя</p>
+                        </div>
+                    </div>
+                    <button type="button" class="modal__close" @click="closeCreateModal" title="Закрыть">✕</button>
                 </div>
 
                 <form @submit.prevent="submitCreate" class="modal__body">
@@ -556,32 +629,40 @@ function isCredit(tx) {
                                 <img
                                     v-if="selectedUserForCreate.avatar_url"
                                     :src="selectedUserForCreate.avatar_url"
-                                    class="user-pill__avatar"
+                                    class="selected-user-avatar"
                                     alt=""
                                 />
-                                <div v-else class="user-pill__avatar user-pill__avatar--placeholder">
+                                <div v-else class="selected-user-avatar selected-user-avatar--placeholder">
                                     {{ selectedUserForCreate.name?.charAt(0).toUpperCase() }}
                                 </div>
                                 <div class="selected-user-card__info">
-                                    <strong class="selected-user-card__name">{{ selectedUserForCreate.name }}</strong>
+                                    <div class="selected-user-card__topline">
+                                        <strong class="selected-user-card__name">{{ selectedUserForCreate.name }}</strong>
+                                        <span v-if="selectedUserForCreate.is_idol" class="badge-idol">Айдол</span>
+                                    </div>
                                     <span class="selected-user-card__email">{{ selectedUserForCreate.email }}</span>
+                                    <div class="selected-user-card__balance">
+                                        Текущий баланс: <strong>{{ formatMoney(currentSelectedUserBalance) }} ₽</strong>
+                                    </div>
                                 </div>
                             </div>
                             <button type="button" class="btn-change-user" @click="deselectUserForCreate">
-                                Изменить
+                                Сменить
                             </button>
                         </div>
 
                         <div v-else class="user-search-box">
-                            <div class="search-wrap">
-                                <el-icon class="search-icon"><Search /></el-icon>
+                            <div class="user-search-input-wrap">
+                                <el-icon class="user-search-icon"><Search /></el-icon>
                                 <input
                                     v-model="userQuery"
-                                    class="input"
-                                    placeholder="Начните вводить имя или email пользователя…"
+                                    class="user-search-input"
+                                    placeholder="Поиск по имени, email или ID…"
                                     @input="onUserSearchInput"
                                 />
-                                <span v-if="userSearching" class="search-spinner"><el-icon class="is-loading"><Loading /></el-icon></span>
+                                <span v-if="userSearching" class="user-search-spinner">
+                                    <el-icon class="is-loading"><Loading /></el-icon>
+                                </span>
                             </div>
 
                             <div v-if="userSearchResults.length" class="user-dropdown">
@@ -596,10 +677,20 @@ function isCredit(tx) {
                                         {{ u.name?.charAt(0).toUpperCase() }}
                                     </div>
                                     <div class="dropdown-user-info">
-                                        <span class="dropdown-name">{{ u.name }}</span>
+                                        <div class="dropdown-name-row">
+                                            <span class="dropdown-name">{{ u.name }}</span>
+                                            <span v-if="u.is_idol" class="badge-idol badge-idol--mini">Айдол</span>
+                                        </div>
                                         <span class="dropdown-email">{{ u.email }}</span>
                                     </div>
+                                    <div class="dropdown-user-balance">
+                                        <span class="dropdown-balance-label">Баланс</span>
+                                        <span class="dropdown-balance-val">{{ formatMoney(u.balance ?? 0) }} ₽</span>
+                                    </div>
                                 </div>
+                            </div>
+                            <div v-else-if="userQuery.trim() && !userSearching" class="user-dropdown-empty">
+                                Пользователи не найдены
                             </div>
                         </div>
                         <p v-if="createForm.errors.user_id" class="err">{{ createForm.errors.user_id }}</p>
@@ -615,8 +706,11 @@ function isCredit(tx) {
                                 :class="{ 'dir-btn--active': createForm.direction === 'credit' }"
                                 @click="createForm.direction = 'credit'"
                             >
-                                <span class="dir-btn__sign">+</span>
-                                <span>Начисление (Credit)</span>
+                                <span class="dir-btn__icon">+</span>
+                                <div class="dir-btn__text">
+                                    <span class="dir-btn__title">Начисление</span>
+                                    <span class="dir-btn__hint">Пополнение счёта</span>
+                                </div>
                             </button>
                             <button
                                 type="button"
@@ -624,8 +718,11 @@ function isCredit(tx) {
                                 :class="{ 'dir-btn--active': createForm.direction === 'debit' }"
                                 @click="createForm.direction = 'debit'"
                             >
-                                <span class="dir-btn__sign">−</span>
-                                <span>Списание (Debit)</span>
+                                <span class="dir-btn__icon">−</span>
+                                <div class="dir-btn__text">
+                                    <span class="dir-btn__title">Списание</span>
+                                    <span class="dir-btn__hint">Снятие со счёта</span>
+                                </div>
                             </button>
                         </div>
                     </div>
@@ -642,7 +739,12 @@ function isCredit(tx) {
 
                     <!-- Step 4: Amount -->
                     <div class="field">
-                        <label class="field-title">Сумма операции (₽) <span class="req">*</span></label>
+                        <div class="field-title-row">
+                            <label class="field-title">Сумма операции <span class="req">*</span></label>
+                            <span v-if="selectedUserForCreate" class="field-subtitle">
+                                Доступно: <span class="available-val">{{ formatMoney(currentSelectedUserBalance) }} ₽</span>
+                            </span>
+                        </div>
                         <div class="amount-input-wrap">
                             <input
                                 v-model.number="createForm.amount"
@@ -651,10 +753,58 @@ function isCredit(tx) {
                                 min="0.01"
                                 max="10000000"
                                 class="input input--amount"
+                                :class="{ 'input--error': isInsufficientBalance }"
                                 placeholder="0.00"
                             />
                             <span class="currency-label">₽</span>
                         </div>
+
+                        <!-- Amount Presets -->
+                        <div class="amount-presets">
+                            <button
+                                v-for="val in amountPresets"
+                                :key="val"
+                                type="button"
+                                class="preset-btn"
+                                :class="{ 'preset-btn--active': createForm.amount === val }"
+                                @click="setAmountPreset(val)"
+                            >
+                                +{{ formatMoney(val) }} ₽
+                            </button>
+                        </div>
+
+                        <!-- Live Outcome Preview Banner -->
+                        <div v-if="selectedUserForCreate && parsedAmount > 0" class="balance-outcome-banner" :class="{
+                            'balance-outcome-banner--credit': createForm.direction === 'credit',
+                            'balance-outcome-banner--debit': createForm.direction === 'debit' && !isInsufficientBalance,
+                            'balance-outcome-banner--error': isInsufficientBalance,
+                        }">
+                            <div class="outcome-icon">
+                                <el-icon v-if="isInsufficientBalance"><Warning /></el-icon>
+                                <el-icon v-else-if="createForm.direction === 'credit'"><Check /></el-icon>
+                                <el-icon v-else><Wallet /></el-icon>
+                            </div>
+                            <div class="outcome-content">
+                                <template v-if="isInsufficientBalance">
+                                    <div class="outcome-title">Недостаточно средств для списания</div>
+                                    <div class="outcome-desc">
+                                        На балансе пользователя <strong>{{ formatMoney(currentSelectedUserBalance) }} ₽</strong>, а запрошено к списанию <strong>{{ formatMoney(parsedAmount) }} ₽</strong>. Баланс не может быть отрицательным.
+                                    </div>
+                                </template>
+                                <template v-else>
+                                    <div class="outcome-title">Баланс после операции:</div>
+                                    <div class="outcome-flow">
+                                        <span>{{ formatMoney(currentSelectedUserBalance) }} ₽</span>
+                                        <span class="outcome-arrow">→</span>
+                                        <strong class="outcome-target">{{ formatMoney(projectedBalance) }} ₽</strong>
+                                        <span class="outcome-delta" :class="createForm.direction === 'credit' ? 'delta--plus' : 'delta--minus'">
+                                            ({{ createForm.direction === 'credit' ? '+' : '−' }}{{ formatMoney(parsedAmount) }} ₽)
+                                        </span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
                         <p v-if="createForm.errors.amount" class="err">{{ createForm.errors.amount }}</p>
                     </div>
 
@@ -664,14 +814,29 @@ function isCredit(tx) {
                         <textarea
                             v-model="createForm.description"
                             class="input input--textarea"
-                            rows="3"
+                            rows="2"
                             placeholder="Обязательно укажите причину для аудита (например: 'Бонус за активность', 'Компенсация по тикету #123')…"
                         ></textarea>
+
+                        <!-- Quick Reason Tags -->
+                        <div class="reason-tags">
+                            <button
+                                v-for="r in reasonPresets"
+                                :key="r"
+                                type="button"
+                                class="reason-tag-btn"
+                                :class="{ 'reason-tag-btn--active': createForm.description === r }"
+                                @click="setReasonPreset(r)"
+                            >
+                                {{ r }}
+                            </button>
+                        </div>
+
                         <p v-if="createForm.errors.description" class="err">{{ createForm.errors.description }}</p>
                     </div>
 
                     <!-- Step 6: Notify User Checkbox -->
-                    <div class="field field--checkbox-card">
+                    <div class="field field--checkbox-card" :class="{ 'field--checkbox-card--active': createForm.notify_user }">
                         <label class="checkbox-label">
                             <input
                                 v-model="createForm.notify_user"
@@ -696,10 +861,14 @@ function isCredit(tx) {
                         <button
                             type="submit"
                             class="btn-submit"
-                            :disabled="createForm.processing || !createForm.user_id || !createForm.amount || !createForm.description"
+                            :class="{
+                                'btn-submit--credit': createForm.direction === 'credit',
+                                'btn-submit--debit': createForm.direction === 'debit',
+                            }"
+                            :disabled="isSubmitDisabled"
                         >
                             <el-icon v-if="createForm.processing" class="is-loading"><Loading /></el-icon>
-                            <span>{{ createForm.processing ? 'Выполняем…' : 'Провести операцию' }}</span>
+                            <span>{{ submitButtonLabel }}</span>
                         </button>
                     </div>
                 </form>
@@ -752,18 +921,31 @@ function isCredit(tx) {
 .btn-primary {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.55rem 1rem;
-    background: #9B6EE8;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.85rem;
+    gap: 0.5rem;
+    padding: 0.58rem 1.15rem;
+    background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 50%, #7c3aed 100%);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 9px;
+    font-size: 0.86rem;
     font-weight: 600;
+    letter-spacing: 0.01em;
     cursor: pointer;
-    transition: background 0.15s;
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.btn-primary:hover { background: #8655dc; }
+.btn-primary:hover {
+    background: linear-gradient(135deg, #b366f8 0%, #9366f7 50%, #8542f5 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.btn-primary:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+}
+.btn-primary .btn-icon {
+    font-size: 0.95rem;
+}
 .btn-secondary {
     display: inline-flex;
     align-items: center;
@@ -1243,7 +1425,13 @@ function isCredit(tx) {
     box-shadow: 0 20px 40px rgba(0,0,0,0.6);
 }
 .modal--details { max-width: 580px; }
-.modal--create  { max-width: 520px; }
+.modal--create {
+    max-width: 550px;
+    background: linear-gradient(180deg, #1e2030 0%, #151622 100%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    border-radius: 14px;
+}
 
 .modal__header {
     display: flex;
@@ -1257,19 +1445,54 @@ function isCredit(tx) {
     align-items: center;
     gap: 0.6rem;
 }
+.modal__title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+.modal__icon-badge {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(168, 85, 247, 0.16);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #c084fc;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
 .modal__title {
-    font-size: 1.1rem;
+    font-size: 1.08rem;
     font-weight: 700;
     color: rgba(255,255,255,0.95);
+    margin: 0;
+}
+.modal__subtitle {
+    margin: 0.15rem 0 0;
+    font-size: 0.76rem;
+    color: rgba(255, 255, 255, 0.45);
 }
 .modal__close {
-    background: none;
-    border: none;
-    color: rgba(255,255,255,0.4);
-    font-size: 1.1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.5);
+    font-size: 0.95rem;
     cursor: pointer;
+    transition: all 0.15s ease;
 }
-.modal__close:hover { color: #fff; }
+.modal__close:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.18);
+    color: #fff;
+}
 
 .modal__body {
     padding: 1.25rem;
@@ -1287,30 +1510,61 @@ function isCredit(tx) {
 }
 
 .btn-cancel {
-    padding: 0.5rem 0.9rem;
+    padding: 0.55rem 1rem;
     background: rgba(255,255,255,0.06);
     border: 1px solid rgba(255,255,255,0.1);
     color: rgba(255,255,255,0.7);
-    border-radius: 7px;
+    border-radius: 8px;
     font-size: 0.84rem;
     cursor: pointer;
+    transition: all 0.15s ease;
 }
 .btn-cancel:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
 .btn-submit {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.5rem 1.1rem;
-    background: #9B6EE8;
-    border: none;
+    gap: 0.45rem;
+    padding: 0.58rem 1.25rem;
+    background: linear-gradient(135deg, #a855f7 0%, #8b5cf6 50%, #7c3aed 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     color: #fff;
-    border-radius: 7px;
-    font-size: 0.84rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
 }
-.btn-submit:hover:not(:disabled) { background: #8655dc; }
-.btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-submit:hover:not(:disabled) {
+    background: linear-gradient(135deg, #b366f8 0%, #9366f7 50%, #8542f5 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(139, 92, 246, 0.45);
+}
+.btn-submit--credit {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-color: rgba(52, 211, 153, 0.3);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+.btn-submit--credit:hover:not(:disabled) {
+    background: linear-gradient(135deg, #18c58d 0%, #06a372 100%);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.45);
+}
+.btn-submit--debit {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    border-color: rgba(248, 113, 113, 0.3);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+.btn-submit--debit:hover:not(:disabled) {
+    background: linear-gradient(135deg, #f55555 0%, #e53232 100%);
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.45);
+}
+.btn-submit:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
 
 /* Details Grid */
 .details-grid {
@@ -1380,18 +1634,527 @@ function isCredit(tx) {
 .field {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: 0.4rem;
 }
+.field-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+.field-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+}
+.field-subtitle {
+    font-size: 0.74rem;
+    color: rgba(255, 255, 255, 0.45);
+}
+.available-val {
+    color: #34d399;
+    font-weight: 600;
+}
+.req { color: #f87171; }
+
+/* User search in create modal */
+.user-search-box {
+    position: relative;
+    width: 100%;
+}
+.user-search-input-wrap {
+    position: relative;
+    width: 100%;
+}
+.user-search-icon {
+    position: absolute;
+    left: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.95rem;
+    pointer-events: none;
+}
+.user-search-spinner {
+    position: absolute;
+    right: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #a855f7;
+    font-size: 0.95rem;
+}
+.user-search-input {
+    width: 100%;
+    height: 42px;
+    padding: 0 2.2rem 0 2.4rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 9px;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 0.86rem;
+    font-family: inherit;
+    outline: none;
+    box-sizing: border-box;
+    transition: all 0.15s ease;
+}
+.user-search-input:focus {
+    border-color: #a855f7;
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.18);
+}
+.user-search-input::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+}
+.user-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: #1e2030;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 10px;
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65);
+}
+.user-dropdown__item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background 0.12s ease;
+}
+.user-dropdown__item:last-child {
+    border-bottom: none;
+}
+.user-dropdown__item:hover {
+    background: rgba(168, 85, 247, 0.14);
+}
+.dropdown-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+.dropdown-avatar--placeholder {
+    background: linear-gradient(135deg, #a855f7, #7c3aed);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.dropdown-user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    flex: 1;
+    min-width: 0;
+}
+.dropdown-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.dropdown-name {
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.dropdown-email {
+    font-size: 0.74rem;
+    color: rgba(255, 255, 255, 0.45);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.dropdown-user-balance {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    flex-shrink: 0;
+}
+.dropdown-balance-label {
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 0.68rem;
+}
+.dropdown-balance-val {
+    color: #34d399;
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+.user-dropdown-empty {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: #1e2030;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    padding: 0.85rem;
+    text-align: center;
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.5);
+    z-index: 100;
+}
+
+/* Selected User Card */
+.selected-user-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(168, 85, 247, 0.08);
+    border: 1px solid rgba(168, 85, 247, 0.28);
+    border-radius: 10px;
+    padding: 0.75rem 0.95rem;
+}
+.selected-user-card__left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.selected-user-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+.selected-user-avatar--placeholder {
+    background: linear-gradient(135deg, #a855f7, #7c3aed);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.88rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.selected-user-card__info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+.selected-user-card__topline {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.selected-user-card__name {
+    font-size: 0.88rem;
+    color: #fff;
+    font-weight: 600;
+}
+.badge-idol {
+    padding: 0.1rem 0.35rem;
+    background: rgba(255, 178, 239, 0.2);
+    border: 1px solid rgba(255, 178, 239, 0.4);
+    border-radius: 4px;
+    color: #ffb2ef;
+    font-size: 0.68rem;
+    font-weight: 600;
+}
+.badge-idol--mini {
+    font-size: 0.64rem;
+    padding: 0.05rem 0.28rem;
+}
+.selected-user-card__email {
+    font-size: 0.76rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+.selected-user-card__balance {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.65);
+    margin-top: 0.15rem;
+}
+.selected-user-card__balance strong {
+    color: #34d399;
+}
+.btn-change-user {
+    padding: 0.4rem 0.75rem;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 7px;
+    color: #c084fc;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.btn-change-user:hover {
+    background: rgba(168, 85, 247, 0.16);
+    border-color: rgba(168, 85, 247, 0.35);
+    color: #fff;
+}
+
+/* Direction Toggle */
+.direction-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+.dir-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.7rem 0.85rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    text-align: left;
+}
+.dir-btn__icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.5);
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+}
+.dir-btn__text {
+    display: flex;
+    flex-direction: column;
+}
+.dir-btn__title {
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    transition: color 0.15s ease;
+}
+.dir-btn__hint {
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.4);
+    transition: color 0.15s ease;
+}
+
+/* Active Credit */
+.dir-btn--credit.dir-btn--active {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: #10b981;
+    box-shadow: 0 2px 14px rgba(16, 185, 129, 0.16);
+}
+.dir-btn--credit.dir-btn--active .dir-btn__icon {
+    background: #10b981;
+    color: #0b2e21;
+}
+.dir-btn--credit.dir-btn--active .dir-btn__title {
+    color: #34d399;
+}
+.dir-btn--credit.dir-btn--active .dir-btn__hint {
+    color: rgba(52, 211, 153, 0.85);
+}
+
+/* Active Debit */
+.dir-btn--debit.dir-btn--active {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: #ef4444;
+    box-shadow: 0 2px 14px rgba(239, 68, 68, 0.16);
+}
+.dir-btn--debit.dir-btn--active .dir-btn__icon {
+    background: #ef4444;
+    color: #3b0d0d;
+}
+.dir-btn--debit.dir-btn--active .dir-btn__title {
+    color: #f87171;
+}
+.dir-btn--debit.dir-btn--active .dir-btn__hint {
+    color: rgba(248, 113, 113, 0.85);
+}
+
+/* Amount Input Wrap */
+.amount-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+.input--amount {
+    width: 100%;
+    height: 44px;
+    padding-right: 2.2rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+    border-radius: 9px;
+    color: #fff;
+    transition: all 0.15s ease;
+}
+.input--amount.input--error {
+    border-color: #ef4444 !important;
+    background: rgba(239, 68, 68, 0.08) !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+.currency-label {
+    position: absolute;
+    right: 0.85rem;
+    color: rgba(255, 255, 255, 0.45);
+    font-weight: 700;
+    font-size: 1rem;
+    pointer-events: none;
+}
+
+/* Amount Presets */
+.amount-presets {
+    display: flex;
+    gap: 0.45rem;
+    margin-top: 0.15rem;
+    flex-wrap: wrap;
+}
+.preset-btn {
+    padding: 0.32rem 0.65rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.preset-btn:hover {
+    background: rgba(168, 85, 247, 0.15);
+    border-color: rgba(168, 85, 247, 0.35);
+    color: #fff;
+}
+.preset-btn--active {
+    background: rgba(168, 85, 247, 0.25);
+    border-color: #a855f7;
+    color: #c084fc;
+}
+
+/* Balance Outcome Banner */
+.balance-outcome-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 8px;
+    margin-top: 0.35rem;
+    font-size: 0.82rem;
+    transition: all 0.2s ease;
+}
+.balance-outcome-banner--credit {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    color: rgba(255, 255, 255, 0.9);
+}
+.balance-outcome-banner--credit .outcome-icon {
+    color: #34d399;
+}
+.balance-outcome-banner--debit {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    color: rgba(255, 255, 255, 0.9);
+}
+.balance-outcome-banner--debit .outcome-icon {
+    color: #60a5fa;
+}
+.balance-outcome-banner--error {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #fca5a5;
+}
+.balance-outcome-banner--error .outcome-icon {
+    color: #ef4444;
+}
+.outcome-icon {
+    font-size: 1.15rem;
+    margin-top: 0.1rem;
+    flex-shrink: 0;
+}
+.outcome-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+.outcome-title {
+    font-weight: 600;
+    font-size: 0.78rem;
+    opacity: 0.85;
+}
+.outcome-flow {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.84rem;
+}
+.outcome-arrow {
+    color: rgba(255, 255, 255, 0.4);
+}
+.outcome-target {
+    color: #fff;
+}
+.outcome-delta {
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+.delta--plus { color: #34d399; }
+.delta--minus { color: #f87171; }
+.outcome-desc {
+    font-size: 0.78rem;
+    line-height: 1.35;
+}
+
+/* Reason Tags */
+.reason-tags {
+    display: flex;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+    margin-top: 0.15rem;
+}
+.reason-tag-btn {
+    padding: 0.28rem 0.55rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.74rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.reason-tag-btn:hover {
+    background: rgba(168, 85, 247, 0.12);
+    border-color: rgba(168, 85, 247, 0.3);
+    color: #fff;
+}
+.reason-tag-btn--active {
+    background: rgba(168, 85, 247, 0.2);
+    border-color: #a855f7;
+    color: #c084fc;
+}
+
+/* Notification Checkbox Card */
 .field--checkbox-card {
-    padding: 0.75rem 0.85rem;
+    padding: 0.75rem 0.95rem;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
-    transition: border-color 0.15s, background 0.15s;
+    border-radius: 9px;
+    transition: all 0.18s ease;
 }
 .field--checkbox-card:hover {
-    border-color: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.16);
     background: rgba(255, 255, 255, 0.045);
+}
+.field--checkbox-card--active {
+    border-color: rgba(255, 178, 239, 0.4);
+    background: rgba(255, 178, 239, 0.06);
+    box-shadow: 0 2px 12px rgba(255, 178, 239, 0.08);
 }
 .checkbox-label {
     display: flex;
@@ -1432,7 +2195,7 @@ function isCredit(tx) {
 .checkbox-title {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.45rem;
     font-size: 0.85rem;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.9);
@@ -1447,12 +2210,8 @@ function isCredit(tx) {
     color: rgba(255, 255, 255, 0.45);
     line-height: 1.35;
 }
-.field-title {
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: rgba(255,255,255,0.75);
-}
-.req { color: #f87171; }
+
+/* Errors */
 .err {
     font-size: 0.75rem;
     color: #f87171;
@@ -1463,126 +2222,5 @@ function isCredit(tx) {
     border: 1px solid rgba(239, 68, 68, 0.3);
     padding: 0.5rem 0.75rem;
     border-radius: 6px;
-}
-
-/* User search in create modal */
-.user-search-box { position: relative; }
-.user-dropdown {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
-    background: #1e2030;
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 8px;
-    max-height: 200px;
-    overflow-y: auto;
-    z-index: 100;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-}
-.user-dropdown__item {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.55rem 0.75rem;
-    cursor: pointer;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-}
-.user-dropdown__item:hover { background: rgba(155, 110, 232, 0.15); }
-.dropdown-avatar {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-.dropdown-avatar--placeholder {
-    background: #9B6EE8;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.72rem;
-    font-weight: 700;
-}
-.dropdown-user-info { display: flex; flex-direction: column; }
-.dropdown-name { font-size: 0.82rem; font-weight: 600; color: #fff; }
-.dropdown-email { font-size: 0.72rem; color: rgba(255,255,255,0.4); }
-
-.selected-user-card {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: rgba(155, 110, 232, 0.08);
-    border: 1px solid rgba(155, 110, 232, 0.25);
-    border-radius: 8px;
-    padding: 0.65rem 0.85rem;
-}
-.selected-user-card__left {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-}
-.selected-user-card__info { display: flex; flex-direction: column; }
-.selected-user-card__name { font-size: 0.84rem; color: #fff; }
-.selected-user-card__email { font-size: 0.74rem; color: rgba(255,255,255,0.45); }
-.btn-change-user {
-    background: none;
-    border: none;
-    color: #9B6EE8;
-    font-size: 0.78rem;
-    cursor: pointer;
-}
-.btn-change-user:hover { text-decoration: underline; }
-
-/* Direction toggle */
-.direction-toggle {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.6rem;
-}
-.dir-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-    padding: 0.6rem;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 8px;
-    color: rgba(255,255,255,0.6);
-    cursor: pointer;
-    font-size: 0.84rem;
-    font-weight: 600;
-    transition: all 0.15s;
-}
-.dir-btn__sign { font-size: 1.1rem; line-height: 1; }
-.dir-btn--credit.dir-btn--active {
-    background: rgba(52, 211, 153, 0.12);
-    border-color: #34d399;
-    color: #34d399;
-}
-.dir-btn--debit.dir-btn--active {
-    background: rgba(239, 68, 68, 0.12);
-    border-color: #ef4444;
-    color: #f87171;
-}
-
-/* Amount input wrap */
-.amount-input-wrap {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-.input--amount {
-    width: 100%;
-    padding-right: 2rem;
-    font-size: 1.05rem;
-    font-weight: 700;
-}
-.currency-label {
-    position: absolute;
-    right: 0.85rem;
-    color: rgba(255,255,255,0.4);
-    font-weight: 600;
 }
 </style>

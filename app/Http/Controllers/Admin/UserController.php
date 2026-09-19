@@ -99,7 +99,9 @@ class UserController extends Controller
 
     public function search(Request $request): JsonResponse
     {
-        $query = User::query()->select(['id', 'name', 'email', 'is_idol', 'gender', 'birth_date', 'avatar_path', 'created_at']);
+        $query = User::query()
+            ->with('wallet')
+            ->select(['id', 'name', 'email', 'is_idol', 'gender', 'birth_date', 'avatar_path', 'created_at']);
 
         if ($q = $request->q) {
             $query->where(function ($qb) use ($q) {
@@ -142,6 +144,7 @@ class UserController extends Controller
             'gender' => $u->gender,
             'age' => $u->age,
             'avatar_url' => $u->avatar_url,
+            'balance' => (float) ($u->wallet?->balance ?? 0),
             'created_at' => $u->created_at,
         ]);
 
