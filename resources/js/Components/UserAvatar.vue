@@ -1,10 +1,12 @@
 <script setup>
+import { computed } from 'vue';
+
 const props = defineProps({
-    user: { type: Object, required: true },
+    user: { type: Object, default: null },
     size: { type: Number, default: 36 },
 });
 
-const initials = (props.user?.name ?? '?').charAt(0).toUpperCase();
+const initials = computed(() => (props.user?.name ?? '?').charAt(0).toUpperCase());
 </script>
 
 <template>
@@ -14,7 +16,7 @@ const initials = (props.user?.name ?? '?').charAt(0).toUpperCase();
             :style="{ fontSize: (size * 0.38) + 'px' }"
             :class="{ 'is-male': user?.gender === 'male' }"
         >
-            <img v-if="user.avatar_url" :src="user.avatar_url" class="ua-img" alt="" />
+            <img v-if="user?.avatar_url" :src="user.avatar_url" class="ua-img" alt="" />
             <span v-else class="ua-initials">{{ initials }}</span>
         </div>
         <img v-if="user?.active_frame?.image_url" :src="user.active_frame.image_url" class="ua-frame" alt="" />

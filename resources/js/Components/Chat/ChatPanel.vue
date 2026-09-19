@@ -996,13 +996,28 @@ function onReviewSubmitted() {
     });
 }
 
-async function onRepeatOrderCreated({ conversation_id }) {
+async function onRepeatOrderCreated({ order_id, conversation_id }) {
     repeatOrderOpen.value = false;
-    await fetchConversations();
-    const conv = conversations.value.find((c) => c.id === conversation_id);
-    await openConversation(
-        conv ?? { id: conversation_id, other_user: null, unread: false },
-    );
+    if (order_id) {
+        await openOrder(order_id);
+    }
+    if (!activeConversation.value || activeConversation.value.id !== conversation_id) {
+        activeTab.value = "orders";
+        await fetchOrders(true);
+        const order = orders.value.find(
+            (o) => o.id == order_id || o.conversation_id == conversation_id,
+        );
+        if (order) {
+            await openOrderConversation(order);
+        } else {
+            const idol = activeConversation.value?.other_user ?? null;
+            await openConversation({
+                id: conversation_id,
+                other_user: idol,
+                unread: false,
+            });
+        }
+    }
 }
 
 function onOfferSent(msg) {
@@ -1046,8 +1061,12 @@ async function confirmOfferAction() {
                 idol_id: idol.id,
                 services: confirmOfferServices.value.map((svc) => ({ id: svc.id, quantity: 1 })),
             });
-            await openConversation({ id: res.data.conversation_id, other_user: idol });
-            activeTab.value = "orders";
+            if (res.data?.order_id) {
+                await openOrder(res.data.order_id);
+            } else {
+                await openConversation({ id: res.data.conversation_id, other_user: idol });
+                activeTab.value = "orders";
+            }
         }
         confirmOfferModal.value = false;
     } catch (e) {

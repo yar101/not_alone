@@ -38,7 +38,10 @@ async function submit() {
                 quantity: i.quantity ?? 1,
             })),
         });
-        emit('created', { conversation_id: res.data.conversation_id });
+        emit('created', {
+            order_id: res.data.order_id,
+            conversation_id: res.data.conversation_id,
+        });
     } catch (e) {
         error.value = e.response?.data?.error ?? __('chat.repeat.error');
         submitting.value = false;
