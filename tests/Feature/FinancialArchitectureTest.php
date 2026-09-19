@@ -129,8 +129,12 @@ it('releases escrow hold to idol with platform fee deduction on order completion
     $result = $service->releaseHold($order, 10.0);
 
     expect($result['payout'])->toBeInstanceOf(WalletTransaction::class);
-    expect((float) $result['payout']->amount)->toBe(900.00);
+    expect((float) $result['payout']->amount)->toBe(1000.00);
     expect((float) $result['fee']->amount)->toBe(-100.00);
+    expect((float) $result['payout']->balance_before)->toBe(0.00);
+    expect((float) $result['payout']->balance_after)->toBe(1000.00);
+    expect((float) $result['fee']->balance_before)->toBe(1000.00);
+    expect((float) $result['fee']->balance_after)->toBe(900.00);
 
     $customerWallet = $customer->wallet->fresh();
     $idolWallet = $idol->wallet->fresh();
@@ -317,3 +321,63 @@ it('prevents idols from withdrawing more than available balance', function () {
     $response->assertStatus(422);
     expect((float) $idol->wallet->fresh()->balance)->toBe(300.00);
 });
+
+it('blocks financial operations on inactive wallets', function () {
+    $user = User::factory()->create(['is_idol' => true]);
+    $walletService = app(WalletService::class);
+    $wallet = $walletService->getOrCreateWallet($user);
+    $wallet->update(['is_active' => false]);
+
+    expect(fn () => $walletService->deposit($user, 100))
+        ->toThrow(\DomainException::class, 'Кошелёк деактивирован.');
+
+    expect(fn () => $walletService->withdraw($user, 50))
+        ->toThrow(\DomainException::class, 'Кошелёк деактивирован.');
+});
+
+it('blocks deposits and withdrawals for banned users', function () {
+    $user = User::factory()->create([
+        'is_idol' => true,
+        'is_banned' => true,
+        'banned_at' => now(),
+        'banned_until' => now()->addDays(7),
+    ]);
+    $walletService = app(WalletService::class);
+
+    expect(fn () => $walletService->deposit($user, 100))
+        ->toThrow(\DomainException::class, 'Операция недоступна для заблокированного аккаунта.');
+
+    expect(fn () => $walletService->withdraw($user, 50))
+        ->toThrow(\DomainException::class, 'Операция недоступна для заблокированного аккаунта.');
+});
+
+it('filters transactions on backend and keeps query parameters', function () {
+    $user = User::factory()->create(['is_idol' => true]);
+    $walletService = app(WalletService::class);
+
+    $walletService->deposit($user, 1000.00);
+    $walletService->withdraw($user, 200.00);
+
+    $response = $this->actingAs($user)->get(route('wallet.show', ['filter' => 'withdrawal', 'tab' => 'history']));
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->component('Wallet/Index')
+        ->where('activeFilter', 'withdrawal')
+        ->has('transactions.data', 1)
+        ->where('transactions.data.0.type', 'withdrawal')
+    );
+});
+
+it('handles idempotency keys on deposit and withdraw', function () {
+    $idol = User::factory()->create(['is_idol' => true]);
+    $walletService = app(WalletService::class);
+    $walletService->deposit($idol, 2000.00);
+
+    $key = 'test-idempotency-key-123';
+    $dep1 = $walletService->deposit($idol, 500.00, 'Test deposit', $key);
+    $dep2 = $walletService->deposit($idol, 500.00, 'Test deposit duplicate', $key);
+
+    expect($dep1->id)->toBe($dep2->id);
+    expect((float) $idol->wallet->fresh()->balance)->toBe(2500.00);
+});
+

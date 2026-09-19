@@ -17,6 +17,13 @@ class CompleteOrderJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
+     * Delete the job if its models no longer exist.
+     *
+     * @var bool
+     */
+    public bool $deleteWhenMissingModels = true;
+
+    /**
      * Create a new job instance.
      */
     public function __construct(public readonly Order $order) {}

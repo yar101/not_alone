@@ -17,14 +17,14 @@ enum WalletTransactionType: string
     public function label(): string
     {
         return match ($this) {
-            self::Deposit => 'Пополнение баланса',
+            self::Deposit => 'Пополнение',
             self::Withdrawal => 'Вывод средств',
-            self::OrderHold => 'Холд по заказу',
-            self::OrderPayout => 'Выплата за заказ',
+            self::OrderHold => 'Заморозка',
+            self::OrderPayout => 'Выплата',
             self::OrderRefund => 'Возврат по заказу',
             self::PackPurchase => 'Покупка пака',
             self::PackSale => 'Продажа пака',
-            self::PlatformFee => 'Комиссия сервиса',
+            self::PlatformFee => 'Комиссия',
             self::AdminAdjustment => 'Корректировка администратором',
         };
     }

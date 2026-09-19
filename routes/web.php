@@ -188,8 +188,8 @@ Route::middleware(['auth', 'not_banned'])->group(function () {
     // Wallet
     Route::get('/wallet', [WalletController::class, 'show'])->name('wallet.show');
     Route::get('/api/wallet', [WalletController::class, 'showJson'])->name('wallet.data');
-    Route::post('/api/wallet/deposit', [WalletController::class, 'deposit'])->name('wallet.deposit');
-    Route::post('/api/wallet/withdraw', [WalletController::class, 'withdraw'])->name('wallet.withdraw');
+    Route::post('/api/wallet/deposit', [WalletController::class, 'deposit'])->middleware('throttle:30,1')->name('wallet.deposit');
+    Route::post('/api/wallet/withdraw', [WalletController::class, 'withdraw'])->middleware('throttle:30,1')->name('wallet.withdraw');
 });
 
 require __DIR__.'/auth.php';

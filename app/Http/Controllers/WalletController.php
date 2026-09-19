@@ -18,9 +18,31 @@ class WalletController extends Controller
         $user = $request->user();
         $wallet = $this->walletService->getOrCreateWallet($user);
 
-        $transactions = WalletTransaction::where('wallet_id', $wallet->id)
+        $filter = $request->query('filter', 'all');
+        $query = WalletTransaction::where('wallet_id', $wallet->id);
+
+        if ($filter === 'deposit') {
+            $query->where('type', \App\Enums\WalletTransactionType::Deposit);
+        } elseif ($filter === 'orders') {
+            $query->whereIn('type', [
+                \App\Enums\WalletTransactionType::OrderHold,
+                \App\Enums\WalletTransactionType::OrderPayout,
+                \App\Enums\WalletTransactionType::OrderRefund,
+                \App\Enums\WalletTransactionType::PlatformFee,
+            ]);
+        } elseif ($filter === 'packs') {
+            $query->whereIn('type', [
+                \App\Enums\WalletTransactionType::PackPurchase,
+                \App\Enums\WalletTransactionType::PackSale,
+            ]);
+        } elseif ($filter === 'withdrawal') {
+            $query->where('type', \App\Enums\WalletTransactionType::Withdrawal);
+        }
+
+        $transactions = $query
             ->latest('id')
             ->paginate(20)
+            ->withQueryString()
             ->through(fn ($tx) => [
                 'id' => $tx->id,
                 'type' => $tx->type->value,
@@ -42,6 +64,7 @@ class WalletController extends Controller
                 'is_active' => $wallet->is_active,
             ],
             'transactions' => $transactions,
+            'activeFilter' => $filter,
             'canDeposit' => app()->environment('local', 'testing') || config('services.payments.mock_purchases', true),
             'isIdol' => (bool) $user->is_idol,
             'canWithdraw' => (bool) $user->is_idol,
@@ -90,20 +113,29 @@ class WalletController extends Controller
         }
 
         $data = $request->validate([
-            'amount' => ['required', 'numeric', 'min:10', 'max:100000'],
+            'amount' => ['required', 'numeric', 'min:10', 'max:100000', 'regex:/^\d+(\.\d{1,2})?$/'],
         ]);
 
-        $tx = $this->walletService->deposit(
-            $request->user(),
-            (float) $data['amount'],
-            'Пополнение через тестовую панель'
-        );
+        $idempotencyKey = $request->header('X-Idempotency-Key') ?? $request->input('idempotency_key');
 
-        return response()->json([
-            'success' => true,
-            'transaction' => $tx,
-            'balance' => (float) $tx->balance_after,
-        ]);
+        try {
+            $tx = $this->walletService->deposit(
+                $request->user(),
+                (float) $data['amount'],
+                'Пополнение через тестовую панель',
+                $idempotencyKey
+            );
+
+            return response()->json([
+                'success' => true,
+                'transaction' => $tx,
+                'balance' => (float) $tx->balance_after,
+            ]);
+        } catch (\DomainException $e) {
+            return response()->json(['error' => $e->getMessage()], 403);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
     }
 
     public function withdraw(Request $request): JsonResponse
@@ -115,13 +147,16 @@ class WalletController extends Controller
         }
 
         $data = $request->validate([
-            'amount' => ['required', 'numeric', 'min:10', 'max:1000000'],
+            'amount' => ['required', 'numeric', 'min:100', 'max:1000000', 'regex:/^\d+(\.\d{1,2})?$/'],
         ]);
+
+        $idempotencyKey = $request->header('X-Idempotency-Key') ?? $request->input('idempotency_key');
 
         try {
             $tx = $this->walletService->withdraw(
                 user: $user,
                 amount: (float) $data['amount'],
+                idempotencyKey: $idempotencyKey,
                 description: 'Вывод средств на привязанную карту'
             );
 
@@ -133,6 +168,8 @@ class WalletController extends Controller
         } catch (\DomainException $e) {
             return response()->json(['error' => $e->getMessage()], 403);
         } catch (\App\Exceptions\InsufficientFundsException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        } catch (\InvalidArgumentException $e) {
             return response()->json(['error' => $e->getMessage()], 422);
         }
     }

@@ -201,11 +201,40 @@ body {
     line-height: 1.45 !important;
     padding: 8px 12px !important;
     border-radius: 8px !important;
-    max-width: 280px !important;
+    max-width: 300px !important;
     white-space: normal !important;
-    text-align: center !important;
+    text-align: left !important;
 }
 .el-popper.is-dark.wallet-dark-tooltip .el-popper__arrow::before {
     background: #0f0f1d !important;
     border: 1px solid rgba(255, 178, 239, 0.3) !important;
 }
+
+/* Remove native browser number input spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+
+/* Global Element Plus select input reset against @tailwindcss/forms */
+.el-select input,
+.el-select .el-select__input,
+.el-select .el-select__input-wrapper {
+    background-color: transparent !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+/* Remove dot from Completed status badge */
+.wallet-status--completed .wallet-tx-status-dot {
+    display: none !important;
+}
+
+

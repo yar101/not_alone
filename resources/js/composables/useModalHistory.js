@@ -76,7 +76,8 @@ export function useModalHistory(isOpen, name = 'modal') {
         // ONLY push state on mobile. Desktop users prefer the back button 
         // to go to the previous page, not close an overlay.
         if (!modalContext.isPushed && isMobile()) {
-            history.pushState({ modal: name, __modalId: id }, '');
+            const currentState = (typeof history !== 'undefined' && history.state) || {};
+            history.pushState({ ...currentState, modal: name, __modalId: id }, '');
             modalContext.isPushed = true;
             modalStack.push(modalContext);
         }

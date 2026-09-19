@@ -46,6 +46,10 @@ class WalletService
             throw new \InvalidArgumentException('Сумма пополнения должна быть больше 0');
         }
 
+        if (method_exists($user, 'isActiveBanned') && $user->isActiveBanned()) {
+            throw new \DomainException('Операция недоступна для заблокированного аккаунта.');
+        }
+
         return DB::transaction(function () use ($user, $amount, $description, $idempotencyKey, $metadata) {
             if ($idempotencyKey) {
                 $existing = WalletTransaction::where('idempotency_key', $idempotencyKey)->first();
@@ -56,6 +60,10 @@ class WalletService
 
             $wallet = $this->getOrCreateWallet($user);
             $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
+
+            if (! $lockedWallet->is_active) {
+                throw new \DomainException('Кошелёк деактивирован.');
+            }
 
             $balanceBefore = $lockedWallet->balance;
             $balanceAfter = (float) bcadd((string) $balanceBefore, (string) $amount, 2);
@@ -73,7 +81,7 @@ class WalletService
                 'held_balance_after' => $lockedWallet->held_balance,
                 'status' => WalletTransactionStatus::Completed,
                 'idempotency_key' => $idempotencyKey,
-                'description' => $description ?? 'Пополнение баланса',
+                'description' => $description ?? 'Пополнение',
                 'metadata' => $metadata,
             ]);
         });
@@ -104,6 +112,10 @@ class WalletService
 
             $wallet = $this->getOrCreateWallet($user);
             $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
+
+            if (! $lockedWallet->is_active) {
+                throw new \DomainException('Кошелёк деактивирован.');
+            }
 
             if (! $lockedWallet->hasSufficientBalance($amount)) {
                 throw new InsufficientFundsException(
@@ -186,6 +198,10 @@ class WalletService
             $lockedCustWallet = $customerWallet->id === $firstLocked->id ? $firstLocked : $secondLocked;
             $lockedIdolWallet = $idolWallet->id === $firstLocked->id ? $firstLocked : $secondLocked;
 
+            if (! $lockedCustWallet->is_active || ! $lockedIdolWallet->is_active) {
+                throw new \DomainException('Один из кошельков деактивирован.');
+            }
+
             // 1. Release from customer's held_balance
             $custHeldBefore = $lockedCustWallet->held_balance;
             $custHeldAfter = max(0.00, (float) bcsub((string) $custHeldBefore, (string) $heldAmount, 2));
@@ -194,20 +210,18 @@ class WalletService
             // 2. Calculate fee and payout
             $feePercent = $platformFeePercent ?? (float) config('services.payments.platform_fee_percent', 10.0);
             $feeAmount = round($heldAmount * ($feePercent / 100), 2);
-            $payoutAmount = round($heldAmount - $feeAmount, 2);
 
-            // 3. Credit idol's balance
+            // 3. Gross payout to idol's balance
             $idolBalBefore = $lockedIdolWallet->balance;
-            $idolBalAfter = (float) bcadd((string) $idolBalBefore, (string) $payoutAmount, 2);
-            $lockedIdolWallet->update(['balance' => $idolBalAfter]);
+            $idolBalAfterPayout = (float) bcadd((string) $idolBalBefore, (string) $heldAmount, 2);
 
             $payoutTx = WalletTransaction::create([
                 'wallet_id' => $lockedIdolWallet->id,
                 'user_id' => $order->idol_id,
                 'type' => WalletTransactionType::OrderPayout,
-                'amount' => $payoutAmount,
+                'amount' => $heldAmount,
                 'balance_before' => $idolBalBefore,
-                'balance_after' => $idolBalAfter,
+                'balance_after' => $idolBalAfterPayout,
                 'held_balance_before' => $lockedIdolWallet->held_balance,
                 'held_balance_after' => $lockedIdolWallet->held_balance,
                 'status' => WalletTransactionStatus::Completed,
@@ -224,24 +238,29 @@ class WalletService
 
             $feeTx = null;
             if ($feeAmount > 0) {
+                $idolBalAfterFee = (float) bcsub((string) $idolBalAfterPayout, (string) $feeAmount, 2);
+                $lockedIdolWallet->update(['balance' => $idolBalAfterFee]);
+
                 $feeTx = WalletTransaction::create([
                     'wallet_id' => $lockedIdolWallet->id,
                     'user_id' => $order->idol_id,
                     'type' => WalletTransactionType::PlatformFee,
                     'amount' => -$feeAmount,
-                    'balance_before' => $idolBalAfter,
-                    'balance_after' => $idolBalAfter,
+                    'balance_before' => $idolBalAfterPayout,
+                    'balance_after' => $idolBalAfterFee,
                     'held_balance_before' => $lockedIdolWallet->held_balance,
                     'held_balance_after' => $lockedIdolWallet->held_balance,
                     'status' => WalletTransactionStatus::Completed,
                     'reference_type' => Order::class,
                     'reference_id' => $order->id,
-                    'description' => "Комиссия сервиса по заказу #{$order->id} ({$feePercent}%)",
+                    'description' => "Комиссия по заказу #{$order->id}",
                     'metadata' => [
                         'order_id' => $order->id,
                         'fee_percent' => $feePercent,
                     ],
                 ]);
+            } else {
+                $lockedIdolWallet->update(['balance' => $idolBalAfterPayout]);
             }
 
             return [
@@ -285,6 +304,10 @@ class WalletService
 
             $customerWallet = $this->getOrCreateWallet($order->customer);
             $lockedWallet = Wallet::where('id', $customerWallet->id)->lockForUpdate()->first();
+
+            if (! $lockedWallet->is_active) {
+                throw new \DomainException('Кошелёк деактивирован.');
+            }
 
             $balBefore = $lockedWallet->balance;
             $heldBefore = $lockedWallet->held_balance;
@@ -346,6 +369,10 @@ class WalletService
                 $lockedBuyerWallet = $buyerWallet->id === $firstLocked->id ? $firstLocked : $secondLocked;
                 $lockedSellerWallet = $sellerWallet->id === $firstLocked->id ? $firstLocked : $secondLocked;
 
+                if (! $lockedBuyerWallet->is_active || ! $lockedSellerWallet->is_active) {
+                    throw new \DomainException('Один из кошельков деактивирован.');
+                }
+
                 if (! $lockedBuyerWallet->hasSufficientBalance($price)) {
                     throw new InsufficientFundsException(
                         "Недостаточно средств для покупки пака ({$price} руб.)"
@@ -373,22 +400,20 @@ class WalletService
                     'metadata' => ['pack_id' => $pack->id],
                 ]);
 
-                // 2. Credit seller (with fee)
+                // 2. Credit seller gross, then deduct fee
                 $feePercent = $platformFeePercent ?? (float) config('services.payments.platform_fee_percent', 10.0);
                 $feeAmount = round($price * ($feePercent / 100), 2);
-                $sellerAmount = round($price - $feeAmount, 2);
 
                 $sellerBalBefore = $lockedSellerWallet->balance;
-                $sellerBalAfter = (float) bcadd((string) $sellerBalBefore, (string) $sellerAmount, 2);
-                $lockedSellerWallet->update(['balance' => $sellerBalAfter]);
+                $sellerBalAfterGross = (float) bcadd((string) $sellerBalBefore, (string) $price, 2);
 
                 WalletTransaction::create([
                     'wallet_id' => $lockedSellerWallet->id,
                     'user_id' => $seller->id,
                     'type' => WalletTransactionType::PackSale,
-                    'amount' => $sellerAmount,
+                    'amount' => $price,
                     'balance_before' => $sellerBalBefore,
-                    'balance_after' => $sellerBalAfter,
+                    'balance_after' => $sellerBalAfterGross,
                     'held_balance_before' => $lockedSellerWallet->held_balance,
                     'held_balance_after' => $lockedSellerWallet->held_balance,
                     'status' => WalletTransactionStatus::Completed,
@@ -405,21 +430,26 @@ class WalletService
                 ]);
 
                 if ($feeAmount > 0) {
+                    $sellerBalAfterFee = (float) bcsub((string) $sellerBalAfterGross, (string) $feeAmount, 2);
+                    $lockedSellerWallet->update(['balance' => $sellerBalAfterFee]);
+
                     WalletTransaction::create([
                         'wallet_id' => $lockedSellerWallet->id,
                         'user_id' => $seller->id,
                         'type' => WalletTransactionType::PlatformFee,
                         'amount' => -$feeAmount,
-                        'balance_before' => $sellerBalAfter,
-                        'balance_after' => $sellerBalAfter,
+                        'balance_before' => $sellerBalAfterGross,
+                        'balance_after' => $sellerBalAfterFee,
                         'held_balance_before' => $lockedSellerWallet->held_balance,
                         'held_balance_after' => $lockedSellerWallet->held_balance,
                         'status' => WalletTransactionStatus::Completed,
                         'reference_type' => ContentPack::class,
                         'reference_id' => $pack->id,
-                        'description' => "Комиссия сервиса за продажу контент-пака «{$pack->title}» ({$feePercent}%)",
+                        'description' => "Комиссия за контент-пак «{$pack->title}»",
                         'metadata' => ['pack_id' => $pack->id, 'fee_percent' => $feePercent],
                     ]);
+                } else {
+                    $lockedSellerWallet->update(['balance' => $sellerBalAfterGross]);
                 }
             }
 
@@ -450,6 +480,10 @@ class WalletService
             throw new \DomainException('Вывод средств разрешён только айдолам.');
         }
 
+        if (method_exists($user, 'isActiveBanned') && $user->isActiveBanned()) {
+            throw new \DomainException('Операция недоступна для заблокированного аккаунта.');
+        }
+
         if ($amount <= 0) {
             throw new \InvalidArgumentException('Сумма вывода должна быть больше нуля.');
         }
@@ -464,6 +498,10 @@ class WalletService
 
             $wallet = $this->getOrCreateWallet($user);
             $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
+
+            if (! $lockedWallet->is_active) {
+                throw new \DomainException('Кошелёк деактивирован.');
+            }
 
             if (! $lockedWallet->hasSufficientBalance($amount)) {
                 throw new InsufficientFundsException(
