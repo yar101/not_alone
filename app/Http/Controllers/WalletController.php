@@ -40,9 +40,9 @@ class WalletController extends Controller
         }
 
         $transactions = $query
-            ->latest('id')
-            ->paginate(20)
-            ->withQueryString()
+            ->orderByDesc('id')
+            ->cursorPaginate(20)
+            ->appends(array_merge($request->query(), ['tab' => 'history']))
             ->through(fn ($tx) => [
                 'id' => $tx->id,
                 'type' => $tx->type->value,

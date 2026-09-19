@@ -304,47 +304,62 @@ onUnmounted(() => {
                 <NotificationBell v-if="user" id="tour-notifications" />
 
                 <template v-if="user">
-                    <Link
-                        :href="route('wallet.show')"
-                        class="header-balance"
-                        :title="__('nav.wallet')"
+                    <div
+                        id="tour-user-chip"
+                        class="user-chip"
+                        role="button"
+                        tabindex="0"
+                        :title="__('common.profile')"
+                        @click="sidebarOpen = true"
+                        @keydown.enter.self="sidebarOpen = true"
+                        @keydown.space.self.prevent="sidebarOpen = true"
                     >
-                        <i class="fa-solid fa-coins header-balance__icon"></i>
-                        <span class="header-balance__val">{{ formatMoney(userBalance) }} ₽</span>
-                    </Link>
-
-                    <button @click="sidebarOpen = true" id="tour-user-chip" class="user-chip">
                         <div class="user-avatar-wrap">
                             <div
                                 class="user-avatar"
                                 :class="{ 'is-male': user.gender === 'male' }"
                             >
-                            <template v-if="user.avatar_url">
-                                <div
-                                    v-if="!avatarLoaded"
-                                    class="user-avatar__shimmer"
-                                />
-                                <img
-                                    :src="user.avatar_url"
-                                    class="user-avatar__img"
-                                    :class="{
-                                        'user-avatar__img--loaded':
-                                            avatarLoaded,
-                                    }"
-                                    :alt="__('common.avatar')"
-                                    @load="avatarLoaded = true"
-                                />
-                            </template>
-                            <span v-else class="user-avatar__initials">{{
-                                initials
-                            }}</span>
+                                <template v-if="user.avatar_url">
+                                    <div
+                                        v-if="!avatarLoaded"
+                                        class="user-avatar__shimmer"
+                                    />
+                                    <img
+                                        :src="user.avatar_url"
+                                        class="user-avatar__img"
+                                        :class="{
+                                            'user-avatar__img--loaded':
+                                                avatarLoaded,
+                                        }"
+                                        :alt="__('common.avatar')"
+                                        @load="avatarLoaded = true"
+                                    />
+                                </template>
+                                <span v-else class="user-avatar__initials">{{
+                                    initials
+                                }}</span>
                             </div>
-                            <img v-if="user.active_frame_url || user.active_frame?.image_url" :src="user.active_frame_url || user.active_frame.image_url" class="applayout-active-frame" alt="" />
+                            <img
+                                v-if="user.active_frame_url || user.active_frame?.image_url"
+                                :src="user.active_frame_url || user.active_frame.image_url"
+                                class="applayout-active-frame"
+                                alt=""
+                            />
                         </div>
-                        <span class="user-name-clip">
-                            <span class="user-name">{{ user.name }}</span>
-                        </span>
-                    </button>
+
+                        <div class="user-chip__info">
+                            <span class="user-name" :title="user.name">{{ user.name }}</span>
+
+                            <Link
+                                :href="route('wallet.show')"
+                                class="user-chip__balance"
+                                :title="__('nav.wallet')"
+                                @click.stop
+                            >
+                                {{ formatMoney(userBalance) }} ₽
+                            </Link>
+                        </div>
+                    </div>
                 </template>
                 <template v-else>
                     <button
@@ -463,14 +478,48 @@ onUnmounted(() => {
 .user-chip {
     display: flex;
     align-items: center;
-    gap: 0.7rem;
+    gap: 0.65rem;
     text-decoration: none;
     border-radius: 9px;
-    padding: 0.35rem 1.1rem 0.35rem 0.55rem;
+    padding: 0.25rem 0.65rem 0.25rem 0.35rem;
     border: 1px solid transparent;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
     transition:
         background 0.18s,
         border-color 0.18s;
+}
+
+.user-chip:focus-visible {
+    outline: 2px solid var(--color-base-1);
+    outline-offset: 2px;
+}
+
+.user-chip__info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.user-chip__balance {
+    font-size: 0.74rem;
+    font-weight: 600;
+    font-family: var(--font-receipt, monospace);
+    font-variant-numeric: tabular-nums;
+    color: #34d399;
+    text-decoration: none;
+    line-height: 1.15;
+    border-bottom: 1px dashed rgba(52, 211, 153, 0.45);
+    padding-bottom: 1px;
+    display: inline-block;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: color 0.18s ease, border-color 0.18s ease;
 }
 
 .user-avatar-wrap {
@@ -494,6 +543,13 @@ onUnmounted(() => {
     .user-chip:hover {
         background: rgba(255, 178, 239, 0.08);
         border-color: rgba(255, 178, 239, 0.22);
+    }
+    .user-chip:hover .user-name {
+        color: rgba(255, 255, 255, 0.95);
+    }
+    .user-chip__balance:hover {
+        color: #6ee7b7;
+        border-bottom-color: #6ee7b7;
     }
 }
 
@@ -556,25 +612,17 @@ onUnmounted(() => {
 }
 
 /* ── User name ───────────────────────────────────────────── */
-.user-name-clip {
-    max-width: 160px;
-    overflow: hidden;
-    display: inline-block;
-    vertical-align: middle;
-}
-
 .user-name {
-    font-size: 0.95rem;
-    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.75);
     font-family: "Rubik", sans-serif;
     white-space: nowrap;
-    display: inline-block;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+    max-width: 140px;
     transition: color 0.18s;
-}
-@media (hover: hover) {
-    .user-chip:hover .user-name {
-        color: rgba(255, 255, 255, 0.9);
-    }
 }
 
 /* ── Main ────────────────────────────────────────────────── */
@@ -590,49 +638,6 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-}
-
-/* ── Header balance ───────────────────────────────────────── */
-.header-balance {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    height: 38px;
-    padding: 0 0.8rem;
-    border-radius: 9px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(52, 211, 130, 0.22);
-    color: #34d399;
-    text-decoration: none;
-    font-size: 0.88rem;
-    font-weight: 600;
-    font-family: var(--font-receipt, monospace);
-    font-variant-numeric: tabular-nums;
-    transition: background 0.18s, border-color 0.18s, box-shadow 0.18s, transform 0.18s;
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-@media (hover: hover) {
-    .header-balance:hover {
-        background: rgba(52, 211, 130, 0.08);
-        border-color: rgba(52, 211, 130, 0.45);
-        box-shadow: 0 0 14px rgba(52, 211, 130, 0.16);
-        color: #6ee7b7;
-    }
-}
-
-.header-balance:active {
-    transform: scale(0.97);
-}
-
-.header-balance__icon {
-    font-size: 0.95rem;
-    opacity: 0.9;
-}
-
-.header-balance__val {
-    letter-spacing: 0.02em;
 }
 
 /* ── Guest auth buttons ──────────────────────────────────── */
@@ -683,27 +688,27 @@ onUnmounted(() => {
         padding: 0 0.875rem;
     }
     .header-right {
-        gap: 0.5rem;
-    }
-    .header-balance {
-        height: 34px;
-        padding: 0 0.55rem;
-        font-size: 0.8rem;
-        gap: 0.35rem;
-    }
-    .header-balance__icon {
-        font-size: 0.85rem;
-    }
-    .user-name-clip {
-        display: none;
+        gap: 0.4rem;
     }
     .user-chip {
-        padding: 3px;
+        padding: 2px 5px 2px 2px;
+        gap: 0.45rem;
+    }
+    .user-name {
+        max-width: 90px;
+        font-size: 0.82rem;
+    }
+    .user-chip__balance {
+        font-size: 0.68rem;
     }
     .user-avatar {
-        width: 40px;
-        height: 40px;
+        width: 38px;
+        height: 38px;
         border-width: 2px;
+    }
+    .applayout-active-frame {
+        width: 38px;
+        height: 38px;
     }
     .guest-btn--fill {
         display: none;
@@ -716,9 +721,8 @@ onUnmounted(() => {
 
 /* ── Very small screens (≤480px) ────────────────────────── */
 @media (max-width: 480px) {
-    .header-balance {
-        padding: 0 0.45rem;
-        font-size: 0.76rem;
+    .user-name {
+        max-width: 72px;
     }
 }
 </style>

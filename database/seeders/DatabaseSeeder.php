@@ -28,5 +28,9 @@ class DatabaseSeeder extends Seeder
             '--all' => true,
             '--force' => true,
         ]);
+
+        $this->call([
+            TransactionSeeder::class,
+        ]);
     }
 }

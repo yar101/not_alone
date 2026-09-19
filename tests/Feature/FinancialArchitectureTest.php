@@ -381,3 +381,72 @@ it('handles idempotency keys on deposit and withdraw', function () {
     expect((float) $idol->wallet->fresh()->balance)->toBe(2500.00);
 });
 
+it('paginates transactions using cursor pagination without count', function () {
+    $user = User::factory()->create();
+    $walletService = app(WalletService::class);
+
+    // Create 25 deposits
+    for ($i = 1; $i <= 25; $i++) {
+        $walletService->deposit($user, 100.00, "Депозит #{$i}");
+    }
+
+    $response = $this->actingAs($user)->get(route('wallet.show'));
+    $response->assertOk();
+
+    $response->assertInertia(fn ($page) => $page
+        ->component('Wallet/Index')
+        ->has('transactions.data', 20)
+        ->where('transactions.prev_page_url', null)
+        ->has('transactions.next_page_url')
+        ->where('transactions.next_cursor', fn ($cursor) => ! empty($cursor))
+    );
+
+    // Follow next page cursor
+    $props = $response->viewData('page')['props'];
+    $nextUrl = $props['transactions']['next_page_url'];
+    expect($nextUrl)->not->toBeNull();
+
+    $nextResponse = $this->actingAs($user)->get($nextUrl);
+    $nextResponse->assertOk();
+    $nextResponse->assertInertia(fn ($page) => $page
+        ->component('Wallet/Index')
+        ->has('transactions.data', 5)
+        ->has('transactions.prev_page_url')
+    );
+});
+
+it('runs TransactionSeeder with domain lifecycle and marks metadata as seeded', function () {
+    // Ensure test users exist
+    $customer = User::factory()->create(['email' => 'u1@test.com', 'is_idol' => false]);
+    $idol = User::factory()->create(['email' => 'u2@test.com', 'is_idol' => true]);
+
+    $category = ServiceCategory::create(['name' => 'Общение']);
+    $unit = ServiceTimeUnit::create(['name' => 'Час']);
+    Service::create([
+        'user_id' => $idol->id,
+        'category_id' => $category->id,
+        'time_unit_id' => $unit->id,
+        'name' => 'Видеозвонок',
+        'price' => 1000,
+        'is_active' => true,
+        'status' => 'approved',
+    ]);
+
+    $this->seed(\Database\Seeders\TransactionSeeder::class);
+
+    $seededTx = WalletTransaction::whereJsonContains('metadata->seeded', true)->get();
+    expect($seededTx->count())->toBeGreaterThanOrEqual(25);
+
+    // Check customer 1 has multiple transactions and valid balance
+    $c1Wallet = $customer->wallet->fresh();
+    expect((float) $c1Wallet->balance)->toBeGreaterThan(0);
+
+    // Check idol 1 has transactions and valid balance
+    $idolWallet = $idol->wallet->fresh();
+    expect((float) $idolWallet->balance)->toBeGreaterThan(0);
+
+    // Check idempotency: second run does not duplicate
+    $countBefore = WalletTransaction::count();
+    $this->seed(\Database\Seeders\TransactionSeeder::class);
+    expect(WalletTransaction::count())->toBe($countBefore);
+});

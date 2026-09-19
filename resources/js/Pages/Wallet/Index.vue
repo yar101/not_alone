@@ -32,7 +32,7 @@ const props = defineProps({
     },
     transactions: {
         type: Object,
-        default: () => ({ data: [], links: [], total: 0 }),
+        default: () => ({ data: [], prev_page_url: null, next_page_url: null }),
     },
     activeFilter: {
         type: String,
@@ -70,12 +70,16 @@ const getInitialView = () => {
     if (typeof window === 'undefined') return 'overview';
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab') || params.get('view');
-    if (tabParam === 'history') return 'history';
+    if (tabParam === 'history' || params.has('cursor') || (params.has('filter') && params.get('filter') !== 'all')) {
+        return 'history';
+    }
     return 'overview';
 };
 
 const activeView = ref(getInitialView()); // 'overview' | 'history'
 const actionTab = ref('deposit'); // 'deposit' | 'withdraw'
+const availableTipVisible = ref(false);
+const frozenTipVisible = ref(false);
 
 function setView(view) {
     activeView.value = view;
@@ -87,6 +91,7 @@ function setView(view) {
             url.searchParams.delete('tab');
             url.searchParams.delete('view');
             url.searchParams.delete('page');
+            url.searchParams.delete('cursor');
             url.searchParams.delete('filter');
         }
         const state = (typeof history !== 'undefined' && history.state) || {};
@@ -94,6 +99,18 @@ function setView(view) {
             state.page.url = url.pathname + url.search;
         }
         window.history.replaceState(state, '', url.pathname + url.search);
+    }
+}
+
+function getPaginationUrl(url) {
+    if (!url) return null;
+    try {
+        const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
+        const parsed = new URL(url, origin);
+        parsed.searchParams.set('tab', 'history');
+        return parsed.pathname + parsed.search;
+    } catch {
+        return url;
     }
 }
 
@@ -413,7 +430,7 @@ function formatFullDate(iso) {
                             @click="setView('overview')"
                         >
                             <el-icon><Wallet /></el-icon>
-                            <span>Мой баланс</span>
+                            <span>Баланс</span>
                         </button>
 
                         <button
@@ -424,9 +441,6 @@ function formatFullDate(iso) {
                         >
                             <el-icon><Tickets /></el-icon>
                             <span>История</span>
-                            <span class="wallet-view-badge" v-if="transactions.data?.length">
-                                {{ transactions.total ?? transactions.data.length }}
-                            </span>
                         </button>
                     </div>
                 </div>
@@ -437,6 +451,7 @@ function formatFullDate(iso) {
                     <div class="wallet-cards-grid">
                         <!-- Card 1: Available -->
                         <el-tooltip
+                            v-model:visible="availableTipVisible"
                             placement="top"
                             effect="dark"
                             popper-class="wallet-dark-tooltip"
@@ -449,7 +464,13 @@ function formatFullDate(iso) {
                                     <span v-else>Свободные средства.<br>Доступны для оплаты услуг<br>и контент-паков.</span>
                                 </div>
                             </template>
-                            <div class="wcard wcard--available" tabindex="0" role="button" aria-label="Карточка: Доступный баланс">
+                            <div
+                                class="wcard wcard--available"
+                                :class="{ 'wcard--active': availableTipVisible }"
+                                tabindex="0"
+                                role="button"
+                                aria-label="Карточка: Доступный баланс"
+                            >
                                 <div class="wcard__watermark wcard__watermark--emerald">
                                     <i class="fa-solid fa-wallet"></i>
                                 </div>
@@ -473,6 +494,7 @@ function formatFullDate(iso) {
 
                         <!-- Card 2: Frozen / Held -->
                         <el-tooltip
+                            v-model:visible="frozenTipVisible"
                             placement="top"
                             effect="dark"
                             popper-class="wallet-dark-tooltip"
@@ -486,7 +508,13 @@ function formatFullDate(iso) {
                                     только после подтверждения работы.
                                 </div>
                             </template>
-                            <div class="wcard wcard--frozen" tabindex="0" role="button" aria-label="Карточка: Замороженный баланс">
+                            <div
+                                class="wcard wcard--frozen"
+                                :class="{ 'wcard--active': frozenTipVisible }"
+                                tabindex="0"
+                                role="button"
+                                aria-label="Карточка: Замороженный баланс"
+                            >
                                 <div class="wcard__watermark wcard__watermark--cyan">
                                     <i class="fa-solid fa-snowflake"></i>
                                 </div>
@@ -655,13 +683,6 @@ function formatFullDate(iso) {
 
                     <!-- Transaction Table / Ledger -->
                     <div v-else class="wallet-ledger">
-                        <!-- Desktop Table Header -->
-                        <div class="wallet-ledger__head">
-                            <div class="wallet-col wallet-col--id">ID</div>
-                            <div class="wallet-col wallet-col--type">Операция</div>
-                            <div class="wallet-col wallet-col--date">Дата и время</div>
-                            <div class="wallet-col wallet-col--amount">Сумма / Остаток</div>
-                        </div>
 
                         <!-- Table Rows -->
                         <div class="wallet-ledger__body">
@@ -764,25 +785,38 @@ function formatFullDate(iso) {
                     </div>
 
                     <!-- Pagination -->
-                    <div v-if="transactions.links && transactions.links.length > 3" class="wallet-pagination">
-                        <template v-for="(link, idx) in transactions.links" :key="idx">
-                            <Link
-                                v-if="link.url"
-                                :href="link.url"
-                                preserve-scroll
-                                preserve-state
-                                class="wallet-page-link"
-                                :class="{
-                                    'wallet-page-link--active': link.active,
-                                }"
-                                v-html="link.label"
-                            />
-                            <span
-                                v-else
-                                class="wallet-page-link wallet-page-link--disabled"
-                                v-html="link.label"
-                            />
-                        </template>
+                    <div v-if="transactions.prev_page_url || transactions.next_page_url" class="wallet-pagination">
+                        <Link
+                            v-if="transactions.prev_page_url"
+                            :href="getPaginationUrl(transactions.prev_page_url)"
+                            preserve-scroll
+                            preserve-state
+                            class="wallet-page-link"
+                        >
+                            &laquo; Предыдущая
+                        </Link>
+                        <span
+                            v-else
+                            class="wallet-page-link wallet-page-link--disabled"
+                        >
+                            &laquo; Предыдущая
+                        </span>
+
+                        <Link
+                            v-if="transactions.next_page_url"
+                            :href="getPaginationUrl(transactions.next_page_url)"
+                            preserve-scroll
+                            preserve-state
+                            class="wallet-page-link"
+                        >
+                            Следующая &raquo;
+                        </Link>
+                        <span
+                            v-else
+                            class="wallet-page-link wallet-page-link--disabled"
+                        >
+                            Следующая &raquo;
+                        </span>
                     </div>
                 </div>
             </div>
@@ -794,6 +828,7 @@ function formatFullDate(iso) {
             variant="pink"
             compact
             max-width="440px"
+            no-history
             @close="showTxModal = false"
         >
             <div v-if="selectedTx" class="wallet-tx-modal">
@@ -1030,7 +1065,7 @@ function formatFullDate(iso) {
     cursor: pointer;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .wcard--available {
@@ -1057,12 +1092,22 @@ function formatFullDate(iso) {
     }
 }
 
+.wcard--available.wcard--active {
+    border-color: rgba(76, 222, 143, 0.45);
+    box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5), 0 0 24px rgba(76, 222, 143, 0.16);
+}
+
+.wcard--frozen.wcard--active {
+    border-color: rgba(100, 210, 255, 0.45);
+    box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5), 0 0 24px rgba(100, 210, 255, 0.16);
+}
+
 .wcard:hover,
 .wcard:active {
     transform: none !important;
 }
 
-/* Watermark silhouettes */
+/* Watermark silhouettes with scale + rotation micro-interactions */
 .wcard__watermark {
     position: absolute;
     right: -10px;
@@ -1070,7 +1115,9 @@ function formatFullDate(iso) {
     font-size: 6.5rem;
     line-height: 1;
     pointer-events: none;
-    transform: rotate(-12deg);
+    transform-origin: center center;
+    transform: rotate(-12deg) scale(1);
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.3s ease;
     z-index: 0;
 }
 
@@ -1080,6 +1127,24 @@ function formatFullDate(iso) {
 
 .wcard__watermark--cyan {
     color: rgba(100, 210, 255, 0.08);
+}
+
+.wcard:hover .wcard__watermark,
+.wcard:active .wcard__watermark,
+.wcard.wcard--active .wcard__watermark {
+    transform: rotate(-4deg) scale(1.15);
+}
+
+.wcard--available:hover .wcard__watermark--emerald,
+.wcard--available:active .wcard__watermark--emerald,
+.wcard--available.wcard--active .wcard__watermark--emerald {
+    color: rgba(76, 222, 143, 0.13);
+}
+
+.wcard--frozen:hover .wcard__watermark--cyan,
+.wcard--frozen:active .wcard__watermark--cyan,
+.wcard--frozen.wcard--active .wcard__watermark--cyan {
+    color: rgba(100, 210, 255, 0.14);
 }
 
 .wcard__top {
@@ -1114,10 +1179,32 @@ function formatFullDate(iso) {
 
 .wcard__badge-icon {
     font-size: 0.95rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: center center;
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .wcard__badge-fa {
     font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: center center;
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.wcard:hover .wcard__badge-icon,
+.wcard:active .wcard__badge-icon,
+.wcard.wcard--active .wcard__badge-icon {
+    transform: scale(1.22) rotate(12deg);
+}
+
+.wcard:hover .wcard__badge-fa,
+.wcard:active .wcard__badge-fa,
+.wcard.wcard--active .wcard__badge-fa {
+    transform: scale(1.25) rotate(30deg);
 }
 
 .wcard__info-trigger {
@@ -1128,7 +1215,6 @@ function formatFullDate(iso) {
     color: rgba(220, 220, 255, 0.4);
     font-size: 1.18rem;
     cursor: pointer;
-    transition: color 0.15s ease, background 0.15s ease;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1136,11 +1222,31 @@ function formatFullDate(iso) {
     height: 28px;
     border-radius: 50%;
     -webkit-tap-highlight-color: transparent;
+    transform-origin: center center;
+    transition: color 0.2s ease, background 0.2s ease;
 }
 
+.wcard__info-trigger .el-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: center center;
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.wcard:hover .wcard__info-trigger,
+.wcard:active .wcard__info-trigger,
+.wcard.wcard--active .wcard__info-trigger,
 .wcard__info-trigger:hover {
     color: rgba(255, 255, 255, 0.95);
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.wcard:hover .wcard__info-trigger .el-icon,
+.wcard:active .wcard__info-trigger .el-icon,
+.wcard.wcard--active .wcard__info-trigger .el-icon,
+.wcard__info-trigger:hover .el-icon {
+    transform: scale(1.2) rotate(15deg);
 }
 
 .wcard__amount-row {
@@ -1163,12 +1269,10 @@ function formatFullDate(iso) {
 
 .wcard__amount--emerald {
     color: #4cde8f;
-    text-shadow: 0 0 20px rgba(76, 222, 143, 0.2);
 }
 
 .wcard__amount--cyan {
     color: var(--color-base-2, #64d2ff);
-    text-shadow: 0 0 20px rgba(100, 210, 255, 0.25);
 }
 
 .wcard__currency {
@@ -1577,20 +1681,6 @@ function formatFullDate(iso) {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
-}
-
-.wallet-ledger__head {
-    display: grid;
-    grid-template-columns: 80px minmax(260px, 1fr) 175px 170px;
-    gap: 1rem;
-    padding: 0.5rem 1rem;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: rgba(220, 220, 255, 0.45);
-    border-bottom: 1px solid rgba(255, 178, 239, 0.1);
-    margin-bottom: 0.35rem;
 }
 
 .wallet-ledger__body {
@@ -2059,10 +2149,6 @@ function formatFullDate(iso) {
     .wallet-history-select--mobile {
         display: block;
         width: 100%;
-    }
-
-    .wallet-ledger__head {
-        display: none;
     }
 
     .wallet-tx-row {
