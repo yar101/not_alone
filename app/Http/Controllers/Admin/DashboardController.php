@@ -29,7 +29,7 @@ class DashboardController extends Controller
                 ->map(fn ($app) => [
                     'id' => $app->id,
                     'status' => $app->status,
-                    'user' => ['name' => $app->user->name],
+                    'user' => ['name' => $app->user?->name ?? 'Удалённый пользователь'],
                     'created_at' => $app->created_at->toIso8601String(),
                 ]),
             'recent_broadcasts' => AdminBroadcast::with('admin')

@@ -25,11 +25,16 @@ class ApplicationController extends Controller
 
         $applications = $query->paginate(20)->through(fn ($app) => [
             'id' => $app->id,
-            'user' => [
+            'user' => $app->user ? [
                 'id' => $app->user->id,
                 'name' => $app->user->name,
                 'email' => $app->user->email,
                 'avatar_url' => $app->user->avatar_url,
+            ] : [
+                'id' => null,
+                'name' => 'Удалённый пользователь',
+                'email' => '',
+                'avatar_url' => null,
             ],
             'face_photo_url' => Storage::url($app->face_photo_path),
             'status' => $app->status,
@@ -52,12 +57,18 @@ class ApplicationController extends Controller
         return Inertia::render('Admin/Applications/Show', [
             'application' => [
                 'id' => $application->id,
-                'user' => [
+                'user' => $application->user ? [
                     'id' => $application->user->id,
                     'name' => $application->user->name,
                     'email' => $application->user->email,
                     'avatar_url' => $application->user->avatar_url,
                     'created_at' => $application->user->created_at->toIso8601String(),
+                ] : [
+                    'id' => null,
+                    'name' => 'Удалённый пользователь',
+                    'email' => '',
+                    'avatar_url' => null,
+                    'created_at' => null,
                 ],
                 'face_photo_url' => Storage::url($application->face_photo_path),
                 'status' => $application->status,

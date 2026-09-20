@@ -518,7 +518,11 @@ class OrderService
                     break;
 
                 case OrderStatus::Refunded:
-                    // Refund escrow hold to customer
+                    if ($lockedOrder->completed_at !== null) {
+                        IdolRatingService::adjust($lockedOrder->idol, 'order_refunded');
+                    }
+
+                    // Refund escrow hold to customer (and claw back from idol if already completed)
                     $this->walletService->refundHold($lockedOrder, $note ?? 'Аннулирован администратором');
                     break;
 

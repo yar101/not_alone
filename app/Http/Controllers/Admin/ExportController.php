@@ -21,7 +21,7 @@ class ExportController extends Controller
                 ->orderBy('id')
                 ->chunk(500, function ($users) use ($handle) {
                     foreach ($users as $u) {
-                        fputcsv($handle, [
+                        $row = [
                             $u->id,
                             $u->name,
                             $u->email,
@@ -30,7 +30,8 @@ class ExportController extends Controller
                             $u->rating ?? '',
                             $u->created_at->format('d.m.Y H:i'),
                             $u->is_banned ? 'Да' : 'Нет',
-                        ], ';');
+                        ];
+                        fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], $row), ';');
                     }
                 });
 
@@ -50,14 +51,15 @@ class ExportController extends Controller
 
             IdolApplication::with('user')->orderBy('id')->chunk(500, function ($apps) use ($handle) {
                 foreach ($apps as $app) {
-                    fputcsv($handle, [
+                    $row = [
                         $app->id,
                         $app->user?->name ?? '',
                         $app->user?->email ?? '',
                         $app->status,
                         $app->created_at->format('d.m.Y H:i'),
                         $app->reviewed_at?->format('d.m.Y H:i') ?? '',
-                    ], ';');
+                    ];
+                    fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], $row), ';');
                 }
             });
 
@@ -66,5 +68,14 @@ class ExportController extends Controller
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="applications.csv"',
         ]);
+    }
+
+    private function sanitizeCsvCell(mixed $value): mixed
+    {
+        if (is_string($value) && strlen($value) > 0 && in_array($value[0], ['=', '+', '-', '@', "\t", "\r"])) {
+            return "'".$value;
+        }
+
+        return $value;
     }
 }

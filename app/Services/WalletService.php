@@ -317,7 +317,96 @@ class WalletService
                 return null;
             }
 
+            // Check if payout already occurred (order was completed)
+            $payoutTx = WalletTransaction::where('reference_type', Order::class)
+                ->where('reference_id', $order->id)
+                ->where('type', WalletTransactionType::OrderPayout)
+                ->where('status', WalletTransactionStatus::Completed)
+                ->first();
+
             $customerWallet = $this->getOrCreateWallet($order->customer);
+
+            if ($payoutTx) {
+                // Completed order refund: claw back funds from idol, return funds to customer
+                $idolWallet = $this->getOrCreateWallet($order->idol);
+
+                // Lock wallets in ascending ID order to avoid deadlocks
+                $firstId = min($customerWallet->id, $idolWallet->id);
+                $secondId = max($customerWallet->id, $idolWallet->id);
+
+                $firstLocked = Wallet::where('id', $firstId)->lockForUpdate()->first();
+                $secondLocked = Wallet::where('id', $secondId)->lockForUpdate()->first();
+
+                $lockedCustomerWallet = $customerWallet->id === $firstLocked->id ? $firstLocked : $secondLocked;
+                $lockedIdolWallet = $idolWallet->id === $firstLocked->id ? $firstLocked : $secondLocked;
+
+                if (! $lockedCustomerWallet->is_active || ! $lockedIdolWallet->is_active) {
+                    throw new \DomainException('Один из кошельков деактивирован.');
+                }
+
+                $feeTx = WalletTransaction::where('reference_type', Order::class)
+                    ->where('reference_id', $order->id)
+                    ->where('type', WalletTransactionType::PlatformFee)
+                    ->first();
+
+                $grossAmount = (float) $payoutTx->amount;
+                $feeAmount = $feeTx ? abs((float) $feeTx->amount) : 0.00;
+                $netIdolDeduction = (float) bcsub((string) $grossAmount, (string) $feeAmount, 2);
+
+                // Deduct from idol (allows overdraft if idol already withdrew funds)
+                $idolBalBefore = $lockedIdolWallet->balance;
+                $idolBalAfter = (float) bcsub((string) $idolBalBefore, (string) $netIdolDeduction, 2);
+                $lockedIdolWallet->update(['balance' => $idolBalAfter]);
+
+                WalletTransaction::create([
+                    'wallet_id' => $lockedIdolWallet->id,
+                    'user_id' => $order->idol_id,
+                    'type' => WalletTransactionType::OrderClawback,
+                    'amount' => -$netIdolDeduction,
+                    'balance_before' => $idolBalBefore,
+                    'balance_after' => $idolBalAfter,
+                    'held_balance_before' => $lockedIdolWallet->held_balance,
+                    'held_balance_after' => $lockedIdolWallet->held_balance,
+                    'status' => WalletTransactionStatus::Completed,
+                    'reference_type' => Order::class,
+                    'reference_id' => $order->id,
+                    'description' => "Списание по спору/отмене выполненного заказа #{$order->id}" . ($reason ? ": {$reason}" : ''),
+                    'metadata' => [
+                        'order_id' => $order->id,
+                        'gross_amount' => $grossAmount,
+                        'fee_amount' => $feeAmount,
+                        'clawback_amount' => $netIdolDeduction,
+                        'reason' => $reason,
+                    ],
+                ]);
+
+                // Refund customer
+                $custBalBefore = $lockedCustomerWallet->balance;
+                $custBalAfter = (float) bcadd((string) $custBalBefore, (string) $heldAmount, 2);
+                $lockedCustomerWallet->update(['balance' => $custBalAfter]);
+
+                return WalletTransaction::create([
+                    'wallet_id' => $lockedCustomerWallet->id,
+                    'user_id' => $order->customer_id,
+                    'type' => WalletTransactionType::OrderRefund,
+                    'amount' => $heldAmount,
+                    'balance_before' => $custBalBefore,
+                    'balance_after' => $custBalAfter,
+                    'held_balance_before' => $lockedCustomerWallet->held_balance,
+                    'held_balance_after' => $lockedCustomerWallet->held_balance,
+                    'status' => WalletTransactionStatus::Completed,
+                    'reference_type' => Order::class,
+                    'reference_id' => $order->id,
+                    'description' => "Возврат средств по заказу #{$order->id}" . ($reason ? ": {$reason}" : ''),
+                    'metadata' => [
+                        'order_id' => $order->id,
+                        'reason' => $reason,
+                        'from_completed' => true,
+                    ],
+                ]);
+            }
+
+            // Normal uncompleted order hold refund
             $lockedWallet = Wallet::where('id', $customerWallet->id)->lockForUpdate()->first();
 
             if (! $lockedWallet->is_active) {
@@ -363,6 +452,13 @@ class WalletService
     {
         if ($buyer->id === $pack->user_id) {
             throw new \DomainException('Нельзя покупать собственный контент-пак');
+        }
+
+        $alreadyPurchased = ContentPackPurchase::where('content_pack_id', $pack->id)
+            ->where('user_id', $buyer->id)
+            ->exists();
+        if ($alreadyPurchased) {
+            throw new \DomainException('Контент-пак уже приобретён.');
         }
 
         $isMock = config('services.payments.mock_purchases', true);

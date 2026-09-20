@@ -317,6 +317,8 @@ class NotificationController extends Controller
 
     public function markBroadcastRead(Request $request, int $id)
     {
+        AdminBroadcast::findOrFail($id);
+
         $user = $request->user();
         AdminBroadcastRead::updateOrCreate(
             ['broadcast_id' => $id, 'user_id' => $user->id],

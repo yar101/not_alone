@@ -92,6 +92,8 @@ class SupportChatController extends Controller
 
     public function messages(Request $request, Conversation $conversation): JsonResponse
     {
+        abort_unless($conversation->is_support, 404);
+
         $query = $conversation->messages()->with('sender')->latest();
 
         if ($request->before_id) {
@@ -114,6 +116,8 @@ class SupportChatController extends Controller
 
     private function storeFile(Request $request, Conversation $conversation): ?Message
     {
+        abort_unless($conversation->is_support, 404);
+
         $path = $request->file('file')->store("chat/{$conversation->id}");
 
         $admin = auth('admin')->user();
@@ -139,6 +143,8 @@ class SupportChatController extends Controller
 
     public function send(Request $request, Conversation $conversation): JsonResponse
     {
+        abort_unless($conversation->is_support, 404);
+
         $request->validate(['body' => ['required', 'string', 'max:5000']]);
 
         $admin = auth('admin')->user();
@@ -160,6 +166,8 @@ class SupportChatController extends Controller
 
     public function upload(Request $request, Conversation $conversation): JsonResponse
     {
+        abort_unless($conversation->is_support, 404);
+
         $request->validate([
             'file' => ['required', 'file', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
         ]);
@@ -171,6 +179,8 @@ class SupportChatController extends Controller
 
     public function sendImage(Request $request, Conversation $conversation): JsonResponse
     {
+        abort_unless($conversation->is_support, 404);
+
         $request->validate(['image_url' => ['required', 'string']]);
 
         $admin = auth('admin')->user();
@@ -196,6 +206,8 @@ class SupportChatController extends Controller
 
     public function close(Conversation $conversation): JsonResponse
     {
+        abort_unless($conversation->is_support, 404);
+
         $conversation->update(['closed_at' => now()]);
 
         $msg = $conversation->messages()->create([
@@ -212,6 +224,8 @@ class SupportChatController extends Controller
 
     public function open(Conversation $conversation): JsonResponse
     {
+        abort_unless($conversation->is_support, 404);
+
         $conversation->update(['closed_at' => null]);
 
         $msg = $conversation->messages()->create([

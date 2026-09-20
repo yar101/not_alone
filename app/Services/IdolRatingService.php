@@ -17,6 +17,7 @@ class IdolRatingService
         'review_2star' => -0.5,
         'review_1star' => -1.2,
         'order_completed' => 0.2,
+        'order_refunded' => -0.2,
         'report_accepted' => -2.0,
         'review_dispute_approved' => 0.6,
         'strike' => null,

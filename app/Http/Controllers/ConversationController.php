@@ -297,53 +297,7 @@ class ConversationController extends Controller
     {
         $user = $request->user();
 
-        // 1 eager query: load participants and order
-        $conversation->loadMissing(['participants.user', 'order']);
-
-        $isParticipant = $conversation->participants->contains('user_id', $user->id);
-        abort_unless($isParticipant, 403);
-
-        // Block messages in closed support conversations
-        abort_if($conversation->closed_at !== null, 422, 'chat_closed');
-
-        // Block messages in cancelled or completed order conversations
-        if ($conversation->order) {
-            $status = $conversation->order->status;
-            if ($status === OrderStatus::Cancelled) {
-                abort(422, 'order_cancelled');
-            }
-            if ($status === OrderStatus::Completed) {
-                abort(422, 'order_completed');
-            }
-            if ($status === OrderStatus::Disputed) {
-                abort(422, 'order_disputed');
-            }
-            if ($status === OrderStatus::Refunded) {
-                abort(422, 'order_refunded');
-            }
-        }
-
-        $otherParticipant = $conversation->participants->firstWhere('user_id', '!=', $user->id);
-        $otherUser = $otherParticipant?->user;
-
-        if ($otherUser) {
-            if ($otherUser->isActiveBanned()) {
-                abort(422, 'user_banned');
-            }
-
-            $isBlocked = ChatBlock::active()
-                ->where('blocker_id', $otherUser->id)
-                ->where('blocked_id', $user->id)
-                ->exists();
-
-            if ($isBlocked) {
-                abort(403, 'blocked');
-            }
-
-            if ($conversation->order_id === null && $user->is_idol && $otherUser->disallow_idol_messages) {
-                abort(403, 'target_disallows_idol_messages');
-            }
-        }
+        [$otherParticipant, $otherUser] = $this->authorizeConversationInteraction($user, $conversation);
 
         $type = $request->input('type', 'user');
 
@@ -473,15 +427,7 @@ class ConversationController extends Controller
     {
         $user = $request->user();
 
-        abort_unless(
-            $conversation->participants()->where('user_id', $user->id)->exists(),
-            403
-        );
-
-        $otherUser = $conversation->participants->firstWhere('user_id', '!=', $user->id)?->user;
-        if ($conversation->order_id === null && $user->is_idol && $otherUser?->disallow_idol_messages) {
-            abort(403, 'target_disallows_idol_messages');
-        }
+        $this->authorizeConversationInteraction($user, $conversation);
 
         $request->validate([
             'file' => ['required', 'file', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
@@ -566,5 +512,57 @@ class ConversationController extends Controller
             'reason' => $block->reason,
             'blocked_until' => $block->blocked_until?->toISOString(),
         ];
+    }
+
+    private function authorizeConversationInteraction(User $user, Conversation $conversation): array
+    {
+        $conversation->loadMissing(['participants.user', 'order']);
+
+        $isParticipant = $conversation->participants->contains('user_id', $user->id);
+        abort_unless($isParticipant, 403);
+
+        // Block interaction in closed support conversations
+        abort_if($conversation->closed_at !== null, 422, 'chat_closed');
+
+        // Block interaction in cancelled or completed order conversations
+        if ($conversation->order) {
+            $status = $conversation->order->status;
+            if ($status === OrderStatus::Cancelled) {
+                abort(422, 'order_cancelled');
+            }
+            if ($status === OrderStatus::Completed) {
+                abort(422, 'order_completed');
+            }
+            if ($status === OrderStatus::Disputed) {
+                abort(422, 'order_disputed');
+            }
+            if ($status === OrderStatus::Refunded) {
+                abort(422, 'order_refunded');
+            }
+        }
+
+        $otherParticipant = $conversation->participants->firstWhere('user_id', '!=', $user->id);
+        $otherUser = $otherParticipant?->user;
+
+        if ($otherUser) {
+            if ($otherUser->isActiveBanned()) {
+                abort(422, 'user_banned');
+            }
+
+            $isBlocked = ChatBlock::active()
+                ->where('blocker_id', $otherUser->id)
+                ->where('blocked_id', $user->id)
+                ->exists();
+
+            if ($isBlocked) {
+                abort(403, 'blocked');
+            }
+
+            if ($conversation->order_id === null && $user->is_idol && $otherUser->disallow_idol_messages) {
+                abort(403, 'target_disallows_idol_messages');
+            }
+        }
+
+        return [$otherParticipant, $otherUser];
     }
 }

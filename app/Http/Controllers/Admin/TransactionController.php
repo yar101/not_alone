@@ -109,6 +109,7 @@ class TransactionController extends Controller
             'order_refund' => WalletTransaction::where('type', WalletTransactionType::OrderRefund)->count(),
             'platform_fee' => WalletTransaction::where('type', WalletTransactionType::PlatformFee)->count(),
             'admin_adjustment' => WalletTransaction::where('type', WalletTransactionType::AdminAdjustment)->count(),
+            'order_clawback' => WalletTransaction::where('type', WalletTransactionType::OrderClawback)->count(),
         ];
 
         // Global KPI Stats

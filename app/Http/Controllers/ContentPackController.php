@@ -368,8 +368,8 @@ class ContentPackController extends Controller
     {
         $this->authorize('update', $pack);
 
-        // Published pack with purchases → soft delete so buyers keep gallery access
-        if ($pack->status === 'published' && $pack->purchases()->exists()) {
+        // Pack with purchases → soft delete so buyers keep gallery access
+        if ($pack->purchases()->exists()) {
             $pack->delete();
 
             return back();

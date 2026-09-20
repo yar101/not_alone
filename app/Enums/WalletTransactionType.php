@@ -13,6 +13,7 @@ enum WalletTransactionType: string
     case PackSale = 'pack_sale';
     case PlatformFee = 'platform_fee';
     case AdminAdjustment = 'admin_adjustment';
+    case OrderClawback = 'order_clawback';
 
     public function label(): string
     {
@@ -26,6 +27,7 @@ enum WalletTransactionType: string
             self::PackSale => 'Продажа пака',
             self::PlatformFee => 'Комиссия',
             self::AdminAdjustment => 'Корректировка администратором',
+            self::OrderClawback => 'Списание по спору',
         };
     }
 
@@ -33,7 +35,7 @@ enum WalletTransactionType: string
     {
         return match ($this) {
             self::Deposit, self::OrderPayout, self::OrderRefund, self::PackSale => true,
-            self::Withdrawal, self::OrderHold, self::PackPurchase, self::PlatformFee => false,
+            self::Withdrawal, self::OrderHold, self::PackPurchase, self::PlatformFee, self::OrderClawback => false,
             self::AdminAdjustment => false,
         };
     }

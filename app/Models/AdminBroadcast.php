@@ -70,11 +70,11 @@ class AdminBroadcast extends Model
         if ($age !== null) {
             $q->where(fn ($s) => $s
                 ->whereRaw("target_filters->>'age_from' IS NULL")
-                ->orWhereRaw("(target_filters->>'age_from')::int <= ?", [$age])
+                ->orWhereRaw("(CASE WHEN (target_filters->>'age_from') ~ '^[0-9]+$' THEN (target_filters->>'age_from')::int ELSE NULL END) <= ?", [$age])
             );
             $q->where(fn ($s) => $s
                 ->whereRaw("target_filters->>'age_to' IS NULL")
-                ->orWhereRaw("(target_filters->>'age_to')::int >= ?", [$age])
+                ->orWhereRaw("(CASE WHEN (target_filters->>'age_to') ~ '^[0-9]+$' THEN (target_filters->>'age_to')::int ELSE NULL END) >= ?", [$age])
             );
         } else {
             $q->whereRaw("target_filters->>'age_from' IS NULL");
@@ -85,11 +85,11 @@ class AdminBroadcast extends Model
         $createdDate = $user->created_at->toDateString();
         $q->where(fn ($s) => $s
             ->whereRaw("target_filters->>'registered_from' IS NULL")
-            ->orWhereRaw("(target_filters->>'registered_from')::date <= ?", [$createdDate])
+            ->orWhereRaw("(CASE WHEN (target_filters->>'registered_from') ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}' THEN (target_filters->>'registered_from')::date ELSE NULL END) <= ?", [$createdDate])
         );
         $q->where(fn ($s) => $s
             ->whereRaw("target_filters->>'registered_to' IS NULL")
-            ->orWhereRaw("(target_filters->>'registered_to')::date >= ?", [$createdDate])
+            ->orWhereRaw("(CASE WHEN (target_filters->>'registered_to') ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}' THEN (target_filters->>'registered_to')::date ELSE NULL END) >= ?", [$createdDate])
         );
     }
 }

@@ -27,11 +27,11 @@ class UserSearchController extends Controller
         }
 
         // Возраст (через birth_date)
-        if ($v = $request->age_from) {
-            $query->whereDate('birth_date', '<=', now()->subYears((int) $v));
+        if ($request->filled('age_from')) {
+            $query->whereDate('birth_date', '<=', now()->subYears((int) $request->age_from));
         }
-        if ($v = $request->age_to) {
-            $query->whereDate('birth_date', '>=', now()->subYears((int) $v + 1)->addDay());
+        if ($request->filled('age_to')) {
+            $query->whereDate('birth_date', '>=', now()->subYears((int) $request->age_to + 1)->addDay());
         }
 
         // Айдол
@@ -40,11 +40,11 @@ class UserSearchController extends Controller
         }
 
         // Рейтинг
-        if ($v = $request->rating_from) {
-            $query->where('rating', '>=', (int) $v);
+        if ($request->filled('rating_from')) {
+            $query->where('rating', '>=', (float) $request->rating_from);
         }
-        if ($v = $request->rating_to) {
-            $query->where('rating', '<=', (int) $v);
+        if ($request->filled('rating_to')) {
+            $query->where('rating', '<=', (float) $request->rating_to);
         }
 
         // Черты (OR)

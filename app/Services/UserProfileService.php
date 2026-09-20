@@ -62,7 +62,7 @@ class UserProfileService
             $ext = $photoFile->getClientOriginalExtension() ?: 'jpg';
             // Store original file temporarily
             $tempPath = $photoFile->storeAs('temp/posts', uniqid().'.'.$ext, config('filesystems.default'));
-            $destinationPath = "posts/{$user->id}/".time().'.jpg';
+            $destinationPath = "posts/{$user->id}/".\Illuminate\Support\Str::uuid().'.jpg';
             $photoPath = $tempPath;
         }
 

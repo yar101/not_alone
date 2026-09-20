@@ -43,6 +43,12 @@ class MessageController extends Controller
             'target' => 'required|in:all,user,filtered',
             'target_user_id' => 'nullable|required_if:target,user|exists:users,id',
             'target_filters' => 'nullable|required_if:target,filtered|array',
+            'target_filters.is_idol' => 'nullable|boolean',
+            'target_filters.gender' => 'nullable|string|in:male,female,other',
+            'target_filters.age_from' => 'nullable|integer|min:0|max:150',
+            'target_filters.age_to' => 'nullable|integer|min:0|max:150',
+            'target_filters.registered_from' => 'nullable|date',
+            'target_filters.registered_to' => 'nullable|date',
         ]);
 
         $broadcast = AdminBroadcast::create([

@@ -53,6 +53,8 @@ class ContentPackPurchaseController extends Controller
             });
         } catch (InsufficientFundsException $e) {
             return response()->json(['error' => $e->getMessage()], 422);
+        } catch (\DomainException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
         }
 
         return response()->json(['success' => true, 'purchased' => $created]);

@@ -69,6 +69,10 @@ class ReportController extends Controller
 
     public function review(Request $request, UserReport $report): RedirectResponse
     {
+        if ($report->status !== 'pending') {
+            return back()->withErrors(['report' => 'Жалоба уже рассмотрена.']);
+        }
+
         $validated = $request->validate([
             'admin_note' => 'nullable|string|max:1000',
         ]);
@@ -90,6 +94,10 @@ class ReportController extends Controller
 
     public function dismiss(Request $request, UserReport $report): RedirectResponse
     {
+        if ($report->status !== 'pending') {
+            return back()->withErrors(['report' => 'Жалоба уже обработана.']);
+        }
+
         $validated = $request->validate([
             'admin_note' => 'nullable|string|max:1000',
         ]);

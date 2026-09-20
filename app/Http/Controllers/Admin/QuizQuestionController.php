@@ -395,10 +395,15 @@ class QuizQuestionController extends Controller
     // ── Private: simple LCS-based line diff ────────────────
     private function computeDiff(array $old, array $new): array
     {
-        $result = [];
-        $matrix = [];
         $n = count($old);
         $m = count($new);
+
+        // Prevent memory exhaustion on large files
+        if ($n > 1000 || $m > 1000) {
+            return [
+                ['type' => ' ', 'text' => 'Текст слишком велик для визуального построчного сравнения (более 1000 строк).'],
+            ];
+        }
 
         // Build LCS matrix
         for ($i = 0; $i <= $n; $i++) {
