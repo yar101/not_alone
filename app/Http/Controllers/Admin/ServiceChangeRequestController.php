@@ -9,6 +9,7 @@ use App\Notifications\ServiceChangeApprovedNotification;
 use App\Notifications\ServiceChangeRejectedNotification;
 use App\Notifications\ServiceChangeRemarksNotification;
 use App\Services\AdminLogService;
+use App\Traits\SafeBroadcast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,7 @@ use Inertia\Response;
 
 class ServiceChangeRequestController extends Controller
 {
+    use SafeBroadcast;
     public function index(): Response
     {
         $requests = ServiceChangeRequest::with(['service.user'])
@@ -166,7 +168,9 @@ class ServiceChangeRequestController extends Controller
                 ]);
 
                 $service->user->notify(new ServiceChangeApprovedNotification($service, $changeRequest->changed_fields, $data['flagged_fields'] ?? null, $data['field_comments'] ?? null));
-                broadcast(new NewNotification('private', $service->user->id));
+                DB::afterCommit(function () use ($service) {
+                    $this->safeBroadcast(new NewNotification('private', $service->user->id));
+                });
             });
 
             AdminLogService::log($admin->id, 'approve_service_change', 'service_change_request', $changeRequest->id, [
@@ -188,7 +192,7 @@ class ServiceChangeRequestController extends Controller
             ]);
 
             $service->user->notify(new ServiceChangeRemarksNotification($service));
-            broadcast(new NewNotification('private', $service->user->id));
+            $this->safeBroadcast(new NewNotification('private', $service->user->id));
 
             AdminLogService::log($admin->id, 'remarks_service_change', 'service_change_request', $changeRequest->id, [
                 'flagged_fields' => $flaggedFields,
@@ -203,7 +207,7 @@ class ServiceChangeRequestController extends Controller
             ]);
 
             $service->user->notify(new ServiceChangeRejectedNotification($service, $data['admin_comment'] ?? null));
-            broadcast(new NewNotification('private', $service->user->id));
+            $this->safeBroadcast(new NewNotification('private', $service->user->id));
 
             AdminLogService::log($admin->id, 'reject_service_change', 'service_change_request', $changeRequest->id, [
                 'fields' => $changeRequest->changed_fields,

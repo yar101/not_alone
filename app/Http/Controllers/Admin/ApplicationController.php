@@ -8,12 +8,15 @@ use App\Models\IdolApplication;
 use App\Notifications\IdolApprovedNotification;
 use App\Notifications\IdolRejectedNotification;
 use App\Services\AdminLogService;
+use App\Traits\SafeBroadcast;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class ApplicationController extends Controller
 {
+    use SafeBroadcast;
     public function index(Request $request)
     {
         $query = IdolApplication::with(['user', 'reviewer'])
@@ -86,17 +89,22 @@ class ApplicationController extends Controller
             return back()->withErrors(['error' => 'Заявка уже обработана.']);
         }
 
-        $application->update([
-            'status' => 'approved',
-            'reviewed_by' => auth('admin')->id(),
-            'reviewed_at' => now(),
-        ]);
+        $adminId = auth('admin')->id();
 
-        $application->user->update(['is_idol' => true]);
+        DB::transaction(function () use ($application, $adminId) {
+            $application->update([
+                'status' => 'approved',
+                'reviewed_by' => $adminId,
+                'reviewed_at' => now(),
+            ]);
+
+            $application->user->update(['is_idol' => true]);
+        });
+
         $application->user->notify(new IdolApprovedNotification);
-        broadcast(new NewNotification('private', $application->user->id));
+        $this->safeBroadcast(new NewNotification('private', $application->user->id));
 
-        AdminLogService::log(auth('admin')->id(), 'approve_application', 'application', $application->id);
+        AdminLogService::log($adminId, 'approve_application', 'application', $application->id);
 
         return back()->with('success', 'Заявка одобрена.');
     }
@@ -112,25 +120,29 @@ class ApplicationController extends Controller
             'reset_quiz' => 'boolean',
         ]);
 
-        $application->update([
-            'status' => 'rejected',
-            'rejection_reason' => $validated['rejection_reason'],
-            'reviewed_by' => auth('admin')->id(),
-            'reviewed_at' => now(),
-        ]);
+        $adminId = auth('admin')->id();
 
-        if ($request->boolean('reset_quiz')) {
-            $user = $application->user;
-            $user->idolQuizSessions()->where('status', 'active')
-                ->update(['status' => 'failed', 'completed_at' => now()]);
-            $user->update(['idol_quiz_passed_at' => null, 'idol_quiz_cooldown_until' => null]);
-        }
+        DB::transaction(function () use ($application, $validated, $request, $adminId) {
+            $application->update([
+                'status' => 'rejected',
+                'rejection_reason' => $validated['rejection_reason'],
+                'reviewed_by' => $adminId,
+                'reviewed_at' => now(),
+            ]);
+
+            if ($request->boolean('reset_quiz')) {
+                $user = $application->user;
+                $user->idolQuizSessions()->where('status', 'active')
+                    ->update(['status' => 'failed', 'completed_at' => now()]);
+                $user->update(['idol_quiz_passed_at' => null, 'idol_quiz_cooldown_until' => null]);
+            }
+        });
 
         $application->user->notify(new IdolRejectedNotification($validated['rejection_reason']));
-        broadcast(new NewNotification('private', $application->user->id));
+        $this->safeBroadcast(new NewNotification('private', $application->user->id));
 
         AdminLogService::log(
-            auth('admin')->id(),
+            $adminId,
             'reject_application',
             'application',
             $application->id,

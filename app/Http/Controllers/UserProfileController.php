@@ -550,8 +550,12 @@ class UserProfileController extends Controller
             $existing->delete();
             $liked = false;
         } else {
-            PostLike::create(['post_id' => $post->id, 'user_id' => $userId]);
-            $liked = true;
+            try {
+                PostLike::create(['post_id' => $post->id, 'user_id' => $userId]);
+                $liked = true;
+            } catch (\Illuminate\Database\UniqueConstraintViolationException) {
+                $liked = true;
+            }
         }
 
         return response()->json([
@@ -601,6 +605,9 @@ class UserProfileController extends Controller
     {
         $data = $request->validate(['name' => ['required', 'string', 'max:100']]);
         $userId = $request->user()->id;
+
+        abort_if(InterestSuggestion::where('user_id', $userId)->where('status', 'pending')->count() >= 10, 422, 'Слишком много предложений на рассмотрении');
+
         $name = $data['name'];
         $exists = InterestSuggestion::where('user_id', $userId)->where('name', $name)->exists();
         if (! $exists) {
@@ -614,6 +621,9 @@ class UserProfileController extends Controller
     {
         $data = $request->validate(['name' => ['required', 'string', 'max:100']]);
         $userId = $request->user()->id;
+
+        abort_if(TraitSuggestion::where('user_id', $userId)->where('status', 'pending')->count() >= 10, 422, 'Слишком много предложений на рассмотрении');
+
         $name = $data['name'];
 
         $exists = TraitSuggestion::where('user_id', $userId)->where('name', $name)->exists();

@@ -44,6 +44,12 @@ class FollowController extends Controller
             return back();
         }
 
+        abort_if($user->isActiveBanned(), 422, 'user_banned');
+
+        if (\App\Models\ChatBlock::active()->where('blocker_id', $user->id)->where('blocked_id', $follower->id)->exists()) {
+            abort(403, 'chat_blocked');
+        }
+
         if ($follower->isFollowing($user->id)) {
             $follower->unfollow($user->id);
             $message = 'Вы больше не отслеживаете этого пользователя.';

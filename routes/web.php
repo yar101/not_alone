@@ -84,8 +84,8 @@ Route::middleware(['auth', 'not_banned'])->group(function () {
         Route::post('/posts/{post}/like', [UserProfileController::class, 'toggleLike'])->name('posts.like');
         Route::post('/posts/{post}/comments', [UserProfileController::class, 'storeComment'])->name('posts.comments.store');
         Route::delete('/comments/{comment}', [UserProfileController::class, 'destroyComment'])->name('posts.comments.destroy');
-        Route::post('/profile/trait-suggestions', [UserProfileController::class, 'storeTraitSuggestion'])->name('profile.trait-suggestions.store');
-        Route::post('/profile/interest-suggestions', [UserProfileController::class, 'storeInterestSuggestion'])->name('profile.interest-suggestions.store');
+        Route::post('/profile/trait-suggestions', [UserProfileController::class, 'storeTraitSuggestion'])->middleware('throttle:10,1')->name('profile.trait-suggestions.store');
+        Route::post('/profile/interest-suggestions', [UserProfileController::class, 'storeInterestSuggestion'])->middleware('throttle:10,1')->name('profile.interest-suggestions.store');
 
         // User search & following
         Route::get('/search', [UserSearchController::class, 'index'])->name('users.search');

@@ -42,16 +42,19 @@ class ContentPackController extends Controller
         abort_if(! $request->user()->is_idol, 403);
 
         $limits = $this->priceLimits();
+        $photosCount = count($request->file('photos', []));
+        $maxIndex = max(0, $photosCount - 1);
         $data = $request->validate([
             'title' => ['required', 'string', 'max:120'],
             'description' => ['nullable', 'string', 'max:2000'],
             'price' => ['required', 'integer', 'min:'.$limits['min'], 'max:'.$limits['max']],
             'photos' => ['required', 'array', 'min:1', 'max:50'],
             'photos.*' => ['file', 'mimes:jpeg,jpg,png,webp', 'max:10240'],
-            'cover_index' => ['required', 'integer', 'min:0'],
+            'cover_index' => ['required', 'integer', 'min:0', 'max:'.$maxIndex],
         ], [
             'price.min' => "Цена слишком низкая, минимум {$limits['min']} ₽",
             'price.max' => "Цена слишком высокая, максимум {$limits['max']} ₽",
+            'cover_index.max' => 'Обложка должна указывать на одно из загружаемых фото',
         ]);
 
         $moderation = $this->moderationSettings();
@@ -86,6 +89,10 @@ class ContentPackController extends Controller
                 if ((int) $index === (int) $coverIndex) {
                     $coverPath = $tempPath;
                 }
+            }
+
+            if (! $coverPath && ! empty($uploadJobs)) {
+                $coverPath = $uploadJobs[0][0];
             }
 
             if ($coverPath) {
@@ -189,6 +196,13 @@ class ContentPackController extends Controller
                 [$tempPath, $finalPath] = $this->storeTempPhoto($file, $pack->id);
                 $photo->update(['path' => $tempPath, 'original_filename' => $file->getClientOriginalName()]);
                 \App\Jobs\ProcessImageUpload::dispatch($tempPath, $finalPath, \App\Models\ContentPackPhoto::class, $photo->id, 'path');
+            }
+        }
+
+        if (! $pack->fresh()->cover_path) {
+            $firstRemainingPhoto = $pack->photos()->first();
+            if ($firstRemainingPhoto) {
+                $pack->update(['cover_path' => $firstRemainingPhoto->path]);
             }
         }
 

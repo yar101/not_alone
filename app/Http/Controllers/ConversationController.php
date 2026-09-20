@@ -375,6 +375,7 @@ class ConversationController extends Controller
         $services = \App\Models\Service::whereIn('id', $request->services)
             ->where('user_id', $user->id)
             ->where('is_active', true)
+            ->where('status', 'approved')
             ->with(['category:id,name', 'timeUnit:id,name'])
             ->get();
 

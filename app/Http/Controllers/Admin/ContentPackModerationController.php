@@ -9,6 +9,7 @@ use App\Notifications\ContentPackApprovedNotification;
 use App\Notifications\ContentPackRejectedNotification;
 use App\Notifications\ContentPackRemarksNotification;
 use App\Services\AdminLogService;
+use App\Traits\SafeBroadcast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -17,6 +18,7 @@ use Inertia\Response;
 
 class ContentPackModerationController extends Controller
 {
+    use SafeBroadcast;
     public function index(Request $request): Response
     {
         $status = $request->input('status', 'pending_review');
@@ -143,7 +145,7 @@ class ContentPackModerationController extends Controller
             ]);
 
             $pack->user->notify(new ContentPackApprovedNotification($pack));
-            broadcast(new NewNotification('private', $pack->user->id));
+            $this->safeBroadcast(new NewNotification('private', $pack->user->id));
         } elseif ($data['decision'] === 'rejected') {
             foreach ($pack->photos as $photo) {
                 if (Storage::exists($photo->path)) {
@@ -162,11 +164,11 @@ class ContentPackModerationController extends Controller
             ]);
 
             $pack->user->notify(new ContentPackRejectedNotification($pack));
-            broadcast(new NewNotification('private', $pack->user->id));
+            $this->safeBroadcast(new NewNotification('private', $pack->user->id));
         } else {
             $pack->update(['status' => 'has_remarks', 'resubmitted_at' => null]);
             $pack->user->notify(new ContentPackRemarksNotification($pack));
-            broadcast(new NewNotification('private', $pack->user->id));
+            $this->safeBroadcast(new NewNotification('private', $pack->user->id));
         }
 
         AdminLogService::log(

@@ -46,6 +46,7 @@ class OrderService
         $services = Service::whereIn('id', $serviceIds)
             ->where('user_id', $idol->id)
             ->where('is_active', true)
+            ->where('status', 'approved')
             ->with(['category', 'timeUnit'])
             ->get();
 

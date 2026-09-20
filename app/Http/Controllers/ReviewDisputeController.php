@@ -24,6 +24,12 @@ class ReviewDisputeController extends Controller
             'dispute_pending'
         );
 
+        abort_if(
+            ReviewDispute::where('review_id', $review->id)->count() >= 2,
+            422,
+            'max_disputes_reached'
+        );
+
         $request->validate([
             'reason' => 'required|string|max:250',
         ]);
