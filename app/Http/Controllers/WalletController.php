@@ -69,8 +69,8 @@ class WalletController extends Controller
             'canDeposit' => app()->environment('local', 'testing') || config('services.payments.mock_purchases', true),
             'isIdol' => (bool) $user->is_idol,
             'canWithdraw' => (bool) $user->is_idol,
-            'depositFeePercent' => (float) PlatformSetting::get('deposit_fee_percent', 0.0),
-            'withdrawalFeePercent' => (float) PlatformSetting::get('withdrawal_fee_percent', 0.0),
+            'depositFeePercent' => (float) PlatformSetting::get('deposit_fee_percent', config('services.payments.deposit_fee_percent', 4.0)),
+            'withdrawalFeePercent' => (float) PlatformSetting::get('withdrawal_fee_percent', config('services.payments.withdrawal_fee_percent', 4.0)),
         ]);
     }
 

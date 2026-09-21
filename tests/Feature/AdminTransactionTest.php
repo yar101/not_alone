@@ -86,7 +86,7 @@ it('returns transaction details in show endpoint', function () {
     $response->assertOk();
     $response->assertJson([
         'id' => $tx->id,
-        'amount' => 750.00,
+        'amount' => 720.00,
         'type' => 'deposit',
         'status' => 'completed',
         'user' => [
@@ -136,7 +136,7 @@ it('allows admin to debit user wallet with sufficient balance and prevents overd
     $user = User::factory()->create();
     $service = app(WalletService::class);
 
-    // Initial deposit of 1000
+    // Initial deposit of 1000 with 4% fee => 960.00 balance
     $service->deposit($user, 1000.00, 'Начальный баланс');
 
     // Successful debit of 400
@@ -149,9 +149,9 @@ it('allows admin to debit user wallet with sufficient balance and prevents overd
     ]);
 
     $response->assertSessionHasNoErrors();
-    expect((float) $user->wallet->fresh()->balance)->toBe(600.00);
+    expect((float) $user->wallet->fresh()->balance)->toBe(560.00);
 
-    // Overdraft debit attempt (trying to debit 700 when available is 600)
+    // Overdraft debit attempt (trying to debit 700 when available is 560)
     $failResponse = $this->actingAs($admin, 'admin')->post(route('admin.transactions.store'), [
         'user_id' => $user->id,
         'direction' => 'debit',
@@ -161,7 +161,7 @@ it('allows admin to debit user wallet with sufficient balance and prevents overd
     ]);
 
     $failResponse->assertSessionHasErrors('amount');
-    expect((float) $user->wallet->fresh()->balance)->toBe(600.00);
+    expect((float) $user->wallet->fresh()->balance)->toBe(560.00);
 });
 
 it('allows admin to configure fee percentages in settings and applies them', function () {

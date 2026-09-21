@@ -160,10 +160,7 @@ class ConversationController extends Controller
 
         $user->unreadNotifications()
             ->where('type', \App\Notifications\NewMessageNotification::class)
-            ->where(function ($q) use ($conversation) {
-                $q->where('data', 'like', '%"conversation_id":'.$conversation->id.'%')
-                    ->orWhere('data', 'like', '%"conversation_id":"'.$conversation->id.'"%');
-            })
+            ->whereRaw("data::jsonb->>'conversation_id' = ?", [(string) $conversation->id])
             ->update(['read_at' => now()]);
 
         $this->safeBroadcast(new MessageRead($conversation->id, $user->id, now()->toISOString()));

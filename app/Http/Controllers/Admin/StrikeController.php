@@ -121,7 +121,9 @@ class StrikeController extends Controller
             }
 
             // Notify user (Mail + Database)
-            $user->notify(new UserStrikeNotification($strike));
+            DB::afterCommit(function () use ($user, $strike) {
+                $user->notify(new UserStrikeNotification($strike));
+            });
         });
 
         return back()->with('success', 'Страйк успешно выдан'.($activeStrikes >= 2 ? ' и пользователь забанен' : ''));

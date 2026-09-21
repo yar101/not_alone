@@ -21,8 +21,8 @@ class PlatformSettingsController extends Controller
                 'content_pack_price_max' => (int) PlatformSetting::get('content_pack_price_max', 10000),
                 'moderate_new_packs' => (bool) (int) PlatformSetting::get('moderate_new_packs', 1),
                 'moderate_existing_packs' => (bool) (int) PlatformSetting::get('moderate_existing_packs', 0),
-                'deposit_fee_percent' => (float) PlatformSetting::get('deposit_fee_percent', 0.0),
-                'withdrawal_fee_percent' => (float) PlatformSetting::get('withdrawal_fee_percent', 0.0),
+                'deposit_fee_percent' => (float) PlatformSetting::get('deposit_fee_percent', config('services.payments.deposit_fee_percent', 4.0)),
+                'withdrawal_fee_percent' => (float) PlatformSetting::get('withdrawal_fee_percent', config('services.payments.withdrawal_fee_percent', 4.0)),
                 'platform_fee_percent' => (float) PlatformSetting::get('platform_fee_percent', config('services.payments.platform_fee_percent', 10.0)),
             ],
             'rating_deltas' => [

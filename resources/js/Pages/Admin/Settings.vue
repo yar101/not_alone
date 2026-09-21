@@ -17,8 +17,8 @@ const form = useForm({
     content_pack_price_max:  props.settings.content_pack_price_max,
     moderate_new_packs:      props.settings.moderate_new_packs,
     moderate_existing_packs: props.settings.moderate_existing_packs,
-    deposit_fee_percent:     props.settings.deposit_fee_percent ?? 0,
-    withdrawal_fee_percent:  props.settings.withdrawal_fee_percent ?? 0,
+    deposit_fee_percent:     props.settings.deposit_fee_percent ?? 4,
+    withdrawal_fee_percent:  props.settings.withdrawal_fee_percent ?? 4,
     platform_fee_percent:    props.settings.platform_fee_percent ?? 10,
     rating_deltas: { ...props.rating_deltas },
 });

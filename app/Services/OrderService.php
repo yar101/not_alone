@@ -378,6 +378,10 @@ class OrderService
                 ->with('timeUnit:id,name')
                 ->firstOrFail();
 
+            if ($service->is_trial) {
+                throw new \DomainException('Ознакомительную услугу можно оформить только при создании первого заказа.');
+            }
+
             $existing = $lockedOrder->items()->where('service_id', $service->id)->first();
             if ($existing) {
                 $existing->increment('quantity');

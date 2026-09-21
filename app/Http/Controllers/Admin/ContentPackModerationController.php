@@ -153,6 +153,7 @@ class ContentPackModerationController extends Controller
                 }
             }
             Storage::deleteDirectory('content-packs/'.$pack->id);
+            Storage::deleteDirectory('temp/content-packs/'.$pack->id);
             $pack->photos()->delete();
 
             $pack->update([

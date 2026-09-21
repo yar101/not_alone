@@ -59,7 +59,7 @@ test('content pack cannot be purchased twice and does not double charge buyer', 
     expect($purchase1)->not->toBeNull();
 
     $buyerWallet = $walletService->getOrCreateWallet($buyer);
-    expect((float) $buyerWallet->balance)->toEqual(800.00);
+    expect((float) $buyerWallet->balance)->toEqual(760.00);
 
     // 2nd purchase throws DomainException and does NOT deduct funds
     try {
@@ -70,7 +70,7 @@ test('content pack cannot be purchased twice and does not double charge buyer', 
     }
 
     $buyerWallet->refresh();
-    expect((float) $buyerWallet->balance)->toEqual(800.00);
+    expect((float) $buyerWallet->balance)->toEqual(760.00);
 
     // Verify purchase count is exactly 1
     expect(ContentPackPurchase::where('content_pack_id', $pack->id)->where('user_id', $buyer->id)->count())->toBe(1);
@@ -114,7 +114,7 @@ test('completed order refund claws back payout from idol, reverses platform fee,
     $orderService->pay($order, $customer);
 
     $custWallet = $walletService->getOrCreateWallet($customer);
-    expect((float) $custWallet->balance)->toEqual(500.00);
+    expect((float) $custWallet->balance)->toEqual(460.00);
     expect((float) $custWallet->held_balance)->toEqual(500.00);
 
     // Complete order (releases hold, pays idol gross 500 - 10% fee = 450 net)
@@ -139,9 +139,9 @@ test('completed order refund claws back payout from idol, reverses platform fee,
     $idolWallet->refresh();
     expect((float) $idolWallet->balance)->toEqual(0.00);
 
-    // Customer receives full 500.00 refund back to available balance
+    // Customer receives full 500.00 refund back to available balance (460 + 500 = 960)
     $custWallet->refresh();
-    expect((float) $custWallet->balance)->toEqual(1000.00);
+    expect((float) $custWallet->balance)->toEqual(960.00);
 
     // Verify OrderClawback transaction exists on idol wallet
     $clawbackTx = WalletTransaction::where('wallet_id', $idolWallet->id)

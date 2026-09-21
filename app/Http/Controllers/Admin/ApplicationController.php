@@ -98,11 +98,13 @@ class ApplicationController extends Controller
                 'reviewed_at' => now(),
             ]);
 
-            $application->user->update(['is_idol' => true]);
+            $application->user?->update(['is_idol' => true]);
         });
 
-        $application->user->notify(new IdolApprovedNotification);
-        $this->safeBroadcast(new NewNotification('private', $application->user->id));
+        if ($application->user) {
+            $application->user->notify(new IdolApprovedNotification);
+            $this->safeBroadcast(new NewNotification('private', $application->user->id));
+        }
 
         AdminLogService::log($adminId, 'approve_application', 'application', $application->id);
 
@@ -130,7 +132,7 @@ class ApplicationController extends Controller
                 'reviewed_at' => now(),
             ]);
 
-            if ($request->boolean('reset_quiz')) {
+            if ($request->boolean('reset_quiz') && $application->user) {
                 $user = $application->user;
                 $user->idolQuizSessions()->where('status', 'active')
                     ->update(['status' => 'failed', 'completed_at' => now()]);
@@ -138,8 +140,10 @@ class ApplicationController extends Controller
             }
         });
 
-        $application->user->notify(new IdolRejectedNotification($validated['rejection_reason']));
-        $this->safeBroadcast(new NewNotification('private', $application->user->id));
+        if ($application->user) {
+            $application->user->notify(new IdolRejectedNotification($validated['rejection_reason']));
+            $this->safeBroadcast(new NewNotification('private', $application->user->id));
+        }
 
         AdminLogService::log(
             $adminId,

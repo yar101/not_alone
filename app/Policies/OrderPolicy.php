@@ -56,7 +56,7 @@ class OrderPolicy
             || (int) $user->id === (int) $order->idol_id;
 
         return $isParticipant
-            && $order->status === OrderStatus::Paid;
+            && in_array($order->status, [OrderStatus::Paid, OrderStatus::Completed]);
     }
 
     /**

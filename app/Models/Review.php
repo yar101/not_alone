@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Review extends Model
 {
@@ -47,5 +48,10 @@ class Review extends Model
     public function disputes(): HasMany
     {
         return $this->hasMany(ReviewDispute::class);
+    }
+
+    public function latestDispute(): HasOne
+    {
+        return $this->hasOne(ReviewDispute::class)->latestOfMany();
     }
 }

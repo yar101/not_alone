@@ -38,6 +38,7 @@ return [
     'payments' => [
         'mock_purchases' => env('PAYMENTS_MOCK_PURCHASES', true),
         'platform_fee_percent' => (float) env('PLATFORM_FEE_PERCENT', 10.0),
+        'deposit_fee_percent' => (float) env('DEPOSIT_FEE_PERCENT', 4.0),
+        'withdrawal_fee_percent' => (float) env('WITHDRAWAL_FEE_PERCENT', 4.0),
     ],
-
 ];

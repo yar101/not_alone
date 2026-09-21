@@ -61,7 +61,7 @@ class FanOutAdminBroadcast implements ShouldQueue
         $filters = $broadcast->target_filters ?? [];
 
         if (isset($filters['is_idol'])) {
-            $query->where('is_idol', $filters['is_idol'] === '1');
+            $query->where('is_idol', filter_var($filters['is_idol'], FILTER_VALIDATE_BOOLEAN));
         }
 
         if (isset($filters['gender'])) {

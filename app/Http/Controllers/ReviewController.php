@@ -88,7 +88,7 @@ class ReviewController extends Controller
             ->with(['reviewer.activeFrame', 'epithets']);
 
         if ($isOwner) {
-            $query->with(['disputes' => fn ($q) => $q->latest('created_at')->limit(1)]);
+            $query->with('latestDispute');
         }
 
         match ($request->get('sort')) {
@@ -125,7 +125,7 @@ class ReviewController extends Controller
                     'gender' => $r->reviewer->gender,
                 ],
                 'created_at' => $r->created_at->toISOString(),
-                'dispute_status' => $isOwner ? ($r->disputes->first()?->status ?? null) : null,
+                'dispute_status' => $isOwner ? ($r->latestDispute?->status ?? null) : null,
             ])->values(),
             'total' => $reviews->total(),
             'has_more' => $reviews->hasMorePages(),

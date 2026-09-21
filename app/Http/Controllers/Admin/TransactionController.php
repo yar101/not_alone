@@ -157,8 +157,8 @@ class TransactionController extends Controller
             'kpi' => $kpi,
             'selectedUser' => $selectedUser,
             'fees' => [
-                'deposit_fee_percent' => (float) PlatformSetting::get('deposit_fee_percent', 0.0),
-                'withdrawal_fee_percent' => (float) PlatformSetting::get('withdrawal_fee_percent', 0.0),
+                'deposit_fee_percent' => (float) PlatformSetting::get('deposit_fee_percent', config('services.payments.deposit_fee_percent', 4.0)),
+                'withdrawal_fee_percent' => (float) PlatformSetting::get('withdrawal_fee_percent', config('services.payments.withdrawal_fee_percent', 4.0)),
                 'platform_fee_percent' => (float) PlatformSetting::get('platform_fee_percent', config('services.payments.platform_fee_percent', 10.0)),
             ],
             'types' => array_map(fn (WalletTransactionType $t) => [

@@ -76,13 +76,17 @@ class IdolRatingService
 
             // Notify idol about manual admin rating change
             if ($event === 'admin_manual') {
-                $lockedUser->notify(new AdminRatingNotification($delta, $newRating, $note));
+                DB::afterCommit(function () use ($lockedUser, $delta, $newRating, $note) {
+                    $lockedUser->notify(new AdminRatingNotification($delta, $newRating, $note));
+                });
             }
 
             // If rating crossed the threshold downward, notify idol
             $threshold = (int) PlatformSetting::get('rating_low_threshold', 30);
             if ($oldRating >= $threshold && $newRating < $threshold) {
-                $lockedUser->notify(new LowRatingWarningNotification($threshold));
+                DB::afterCommit(function () use ($lockedUser, $threshold) {
+                    $lockedUser->notify(new LowRatingWarningNotification($threshold));
+                });
             }
 
             // Sync updated rating back to original object

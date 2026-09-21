@@ -733,11 +733,7 @@ function formatFullDate(iso) {
                                 <span class="wallet-fee-info__item">
                                     <span>Комиссия:</span>
                                     <strong class="wallet-fee-info__val">{{ props.depositFeePercent > 0 ? `${props.depositFeePercent}%` : '0%' }}</strong>
-                                    <span v-if="props.depositFeePercent > 0 && depositAmount > 0" class="wallet-fee-info__sub">
-                                        ({{ formatMoney(depositFeeAmount) }} ₽)
-                                    </span>
                                 </span>
-                                <span class="wallet-fee-info__dot">·</span>
                                 <span class="wallet-fee-info__item">
                                     <span>К зачислению:</span>
                                     <strong class="wallet-fee-info__highlight wallet-fee-info__highlight--deposit">
@@ -777,11 +773,7 @@ function formatFullDate(iso) {
                                 <span class="wallet-fee-info__item">
                                     <span>Комиссия:</span>
                                     <strong class="wallet-fee-info__val">{{ props.withdrawalFeePercent > 0 ? `${props.withdrawalFeePercent}%` : '0%' }}</strong>
-                                    <span v-if="props.withdrawalFeePercent > 0 && withdrawAmount > 0" class="wallet-fee-info__sub">
-                                        ({{ formatMoney(withdrawFeeAmount) }} ₽)
-                                    </span>
                                 </span>
-                                <span class="wallet-fee-info__dot">·</span>
                                 <span class="wallet-fee-info__item">
                                     <span>К получению:</span>
                                     <strong class="wallet-fee-info__highlight wallet-fee-info__highlight--withdraw">
@@ -1701,7 +1693,7 @@ function formatFullDate(iso) {
 .wallet-fee-info {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.85rem;
     flex-wrap: wrap;
     margin-top: 0.6rem;
     font-size: 0.82rem;

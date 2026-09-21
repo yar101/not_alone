@@ -50,21 +50,26 @@ it('deposits funds and records a completed audit transaction', function () {
 
     $tx = $service->deposit($user, 1500.50, 'Тестовый депозит', 'dep_123');
 
+    // 1500.50 with 4% fee (60.02) => net credited 1440.48
     expect($tx)->toBeInstanceOf(WalletTransaction::class);
     expect($tx->type)->toBe(WalletTransactionType::Deposit);
     expect($tx->status)->toBe(WalletTransactionStatus::Completed);
-    expect((float) $tx->amount)->toBe(1500.50);
+    expect((float) $tx->amount)->toBe(1440.48);
     expect((float) $tx->balance_before)->toBe(0.00);
-    expect((float) $tx->balance_after)->toBe(1500.50);
+    expect((float) $tx->balance_after)->toBe(1440.48);
+    expect((float) $tx->metadata['gross_amount'])->toBe(1500.50);
+    expect((float) $tx->metadata['fee_percent'])->toBe(4.0);
+    expect((float) $tx->metadata['fee_amount'])->toBe(60.02);
+    expect((float) $tx->metadata['net_amount'])->toBe(1440.48);
 
     $wallet = $user->wallet->fresh();
-    expect((float) $wallet->balance)->toBe(1500.50);
-    expect($wallet->total_balance)->toBe(1500.50);
+    expect((float) $wallet->balance)->toBe(1440.48);
+    expect($wallet->total_balance)->toBe(1440.48);
 
     // Test idempotency with same idempotency_key
     $tx2 = $service->deposit($user, 1500.50, 'Повторный депозит', 'dep_123');
     expect($tx2->id)->toBe($tx->id);
-    expect((float) $user->wallet->fresh()->balance)->toBe(1500.50);
+    expect((float) $user->wallet->fresh()->balance)->toBe(1440.48);
 });
 
 it('holds funds in escrow when balance is sufficient and moves balance to held_balance', function () {
@@ -72,6 +77,7 @@ it('holds funds in escrow when balance is sufficient and moves balance to held_b
     $idol = User::factory()->create(['is_idol' => true]);
     $service = app(WalletService::class);
 
+    // Deposit 2000.00 with 4% fee (80.00) => 1920.00 net balance
     $service->deposit($customer, 2000.00);
 
     $order = Order::factory()->create([
@@ -84,14 +90,14 @@ it('holds funds in escrow when balance is sufficient and moves balance to held_b
 
     expect($tx->type)->toBe(WalletTransactionType::OrderHold);
     expect((float) $tx->amount)->toBe(-1200.00);
-    expect((float) $tx->balance_before)->toBe(2000.00);
-    expect((float) $tx->balance_after)->toBe(800.00);
+    expect((float) $tx->balance_before)->toBe(1920.00);
+    expect((float) $tx->balance_after)->toBe(720.00);
     expect((float) $tx->held_balance_after)->toBe(1200.00);
 
     $customerWallet = $customer->wallet->fresh();
-    expect((float) $customerWallet->balance)->toBe(800.00);
+    expect((float) $customerWallet->balance)->toBe(720.00);
     expect((float) $customerWallet->held_balance)->toBe(1200.00);
-    expect($customerWallet->total_balance)->toBe(2000.00);
+    expect($customerWallet->total_balance)->toBe(1920.00);
 });
 
 it('throws InsufficientFundsException when holding more than available balance', function () {
@@ -116,7 +122,8 @@ it('releases escrow hold to idol with platform fee deduction on order completion
     $idol = User::factory()->create(['is_idol' => true]);
     $service = app(WalletService::class);
 
-    $service->deposit($customer, 1000.00);
+    // Deposit 1500.00 with 4% fee (60.00) => 1440.00 net balance (covers 1000 hold)
+    $service->deposit($customer, 1500.00);
 
     $order = Order::factory()->create([
         'customer_id' => $customer->id,
@@ -140,7 +147,7 @@ it('releases escrow hold to idol with platform fee deduction on order completion
     $customerWallet = $customer->wallet->fresh();
     $idolWallet = $idol->wallet->fresh();
 
-    expect((float) $customerWallet->balance)->toBe(0.00);
+    expect((float) $customerWallet->balance)->toBe(440.00);
     expect((float) $customerWallet->held_balance)->toBe(0.00);
     expect((float) $idolWallet->balance)->toBe(900.00);
 
@@ -155,7 +162,8 @@ it('refunds escrow hold to customer when order is cancelled or refunded', functi
     $idol = User::factory()->create(['is_idol' => true]);
     $service = app(WalletService::class);
 
-    $service->deposit($customer, 1500.00);
+    // Deposit 2000.00 with 4% fee (80.00) => 1920.00 net balance
+    $service->deposit($customer, 2000.00);
 
     $order = Order::factory()->create([
         'customer_id' => $customer->id,
@@ -165,7 +173,7 @@ it('refunds escrow hold to customer when order is cancelled or refunded', functi
 
     $service->hold($customer, 1500.00, $order);
 
-    expect((float) $customer->wallet->fresh()->balance)->toBe(0.00);
+    expect((float) $customer->wallet->fresh()->balance)->toBe(420.00);
     expect((float) $customer->wallet->fresh()->held_balance)->toBe(1500.00);
 
     $refundTx = $service->refundHold($order, 'Заказ отменён');
@@ -174,7 +182,7 @@ it('refunds escrow hold to customer when order is cancelled or refunded', functi
     expect((float) $refundTx->amount)->toBe(1500.00);
 
     $customerWallet = $customer->wallet->fresh();
-    expect((float) $customerWallet->balance)->toBe(1500.00);
+    expect((float) $customerWallet->balance)->toBe(1920.00);
     expect((float) $customerWallet->held_balance)->toBe(0.00);
 });
 
@@ -213,7 +221,7 @@ it('integrates escrow lifecycle into OrderService pay, cancel, and complete tran
     // 1. Pay order -> funds held
     $orderService->pay($order, $customer);
     expect($order->fresh()->status)->toBe(OrderStatus::Paid);
-    expect((float) $customer->wallet->fresh()->balance)->toBe(1000.00);
+    expect((float) $customer->wallet->fresh()->balance)->toBe(880.00);
     expect((float) $customer->wallet->fresh()->held_balance)->toBe(2000.00);
 
     // 2. Complete order -> idol receives payout (10% fee => 2000 - 200 = 1800)
@@ -244,8 +252,8 @@ it('handles content pack purchase with live wallet transactions', function () {
     expect($purchase)->not->toBeNull();
     expect($purchase->price_paid)->toBe(500);
 
-    // Buyer deducted 500, seller credited 450 (10% fee = 50)
-    expect((float) $buyer->wallet->fresh()->balance)->toBe(1000.00);
+    // Buyer with 4% deposit fee has 1440 balance; deducted 500 => 940.00, seller credited 450 (10% fee = 50)
+    expect((float) $buyer->wallet->fresh()->balance)->toBe(940.00);
     expect((float) $seller->wallet->fresh()->balance)->toBe(450.00);
 });
 
@@ -253,10 +261,10 @@ it('provides wallet data via JSON', function () {
     $user = User::factory()->create();
     $walletService = app(WalletService::class);
     $walletService->deposit($user, 500.00);
-
+    // 500 with 4% fee => 480.00
     $response = $this->actingAs($user)->getJson(route('wallet.data'));
     $response->assertOk();
-    $response->assertJsonPath('wallet.balance', 500);
+    $response->assertJsonPath('wallet.balance', 480);
     $response->assertJsonPath('wallet.currency', 'RUB');
     expect($response->json('transactions'))->toHaveCount(1);
 });
@@ -273,54 +281,62 @@ it('renders wallet page with inertia', function () {
 it('supports test deposits via API', function () {
     $user = User::factory()->create();
     $walletService = app(WalletService::class);
+    // 500 with 4% fee (20) => 480.00
     $walletService->deposit($user, 500.00);
 
+    // API deposit: 250 with 4% fee (10) => 240.00, total balance: 480 + 240 = 720
     $depResponse = $this->actingAs($user)->postJson(route('wallet.deposit'), ['amount' => 250]);
     $depResponse->assertOk();
     $depResponse->assertJsonPath('success', true);
-    $depResponse->assertJsonPath('balance', 750);
-    expect((float) $user->wallet->fresh()->balance)->toBe(750.00);
+    $depResponse->assertJsonPath('balance', 720);
+    expect((float) $user->wallet->fresh()->balance)->toBe(720.00);
 });
 
 it('forbids regular users from withdrawing funds', function () {
     $regularUser = User::factory()->create(['is_idol' => false]);
     $walletService = app(WalletService::class);
+    // 1000 with 4% fee (40) => 960.00
     $walletService->deposit($regularUser, 1000.00);
 
     $response = $this->actingAs($regularUser)->postJson(route('wallet.withdraw'), ['amount' => 300]);
     $response->assertStatus(403);
-    expect((float) $regularUser->wallet->fresh()->balance)->toBe(1000.00);
+    expect((float) $regularUser->wallet->fresh()->balance)->toBe(960.00);
 });
 
 it('allows idols to withdraw funds with sufficient balance', function () {
     $idol = User::factory()->create(['is_idol' => true]);
     $walletService = app(WalletService::class);
+    // 2000 with 4% fee (80) => 1920.00 net balance
     $walletService->deposit($idol, 2000.00);
 
+    // Withdraw 500: balance reduced by 500 => 1420.00. Fee 4% (20.00), payout 480.00
     $response = $this->actingAs($idol)->postJson(route('wallet.withdraw'), ['amount' => 500]);
     $response->assertOk();
     $response->assertJsonPath('success', true);
-    $response->assertJsonPath('balance', 1500);
+    $response->assertJsonPath('balance', 1420);
 
     $wallet = $idol->wallet->fresh();
-    expect((float) $wallet->balance)->toBe(1500.00);
+    expect((float) $wallet->balance)->toBe(1420.00);
 
     $tx = WalletTransaction::where('wallet_id', $wallet->id)
         ->where('type', WalletTransactionType::Withdrawal)
         ->first();
     expect($tx)->not->toBeNull();
     expect((float) $tx->amount)->toBe(-500.00);
+    expect((float) $tx->metadata['fee_amount'])->toBe(20.0);
+    expect((float) $tx->metadata['payout_amount'])->toBe(480.0);
     expect($tx->status)->toBe(WalletTransactionStatus::Completed);
 });
 
 it('prevents idols from withdrawing more than available balance', function () {
     $idol = User::factory()->create(['is_idol' => true]);
     $walletService = app(WalletService::class);
+    // 300 with 4% fee (12) => 288.00 net balance
     $walletService->deposit($idol, 300.00);
 
     $response = $this->actingAs($idol)->postJson(route('wallet.withdraw'), ['amount' => 500]);
     $response->assertStatus(422);
-    expect((float) $idol->wallet->fresh()->balance)->toBe(300.00);
+    expect((float) $idol->wallet->fresh()->balance)->toBe(288.00);
 });
 
 it('blocks financial operations on inactive wallets', function () {
@@ -372,14 +388,16 @@ it('filters transactions on backend and keeps query parameters', function () {
 it('handles idempotency keys on deposit and withdraw', function () {
     $idol = User::factory()->create(['is_idol' => true]);
     $walletService = app(WalletService::class);
+    // 2000 with 4% fee => 1920.00
     $walletService->deposit($idol, 2000.00);
 
     $key = 'test-idempotency-key-123';
+    // 500 with 4% fee => 480.00
     $dep1 = $walletService->deposit($idol, 500.00, 'Test deposit', $key);
     $dep2 = $walletService->deposit($idol, 500.00, 'Test deposit duplicate', $key);
 
     expect($dep1->id)->toBe($dep2->id);
-    expect((float) $idol->wallet->fresh()->balance)->toBe(2500.00);
+    expect((float) $idol->wallet->fresh()->balance)->toBe(2400.00);
 });
 
 it('paginates transactions using cursor pagination without count', function () {
@@ -458,26 +476,26 @@ it('dispatches WalletBalanceUpdated broadcast event when balance or held_balance
     $user = User::factory()->create(['is_idol' => true]);
     $service = app(WalletService::class);
 
-    // 1. Deposit
+    // 1. Deposit: 2500 with 4% fee (100) => 2400.00
     $service->deposit($user, 2500.00, 'Тестовое пополнение');
 
     Event::assertDispatched(\App\Events\WalletBalanceUpdated::class, function ($event) use ($user) {
         return $event->userId === $user->id
-            && $event->balance === 2500.00
+            && $event->balance === 2400.00
             && $event->heldBalance === 0.00
-            && $event->totalBalance === 2500.00
+            && $event->totalBalance === 2400.00
             && $event->broadcastOn()[0]->name === 'private-App.Models.User.'.$user->id
             && $event->broadcastAs() === 'wallet.updated';
     });
 
-    // 2. Withdrawal (balance decrease)
+    // 2. Withdrawal (balance decrease by 500 => 1900.00)
     $service->withdraw($user, 500.00);
 
     Event::assertDispatched(\App\Events\WalletBalanceUpdated::class, function ($event) use ($user) {
         return $event->userId === $user->id
-            && $event->balance === 2000.00
+            && $event->balance === 1900.00
             && $event->heldBalance === 0.00
-            && $event->totalBalance === 2000.00;
+            && $event->totalBalance === 1900.00;
     });
 });
 

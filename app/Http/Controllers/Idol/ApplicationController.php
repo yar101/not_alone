@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\IdolApplication;
 use App\Models\IdolArticleVersion;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class ApplicationController extends Controller
@@ -62,6 +63,9 @@ class ApplicationController extends Controller
         $existing = $user->idolApplication;
         if ($existing) {
             if ($existing->status === 'rejected') {
+                if ($existing->face_photo_path && Storage::exists($existing->face_photo_path)) {
+                    Storage::delete($existing->face_photo_path);
+                }
                 $existing->delete();
             } else {
                 return back()->withErrors(['error' => 'Заявка уже подана.']);

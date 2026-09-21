@@ -73,8 +73,8 @@ class OrderController extends Controller
         return Inertia::render('Admin/Orders/Index', [
             'orders' => $query->paginate(30)->through(fn (Order $o) => [
                 'id' => $o->id,
-                'customer' => ['id' => $o->customer_id, 'name' => $o->customer->name, 'email' => $o->customer->email],
-                'idol' => ['id' => $o->idol_id,     'name' => $o->idol->name,     'email' => $o->idol->email],
+                'customer' => ['id' => $o->customer_id, 'name' => $o->customer?->name ?? '—', 'email' => $o->customer?->email ?? '—'],
+                'idol' => ['id' => $o->idol_id,     'name' => $o->idol?->name ?? '—',     'email' => $o->idol?->email ?? '—'],
                 'categories' => $o->items->map(fn ($i) => $i->service?->category?->name)->filter()->unique()->values(),
                 'items_count' => $o->items->count(),
                 'total' => $o->items->sum(fn ($i) => ($i->price ?? $i->service?->price ?? 0) * ($i->quantity ?? 1)),

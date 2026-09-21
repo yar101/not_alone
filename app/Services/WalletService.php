@@ -67,7 +67,7 @@ class WalletService
                 throw new \DomainException('Кошелёк деактивирован.');
             }
 
-            $feePercent = (float) PlatformSetting::get('deposit_fee_percent', 0.0);
+            $feePercent = (float) PlatformSetting::get('deposit_fee_percent', config('services.payments.deposit_fee_percent', 4.0));
             $feeAmount = $feePercent > 0 ? round($amount * ($feePercent / 100), 2) : 0.0;
             $netAmount = (float) bcsub((string) $amount, (string) $feeAmount, 2);
 
@@ -620,7 +620,7 @@ class WalletService
                 );
             }
 
-            $feePercent = (float) PlatformSetting::get('withdrawal_fee_percent', 0.0);
+            $feePercent = (float) PlatformSetting::get('withdrawal_fee_percent', config('services.payments.withdrawal_fee_percent', 4.0));
             $feeAmount = $feePercent > 0 ? round($amount * ($feePercent / 100), 2) : 0.0;
             $payoutAmount = (float) bcsub((string) $amount, (string) $feeAmount, 2);
 

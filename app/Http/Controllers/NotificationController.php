@@ -104,7 +104,7 @@ class NotificationController extends Controller
         $notifications = $user->notifications()
             ->when($before, fn ($q) => $q->where('created_at', '<', $before))
             ->latest()
-            ->limit(self::PER_PAGE)
+            ->limit(self::PER_PAGE + 1)
             ->get();
 
         // 2. Подходящие общие рассылки
@@ -112,7 +112,7 @@ class NotificationController extends Controller
             ->forUser($user)
             ->when($before, fn ($q) => $q->where('created_at', '<', $before))
             ->latest()
-            ->limit(self::PER_PAGE)
+            ->limit(self::PER_PAGE + 1)
             ->get();
 
         // 3. Объединение и сортировка

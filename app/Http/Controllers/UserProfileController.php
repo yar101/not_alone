@@ -544,6 +544,16 @@ class UserProfileController extends Controller
         abort_if($postOwner && $postOwner->isActiveBanned(), 422, 'user_banned');
 
         $userId = $request->user()->id;
+        if ($post->user_id !== $userId) {
+            $isBlocked = ChatBlock::active()->where(function ($q) use ($post, $userId) {
+                $q->where('blocker_id', $post->user_id)->where('blocked_id', $userId);
+            })->orWhere(function ($q) use ($post, $userId) {
+                $q->where('blocker_id', $userId)->where('blocked_id', $post->user_id);
+            })->exists();
+
+            abort_if($isBlocked, 403, 'blocked');
+        }
+
         $existing = PostLike::where('post_id', $post->id)->where('user_id', $userId)->first();
 
         if ($existing) {
@@ -573,6 +583,17 @@ class UserProfileController extends Controller
 
         $postOwner = User::select(['id', 'is_banned', 'banned_until'])->find($post->user_id);
         abort_if($postOwner && $postOwner->isActiveBanned(), 422, 'user_banned');
+
+        $userId = $request->user()->id;
+        if ($post->user_id !== $userId) {
+            $isBlocked = ChatBlock::active()->where(function ($q) use ($post, $userId) {
+                $q->where('blocker_id', $post->user_id)->where('blocked_id', $userId);
+            })->orWhere(function ($q) use ($post, $userId) {
+                $q->where('blocker_id', $userId)->where('blocked_id', $post->user_id);
+            })->exists();
+
+            abort_if($isBlocked, 403, 'blocked');
+        }
 
         if (! empty($data['parent_id'])) {
             $parent = PostComment::findOrFail($data['parent_id']);

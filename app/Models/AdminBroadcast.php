@@ -49,10 +49,10 @@ class AdminBroadcast extends Model
         $q->where('target', 'filtered');
 
         // is_idol
-        $idolVal = $user->is_idol ? '1' : '0';
+        $validIdolVals = $user->is_idol ? ['true', '1'] : ['false', '0'];
         $q->where(fn ($s) => $s
             ->whereRaw("target_filters->>'is_idol' IS NULL")
-            ->orWhereRaw("target_filters->>'is_idol' = ?", [$idolVal])
+            ->orWhereRaw("(target_filters->>'is_idol' = ? OR target_filters->>'is_idol' = ?)", $validIdolVals)
         );
 
         // gender
