@@ -9,3 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('content-packs:prune-rejected')->daily();
+Schedule::command('orders:release-idol-holds')->everyMinute()->withoutOverlapping();
+

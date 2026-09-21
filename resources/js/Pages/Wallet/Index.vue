@@ -61,6 +61,10 @@ const props = defineProps({
         type: Number,
         default: 0,
     },
+    holdMinutes: {
+        type: Number,
+        default: 60,
+    },
 });
 
 const page = usePage();
@@ -107,10 +111,27 @@ function onWalletUpdated(e) {
 
 onMounted(() => {
     window.addEventListener('notalone:wallet-updated', onWalletUpdated);
+    const userId = page.props.auth?.user?.id;
+    if (window.Echo && userId) {
+        window.Echo.private(`App.Models.User.${userId}`)
+            .listen('.wallet.balance-updated', (data) => {
+                onWalletUpdated({
+                    detail: {
+                        balance: data.balance,
+                        held_balance: data.held_balance,
+                        total_balance: data.total_balance,
+                    },
+                });
+            });
+    }
 });
 
 onUnmounted(() => {
     window.removeEventListener('notalone:wallet-updated', onWalletUpdated);
+    const userId = page.props.auth?.user?.id;
+    if (window.Echo && userId) {
+        window.Echo.leave(`App.Models.User.${userId}`);
+    }
 });
 
 // ── Navigation View ──────────────────────────────────────────
@@ -237,6 +258,7 @@ const historyTabs = computed(() => {
         { id: 'all', label: 'Все' },
         { id: 'deposit', label: 'Пополнения' },
         { id: 'orders', label: 'Заказы' },
+        { id: 'holds', label: 'Заморозки' },
         { id: 'packs', label: 'Контент' },
     ];
     if (props.isIdol) {
@@ -423,6 +445,17 @@ function formatInteger(val) {
     });
 }
 
+function formatMinutes(m) {
+    if (!m) return '60 минут';
+    const n = Math.abs(Math.round(m));
+    const mod10 = n % 10;
+    const mod100 = n % 100;
+    if (mod100 >= 11 && mod100 <= 19) return `${n} минут`;
+    if (mod10 === 1) return `${n} минуту`;
+    if (mod10 >= 2 && mod10 <= 4) return `${n} минуты`;
+    return `${n} минут`;
+}
+
 const SHORT_MONTHS = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 
 function formatDate(iso) {
@@ -451,6 +484,7 @@ function formatDate(iso) {
 }
 
 function isPositiveTx(txOrType) {
+    if (isHoldTx(txOrType)) return false;
     const amount = typeof txOrType === 'object' ? Number(txOrType?.amount || 0) : null;
     if (amount !== null) {
         return amount > 0;
@@ -460,8 +494,13 @@ function isPositiveTx(txOrType) {
 }
 
 function isHoldTx(txOrType) {
-    const type = typeof txOrType === 'object' ? txOrType?.type : txOrType;
-    return type === 'order_hold';
+    if (!txOrType) return false;
+    if (typeof txOrType === 'object') {
+        if (txOrType.type === 'order_hold') return true;
+        if (txOrType.type === 'order_payout' && (txOrType.status === 'pending' || txOrType.metadata?.held)) return true;
+        return false;
+    }
+    return txOrType === 'order_hold';
 }
 
 // ── Transaction Helpers ───────────────────────────────────────
@@ -483,9 +522,13 @@ async function copyTxId(id) {
 
 function getTxLabel(tx) {
     if (tx.type === 'order_hold') return 'Заморозка';
+    if (tx.type === 'order_hold_release') return 'Списание из заморозки';
     if (tx.type === 'deposit') return 'Пополнение';
-    if (tx.type === 'order_payout') return 'Выплата';
+    if (tx.type === 'order_payout') {
+        return 'Оплата за заказ';
+    }
     if (tx.type === 'platform_fee') return 'Комиссия';
+    if (tx.type === 'order_clawback') return 'Списание по спору';
     return tx.type_label || 'Операция';
 }
 
@@ -498,6 +541,12 @@ function formatTxDescription(desc) {
 
 function formatSignedAmount(tx) {
     if (!tx) return '0,00 ₽';
+    if (tx.type === 'order_hold_release') {
+        const heldAmt = tx.metadata?.held_amount ?? (Number(tx.held_balance_before) - Number(tx.held_balance_after));
+        if (heldAmt) {
+            return `−${formatMoney(Math.abs(heldAmt))} ₽`;
+        }
+    }
     const num = Number(tx.amount || 0);
     const abs = formatMoney(Math.abs(num));
     if (num > 0) return `+${abs} ₽`;
@@ -506,7 +555,10 @@ function formatSignedAmount(tx) {
 }
 
 function getStatusBadge(tx) {
-    const s = tx.status;
+    const s = tx?.status;
+    if (tx?.metadata?.held || (tx?.type === 'order_payout' && s === 'pending')) {
+        return { class: 'wallet-status--held', label: 'Холд' };
+    }
     if (s === 'completed') return { class: 'wallet-status--completed', label: tx.status_label || 'Завершено' };
     if (s === 'pending') return { class: 'wallet-status--pending', label: tx.status_label || 'В обработке' };
     if (s === 'failed') return { class: 'wallet-status--failed', label: tx.status_label || 'Ошибка' };
@@ -633,9 +685,15 @@ function formatFullDate(iso) {
                         >
                             <template #content>
                                 <div class="wallet-tip-text">
-                                    Средства заморожены до сдачи заказа.<br>
-                                    Исполнитель получит оплату<br>
-                                    только после подтверждения работы.
+                                    <template v-if="isIdol">
+                                        Оплата за завершённый заказ удерживается {{ formatMinutes(holdMinutes) }} на случай открытия спора заказчиком.<br>
+                                        Затем средства автоматически станут доступны к выводу.
+                                    </template>
+                                    <template v-else>
+                                        Средства заморожены до сдачи заказа.<br>
+                                        Исполнитель получит оплату<br>
+                                        только после подтверждения работы.
+                                    </template>
                                 </div>
                             </template>
                             <div
@@ -868,13 +926,13 @@ function formatFullDate(iso) {
                                     <div
                                         class="wallet-tx-icon"
                                         :class="{
-                                            'wallet-tx-icon--emerald': isPositiveTx(tx.type),
-                                            'wallet-tx-icon--cyan': isHoldTx(tx.type),
-                                            'wallet-tx-icon--coral': !isPositiveTx(tx.type) && !isHoldTx(tx.type),
+                                            'wallet-tx-icon--cyan': isHoldTx(tx),
+                                            'wallet-tx-icon--emerald': !isHoldTx(tx) && isPositiveTx(tx),
+                                            'wallet-tx-icon--coral': !isHoldTx(tx) && !isPositiveTx(tx),
                                         }"
                                     >
-                                        <el-icon v-if="isPositiveTx(tx.type)"><BottomLeft /></el-icon>
-                                        <i v-else-if="isHoldTx(tx.type)" class="fa-solid fa-snowflake"></i>
+                                        <i v-if="isHoldTx(tx)" class="fa-solid fa-snowflake"></i>
+                                        <el-icon v-else-if="isPositiveTx(tx)"><BottomLeft /></el-icon>
                                         <el-icon v-else><TopRight /></el-icon>
                                     </div>
                                     <div class="wallet-tx-title-group">
@@ -923,15 +981,20 @@ function formatFullDate(iso) {
                                     <div
                                         class="wallet-tx-amount"
                                         :class="{
-                                            'wallet-tx-amount--emerald': isPositiveTx(tx.type),
-                                            'wallet-tx-amount--cyan': isHoldTx(tx.type),
-                                            'wallet-tx-amount--coral': !isPositiveTx(tx.type) && !isHoldTx(tx.type),
+                                            'wallet-tx-amount--cyan': isHoldTx(tx),
+                                            'wallet-tx-amount--emerald': !isHoldTx(tx) && isPositiveTx(tx),
+                                            'wallet-tx-amount--coral': !isHoldTx(tx) && !isPositiveTx(tx),
                                         }"
                                     >
                                         {{ formatSignedAmount(tx) }}
                                     </div>
                                     <div class="wallet-tx-remain">
-                                        Остаток: <span>{{ formatMoney(tx.balance_after) }} ₽</span>
+                                        <template v-if="tx.metadata?.held">
+                                            В холде: <span style="color: #38bdf8;">{{ formatMoney(tx.held_balance_after) }} ₽</span>
+                                        </template>
+                                        <template v-else>
+                                            Остаток: <span>{{ formatMoney(tx.balance_after) }} ₽</span>
+                                        </template>
                                     </div>
                                 </div>
                             </div>
@@ -990,22 +1053,22 @@ function formatFullDate(iso) {
                     <div
                         class="wallet-tx-modal__icon"
                         :class="{
-                            'wallet-tx-icon--emerald': isPositiveTx(selectedTx.type),
-                            'wallet-tx-icon--cyan': isHoldTx(selectedTx.type),
-                            'wallet-tx-icon--coral': !isPositiveTx(selectedTx.type) && !isHoldTx(selectedTx.type),
+                            'wallet-tx-icon--cyan': isHoldTx(selectedTx),
+                            'wallet-tx-icon--emerald': !isHoldTx(selectedTx) && isPositiveTx(selectedTx),
+                            'wallet-tx-icon--coral': !isHoldTx(selectedTx) && !isPositiveTx(selectedTx),
                         }"
                     >
-                        <el-icon v-if="isPositiveTx(selectedTx.type)"><BottomLeft /></el-icon>
-                        <i v-else-if="isHoldTx(selectedTx.type)" class="fa-solid fa-snowflake"></i>
+                        <i v-if="isHoldTx(selectedTx)" class="fa-solid fa-snowflake"></i>
+                        <el-icon v-else-if="isPositiveTx(selectedTx)"><BottomLeft /></el-icon>
                         <el-icon v-else><TopRight /></el-icon>
                     </div>
                     <h3 class="wallet-tx-modal__title">{{ getTxLabel(selectedTx) }}</h3>
                     <div
                         class="wallet-tx-modal__amount"
                         :class="{
-                            'wallet-tx-amount--emerald': isPositiveTx(selectedTx.type),
-                            'wallet-tx-amount--cyan': isHoldTx(selectedTx.type),
-                            'wallet-tx-amount--coral': !isPositiveTx(selectedTx.type) && !isHoldTx(selectedTx.type),
+                            'wallet-tx-amount--cyan': isHoldTx(selectedTx),
+                            'wallet-tx-amount--emerald': !isHoldTx(selectedTx) && isPositiveTx(selectedTx),
+                            'wallet-tx-amount--coral': !isHoldTx(selectedTx) && !isPositiveTx(selectedTx),
                         }"
                     >
                         {{ formatSignedAmount(selectedTx) }}
@@ -1058,6 +1121,61 @@ function formatFullDate(iso) {
                         <span class="wallet-tx-detail-val wallet-tx-detail-val--accent">
                             {{ formatMoney(selectedTx.balance_after) }} ₽
                         </span>
+                    </div>
+                    <div
+                        v-if="selectedTx.held_balance_after !== null && selectedTx.held_balance_after !== undefined && (isHoldTx(selectedTx) || Number(selectedTx.held_balance_after) > 0)"
+                        class="wallet-tx-detail-row"
+                    >
+                        <el-tooltip
+                            placement="top"
+                            effect="dark"
+                            popper-class="wallet-dark-tooltip"
+                            trigger="click"
+                            :hide-after="0"
+                        >
+                            <template #content>
+                                <div class="wallet-tip-text">
+                                    Замороженный баланс после операции
+                                </div>
+                            </template>
+                            <span class="wallet-tx-detail-label wallet-tx-detail-label--tip">
+                                В холде
+                                <el-icon class="wallet-tx-detail-tip-icon"><QuestionFilled /></el-icon>
+                            </span>
+                        </el-tooltip>
+                        <span class="wallet-tx-detail-val" style="color: #38bdf8;">
+                            {{ formatMoney(selectedTx.held_balance_after) }} ₽
+                        </span>
+                    </div>
+                    <div
+                        v-if="selectedTx.metadata?.held && selectedTx.metadata?.held_until"
+                        class="wallet-tx-detail-row"
+                    >
+                        <span class="wallet-tx-detail-label">Разморозка</span>
+                        <span class="wallet-tx-detail-val" style="color: #38bdf8;">
+                            {{ formatFullDate(selectedTx.metadata.held_until) }}
+                        </span>
+                    </div>
+                    <div
+                        v-if="selectedTx.metadata?.gross_amount"
+                        class="wallet-tx-detail-row"
+                    >
+                        <span class="wallet-tx-detail-label">Сумма заказа</span>
+                        <span class="wallet-tx-detail-val">{{ formatMoney(selectedTx.metadata.gross_amount) }} ₽</span>
+                    </div>
+                    <div
+                        v-if="selectedTx.metadata?.fee_amount"
+                        class="wallet-tx-detail-row"
+                    >
+                        <span class="wallet-tx-detail-label">Комиссия сервиса</span>
+                        <span class="wallet-tx-detail-val" style="color: #fb7185;">-{{ formatMoney(selectedTx.metadata.fee_amount) }} ₽</span>
+                    </div>
+                    <div
+                        v-if="selectedTx.metadata?.reason"
+                        class="wallet-tx-detail-row"
+                    >
+                        <span class="wallet-tx-detail-label">Причина</span>
+                        <span class="wallet-tx-detail-val">{{ selectedTx.metadata.reason }}</span>
                     </div>
                     <div
                         v-if="selectedTx.description && selectedTx.description !== getTxLabel(selectedTx)"
@@ -2061,6 +2179,18 @@ function formatFullDate(iso) {
 }
 .wallet-status--completed .wallet-tx-status-dot {
     background: #4cde8f;
+}
+
+.wallet-status--held {
+    background: rgba(100, 210, 255, 0.08);
+    border: 1px solid rgba(100, 210, 255, 0.22);
+    color: var(--color-base-2, #64d2ff);
+    border-radius: 6px;
+    padding: 0.15rem 0.45rem;
+    letter-spacing: 0.04em;
+}
+.wallet-status--held .wallet-tx-status-dot {
+    display: none;
 }
 
 .wallet-status--pending {

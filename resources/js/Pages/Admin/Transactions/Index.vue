@@ -253,10 +253,12 @@ function typeBadgeClass(t) {
         case 'deposit': return 'badge--emerald';
         case 'withdrawal': return 'badge--amber';
         case 'order_hold': return 'badge--cyan';
+        case 'order_hold_release': return 'badge--blue';
         case 'order_payout': return 'badge--emerald';
         case 'order_refund': return 'badge--blue';
         case 'platform_fee': return 'badge--violet';
         case 'admin_adjustment': return 'badge--purple';
+        case 'order_clawback': return 'badge--rose';
         case 'pack_sale': return 'badge--teal';
         case 'pack_purchase': return 'badge--rose';
         default: return 'badge--default';
@@ -367,8 +369,10 @@ function isCredit(tx) {
                     { value: 'deposit',          label: 'Пополнения',    count: typeCounts?.deposit ?? 0 },
                     { value: 'withdrawal',       label: 'Выводы',        count: typeCounts?.withdrawal ?? 0 },
                     { value: 'order_hold',       label: 'Заморозки',     count: typeCounts?.order_hold ?? 0 },
+                    { value: 'order_hold_release', label: 'Списания из заморозки', count: typeCounts?.order_hold_release ?? 0 },
                     { value: 'order_payout',     label: 'Выплаты',       count: typeCounts?.order_payout ?? 0 },
                     { value: 'order_refund',     label: 'Возвраты',      count: typeCounts?.order_refund ?? 0 },
+                    { value: 'order_clawback',   label: 'Списания по спорам', count: typeCounts?.order_clawback ?? 0 },
                     { value: 'platform_fee',     label: 'Комиссии',      count: typeCounts?.platform_fee ?? 0 },
                     { value: 'admin_adjustment', label: 'Корректировки', count: typeCounts?.admin_adjustment ?? 0 },
                 ]"
@@ -575,6 +579,16 @@ function isCredit(tx) {
                             <span class="detail-label">Связанный объект (Reference)</span>
                             <div class="reference-chip">
                                 <span>{{ modalTx.reference_type }} #{{ modalTx.reference_id }}</span>
+                            </div>
+                        </div>
+
+                        <div v-if="modalTx.metadata?.held" class="detail-item detail-item--full">
+                            <span class="detail-label">Статус проверки и холда</span>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                                <span class="badge badge--amber">В холде на проверке</span>
+                                <span v-if="modalTx.metadata?.held_until" style="color: #94a3b8; font-size: 13px;">
+                                    Окно оспаривания до: <strong>{{ modalTx.metadata.held_until }}</strong>
+                                </span>
                             </div>
                         </div>
 

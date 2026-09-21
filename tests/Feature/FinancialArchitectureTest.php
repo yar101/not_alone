@@ -133,23 +133,26 @@ it('releases escrow hold to idol with platform fee deduction on order completion
 
     $service->hold($customer, 1000.00, $order);
 
-    // Platform fee 10%: held 1000 => fee 100, idol gets 900
+    // Platform fee 10%: held 1000 => fee 100, idol gets 900 (held during dispute window)
     $result = $service->releaseHold($order, 10.0);
 
     expect($result['payout'])->toBeInstanceOf(WalletTransaction::class);
-    expect((float) $result['payout']->amount)->toBe(1000.00);
+    expect((float) $result['payout']->amount)->toBe(900.00);
     expect((float) $result['fee']->amount)->toBe(-100.00);
-    expect((float) $result['payout']->balance_before)->toBe(0.00);
-    expect((float) $result['payout']->balance_after)->toBe(1000.00);
-    expect((float) $result['fee']->balance_before)->toBe(1000.00);
-    expect((float) $result['fee']->balance_after)->toBe(900.00);
+    expect((float) $result['payout']->held_balance_after)->toBe(900.00);
 
     $customerWallet = $customer->wallet->fresh();
     $idolWallet = $idol->wallet->fresh();
 
     expect((float) $customerWallet->balance)->toBe(440.00);
     expect((float) $customerWallet->held_balance)->toBe(0.00);
-    expect((float) $idolWallet->balance)->toBe(900.00);
+    expect((float) $idolWallet->held_balance)->toBe(900.00);
+
+    // Order completed and dispute window expires -> release payout to idol available balance
+    $order->update(['status' => OrderStatus::Completed]);
+    $service->releaseIdolPayout($order);
+    expect((float) $idol->wallet->fresh()->balance)->toBe(900.00);
+    expect((float) $idol->wallet->fresh()->held_balance)->toBe(0.00);
 
     // Idempotent check
     $repeat = $service->releaseHold($order, 10.0);
@@ -224,11 +227,16 @@ it('integrates escrow lifecycle into OrderService pay, cancel, and complete tran
     expect((float) $customer->wallet->fresh()->balance)->toBe(880.00);
     expect((float) $customer->wallet->fresh()->held_balance)->toBe(2000.00);
 
-    // 2. Complete order -> idol receives payout (10% fee => 2000 - 200 = 1800)
+    // 2. Complete order -> idol receives payout (10% fee => 2000 - 200 = 1800 held during dispute window)
     $orderService->confirmCompletion($order, $customer);
     expect($order->fresh()->status)->toBe(OrderStatus::Completed);
     expect((float) $customer->wallet->fresh()->held_balance)->toBe(0.00);
+    expect((float) $idol->wallet->fresh()->held_balance)->toBe(1800.00);
+
+    // After dispute window expires, payout released to available balance
+    $walletService->releaseIdolPayout($order);
     expect((float) $idol->wallet->fresh()->balance)->toBe(1800.00);
+    expect((float) $idol->wallet->fresh()->held_balance)->toBe(0.00);
 });
 
 it('handles content pack purchase with live wallet transactions', function () {

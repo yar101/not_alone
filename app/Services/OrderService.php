@@ -21,6 +21,9 @@ use App\Notifications\OrderAcceptedNotification;
 use App\Notifications\OrderCancelledNotification;
 use App\Notifications\OrderCompletedNotification;
 use App\Notifications\OrderPaidNotification;
+use App\Enums\WalletTransactionStatus;
+use App\Enums\WalletTransactionType;
+use App\Models\WalletTransaction;
 use App\Services\WalletService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -338,8 +341,9 @@ class OrderService
                 throw new \DomainException("Невозможно открыть спор по заказу в статусе {$lockedOrder->status->label()}");
             }
 
-            if ($lockedOrder->completed_at && $lockedOrder->completed_at->lt(now()->subHour())) {
-                throw new \DomainException('Время для оспаривания истекло. Спор можно открыть в течение 1 часа после завершения заказа.');
+            $windowMinutes = (int) PlatformSetting::get('order_dispute_window_minutes', 60);
+            if ($lockedOrder->completed_at && $lockedOrder->completed_at->lt(now()->subMinutes($windowMinutes))) {
+                throw new \DomainException("Время для оспаривания истекло. Спор можно открыть в течение {$windowMinutes} мин после завершения заказа.");
             }
 
             if ($lockedOrder->disputes()->exists()) {
@@ -429,21 +433,33 @@ class OrderService
             $from = $lockedOrder->status->value;
             $attrs = ['status' => $to];
 
+            if ($from === OrderStatus::Disputed->value) {
+                $lockedOrder->disputes()->where('status', 'open')->update([
+                    'status' => $to === OrderStatus::Refunded ? 'approved' : 'rejected',
+                    'admin_note' => $note,
+                    'resolved_at' => now(),
+                ]);
+            }
+
             switch ($to) {
                 case OrderStatus::Paid:
                     $isNewPaid = $lockedOrder->status !== OrderStatus::Paid;
                     $attrs['paid_at'] = $lockedOrder->paid_at ?? now();
 
                     if ($isNewPaid) {
-                        $totalAmount = $lockedOrder->total_price;
-                        if ($totalAmount > 0) {
-                            if (config('services.payments.mock_purchases', true)) {
-                                $wallet = $this->walletService->getOrCreateWallet($lockedOrder->customer);
-                                if ($wallet->balance < $totalAmount) {
-                                    $this->walletService->deposit($lockedOrder->customer, $totalAmount, 'Тестовое пополнение для оплаты заказа');
+                        $hasActiveHold = $this->walletService->hasActiveHold($lockedOrder);
+
+                        if (! $hasActiveHold) {
+                            $totalAmount = $lockedOrder->total_price;
+                            if ($totalAmount > 0) {
+                                if (config('services.payments.mock_purchases', true)) {
+                                    $wallet = $this->walletService->getOrCreateWallet($lockedOrder->customer);
+                                    if ($wallet->balance < $totalAmount) {
+                                        $this->walletService->deposit($lockedOrder->customer, $totalAmount, 'Тестовое пополнение для оплаты заказа');
+                                    }
                                 }
+                                $this->walletService->hold($lockedOrder->customer, $totalAmount, $lockedOrder, "Оплата заказа #{$lockedOrder->id}");
                             }
-                            $this->walletService->hold($lockedOrder->customer, $totalAmount, $lockedOrder, "Оплата заказа #{$lockedOrder->id}");
                         }
                     }
 
@@ -476,8 +492,17 @@ class OrderService
                         IdolRatingService::adjust($lockedOrder->idol, 'order_completed');
                     }
 
+                    $lockedOrder->update($attrs);
+
                     // Release escrow hold if still held
                     $this->walletService->releaseHold($lockedOrder);
+
+                    // If dispute was rejected or window already passed, release payout to idol available balance:
+                    $windowMinutes = (int) PlatformSetting::get('order_dispute_window_minutes', 60);
+                    $deadline = $attrs['completed_at']->copy()->addMinutes($windowMinutes);
+                    if (now()->gte($deadline) || $from === OrderStatus::Disputed->value) {
+                        $this->walletService->releaseIdolPayout($lockedOrder);
+                    }
 
                     if ($lockedOrder->conversation_id) {
                         $lockedOrder->conversation->messages()->create([

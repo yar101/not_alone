@@ -13,6 +13,7 @@ const props = defineProps({
 const form = useForm({
     rating_low_threshold:      props.settings.rating_low_threshold,
     order_auto_complete_delay: props.settings.order_auto_complete_delay,
+    order_dispute_window_minutes: props.settings.order_dispute_window_minutes ?? 60,
     content_pack_price_min:    props.settings.content_pack_price_min,
     content_pack_price_max:  props.settings.content_pack_price_max,
     moderate_new_packs:      props.settings.moderate_new_packs,
@@ -193,6 +194,27 @@ const previewBase = computed(() =>
                         </div>
                     </div>
                     <p v-if="form.errors.order_auto_complete_delay" class="err">{{ form.errors.order_auto_complete_delay }}</p>
+                </div>
+
+                <div class="field">
+                    <div class="field-row">
+                        <div class="field-meta">
+                            <label class="field-label">Окно для оспаривания (холд выплаты айдолу), мин</label>
+                            <p class="field-hint">Время в минутах после завершения заказа, в течение которого клиент может подать жалобу, а средства удерживаются в заморозке у айдола</p>
+                        </div>
+                        <div class="field-control">
+                            <input
+                                v-model.number="form.order_dispute_window_minutes"
+                                type="number"
+                                step="1"
+                                min="1"
+                                max="10080"
+                                class="input input--sm"
+                                :class="{ 'input--err': form.errors.order_dispute_window_minutes }"
+                            />
+                        </div>
+                    </div>
+                    <p v-if="form.errors.order_dispute_window_minutes" class="err">{{ form.errors.order_dispute_window_minutes }}</p>
                 </div>
             </div>
 

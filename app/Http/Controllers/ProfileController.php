@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\OrderStatus;
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\Order;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,6 +15,9 @@ use Inertia\Response;
 
 class ProfileController extends Controller
 {
+    /**
+     * Display the user's profile form.
+     */
     public function edit(Request $request): Response
     {
         return Inertia::render('Settings/Edit', [
@@ -21,6 +26,9 @@ class ProfileController extends Controller
         ]);
     }
 
+    /**
+     * Update the user's profile information.
+     */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         $request->user()->fill($request->validated());
@@ -41,6 +49,22 @@ class ProfileController extends Controller
         ]);
 
         $user = $request->user();
+
+        if ($user->wallet && (float) $user->wallet->balance < 0) {
+            return back()->withErrors(['password' => 'Невозможно удалить аккаунт при отрицательном балансе кошелька. Пожалуйста, погасите задолженность.']);
+        }
+
+        if ($user->wallet && (float) $user->wallet->held_balance > 0) {
+            return back()->withErrors(['password' => 'Невозможно удалить аккаунт при наличии средств в заморозке.']);
+        }
+
+        $hasActiveOrders = Order::where(function ($q) use ($user) {
+            $q->where('customer_id', $user->id)->orWhere('idol_id', $user->id);
+        })->whereIn('status', [OrderStatus::Pending, OrderStatus::Accepted, OrderStatus::Paid, OrderStatus::Disputed])->exists();
+
+        if ($hasActiveOrders) {
+            return back()->withErrors(['password' => 'Невозможно удалить аккаунт при наличии активных заказов.']);
+        }
 
         Auth::logout();
 

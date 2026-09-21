@@ -24,12 +24,24 @@ class WalletController extends Controller
 
         if ($filter === 'deposit') {
             $query->where('type', \App\Enums\WalletTransactionType::Deposit);
+        } elseif ($filter === 'holds') {
+            $query->where(function ($q) {
+                $q->where('type', \App\Enums\WalletTransactionType::OrderHold)
+                  ->orWhere(function ($sub) {
+                      $sub->where('type', \App\Enums\WalletTransactionType::OrderPayout)
+                          ->where('status', \App\Enums\WalletTransactionStatus::Pending);
+                  })
+                  ->orWhere('type', \App\Enums\WalletTransactionType::OrderHoldRelease)
+                  ->orWhereColumn('held_balance_before', '!=', 'held_balance_after');
+            });
         } elseif ($filter === 'orders') {
             $query->whereIn('type', [
                 \App\Enums\WalletTransactionType::OrderHold,
                 \App\Enums\WalletTransactionType::OrderPayout,
                 \App\Enums\WalletTransactionType::OrderRefund,
+                \App\Enums\WalletTransactionType::OrderHoldRelease,
                 \App\Enums\WalletTransactionType::PlatformFee,
+                \App\Enums\WalletTransactionType::OrderClawback,
             ]);
         } elseif ($filter === 'packs') {
             $query->whereIn('type', [
@@ -49,10 +61,14 @@ class WalletController extends Controller
                 'type' => $tx->type->value,
                 'type_label' => $tx->type->label(),
                 'amount' => (float) $tx->amount,
+                'balance_before' => (float) $tx->balance_before,
                 'balance_after' => (float) $tx->balance_after,
+                'held_balance_before' => (float) $tx->held_balance_before,
+                'held_balance_after' => (float) $tx->held_balance_after,
                 'status' => $tx->status->value,
                 'status_label' => $tx->status->label(),
                 'description' => $tx->description,
+                'metadata' => $tx->metadata,
                 'created_at' => $tx->created_at->toISOString(),
             ]);
 
@@ -71,6 +87,7 @@ class WalletController extends Controller
             'canWithdraw' => (bool) $user->is_idol,
             'depositFeePercent' => (float) PlatformSetting::get('deposit_fee_percent', config('services.payments.deposit_fee_percent', 4.0)),
             'withdrawalFeePercent' => (float) PlatformSetting::get('withdrawal_fee_percent', config('services.payments.withdrawal_fee_percent', 4.0)),
+            'holdMinutes' => (int) PlatformSetting::get('order_dispute_window_minutes', 60),
         ]);
     }
 
@@ -79,7 +96,40 @@ class WalletController extends Controller
         $user = $request->user();
         $wallet = $this->walletService->getOrCreateWallet($user);
 
-        $transactions = WalletTransaction::where('wallet_id', $wallet->id)
+        $filter = $request->query('filter', 'all');
+        $query = WalletTransaction::where('wallet_id', $wallet->id);
+
+        if ($filter === 'deposits') {
+            $query->where('type', \App\Enums\WalletTransactionType::Deposit);
+        } elseif ($filter === 'holds') {
+            $query->where(function ($q) {
+                $q->where('type', \App\Enums\WalletTransactionType::OrderHold)
+                  ->orWhere(function ($sub) {
+                      $sub->where('type', \App\Enums\WalletTransactionType::OrderPayout)
+                          ->where('status', \App\Enums\WalletTransactionStatus::Pending);
+                  })
+                  ->orWhere('type', \App\Enums\WalletTransactionType::OrderHoldRelease)
+                  ->orWhereColumn('held_balance_before', '!=', 'held_balance_after');
+            });
+        } elseif ($filter === 'orders') {
+            $query->whereIn('type', [
+                \App\Enums\WalletTransactionType::OrderHold,
+                \App\Enums\WalletTransactionType::OrderPayout,
+                \App\Enums\WalletTransactionType::OrderRefund,
+                \App\Enums\WalletTransactionType::OrderHoldRelease,
+                \App\Enums\WalletTransactionType::PlatformFee,
+                \App\Enums\WalletTransactionType::OrderClawback,
+            ]);
+        } elseif ($filter === 'packs') {
+            $query->whereIn('type', [
+                \App\Enums\WalletTransactionType::PackPurchase,
+                \App\Enums\WalletTransactionType::PackSale,
+            ]);
+        } elseif ($filter === 'withdrawal') {
+            $query->where('type', \App\Enums\WalletTransactionType::Withdrawal);
+        }
+
+        $transactions = $query
             ->latest('id')
             ->limit(20)
             ->get()
@@ -88,10 +138,14 @@ class WalletController extends Controller
                 'type' => $tx->type->value,
                 'type_label' => $tx->type->label(),
                 'amount' => (float) $tx->amount,
+                'balance_before' => (float) $tx->balance_before,
                 'balance_after' => (float) $tx->balance_after,
+                'held_balance_before' => (float) $tx->held_balance_before,
+                'held_balance_after' => (float) $tx->held_balance_after,
                 'status' => $tx->status->value,
                 'status_label' => $tx->status->label(),
                 'description' => $tx->description,
+                'metadata' => $tx->metadata,
                 'created_at' => $tx->created_at->toISOString(),
             ]);
 

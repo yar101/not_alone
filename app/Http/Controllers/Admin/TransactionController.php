@@ -16,6 +16,7 @@ use App\Traits\SafeBroadcast;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -107,10 +108,28 @@ class TransactionController extends Controller
             'order_hold' => WalletTransaction::where('type', WalletTransactionType::OrderHold)->count(),
             'order_payout' => WalletTransaction::where('type', WalletTransactionType::OrderPayout)->count(),
             'order_refund' => WalletTransaction::where('type', WalletTransactionType::OrderRefund)->count(),
+            'order_hold_release' => WalletTransaction::where('type', WalletTransactionType::OrderHoldRelease)->count(),
             'platform_fee' => WalletTransaction::where('type', WalletTransactionType::PlatformFee)->count(),
             'admin_adjustment' => WalletTransaction::where('type', WalletTransactionType::AdminAdjustment)->count(),
             'order_clawback' => WalletTransaction::where('type', WalletTransactionType::OrderClawback)->count(),
         ];
+
+        $platformFeeSum = (float) WalletTransaction::where('type', WalletTransactionType::PlatformFee)
+            ->where('status', WalletTransactionStatus::Completed)
+            ->whereRaw("(metadata->>'refunded') is null")
+            ->sum(DB::raw('abs(amount)'));
+
+        $depositFeeSum = (float) WalletTransaction::where('type', WalletTransactionType::Deposit)
+            ->where('status', WalletTransactionStatus::Completed)
+            ->whereNotNull('metadata->fee_amount')
+            ->sum(DB::raw("cast(metadata->>'fee_amount' as numeric)"));
+
+        $withdrawalFeeSum = (float) WalletTransaction::where('type', WalletTransactionType::Withdrawal)
+            ->where('status', WalletTransactionStatus::Completed)
+            ->whereNotNull('metadata->fee_amount')
+            ->sum(DB::raw("cast(metadata->>'fee_amount' as numeric)"));
+
+        $totalFees = round($platformFeeSum + $depositFeeSum + $withdrawalFeeSum, 2);
 
         // Global KPI Stats
         $kpi = [
@@ -120,9 +139,7 @@ class TransactionController extends Controller
             'total_withdrawals' => (float) abs(WalletTransaction::where('type', WalletTransactionType::Withdrawal)
                 ->where('status', WalletTransactionStatus::Completed)
                 ->sum('amount')),
-            'total_fees' => (float) abs(WalletTransaction::where('type', WalletTransactionType::PlatformFee)
-                ->where('status', WalletTransactionStatus::Completed)
-                ->sum('amount')),
+            'total_fees' => $totalFees,
             'total_count' => WalletTransaction::count(),
         ];
 

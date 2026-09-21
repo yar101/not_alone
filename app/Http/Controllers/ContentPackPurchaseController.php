@@ -31,21 +31,20 @@ class ContentPackPurchaseController extends Controller
             ->where('status', 'published')
             ->whereHas('user', fn ($q) => $q->where('is_banned', false))
             ->get()
-            ->keyBy('id');
+            ->sortBy('user_id');
 
         try {
-            $created = DB::transaction(function () use ($packIds, $packs, $user) {
+            $created = DB::transaction(function () use ($packs, $user) {
                 $createdIds = [];
-                foreach ($packIds as $packId) {
-                    $pack = $packs->get($packId);
-                    if (! $pack || $pack->user_id === $user->id) {
+                foreach ($packs as $pack) {
+                    if ($pack->user_id === $user->id) {
                         continue;
                     }
 
                     $purchase = $this->walletService->purchaseContentPack($user, $pack);
 
                     if ($purchase->wasRecentlyCreated) {
-                        $createdIds[] = $packId;
+                        $createdIds[] = $pack->id;
                     }
                 }
 

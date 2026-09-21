@@ -169,6 +169,8 @@ class TransactionSeeder extends Seeder
                     $recordTx($feeTx);
                 }
 
+                $walletService->releaseIdolPayout($order);
+
                 $createdOrders[] = $order;
             }
         }
@@ -210,6 +212,8 @@ class TransactionSeeder extends Seeder
                 if ($feeTx) {
                     $recordTx($feeTx);
                 }
+
+                $walletService->releaseIdolPayout($order);
 
                 $createdOrders[] = $order;
             }

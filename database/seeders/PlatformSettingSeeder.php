@@ -11,6 +11,7 @@ class PlatformSettingSeeder extends Seeder
     {
         $settings = [
             'order_auto_complete_delay' => '72',
+            'order_dispute_window_minutes' => '60',
             'rating_low_threshold' => '30',
             'content_pack_price_min' => '100',
             'content_pack_price_max' => '10000',

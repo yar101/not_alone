@@ -625,7 +625,7 @@ async function sendMessage() {
         const res = await axios.post(route("conversations.message", convId), {
             body,
         });
-        messages.value.push(res.data);
+        upsertMessage(res.data);
         scrollToBottom();
         updateLastMessage(convId, res.data);
     } catch (e) {
@@ -654,6 +654,20 @@ function onInput() {
     echoChannel.whisper("typing", { user_id: authUser.value?.id });
 }
 
+function upsertMessage(msg) {
+    if (!msg || !msg.id) {
+        messages.value.push(msg);
+        return true;
+    }
+    const idx = messages.value.findIndex((m) => m.id === msg.id);
+    if (idx !== -1) {
+        messages.value[idx] = { ...messages.value[idx], ...msg };
+        return false;
+    }
+    messages.value.push(msg);
+    return true;
+}
+
 // ── Echo subscription ────────────────────────────────────
 function subscribeEcho(conversationId) {
     if (!window.Echo || !authUser.value) return;
@@ -663,11 +677,15 @@ function subscribeEcho(conversationId) {
                 data.sender_id !== authUser.value.id ||
                 data.type === "system"
             ) {
-                messages.value.push(data);
-                scrollToBottom();
-                markRead(conversationId);
-                updateLastMessage(conversationId, data);
-                if (data.type !== "system") playNotificationSound();
+                const isNew = upsertMessage(data);
+                if (isNew) {
+                    scrollToBottom();
+                    markRead(conversationId);
+                    updateLastMessage(conversationId, data);
+                    if (data.type !== "system") playNotificationSound();
+                } else {
+                    updateLastMessage(conversationId, data);
+                }
             }
             if (
                 data.type === "system" &&
@@ -880,7 +898,11 @@ async function loadOlderMessages() {
                 params: { before_id: firstId },
             },
         );
-        messages.value = [...res.data.messages, ...messages.value];
+        const existingIds = new Set(messages.value.map((m) => m.id));
+        const older = (res.data.messages || []).filter(
+            (m) => !existingIds.has(m.id),
+        );
+        messages.value = [...older, ...messages.value];
         hasMore.value = res.data.has_more;
 
         await nextTick();
@@ -919,8 +941,18 @@ const groupedMessages = computed(() => {
     let prevDate = null;
     let prevSenderId = null;
 
-    for (let i = 0; i < messages.value.length; i++) {
-        const msg = messages.value[i];
+    const seenIds = new Set();
+    const uniqueMessages = [];
+    for (const msg of messages.value) {
+        if (msg.id) {
+            if (seenIds.has(msg.id)) continue;
+            seenIds.add(msg.id);
+        }
+        uniqueMessages.push(msg);
+    }
+
+    for (let i = 0; i < uniqueMessages.length; i++) {
+        const msg = uniqueMessages[i];
         const msgDate = new Date(msg.created_at);
         const dateKey = msgDate.toDateString();
 
@@ -942,7 +974,7 @@ const groupedMessages = computed(() => {
             prevSenderId = null;
         }
 
-        const nextMsg = messages.value[i + 1];
+        const nextMsg = uniqueMessages[i + 1];
         const nextSenderId = nextMsg?.sender_id;
         const nextDateKey = nextMsg
             ? new Date(nextMsg.created_at).toDateString()
@@ -1022,7 +1054,7 @@ async function onRepeatOrderCreated({ order_id, conversation_id }) {
 
 function onOfferSent(msg) {
     // Push the message immediately on the idol's side (Echo skips own messages)
-    messages.value.push(msg);
+    upsertMessage(msg);
     nextTick(scrollToBottom);
     if (activeConversation.value) {
         updateLastMessage(activeConversation.value.id, msg);
@@ -1099,7 +1131,7 @@ async function uploadAndSendImage(file) {
             type: "image",
             metadata: { image_url: up.data.url },
         });
-        messages.value.push(res.data);
+        upsertMessage(res.data);
         scrollToBottom();
         updateLastMessage(convId, res.data);
     } finally {

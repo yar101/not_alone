@@ -16,13 +16,14 @@ class Order extends Model
         'customer_id', 'idol_id', 'conversation_id',
         'status', 'cancel_reason', 'cancelled_by',
         'completion_confirmed_by_idol', 'completion_confirmed_by_customer',
-        'paid_at', 'completed_at',
+        'paid_at', 'completed_at', 'payout_released_at',
     ];
 
     protected $casts = [
         'status' => OrderStatus::class,
         'paid_at' => 'datetime',
         'completed_at' => 'datetime',
+        'payout_released_at' => 'datetime',
     ];
 
     public function customer(): BelongsTo

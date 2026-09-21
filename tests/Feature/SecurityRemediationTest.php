@@ -117,10 +117,13 @@ test('completed order refund claws back payout from idol, reverses platform fee,
     expect((float) $custWallet->balance)->toEqual(460.00);
     expect((float) $custWallet->held_balance)->toEqual(500.00);
 
-    // Complete order (releases hold, pays idol gross 500 - 10% fee = 450 net)
+    // Complete order (releases customer hold, holds idol net payout during dispute window)
     $orderService->confirmCompletion($order, $customer);
     $order->refresh();
     expect($order->status)->toBe(OrderStatus::Completed);
+
+    // Release payout to idol available balance
+    $walletService->releaseIdolPayout($order);
 
     $idolWallet = $walletService->getOrCreateWallet($idol);
     expect((float) $idolWallet->balance)->toEqual(450.00); // 500 gross - 50 platform fee
