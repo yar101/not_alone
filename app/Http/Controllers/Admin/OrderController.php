@@ -102,7 +102,11 @@ class OrderController extends Controller
         $to = OrderStatus::from($request->status);
         $adminId = auth('admin')->id();
 
-        $this->orderService->adminTransition($order, $to, $adminId, $request->admin_note);
+        try {
+            $this->orderService->adminTransition($order, $to, $adminId, $request->admin_note);
+        } catch (\Throwable $e) {
+            return back()->withErrors(['status' => $e->getMessage()]);
+        }
 
         AdminLogService::log(
             $adminId,
@@ -112,7 +116,7 @@ class OrderController extends Controller
             ['from' => $from, 'to' => $request->status, 'note' => $request->admin_note]
         );
 
-        return back();
+        return back()->with('success', 'Статус заказа обновлен.');
     }
 
     public function history(Order $order): JsonResponse

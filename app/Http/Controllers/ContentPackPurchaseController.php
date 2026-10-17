@@ -30,8 +30,9 @@ class ContentPackPurchaseController extends Controller
         $packs = ContentPack::whereIn('id', $packIds)
             ->where('status', 'published')
             ->whereHas('user', fn ($q) => $q->where('is_banned', false))
+            ->with(['user.wallet'])
             ->get()
-            ->sortBy('user_id');
+            ->sortBy(fn ($pack) => $pack->user?->wallet?->id ?? $pack->user_id);
 
         try {
             $created = DB::transaction(function () use ($packs, $user) {

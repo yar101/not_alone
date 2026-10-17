@@ -99,7 +99,7 @@ class WalletController extends Controller
         $filter = $request->query('filter', 'all');
         $query = WalletTransaction::where('wallet_id', $wallet->id);
 
-        if ($filter === 'deposits') {
+        if ($filter === 'deposit' || $filter === 'deposits') {
             $query->where('type', \App\Enums\WalletTransactionType::Deposit);
         } elseif ($filter === 'holds') {
             $query->where(function ($q) {

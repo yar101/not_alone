@@ -74,7 +74,7 @@ class OrderController extends Controller
 
         try {
             $this->service->pay($order, $request->user());
-        } catch (\DomainException $e) {
+        } catch (\DomainException|\App\Exceptions\InsufficientFundsException $e) {
             return response()->json(['error' => $e->getMessage()], 422);
         }
 
@@ -112,21 +112,37 @@ class OrderController extends Controller
     public function disputable(Request $request): JsonResponse
     {
         $user = $request->user();
+        $windowMinutes = (int) \App\Models\PlatformSetting::get('order_dispute_window_minutes', 60);
+        $cutoff = now()->subMinutes($windowMinutes);
 
         $orders = Order::where('customer_id', $user->id)
-            ->where('status', OrderStatus::Completed)
-            ->where('completed_at', '>=', now()->subHour())
+            ->where(function ($q) use ($cutoff) {
+                $q->where('status', OrderStatus::Paid)
+                    ->orWhere(function ($sub) use ($cutoff) {
+                        $sub->where('status', OrderStatus::Completed)
+                            ->where('completed_at', '>=', $cutoff);
+                    });
+            })
             ->whereDoesntHave('disputes')
             ->with(['idol', 'items.service'])
-            ->latest('completed_at')
+            ->latest('id')
             ->get()
-            ->map(fn (Order $o) => [
-                'id' => $o->id,
-                'idol_name' => $o->idol->name,
-                'total' => $o->items->sum(fn ($i) => ($i->service?->price ?? 0) * ($i->quantity ?? 1)),
-                'created_at' => $o->created_at->toISOString(),
-                'completed_at' => $o->completed_at->toISOString(),
-            ]);
+            ->map(function (Order $o) use ($windowMinutes) {
+                $deadline = $o->completed_at ? $o->completed_at->copy()->addMinutes($windowMinutes)->toISOString() : null;
+
+                return [
+                    'id' => $o->id,
+                    'status' => $o->status->value,
+                    'status_label' => $o->status->label(),
+                    'idol_name' => $o->idol->name,
+                    'total' => $o->total_price,
+                    'created_at' => $o->created_at->toISOString(),
+                    'paid_at' => $o->paid_at?->toISOString(),
+                    'completed_at' => $o->completed_at?->toISOString(),
+                    'dispute_deadline' => $deadline,
+                    'window_minutes' => $windowMinutes,
+                ];
+            });
 
         return response()->json($orders);
     }

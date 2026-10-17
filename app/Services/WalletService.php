@@ -48,7 +48,8 @@ class WalletService
         float $amount,
         ?string $description = null,
         ?string $idempotencyKey = null,
-        array $metadata = []
+        array $metadata = [],
+        bool $applyFee = true
     ): WalletTransaction {
         if ($amount <= 0) {
             throw new \InvalidArgumentException('Сумма пополнения должна быть больше 0');
@@ -58,7 +59,7 @@ class WalletService
             throw new \DomainException('Операция недоступна для заблокированного аккаунта.');
         }
 
-        return DB::transaction(function () use ($user, $amount, $description, $idempotencyKey, $metadata) {
+        return DB::transaction(function () use ($user, $amount, $description, $idempotencyKey, $metadata, $applyFee) {
             if ($idempotencyKey) {
                 $existing = WalletTransaction::where('idempotency_key', $idempotencyKey)->first();
                 if ($existing) {
@@ -73,7 +74,9 @@ class WalletService
                 throw new \DomainException('Кошелёк деактивирован.');
             }
 
-            $feePercent = (float) PlatformSetting::get('deposit_fee_percent', config('services.payments.deposit_fee_percent', 4.0));
+            $feePercent = $applyFee
+                ? (float) PlatformSetting::get('deposit_fee_percent', config('services.payments.deposit_fee_percent', 4.0))
+                : 0.0;
             $feeAmount = $feePercent > 0 ? (float) bcdiv(bcmul((string) $amount, (string) $feePercent, 4), '100', 2) : 0.0;
             $netAmount = (float) bcsub((string) $amount, (string) $feeAmount, 2);
 
@@ -227,25 +230,28 @@ class WalletService
     public function releaseHold(Order $order, ?float $platformFeePercent = null): array
     {
         return DB::transaction(function () use ($order, $platformFeePercent) {
-            // Check if already paid out
-            $existingPayout = WalletTransaction::where('reference_type', Order::class)
-                ->where('reference_id', $order->id)
-                ->where('type', WalletTransactionType::OrderPayout)
-                ->first();
-
-            if ($existingPayout) {
-                return ['payout' => $existingPayout];
-            }
-
-            // Find hold transaction
+            // Find latest active hold transaction
             $holdTx = WalletTransaction::where('reference_type', Order::class)
                 ->where('reference_id', $order->id)
                 ->where('type', WalletTransactionType::OrderHold)
                 ->where('status', WalletTransactionStatus::Completed)
+                ->latest('id')
                 ->first();
 
             if (! $holdTx) {
                 return [];
+            }
+
+            // Check if already paid out for this hold
+            $existingPayout = WalletTransaction::where('reference_type', Order::class)
+                ->where('reference_id', $order->id)
+                ->where('type', WalletTransactionType::OrderPayout)
+                ->where('id', '>', $holdTx->id)
+                ->where('status', '!=', WalletTransactionStatus::Cancelled)
+                ->first();
+
+            if ($existingPayout) {
+                return ['payout' => $existingPayout];
             }
 
             $heldAmount = abs((float) $holdTx->amount);
@@ -313,11 +319,11 @@ class WalletService
                 'wallet_id' => $lockedIdolWallet->id,
                 'user_id' => $order->idol_id,
                 'type' => WalletTransactionType::OrderPayout,
-                'amount' => $netPayout,
+                'amount' => $heldAmount,
                 'balance_before' => $idolBalBefore,
                 'balance_after' => $idolBalBefore,
                 'held_balance_before' => $idolHeldBefore,
-                'held_balance_after' => $idolHeldAfter,
+                'held_balance_after' => (float) bcadd((string) $idolHeldBefore, (string) $heldAmount, 2),
                 'status' => WalletTransactionStatus::Pending,
                 'reference_type' => Order::class,
                 'reference_id' => $order->id,
@@ -327,6 +333,7 @@ class WalletService
                     'gross_amount' => $heldAmount,
                     'fee_percent' => $feePercent,
                     'fee_amount' => $feeAmount,
+                    'net_payout' => $netPayout,
                     'held' => true,
                     'held_until' => $heldUntil->toISOString(),
                 ],
@@ -341,9 +348,9 @@ class WalletService
                     'amount' => -$feeAmount,
                     'balance_before' => $idolBalBefore,
                     'balance_after' => $idolBalBefore,
-                    'held_balance_before' => $idolHeldAfter,
+                    'held_balance_before' => (float) bcadd((string) $idolHeldBefore, (string) $heldAmount, 2),
                     'held_balance_after' => $idolHeldAfter,
-                    'status' => WalletTransactionStatus::Completed,
+                    'status' => WalletTransactionStatus::Pending,
                     'reference_type' => Order::class,
                     'reference_id' => $order->id,
                     'description' => "Комиссия по заказу #{$order->id}",
@@ -351,6 +358,7 @@ class WalletService
                         'order_id' => $order->id,
                         'fee_percent' => $feePercent,
                         'gross_amount' => $heldAmount,
+                        'held' => true,
                     ],
                 ]);
             }
@@ -403,8 +411,12 @@ class WalletService
                 return null;
             }
 
-            $payoutAmount = abs((float) $payoutTx->amount);
-            if ($payoutAmount <= 0) {
+            $grossAmount = abs((float) $payoutTx->amount);
+            $payoutMeta = $payoutTx->metadata ?? [];
+            $feeAmount = (float) ($payoutMeta['fee_amount'] ?? 0.0);
+            $netPayout = (float) ($payoutMeta['net_payout'] ?? bcsub((string) $grossAmount, (string) $feeAmount, 2));
+
+            if ($netPayout <= 0 && $grossAmount <= 0) {
                 return null;
             }
 
@@ -416,31 +428,52 @@ class WalletService
             }
 
             $heldBefore = $lockedIdolWallet->held_balance;
-            $heldAfter = max(0.00, (float) bcsub((string) $heldBefore, (string) $payoutAmount, 2));
+            $heldAfter = max(0.00, (float) bcsub((string) $heldBefore, (string) $netPayout, 2));
             $balBefore = $lockedIdolWallet->balance;
-            $balAfter = (float) bcadd((string) $balBefore, (string) $payoutAmount, 2);
+            $balAfter = (float) bcadd((string) $balBefore, (string) $netPayout, 2);
 
             $lockedIdolWallet->update([
                 'balance' => $balAfter,
                 'held_balance' => $heldAfter,
             ]);
 
-            $metadata = $payoutTx->metadata ?? [];
-            $metadata['held'] = false;
-            $metadata['released_at'] = now()->toISOString();
+            $payoutMeta['held'] = false;
+            $payoutMeta['released_at'] = now()->toISOString();
 
             $payoutTx->update([
                 'status' => WalletTransactionStatus::Completed,
-                'balance_after' => $balAfter,
-                'held_balance_after' => $heldAfter,
+                'balance_before' => $balBefore,
+                'balance_after' => (float) bcadd((string) $balBefore, (string) $grossAmount, 2),
+                'held_balance_before' => $heldBefore,
+                'held_balance_after' => (float) bcsub((string) $heldBefore, (string) $grossAmount, 2),
                 'description' => "Оплата за заказ #{$lockedOrder->id}",
-                'metadata' => $metadata,
+                'metadata' => $payoutMeta,
             ]);
+
+            // If there's a pending platform fee transaction for this order, complete it as well
+            $feeTx = WalletTransaction::where('reference_type', Order::class)
+                ->where('reference_id', $lockedOrder->id)
+                ->where('type', WalletTransactionType::PlatformFee)
+                ->where('status', WalletTransactionStatus::Pending)
+                ->first();
+
+            if ($feeTx) {
+                $feeMeta = $feeTx->metadata ?? [];
+                $feeMeta['held'] = false;
+                $feeTx->update([
+                    'status' => WalletTransactionStatus::Completed,
+                    'balance_before' => (float) bcadd((string) $balBefore, (string) $grossAmount, 2),
+                    'balance_after' => $balAfter,
+                    'held_balance_before' => (float) bcsub((string) $heldBefore, (string) $grossAmount, 2),
+                    'held_balance_after' => $heldAfter,
+                    'metadata' => $feeMeta,
+                ]);
+            }
 
             $lockedOrder->forceFill(['payout_released_at' => now()])->save();
 
-            DB::afterCommit(function () use ($lockedOrder, $payoutAmount) {
-                $lockedOrder->idol->notify(new IdolPayoutReleasedNotification($lockedOrder, $payoutAmount));
+            DB::afterCommit(function () use ($lockedOrder, $netPayout) {
+                $lockedOrder->idol->notify(new IdolPayoutReleasedNotification($lockedOrder, $netPayout));
                 $this->safeBroadcast(new NewNotification('private', $lockedOrder->idol_id));
             });
 
@@ -454,41 +487,45 @@ class WalletService
     public function refundHold(Order $order, ?string $reason = null): ?WalletTransaction
     {
         return DB::transaction(function () use ($order, $reason) {
-            // Check if already refunded
-            $existingRefund = WalletTransaction::where('reference_type', Order::class)
-                ->where('reference_id', $order->id)
-                ->where('type', WalletTransactionType::OrderRefund)
-                ->first();
-
-            if ($existingRefund) {
-                return $existingRefund;
-            }
-
-            // Find hold transaction
-            $holdTx = WalletTransaction::where('reference_type', Order::class)
+            // Find latest active hold transaction
+            $latestHold = WalletTransaction::where('reference_type', Order::class)
                 ->where('reference_id', $order->id)
                 ->where('type', WalletTransactionType::OrderHold)
                 ->where('status', WalletTransactionStatus::Completed)
+                ->latest('id')
                 ->first();
 
-            if (! $holdTx) {
+            if (! $latestHold) {
                 return null;
             }
 
-            $heldAmount = abs((float) $holdTx->amount);
+            // Check if already refunded for this hold
+            $latestRefund = WalletTransaction::where('reference_type', Order::class)
+                ->where('reference_id', $order->id)
+                ->where('type', WalletTransactionType::OrderRefund)
+                ->latest('id')
+                ->first();
+
+            if ($latestRefund && $latestRefund->id > $latestHold->id) {
+                return $latestRefund;
+            }
+
+            $heldAmount = abs((float) $latestHold->amount);
             if ($heldAmount <= 0) {
                 return null;
             }
 
-            // Check if payout already occurred (order was completed)
+            // Check if payout occurred for this hold
             $payoutTx = WalletTransaction::where('reference_type', Order::class)
                 ->where('reference_id', $order->id)
                 ->where('type', WalletTransactionType::OrderPayout)
+                ->where('id', '>', $latestHold->id)
+                ->latest('id')
                 ->first();
 
             $customerWallet = $this->getOrCreateWallet($order->customer);
 
-            if ($payoutTx) {
+            if ($payoutTx && $payoutTx->status !== WalletTransactionStatus::Cancelled) {
                 // Completed order refund: claw back funds from idol, return funds to customer
                 $idolWallet = $this->getOrCreateWallet($order->idol);
 
@@ -509,11 +546,13 @@ class WalletService
                 $feeTx = WalletTransaction::where('reference_type', Order::class)
                     ->where('reference_id', $order->id)
                     ->where('type', WalletTransactionType::PlatformFee)
+                    ->where('id', '>', $latestHold->id)
                     ->first();
 
-                $netIdolDeduction = abs((float) $payoutTx->amount);
                 $grossAmount = $heldAmount;
-                $feeAmount = $feeTx ? abs((float) $feeTx->amount) : (float) bcsub((string) $grossAmount, (string) $netIdolDeduction, 2);
+                $payoutMeta = $payoutTx->metadata ?? [];
+                $feeAmount = $feeTx ? abs((float) $feeTx->amount) : (float) ($payoutMeta['fee_amount'] ?? 0.0);
+                $netIdolDeduction = (float) ($payoutMeta['net_payout'] ?? bcsub((string) $grossAmount, (string) $feeAmount, 2));
 
                 $isStillHeld = ($payoutTx->status === WalletTransactionStatus::Pending);
 
@@ -534,43 +573,54 @@ class WalletService
                         'status' => WalletTransactionStatus::Cancelled,
                         'metadata' => $payoutTxMeta,
                     ]);
+
+                    // Also cancel the pending fee transaction
+                    if ($feeTx) {
+                        $feeMeta = $feeTx->metadata ?? [];
+                        $feeMeta['refunded'] = true;
+                        $feeMeta['held'] = false;
+                        $feeTx->update([
+                            'status' => WalletTransactionStatus::Cancelled,
+                            'metadata' => $feeMeta,
+                        ]);
+                    }
+                    // Note: No OrderClawback created because available balance was never credited!
                 } else {
                     // Payout was already released to available balance: deduct from balance (allows overdraft)
                     $idolBalAfter = (float) bcsub((string) $idolBalBefore, (string) $netIdolDeduction, 2);
                     $idolHeldAfter = $idolHeldBefore;
                     $lockedIdolWallet->update(['balance' => $idolBalAfter]);
-                }
 
-                // If platform fee was charged, mark it refunded/reversed
-                if ($feeTx) {
-                    $feeMeta = $feeTx->metadata ?? [];
-                    $feeMeta['refunded'] = true;
-                    $feeMeta['refunded_at'] = now()->toISOString();
-                    $feeTx->update(['metadata' => $feeMeta]);
-                }
+                    if ($feeTx) {
+                        $feeMeta = $feeTx->metadata ?? [];
+                        $feeMeta['refunded'] = true;
+                        $feeMeta['refunded_at'] = now()->toISOString();
+                        $feeTx->update(['metadata' => $feeMeta]);
+                    }
 
-                WalletTransaction::create([
-                    'wallet_id' => $lockedIdolWallet->id,
-                    'user_id' => $order->idol_id,
-                    'type' => WalletTransactionType::OrderClawback,
-                    'amount' => -$netIdolDeduction,
-                    'balance_before' => $idolBalBefore,
-                    'balance_after' => $idolBalAfter,
-                    'held_balance_before' => $idolHeldBefore,
-                    'held_balance_after' => $idolHeldAfter,
-                    'status' => WalletTransactionStatus::Completed,
-                    'reference_type' => Order::class,
-                    'reference_id' => $order->id,
-                    'description' => "Списание по спору/отмене выполненного заказа #{$order->id}" . ($reason ? ": {$reason}" : ''),
-                    'metadata' => [
-                        'order_id' => $order->id,
-                        'gross_amount' => $grossAmount,
-                        'fee_amount' => $feeAmount,
-                        'clawback_amount' => $netIdolDeduction,
-                        'from_held' => $isStillHeld,
-                        'reason' => $reason,
-                    ],
-                ]);
+                    WalletTransaction::create([
+                        'wallet_id' => $lockedIdolWallet->id,
+                        'user_id' => $order->idol_id,
+                        'type' => WalletTransactionType::OrderClawback,
+                        'amount' => -$netIdolDeduction,
+                        'balance_before' => $idolBalBefore,
+                        'balance_after' => $idolBalAfter,
+                        'held_balance_before' => $idolHeldBefore,
+                        'held_balance_after' => $idolHeldAfter,
+                        'status' => WalletTransactionStatus::Completed,
+                        'reference_type' => Order::class,
+                        'reference_id' => $order->id,
+                        'description' => "Списание по спору/отмене выполненного заказа #{$order->id}" . ($reason ? ": {$reason}" : ''),
+                        'metadata' => [
+                            'order_id' => $order->id,
+                            'gross_amount' => $grossAmount,
+                            'fee_amount' => $feeAmount,
+                            'clawback_amount' => $netIdolDeduction,
+                            'from_held' => false,
+                            'reason' => $reason,
+                        ],
+                    ]);
+                }
 
                 // Refund customer
                 $custBalBefore = $lockedCustomerWallet->balance;
@@ -665,7 +715,8 @@ class WalletService
                 $buyerWallet = $this->getOrCreateWallet($buyer);
 
                 if ($isMock && ! $buyerWallet->hasSufficientBalance($price)) {
-                    $this->deposit($buyer, $price, 'Тестовое пополнение для покупки пака');
+                    $needed = (float) bcsub((string) $price, (string) $buyerWallet->balance, 2);
+                    $this->deposit($buyer, $needed, 'Тестовое пополнение для покупки пака', null, [], false);
                     $buyerWallet->refresh();
                 }
 

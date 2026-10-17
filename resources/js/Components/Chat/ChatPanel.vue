@@ -12,6 +12,7 @@ import { usePage, router, Link } from "@inertiajs/vue3";
 import UserAvatar from "@/Components/UserAvatar.vue";
 import SiteModal from "@/Components/Site/SiteModal.vue";
 import axios from "axios";
+import { ElNotification } from "element-plus";
 import { Check, Lock } from "@element-plus/icons-vue";
 import ServiceOfferModal from "@/Components/Chat/ServiceOfferModal.vue";
 import ReviewForm from "@/Components/Chat/ReviewForm.vue";
@@ -273,6 +274,14 @@ async function payOrder() {
     orderAction.value = "pay";
     try {
         await axios.patch(route("orders.pay", activeOrderData.value.id));
+    } catch (e) {
+        const errorMsg = e.response?.data?.error || e.response?.data?.message || "Ошибка при оплате заказа";
+        ElNotification({
+            title: "Ошибка оплаты",
+            message: errorMsg,
+            type: "error",
+            duration: 5000,
+        });
     } finally {
         orderAction.value = "";
     }

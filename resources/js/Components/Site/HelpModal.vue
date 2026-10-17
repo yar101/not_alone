@@ -156,8 +156,14 @@ async function openDisputeForm() {
     }
 }
 
-function orderTimeLeft(completedAt) {
-    const deadline = new Date(completedAt).getTime() + 3600 * 1000;
+function orderTimeLeft(order) {
+    if (!order) return "";
+    if (!order.completed_at) {
+        return order.status_label || "В процессе";
+    }
+    const deadline = order.dispute_deadline
+        ? new Date(order.dispute_deadline).getTime()
+        : new Date(order.completed_at).getTime() + (order.window_minutes || 60) * 60 * 1000;
     const diff = deadline - nowTick.value;
     if (diff <= 0) return __("help.timer.expiring");
     const m = Math.floor(diff / 60000);
@@ -333,11 +339,12 @@ async function submitDispute() {
                                         <span class="dispute-order-card__num">#{{ o.id }}</span>
                                         <span class="dispute-order-card__idol">{{ o.idol_name }}</span>
                                         <span class="dispute-order-card__total">{{ o.total }} ₽</span>
-                                        <span class="dispute-order-card__timer">{{ orderTimeLeft(o.completed_at) }}</span>
+                                        <span class="dispute-order-card__timer">{{ orderTimeLeft(o) }}</span>
                                     </div>
                                     <div class="dispute-order-card__dates">
                                         <span>{{ __("help.dispute.date.created") }} {{ fmtDate(o.created_at) }}</span>
-                                        <span>{{ __("help.dispute.date.completed") }} {{ fmtDate(o.completed_at) }}</span>
+                                        <span v-if="o.completed_at">{{ __("help.dispute.date.completed") }} {{ fmtDate(o.completed_at) }}</span>
+                                        <span v-else-if="o.paid_at">{{ fmtDate(o.paid_at) }}</span>
                                     </div>
                                 </div>
                             </div>

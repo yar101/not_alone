@@ -119,8 +119,16 @@ it('holds net earnings in idol held_balance upon order completion and schedules 
 
     expect($payoutTx)->not->toBeNull();
     expect($payoutTx->status)->toBe(WalletTransactionStatus::Pending);
-    expect((float) $payoutTx->amount)->toBe(800.00);
+    expect((float) $payoutTx->amount)->toBe(1000.00);
     expect($payoutTx->metadata['held'])->toBeTrue();
+
+    $feeTx = WalletTransaction::where('reference_type', Order::class)
+        ->where('reference_id', $order->id)
+        ->where('type', WalletTransactionType::PlatformFee)
+        ->first();
+    expect($feeTx)->not->toBeNull();
+    expect($feeTx->status)->toBe(WalletTransactionStatus::Pending);
+    expect((float) $feeTx->amount)->toBe(-200.00);
 
     // Delayed job pushed to queue
     Queue::assertPushed(ReleaseIdolOrderHoldJob::class, function ($job) use ($order) {
@@ -253,20 +261,22 @@ it('refunds customer from held_balance without touching idol available balance w
     $customerWallet = $walletService->getOrCreateWallet($customer);
     expect((float) $customerWallet->balance)->toBe(2000.00);
 
-    // Clawback transaction recorded
+    // No phantom clawback transaction recorded because payout was never released to available balance
     $clawbackTx = WalletTransaction::where('type', WalletTransactionType::OrderClawback)
         ->where('reference_id', $order->id)
         ->first();
+    expect($clawbackTx)->toBeNull();
 
-    expect($clawbackTx)->not->toBeNull();
-    expect((float) $clawbackTx->amount)->toBe(-800.00);
-    expect($clawbackTx->metadata['from_held'])->toBeTrue();
-
-    // Pending payout cancelled
+    // Pending payout and fee cancelled
     $payoutTx = WalletTransaction::where('type', WalletTransactionType::OrderPayout)
         ->where('reference_id', $order->id)
         ->first();
     expect($payoutTx->status)->toBe(WalletTransactionStatus::Cancelled);
+
+    $feeTx = WalletTransaction::where('type', WalletTransactionType::PlatformFee)
+        ->where('reference_id', $order->id)
+        ->first();
+    expect($feeTx->status)->toBe(WalletTransactionStatus::Cancelled);
 });
 
 it('releases payout immediately when admin resolves dispute in idol favor', function () {
@@ -392,6 +402,97 @@ it('supports filtering holds in wallet transactions API', function () {
     $responseIdol->assertOk();
     $txsIdol = $responseIdol->json('transactions');
     expect(count($txsIdol))->toBeGreaterThanOrEqual(1);
-    expect($txsIdol[0]['type'])->toBe('order_payout');
-    expect($txsIdol[0]['status'])->toBe('pending');
+    $payoutItem = collect($txsIdol)->firstWhere('type', 'order_payout');
+    expect($payoutItem)->not->toBeNull();
+    expect($payoutItem['status'])->toBe('pending');
 });
+
+it('handles re-opened order refunding correctly without trapping funds (Paid -> Cancelled -> Paid -> Cancelled)', function () {
+    $data = createTestOrderWithWallets(1000.00, 2000.00);
+    $order = $data['order'];
+    $customer = $data['customer'];
+    $admin = \App\Models\Admin::create(['name' => 'Admin2', 'email' => 'admin_test3@test.com', 'password' => 'secret']);
+
+    $orderService = app(OrderService::class);
+    $walletService = app(WalletService::class);
+
+    // 1. First payment -> customer held = 1000, balance = 1000
+    $orderService->pay($order, $customer);
+    $customerWallet = $walletService->getOrCreateWallet($customer);
+    expect((float) $customerWallet->balance)->toBe(1000.00);
+    expect((float) $customerWallet->held_balance)->toBe(1000.00);
+
+    // 2. Admin cancels order -> refundHold releases the hold
+    $orderService->adminTransition($order, OrderStatus::Cancelled, $admin->id, 'Первая отмена');
+    $customerWallet->refresh();
+    expect((float) $customerWallet->balance)->toBe(2000.00);
+    expect((float) $customerWallet->held_balance)->toBe(0.00);
+
+    // 3. Admin re-opens to Paid -> creates a second hold
+    $orderService->adminTransition($order, OrderStatus::Paid, $admin->id, 'Переоткрытие заказа');
+    $customerWallet->refresh();
+    expect((float) $customerWallet->balance)->toBe(1000.00);
+    expect((float) $customerWallet->held_balance)->toBe(1000.00);
+
+    // 4. Admin cancels again -> second refundHold must refund the second hold, NOT no-op!
+    $orderService->adminTransition($order, OrderStatus::Cancelled, $admin->id, 'Вторая отмена');
+    $customerWallet->refresh();
+    expect((float) $customerWallet->balance)->toBe(2000.00);
+    expect((float) $customerWallet->held_balance)->toBe(0.00);
+});
+
+it('strictly maintains ledger invariant sum(completed transactions) == balance for idol and customer', function () {
+    $customer = User::factory()->create();
+    $idol = User::factory()->create(['is_idol' => true]);
+
+    $walletService = app(WalletService::class);
+    $orderService = app(OrderService::class);
+
+    // Deposit with fee
+    $walletService->deposit($customer, 5000.00, true);
+
+    $category = ServiceCategory::create(['name' => 'Услуга']);
+    $timeUnit = ServiceTimeUnit::create(['name' => 'Час']);
+    $service = Service::create([
+        'user_id' => $idol->id,
+        'category_id' => $category->id,
+        'time_unit_id' => $timeUnit->id,
+        'name' => 'Сервис',
+        'price' => 2000.00,
+        'is_active' => true,
+    ]);
+
+    $order = Order::factory()->create([
+        'customer_id' => $customer->id,
+        'idol_id' => $idol->id,
+        'status' => OrderStatus::Accepted,
+    ]);
+    OrderItem::create([
+        'order_id' => $order->id,
+        'service_id' => $service->id,
+        'price' => 2000.00,
+        'quantity' => 1,
+    ]);
+
+    // Pay
+    $orderService->pay($order, $customer);
+    // Complete
+    $orderService->confirmCompletion($order, $customer);
+    // Release idol payout
+    $walletService->releaseIdolPayout($order);
+
+    $customerWallet = $customer->wallet->fresh();
+    $idolWallet = $idol->wallet->fresh();
+
+    // Verify ledger invariants: sum of completed transaction amounts must equal wallet balance exactly
+    $customerTxSum = (float) WalletTransaction::where('wallet_id', $customerWallet->id)
+        ->where('status', WalletTransactionStatus::Completed)
+        ->sum('amount');
+    $idolTxSum = (float) WalletTransaction::where('wallet_id', $idolWallet->id)
+        ->where('status', WalletTransactionStatus::Completed)
+        ->sum('amount');
+
+    expect(abs($customerTxSum - (float) $customerWallet->balance))->toBeLessThan(0.001);
+    expect(abs($idolTxSum - (float) $idolWallet->balance))->toBeLessThan(0.001);
+});
+

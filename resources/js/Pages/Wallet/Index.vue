@@ -114,7 +114,7 @@ onMounted(() => {
     const userId = page.props.auth?.user?.id;
     if (window.Echo && userId) {
         window.Echo.private(`App.Models.User.${userId}`)
-            .listen('.wallet.balance-updated', (data) => {
+            .listen('.wallet.updated', (data) => {
                 onWalletUpdated({
                     detail: {
                         balance: data.balance,

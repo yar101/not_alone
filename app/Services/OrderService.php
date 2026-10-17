@@ -199,7 +199,8 @@ class OrderService
                 if (config('services.payments.mock_purchases', true)) {
                     $wallet = $this->walletService->getOrCreateWallet($actor);
                     if ($wallet->balance < $totalAmount) {
-                        $this->walletService->deposit($actor, $totalAmount, 'Тестовое пополнение для оплаты заказа');
+                        $needed = (float) bcsub((string) $totalAmount, (string) $wallet->balance, 2);
+                        $this->walletService->deposit($actor, $needed, 'Тестовое пополнение для оплаты заказа', null, [], false);
                     }
                 }
                 $this->walletService->hold($actor, $totalAmount, $lockedOrder, "Оплата заказа #{$lockedOrder->id}");
@@ -455,7 +456,8 @@ class OrderService
                                 if (config('services.payments.mock_purchases', true)) {
                                     $wallet = $this->walletService->getOrCreateWallet($lockedOrder->customer);
                                     if ($wallet->balance < $totalAmount) {
-                                        $this->walletService->deposit($lockedOrder->customer, $totalAmount, 'Тестовое пополнение для оплаты заказа');
+                                        $needed = (float) bcsub((string) $totalAmount, (string) $wallet->balance, 2);
+                                        $this->walletService->deposit($lockedOrder->customer, $needed, 'Тестовое пополнение для оплаты заказа', null, [], false);
                                     }
                                 }
                                 $this->walletService->hold($lockedOrder->customer, $totalAmount, $lockedOrder, "Оплата заказа #{$lockedOrder->id}");

@@ -137,9 +137,10 @@ it('releases escrow hold to idol with platform fee deduction on order completion
     $result = $service->releaseHold($order, 10.0);
 
     expect($result['payout'])->toBeInstanceOf(WalletTransaction::class);
-    expect((float) $result['payout']->amount)->toBe(900.00);
+    expect((float) $result['payout']->amount)->toBe(1000.00);
     expect((float) $result['fee']->amount)->toBe(-100.00);
-    expect((float) $result['payout']->held_balance_after)->toBe(900.00);
+    expect((float) $result['payout']->held_balance_after)->toBe(1000.00);
+    expect((float) $result['fee']->held_balance_after)->toBe(900.00);
 
     $customerWallet = $customer->wallet->fresh();
     $idolWallet = $idol->wallet->fresh();
