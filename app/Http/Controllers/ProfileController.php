@@ -68,6 +68,7 @@ class ProfileController extends Controller
 
         Auth::logout();
 
+        $user->wallet?->update(['is_active' => false]);
         $user->anonymize();
         $user->delete();
 

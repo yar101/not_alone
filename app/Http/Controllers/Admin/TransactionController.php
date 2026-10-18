@@ -206,6 +206,14 @@ class TransactionController extends Controller
             'description.required' => 'Укажите причину или описание операции для аудита.',
         ]);
 
+        if ($validated['direction'] === 'debit' && $validated['type'] === 'deposit') {
+            return back()->withErrors(['type' => 'Списание не может иметь тип «Пополнение счёта». Используйте «Корректировка администратора» или «Вывод средств».']);
+        }
+
+        if ($validated['direction'] === 'credit' && $validated['type'] === 'withdrawal') {
+            return back()->withErrors(['type' => 'Начисление не может иметь тип «Вывод средств». Используйте «Корректировка администратора» или «Пополнение счёта».']);
+        }
+
         $user = User::findOrFail($validated['user_id']);
 
         try {

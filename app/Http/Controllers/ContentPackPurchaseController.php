@@ -31,13 +31,25 @@ class ContentPackPurchaseController extends Controller
             ->where('status', 'published')
             ->whereHas('user', fn ($q) => $q->where('is_banned', false))
             ->with(['user.wallet'])
-            ->get()
-            ->sortBy(fn ($pack) => $pack->user?->wallet?->id ?? $pack->user_id);
+            ->get();
+
+        if ($packs->count() !== count($packIds)) {
+            return response()->json(['error' => 'Один или несколько контент-паков недоступны для покупки.'], 422);
+        }
+
+        foreach ($packs as $pack) {
+            if ($pack->user) {
+                $wallet = $this->walletService->getOrCreateWallet($pack->user);
+                $pack->user->setRelation('wallet', $wallet);
+            }
+        }
+
+        $sortedPacks = $packs->sortBy(fn ($pack) => $pack->user?->wallet?->id ?? $pack->user_id);
 
         try {
-            $created = DB::transaction(function () use ($packs, $user) {
+            $created = DB::transaction(function () use ($sortedPacks, $user) {
                 $createdIds = [];
-                foreach ($packs as $pack) {
+                foreach ($sortedPacks as $pack) {
                     if ($pack->user_id === $user->id) {
                         continue;
                     }

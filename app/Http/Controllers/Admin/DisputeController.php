@@ -9,6 +9,7 @@ use App\Services\AdminLogService;
 use App\Services\OrderService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -61,32 +62,44 @@ class DisputeController extends Controller
         }
 
         $adminId = auth('admin')->id();
-        $order = $dispute->order;
 
-        $dispute->update([
-            'status' => $request->decision,
-            'admin_note' => $request->admin_note,
-            'resolved_at' => now(),
-        ]);
+        try {
+            DB::transaction(function () use ($request, $dispute, $adminId) {
+                $lockedDispute = OrderDispute::where('id', $dispute->id)->lockForUpdate()->first();
+                if (! $lockedDispute || $lockedDispute->status !== 'open') {
+                    throw new \DomainException('Спор уже рассмотрен.');
+                }
 
-        // Apply order status change matching the decision
-        $targetStatus = $request->decision === 'approved'
-            ? OrderStatus::Refunded
-            : OrderStatus::Completed;
+                $order = $lockedDispute->order;
 
-        $note = $request->decision === 'approved'
-            ? 'Спор удовлетворён: '.($request->admin_note ?? '')
-            : 'Спор отклонён: '.($request->admin_note ?? '');
+                $lockedDispute->update([
+                    'status' => $request->decision,
+                    'admin_note' => $request->admin_note,
+                    'resolved_at' => now(),
+                ]);
 
-        $this->orderService->adminTransition($order, $targetStatus, $adminId, trim($note));
+                // Apply order status change matching the decision
+                $targetStatus = $request->decision === 'approved'
+                    ? OrderStatus::Refunded
+                    : OrderStatus::Completed;
 
-        AdminLogService::log(
-            $adminId,
-            'resolve_dispute',
-            'order_dispute',
-            $dispute->id,
-            ['decision' => $request->decision, 'order_id' => $order->id, 'note' => $request->admin_note]
-        );
+                $note = $request->decision === 'approved'
+                    ? 'Спор удовлетворён: '.($request->admin_note ?? '')
+                    : 'Спор отклонён: '.($request->admin_note ?? '');
+
+                $this->orderService->adminTransition($order, $targetStatus, $adminId, trim($note));
+
+                AdminLogService::log(
+                    $adminId,
+                    'resolve_dispute',
+                    'order_dispute',
+                    $lockedDispute->id,
+                    ['decision' => $request->decision, 'order_id' => $order->id, 'note' => $request->admin_note]
+                );
+            });
+        } catch (\DomainException|\InvalidArgumentException $e) {
+            return back()->withErrors(['dispute' => $e->getMessage()]);
+        }
 
         return back();
     }

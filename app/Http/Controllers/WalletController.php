@@ -171,9 +171,18 @@ class WalletController extends Controller
 
         $data = $request->validate([
             'amount' => ['required', 'numeric', 'min:10', 'max:100000', 'regex:/^\d+(\.\d{1,2})?$/'],
+            'idempotency_key' => ['nullable', 'string', 'max:64'],
         ]);
 
-        $idempotencyKey = $request->header('X-Idempotency-Key') ?? $request->input('idempotency_key');
+        $rawKey = $request->header('X-Idempotency-Key') ?? $request->input('idempotency_key');
+        if ($rawKey && strlen($rawKey) > 64) {
+            return response()->json([
+                'message' => 'The given data was invalid.',
+                'errors' => ['idempotency_key' => ['Длина ключа идемпотентности не должна превышать 64 символа.']],
+                'error' => 'Длина ключа идемпотентности не должна превышать 64 символа.',
+            ], 422);
+        }
+        $idempotencyKey = $rawKey;
 
         try {
             $tx = $this->walletService->deposit(
@@ -205,9 +214,18 @@ class WalletController extends Controller
 
         $data = $request->validate([
             'amount' => ['required', 'numeric', 'min:100', 'max:1000000', 'regex:/^\d+(\.\d{1,2})?$/'],
+            'idempotency_key' => ['nullable', 'string', 'max:64'],
         ]);
 
-        $idempotencyKey = $request->header('X-Idempotency-Key') ?? $request->input('idempotency_key');
+        $rawKey = $request->header('X-Idempotency-Key') ?? $request->input('idempotency_key');
+        if ($rawKey && strlen($rawKey) > 64) {
+            return response()->json([
+                'message' => 'The given data was invalid.',
+                'errors' => ['idempotency_key' => ['Длина ключа идемпотентности не должна превышать 64 символа.']],
+                'error' => 'Длина ключа идемпотентности не должна превышать 64 символа.',
+            ], 422);
+        }
+        $idempotencyKey = $rawKey;
 
         try {
             $tx = $this->walletService->withdraw(

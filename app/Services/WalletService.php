@@ -59,56 +59,73 @@ class WalletService
             throw new \DomainException('Операция недоступна для заблокированного аккаунта.');
         }
 
-        return DB::transaction(function () use ($user, $amount, $description, $idempotencyKey, $metadata, $applyFee) {
+        if ($idempotencyKey) {
+            $existing = WalletTransaction::where('idempotency_key', $idempotencyKey)->first();
+            if ($existing) {
+                return $existing;
+            }
+        }
+
+        try {
+            return DB::transaction(function () use ($user, $amount, $description, $idempotencyKey, $metadata, $applyFee) {
+                if ($idempotencyKey) {
+                    $existing = WalletTransaction::where('idempotency_key', $idempotencyKey)->first();
+                    if ($existing) {
+                        return $existing;
+                    }
+                }
+
+                $wallet = $this->getOrCreateWallet($user);
+                $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
+
+                if (! $lockedWallet->is_active) {
+                    throw new \DomainException('Кошелёк деактивирован.');
+                }
+
+                $feePercent = $applyFee
+                    ? (float) PlatformSetting::get('deposit_fee_percent', config('services.payments.deposit_fee_percent', 4.0))
+                    : 0.0;
+                $feeAmount = $feePercent > 0 ? (float) bcdiv(bcmul((string) $amount, (string) $feePercent, 4), '100', 2) : 0.0;
+                $netAmount = (float) bcsub((string) $amount, (string) $feeAmount, 2);
+
+                if ($feeAmount > 0) {
+                    $metadata = array_merge($metadata, [
+                        'gross_amount' => $amount,
+                        'fee_percent' => $feePercent,
+                        'fee_amount' => $feeAmount,
+                        'net_amount' => $netAmount,
+                    ]);
+                }
+
+                $balanceBefore = $lockedWallet->balance;
+                $balanceAfter = (float) bcadd((string) $balanceBefore, (string) $netAmount, 2);
+
+                $lockedWallet->update(['balance' => $balanceAfter]);
+
+                return WalletTransaction::create([
+                    'wallet_id' => $lockedWallet->id,
+                    'user_id' => $user->id,
+                    'type' => WalletTransactionType::Deposit,
+                    'amount' => $netAmount,
+                    'balance_before' => $balanceBefore,
+                    'balance_after' => $balanceAfter,
+                    'held_balance_before' => $lockedWallet->held_balance,
+                    'held_balance_after' => $lockedWallet->held_balance,
+                    'status' => WalletTransactionStatus::Completed,
+                    'idempotency_key' => $idempotencyKey,
+                    'description' => $description ?? 'Пополнение',
+                    'metadata' => $metadata,
+                ]);
+            });
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
             if ($idempotencyKey) {
                 $existing = WalletTransaction::where('idempotency_key', $idempotencyKey)->first();
                 if ($existing) {
                     return $existing;
                 }
             }
-
-            $wallet = $this->getOrCreateWallet($user);
-            $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
-
-            if (! $lockedWallet->is_active) {
-                throw new \DomainException('Кошелёк деактивирован.');
-            }
-
-            $feePercent = $applyFee
-                ? (float) PlatformSetting::get('deposit_fee_percent', config('services.payments.deposit_fee_percent', 4.0))
-                : 0.0;
-            $feeAmount = $feePercent > 0 ? (float) bcdiv(bcmul((string) $amount, (string) $feePercent, 4), '100', 2) : 0.0;
-            $netAmount = (float) bcsub((string) $amount, (string) $feeAmount, 2);
-
-            if ($feeAmount > 0) {
-                $metadata = array_merge($metadata, [
-                    'gross_amount' => $amount,
-                    'fee_percent' => $feePercent,
-                    'fee_amount' => $feeAmount,
-                    'net_amount' => $netAmount,
-                ]);
-            }
-
-            $balanceBefore = $lockedWallet->balance;
-            $balanceAfter = (float) bcadd((string) $balanceBefore, (string) $netAmount, 2);
-
-            $lockedWallet->update(['balance' => $balanceAfter]);
-
-            return WalletTransaction::create([
-                'wallet_id' => $lockedWallet->id,
-                'user_id' => $user->id,
-                'type' => WalletTransactionType::Deposit,
-                'amount' => $netAmount,
-                'balance_before' => $balanceBefore,
-                'balance_after' => $balanceAfter,
-                'held_balance_before' => $lockedWallet->held_balance,
-                'held_balance_after' => $lockedWallet->held_balance,
-                'status' => WalletTransactionStatus::Completed,
-                'idempotency_key' => $idempotencyKey,
-                'description' => $description ?? 'Пополнение',
-                'metadata' => $metadata,
-            ]);
-        });
+            throw $e;
+        }
     }
 
     /**
@@ -157,71 +174,85 @@ class WalletService
             return null;
         }
 
-        return DB::transaction(function () use ($user, $amount, $reference, $description, $idempotencyKey, $metadata) {
-            if ($reference instanceof Order) {
-                if ($this->hasActiveHold($reference)) {
-                    return WalletTransaction::where('reference_type', Order::class)
+        if (method_exists($user, 'isActiveBanned') && $user->isActiveBanned()) {
+            throw new \DomainException('Операция недоступна для заблокированного аккаунта.');
+        }
+
+        try {
+            return DB::transaction(function () use ($user, $amount, $reference, $description, $idempotencyKey, $metadata) {
+                if ($reference instanceof Order) {
+                    if ($this->hasActiveHold($reference)) {
+                        return WalletTransaction::where('reference_type', Order::class)
+                            ->where('reference_id', $reference->getKey())
+                            ->where('type', WalletTransactionType::OrderHold)
+                            ->where('status', WalletTransactionStatus::Completed)
+                            ->latest('id')
+                            ->first();
+                    }
+                    $existingCount = WalletTransaction::where('reference_type', Order::class)
                         ->where('reference_id', $reference->getKey())
                         ->where('type', WalletTransactionType::OrderHold)
-                        ->where('status', WalletTransactionStatus::Completed)
-                        ->latest('id')
-                        ->first();
+                        ->count();
+                    $idempotencyKey = $idempotencyKey
+                        ? ($existingCount > 0 ? "{$idempotencyKey}_{$existingCount}" : $idempotencyKey)
+                        : "order_hold_{$reference->getKey()}" . ($existingCount > 0 ? "_{$existingCount}" : '');
+                } elseif ($idempotencyKey) {
+                    $existing = WalletTransaction::where('idempotency_key', $idempotencyKey)->first();
+                    if ($existing) {
+                        return $existing;
+                    }
                 }
-                $existingCount = WalletTransaction::where('reference_type', Order::class)
-                    ->where('reference_id', $reference->getKey())
-                    ->where('type', WalletTransactionType::OrderHold)
-                    ->count();
-                $idempotencyKey = $idempotencyKey
-                    ? ($existingCount > 0 ? "{$idempotencyKey}_{$existingCount}" : $idempotencyKey)
-                    : "order_hold_{$reference->getKey()}" . ($existingCount > 0 ? "_{$existingCount}" : '');
-            } elseif ($idempotencyKey) {
+
+                $wallet = $this->getOrCreateWallet($user);
+                $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
+
+                if (! $lockedWallet->is_active) {
+                    throw new \DomainException('Кошелёк деактивирован.');
+                }
+
+                if (! $lockedWallet->hasSufficientBalance($amount)) {
+                    throw new InsufficientFundsException(
+                        "Недостаточно средств. Требуется {$amount} руб., доступно {$lockedWallet->balance} руб."
+                    );
+                }
+
+                $balanceBefore = $lockedWallet->balance;
+                $balanceAfter = (float) bcsub((string) $balanceBefore, (string) $amount, 2);
+
+                $heldBefore = $lockedWallet->held_balance;
+                $heldAfter = (float) bcadd((string) $heldBefore, (string) $amount, 2);
+
+                $lockedWallet->update([
+                    'balance' => $balanceAfter,
+                    'held_balance' => $heldAfter,
+                ]);
+
+                return WalletTransaction::create([
+                    'wallet_id' => $lockedWallet->id,
+                    'user_id' => $user->id,
+                    'type' => WalletTransactionType::OrderHold,
+                    'amount' => -$amount,
+                    'balance_before' => $balanceBefore,
+                    'balance_after' => $balanceAfter,
+                    'held_balance_before' => $heldBefore,
+                    'held_balance_after' => $heldAfter,
+                    'status' => WalletTransactionStatus::Completed,
+                    'reference_type' => get_class($reference),
+                    'reference_id' => $reference->getKey(),
+                    'idempotency_key' => $idempotencyKey,
+                    'description' => $description ?? "Холд средств по заказу #{$reference->getKey()}",
+                    'metadata' => $metadata,
+                ]);
+            });
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            if ($idempotencyKey) {
                 $existing = WalletTransaction::where('idempotency_key', $idempotencyKey)->first();
                 if ($existing) {
                     return $existing;
                 }
             }
-
-            $wallet = $this->getOrCreateWallet($user);
-            $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
-
-            if (! $lockedWallet->is_active) {
-                throw new \DomainException('Кошелёк деактивирован.');
-            }
-
-            if (! $lockedWallet->hasSufficientBalance($amount)) {
-                throw new InsufficientFundsException(
-                    "Недостаточно средств. Требуется {$amount} руб., доступно {$lockedWallet->balance} руб."
-                );
-            }
-
-            $balanceBefore = $lockedWallet->balance;
-            $balanceAfter = (float) bcsub((string) $balanceBefore, (string) $amount, 2);
-
-            $heldBefore = $lockedWallet->held_balance;
-            $heldAfter = (float) bcadd((string) $heldBefore, (string) $amount, 2);
-
-            $lockedWallet->update([
-                'balance' => $balanceAfter,
-                'held_balance' => $heldAfter,
-            ]);
-
-            return WalletTransaction::create([
-                'wallet_id' => $lockedWallet->id,
-                'user_id' => $user->id,
-                'type' => WalletTransactionType::OrderHold,
-                'amount' => -$amount,
-                'balance_before' => $balanceBefore,
-                'balance_after' => $balanceAfter,
-                'held_balance_before' => $heldBefore,
-                'held_balance_after' => $heldAfter,
-                'status' => WalletTransactionStatus::Completed,
-                'reference_type' => get_class($reference),
-                'reference_id' => $reference->getKey(),
-                'idempotency_key' => $idempotencyKey,
-                'description' => $description ?? "Холд средств по заказу #{$reference->getKey()}",
-                'metadata' => $metadata,
-            ]);
-        });
+            throw $e;
+        }
     }
 
     /**
@@ -229,10 +260,19 @@ class WalletService
      */
     public function releaseHold(Order $order, ?float $platformFeePercent = null): array
     {
+        if ($platformFeePercent !== null && ($platformFeePercent < 0 || $platformFeePercent > 100)) {
+            throw new \InvalidArgumentException('Процент комиссии платформы должен быть в диапазоне от 0 до 100.');
+        }
+
         return DB::transaction(function () use ($order, $platformFeePercent) {
+            $lockedOrder = Order::where('id', $order->id)->lockForUpdate()->first();
+            if (! $lockedOrder) {
+                return [];
+            }
+
             // Find latest active hold transaction
             $holdTx = WalletTransaction::where('reference_type', Order::class)
-                ->where('reference_id', $order->id)
+                ->where('reference_id', $lockedOrder->id)
                 ->where('type', WalletTransactionType::OrderHold)
                 ->where('status', WalletTransactionStatus::Completed)
                 ->latest('id')
@@ -244,14 +284,21 @@ class WalletService
 
             // Check if already paid out for this hold
             $existingPayout = WalletTransaction::where('reference_type', Order::class)
-                ->where('reference_id', $order->id)
+                ->where('reference_id', $lockedOrder->id)
                 ->where('type', WalletTransactionType::OrderPayout)
                 ->where('id', '>', $holdTx->id)
                 ->where('status', '!=', WalletTransactionStatus::Cancelled)
                 ->first();
 
             if ($existingPayout) {
-                return ['payout' => $existingPayout];
+                $existingFee = WalletTransaction::where('reference_type', Order::class)
+                    ->where('reference_id', $lockedOrder->id)
+                    ->where('type', WalletTransactionType::PlatformFee)
+                    ->where('id', '>', $holdTx->id)
+                    ->where('status', '!=', WalletTransactionStatus::Cancelled)
+                    ->first();
+
+                return ['payout' => $existingPayout, 'fee' => $existingFee];
             }
 
             $heldAmount = abs((float) $holdTx->amount);
@@ -259,8 +306,8 @@ class WalletService
                 return [];
             }
 
-            $customerWallet = $this->getOrCreateWallet($order->customer);
-            $idolWallet = $this->getOrCreateWallet($order->idol);
+            $customerWallet = $this->getOrCreateWallet($lockedOrder->customer);
+            $idolWallet = $this->getOrCreateWallet($lockedOrder->idol);
 
             // Lock wallets in ascending ID order to prevent deadlock
             $firstId = min($customerWallet->id, $idolWallet->id);
@@ -283,7 +330,7 @@ class WalletService
 
             WalletTransaction::create([
                 'wallet_id' => $lockedCustWallet->id,
-                'user_id' => $order->customer_id,
+                'user_id' => $lockedOrder->customer_id,
                 'type' => WalletTransactionType::OrderHoldRelease,
                 'amount' => 0.00,
                 'balance_before' => $lockedCustWallet->balance,
@@ -292,10 +339,11 @@ class WalletService
                 'held_balance_after' => $custHeldAfter,
                 'status' => WalletTransactionStatus::Completed,
                 'reference_type' => Order::class,
-                'reference_id' => $order->id,
-                'description' => "Оплата заказа #{$order->id} (списание из заморозки)",
+                'reference_id' => $lockedOrder->id,
+                'idempotency_key' => "order_hold_release_{$lockedOrder->id}_{$holdTx->id}",
+                'description' => "Оплата заказа #{$lockedOrder->id} (списание из заморозки)",
                 'metadata' => [
-                    'order_id' => $order->id,
+                    'order_id' => $lockedOrder->id,
                     'held_amount' => $heldAmount,
                 ],
             ]);
@@ -317,7 +365,7 @@ class WalletService
 
             $payoutTx = WalletTransaction::create([
                 'wallet_id' => $lockedIdolWallet->id,
-                'user_id' => $order->idol_id,
+                'user_id' => $lockedOrder->idol_id,
                 'type' => WalletTransactionType::OrderPayout,
                 'amount' => $heldAmount,
                 'balance_before' => $idolBalBefore,
@@ -326,10 +374,11 @@ class WalletService
                 'held_balance_after' => (float) bcadd((string) $idolHeldBefore, (string) $heldAmount, 2),
                 'status' => WalletTransactionStatus::Pending,
                 'reference_type' => Order::class,
-                'reference_id' => $order->id,
-                'description' => "Оплата за заказ #{$order->id} (холд)",
+                'reference_id' => $lockedOrder->id,
+                'idempotency_key' => "order_payout_{$lockedOrder->id}_{$holdTx->id}",
+                'description' => "Оплата за заказ #{$lockedOrder->id} (холд)",
                 'metadata' => [
-                    'order_id' => $order->id,
+                    'order_id' => $lockedOrder->id,
                     'gross_amount' => $heldAmount,
                     'fee_percent' => $feePercent,
                     'fee_amount' => $feeAmount,
@@ -343,7 +392,7 @@ class WalletService
             if ($feeAmount > 0) {
                 $feeTx = WalletTransaction::create([
                     'wallet_id' => $lockedIdolWallet->id,
-                    'user_id' => $order->idol_id,
+                    'user_id' => $lockedOrder->idol_id,
                     'type' => WalletTransactionType::PlatformFee,
                     'amount' => -$feeAmount,
                     'balance_before' => $idolBalBefore,
@@ -352,10 +401,11 @@ class WalletService
                     'held_balance_after' => $idolHeldAfter,
                     'status' => WalletTransactionStatus::Pending,
                     'reference_type' => Order::class,
-                    'reference_id' => $order->id,
-                    'description' => "Комиссия по заказу #{$order->id}",
+                    'reference_id' => $lockedOrder->id,
+                    'idempotency_key' => "platform_fee_{$lockedOrder->id}_{$holdTx->id}",
+                    'description' => "Комиссия по заказу #{$lockedOrder->id}",
                     'metadata' => [
-                        'order_id' => $order->id,
+                        'order_id' => $lockedOrder->id,
                         'fee_percent' => $feePercent,
                         'gross_amount' => $heldAmount,
                         'held' => true,
@@ -363,8 +413,8 @@ class WalletService
                 ]);
             }
 
-            DB::afterCommit(function () use ($order, $heldUntil) {
-                ReleaseIdolOrderHoldJob::dispatch($order)->delay($heldUntil);
+            DB::afterCommit(function () use ($lockedOrder, $heldUntil) {
+                ReleaseIdolOrderHoldJob::dispatch($lockedOrder)->delay($heldUntil);
             });
 
             return [
@@ -487,9 +537,14 @@ class WalletService
     public function refundHold(Order $order, ?string $reason = null): ?WalletTransaction
     {
         return DB::transaction(function () use ($order, $reason) {
+            $lockedOrder = Order::where('id', $order->id)->lockForUpdate()->first();
+            if (! $lockedOrder) {
+                return null;
+            }
+
             // Find latest active hold transaction
             $latestHold = WalletTransaction::where('reference_type', Order::class)
-                ->where('reference_id', $order->id)
+                ->where('reference_id', $lockedOrder->id)
                 ->where('type', WalletTransactionType::OrderHold)
                 ->where('status', WalletTransactionStatus::Completed)
                 ->latest('id')
@@ -501,7 +556,7 @@ class WalletService
 
             // Check if already refunded for this hold
             $latestRefund = WalletTransaction::where('reference_type', Order::class)
-                ->where('reference_id', $order->id)
+                ->where('reference_id', $lockedOrder->id)
                 ->where('type', WalletTransactionType::OrderRefund)
                 ->latest('id')
                 ->first();
@@ -517,17 +572,17 @@ class WalletService
 
             // Check if payout occurred for this hold
             $payoutTx = WalletTransaction::where('reference_type', Order::class)
-                ->where('reference_id', $order->id)
+                ->where('reference_id', $lockedOrder->id)
                 ->where('type', WalletTransactionType::OrderPayout)
                 ->where('id', '>', $latestHold->id)
                 ->latest('id')
                 ->first();
 
-            $customerWallet = $this->getOrCreateWallet($order->customer);
+            $customerWallet = $this->getOrCreateWallet($lockedOrder->customer);
 
             if ($payoutTx && $payoutTx->status !== WalletTransactionStatus::Cancelled) {
                 // Completed order refund: claw back funds from idol, return funds to customer
-                $idolWallet = $this->getOrCreateWallet($order->idol);
+                $idolWallet = $this->getOrCreateWallet($lockedOrder->idol);
 
                 // Lock wallets in ascending ID order to avoid deadlocks
                 $firstId = min($customerWallet->id, $idolWallet->id);
@@ -539,12 +594,12 @@ class WalletService
                 $lockedCustomerWallet = $customerWallet->id === $firstLocked->id ? $firstLocked : $secondLocked;
                 $lockedIdolWallet = $idolWallet->id === $firstLocked->id ? $firstLocked : $secondLocked;
 
-                if (! $lockedCustomerWallet->is_active || ! $lockedIdolWallet->is_active) {
-                    throw new \DomainException('Один из кошельков деактивирован.');
+                if (! $lockedCustomerWallet->is_active) {
+                    throw new \DomainException('Кошелёк клиента деактивирован.');
                 }
 
                 $feeTx = WalletTransaction::where('reference_type', Order::class)
-                    ->where('reference_id', $order->id)
+                    ->where('reference_id', $lockedOrder->id)
                     ->where('type', WalletTransactionType::PlatformFee)
                     ->where('id', '>', $latestHold->id)
                     ->first();
@@ -600,7 +655,7 @@ class WalletService
 
                     WalletTransaction::create([
                         'wallet_id' => $lockedIdolWallet->id,
-                        'user_id' => $order->idol_id,
+                        'user_id' => $lockedOrder->idol_id,
                         'type' => WalletTransactionType::OrderClawback,
                         'amount' => -$netIdolDeduction,
                         'balance_before' => $idolBalBefore,
@@ -609,10 +664,11 @@ class WalletService
                         'held_balance_after' => $idolHeldAfter,
                         'status' => WalletTransactionStatus::Completed,
                         'reference_type' => Order::class,
-                        'reference_id' => $order->id,
-                        'description' => "Списание по спору/отмене выполненного заказа #{$order->id}" . ($reason ? ": {$reason}" : ''),
+                        'reference_id' => $lockedOrder->id,
+                        'idempotency_key' => "order_clawback_{$lockedOrder->id}_{$latestHold->id}",
+                        'description' => "Списание по спору/отмене выполненного заказа #{$lockedOrder->id}" . ($reason ? ": {$reason}" : ''),
                         'metadata' => [
-                            'order_id' => $order->id,
+                            'order_id' => $lockedOrder->id,
                             'gross_amount' => $grossAmount,
                             'fee_amount' => $feeAmount,
                             'clawback_amount' => $netIdolDeduction,
@@ -627,11 +683,11 @@ class WalletService
                 $custBalAfter = (float) bcadd((string) $custBalBefore, (string) $heldAmount, 2);
                 $lockedCustomerWallet->update(['balance' => $custBalAfter]);
 
-                $order->forceFill(['payout_released_at' => null])->save();
+                $lockedOrder->forceFill(['payout_released_at' => null])->save();
 
                 return WalletTransaction::create([
                     'wallet_id' => $lockedCustomerWallet->id,
-                    'user_id' => $order->customer_id,
+                    'user_id' => $lockedOrder->customer_id,
                     'type' => WalletTransactionType::OrderRefund,
                     'amount' => $heldAmount,
                     'balance_before' => $custBalBefore,
@@ -640,10 +696,11 @@ class WalletService
                     'held_balance_after' => $lockedCustomerWallet->held_balance,
                     'status' => WalletTransactionStatus::Completed,
                     'reference_type' => Order::class,
-                    'reference_id' => $order->id,
-                    'description' => "Возврат средств по заказу #{$order->id}" . ($reason ? ": {$reason}" : ''),
+                    'reference_id' => $lockedOrder->id,
+                    'idempotency_key' => "order_refund_{$lockedOrder->id}_{$latestHold->id}",
+                    'description' => "Возврат средств по заказу #{$lockedOrder->id}" . ($reason ? ": {$reason}" : ''),
                     'metadata' => [
-                        'order_id' => $order->id,
+                        'order_id' => $lockedOrder->id,
                         'reason' => $reason,
                         'from_completed' => true,
                     ],
@@ -670,7 +727,7 @@ class WalletService
 
             return WalletTransaction::create([
                 'wallet_id' => $lockedWallet->id,
-                'user_id' => $order->customer_id,
+                'user_id' => $lockedOrder->customer_id,
                 'type' => WalletTransactionType::OrderRefund,
                 'amount' => $heldAmount,
                 'balance_before' => $balBefore,
@@ -679,10 +736,11 @@ class WalletService
                 'held_balance_after' => $heldAfter,
                 'status' => WalletTransactionStatus::Completed,
                 'reference_type' => Order::class,
-                'reference_id' => $order->id,
-                'description' => "Возврат средств по заказу #{$order->id}" . ($reason ? ": {$reason}" : ''),
+                'reference_id' => $lockedOrder->id,
+                'idempotency_key' => "order_refund_{$lockedOrder->id}_{$latestHold->id}",
+                'description' => "Возврат средств по заказу #{$lockedOrder->id}" . ($reason ? ": {$reason}" : ''),
                 'metadata' => [
-                    'order_id' => $order->id,
+                    'order_id' => $lockedOrder->id,
                     'reason' => $reason,
                 ],
             ]);
@@ -696,6 +754,22 @@ class WalletService
     {
         if ($buyer->id === $pack->user_id) {
             throw new \DomainException('Нельзя покупать собственный контент-пак');
+        }
+
+        if (method_exists($buyer, 'isActiveBanned') && $buyer->isActiveBanned()) {
+            throw new \DomainException('Операция недоступна для заблокированного аккаунта.');
+        }
+
+        if ($pack->user && method_exists($pack->user, 'isActiveBanned') && $pack->user->isActiveBanned()) {
+            throw new \DomainException('Автор контент-пака заблокирован.');
+        }
+
+        if ($pack->status !== 'published') {
+            throw new \DomainException('Контент-пак недоступен для покупки.');
+        }
+
+        if ($platformFeePercent !== null && ($platformFeePercent < 0 || $platformFeePercent > 100)) {
+            throw new \InvalidArgumentException('Процент комиссии платформы должен быть в диапазоне от 0 до 100.');
         }
 
         $isMock = config('services.payments.mock_purchases', true);
@@ -853,61 +927,78 @@ class WalletService
             throw new \InvalidArgumentException('Сумма вывода должна быть больше нуля.');
         }
 
-        return DB::transaction(function () use ($user, $amount, $idempotencyKey, $description, $metadata) {
+        if ($idempotencyKey) {
+            $existing = WalletTransaction::where('idempotency_key', $idempotencyKey)->first();
+            if ($existing) {
+                return $existing;
+            }
+        }
+
+        try {
+            return DB::transaction(function () use ($user, $amount, $idempotencyKey, $description, $metadata) {
+                if ($idempotencyKey) {
+                    $existing = WalletTransaction::where('idempotency_key', $idempotencyKey)->first();
+                    if ($existing) {
+                        return $existing;
+                    }
+                }
+
+                $wallet = $this->getOrCreateWallet($user);
+                $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
+
+                if (! $lockedWallet->is_active) {
+                    throw new \DomainException('Кошелёк деактивирован.');
+                }
+
+                if (! $lockedWallet->hasSufficientBalance($amount)) {
+                    throw new InsufficientFundsException(
+                        "Недостаточно средств для вывода. Доступно: {$lockedWallet->balance} руб., запрошено: {$amount} руб."
+                    );
+                }
+
+                $feePercent = (float) PlatformSetting::get('withdrawal_fee_percent', config('services.payments.withdrawal_fee_percent', 4.0));
+                $feeAmount = $feePercent > 0 ? (float) bcdiv(bcmul((string) $amount, (string) $feePercent, 4), '100', 2) : 0.0;
+                $payoutAmount = (float) bcsub((string) $amount, (string) $feeAmount, 2);
+
+                $metadata = $metadata ?? [];
+                if ($feeAmount > 0) {
+                    $metadata = array_merge($metadata, [
+                        'requested_amount' => $amount,
+                        'fee_percent' => $feePercent,
+                        'fee_amount' => $feeAmount,
+                        'payout_amount' => $payoutAmount,
+                    ]);
+                }
+
+                $balanceBefore = $lockedWallet->balance;
+                $balanceAfter = (float) bcsub((string) $balanceBefore, (string) $amount, 2);
+
+                $lockedWallet->update(['balance' => $balanceAfter]);
+
+                return WalletTransaction::create([
+                    'wallet_id' => $lockedWallet->id,
+                    'user_id' => $user->id,
+                    'type' => WalletTransactionType::Withdrawal,
+                    'amount' => -$amount,
+                    'balance_before' => $balanceBefore,
+                    'balance_after' => $balanceAfter,
+                    'held_balance_before' => $lockedWallet->held_balance,
+                    'held_balance_after' => $lockedWallet->held_balance,
+                    'status' => WalletTransactionStatus::Completed,
+                    'idempotency_key' => $idempotencyKey,
+                    'description' => $description ?? 'Вывод средств со счёта',
+                    'metadata' => $metadata,
+                ]);
+            });
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
             if ($idempotencyKey) {
                 $existing = WalletTransaction::where('idempotency_key', $idempotencyKey)->first();
                 if ($existing) {
                     return $existing;
                 }
             }
-
-            $wallet = $this->getOrCreateWallet($user);
-            $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
-
-            if (! $lockedWallet->is_active) {
-                throw new \DomainException('Кошелёк деактивирован.');
-            }
-
-            if (! $lockedWallet->hasSufficientBalance($amount)) {
-                throw new InsufficientFundsException(
-                    "Недостаточно средств для вывода. Доступно: {$lockedWallet->balance} руб., запрошено: {$amount} руб."
-                );
-            }
-
-            $feePercent = (float) PlatformSetting::get('withdrawal_fee_percent', config('services.payments.withdrawal_fee_percent', 4.0));
-            $feeAmount = $feePercent > 0 ? (float) bcdiv(bcmul((string) $amount, (string) $feePercent, 4), '100', 2) : 0.0;
-            $payoutAmount = (float) bcsub((string) $amount, (string) $feeAmount, 2);
-
-            $metadata = $metadata ?? [];
-            if ($feeAmount > 0) {
-                $metadata = array_merge($metadata, [
-                    'requested_amount' => $amount,
-                    'fee_percent' => $feePercent,
-                    'fee_amount' => $feeAmount,
-                    'payout_amount' => $payoutAmount,
-                ]);
-            }
-
-            $balanceBefore = $lockedWallet->balance;
-            $balanceAfter = (float) bcsub((string) $balanceBefore, (string) $amount, 2);
-
-            $lockedWallet->update(['balance' => $balanceAfter]);
-
-            return WalletTransaction::create([
-                'wallet_id' => $lockedWallet->id,
-                'user_id' => $user->id,
-                'type' => WalletTransactionType::Withdrawal,
-                'amount' => -$amount,
-                'balance_before' => $balanceBefore,
-                'balance_after' => $balanceAfter,
-                'held_balance_before' => $lockedWallet->held_balance,
-                'held_balance_after' => $lockedWallet->held_balance,
-                'status' => WalletTransactionStatus::Completed,
-                'idempotency_key' => $idempotencyKey,
-                'description' => $description ?? 'Вывод средств со счёта',
-                'metadata' => $metadata,
-            ]);
-        });
+            throw $e;
+        }
     }
 
     /**
@@ -927,6 +1018,14 @@ class WalletService
 
         if (! in_array($direction, ['credit', 'debit'], true)) {
             throw new \InvalidArgumentException('Некорректное направление операции.');
+        }
+
+        if ($direction === 'debit' && $type === 'deposit') {
+            throw new \InvalidArgumentException('Списание не может иметь тип «deposit».');
+        }
+
+        if ($direction === 'credit' && $type === 'withdrawal') {
+            throw new \InvalidArgumentException('Начисление не может иметь тип «withdrawal».');
         }
 
         return DB::transaction(function () use ($user, $amount, $direction, $description, $adminId, $type) {
