@@ -355,6 +355,7 @@ class ConversationController extends Controller
             403
         );
         abort_unless($user->is_idol, 403);
+        abort_if(method_exists($user, 'isActiveBanned') && $user->isActiveBanned(), 403, 'Операция недоступна для заблокированного аккаунта.');
 
         if ($conversation->order_id) {
             $order = $conversation->order;

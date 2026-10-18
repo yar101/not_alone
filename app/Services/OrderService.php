@@ -57,6 +57,10 @@ class OrderService
             throw new \Exception('Некоторые услуги недоступны');
         }
 
+        if (method_exists($customer, 'isActiveBanned') && $customer->isActiveBanned()) {
+            throw new \Exception('Операция недоступна для заблокированного аккаунта.');
+        }
+
         if ($idol->isActiveBanned()) {
             throw new \Exception('Пользователь недоступен');
         }
@@ -152,11 +156,19 @@ class OrderService
 
     public function accept(Order $order, User $actor): void
     {
+        if (method_exists($actor, 'isActiveBanned') && $actor->isActiveBanned()) {
+            throw new \DomainException('Операция недоступна для заблокированного аккаунта.');
+        }
+
         DB::transaction(function () use ($order, $actor) {
             $lockedOrder = Order::lockForUpdate()->findOrFail($order->id);
 
             if ($lockedOrder->status !== OrderStatus::Pending) {
                 throw new \DomainException("Невозможно принять заказ в статусе {$lockedOrder->status->label()}");
+            }
+
+            if ($lockedOrder->customer && method_exists($lockedOrder->customer, 'isActiveBanned') && $lockedOrder->customer->isActiveBanned()) {
+                throw new \DomainException('Пользователь недоступен');
             }
 
             $lockedOrder->logStatusChange(OrderStatus::Pending->value, OrderStatus::Accepted->value, 'user', $actor->id);
@@ -186,11 +198,19 @@ class OrderService
 
     public function pay(Order $order, User $actor): void
     {
+        if (method_exists($actor, 'isActiveBanned') && $actor->isActiveBanned()) {
+            throw new \DomainException('Операция недоступна для заблокированного аккаунта.');
+        }
+
         DB::transaction(function () use ($order, $actor) {
             $lockedOrder = Order::lockForUpdate()->findOrFail($order->id);
 
             if ($lockedOrder->status !== OrderStatus::Accepted) {
                 throw new \DomainException("Невозможно оплатить заказ в статусе {$lockedOrder->status->label()}");
+            }
+
+            if ($lockedOrder->idol && method_exists($lockedOrder->idol, 'isActiveBanned') && $lockedOrder->idol->isActiveBanned()) {
+                throw new \DomainException('Пользователь недоступен');
             }
 
             // Hold funds in escrow if order has a price
@@ -241,6 +261,10 @@ class OrderService
 
             if (! in_array($lockedOrder->status, [OrderStatus::Pending, OrderStatus::Accepted, OrderStatus::Paid])) {
                 throw new \DomainException("Невозможно отменить заказ в статусе {$lockedOrder->status->label()}");
+            }
+
+            if ($actor->id === $lockedOrder->customer_id && $lockedOrder->completion_confirmed_by_idol) {
+                throw new \DomainException('Невозможно отменить заказ после того, как айдол подтвердил его выполнение. Если у вас есть претензии, откройте спор.');
             }
 
             $from = $lockedOrder->status->value;
@@ -442,9 +466,9 @@ class OrderService
             $from = $lockedOrder->status->value;
             $attrs = ['status' => $to];
 
-            if ($from === OrderStatus::Disputed->value) {
+            if ($from === OrderStatus::Disputed->value && $to !== OrderStatus::Disputed) {
                 $lockedOrder->disputes()->where('status', 'open')->update([
-                    'status' => $to === OrderStatus::Refunded ? 'approved' : 'rejected',
+                    'status' => in_array($to, [OrderStatus::Refunded, OrderStatus::Cancelled]) ? 'approved' : 'rejected',
                     'admin_note' => $note,
                     'resolved_at' => now(),
                 ]);

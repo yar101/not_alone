@@ -43,8 +43,15 @@ class OrderPolicy
         $isParticipant = (int) $user->id === (int) $order->customer_id
             || (int) $user->id === (int) $order->idol_id;
 
-        return $isParticipant
-            && in_array($order->status, [OrderStatus::Pending, OrderStatus::Accepted, OrderStatus::Paid]);
+        if (! $isParticipant) {
+            return false;
+        }
+
+        if ((int) $user->id === (int) $order->customer_id && $order->completion_confirmed_by_idol) {
+            return false;
+        }
+
+        return in_array($order->status, [OrderStatus::Pending, OrderStatus::Accepted, OrderStatus::Paid]);
     }
 
     /**

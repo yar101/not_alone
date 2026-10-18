@@ -775,134 +775,145 @@ class WalletService
         $isMock = config('services.payments.mock_purchases', true);
         $price = (float) ($pack->price ?? 0);
 
-        return DB::transaction(function () use ($buyer, $pack, $price, $isMock, $platformFeePercent) {
-            $alreadyPurchased = ContentPackPurchase::where('content_pack_id', $pack->id)
-                ->where('user_id', $buyer->id)
-                ->lockForUpdate()
-                ->exists();
-            if ($alreadyPurchased) {
-                throw new \DomainException('Контент-пак уже приобретён.');
-            }
-
-            if ($price > 0) {
-                $seller = $pack->user;
-                $buyerWallet = $this->getOrCreateWallet($buyer);
-
-                if ($isMock && ! $buyerWallet->hasSufficientBalance($price)) {
-                    $needed = (float) bcsub((string) $price, (string) $buyerWallet->balance, 2);
-                    $this->deposit($buyer, $needed, 'Тестовое пополнение для покупки пака', null, [], false);
-                    $buyerWallet->refresh();
+        try {
+            return DB::transaction(function () use ($buyer, $pack, $price, $isMock, $platformFeePercent) {
+                $alreadyPurchased = ContentPackPurchase::where('content_pack_id', $pack->id)
+                    ->where('user_id', $buyer->id)
+                    ->lockForUpdate()
+                    ->exists();
+                if ($alreadyPurchased) {
+                    throw new \DomainException('Контент-пак уже приобретён.');
                 }
 
-                $sellerWallet = $this->getOrCreateWallet($seller);
+                if ($price > 0) {
+                    $seller = $pack->user;
+                    $buyerWallet = $this->getOrCreateWallet($buyer);
 
-                // Lock wallets in ascending ID order to avoid deadlocks
-                $firstId = min($buyerWallet->id, $sellerWallet->id);
-                $secondId = max($buyerWallet->id, $sellerWallet->id);
+                    if ($isMock && ! $buyerWallet->hasSufficientBalance($price)) {
+                        $needed = (float) bcsub((string) $price, (string) $buyerWallet->balance, 2);
+                        $this->deposit($buyer, $needed, 'Тестовое пополнение для покупки пака', null, [], false);
+                        $buyerWallet->refresh();
+                    }
 
-                $firstLocked = Wallet::where('id', $firstId)->lockForUpdate()->first();
-                $secondLocked = Wallet::where('id', $secondId)->lockForUpdate()->first();
+                    $sellerWallet = $this->getOrCreateWallet($seller);
 
-                $lockedBuyerWallet = $buyerWallet->id === $firstLocked->id ? $firstLocked : $secondLocked;
-                $lockedSellerWallet = $sellerWallet->id === $firstLocked->id ? $firstLocked : $secondLocked;
+                    // Lock wallets in ascending ID order to avoid deadlocks
+                    $firstId = min($buyerWallet->id, $sellerWallet->id);
+                    $secondId = max($buyerWallet->id, $sellerWallet->id);
 
-                if (! $lockedBuyerWallet->is_active || ! $lockedSellerWallet->is_active) {
-                    throw new \DomainException('Один из кошельков деактивирован.');
-                }
+                    $firstLocked = Wallet::where('id', $firstId)->lockForUpdate()->first();
+                    $secondLocked = Wallet::where('id', $secondId)->lockForUpdate()->first();
 
-                if (! $lockedBuyerWallet->hasSufficientBalance($price)) {
-                    throw new InsufficientFundsException(
-                        "Недостаточно средств для покупки пака ({$price} руб.)"
-                    );
-                }
+                    $lockedBuyerWallet = $buyerWallet->id === $firstLocked->id ? $firstLocked : $secondLocked;
+                    $lockedSellerWallet = $sellerWallet->id === $firstLocked->id ? $firstLocked : $secondLocked;
 
-                // 1. Deduct from buyer
-                $buyerBalBefore = $lockedBuyerWallet->balance;
-                $buyerBalAfter = (float) bcsub((string) $buyerBalBefore, (string) $price, 2);
-                $lockedBuyerWallet->update(['balance' => $buyerBalAfter]);
+                    if (! $lockedBuyerWallet->is_active || ! $lockedSellerWallet->is_active) {
+                        throw new \DomainException('Один из кошельков деактивирован.');
+                    }
 
-                $buyerTx = WalletTransaction::create([
-                    'wallet_id' => $lockedBuyerWallet->id,
-                    'user_id' => $buyer->id,
-                    'type' => WalletTransactionType::PackPurchase,
-                    'amount' => -$price,
-                    'balance_before' => $buyerBalBefore,
-                    'balance_after' => $buyerBalAfter,
-                    'held_balance_before' => $lockedBuyerWallet->held_balance,
-                    'held_balance_after' => $lockedBuyerWallet->held_balance,
-                    'status' => WalletTransactionStatus::Completed,
-                    'reference_type' => ContentPack::class,
-                    'reference_id' => $pack->id,
-                    'idempotency_key' => "pack_purchase_{$buyer->id}_{$pack->id}",
-                    'description' => "Покупка контент-пака «{$pack->title}»",
-                    'metadata' => ['pack_id' => $pack->id],
-                ]);
+                    if (! $lockedBuyerWallet->hasSufficientBalance($price)) {
+                        throw new InsufficientFundsException(
+                            "Недостаточно средств для покупки пака ({$price} руб.)"
+                        );
+                    }
 
-                // 2. Credit seller gross, then deduct fee
-                $feePercent = $platformFeePercent ?? (float) PlatformSetting::get('platform_fee_percent', config('services.payments.platform_fee_percent', 10.0));
-                $feeAmount = (float) bcdiv(bcmul((string) $price, (string) $feePercent, 4), '100', 2);
+                    // 1. Deduct from buyer
+                    $buyerBalBefore = $lockedBuyerWallet->balance;
+                    $buyerBalAfter = (float) bcsub((string) $buyerBalBefore, (string) $price, 2);
+                    $lockedBuyerWallet->update(['balance' => $buyerBalAfter]);
 
-                $sellerBalBefore = $lockedSellerWallet->balance;
-                $sellerBalAfterGross = (float) bcadd((string) $sellerBalBefore, (string) $price, 2);
+                    $buyerTx = WalletTransaction::create([
+                        'wallet_id' => $lockedBuyerWallet->id,
+                        'user_id' => $buyer->id,
+                        'type' => WalletTransactionType::PackPurchase,
+                        'amount' => -$price,
+                        'balance_before' => $buyerBalBefore,
+                        'balance_after' => $buyerBalAfter,
+                        'held_balance_before' => $lockedBuyerWallet->held_balance,
+                        'held_balance_after' => $lockedBuyerWallet->held_balance,
+                        'status' => WalletTransactionStatus::Completed,
+                        'reference_type' => ContentPack::class,
+                        'reference_id' => $pack->id,
+                        'idempotency_key' => "pack_purchase_{$buyer->id}_{$pack->id}",
+                        'description' => "Покупка контент-пака «{$pack->title}»",
+                        'metadata' => ['pack_id' => $pack->id],
+                    ]);
 
-                WalletTransaction::create([
-                    'wallet_id' => $lockedSellerWallet->id,
-                    'user_id' => $seller->id,
-                    'type' => WalletTransactionType::PackSale,
-                    'amount' => $price,
-                    'balance_before' => $sellerBalBefore,
-                    'balance_after' => $sellerBalAfterGross,
-                    'held_balance_before' => $lockedSellerWallet->held_balance,
-                    'held_balance_after' => $lockedSellerWallet->held_balance,
-                    'status' => WalletTransactionStatus::Completed,
-                    'reference_type' => ContentPack::class,
-                    'reference_id' => $pack->id,
-                    'idempotency_key' => "pack_sale_{$buyer->id}_{$pack->id}",
-                    'description' => "Продажа контент-пака «{$pack->title}»",
-                    'metadata' => [
-                        'pack_id' => $pack->id,
-                        'buyer_id' => $buyer->id,
-                        'gross_amount' => $price,
-                        'fee_percent' => $feePercent,
-                        'fee_amount' => $feeAmount,
-                    ],
-                ]);
+                    // 2. Credit seller gross, then deduct fee
+                    $feePercent = $platformFeePercent ?? (float) PlatformSetting::get('platform_fee_percent', config('services.payments.platform_fee_percent', 10.0));
+                    $feeAmount = (float) bcdiv(bcmul((string) $price, (string) $feePercent, 4), '100', 2);
 
-                if ($feeAmount > 0) {
-                    $sellerBalAfterFee = (float) bcsub((string) $sellerBalAfterGross, (string) $feeAmount, 2);
-                    $lockedSellerWallet->update(['balance' => $sellerBalAfterFee]);
+                    $sellerBalBefore = $lockedSellerWallet->balance;
+                    $sellerBalAfterGross = (float) bcadd((string) $sellerBalBefore, (string) $price, 2);
 
                     WalletTransaction::create([
                         'wallet_id' => $lockedSellerWallet->id,
                         'user_id' => $seller->id,
-                        'type' => WalletTransactionType::PlatformFee,
-                        'amount' => -$feeAmount,
-                        'balance_before' => $sellerBalAfterGross,
-                        'balance_after' => $sellerBalAfterFee,
+                        'type' => WalletTransactionType::PackSale,
+                        'amount' => $price,
+                        'balance_before' => $sellerBalBefore,
+                        'balance_after' => $sellerBalAfterGross,
                         'held_balance_before' => $lockedSellerWallet->held_balance,
                         'held_balance_after' => $lockedSellerWallet->held_balance,
                         'status' => WalletTransactionStatus::Completed,
                         'reference_type' => ContentPack::class,
                         'reference_id' => $pack->id,
-                        'description' => "Комиссия за контент-пак «{$pack->title}»",
-                        'metadata' => ['pack_id' => $pack->id, 'fee_percent' => $feePercent],
+                        'idempotency_key' => "pack_sale_{$buyer->id}_{$pack->id}",
+                        'description' => "Продажа контент-пака «{$pack->title}»",
+                        'metadata' => [
+                            'pack_id' => $pack->id,
+                            'buyer_id' => $buyer->id,
+                            'gross_amount' => $price,
+                            'fee_percent' => $feePercent,
+                            'fee_amount' => $feeAmount,
+                        ],
                     ]);
-                } else {
-                    $lockedSellerWallet->update(['balance' => $sellerBalAfterGross]);
-                }
-            }
 
-            return ContentPackPurchase::firstOrCreate(
-                [
-                    'content_pack_id' => $pack->id,
-                    'user_id' => $buyer->id,
-                ],
-                [
-                    'price_paid' => $price,
-                    'purchased_at' => now(),
-                ]
-            );
-        });
+                    if ($feeAmount > 0) {
+                        $sellerBalAfterFee = (float) bcsub((string) $sellerBalAfterGross, (string) $feeAmount, 2);
+                        $lockedSellerWallet->update(['balance' => $sellerBalAfterFee]);
+
+                        WalletTransaction::create([
+                            'wallet_id' => $lockedSellerWallet->id,
+                            'user_id' => $seller->id,
+                            'type' => WalletTransactionType::PlatformFee,
+                            'amount' => -$feeAmount,
+                            'balance_before' => $sellerBalAfterGross,
+                            'balance_after' => $sellerBalAfterFee,
+                            'held_balance_before' => $lockedSellerWallet->held_balance,
+                            'held_balance_after' => $lockedSellerWallet->held_balance,
+                            'status' => WalletTransactionStatus::Completed,
+                            'reference_type' => ContentPack::class,
+                            'reference_id' => $pack->id,
+                            'idempotency_key' => "pack_fee_{$buyer->id}_{$pack->id}",
+                            'description' => "Комиссия за контент-пак «{$pack->title}»",
+                            'metadata' => ['pack_id' => $pack->id, 'fee_percent' => $feePercent],
+                        ]);
+                    } else {
+                        $lockedSellerWallet->update(['balance' => $sellerBalAfterGross]);
+                    }
+                }
+
+                return ContentPackPurchase::firstOrCreate(
+                    [
+                        'content_pack_id' => $pack->id,
+                        'user_id' => $buyer->id,
+                    ],
+                    [
+                        'price_paid' => $price,
+                        'purchased_at' => now(),
+                    ]
+                );
+            });
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            $existing = ContentPackPurchase::where('content_pack_id', $pack->id)
+                ->where('user_id', $buyer->id)
+                ->first();
+            if ($existing) {
+                return $existing;
+            }
+            throw new \DomainException('Контент-пак уже приобретён.');
+        }
     }
 
     /**

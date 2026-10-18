@@ -14,6 +14,7 @@ use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\ServiceTimeUnit;
 use App\Models\User;
+use App\Models\WalletTransaction;
 use App\Services\OrderService;
 use App\Services\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -437,5 +438,253 @@ class FinancialSecurityDeepAuditTest extends TestCase
         } catch (\DomainException $e) {
             $this->assertStringContainsString('Пользователь недоступен', $e->getMessage());
         }
+    }
+
+    public function test_customer_cannot_cancel_paid_order_after_idol_confirmed_completion(): void
+    {
+        $category = ServiceCategory::create(['name' => 'Услуга']);
+        $timeUnit = ServiceTimeUnit::create(['name' => 'Час']);
+
+        $idol = User::factory()->create(['is_idol' => true]);
+        $customer = User::factory()->create();
+
+        $service = Service::create([
+            'user_id' => $idol->id,
+            'category_id' => $category->id,
+            'time_unit_id' => $timeUnit->id,
+            'name' => 'Консультация',
+            'price' => 500,
+            'is_active' => true,
+            'status' => 'approved',
+        ]);
+
+        $order = Order::create([
+            'customer_id' => $customer->id,
+            'idol_id' => $idol->id,
+            'status' => OrderStatus::Accepted,
+        ]);
+        OrderItem::create([
+            'order_id' => $order->id,
+            'service_id' => $service->id,
+            'price' => 500,
+            'quantity' => 1,
+        ]);
+
+        $this->orderService->pay($order, $customer);
+        $order->refresh();
+        $this->assertEquals(OrderStatus::Paid, $order->status);
+
+        // Idol confirms completion
+        $this->orderService->confirmCompletion($order, $idol);
+        $order->refresh();
+        $this->assertTrue((bool) $order->completion_confirmed_by_idol);
+        $this->assertEquals(OrderStatus::Paid, $order->status);
+
+        // Customer attempts to cancel via HTTP -> 403 Forbidden by Policy
+        $response = $this->actingAs($customer)->patchJson("/orders/{$order->id}/cancel", [
+            'cancel_reason' => 'Customer trying to bypass',
+        ]);
+        $response->assertStatus(403);
+
+        // Direct service call throws DomainException
+        try {
+            $this->orderService->cancel($order, $customer, 'Direct cancel bypass');
+            $this->fail('Expected DomainException was not thrown');
+        } catch (\DomainException $e) {
+            $this->assertStringContainsString('Невозможно отменить заказ после того, как айдол подтвердил его выполнение', $e->getMessage());
+        }
+
+        // Order remains Paid
+        $order->refresh();
+        $this->assertEquals(OrderStatus::Paid, $order->status);
+    }
+
+    public function test_banned_customer_cannot_create_order(): void
+    {
+        $category = ServiceCategory::create(['name' => 'Категория']);
+        $timeUnit = ServiceTimeUnit::create(['name' => 'Час']);
+
+        $idol = User::factory()->create(['is_idol' => true]);
+        $customer = User::factory()->create(['is_banned' => true, 'banned_at' => now()]);
+
+        $service = Service::create([
+            'user_id' => $idol->id,
+            'category_id' => $category->id,
+            'time_unit_id' => $timeUnit->id,
+            'name' => 'Услуга',
+            'price' => 200,
+            'is_active' => true,
+            'status' => 'approved',
+        ]);
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Операция недоступна для заблокированного аккаунта.');
+        $this->orderService->createOrder($customer, $idol, [['id' => $service->id, 'quantity' => 1]]);
+    }
+
+    public function test_banned_idol_cannot_accept_order(): void
+    {
+        $idol = User::factory()->create(['is_idol' => true, 'is_banned' => true, 'banned_at' => now()]);
+        $customer = User::factory()->create();
+
+        $order = Order::create([
+            'customer_id' => $customer->id,
+            'idol_id' => $idol->id,
+            'status' => OrderStatus::Pending,
+        ]);
+
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessage('Операция недоступна для заблокированного аккаунта.');
+        $this->orderService->accept($order, $idol);
+    }
+
+    public function test_banned_user_cannot_pay_for_order(): void
+    {
+        $idol = User::factory()->create(['is_idol' => true]);
+        $customer = User::factory()->create();
+
+        $order = Order::create([
+            'customer_id' => $customer->id,
+            'idol_id' => $idol->id,
+            'status' => OrderStatus::Accepted,
+        ]);
+
+        // Customer banned
+        $customer->update(['is_banned' => true, 'banned_at' => now()]);
+        try {
+            $this->orderService->pay($order, $customer);
+            $this->fail('Expected DomainException for banned customer was not thrown');
+        } catch (\DomainException $e) {
+            $this->assertStringContainsString('Операция недоступна для заблокированного аккаунта', $e->getMessage());
+        }
+
+        // Unban customer, ban idol
+        $customer->update(['is_banned' => false, 'banned_at' => null]);
+        $idol->update(['is_banned' => true, 'banned_at' => now()]);
+        try {
+            $this->orderService->pay($order, $customer);
+            $this->fail('Expected DomainException for banned idol was not thrown');
+        } catch (\DomainException $e) {
+            $this->assertStringContainsString('Пользователь недоступен', $e->getMessage());
+        }
+    }
+
+    public function test_banned_idol_cannot_offer_services_in_conversation(): void
+    {
+        $category = ServiceCategory::create(['name' => 'Категория']);
+        $timeUnit = ServiceTimeUnit::create(['name' => 'Час']);
+
+        $idol = User::factory()->create(['is_idol' => true, 'is_banned' => true, 'banned_at' => now()]);
+        $customer = User::factory()->create();
+
+        $service = Service::create([
+            'user_id' => $idol->id,
+            'category_id' => $category->id,
+            'time_unit_id' => $timeUnit->id,
+            'name' => 'Чат',
+            'price' => 100,
+            'is_active' => true,
+            'status' => 'approved',
+        ]);
+
+        $conversation = \App\Models\Conversation::create();
+        $conversation->participants()->createMany([
+            ['user_id' => $idol->id],
+            ['user_id' => $customer->id],
+        ]);
+
+        $response = $this->actingAs($idol)->postJson("/conversations/{$conversation->id}/offer-services", [
+            'services' => [$service->id],
+        ]);
+
+        $response->assertStatus(403);
+    }
+
+    public function test_platform_fee_transaction_in_pack_purchase_has_idempotency_key(): void
+    {
+        $seller = User::factory()->create(['is_idol' => true]);
+        $buyer = User::factory()->create();
+        $this->walletService->deposit($buyer, 1000, 'Init balance', null, [], false);
+
+        $pack = ContentPack::create([
+            'user_id' => $seller->id,
+            'title' => 'Fee Test Pack',
+            'description' => 'Test Desc',
+            'price' => 100,
+            'status' => 'published',
+        ]);
+
+        $this->walletService->purchaseContentPack($buyer, $pack, 10.0);
+
+        $feeTx = WalletTransaction::where('wallet_id', $seller->wallet->id)
+            ->where('type', WalletTransactionType::PlatformFee)
+            ->where('reference_type', ContentPack::class)
+            ->where('reference_id', $pack->id)
+            ->first();
+
+        $this->assertNotNull($feeTx);
+        $this->assertEquals("pack_fee_{$buyer->id}_{$pack->id}", $feeTx->idempotency_key);
+    }
+
+    public function test_admin_cancelling_disputed_order_marks_dispute_as_approved(): void
+    {
+        $admin = Admin::create([
+            'name' => 'Admin Test',
+            'email' => 'admin_disp_test@example.com',
+            'password' => bcrypt('password'),
+        ]);
+
+        $customer = User::factory()->create();
+        $idol = User::factory()->create(['is_idol' => true]);
+        $this->walletService->deposit($customer, 1000, 'Init balance', null, [], false);
+
+        $order = Order::create([
+            'customer_id' => $customer->id,
+            'idol_id' => $idol->id,
+            'status' => OrderStatus::Accepted,
+        ]);
+        $category = ServiceCategory::create(['name' => 'Категория']);
+        $timeUnit = ServiceTimeUnit::create(['name' => 'Час']);
+        $service = Service::create([
+            'user_id' => $idol->id,
+            'category_id' => $category->id,
+            'time_unit_id' => $timeUnit->id,
+            'name' => 'Услуга',
+            'price' => 300,
+            'is_active' => true,
+            'status' => 'approved',
+        ]);
+        OrderItem::create([
+            'order_id' => $order->id,
+            'service_id' => $service->id,
+            'price' => 300,
+            'quantity' => 1,
+        ]);
+
+        $this->walletService->hold($customer, 300, $order, 'Order hold');
+
+        $dispute = OrderDispute::create([
+            'order_id' => $order->id,
+            'customer_id' => $customer->id,
+            'status' => 'open',
+            'reason' => 'Service not delivered',
+            'details' => 'Idol never showed up',
+        ]);
+
+        $order->update(['status' => OrderStatus::Disputed]);
+
+        // Admin cancels the order
+        $this->orderService->adminTransition($order, OrderStatus::Cancelled, $admin->id, 'Cancelled and refunded');
+
+        $dispute->refresh();
+        $this->assertEquals('approved', $dispute->status);
+
+        $order->refresh();
+        $this->assertEquals(OrderStatus::Cancelled, $order->status);
+
+        // Customer was refunded
+        $customerWallet = $this->walletService->getOrCreateWallet($customer);
+        $this->assertEquals(1000, $customerWallet->balance);
+        $this->assertEquals(0, $customerWallet->held_balance);
     }
 }
