@@ -5,6 +5,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppSelect from '@/Components/AppSelect.vue';
 import axios from 'axios';
+import { extractErrorMessage } from '@/Utils/error';
 import { ElNotification, ElTooltip, ElIcon } from 'element-plus';
 import {
     Wallet,
@@ -371,7 +372,7 @@ async function handleDeposit() {
         showWalletToast({
             type: 'danger',
             title: 'Ошибка пополнения',
-            message: e.response?.data?.error || 'Не удалось выполнить пополнение',
+            message: extractErrorMessage(e, 'Не удалось выполнить пополнение'),
         });
     } finally {
         isDepositing.value = false;
@@ -424,7 +425,7 @@ async function handleWithdraw() {
         showWalletToast({
             type: 'danger',
             title: 'Ошибка вывода',
-            message: e.response?.data?.error || 'Не удалось выполнить вывод средств',
+            message: extractErrorMessage(e, 'Не удалось выполнить вывод средств'),
         });
     } finally {
         isWithdrawing.value = false;
@@ -725,6 +726,15 @@ function formatFullDate(iso) {
                         </el-tooltip>
                     </div>
 
+                    <!-- Deactivated Wallet Warning Banner -->
+                    <div v-if="currentWallet && currentWallet.is_active === false" class="wallet-deactivated-banner">
+                        <el-icon class="wallet-deactivated-banner__icon"><CircleCloseFilled /></el-icon>
+                        <div class="wallet-deactivated-banner__content">
+                            <span class="wallet-deactivated-banner__title">Кошелёк деактивирован</span>
+                            <span class="wallet-deactivated-banner__text">Финансовые операции временно недоступны. Обратитесь в службу поддержки для уточнения статуса.</span>
+                        </div>
+                    </div>
+
                     <!-- Financial Actions Panel (Deposit / Withdraw) -->
                     <div class="wallet-action-box">
                         <!-- Idol Role Selector (Deposit / Withdraw) -->
@@ -780,7 +790,7 @@ function formatFullDate(iso) {
                                 <button
                                     type="button"
                                     class="wallet-primary-btn wallet-primary-btn--deposit"
-                                    :disabled="isDepositing"
+                                    :disabled="isDepositing || currentWallet.is_active === false"
                                     @click="handleDeposit"
                                 >
                                     <el-icon v-if="isDepositing" class="is-loading"><Loading /></el-icon>
@@ -820,7 +830,7 @@ function formatFullDate(iso) {
                                 <button
                                     type="button"
                                     class="wallet-primary-btn wallet-primary-btn--withdraw"
-                                    :disabled="isWithdrawing || !withdrawAmount || withdrawAmount > currentWallet.balance"
+                                    :disabled="isWithdrawing || currentWallet.is_active === false || !withdrawAmount || withdrawAmount > currentWallet.balance"
                                     @click="handleWithdraw"
                                 >
                                     <el-icon v-if="isWithdrawing" class="is-loading"><Loading /></el-icon>
@@ -2689,5 +2699,41 @@ function formatFullDate(iso) {
         margin-top: 0.65rem;
         text-align: center;
     }
+}
+
+.wallet-deactivated-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.85rem 1.25rem;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    border-radius: 14px;
+    margin-bottom: 1.25rem;
+    color: #fca5a5;
+}
+
+.wallet-deactivated-banner__icon {
+    font-size: 1.5rem;
+    color: #ef4444;
+    flex-shrink: 0;
+}
+
+.wallet-deactivated-banner__content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.wallet-deactivated-banner__title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #fff;
+}
+
+.wallet-deactivated-banner__text {
+    font-size: 0.85rem;
+    color: rgba(254, 202, 202, 0.9);
+    line-height: 1.35;
 }
 </style>

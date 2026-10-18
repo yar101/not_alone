@@ -53,11 +53,13 @@ const modalNote     = ref('');
 const modalLoading  = ref(false);
 const modalHistory  = ref([]);
 const historyLoading = ref(false);
+const statusError   = ref('');
 
 async function openModal(order) {
     modalOrder.value  = order;
     modalStatus.value = order.status;
     modalNote.value   = '';
+    statusError.value = '';
     modalHistory.value = [];
     historyLoading.value = true;
 
@@ -72,17 +74,22 @@ async function openModal(order) {
 function closeModal() {
     modalOrder.value = null;
     modalHistory.value = [];
+    statusError.value = '';
 }
 
 function submitStatus() {
     if (!modalOrder.value || modalLoading.value) return;
     modalLoading.value = true;
+    statusError.value = '';
     router.patch(
         route('admin.orders.status', modalOrder.value.id),
         { status: modalStatus.value, admin_note: modalNote.value || undefined },
         {
             preserveScroll: true,
             onSuccess: () => { closeModal(); },
+            onError: (errors) => {
+                statusError.value = Object.values(errors).flat()[0] || 'Произошла ошибка при изменении статуса';
+            },
             onFinish: () => { modalLoading.value = false; },
         }
     );
@@ -231,6 +238,7 @@ function submitStatus() {
                         <label>Примечание администратора (необязательно)</label>
                         <textarea v-model="modalNote" class="input input--textarea" placeholder="Причина изменения статуса…" rows="3"></textarea>
                     </div>
+                    <div v-if="statusError" class="modal__error">{{ statusError }}</div>
                     <div class="modal__actions">
                         <button class="btn-cancel" @click="closeModal">Отмена</button>
                         <button
@@ -351,6 +359,15 @@ function submitStatus() {
 .modal__close { background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 1rem; }
 .modal__body { padding: 1rem; display: flex; flex-direction: column; gap: 0.8rem; }
 .modal__actions { display: flex; justify-content: flex-end; gap: 0.5rem; padding-top: 0.25rem; }
+.modal__error {
+    padding: 0.5rem 0.75rem;
+    background: rgba(248, 113, 113, 0.12);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    border-radius: 3px;
+    color: #f87171;
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
 
 .field { display: flex; flex-direction: column; gap: 0.3rem; }
 .field label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: rgba(255,255,255,0.35); }

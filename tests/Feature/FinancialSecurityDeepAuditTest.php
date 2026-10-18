@@ -391,4 +391,51 @@ class FinancialSecurityDeepAuditTest extends TestCase
         $this->assertEquals(1000, $custWallet->balance);
         $this->assertEquals(0, $custWallet->held_balance);
     }
+
+    public function test_cannot_add_item_to_order_if_customer_or_idol_banned(): void
+    {
+        $category = ServiceCategory::create(['name' => 'Категория']);
+        $timeUnit = ServiceTimeUnit::create(['name' => 'Час']);
+
+        $idol = User::factory()->create();
+        $customer = User::factory()->create();
+
+        $service = Service::create([
+            'user_id' => $idol->id,
+            'category_id' => $category->id,
+            'time_unit_id' => $timeUnit->id,
+            'name' => 'Test Service',
+            'price' => 100,
+            'is_active' => true,
+            'status' => 'approved',
+            'is_trial' => false,
+        ]);
+
+        $order = Order::create([
+            'customer_id' => $customer->id,
+            'idol_id' => $idol->id,
+            'status' => OrderStatus::Pending,
+        ]);
+
+        // 1. Customer banned
+        $customer->update(['is_banned' => true, 'banned_at' => now()]);
+        try {
+            $this->orderService->addItem($order, $service->id, $customer);
+            $this->fail('Expected DomainException for banned customer was not thrown');
+        } catch (\DomainException $e) {
+            $this->assertStringContainsString('Операция недоступна для заблокированного аккаунта', $e->getMessage());
+        }
+
+        // Unban customer
+        $customer->update(['is_banned' => false, 'banned_at' => null]);
+
+        // 2. Idol banned
+        $idol->update(['is_banned' => true, 'banned_at' => now()]);
+        try {
+            $this->orderService->addItem($order, $service->id, $customer);
+            $this->fail('Expected DomainException for banned idol was not thrown');
+        } catch (\DomainException $e) {
+            $this->assertStringContainsString('Пользователь недоступен', $e->getMessage());
+        }
+    }
 }

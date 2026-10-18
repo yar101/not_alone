@@ -218,7 +218,7 @@ async function submitDispute() {
             );
         } else {
             disputeErrors.value = {
-                _general: e.response?.data?.message ?? __("help.dispute.error"),
+                _general: e.response?.data?.error ?? e.response?.data?.message ?? __("help.dispute.error"),
             };
         }
     } finally {

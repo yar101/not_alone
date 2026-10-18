@@ -126,6 +126,27 @@ const createForm = useForm({
     notify_user: false,
 });
 
+const filteredCreateTypeOptions = computed(() => {
+    if (createForm.direction === 'credit') {
+        return [
+            { value: 'admin_adjustment', label: 'Корректировка администратора' },
+            { value: 'deposit', label: 'Пополнение счёта' },
+        ];
+    }
+    return [
+        { value: 'admin_adjustment', label: 'Корректировка администратора' },
+        { value: 'withdrawal', label: 'Вывод средств' },
+    ];
+});
+
+watch(() => createForm.direction, (newDir) => {
+    if (newDir === 'credit' && createForm.type === 'withdrawal') {
+        createForm.type = 'admin_adjustment';
+    } else if (newDir === 'debit' && createForm.type === 'deposit') {
+        createForm.type = 'admin_adjustment';
+    }
+});
+
 const currentSelectedUserBalance = computed(() => {
     return Number(selectedUserForCreate.value?.balance ?? 0);
 });
@@ -746,9 +767,10 @@ function isCredit(tx) {
                         <label class="field-title">Тип транзакции <span class="req">*</span></label>
                         <AppSelect
                             v-model="createForm.type"
-                            :options="createTypeOptions"
+                            :options="filteredCreateTypeOptions"
                             class="modal-app-select"
                         />
+                        <p v-if="createForm.errors.type" class="err">{{ createForm.errors.type }}</p>
                     </div>
 
                     <!-- Step 4: Amount -->

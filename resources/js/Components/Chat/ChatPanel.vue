@@ -19,6 +19,7 @@ import ReviewForm from "@/Components/Chat/ReviewForm.vue";
 import RepeatOrderModal from "@/Components/Chat/RepeatOrderModal.vue";
 import { useTranslations } from "@/composables/useTranslations";
 import { useModalHistory } from "@/composables/useModalHistory";
+import { extractErrorMessage } from "@/Utils/error";
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -275,10 +276,9 @@ async function payOrder() {
     try {
         await axios.patch(route("orders.pay", activeOrderData.value.id));
     } catch (e) {
-        const errorMsg = e.response?.data?.error || e.response?.data?.message || "Ошибка при оплате заказа";
         ElNotification({
             title: "Ошибка оплаты",
-            message: errorMsg,
+            message: extractErrorMessage(e, "Ошибка при оплате заказа"),
             type: "error",
             duration: 5000,
         });
@@ -300,6 +300,13 @@ async function confirmCompletion() {
             route("orders.confirm-completion", activeOrderData.value.id),
         );
         completeModal.value = false;
+    } catch (e) {
+        ElNotification({
+            title: "Ошибка",
+            message: extractErrorMessage(e, "Не удалось подтвердить выполнение заказа"),
+            type: "error",
+            duration: 5000,
+        });
     } finally {
         orderAction.value = "";
     }
@@ -1111,7 +1118,12 @@ async function confirmOfferAction() {
         }
         confirmOfferModal.value = false;
     } catch (e) {
-        alert(e.response?.data?.error || e.response?.data?.message || __("chat.add_service.error"));
+        ElNotification({
+            title: "Ошибка",
+            message: extractErrorMessage(e, __("chat.add_service.error")),
+            type: "error",
+            duration: 5000,
+        });
     } finally {
         confirmOfferLoading.value = false;
     }
@@ -1405,6 +1417,13 @@ async function acceptOrder() {
         );
         acceptModal.value = false;
         router.reload({ only: ["order_notifications_unread"] });
+    } catch (e) {
+        ElNotification({
+            title: "Ошибка",
+            message: extractErrorMessage(e, "Не удалось принять заказ"),
+            type: "error",
+            duration: 5000,
+        });
     } finally {
         orderAction.value = "";
     }
@@ -1439,6 +1458,13 @@ async function submitCancelOrder() {
         cancelModal.value = false;
         cancelReason.value = "";
         router.reload({ only: ["order_notifications_unread"] });
+    } catch (e) {
+        ElNotification({
+            title: "Ошибка",
+            message: extractErrorMessage(e, "Не удалось отменить заказ"),
+            type: "error",
+            duration: 5000,
+        });
     } finally {
         cancelSubmitting.value = false;
     }

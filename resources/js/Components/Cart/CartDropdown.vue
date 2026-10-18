@@ -5,6 +5,7 @@ import axios from 'axios';
 import { useTranslations } from '@/composables/useTranslations';
 import { useModalHistory } from '@/composables/useModalHistory';
 import { Picture, Briefcase } from '@element-plus/icons-vue';
+import { extractErrorMessage } from '@/Utils/error';
 
 const { __ } = useTranslations();
 
@@ -97,7 +98,7 @@ async function createOrder() {
         if (openOrder) openOrder(res.data.order_id);
         router.reload({ only: ['order_notifications_unread'] });
     } catch (e) {
-        serviceError.value = e.response?.data?.error ?? __('cart.order.error');
+        serviceError.value = extractErrorMessage(e, __('cart.order.error'));
     } finally {
         creating.value = false;
     }
@@ -120,7 +121,7 @@ async function purchaseContent() {
         isOpen.value = false;
         router.reload({ only: ['purchasedPackIds', 'contentPacks', 'idols'] });
     } catch (e) {
-        contentError.value = e.response?.data?.error ?? __('cart.pay.error');
+        contentError.value = extractErrorMessage(e, __('cart.pay.error'));
     } finally {
         purchasing.value = false;
     }

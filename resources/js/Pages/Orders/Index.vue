@@ -5,6 +5,8 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import UserAvatar from '@/Components/UserAvatar.vue';
 import axios from 'axios';
+import { ElNotification } from 'element-plus';
+import { extractErrorMessage } from '@/Utils/error';
 import { useTranslations } from '@/composables/useTranslations';
 
 const { __, transChoice } = useTranslations();
@@ -131,8 +133,17 @@ function closePanel()       { selectedOrder.value = null;  }
 
 // ── Actions ───────────────────────────────────────────────────
 async function acceptOrder(order) {
-    await axios.patch(route('orders.accept', order.id));
-    patchOrder(order.id, { status: 'accepted' });
+    try {
+        await axios.patch(route('orders.accept', order.id));
+        patchOrder(order.id, { status: 'accepted' });
+    } catch (e) {
+        ElNotification({
+            title: 'Ошибка',
+            message: extractErrorMessage(e, 'Не удалось принять заказ'),
+            type: 'error',
+            duration: 5000,
+        });
+    }
 }
 
 function openCancelModal(order) {
@@ -148,6 +159,13 @@ async function submitCancel() {
         await axios.patch(route('orders.cancel', cancelOrderId.value), { cancel_reason: cancelReason.value });
         patchOrder(cancelOrderId.value, { status: 'cancelled', cancel_reason: cancelReason.value });
         cancelModal.value = false;
+    } catch (e) {
+        ElNotification({
+            title: 'Ошибка',
+            message: extractErrorMessage(e, 'Не удалось отменить заказ'),
+            type: 'error',
+            duration: 5000,
+        });
     } finally {
         cancelSubmitting.value = false;
     }

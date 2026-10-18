@@ -23,11 +23,13 @@ const chatLoading  = ref(false);
 const chatHasMore  = ref(false);
 const chatOpen     = ref(false);
 const chatConvId   = ref(null);
+const resolveError = ref('');
 
 function openModal(dispute) {
     selected.value     = dispute;
     decision.value     = '';
     adminNote.value    = '';
+    resolveError.value = '';
     chatOpen.value     = false;
     chatMessages.value = [];
     chatConvId.value   = null;
@@ -35,6 +37,7 @@ function openModal(dispute) {
 
 function closeModal() {
     selected.value = null;
+    resolveError.value = '';
     chatOpen.value = false;
     chatMessages.value = [];
 }
@@ -46,12 +49,16 @@ function setFilter(val) {
 function submitResolve() {
     if (!decision.value || submitting.value) return;
     submitting.value = true;
+    resolveError.value = '';
     router.patch(
         route('admin.disputes.resolve', selected.value.id),
         { decision: decision.value, admin_note: adminNote.value },
         {
             onFinish:  () => { submitting.value = false; },
             onSuccess: () => { closeModal(); },
+            onError:   (errors) => {
+                resolveError.value = Object.values(errors).flat()[0] || 'Произошла ошибка при сохранении решения';
+            },
         }
     );
 }
@@ -319,6 +326,8 @@ function systemLabel(msg) {
                                 rows="3"
                                 maxlength="2000"
                             ></textarea>
+
+                            <div v-if="resolveError" class="resolve-error">{{ resolveError }}</div>
 
                             <div class="resolve-footer">
                                 <button class="resolve-cancel" @click="closeModal">Отмена</button>
@@ -735,5 +744,15 @@ function systemLabel(msg) {
     background: rgba(99,179,237,0.1);
     border: 1px solid rgba(99,179,237,0.18);
     border-bottom-right-radius: 3px;
+}
+.resolve-error {
+    margin-top: 0.75rem;
+    padding: 0.6rem 0.8rem;
+    background: rgba(248, 113, 113, 0.12);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    border-radius: 8px;
+    color: #f87171;
+    font-size: 0.85rem;
+    line-height: 1.4;
 }
 </style>

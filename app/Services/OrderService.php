@@ -369,11 +369,19 @@ class OrderService
 
     public function addItem(Order $order, int $serviceId, User $actor): void
     {
+        if (method_exists($actor, 'isActiveBanned') && $actor->isActiveBanned()) {
+            throw new \DomainException('Операция недоступна для заблокированного аккаунта.');
+        }
+
         DB::transaction(function () use ($order, $serviceId) {
             $lockedOrder = Order::lockForUpdate()->findOrFail($order->id);
 
             if ($lockedOrder->status !== OrderStatus::Pending) {
                 throw new \DomainException('Добавлять услуги можно только к созданным заказам.');
+            }
+
+            if ($lockedOrder->idol && method_exists($lockedOrder->idol, 'isActiveBanned') && $lockedOrder->idol->isActiveBanned()) {
+                throw new \DomainException('Пользователь недоступен');
             }
 
             $service = Service::where('id', $serviceId)
