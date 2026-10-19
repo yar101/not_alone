@@ -27,7 +27,7 @@ class RatingLogController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
-        $logs = $query->paginate(50)->through(fn (IdolRatingLog $log) => [
+        $logs = $query->paginate(50)->withQueryString()->through(fn (IdolRatingLog $log) => [
             'id' => $log->id,
             'idol' => $log->user ? ['id' => $log->user->id, 'name' => $log->user->name] : null,
             'event' => $log->event,

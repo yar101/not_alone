@@ -30,6 +30,6 @@ class ReviewDispute extends Model
 
     public function idol(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'idol_id');
+        return $this->belongsTo(User::class, 'idol_id')->withTrashed();
     }
 }

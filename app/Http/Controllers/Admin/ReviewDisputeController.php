@@ -35,10 +35,14 @@ class ReviewDisputeController extends Controller
         }
 
         if ($search) {
-            $query->whereHas('idol', fn ($q) => $q->where('name', 'ilike', "%{$search}%"));
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('idol', fn ($iq) => $iq->where('name', 'ilike', "%{$search}%")->orWhere('email', 'ilike', "%{$search}%"))
+                  ->orWhereHas('review.reviewer', fn ($rq) => $rq->where('name', 'ilike', "%{$search}%")->orWhere('email', 'ilike', "%{$search}%"))
+                  ->orWhere('reason', 'ilike', "%{$search}%");
+            });
         }
 
-        $disputes = $query->paginate(20)->through(fn (ReviewDispute $d) => $this->format($d));
+        $disputes = $query->paginate(20)->withQueryString()->through(fn (ReviewDispute $d) => $this->format($d));
 
         $rawCounts = ReviewDispute::query()
             ->selectRaw('status, count(*) as count')
@@ -117,18 +121,20 @@ class ReviewDisputeController extends Controller
             'created_at' => $d->created_at->format('d.m.Y H:i'),
             'resolved_at' => $d->resolved_at?->format('d.m.Y H:i'),
             'idol' => [
-                'id' => $d->idol->id,
-                'name' => $d->idol->name,
-                'avatar' => $d->idol->avatar_url,
+                'id' => $d->idol?->id,
+                'name' => $d->idol?->name ?? 'Удаленный пользователь',
+                'avatar' => $d->idol?->avatar_url,
+                'is_deleted' => (bool) $d->idol?->trashed(),
             ],
             'review' => [
-                'id' => $d->review->id,
-                'rating' => $d->review->rating,
-                'text' => $d->review->text,
+                'id' => $d->review?->id,
+                'rating' => $d->review?->rating,
+                'text' => $d->review?->text,
                 'reviewer' => [
-                    'id' => $d->review->reviewer->id,
-                    'name' => $d->review->reviewer->name,
-                    'avatar' => $d->review->reviewer->avatar_url,
+                    'id' => $d->review?->reviewer?->id,
+                    'name' => $d->review?->reviewer?->name ?? 'Удаленный пользователь',
+                    'avatar' => $d->review?->reviewer?->avatar_url,
+                    'is_deleted' => (bool) $d->review?->reviewer?->trashed(),
                 ],
             ],
         ];

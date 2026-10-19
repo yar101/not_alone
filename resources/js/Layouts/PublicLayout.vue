@@ -1,5 +1,6 @@
 <script setup>
 import SiteHeader from "@/Components/Site/SiteHeader.vue";
+import ImpersonateBanner from "@/Components/ImpersonateBanner.vue";
 
 defineProps({
     activePage: { type: String, default: "home" },
@@ -8,6 +9,7 @@ defineProps({
 
 <template>
     <div class="public-layout">
+        <ImpersonateBanner />
         <!-- Единые декоративные фоновые элементы -->
         <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
             <div class="circle1" />
@@ -32,6 +34,7 @@ defineProps({
 .public-layout {
     min-height: 100vh;
     width: 100%;
+    padding-top: var(--impersonate-banner-height, 0px);
 }
 
 .main-gradient {

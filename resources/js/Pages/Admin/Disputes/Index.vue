@@ -1,8 +1,10 @@
 <script setup>
 import { ref, computed } from 'vue';
 import axios from 'axios';
-import { router } from '@inertiajs/vue3';
+import { router, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
+import AdminPagination from '@/Components/Admin/AdminPagination.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -43,7 +45,7 @@ function closeModal() {
 }
 
 function setFilter(val) {
-    router.get(route('admin.disputes.index'), { status: val }, { preserveState: false });
+    router.get(route('admin.disputes.index'), { status: val }, { preserveState: true, preserveScroll: true });
 }
 
 function submitResolve() {
@@ -71,7 +73,7 @@ async function openChat(conversationId) {
     chatHasMore.value  = false;
     chatLoading.value  = true;
     try {
-        const res = await axios.get(route('admin.conversations.messages', conversationId));
+        const res = await axios.get(`/admin/conversations/${conversationId}/messages`);
         chatMessages.value = res.data.messages;
         chatHasMore.value  = res.data.has_more;
     } finally {
@@ -84,7 +86,7 @@ async function loadMore() {
     chatLoading.value = true;
     const firstId = chatMessages.value[0]?.id;
     try {
-        const res = await axios.get(route('admin.conversations.messages', chatConvId.value), {
+        const res = await axios.get(`/admin/conversations/${chatConvId.value}/messages`, {
             params: { before_id: firstId },
         });
         chatMessages.value = [...res.data.messages, ...chatMessages.value];
@@ -147,10 +149,10 @@ function systemLabel(msg) {
 
 <template>
     <div class="page-wrap">
-        <div class="page-header">
-            <h1 class="page-title">Споры</h1>
-            <span class="page-count">{{ disputes.total }} всего</span>
-        </div>
+        <AdminPageHeader
+            title="Споры"
+            :subtitle="`${disputes.total} споров зарегистрировано в системе`"
+        />
 
         <!-- Фильтр по статусу -->
         <div class="filter-tabs">
@@ -192,7 +194,11 @@ function systemLabel(msg) {
                         class="data-row"
                         @click="openModal(d)"
                     >
-                        <td class="cell-id">{{ d.order_id }}</td>
+                        <td class="cell-id">
+                            <Link :href="route('admin.orders.show', d.order_id)" @click.stop class="order-id-link">
+                                #{{ d.order_id }}
+                            </Link>
+                        </td>
                         <td class="cell-user">
                             <div class="cell-user-inner">
                                 <img v-if="d.order.customer.avatar" :src="d.order.customer.avatar" class="user-avatar" />
@@ -222,15 +228,7 @@ function systemLabel(msg) {
             </table>
         </div>
 
-        <div v-if="disputes.last_page > 1" class="pagination">
-            <a
-                v-for="page in disputes.last_page"
-                :key="page"
-                :href="`?page=${page}&status=${status_filter}`"
-                class="page-link"
-                :class="{ 'page-link--active': page === disputes.current_page }"
-            >{{ page }}</a>
-        </div>
+        <AdminPagination :pagination="disputes" />
     </div>
 
     <!-- Оверлей -->
@@ -241,7 +239,10 @@ function systemLabel(msg) {
             <div class="modal-box">
                 <button class="modal-close" @click="closeModal">×</button>
                 <h2 class="modal-title">
-                    Спор по заказу #{{ selected.order_id }}
+                    Спор по заказу
+                    <Link :href="route('admin.orders.show', selected.order_id)" target="_blank" class="order-title-link">
+                        #{{ selected.order_id }} ↗
+                    </Link>
                     <span class="badge" :class="STATUS_CLASS[selected.status]" style="margin-left:0.5rem;font-size:0.8rem;">
                         {{ STATUS_LABELS[selected.status] }}
                     </span>
@@ -474,6 +475,28 @@ function systemLabel(msg) {
     vertical-align: middle; color: rgba(255,255,255,0.75);
 }
 .cell-id     { color: rgba(255,255,255,0.3); font-size: 0.78rem; white-space: nowrap; width: 40px; }
+.order-id-link {
+    color: #a78bfa;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.15s;
+}
+.order-id-link:hover {
+    color: #c4b5fd;
+    text-decoration: underline;
+}
+.order-title-link {
+    color: #a78bfa;
+    text-decoration: none;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0.5rem;
+    transition: color 0.15s;
+}
+.order-title-link:hover {
+    color: #c4b5fd;
+    text-decoration: underline;
+}
 .cell-user        { min-width: 140px; }
 .cell-user-inner  { display: flex; align-items: center; gap: 0.5rem; }
 .user-avatar      { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }

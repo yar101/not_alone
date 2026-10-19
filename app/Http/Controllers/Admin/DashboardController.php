@@ -4,15 +4,27 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AdminBroadcast;
+use App\Models\AdminLog;
+use App\Models\ContentPack;
+use App\Models\ContentPackChangeRequest;
 use App\Models\IdolApplication;
 use App\Models\IdolQuizSession;
+use App\Models\Order;
+use App\Models\OrderDispute;
+use App\Models\ServiceChangeRequest;
 use App\Models\User;
+use App\Models\WalletTransaction;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
     public function index()
     {
+        $platformFeeTotal = (float) WalletTransaction::where('type', 'platform_fee')->where('status', 'completed')->sum(DB::raw('abs(amount)'));
+        $turnoverTotal = (float) WalletTransaction::whereIn('type', ['order_payout', 'pack_sale'])->where('status', 'completed')->sum('amount');
+        $depositsTotal = (float) WalletTransaction::where('type', 'deposit')->where('status', 'completed')->sum('amount');
+
         return Inertia::render('Admin/Dashboard', [
             'metrics' => [
                 'pending_applications_count' => IdolApplication::where('status', 'pending')->count(),
@@ -21,6 +33,13 @@ class DashboardController extends Controller
                 'users_with_cooldown' => User::whereNotNull('idol_quiz_cooldown_until')
                     ->where('idol_quiz_cooldown_until', '>', now())
                     ->count(),
+                'active_orders_count' => Order::whereIn('status', ['paid', 'in_progress'])->count(),
+                'open_disputes_count' => OrderDispute::where('status', 'open')->count(),
+                'pending_content_packs_count' => ContentPack::where('status', 'pending_review')->count(),
+                'pending_changes_count' => ContentPackChangeRequest::where('status', 'pending')->count() + ServiceChangeRequest::where('status', 'pending')->count(),
+                'platform_fee_total' => $platformFeeTotal,
+                'turnover_total' => $turnoverTotal,
+                'deposits_total' => $depositsTotal,
             ],
             'recent_applications' => IdolApplication::with('user')
                 ->latest()
@@ -43,6 +62,19 @@ class DashboardController extends Controller
                     'target' => $b->target,
                     'created_at' => $b->created_at->toIso8601String(),
                     'admin' => ['name' => $b->admin->name],
+                ]),
+            'recent_admin_logs' => AdminLog::with('admin')
+                ->latest('created_at')
+                ->limit(8)
+                ->get()
+                ->map(fn ($log) => [
+                    'id' => $log->id,
+                    'admin' => $log->admin ? ['name' => $log->admin->name] : null,
+                    'action' => $log->action,
+                    'target_type' => $log->target_type,
+                    'target_id' => $log->target_id,
+                    'details' => $log->details,
+                    'created_at' => $log->created_at?->toIso8601String(),
                 ]),
             'registrations_by_day' => User::query()
                 ->where('created_at', '>=', now()->subDays(14)->startOfDay())

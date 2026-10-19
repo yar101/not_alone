@@ -307,7 +307,7 @@ async function purchaseContent() {
 /* ── Panel ────────────────────────────────────────────── */
 .rc-panel {
     position: fixed;
-    top: 16px;
+    top: calc(16px + var(--impersonate-banner-height, 0px));
     right: 0;
     bottom: 0;
     width: 480px;
@@ -764,7 +764,7 @@ async function purchaseContent() {
 
 @media (max-width: 768px) {
     .rc-panel {
-        top: 1rem;
+        top: calc(1rem + var(--impersonate-banner-height, 0px));
         left: 1rem;
         right: 1rem;
         bottom: 1rem;
@@ -777,7 +777,7 @@ async function purchaseContent() {
 
 @media (min-width: 769px) {
     .rc-panel {
-        top: 16px;
+        top: calc(16px + var(--impersonate-banner-height, 0px));
         right: 16px;
         bottom: 16px;
         max-width: calc(100vw - 32px);

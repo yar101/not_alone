@@ -2,6 +2,7 @@
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
 import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
+import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 defineOptions({ layout: AdminLayout });
@@ -66,16 +67,26 @@ const hasAnyFlag = computed(() => {
 const canSubmit = computed(() => isApproved.value || hasAnyFlag.value);
 
 function reject() {
-    if (!confirm('Полностью отклонить пак? Все фотографии будут удалены, айдол получит уведомление.')) return;
-    submitting.value = true;
-    const fd = new FormData();
-    fd.append('decision', 'rejected');
-    router.post(route('admin.content-packs.decide', props.pack.id), fd, {
-        forceFormData:  true,
-        preserveScroll: true,
-        onError: (errs) => { errors.value = errs; submitting.value = false; },
-        onFinish: () => { submitting.value = false; },
-    });
+    ElMessageBox.confirm(
+        'Полностью отклонить пак? Все фотографии будут удалены, айдол получит уведомление.',
+        'Отклонение контент-пака',
+        {
+            confirmButtonText: 'Отклонить',
+            cancelButtonText: 'Отмена',
+            type: 'warning',
+            confirmButtonClass: 'el-button--danger',
+        }
+    ).then(() => {
+        submitting.value = true;
+        const fd = new FormData();
+        fd.append('decision', 'rejected');
+        router.post(route('admin.content-packs.decide', props.pack.id), fd, {
+            forceFormData:  true,
+            preserveScroll: true,
+            onError: (errs) => { errors.value = errs; submitting.value = false; },
+            onFinish: () => { submitting.value = false; },
+        });
+    }).catch(() => {});
 }
 
 function submit() {

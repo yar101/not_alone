@@ -8,6 +8,16 @@
     --color-base-1: #ffb2ef;
     --color-base-2: #64d2ff;
     --font-receipt: "JetBrains Mono", "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --impersonate-banner-height: 0px;
+}
+
+html.has-impersonate-banner,
+body.has-impersonate-banner {
+    --impersonate-banner-height: 44px;
+}
+
+body.has-impersonate-banner .el-notification {
+    margin-top: var(--impersonate-banner-height, 44px);
 }
 
 html {
@@ -257,6 +267,103 @@ input[type="number"] {
 /* Remove dot from Completed status badge */
 .wallet-status--completed .wallet-tx-status-dot {
     display: none !important;
+}
+
+/* ── Element Plus Dark Theme Overrides for MessageBox & Overlay ── */
+.el-overlay {
+    background-color: rgba(0, 0, 0, 0.75) !important;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 9999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.el-message-box {
+    background: #12111a !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(155, 110, 232, 0.15) !important;
+    padding: 20px 24px !important;
+    max-width: min(480px, calc(100vw - 2rem)) !important;
+    width: 100% !important;
+    color: #e4e4e7 !important;
+    font-family: inherit !important;
+    margin: 0 !important;
+}
+
+.el-message-box__header {
+    padding-bottom: 12px !important;
+}
+
+.el-message-box__title {
+    font-size: 1.15rem !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+}
+
+.el-message-box__close {
+    color: rgba(255, 255, 255, 0.4) !important;
+    font-size: 1.1rem !important;
+    transition: color 0.15s ease;
+}
+.el-message-box__close:hover {
+    color: #ffffff !important;
+}
+
+.el-message-box__content {
+    font-size: 0.92rem !important;
+    line-height: 1.55 !important;
+    color: rgba(255, 255, 255, 0.78) !important;
+    padding: 10px 0 18px !important;
+}
+
+.el-message-box__btns {
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 10px !important;
+    padding-top: 14px !important;
+}
+
+.el-message-box__btns .el-button {
+    border-radius: 8px !important;
+    font-size: 0.88rem !important;
+    padding: 8px 16px !important;
+    height: auto !important;
+    font-weight: 500 !important;
+    font-family: inherit !important;
+    transition: all 0.15s ease !important;
+}
+
+.el-message-box__btns .el-button:not(.el-button--primary):not(.el-button--danger) {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: rgba(255, 255, 255, 0.75) !important;
+}
+.el-message-box__btns .el-button:not(.el-button--primary):not(.el-button--danger):hover {
+    background: rgba(255, 255, 255, 0.12) !important;
+    color: #ffffff !important;
+}
+
+.el-message-box__btns .el-button--primary {
+    background: linear-gradient(135deg, #9b6ee8 0%, #b288ff 100%) !important;
+    border: none !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(155, 110, 232, 0.35) !important;
+}
+.el-message-box__btns .el-button--primary:hover {
+    background: linear-gradient(135deg, #8a5ad9 0%, #a476f5 100%) !important;
+    box-shadow: 0 6px 16px rgba(155, 110, 232, 0.45) !important;
+}
+
+.el-message-box__btns .el-button--danger {
+    background: rgba(239, 68, 68, 0.85) !important;
+    border: none !important;
+    color: #ffffff !important;
+}
+.el-message-box__btns .el-button--danger:hover {
+    background: rgba(220, 38, 38, 0.95) !important;
 }
 
 

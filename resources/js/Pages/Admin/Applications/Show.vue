@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { Link, useForm } from '@inertiajs/vue3';
+import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 defineOptions({ layout: AdminLayout });
@@ -12,8 +13,13 @@ const rejectForm = useForm({ rejection_reason: '', reset_quiz: false });
 const showRejectForm = ref(false);
 
 function approve() {
-    if (!confirm('Одобрить заявку?')) return;
-    useForm({}).patch(route('admin.applications.approve', props.application.id));
+    ElMessageBox.confirm('Одобрить заявку на статус айдола?', 'Подтверждение', {
+        confirmButtonText: 'Одобрить',
+        cancelButtonText: 'Отмена',
+        type: 'success',
+    }).then(() => {
+        useForm({}).patch(route('admin.applications.approve', props.application.id));
+    }).catch(() => {});
 }
 
 function submitReject() {

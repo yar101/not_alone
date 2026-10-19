@@ -1,7 +1,10 @@
 # ── Stage 1: build frontend assets ───────────────────────────────────────────
-FROM node:22-alpine AS assets
+FROM node:22-slim AS assets
 
 WORKDIR /app
+ENV BROWSERSLIST_IGNORE_OLD_DATA=true
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .

@@ -175,7 +175,10 @@ onUnmounted(() => {
 <style scoped>
 .site-modal-root {
     position: fixed;
-    inset: 0;
+    top: var(--impersonate-banner-height, 0px);
+    left: 0;
+    right: 0;
+    bottom: 0;
     z-index: 2000;
     pointer-events: none;
     display: flex;

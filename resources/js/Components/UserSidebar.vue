@@ -263,7 +263,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 /* ── Panel ────────────────────────────────────────────────── */
 .usb-panel {
     position: fixed;
-    top: 1.25rem;
+    top: calc(1.25rem + var(--impersonate-banner-height, 0px));
     right: 1.25rem;
     bottom: 1.25rem;
     width: 360px;
@@ -280,7 +280,7 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
 
 @media (max-width: 480px) {
     .usb-panel {
-        top: 1rem;
+        top: calc(1rem + var(--impersonate-banner-height, 0px));
         right: 1rem;
         left: 1rem;
         bottom: 1rem;

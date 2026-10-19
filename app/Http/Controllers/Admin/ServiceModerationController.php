@@ -38,7 +38,7 @@ class ServiceModerationController extends Controller
             ))
             ->when($categoryId, fn ($q) => $q->where('category_id', $categoryId));
 
-        $services = $query->latest()->paginate(50)->through(fn (Service $s) => [
+        $services = $query->latest()->paginate(50)->withQueryString()->through(fn (Service $s) => [
             'id' => $s->id,
             'name' => $s->name,
             'price' => $s->price,

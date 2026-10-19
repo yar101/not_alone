@@ -3,7 +3,8 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "update-browserslist": "npx --yes update-browserslist-db@latest"
     },
     "devDependencies": {
         "@inertiajs/vue3": "^2.0.0",

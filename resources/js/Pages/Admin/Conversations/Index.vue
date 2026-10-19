@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, onMounted } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
@@ -51,7 +51,7 @@ async function selectConversation(conv) {
     messagesLoading.value = true;
 
     try {
-        const res = await axios.get(route('admin.conversations.messages', conv.id));
+        const res = await axios.get(`/admin/conversations/${conv.id}/messages`);
         messages.value = res.data.messages;
         hasMoreMessages.value = res.data.has_more;
         scrollToBottom();
@@ -62,6 +62,28 @@ async function selectConversation(conv) {
     }
 }
 
+function autoSelectIfRequested() {
+    if (props.filters.id || props.filters.order_id) {
+        const found = props.conversations?.data?.find(c => 
+            (props.filters.id && String(c.id) === String(props.filters.id)) ||
+            (props.filters.order_id && String(c.order_id) === String(props.filters.order_id))
+        ) || props.conversations?.data?.[0];
+        if (found && (!activeConversation.value || activeConversation.value.id !== found.id)) {
+            selectConversation(found);
+        }
+    }
+}
+
+onMounted(() => {
+    autoSelectIfRequested();
+});
+
+watch(() => props.conversations?.data, () => {
+    if (!activeConversation.value && (props.filters.id || props.filters.order_id)) {
+        autoSelectIfRequested();
+    }
+});
+
 async function loadMoreMessages() {
     if (messagesLoading.value || !hasMoreMessages.value || !activeConversation.value) return;
 
@@ -69,7 +91,7 @@ async function loadMoreMessages() {
     const firstMsgId = messages.value[0]?.id;
 
     try {
-        const res = await axios.get(route('admin.conversations.messages', activeConversation.value.id), {
+        const res = await axios.get(`/admin/conversations/${activeConversation.value.id}/messages`, {
             params: { before_id: firstMsgId },
         });
 

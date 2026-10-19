@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { ElMessageBox } from 'element-plus';
 import draggable from 'vuedraggable';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AdminModal from '@/Components/Admin/AdminModal.vue';
@@ -97,15 +98,20 @@ function saveCategory() {
 
 // Fixed delete category confirm dialog message interpolation
 function deleteCategory(cat) {
-    if (!confirm(`Удалить раздел "${cat.title_ru}" и все его статьи?`)) return;
-    router.delete(route('admin.help-categories.destroy', cat.id), {
-        preserveScroll: true,
-        onSuccess: () => {
-            if (selectedCategoryId.value === cat.id) {
-                selectedCategoryId.value = props.categories.find(c => c.id !== cat.id)?.id || null;
+    ElMessageBox.confirm(`Удалить раздел "${cat.title_ru}" и все его статьи?`, 'Подтверждение удаления', {
+        confirmButtonText: 'Удалить',
+        cancelButtonText: 'Отмена',
+        type: 'warning',
+    }).then(() => {
+        router.delete(route('admin.help-categories.destroy', cat.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                if (selectedCategoryId.value === cat.id) {
+                    selectedCategoryId.value = props.categories.find(c => c.id !== cat.id)?.id || null;
+                }
             }
-        }
-    });
+        });
+    }).catch(() => {});
 }
 
 // ─── Article Modals ──────────────────────────────────────────
@@ -170,10 +176,15 @@ function saveArticle() {
 
 // Fixed delete article confirm dialog message interpolation
 function deleteArticle(art) {
-    if (!confirm(`Удалить подраздел "${art.title_ru}"?`)) return;
-    router.delete(route('admin.help-articles.destroy', art.id), {
-        preserveScroll: true,
-    });
+    ElMessageBox.confirm(`Удалить подраздел "${art.title_ru}"?`, 'Подтверждение удаления', {
+        confirmButtonText: 'Удалить',
+        cancelButtonText: 'Отмена',
+        type: 'warning',
+    }).then(() => {
+        router.delete(route('admin.help-articles.destroy', art.id), {
+            preserveScroll: true,
+        });
+    }).catch(() => {});
 }
 </script>
 

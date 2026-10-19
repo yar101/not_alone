@@ -1,7 +1,10 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
+import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
+import AdminPagination from '@/Components/Admin/AdminPagination.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -19,7 +22,7 @@ function applyFilters() {
     router.get(route('admin.content-packs.index'), {
         status: filterStatus.value,
         search: filterSearch.value || undefined,
-    }, { preserveState: false });
+    }, { preserveState: true, preserveScroll: true });
 }
 
 function switchStatus(status) {
@@ -30,6 +33,61 @@ function switchStatus(status) {
 function onSearchInput() {
     clearTimeout(searchDebounce);
     searchDebounce = setTimeout(applyFilters, 300);
+}
+
+// ─── Bulk selection ──────────────────────────────────────────────────────────
+const selectedIds = ref(new Set());
+
+const allSelected = computed(() => {
+    const list = props.packs?.data ?? [];
+    return list.length > 0 && list.every(p => selectedIds.value.has(p.id));
+});
+
+function toggleRow(id) {
+    const next = new Set(selectedIds.value);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    selectedIds.value = next;
+}
+
+function toggleSelectAll() {
+    const list = props.packs?.data ?? [];
+    if (allSelected.value) {
+        selectedIds.value = new Set();
+    } else {
+        selectedIds.value = new Set(list.map(p => p.id));
+    }
+}
+
+function bulkApprove() {
+    ElMessageBox.confirm(`Одобрить выбранные контент-паки (${selectedIds.value.size} шт.)?`, 'Массовое одобрение', {
+        confirmButtonText: 'Одобрить',
+        cancelButtonText: 'Отмена',
+        type: 'success',
+    }).then(() => {
+        router.post(route('admin.content-packs.bulk-approve'), {
+            ids: [...selectedIds.value],
+        }, {
+            preserveScroll: true,
+            onSuccess: () => { selectedIds.value = new Set(); },
+        });
+    }).catch(() => {});
+}
+
+function bulkReject() {
+    ElMessageBox.confirm(`Отклонить и удалить файлы выбранных контент-паков (${selectedIds.value.size} шт.)?`, 'Массовое отклонение', {
+        confirmButtonText: 'Отклонить',
+        cancelButtonText: 'Отмена',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger',
+    }).then(() => {
+        router.post(route('admin.content-packs.bulk-reject'), {
+            ids: [...selectedIds.value],
+        }, {
+            preserveScroll: true,
+            onSuccess: () => { selectedIds.value = new Set(); },
+        });
+    }).catch(() => {});
 }
 
 const STATUS_LABELS = {
@@ -48,9 +106,11 @@ function formatDate(iso) {
 
 <template>
     <div class="cp-index">
-        <div class="cp-header">
-            <h1 class="cp-heading">Контент-паки</h1>
-        </div>
+        <AdminPageHeader
+            title="Контент-паки"
+            subtitle="Модерация приватных фото- и контент-паков айдолов"
+            :count="packs.total"
+        />
 
         <!-- Status tabs -->
         <div class="cp-tabs">
@@ -69,7 +129,7 @@ function formatDate(iso) {
             </button>
         </div>
 
-        <!-- Search -->
+        <!-- Search & Bulk bar -->
         <div class="cp-toolbar">
             <input
                 v-model="filterSearch"
@@ -78,6 +138,19 @@ function formatDate(iso) {
                 placeholder="Поиск по названию или айдолу..."
                 @input="onSearchInput"
             />
+
+            <!-- Bulk actions panel -->
+            <transition name="fade">
+                <div v-if="selectedIds.size > 0" class="cp-bulk-actions">
+                    <span class="cp-bulk-count">Выбрано: {{ selectedIds.size }}</span>
+                    <button class="cp-btn cp-btn--approve" @click="bulkApprove">
+                        Одобрить выбранные
+                    </button>
+                    <button class="cp-btn cp-btn--reject" @click="bulkReject">
+                        Отклонить выбранные
+                    </button>
+                </div>
+            </transition>
         </div>
 
         <!-- Table -->
@@ -85,6 +158,25 @@ function formatDate(iso) {
             <table class="cp-table">
                 <thead>
                     <tr>
+                        <th style="width: 36px;">
+                            <label class="mod-cb">
+                                <input
+                                    type="checkbox"
+                                    class="mod-cb__input"
+                                    :checked="allSelected"
+                                    :indeterminate="selectedIds.size > 0 && !allSelected"
+                                    @change="toggleSelectAll"
+                                />
+                                <span class="mod-cb__box">
+                                    <svg v-if="allSelected" class="mod-cb__check" viewBox="0 0 10 8" fill="none">
+                                        <path d="M1 4l3 3 5-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    <svg v-else-if="selectedIds.size > 0" class="mod-cb__minus" viewBox="0 0 10 2" fill="none">
+                                        <path d="M1 1h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                    </svg>
+                                </span>
+                            </label>
+                        </th>
                         <th>Обложка</th>
                         <th>Айдол</th>
                         <th>Название</th>
@@ -95,7 +187,26 @@ function formatDate(iso) {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="pack in packs.data" :key="pack.id">
+                    <tr
+                        v-for="pack in packs.data"
+                        :key="pack.id"
+                        :class="{ 'cp-tr--selected': selectedIds.has(pack.id) }"
+                    >
+                        <td>
+                            <label class="mod-cb">
+                                <input
+                                    type="checkbox"
+                                    class="mod-cb__input"
+                                    :checked="selectedIds.has(pack.id)"
+                                    @change="toggleRow(pack.id)"
+                                />
+                                <span class="mod-cb__box">
+                                    <svg v-if="selectedIds.has(pack.id)" class="mod-cb__check" viewBox="0 0 10 8" fill="none">
+                                        <path d="M1 4l3 3 5-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </span>
+                            </label>
+                        </td>
                         <td class="cp-td-cover">
                             <img v-if="pack.cover_url" :src="pack.cover_url" alt="" class="cp-cover-thumb" />
                             <div v-else class="cp-cover-empty">—</div>
@@ -129,33 +240,21 @@ function formatDate(iso) {
                         </td>
                     </tr>
                     <tr v-if="!packs.data?.length">
-                        <td colspan="7" class="cp-empty">Нет паков</td>
+                        <td colspan="8" class="cp-empty">Нет паков</td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
         <!-- Pagination -->
-        <div v-if="packs.last_page > 1" class="cp-pagination">
-            <Link
-                v-for="page in packs.last_page"
-                :key="page"
-                :href="packs.links?.find(l => l.label == page)?.url"
-                class="cp-page-btn"
-                :class="{ 'cp-page-btn--active': page === packs.current_page }"
-            >{{ page }}</Link>
-        </div>
+        <AdminPagination :links="packs.links" />
     </div>
 </template>
 
 <style scoped>
 .cp-index { padding: 1.5rem; }
 
-.cp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
-
-.cp-heading { font-size: 1.4rem; font-weight: 700; color: rgba(255,255,255,0.9); margin: 0; }
-
-.cp-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.cp-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
 
 .cp-tab {
     padding: 0.4rem 0.85rem;
@@ -175,7 +274,14 @@ function formatDate(iso) {
 .cp-tab--active { background: rgba(255, 178, 239,0.15); border-color: rgba(255, 178, 239,0.4); color: rgba(200,200,255,0.9); }
 .cp-tab__badge { background: rgba(255,100,100,0.25); color: #ff9a9a; border-radius: 10px; padding: 1px 7px; font-size: 0.78rem; }
 
-.cp-toolbar { margin-bottom: 1rem; }
+.cp-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
 
 .cp-search {
     width: 100%;
@@ -189,8 +295,55 @@ function formatDate(iso) {
     font-family: inherit;
     outline: none;
 }
+.cp-search:focus {
+    border-color: rgba(155, 110, 232, 0.5);
+}
 
-.cp-table-wrap { overflow-x: auto; }
+.cp-bulk-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(155, 110, 232, 0.08);
+    border: 1px solid rgba(155, 110, 232, 0.2);
+    padding: 0.35rem 0.75rem;
+    border-radius: 8px;
+}
+
+.cp-bulk-count {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #c49eff;
+}
+
+.cp-btn {
+    padding: 0.4rem 0.85rem;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    font-family: inherit;
+}
+
+.cp-btn--approve {
+    background: #10b981;
+    color: #fff;
+}
+.cp-btn--approve:hover {
+    background: #059669;
+}
+
+.cp-btn--reject {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+.cp-btn--reject:hover {
+    background: rgba(239, 68, 68, 0.25);
+}
+
+.cp-table-wrap { overflow-x: auto; margin-bottom: 1.25rem; }
 
 .cp-table {
     width: 100%;
@@ -214,6 +367,52 @@ function formatDate(iso) {
     vertical-align: middle;
     color: rgba(255,255,255,0.75);
     border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.cp-tr--selected {
+    background: rgba(155, 110, 232, 0.08);
+}
+
+/* Checkbox */
+.mod-cb {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+.mod-cb__input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+.mod-cb__box {
+    width: 15px;
+    height: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: border-color 0.15s, background 0.15s;
+    color: #9B6EE8;
+}
+.mod-cb:hover .mod-cb__box {
+    border-color: rgba(155, 110, 232, 0.5);
+    background: rgba(155, 110, 232, 0.06);
+}
+.mod-cb__input:checked ~ .mod-cb__box,
+.mod-cb__input:indeterminate ~ .mod-cb__box {
+    border-color: rgba(155, 110, 232, 0.7);
+    background: rgba(155, 110, 232, 0.15);
+}
+.mod-cb__check,
+.mod-cb__minus {
+    width: 10px;
+    height: 10px;
 }
 
 .cp-td-cover { width: 64px; }
@@ -255,8 +454,4 @@ function formatDate(iso) {
 .cp-link:hover { color: #ffb2ef; }
 
 .cp-empty { text-align: center; color: rgba(255,255,255,0.25); padding: 2rem; }
-
-.cp-pagination { display: flex; gap: 0.4rem; margin-top: 1.25rem; }
-.cp-page-btn { padding: 0.35rem 0.7rem; border-radius: 5px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); font-size: 0.85rem; cursor: pointer; text-decoration: none; }
-.cp-page-btn--active { background: rgba(255, 178, 239,0.2); border-color: rgba(255, 178, 239,0.4); color: #ffb2ef; }
 </style>

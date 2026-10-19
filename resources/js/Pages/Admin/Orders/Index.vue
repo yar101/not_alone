@@ -1,7 +1,9 @@
 <script setup>
 import { ref, watch } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
+import AdminPagination from '@/Components/Admin/AdminPagination.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -30,7 +32,7 @@ function applyFilters() {
         category_id: categoryId.value  || undefined,
         date_from:   dateFrom.value    || undefined,
         date_to:     dateTo.value      || undefined,
-    }, { preserveState: false });
+    }, { preserveState: true, preserveScroll: true });
 }
 
 function onSearchInput() {
@@ -47,15 +49,17 @@ watch([categoryId, dateFrom, dateTo], applyFilters);
 
 // ─── Status modal ─────────────────────────────────────────────────────────────
 
-const modalOrder    = ref(null);
-const modalStatus   = ref('');
-const modalNote     = ref('');
-const modalLoading  = ref(false);
-const modalHistory  = ref([]);
-const historyLoading = ref(false);
-const statusError   = ref('');
+const modalOrder     = ref(null);
+const modalStatus    = ref('');
+const modalNote      = ref('');
+const modalLoading   = ref(false);
+const modalHistory   = ref([]);
+const historyLoading  = ref(false);
+const statusError    = ref('');
+const isHistoryOnly  = ref(false);
 
-async function openModal(order) {
+async function openModal(order, historyOnly = false) {
+    isHistoryOnly.value = historyOnly;
     modalOrder.value  = order;
     modalStatus.value = order.status;
     modalNote.value   = '';
@@ -75,6 +79,7 @@ function closeModal() {
     modalOrder.value = null;
     modalHistory.value = [];
     statusError.value = '';
+    isHistoryOnly.value = false;
 }
 
 function submitStatus() {
@@ -98,9 +103,20 @@ function submitStatus() {
 
 <template>
     <div class="page">
-        <div class="page-header">
-            <h1 class="page-title">Заказы</h1>
-        </div>
+        <AdminPageHeader
+            title="Заказы"
+            subtitle="Управление заказами, историей статусов и модерация спорных ситуаций"
+            :count="counts.total"
+        >
+            <template #actions>
+                <a :href="route('admin.export.orders')" class="export-btn" download>
+                    <svg class="export-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                    </svg>
+                    <span>Экспорт CSV</span>
+                </a>
+            </template>
+        </AdminPageHeader>
 
         <!-- Status tabs -->
         <div class="status-tabs">
@@ -159,7 +175,11 @@ function submitStatus() {
                 </thead>
                 <tbody>
                     <tr v-for="order in orders.data" :key="order.id">
-                        <td class="td-id">{{ order.id }}</td>
+                        <td class="td-id">
+                            <Link :href="route('admin.orders.show', order.id)" class="order-id-link">
+                                #{{ order.id }}
+                            </Link>
+                        </td>
                         <td class="td-user">
                             <div class="user-cell">
                                 <div class="user-name">{{ order.customer.name }}</div>
@@ -191,7 +211,13 @@ function submitStatus() {
                         </td>
                         <td class="td-date">{{ order.created_at }}</td>
                         <td class="td-action">
-                            <button class="btn-edit" @click="openModal(order)">Статус</button>
+                            <div class="actions-group">
+                                <Link :href="route('admin.orders.show', order.id)" class="btn-detail-link">
+                                    Детали →
+                                </Link>
+                                <button class="btn-edit" @click="openModal(order, false)">Статус</button>
+                                <button class="btn-history" @click="openModal(order, true)">История</button>
+                            </div>
                         </td>
                     </tr>
                     <tr v-if="!orders.data.length">
@@ -202,17 +228,7 @@ function submitStatus() {
         </div>
 
         <!-- Pagination -->
-        <div class="pagination" v-if="orders.last_page > 1">
-            <a
-                v-for="link in orders.links"
-                :key="link.label"
-                :href="link.url || '#'"
-                class="page-link"
-                :class="{ 'page-link--active': link.active, 'page-link--disabled': !link.url }"
-                v-html="link.label"
-                @click.prevent="link.url && router.get(link.url, {}, { preserveState: false })"
-            />
-        </div>
+        <AdminPagination :pagination="orders" />
     </div>
 
     <!-- Status modal -->
@@ -220,7 +236,7 @@ function submitStatus() {
         <div v-if="modalOrder" class="overlay" @click.self="closeModal">
             <div class="modal">
                 <div class="modal__header">
-                    <span>Заказ #{{ modalOrder.id }}</span>
+                    <span>Заказ #{{ modalOrder.id }} — {{ isHistoryOnly ? 'История переходов статуса' : 'Управление статусом' }}</span>
                     <button class="modal__close" @click="closeModal">✕</button>
                 </div>
                 <div class="modal__body">
@@ -228,25 +244,28 @@ function submitStatus() {
                         <label>Текущий статус</label>
                         <span class="badge" :class="`badge--${modalOrder.status_color}`">{{ modalOrder.status_label }}</span>
                     </div>
-                    <div class="field">
-                        <label>Новый статус</label>
-                        <select v-model="modalStatus" class="input">
-                            <option v-for="s in statuses" :key="s.value" :value="s.value">{{ s.label }}</option>
-                        </select>
-                    </div>
-                    <div class="field">
-                        <label>Примечание администратора (необязательно)</label>
-                        <textarea v-model="modalNote" class="input input--textarea" placeholder="Причина изменения статуса…" rows="3"></textarea>
-                    </div>
-                    <div v-if="statusError" class="modal__error">{{ statusError }}</div>
-                    <div class="modal__actions">
-                        <button class="btn-cancel" @click="closeModal">Отмена</button>
-                        <button
-                            class="btn-submit"
-                            :disabled="modalLoading || modalStatus === modalOrder.status"
-                            @click="submitStatus"
-                        >{{ modalLoading ? 'Сохраняем…' : 'Сохранить' }}</button>
-                    </div>
+
+                    <template v-if="!isHistoryOnly">
+                        <div class="field">
+                            <label>Новый статус</label>
+                            <select v-model="modalStatus" class="input">
+                                <option v-for="s in statuses" :key="s.value" :value="s.value">{{ s.label }}</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Примечание администратора (необязательно)</label>
+                            <textarea v-model="modalNote" class="input input--textarea" placeholder="Причина изменения статуса…" rows="3"></textarea>
+                        </div>
+                        <div v-if="statusError" class="modal__error">{{ statusError }}</div>
+                        <div class="modal__actions">
+                            <button class="btn-cancel" @click="closeModal">Отмена</button>
+                            <button
+                                class="btn-submit"
+                                :disabled="modalLoading || modalStatus === modalOrder.status"
+                                @click="submitStatus"
+                            >{{ modalLoading ? 'Сохраняем…' : 'Сохранить' }}</button>
+                        </div>
+                    </template>
 
                     <!-- History -->
                     <div class="history">
@@ -343,8 +362,15 @@ function submitStatus() {
 .history__note { font-size: 0.75rem; color: rgba(255,255,255,0.4); font-style: italic; padding-left: 0.25rem; border-left: 2px solid rgba(255,255,255,0.1); }
 
 /* Action buttons */
+.order-id-link { color: #38bdf8; text-decoration: none; font-family: ui-monospace, monospace; font-weight: 600; }
+.order-id-link:hover { text-decoration: underline; }
+.actions-group { display: flex; align-items: center; gap: 0.35rem; }
+.btn-detail-link { padding: 0.3rem 0.65rem; border-radius: 3px; font-size: 0.78rem; text-decoration: none; font-family: inherit; transition: all 0.15s; border: 1px solid rgba(56,189,248,0.3); background: rgba(56,189,248,0.08); color: #38bdf8; display: inline-flex; align-items: center; }
+.btn-detail-link:hover { background: rgba(56,189,248,0.2); border-color: rgba(56,189,248,0.5); color: #fff; }
 .btn-edit { padding: 0.3rem 0.7rem; border-radius: 3px; font-size: 0.78rem; cursor: pointer; font-family: inherit; transition: background 0.15s; border: 1px solid rgba(255,255,255,0.15); background: transparent; color: rgba(255,255,255,0.6); }
 .btn-edit:hover { background: rgba(255,255,255,0.08); }
+.btn-history { padding: 0.3rem 0.65rem; border-radius: 3px; font-size: 0.78rem; cursor: pointer; font-family: inherit; transition: all 0.15s; border: 1px solid rgba(155,110,232,0.3); background: rgba(155,110,232,0.08); color: #c084fc; }
+.btn-history:hover { background: rgba(155,110,232,0.2); border-color: rgba(155,110,232,0.5); color: #fff; }
 
 /* Pagination */
 .pagination { display: flex; gap: 0.25rem; margin-top: 1.5rem; flex-wrap: wrap; }
@@ -379,6 +405,31 @@ function submitStatus() {
 .btn-cancel { padding: 0.45rem 0.9rem; border: 1px solid rgba(255,255,255,0.12); border-radius: 3px; background: transparent; color: rgba(255,255,255,0.4); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
 .btn-submit { padding: 0.45rem 1rem; border: 1px solid rgba(190,145,255,0.45); border-radius: 3px; background: rgba(190,145,255,0.1); color: rgba(255,255,255,0.9); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
 .btn-submit:disabled { opacity: 0.5; cursor: default; }
+
+.export-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.82rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+.export-btn:hover {
+    background: rgba(190, 145, 255, 0.1);
+    border-color: rgba(190, 145, 255, 0.35);
+    color: #fff;
+}
+.export-btn__icon {
+    width: 15px;
+    height: 15px;
+    stroke: currentColor;
+}
 
 @media (max-width: 600px) {
     .filter-select,

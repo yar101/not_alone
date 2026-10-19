@@ -1656,11 +1656,11 @@ defineExpose({ toggleDropdown });
 @media (max-width: 540px) {
     .notif-dropdown {
         position: fixed;
-        top: 60px;
+        top: calc(60px + var(--impersonate-banner-height, 0px));
         left: 0.5rem;
         right: 0.5rem;
         width: auto;
-        max-height: calc(100vh - 80px);
+        max-height: calc(100vh - 80px - var(--impersonate-banner-height, 0px));
         overflow-y: auto;
     }
     .notif-list {

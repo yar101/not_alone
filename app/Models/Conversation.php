@@ -26,6 +26,11 @@ class Conversation extends Model
         return $this->belongsTo(Order::class);
     }
 
+    public function linkedOrders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'conversation_id');
+    }
+
     public function messages(): HasMany
     {
         return $this->hasMany(Message::class);

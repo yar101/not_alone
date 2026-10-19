@@ -1,6 +1,7 @@
 <script setup>
 import { ref, reactive, computed } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
+import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 defineOptions({ layout: AdminLayout });
@@ -92,16 +93,26 @@ function submit() {
 
 function reject() {
     if (!rejectionReason.value.trim()) { showReject.value = true; return; }
-    if (!confirm('Полностью отклонить услугу? Айдол получит уведомление.')) return;
-    submitting.value = true;
-    router.post(route('admin.services.moderation.decide', props.service.id), {
-        decision: 'rejected',
-        rejection_reason: rejectionReason.value,
-    }, {
-        preserveScroll: true,
-        onError: (errs) => { errors.value = errs; submitting.value = false; },
-        onFinish: () => { submitting.value = false; },
-    });
+    ElMessageBox.confirm(
+        'Полностью отклонить услугу? Айдол получит уведомление.',
+        'Отклонение услуги',
+        {
+            confirmButtonText: 'Отклонить',
+            cancelButtonText: 'Отмена',
+            type: 'warning',
+            confirmButtonClass: 'el-button--danger',
+        }
+    ).then(() => {
+        submitting.value = true;
+        router.post(route('admin.services.moderation.decide', props.service.id), {
+            decision: 'rejected',
+            rejection_reason: rejectionReason.value,
+        }, {
+            preserveScroll: true,
+            onError: (errs) => { errors.value = errs; submitting.value = false; },
+            onFinish: () => { submitting.value = false; },
+        });
+    }).catch(() => {});
 }
 
 // ── History Details Modal ───────────────────────────────

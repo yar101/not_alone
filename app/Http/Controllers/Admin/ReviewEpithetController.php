@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ReviewEpithet;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class ReviewEpithetController extends Controller
@@ -55,11 +56,13 @@ class ReviewEpithetController extends Controller
             'items.*.sort_order' => 'required|integer',
         ]);
 
-        foreach ($request->items as $item) {
-            ReviewEpithet::withoutGlobalScopes()
-                ->where('id', $item['id'])
-                ->update(['sort_order' => $item['sort_order']]);
-        }
+        DB::transaction(function () use ($request) {
+            foreach ($request->items as $item) {
+                ReviewEpithet::withoutGlobalScopes()
+                    ->where('id', $item['id'])
+                    ->update(['sort_order' => $item['sort_order']]);
+            }
+        });
 
         return back();
     }

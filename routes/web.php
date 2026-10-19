@@ -29,6 +29,7 @@ use Inertia\Inertia;
 
 // ── Public Routes ─────────────────────────────────────────────────────────────
 Route::post('/locale', [LocaleController::class, 'switch'])->name('locale.switch');
+Route::post('/impersonate/leave', [\App\Http\Controllers\Admin\ImpersonationController::class, 'leave'])->name('impersonate.leave');
 
 Route::get('/about', AboutController::class)->name('about');
 Route::get('/contacts', function () {

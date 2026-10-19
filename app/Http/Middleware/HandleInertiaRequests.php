@@ -4,10 +4,14 @@ namespace App\Http\Middleware;
 
 use App\Models\AdminBroadcast;
 use App\Models\BanReason;
+use App\Models\ContentPack;
+use App\Models\ContentPackChangeRequest;
 use App\Models\IdolApplication;
 use App\Models\InterestSuggestion;
+use App\Models\OrderDispute;
 use App\Models\ReviewDispute;
 use App\Models\Service;
+use App\Models\ServiceChangeRequest;
 use App\Models\TraitSuggestion;
 use App\Models\User;
 use App\Models\UserReport;
@@ -90,6 +94,10 @@ class HandleInertiaRequests extends Middleware
         $adminBadges = $isAdmin ? [
             'pending_applications_count' => Inertia::defer(fn () => IdolApplication::where('status', 'pending')->count(), 'admin_badges'),
             'pending_services_count' => Inertia::defer(fn () => Service::where('status', 'pending')->count(), 'admin_badges'),
+            'pending_service_changes_count' => Inertia::defer(fn () => ServiceChangeRequest::where('status', 'pending')->count(), 'admin_badges'),
+            'pending_content_packs_count' => Inertia::defer(fn () => ContentPack::where('status', 'pending_review')->count(), 'admin_badges'),
+            'pending_content_pack_changes_count' => Inertia::defer(fn () => ContentPackChangeRequest::where('status', 'pending')->count(), 'admin_badges'),
+            'pending_disputes_count' => Inertia::defer(fn () => OrderDispute::where('status', 'open')->count(), 'admin_badges'),
             'pending_reports_count' => Inertia::defer(fn () => UserReport::where('status', 'pending')->count(), 'admin_badges'),
             'pending_trait_suggestions_count' => Inertia::defer(fn () => TraitSuggestion::where('status', 'pending')->count(), 'admin_badges'),
             'pending_interest_suggestions_count' => Inertia::defer(fn () => InterestSuggestion::where('status', 'pending')->count(), 'admin_badges'),
@@ -97,6 +105,10 @@ class HandleInertiaRequests extends Middleware
         ] : [
             'pending_applications_count' => 0,
             'pending_services_count' => 0,
+            'pending_service_changes_count' => 0,
+            'pending_content_packs_count' => 0,
+            'pending_content_pack_changes_count' => 0,
+            'pending_disputes_count' => 0,
             'pending_reports_count' => 0,
             'pending_trait_suggestions_count' => 0,
             'pending_interest_suggestions_count' => 0,
@@ -113,6 +125,7 @@ class HandleInertiaRequests extends Middleware
                 'data' => $unreadStrike->data,
             ] : null,
             'auth_admin' => auth('admin')->user(),
+            'impersonating' => $request->session()->has('impersonator_admin_id'),
             ...$userBadges,
             'is_idol' => $user?->is_idol ?? false,
             'idol_status' => $idolStatus,
@@ -123,10 +136,36 @@ class HandleInertiaRequests extends Middleware
             'user_ban_reasons' => fn () => $isAdmin
                 ? cache()->rememberForever('user_ban_reasons_list', fn () => BanReason::forUserBan()->get()->map(fn ($r) => $r->label)->unique()->values())
                 : [],
-            'flash' => [
-                'success' => $request->session()->get('success'),
-                'service_pending' => $request->session()->get('service_pending'),
-            ],
+            'flash' => function () use ($request) {
+                if ($request->header('X-Inertia-Partial-Data')) {
+                    return [
+                        'token' => null,
+                        'success' => null,
+                        'error' => null,
+                        'warning' => null,
+                        'info' => null,
+                        'service_pending' => null,
+                    ];
+                }
+
+                $success = $request->session()->get('success');
+                $error = $request->session()->get('error');
+                $warning = $request->session()->get('warning');
+                $info = $request->session()->get('info');
+                $servicePending = $request->session()->get('service_pending');
+
+                $hasMessage = $success !== null || $error !== null || $warning !== null || $info !== null;
+                $token = $hasMessage ? ($request->session()->get('flash_token') ?: md5(uniqid((string) mt_rand(), true))) : null;
+
+                return [
+                    'token' => $token,
+                    'success' => $success,
+                    'error' => $error,
+                    'warning' => $warning,
+                    'info' => $info,
+                    'service_pending' => $servicePending,
+                ];
+            },
             'locale' => [
                 'current' => app()->getLocale(),
                 'available' => config('app.available_locales'),

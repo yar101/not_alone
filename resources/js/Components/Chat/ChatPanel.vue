@@ -4118,7 +4118,7 @@ function formatDate(iso) {
 /* ── Panel ────────────────────────────────────────────── */
 .chat-panel {
     position: fixed;
-    top: 16px;
+    top: calc(16px + var(--impersonate-banner-height, 0px));
     right: 0;
     bottom: 0;
     width: 1100px;
@@ -7395,7 +7395,7 @@ function formatDate(iso) {
 
 @media (max-width: 767px) {
     .chat-panel {
-        top: 1rem;
+        top: calc(1rem + var(--impersonate-banner-height, 0px));
         left: 1rem;
         right: 1rem;
         bottom: 1rem;
@@ -7632,7 +7632,7 @@ function formatDate(iso) {
 
 @media (min-width: 768px) {
     .chat-panel {
-        top: 16px;
+        top: calc(16px + var(--impersonate-banner-height, 0px));
         right: 16px;
         bottom: 16px;
         max-width: calc(100vw - 32px);

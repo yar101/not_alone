@@ -1,6 +1,7 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
+import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 defineOptions({ layout: AdminLayout });
@@ -108,8 +109,13 @@ function submitNew(stage) {
 }
 
 function deleteQuestion(id) {
-    if (!confirm('Удалить вопрос?')) return;
-    router.delete(route('admin.quiz.questions.destroy', id));
+    ElMessageBox.confirm('Удалить вопрос?', 'Подтверждение удаления', {
+        confirmButtonText: 'Удалить',
+        cancelButtonText: 'Отмена',
+        type: 'warning',
+    }).then(() => {
+        router.delete(route('admin.quiz.questions.destroy', id), { preserveScroll: true });
+    }).catch(() => {});
 }
 
 // Edit mode

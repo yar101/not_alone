@@ -77,6 +77,14 @@ class PlatformSettingsController extends Controller
             PlatformSetting::set('rating_delta_'.$event, $delta);
         }
 
+        \App\Services\AdminLogService::log(
+            auth('admin')->id(),
+            'update_platform_settings',
+            'platform_setting',
+            null,
+            $data
+        );
+
         return back()->with('success', 'Настройки сохранены.');
     }
 }

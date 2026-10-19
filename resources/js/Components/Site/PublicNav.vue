@@ -300,7 +300,7 @@ function onTabClick(tab) {
     .pub-tabs {
         display: none;
         position: fixed;
-        top: 100px;
+        top: calc(100px + var(--impersonate-banner-height, 0px));
         right: 1rem;
         left: 1rem;
         flex-direction: column;

@@ -4,7 +4,7 @@ import { useForm, router, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import HtmlEditor from '@/Components/Admin/HtmlEditor.vue';
 import axios from 'axios';
-import { ElNotification } from 'element-plus';
+import { ElNotification, ElMessageBox, ElMessage } from 'element-plus';
 
 defineOptions({ layout: AdminLayout });
 
@@ -34,17 +34,6 @@ const saveForm = useForm({ html: '', label: '' });
 const importForm = useForm({ file: null });
 
 const page = usePage();
-
-watch(() => page.props.flash?.success, (successMsg) => {
-    if (successMsg) {
-        ElNotification({
-            title: 'Успешно',
-            message: successMsg,
-            type: 'success',
-            duration: 5000,
-        });
-    }
-}, { immediate: true });
 
 function saveVersion() {
     savePending.value = true;
@@ -99,15 +88,20 @@ function confirmActivate() {
 
 // ── Load version ──────────────────────────────────────────
 function loadVersion(version) {
-    if (confirm(`Загрузить версию от ${fmtDate(version.created_at)} в редактор? Несохранённые изменения будут потеряны.`)) {
+    ElMessageBox.confirm(`Загрузить версию от ${fmtDate(version.created_at)} в редактор? Несохранённые изменения будут потеряны.`, 'Загрузка версии', {
+        confirmButtonText: 'Загрузить',
+        cancelButtonText: 'Отмена',
+        type: 'warning',
+    }).then(() => {
         axios.get(route('admin.quiz.article.versions.show', version.id))
             .then(r => {
                 editorHtml.value = r.data.html ?? '';
+                ElMessage.success('Версия загружена в редактор');
             })
             .catch(err => {
-                alert('Не удалось загрузить версию: ' + (err.response?.data?.message || err.message));
+                ElMessage.error('Не удалось загрузить версию: ' + (err.response?.data?.message || err.message));
             });
-    }
+    }).catch(() => {});
 }
 
 // ── Delete version ────────────────────────────────────────
@@ -183,7 +177,7 @@ function runCompare() {
         htmlB.value = resB.data.html ?? '';
     })
     .catch(err => {
-        alert('Ошибка при загрузке содержимого версий: ' + (err.response?.data?.message || err.message));
+        ElMessage.error('Ошибка при загрузке содержимого версий: ' + (err.response?.data?.message || err.message));
     })
     .finally(() => {
         diffLoading.value = false;

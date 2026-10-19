@@ -1,6 +1,8 @@
 <script setup>
 import { Link, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
+import AdminPagination from '@/Components/Admin/AdminPagination.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -21,9 +23,11 @@ function goToBan(userId) {
 
 <template>
     <div>
-        <div class="page-header">
-            <h1 class="page-title">Блокировки в чате</h1>
-        </div>
+        <AdminPageHeader
+            title="Блокировки в чате"
+            subtitle="Мониторинг персональных и взаимных блокировок между пользователями платформы"
+            :count="blocks.total"
+        />
 
         <!-- Топ блокируемых -->
         <section class="section">
@@ -93,19 +97,7 @@ function goToBan(userId) {
             </div>
 
             <!-- Пагинация -->
-            <div v-if="blocks.last_page > 1" class="pagination">
-                <Link
-                    v-for="link in blocks.links"
-                    :key="link.label"
-                    :href="link.url ?? '#'"
-                    class="page-link"
-                    :class="{
-                        'page-link--active': link.active,
-                        'page-link--disabled': !link.url,
-                    }"
-                    v-html="link.label"
-                />
-            </div>
+            <AdminPagination :links="blocks.links" />
         </section>
     </div>
 </template>

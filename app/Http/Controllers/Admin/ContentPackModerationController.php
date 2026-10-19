@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Events\NewNotification;
 use App\Http\Controllers\Controller;
 use App\Models\ContentPack;
+use App\Models\ContentPackReview;
 use App\Notifications\ContentPackApprovedNotification;
 use App\Notifications\ContentPackRejectedNotification;
 use App\Notifications\ContentPackRemarksNotification;
@@ -12,6 +13,7 @@ use App\Services\AdminLogService;
 use App\Traits\SafeBroadcast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -24,13 +26,9 @@ class ContentPackModerationController extends Controller
         $status = $request->input('status', 'pending_review');
         $search = $request->input('search');
 
-        $query = ContentPack::with(['user', 'photos', 'latestReview'])
-            ->when($status !== 'all', fn ($q) => $q->where('status', $status))
-            ->when($search, fn ($q) => $q->where(fn ($q2) => $q2->where('title', 'like', "%{$search}%")
-                ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%"))
-            ));
+        $query = $this->buildFilterQuery($request);
 
-        $packs = $query->latest()->paginate(50)->through(fn (ContentPack $p) => [
+        $packs = $query->latest()->paginate(50)->withQueryString()->through(fn (ContentPack $p) => [
             'id' => $p->id,
             'title' => $p->title,
             'price' => $p->price,
@@ -47,7 +45,7 @@ class ContentPackModerationController extends Controller
 
         $rawCounts = ContentPack::query()
             ->selectRaw('status, (resubmitted_at IS NOT NULL) as is_resubmitted, count(*) as count')
-            ->groupBy('status', \Illuminate\Support\Facades\DB::raw('(resubmitted_at IS NOT NULL)'))
+            ->groupBy('status', DB::raw('(resubmitted_at IS NOT NULL)'))
             ->get();
 
         $counts = [
@@ -182,4 +180,118 @@ class ContentPackModerationController extends Controller
 
         return back()->with('success', 'Решение отправлено.');
     }
+
+    public function bulkApprove(Request $request): RedirectResponse
+    {
+        $adminId = auth('admin')->id();
+
+        if ($request->boolean('filter_all')) {
+            $query = $this->buildFilterQuery($request);
+            $ids = $query->pluck('id');
+        } else {
+            $ids = collect($request->input('ids', []));
+        }
+
+        if ($ids->isEmpty()) {
+            return back();
+        }
+
+        $packs = ContentPack::whereIn('id', $ids)->with('user')->get();
+
+        DB::transaction(function () use ($ids, $adminId) {
+            ContentPack::whereIn('id', $ids)->update([
+                'status' => 'approved',
+                'moderated_by' => $adminId,
+                'moderated_at' => now(),
+                'resubmitted_at' => null,
+            ]);
+
+            foreach ($ids as $id) {
+                ContentPackReview::create([
+                    'content_pack_id' => $id,
+                    'admin_id' => $adminId,
+                    'decision' => 'approved',
+                ]);
+            }
+
+            AdminLogService::log($adminId, 'bulk_approve_content_packs', 'content_pack', null, ['count' => $ids->count()]);
+        });
+
+        foreach ($packs as $pack) {
+            if ($pack->user) {
+                $pack->user->notify(new ContentPackApprovedNotification($pack));
+                $this->safeBroadcast(new NewNotification('private', $pack->user->id));
+            }
+        }
+
+        return back()->with('success', "Одобрено паков: {$ids->count()}.");
+    }
+
+    public function bulkReject(Request $request): RedirectResponse
+    {
+        $adminId = auth('admin')->id();
+
+        if ($request->boolean('filter_all')) {
+            $query = $this->buildFilterQuery($request);
+            $ids = $query->pluck('id');
+        } else {
+            $ids = collect($request->input('ids', []));
+        }
+
+        if ($ids->isEmpty()) {
+            return back();
+        }
+
+        $packs = ContentPack::whereIn('id', $ids)->with(['user', 'photos'])->get();
+
+        DB::transaction(function () use ($packs, $adminId) {
+            foreach ($packs as $pack) {
+                foreach ($pack->photos as $photo) {
+                    if (Storage::exists($photo->path)) {
+                        Storage::delete($photo->path);
+                    }
+                }
+                Storage::deleteDirectory('content-packs/'.$pack->id);
+                Storage::deleteDirectory('temp/content-packs/'.$pack->id);
+                $pack->photos()->delete();
+
+                $pack->update([
+                    'status' => 'rejected',
+                    'cover_path' => null,
+                    'resubmitted_at' => null,
+                    'moderated_by' => $adminId,
+                    'moderated_at' => now(),
+                ]);
+
+                $pack->reviews()->create([
+                    'admin_id' => $adminId,
+                    'decision' => 'rejected',
+                ]);
+            }
+
+            AdminLogService::log($adminId, 'bulk_reject_content_packs', 'content_pack', null, ['count' => $packs->count()]);
+        });
+
+        foreach ($packs as $pack) {
+            if ($pack->user) {
+                $pack->user->notify(new ContentPackRejectedNotification($pack));
+                $this->safeBroadcast(new NewNotification('private', $pack->user->id));
+            }
+        }
+
+        return back()->with('success', "Отклонено паков: {$ids->count()}.");
+    }
+
+    private function buildFilterQuery(Request $request)
+    {
+        $status = $request->input('status', 'pending_review');
+        $search = $request->input('search');
+
+        return ContentPack::with(['user:id,name,avatar_path'])
+            ->when($status !== 'all', fn ($q) => $q->where('status', $status))
+            ->when($search, fn ($q) => $q->where(fn ($q2) => $q2->where('title', 'like', "%{$search}%")
+                ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%"))
+            ));
+    }
 }
+

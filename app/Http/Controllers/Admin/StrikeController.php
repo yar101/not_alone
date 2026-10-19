@@ -8,6 +8,7 @@ use App\Models\UserStrike;
 use App\Notifications\UserStrikeNotification;
 use App\Services\AdminLogService;
 use App\Services\IdolRatingService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -17,6 +18,7 @@ class StrikeController extends Controller
     public function index(Request $request)
     {
         $search = $request->query('q');
+        $status = $request->query('status', 'all');
 
         $users = [];
         if ($search) {
@@ -46,9 +48,64 @@ class StrikeController extends Controller
                 });
         }
 
+        $strikesQuery = UserStrike::with([
+            'user' => fn ($q) => $q->withTrashed(),
+            'admin',
+        ])->latest('created_at');
+
+        if ($status === 'active') {
+            $strikesQuery->where('expires_at', '>', now());
+        } elseif ($status === 'expired') {
+            $strikesQuery->where('expires_at', '<=', now());
+        }
+
+        if ($search) {
+            $strikesQuery->where(function ($q) use ($search) {
+                if (is_numeric($search)) {
+                    $q->where('id', (int) $search)->orWhere('user_id', (int) $search);
+                }
+                $q->orWhereHas('user', fn ($uq) => $uq->where('name', 'ilike', "%{$search}%")->orWhere('email', 'ilike', "%{$search}%"))
+                  ->orWhere('admin_note', 'ilike', "%{$search}%");
+            });
+        }
+
+        $strikes = $strikesQuery->paginate(20)->withQueryString()->through(fn (UserStrike $s) => [
+            'id' => $s->id,
+            'user' => [
+                'id' => $s->user?->id,
+                'name' => $s->user?->name ?? 'Удаленный пользователь',
+                'email' => $s->user?->email,
+                'avatar_url' => $s->user?->avatar_url,
+                'is_idol' => (bool) $s->user?->is_idol,
+                'is_banned' => (bool) $s->user?->is_banned,
+                'is_deleted' => (bool) $s->user?->trashed(),
+            ],
+            'admin' => [
+                'name' => $s->admin?->name ?? 'Система',
+            ],
+            'rating_deducted' => (float) $s->rating_deducted,
+            'admin_note' => $s->admin_note,
+            'expires_at' => $s->expires_at?->format('d.m.Y H:i'),
+            'created_at' => $s->created_at->format('d.m.Y H:i'),
+            'is_active' => $s->expires_at ? $s->expires_at->isFuture() : true,
+        ]);
+
+        $activeCount = UserStrike::where('expires_at', '>', now())->count();
+        $expiredCount = UserStrike::where('expires_at', '<=', now())->count();
+        $totalCount = $activeCount + $expiredCount;
+
         return Inertia::render('Admin/Strikes/Index', [
             'users' => $users,
-            'filters' => ['q' => $search],
+            'strikes' => $strikes,
+            'filters' => [
+                'q' => $search,
+                'status' => $status,
+            ],
+            'counts' => [
+                'all' => $totalCount,
+                'active' => $activeCount,
+                'expired' => $expiredCount,
+            ],
         ]);
     }
 
@@ -102,6 +159,7 @@ class StrikeController extends Controller
                     'banned_until' => $validated['banned_until'] ?? null,
                     'ban_reason' => $validated['ban_reason'],
                     'banned_by' => auth('admin')->id(),
+                    'remember_token' => \Illuminate\Support\Str::random(60),
                 ]);
 
                 // Invalidate sessions
@@ -127,5 +185,34 @@ class StrikeController extends Controller
         });
 
         return back()->with('success', 'Страйк успешно выдан'.($activeStrikes >= 2 ? ' и пользователь забанен' : ''));
+    }
+
+    public function destroy(UserStrike $strike): RedirectResponse
+    {
+        DB::transaction(function () use ($strike) {
+            $user = $strike->user;
+
+            // If rating was deducted from idol, return it
+            if ($user && $user->is_idol && $strike->rating_deducted < 0) {
+                $restoreAmount = abs((float) $strike->rating_deducted);
+                $user->increment('rating', $restoreAmount);
+            }
+
+            AdminLogService::log(
+                auth('admin')->id(),
+                'strike_cancel',
+                'user_strike',
+                $strike->id,
+                [
+                    'user_id' => $strike->user_id,
+                    'rating_returned' => abs((float) $strike->rating_deducted),
+                    'admin_note' => $strike->admin_note,
+                ]
+            );
+
+            $strike->delete();
+        });
+
+        return back()->with('success', 'Страйк успешно отозван.');
     }
 }

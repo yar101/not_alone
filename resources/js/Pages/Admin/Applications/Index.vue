@@ -1,7 +1,9 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
+import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminPagination from '@/Components/Admin/AdminPagination.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -23,8 +25,13 @@ function openReject(id) {
 }
 
 function approve(id) {
-    if (!confirm('Одобрить заявку?')) return;
-    router.patch(route('admin.applications.approve', id));
+    ElMessageBox.confirm('Одобрить заявку на статус айдола?', 'Подтверждение', {
+        confirmButtonText: 'Одобрить',
+        cancelButtonText: 'Отмена',
+        type: 'success',
+    }).then(() => {
+        router.patch(route('admin.applications.approve', id));
+    }).catch(() => {});
 }
 
 function submitReject() {
@@ -100,16 +107,7 @@ const statusClass = { pending: 'badge--pending', approved: 'badge--approved', re
         </div>
 
         <!-- Pagination -->
-        <div class="pagination" v-if="applications.last_page > 1">
-            <Link
-                v-for="link in applications.links"
-                :key="link.label"
-                :href="link.url || '#'"
-                class="page-link"
-                :class="{ 'page-link--active': link.active, 'page-link--disabled': !link.url }"
-                v-html="link.label"
-            />
-        </div>
+        <AdminPagination :pagination="applications" />
 
         <!-- Reject Modal -->
         <div v-if="showRejectModal" class="modal-overlay" @click.self="showRejectModal = false">

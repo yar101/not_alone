@@ -25,6 +25,7 @@ class ServiceChangeRequestController extends Controller
             ->whereIn('status', ['pending', 'has_remarks'])
             ->latest()
             ->paginate(50)
+            ->withQueryString()
             ->through(fn (ServiceChangeRequest $r) => [
                 'id' => $r->id,
                 'status' => $r->status,

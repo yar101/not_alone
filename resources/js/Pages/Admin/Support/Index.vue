@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
+import { ElMessage } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import UserPickerModal from '@/Components/Admin/UserPickerModal.vue';
 
@@ -197,7 +198,7 @@ async function onFileSelected(e) {
     const file = e.target.files?.[0];
     if (!file || !activeConv.value) return;
     e.target.value = '';
-    if (file.size > 5 * 1024 * 1024) { alert('Файл слишком большой. Максимум 5 МБ.'); return; }
+    if (file.size > 5 * 1024 * 1024) { ElMessage.warning('Файл слишком большой. Максимум 5 МБ.'); return; }
     uploading.value = true;
     try {
         const fd = new FormData();

@@ -18,10 +18,14 @@ class ConversationController extends Controller
 
         if ($request->filled('id')) {
             $query->where('id', $request->id);
-        }
-
-        if ($request->filled('order_id')) {
-            $query->where('order_id', $request->order_id);
+        } elseif ($request->filled('order_id')) {
+            $orderId = $request->order_id;
+            $query->where(function ($q) use ($orderId) {
+                $q->where('order_id', $orderId)
+                  ->orWhereHas('linkedOrders', function ($sub) use ($orderId) {
+                      $sub->where('id', $orderId);
+                  });
+            });
         }
 
         if ($request->filled('type')) {

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
+import { ElMessageBox, ElMessage } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
 
@@ -25,6 +26,50 @@ const appStatusLabel = {
     pending:  { text: 'На рассмотрении', cls: 'status--pending' },
     approved: { text: 'Одобрена', cls: 'status--approved' },
     rejected: { text: 'Отклонена', cls: 'status--rejected' },
+};
+
+const ratingEventLabels = {
+    order_completed: 'Заказ успешно выполнен',
+    order_cancelled: 'Заказ отменен',
+    order_refunded: 'Возврат по заказу (спор)',
+    strike: 'Вынесен страйк',
+    manual_adjust: 'Ручная корректировка',
+    review_positive: 'Положительный отзыв',
+    review_negative: 'Отрицательный отзыв',
+};
+
+const transactionTypeLabels = {
+    deposit: 'Пополнение',
+    withdrawal: 'Вывод средств',
+    order_hold: 'Заморозка (заказ)',
+    order_payout: 'Оплата за заказ',
+    order_refund: 'Возврат средств',
+    pack_purchase: 'Покупка пака',
+    pack_sale: 'Продажа пака',
+    platform_fee: 'Комиссия платформы',
+    admin_adjustment: 'Корректировка администратором',
+    order_clawback: 'Списание по спору',
+    order_hold_release: 'Списание из заморозки',
+};
+
+const orderStatusLabels = {
+    pending: 'Ожидает оплаты',
+    paid: 'Оплачен',
+    in_progress: 'В работе',
+    completed: 'Выполнен',
+    cancelled: 'Отменен',
+    disputed: 'В споре',
+    refunded: 'Возврат',
+};
+
+const adminActionLabels = {
+    ban_user: 'Блокировка',
+    unban_user: 'Разблокировка',
+    cooldown_update: 'Изменение кулдауна',
+    cooldown_clear: 'Сброс кулдауна',
+    rating_adjust: 'Корректировка рейтинга',
+    admin_adjustment: 'Корректировка баланса',
+    strike_create: 'Вынесение страйка',
 };
 
 // Ban inline form
@@ -63,8 +108,32 @@ function submitBan() {
 }
 
 function unban() {
-    if (!confirm('Разбанить пользователя?')) return;
-    router.delete(route('admin.users.unban', props.user.id), { preserveScroll: false });
+    ElMessageBox.confirm(
+        'Разблокировать пользователя и восстановить доступ к аккаунту?',
+        'Разблокировка пользователя',
+        {
+            confirmButtonText: 'Разблокировать',
+            cancelButtonText: 'Отмена',
+            type: 'info',
+        }
+    ).then(() => {
+        router.delete(route('admin.users.unban', props.user.id), { preserveScroll: false });
+    }).catch(() => {});
+}
+
+function impersonateUser() {
+    ElMessageBox.confirm(
+        `Вы уверены, что хотите авторизоваться как пользователь ${props.user.name}? Вы перейдете в клиентский интерфейс от его лица. Вверху экрана будет баннер для возврата в админку.`,
+        'Вход под пользователем',
+        {
+            confirmButtonText: 'Войти',
+            cancelButtonText: 'Отмена',
+            type: 'warning',
+            customClass: 'dark-message-box',
+        }
+    ).then(() => {
+        router.post(route('admin.users.impersonate', props.user.id));
+    }).catch(() => {});
 }
 
 // Rating adjustment form
@@ -134,6 +203,9 @@ function submitRating() {
                         <Link :href="route('admin.transactions.index', { user_id: user.id })" class="btn-profile-link">
                             Транзакции кошелька →
                         </Link>
+                        <button type="button" class="btn-profile-link btn-impersonate" @click="impersonateUser">
+                            Войти под пользователем 👤
+                        </button>
                     </div>
                 </div>
             </div>
@@ -329,9 +401,141 @@ function submitRating() {
                                         {{ log.delta > 0 ? '+' : '' }}{{ log.delta }}
                                     </span>
                                 </td>
-                                <td class="muted">{{ log.event }}</td>
+                                <td class="muted">{{ ratingEventLabels[log.event] || log.event }}</td>
                                 <td class="muted">{{ log.note ?? '—' }}</td>
                                 <td class="muted">{{ formatDate(log.created_at) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Finance and Wallet -->
+            <div class="section" v-if="user.wallet">
+                <div class="section-header-flex">
+                    <h2 class="section-title">Финансы и кошелек</h2>
+                    <Link :href="route('admin.transactions.index', { user_id: user.id })" class="btn-profile-link">
+                        Все транзакции пользователя →
+                    </Link>
+                </div>
+
+                <div class="wallet-overview">
+                    <div class="wallet-stat">
+                        <span class="stat-label">Текущий баланс</span>
+                        <strong class="stat-value text-success">{{ user.wallet.balance?.toLocaleString('ru') }} ₽</strong>
+                    </div>
+                    <div class="wallet-stat">
+                        <span class="stat-label">Заморожено (холд)</span>
+                        <strong class="stat-value text-warning">{{ user.wallet.held_balance?.toLocaleString('ru') }} ₽</strong>
+                    </div>
+                    <div class="wallet-stat">
+                        <span class="stat-label">Статус кошелька</span>
+                        <span :class="['badge-sm', user.wallet.is_active ? 'badge-sm--on' : 'badge-sm--off']">
+                            {{ user.wallet.is_active ? 'Активен' : 'Заблокирован' }}
+                        </span>
+                    </div>
+                </div>
+
+                <div v-if="user.transactions?.length" class="table-wrap" style="margin-top: 1rem;">
+                    <div class="subsection-title">Последние 10 транзакций:</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Тип</th>
+                                <th>Сумма</th>
+                                <th>Баланс после</th>
+                                <th>Статус</th>
+                                <th>Описание</th>
+                                <th>Дата</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="t in user.transactions" :key="t.id">
+                                <td>
+                                    <Link :href="route('admin.transactions.index', { search: t.id })" class="target-link">#{{ t.id }}</Link>
+                                </td>
+                                <td>{{ transactionTypeLabels[t.type] || t.type }}</td>
+                                <td>
+                                    <strong>{{ t.amount?.toLocaleString('ru') }} ₽</strong>
+                                </td>
+                                <td class="muted">{{ t.balance_after?.toLocaleString('ru') }} ₽</td>
+                                <td>
+                                    <span :class="['badge-sm', t.status === 'completed' ? 'badge-sm--on' : t.status === 'failed' ? 'badge-sm--off' : 'badge-sm--pending']">
+                                        {{ t.status === 'completed' ? 'Успешно' : t.status === 'failed' ? 'Ошибка' : t.status }}
+                                    </span>
+                                </td>
+                                <td class="muted" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ t.description || '—' }}</td>
+                                <td class="muted">{{ formatDate(t.created_at) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Recent Orders -->
+            <div class="section" v-if="user.recent_orders?.length">
+                <div class="section-header-flex">
+                    <h2 class="section-title">Недавние заказы</h2>
+                    <Link :href="route('admin.orders.index', { search: user.id })" class="btn-profile-link">
+                        Все заказы пользователя →
+                    </Link>
+                </div>
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Роль</th>
+                                <th>Контрагент</th>
+                                <th>Статус</th>
+                                <th>Дата</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="o in user.recent_orders" :key="o.id">
+                                <td>
+                                    <Link :href="route('admin.orders.show', o.id)" class="target-link">#{{ o.id }}</Link>
+                                </td>
+                                <td>
+                                    <span :class="['badge-sm', o.role === 'idol' ? 'badge-sm--idol' : 'badge-sm--user']">
+                                        {{ o.role === 'idol' ? 'Айдол' : 'Клиент' }}
+                                    </span>
+                                </td>
+                                <td>{{ o.role === 'idol' ? o.customer_name : o.idol_name }}</td>
+                                <td>
+                                    <span class="badge-sm badge-sm--status">
+                                        {{ orderStatusLabels[o.status] || o.status }}
+                                    </span>
+                                </td>
+                                <td class="muted">{{ formatDate(o.created_at) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Admin Logs Audit -->
+            <div class="section" v-if="user.admin_logs?.length">
+                <h2 class="section-title">История действий администраторов</h2>
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Администратор</th>
+                                <th>Действие</th>
+                                <th>Детали</th>
+                                <th>Дата</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="alog in user.admin_logs" :key="alog.id">
+                                <td><strong>{{ alog.admin_name }}</strong></td>
+                                <td style="color: #c084fc;">{{ adminActionLabels[alog.action] || alog.action }}</td>
+                                <td class="muted" style="font-family: monospace; font-size: 0.78rem;">
+                                    {{ typeof alog.details === 'object' ? JSON.stringify(alog.details) : (alog.details || '—') }}
+                                </td>
+                                <td class="muted">{{ formatDate(alog.created_at) }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -425,4 +629,18 @@ function submitRating() {
 
 .delta { font-weight: 700; font-size: 0.95rem; font-variant-numeric: tabular-nums; }
 .muted { color: rgba(255,255,255,0.35); }
+
+.section-header-flex { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
+.section-header-flex .section-title { margin-bottom: 0; }
+.wallet-overview { display: flex; gap: 1.5rem; flex-wrap: wrap; padding: 1rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); }
+.wallet-stat { display: flex; flex-direction: column; gap: 0.35rem; }
+.stat-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.4); }
+.stat-value { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; }
+.text-warning { color: #fbbf24; }
+.subsection-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.4); margin-bottom: 0.5rem; }
+.target-link { color: #38bdf8; text-decoration: none; font-weight: 600; border-bottom: 1px dashed rgba(56, 189, 248, 0.5); }
+.target-link:hover { color: #7dd3fc; }
+.badge-sm--idol { background: rgba(192, 132, 252, 0.15); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.3); }
+.badge-sm--user { background: rgba(255, 255, 255, 0.06); color: rgba(255, 255, 255, 0.6); }
+.badge-sm--status { background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.75); }
 </style>

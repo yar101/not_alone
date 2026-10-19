@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 defineOptions({ layout: AdminLayout });
@@ -37,8 +38,14 @@ function saveEdit(item) {
 
 // ─── Delete ───────────────────────────────────────────────────────────────────
 function deleteReason(item) {
-    if (!confirm(`Удалить «${item.label_ru}»?`)) return;
-    router.delete(route('admin.ban-reasons.destroy', item.id), { preserveScroll: true });
+    ElMessageBox.confirm(`Удалить «${item.label_ru}»?`, 'Удаление причины блокировки', {
+        confirmButtonText: 'Удалить',
+        cancelButtonText: 'Отмена',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger',
+    }).then(() => {
+        router.delete(route('admin.ban-reasons.destroy', item.id), { preserveScroll: true });
+    }).catch(() => {});
 }
 
 // ─── Reorder ──────────────────────────────────────────────────────────────────

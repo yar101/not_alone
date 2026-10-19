@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\HelpCategory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -90,9 +91,11 @@ class HelpCategoryController extends Controller
             'ids.*' => 'integer|exists:help_categories,id',
         ])['ids'];
 
-        foreach ($ids as $order => $id) {
-            HelpCategory::where('id', $id)->update(['sort_order' => $order]);
-        }
+        DB::transaction(function () use ($ids) {
+            foreach ($ids as $order => $id) {
+                HelpCategory::where('id', $id)->update(['sort_order' => $order]);
+            }
+        });
 
         return back();
     }

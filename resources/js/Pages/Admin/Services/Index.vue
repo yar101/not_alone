@@ -7,6 +7,7 @@ import AppSelect from '@/Components/AppSelect.vue';
 import CreateButton from '@/Components/CreateButton.vue';
 import ImageDropzone from '@/Components/ImageDropzone.vue';
 import draggable from 'vuedraggable';
+import { ElMessageBox } from 'element-plus';
 
 defineOptions({ layout: AdminLayout });
 
@@ -301,8 +302,14 @@ function submitCat() {
 }
 
 function destroyCat(id) {
-    if (!confirm('Удалить категорию?')) return;
-    router.delete(route('admin.services.categories.destroy', id), { preserveScroll: true });
+    ElMessageBox.confirm('Удалить категорию?', 'Удаление категории', {
+        confirmButtonText: 'Удалить',
+        cancelButtonText: 'Отмена',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger',
+    }).then(() => {
+        router.delete(route('admin.services.categories.destroy', id), { preserveScroll: true });
+    }).catch(() => {});
 }
 
 // Sort modal
@@ -385,8 +392,14 @@ function submitUnit() {
 }
 
 function destroyUnit(id) {
-    if (!confirm('Удалить единицу времени?')) return;
-    router.delete(route('admin.services.time-units.destroy', id), { preserveScroll: true });
+    ElMessageBox.confirm('Удалить единицу времени?', 'Удаление единицы времени', {
+        confirmButtonText: 'Удалить',
+        cancelButtonText: 'Отмена',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger',
+    }).then(() => {
+        router.delete(route('admin.services.time-units.destroy', id), { preserveScroll: true });
+    }).catch(() => {});
 }
 
 // ─── Price Limits ─────────────────────────────────────────────────────────────
@@ -434,8 +447,14 @@ function submitLimit() {
 }
 
 function destroyLimit(id) {
-    if (!confirm('Удалить лимит цены?')) return;
-    router.delete(route('admin.services.price-limits.destroy', id), { preserveScroll: true });
+    ElMessageBox.confirm('Удалить лимит цены?', 'Удаление лимита', {
+        confirmButtonText: 'Удалить',
+        cancelButtonText: 'Отмена',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger',
+    }).then(() => {
+        router.delete(route('admin.services.price-limits.destroy', id), { preserveScroll: true });
+    }).catch(() => {});
 }
 </script>
 

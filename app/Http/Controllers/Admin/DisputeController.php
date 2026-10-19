@@ -32,7 +32,20 @@ class DisputeController extends Controller
             $query->where('status', $statusFilter);
         }
 
-        $disputes = $query->paginate(20)->through(fn (OrderDispute $d) => $this->format($d));
+        $search = trim((string) $request->get('search', ''));
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                if (is_numeric($search)) {
+                    $q->where('order_id', (int) $search);
+                }
+                $q->orWhereHas('customer', fn ($cq) => $cq->where('name', 'ilike', "%{$search}%")->orWhere('email', 'ilike', "%{$search}%"))
+                  ->orWhereHas('order.idol', fn ($iq) => $iq->where('name', 'ilike', "%{$search}%")->orWhere('email', 'ilike', "%{$search}%"))
+                  ->orWhere('reason', 'ilike', "%{$search}%")
+                  ->orWhere('details', 'ilike', "%{$search}%");
+            });
+        }
+
+        $disputes = $query->paginate(20)->withQueryString()->through(fn (OrderDispute $d) => $this->format($d));
 
         $rawCounts = OrderDispute::query()
             ->selectRaw('status, count(*) as count')
@@ -42,6 +55,7 @@ class DisputeController extends Controller
         return Inertia::render('Admin/Disputes/Index', [
             'disputes' => $disputes,
             'status_filter' => $statusFilter,
+            'search' => $search,
             'counts' => [
                 'open' => (int) ($rawCounts['open'] ?? 0),
                 'approved' => (int) ($rawCounts['approved'] ?? 0),
@@ -116,27 +130,28 @@ class DisputeController extends Controller
             'created_at' => $d->created_at->format('d.m.Y H:i'),
             'resolved_at' => $d->resolved_at?->format('d.m.Y H:i'),
             'customer' => [
-                'id' => $d->customer->id,
-                'name' => $d->customer->name,
-                'avatar' => $d->customer->avatar_url,
+                'id' => $d->customer?->id,
+                'name' => $d->customer?->name ?? 'Удаленный пользователь',
+                'avatar' => $d->customer?->avatar_url,
+                'is_deleted' => (bool) $d->customer?->trashed(),
             ],
             'order' => [
-                'status' => $d->order->status->value,
-                'status_label' => $d->order->status->label(),
-                'total' => $d->order->items->sum(fn ($i) => ($i->price ?? $i->service?->price ?? 0) * ($i->quantity ?? 1)),
-                'created_at' => $d->order->created_at->format('d.m.Y H:i'),
-                'paid_at' => $d->order->paid_at?->format('d.m.Y H:i'),
-                'completed_at' => $d->order->completed_at?->format('d.m.Y H:i'),
-                'conversation_id' => $d->order->conversation_id,
+                'status' => $d->order?->status?->value ?? 'unknown',
+                'status_label' => $d->order?->status?->label() ?? '—',
+                'total' => $d->order ? $d->order->items->sum(fn ($i) => ($i->price ?? $i->service?->price ?? 0) * ($i->quantity ?? 1)) : 0,
+                'created_at' => $d->order?->created_at?->format('d.m.Y H:i'),
+                'paid_at' => $d->order?->paid_at?->format('d.m.Y H:i'),
+                'completed_at' => $d->order?->completed_at?->format('d.m.Y H:i'),
+                'conversation_id' => $d->order?->conversation_id,
                 'customer' => [
-                    'id' => $d->order->customer->id,
-                    'name' => $d->order->customer->name,
-                    'avatar' => $d->order->customer->avatar_url,
+                    'id' => $d->order?->customer?->id,
+                    'name' => $d->order?->customer?->name ?? 'Удаленный пользователь',
+                    'avatar' => $d->order?->customer?->avatar_url,
                 ],
                 'idol' => [
-                    'id' => $d->order->idol->id,
-                    'name' => $d->order->idol->name,
-                    'avatar' => $d->order->idol->avatar_url,
+                    'id' => $d->order?->idol?->id,
+                    'name' => $d->order?->idol?->name ?? 'Удаленный пользователь',
+                    'avatar' => $d->order?->idol?->avatar_url,
                 ],
             ],
         ];

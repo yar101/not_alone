@@ -3,6 +3,7 @@ import { ref, watch } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import { Plus } from '@element-plus/icons-vue';
 import draggable from 'vuedraggable';
+import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import CreateButton from '@/Components/CreateButton.vue';
 
@@ -121,10 +122,16 @@ function submit() {
 }
 
 function destroy(id) {
-    if (!confirm('Удалить категорию?')) return;
-    router.delete(route('admin.services.categories.destroy', id), {
-        preserveScroll: true,
-    });
+    ElMessageBox.confirm('Удалить эту категорию услуг?', 'Удаление категории', {
+        confirmButtonText: 'Удалить',
+        cancelButtonText: 'Отмена',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger',
+    }).then(() => {
+        router.delete(route('admin.services.categories.destroy', id), {
+            preserveScroll: true,
+        });
+    }).catch(() => {});
 }
 </script>
 

@@ -1,7 +1,10 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
+import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
+import AdminPagination from '@/Components/Admin/AdminPagination.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
 
 defineOptions({ layout: AdminLayout });
@@ -138,8 +141,17 @@ function submitBan() {
 }
 
 function unban(userId) {
-    if (!confirm('Разбанить пользователя?')) return;
-    router.delete(route('admin.users.unban', userId), { preserveScroll: false });
+    ElMessageBox.confirm(
+        'Разблокировать пользователя и восстановить доступ к сайту?',
+        'Разблокировка',
+        {
+            confirmButtonText: 'Разблокировать',
+            cancelButtonText: 'Отмена',
+            type: 'info',
+        }
+    ).then(() => {
+        router.delete(route('admin.users.unban', userId), { preserveScroll: false });
+    }).catch(() => {});
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -152,11 +164,14 @@ function formatDate(dt) {
 <template>
     <div>
         <!-- Header -->
-        <div class="page-header">
-            <h1 class="page-title">Пользователи</h1>
-            <span class="page-count">{{ users.total }}</span>
-            <a :href="route('admin.export.users')" class="export-link">Экспорт CSV →</a>
-        </div>
+        <AdminPageHeader
+            title="Пользователи"
+            :subtitle="`${users.total} аккаунтов зарегистрировано на платформе`"
+        >
+            <template #actions>
+                <a :href="route('admin.export.users')" class="export-link">Экспорт CSV →</a>
+            </template>
+        </AdminPageHeader>
 
         <!-- Filters -->
         <div class="filters-bar">
@@ -271,17 +286,7 @@ function formatDate(dt) {
         </div>
 
         <!-- Pagination -->
-        <div class="pagination" v-if="users.last_page > 1">
-            <a
-                v-for="link in users.links"
-                :key="link.label"
-                :href="link.url || '#'"
-                class="page-link"
-                :class="{ 'page-link--active': link.active, 'page-link--disabled': !link.url }"
-                v-html="link.label"
-                @click.prevent="link.url && router.get(link.url, {}, { preserveState: true })"
-            />
-        </div>
+        <AdminPagination :pagination="users" />
 
         <!-- Ban Modal -->
         <Teleport to="body">

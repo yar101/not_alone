@@ -4,6 +4,7 @@ import { router, Link, useForm } from '@inertiajs/vue3';
 import axios from 'axios';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppSelect from '@/Components/AppSelect.vue';
+import AdminPagination from '@/Components/Admin/AdminPagination.vue';
 import { formatMoney } from '@/Utils/money';
 import {
     Coin, Plus, Search, Setting, Close, Check, Loading,
@@ -313,6 +314,10 @@ function isCredit(tx) {
                 <span class="page-subtitle">Всего операций: {{ kpi?.total_count ?? 0 }}</span>
             </div>
             <div class="page-header__actions">
+                <a :href="route('admin.export.transactions')" class="btn-secondary" download>
+                    <el-icon><Document /></el-icon>
+                    <span>Экспорт CSV</span>
+                </a>
                 <Link :href="route('admin.settings.index')" class="btn-secondary" title="Регулирование комиссий платформы">
                     <el-icon><Setting /></el-icon>
                     <span>Комиссии: ввод {{ fees?.deposit_fee_percent }}% / вывод {{ fees?.withdrawal_fee_percent }}%</span>
@@ -394,6 +399,8 @@ function isCredit(tx) {
                     { value: 'order_payout',     label: 'Выплаты',       count: typeCounts?.order_payout ?? 0 },
                     { value: 'order_refund',     label: 'Возвраты',      count: typeCounts?.order_refund ?? 0 },
                     { value: 'order_clawback',   label: 'Списания по спорам', count: typeCounts?.order_clawback ?? 0 },
+                    { value: 'pack_purchase',    label: 'Покупки паков', count: typeCounts?.pack_purchase ?? 0 },
+                    { value: 'pack_sale',        label: 'Продажи паков', count: typeCounts?.pack_sale ?? 0 },
                     { value: 'platform_fee',     label: 'Комиссии',      count: typeCounts?.platform_fee ?? 0 },
                     { value: 'admin_adjustment', label: 'Корректировки', count: typeCounts?.admin_adjustment ?? 0 },
                 ]"
@@ -527,17 +534,7 @@ function isCredit(tx) {
         </div>
 
         <!-- Pagination -->
-        <div class="pagination" v-if="transactions.last_page > 1">
-            <a
-                v-for="link in transactions.links"
-                :key="link.label"
-                :href="link.url || '#'"
-                class="page-link"
-                :class="{ 'page-link--active': link.active, 'page-link--disabled': !link.url }"
-                v-html="link.label"
-                @click.prevent="link.url && router.get(link.url, {}, { preserveState: false, preserveScroll: true })"
-            />
-        </div>
+        <AdminPagination :pagination="transactions" />
     </div>
 
     <!-- ════════════ MODAL: TRANSACTION DETAILS ════════════ -->

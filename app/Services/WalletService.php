@@ -1025,6 +1025,7 @@ class WalletService
         ?int $adminId = null,
         ?string $type = null
     ): WalletTransaction {
+        $amount = round($amount, 2);
         if ($amount <= 0) {
             throw new \InvalidArgumentException('Сумма операции должна быть больше нуля.');
         }

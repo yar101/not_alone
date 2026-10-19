@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ServiceCategory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -60,9 +61,11 @@ class ServiceCategoryController extends Controller
     {
         $ids = $request->validate(['ids' => 'required|array', 'ids.*' => 'integer'])['ids'];
 
-        foreach ($ids as $order => $id) {
-            ServiceCategory::where('id', $id)->update(['sort_order' => $order]);
-        }
+        DB::transaction(function () use ($ids) {
+            foreach ($ids as $order => $id) {
+                ServiceCategory::where('id', $id)->update(['sort_order' => $order]);
+            }
+        });
 
         ServiceCategory::clearCache();
 

@@ -21,12 +21,12 @@ class UserReport extends Model
 
     public function reporter(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'reporter_id');
+        return $this->belongsTo(User::class, 'reporter_id')->withTrashed();
     }
 
     public function reported(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'reported_id');
+        return $this->belongsTo(User::class, 'reported_id')->withTrashed();
     }
 
     public function reviewer(): BelongsTo

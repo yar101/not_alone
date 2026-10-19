@@ -5,6 +5,8 @@ import AppSelect from '@/Components/AppSelect.vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import UserPickerModal from '@/Components/Admin/UserPickerModal.vue';
 import AdminModal from '@/Components/Admin/AdminModal.vue';
+import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
+import AdminPagination from '@/Components/Admin/AdminPagination.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
 const { transChoice } = useTranslations();
@@ -12,7 +14,11 @@ const { transChoice } = useTranslations();
 defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
-    broadcasts: Array,
+    broadcasts: [Array, Object],
+});
+
+const broadcastList = computed(() => {
+    return Array.isArray(props.broadcasts) ? props.broadcasts : (props.broadcasts?.data ?? []);
 });
 
 const form = useForm({
@@ -111,7 +117,10 @@ function targetLabel(b) {
 
 <template>
     <div>
-        <h1 class="page-title">Рассылки платформы</h1>
+        <AdminPageHeader
+            title="Рассылки платформы"
+            description="Массовые и целевые системные уведомления для пользователей платформы"
+        />
 
         <!-- Create form -->
         <div class="compose-card">
@@ -203,7 +212,7 @@ function targetLabel(b) {
         <!-- Sent list -->
         <div class="sent-section">
             <h2 class="sent-title">Отправленные рассылки</h2>
-            <div v-if="broadcasts.length === 0" class="sent-empty">Рассылок пока нет</div>
+            <div v-if="broadcastList.length === 0" class="sent-empty">Рассылок пока нет</div>
             <div v-else class="broadcasts-table-wrap">
                 <table class="broadcasts-table">
                     <thead>
@@ -217,7 +226,7 @@ function targetLabel(b) {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="b in broadcasts" :key="b.id" class="bcast-row">
+                        <tr v-for="b in broadcastList" :key="b.id" class="bcast-row">
                             <td class="col-num bcast-id">{{ b.id }}</td>
                             <td class="col-date bcast-date">{{ formatDateShort(b.created_at) }}</td>
                             <td class="col-title bcast-title">
@@ -241,6 +250,8 @@ function targetLabel(b) {
                     </tbody>
                 </table>
             </div>
+
+            <AdminPagination v-if="broadcasts?.links" :links="broadcasts.links" style="margin-top: 1rem;" />
         </div>
 
         <!-- Detail Modal -->

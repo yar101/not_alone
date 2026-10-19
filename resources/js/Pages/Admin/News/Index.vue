@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 defineOptions({ layout: AdminLayout });
@@ -76,8 +77,13 @@ function saveEdit(item) {
 
 // ─── Удаление ─────────────────────────────────────────────────
 function destroy(item) {
-    if (!confirm(`Удалить «${item.title}»?`)) return;
-    router.delete(route('admin.news.destroy', item.id), { preserveScroll: true });
+    ElMessageBox.confirm(`Удалить «${item.title}»?`, 'Подтверждение удаления', {
+        confirmButtonText: 'Удалить',
+        cancelButtonText: 'Отмена',
+        type: 'warning',
+    }).then(() => {
+        router.delete(route('admin.news.destroy', item.id), { preserveScroll: true });
+    }).catch(() => {});
 }
 
 // ─── Добавление ───────────────────────────────────────────────

@@ -15,22 +15,31 @@ class ChatBlockController extends Controller
         $blocks = ChatBlock::active()
             ->with(['blocker', 'blocked'])
             ->latest()
-            ->paginate(20);
+            ->paginate(20)
+            ->withQueryString();
 
-        $topBlocked = ChatBlock::active()
+        $topRows = ChatBlock::active()
             ->selectRaw('blocked_id, COUNT(*) as block_count')
             ->groupBy('blocked_id')
             ->orderByDesc('block_count')
             ->limit(10)
-            ->get()
-            ->map(function ($row) {
-                $user = User::find($row->blocked_id);
+            ->get();
+
+        $topUserIds = $topRows->pluck('blocked_id')->filter()->unique();
+        $usersMap = $topUserIds->isNotEmpty()
+            ? User::withTrashed()->whereIn('id', $topUserIds)->get()->keyBy('id')
+            : collect();
+
+        $topBlocked = $topRows
+            ->map(function ($row) use ($usersMap) {
+                $user = $usersMap->get($row->blocked_id);
 
                 return [
                     'user' => $user ? [
                         'id' => $user->id,
                         'name' => $user->name,
                         'avatar_url' => $user->avatar_url,
+                        'is_deleted' => (bool) $user->trashed(),
                     ] : null,
                     'block_count' => $row->block_count,
                 ];

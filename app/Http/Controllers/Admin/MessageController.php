@@ -14,8 +14,9 @@ class MessageController extends Controller
     {
         $broadcasts = AdminBroadcast::with(['admin', 'targetUser:id,name,email'])
             ->latest()
-            ->get()
-            ->map(fn ($b) => [
+            ->paginate(20)
+            ->withQueryString()
+            ->through(fn ($b) => [
                 'id' => $b->id,
                 'title' => $b->getTranslations('title'),
                 'body' => $b->getTranslations('body'),

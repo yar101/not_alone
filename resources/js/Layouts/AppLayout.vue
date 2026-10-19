@@ -12,6 +12,7 @@ import UserSidebar from "@/Components/UserSidebar.vue";
 import LocaleLoader from "@/Components/LocaleLoader.vue";
 import PwaUpdateModal from "@/Components/PwaUpdateModal.vue";
 import StrikeAlertModal from "@/Components/Site/StrikeAlertModal.vue";
+import ImpersonateBanner from "@/Components/ImpersonateBanner.vue";
 import { useTranslations } from "@/composables/useTranslations";
 import { formatMoney } from "@/Utils/money";
 
@@ -293,9 +294,11 @@ onUnmounted(() => {
     }
     if (window.Echo) window.Echo.leave("presence-online");
 });
+
 </script>
 
 <template>
+    <ImpersonateBanner />
     <LocaleLoader />
     <PwaUpdateModal :show="pwaUpdateAvailable" />
     <StrikeAlertModal />
@@ -447,12 +450,13 @@ onUnmounted(() => {
     background: transparent;
     display: flex;
     flex-direction: column;
+    padding-top: var(--impersonate-banner-height, 0px);
 }
 
 /* ── Sticky header ───────────────────────────────────────── */
 .app-header {
     position: sticky;
-    top: 0;
+    top: var(--impersonate-banner-height, 0px);
     z-index: 900;
     height: 60px;
     display: flex;

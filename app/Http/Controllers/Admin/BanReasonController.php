@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\BanReason;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class BanReasonController extends Controller
@@ -80,9 +81,11 @@ class BanReasonController extends Controller
             'items.*.sort_order' => 'required|integer',
         ]);
 
-        foreach ($request->items as $item) {
-            BanReason::where('id', $item['id'])->update(['sort_order' => $item['sort_order']]);
-        }
+        DB::transaction(function () use ($request) {
+            foreach ($request->items as $item) {
+                BanReason::where('id', $item['id'])->update(['sort_order' => $item['sort_order']]);
+            }
+        });
 
         return back();
     }

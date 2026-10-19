@@ -101,17 +101,26 @@ class TransactionController extends Controller
             ]);
 
         // Type counts for tabs
+        $rawTypeCounts = WalletTransaction::query()
+            ->selectRaw('type, count(*) as count')
+            ->groupBy('type')
+            ->pluck('count', 'type');
+
+        $totalTxCount = (int) $rawTypeCounts->sum();
+
         $typeCounts = [
-            'all' => WalletTransaction::count(),
-            'deposit' => WalletTransaction::where('type', WalletTransactionType::Deposit)->count(),
-            'withdrawal' => WalletTransaction::where('type', WalletTransactionType::Withdrawal)->count(),
-            'order_hold' => WalletTransaction::where('type', WalletTransactionType::OrderHold)->count(),
-            'order_payout' => WalletTransaction::where('type', WalletTransactionType::OrderPayout)->count(),
-            'order_refund' => WalletTransaction::where('type', WalletTransactionType::OrderRefund)->count(),
-            'order_hold_release' => WalletTransaction::where('type', WalletTransactionType::OrderHoldRelease)->count(),
-            'platform_fee' => WalletTransaction::where('type', WalletTransactionType::PlatformFee)->count(),
-            'admin_adjustment' => WalletTransaction::where('type', WalletTransactionType::AdminAdjustment)->count(),
-            'order_clawback' => WalletTransaction::where('type', WalletTransactionType::OrderClawback)->count(),
+            'all' => $totalTxCount,
+            'deposit' => (int) ($rawTypeCounts[WalletTransactionType::Deposit->value] ?? 0),
+            'withdrawal' => (int) ($rawTypeCounts[WalletTransactionType::Withdrawal->value] ?? 0),
+            'order_hold' => (int) ($rawTypeCounts[WalletTransactionType::OrderHold->value] ?? 0),
+            'order_payout' => (int) ($rawTypeCounts[WalletTransactionType::OrderPayout->value] ?? 0),
+            'order_refund' => (int) ($rawTypeCounts[WalletTransactionType::OrderRefund->value] ?? 0),
+            'order_hold_release' => (int) ($rawTypeCounts[WalletTransactionType::OrderHoldRelease->value] ?? 0),
+            'platform_fee' => (int) ($rawTypeCounts[WalletTransactionType::PlatformFee->value] ?? 0),
+            'admin_adjustment' => (int) ($rawTypeCounts[WalletTransactionType::AdminAdjustment->value] ?? 0),
+            'order_clawback' => (int) ($rawTypeCounts[WalletTransactionType::OrderClawback->value] ?? 0),
+            'pack_purchase' => (int) ($rawTypeCounts[WalletTransactionType::PackPurchase->value] ?? 0),
+            'pack_sale' => (int) ($rawTypeCounts[WalletTransactionType::PackSale->value] ?? 0),
         ];
 
         $platformFeeSum = (float) WalletTransaction::where('type', WalletTransactionType::PlatformFee)
@@ -140,7 +149,7 @@ class TransactionController extends Controller
                 ->where('status', WalletTransactionStatus::Completed)
                 ->sum('amount')),
             'total_fees' => $totalFees,
-            'total_count' => WalletTransaction::count(),
+            'total_count' => $totalTxCount,
         ];
 
         $selectedUser = null;
@@ -239,8 +248,12 @@ class TransactionController extends Controller
         }
     }
 
-    public function show(WalletTransaction $transaction): JsonResponse
+    public function show(Request $request, WalletTransaction $transaction): JsonResponse|RedirectResponse
     {
+        if ($request->header('X-Inertia')) {
+            return redirect()->route('admin.transactions.index', ['search' => $transaction->id]);
+        }
+
         $transaction->load(['user', 'wallet']);
 
         return response()->json([

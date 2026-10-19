@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdminLog;
+use App\Models\Order;
 use App\Models\User;
 use App\Services\AdminLogService;
 use Illuminate\Http\JsonResponse;
@@ -160,8 +162,49 @@ class UserController extends Controller
 
     public function show(User $user): Response
     {
-        $user->load(['bannedBy', 'idolApplication', 'services.category', 'services.timeUnit']);
+        $user->load(['bannedBy', 'idolApplication', 'services.category', 'services.timeUnit', 'wallet']);
         $ratingLogs = $user->ratingLogs()->orderByDesc('created_at')->limit(50)->get();
+
+        $transactions = $user->wallet
+            ? $user->wallet->transactions()->latest('id')->limit(10)->get()->map(fn ($t) => [
+                'id' => $t->id,
+                'type' => $t->type instanceof \BackedEnum ? $t->type->value : (string) $t->type,
+                'amount' => (float) $t->amount,
+                'balance_after' => (float) $t->balance_after,
+                'status' => $t->status instanceof \BackedEnum ? $t->status->value : (string) $t->status,
+                'description' => $t->description,
+                'created_at' => $t->created_at,
+            ])
+            : [];
+
+        $adminLogs = AdminLog::where('target_type', 'user')
+            ->where('target_id', (string) $user->id)
+            ->with('admin')
+            ->latest('created_at')
+            ->limit(20)
+            ->get()
+            ->map(fn ($log) => [
+                'id' => $log->id,
+                'admin_name' => $log->admin?->name ?? 'Система',
+                'action' => $log->action,
+                'details' => $log->details,
+                'created_at' => $log->created_at,
+            ]);
+
+        $recentOrders = Order::where('customer_id', $user->id)
+            ->orWhere('idol_id', $user->id)
+            ->with(['customer', 'idol'])
+            ->latest('created_at')
+            ->limit(5)
+            ->get()
+            ->map(fn ($o) => [
+                'id' => $o->id,
+                'status' => $o->status instanceof \BackedEnum ? $o->status->value : (string) $o->status,
+                'role' => $o->customer_id === $user->id ? 'customer' : 'idol',
+                'customer_name' => $o->customer?->name,
+                'idol_name' => $o->idol?->name,
+                'created_at' => $o->created_at,
+            ]);
 
         return Inertia::render('Admin/Users/Show', [
             'user' => [
@@ -185,6 +228,15 @@ class UserController extends Controller
                     'rejection_reason' => $user->idolApplication->rejection_reason,
                     'created_at' => $user->idolApplication->created_at,
                 ] : null,
+                'wallet' => $user->wallet ? [
+                    'id' => $user->wallet->id,
+                    'balance' => (float) $user->wallet->balance,
+                    'held_balance' => (float) $user->wallet->held_balance,
+                    'is_active' => (bool) $user->wallet->is_active,
+                ] : null,
+                'transactions' => $transactions,
+                'admin_logs' => $adminLogs,
+                'recent_orders' => $recentOrders,
                 'rating_logs' => $ratingLogs->map(fn ($log) => [
                     'event' => $log->event,
                     'delta' => $log->delta,
@@ -217,6 +269,7 @@ class UserController extends Controller
             'banned_until' => $validated['banned_until'] ?? null,
             'ban_reason' => $validated['reason'],
             'banned_by' => auth('admin')->id(),
+            'remember_token' => \Illuminate\Support\Str::random(60),
         ]);
 
         // Immediately invalidate active database sessions if table exists

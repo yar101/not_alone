@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\Admin\HelpArticleController;
 use App\Http\Controllers\Admin\HelpCategoryController;
 use App\Http\Controllers\Admin\IdolRatingController;
+use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Admin\InterestCategoryController;
 use App\Http\Controllers\Admin\InterestController;
 use App\Http\Controllers\Admin\InterestSuggestionController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\Admin\NewsController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\PersonalityTraitController;
 use App\Http\Controllers\Admin\PlatformSettingsController;
+use App\Http\Controllers\Admin\QuickSearchController;
 use App\Http\Controllers\Admin\QuizQuestionController;
 use App\Http\Controllers\Admin\RatingLogController;
 use App\Http\Controllers\Admin\ReportController;
@@ -35,6 +37,7 @@ use App\Http\Controllers\Admin\ServicePriceLimitController;
 use App\Http\Controllers\Admin\ServiceTimeUnitController;
 use App\Http\Controllers\Admin\StrikeController;
 use App\Http\Controllers\Admin\SupportChatController;
+use App\Http\Controllers\Admin\SystemLogController;
 use App\Http\Controllers\Admin\TraitSuggestionController;
 use App\Http\Controllers\Admin\TransactionController;
 use App\Http\Controllers\Admin\UserController;
@@ -51,6 +54,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // Protected admin routes
     Route::middleware('admin')->group(function () {
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/quick-search', [QuickSearchController::class, 'search'])->name('quick-search');
 
         Route::prefix('applications')->name('applications.')->group(function () {
             Route::get('/', [ApplicationController::class, 'index'])->name('index');
@@ -89,9 +93,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('/users/{user}/reset-quiz', [UserController::class, 'resetQuizProgress'])->name('users.reset-quiz');
         Route::post('/users/{user}/ban', [UserController::class, 'ban'])->name('users.ban');
         Route::delete('/users/{user}/ban', [UserController::class, 'unban'])->name('users.unban');
+        Route::post('/users/{user}/impersonate', [ImpersonationController::class, 'start'])->name('users.impersonate');
 
         Route::get('/strikes', [StrikeController::class, 'index'])->name('strikes.index');
         Route::post('/strikes', [StrikeController::class, 'store'])->name('strikes.store');
+        Route::delete('/strikes/{strike}', [StrikeController::class, 'destroy'])->name('strikes.destroy');
 
         // Idol rating (manual adjustment)
         Route::patch('/users/{user}/rating', [IdolRatingController::class, 'update'])->name('users.rating.update');
@@ -102,6 +108,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Content pack moderation
         Route::prefix('content-packs')->name('content-packs.')->group(function () {
             Route::get('/', [ContentPackModerationController::class, 'index'])->name('index');
+            Route::post('/bulk-approve', [ContentPackModerationController::class, 'bulkApprove'])->name('bulk-approve');
+            Route::post('/bulk-reject', [ContentPackModerationController::class, 'bulkReject'])->name('bulk-reject');
             // Change requests (static prefix must come before /{pack})
             Route::prefix('change-requests')->name('change-requests.')->group(function () {
                 Route::get('/', [ContentPackChangeRequestController::class, 'index'])->name('index');
@@ -163,6 +171,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Logs
         Route::get('/logs', [AdminLogController::class, 'index'])->name('logs.index');
         Route::get('/rating-logs', [RatingLogController::class, 'index'])->name('rating-logs.index');
+        Route::get('/system-logs', [SystemLogController::class, 'index'])->name('system-logs.index');
+        Route::delete('/system-logs', [SystemLogController::class, 'clear'])->name('system-logs.clear');
 
         // Reports
         Route::prefix('reports')->name('reports.')->group(function () {
@@ -258,6 +268,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Orders
         Route::prefix('orders')->name('orders.')->group(function () {
             Route::get('/', [OrderController::class, 'index'])->name('index');
+            Route::get('/{order}', [OrderController::class, 'show'])->name('show');
             Route::patch('/{order}/status', [OrderController::class, 'updateStatus'])->name('status');
             Route::get('/{order}/history', [OrderController::class, 'history'])->name('history');
         });
@@ -300,6 +311,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('export')->name('export.')->group(function () {
             Route::get('/users', [ExportController::class, 'users'])->name('users');
             Route::get('/applications', [ExportController::class, 'applications'])->name('applications');
+            Route::get('/orders', [ExportController::class, 'orders'])->name('orders');
+            Route::get('/transactions', [ExportController::class, 'transactions'])->name('transactions');
+            Route::get('/logs', [ExportController::class, 'logs'])->name('logs');
         });
     });
 });

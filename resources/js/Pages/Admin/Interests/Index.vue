@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import { Plus } from '@element-plus/icons-vue';
+import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import CreateButton from '@/Components/CreateButton.vue';
 
@@ -56,8 +57,14 @@ function submit() {
 }
 
 function destroy(id) {
-    if (!confirm('Удалить интерес?')) return;
-    router.delete(route('admin.interests.destroy', id), { preserveScroll: true });
+    ElMessageBox.confirm('Удалить интерес?', 'Удаление интереса', {
+        confirmButtonText: 'Удалить',
+        cancelButtonText: 'Отмена',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger',
+    }).then(() => {
+        router.delete(route('admin.interests.destroy', id), { preserveScroll: true });
+    }).catch(() => {});
 }
 
 // Category management
@@ -100,8 +107,14 @@ function submitCat() {
 }
 
 function destroyCat(id) {
-    if (!confirm('Удалить категорию и все её интересы?')) return;
-    router.delete(route('admin.interests.categories.destroy', id), { preserveScroll: true });
+    ElMessageBox.confirm('Удалить категорию и все её интересы?', 'Удаление категории', {
+        confirmButtonText: 'Удалить',
+        cancelButtonText: 'Отмена',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger',
+    }).then(() => {
+        router.delete(route('admin.interests.categories.destroy', id), { preserveScroll: true });
+    }).catch(() => {});
 }
 </script>
 

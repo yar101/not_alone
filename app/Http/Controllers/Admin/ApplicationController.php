@@ -26,7 +26,7 @@ class ApplicationController extends Controller
             $query->where('status', $request->status);
         }
 
-        $applications = $query->paginate(20)->through(fn ($app) => [
+        $applications = $query->paginate(20)->withQueryString()->through(fn ($app) => [
             'id' => $app->id,
             'user' => $app->user ? [
                 'id' => $app->user->id,

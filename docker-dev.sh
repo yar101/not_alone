@@ -65,5 +65,11 @@ echo ""
 
 # Seeding is now handled completely in the container's entrypoint.sh -> DatabaseSeeder
 
+# Auto-update browserslist compatibility database if npx is installed
+if command -v npx >/dev/null 2>&1; then
+    echo "🔄 Checking and updating browserslist database..."
+    npx --yes update-browserslist-db@latest >/dev/null 2>&1 || true
+fi
+
 # Run Docker Compose
 docker compose up --build --remove-orphans

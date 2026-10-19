@@ -2,8 +2,11 @@
 import { ref } from 'vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Delete, Edit, Plus } from '@element-plus/icons-vue';
+
+defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
     frames: Array,
@@ -85,14 +88,18 @@ const deleteFrame = (frame) => {
 <template>
     <Head title="Рамки аватарок" />
 
-    <AdminLayout>
-        <div class="frames-page">
-            <div class="header">
-                <h2>Управление рамками</h2>
-                <el-button type="primary" :icon="Plus" @click="openCreateDialog">
-                    Добавить рамку
-                </el-button>
-            </div>
+    <div class="frames-page">
+            <AdminPageHeader
+                title="Управление рамками аватарок"
+                subtitle="Каталог рамок, условий получения за достижения и платных рамок профиля"
+                :count="frames.length"
+            >
+                <template #actions>
+                    <el-button type="primary" :icon="Plus" @click="openCreateDialog">
+                        Добавить рамку
+                    </el-button>
+                </template>
+            </AdminPageHeader>
 
             <el-table :data="frames" border class="frames-table">
                 <el-table-column label="Картинка" width="120" align="center">
@@ -195,7 +202,6 @@ const deleteFrame = (frame) => {
                 </template>
             </el-dialog>
         </div>
-    </AdminLayout>
 </template>
 
 <style scoped>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\UserReport;
+use App\Services\AdminLogService;
 use App\Services\IdolRatingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,7 @@ class ReportController extends Controller
             $query->where('status', $request->status);
         }
 
-        $reports = $query->paginate(30)->through(fn (UserReport $r) => [
+        $reports = $query->paginate(30)->withQueryString()->through(fn (UserReport $r) => [
             'id' => $r->id,
             'reporter' => $r->reporter ? ['id' => $r->reporter->id, 'name' => $r->reporter->name, 'email' => $r->reporter->email] : null,
             'reported' => $r->reported ? ['id' => $r->reported->id, 'name' => $r->reported->name, 'email' => $r->reported->email] : null,
@@ -89,6 +90,14 @@ class ReportController extends Controller
             IdolRatingService::adjust($reported, 'report_accepted');
         }
 
+        AdminLogService::log(
+            auth('admin')->id(),
+            'review_report',
+            'user_report',
+            $report->id,
+            ['admin_note' => $validated['admin_note'] ?? null, 'reported_id' => $report->reported_id]
+        );
+
         return back()->with('success', 'Жалоба рассмотрена.');
     }
 
@@ -108,6 +117,14 @@ class ReportController extends Controller
             'reviewed_by' => auth('admin')->id(),
             'reviewed_at' => now(),
         ]);
+
+        AdminLogService::log(
+            auth('admin')->id(),
+            'dismiss_report',
+            'user_report',
+            $report->id,
+            ['admin_note' => $validated['admin_note'] ?? null, 'reported_id' => $report->reported_id]
+        );
 
         return back()->with('success', 'Жалоба отклонена.');
     }

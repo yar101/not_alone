@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\HelpArticle;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class HelpArticleController extends Controller
 {
@@ -89,9 +90,11 @@ class HelpArticleController extends Controller
             'ids.*' => 'integer|exists:help_articles,id',
         ])['ids'];
 
-        foreach ($ids as $order => $id) {
-            HelpArticle::where('id', $id)->update(['sort_order' => $order]);
-        }
+        DB::transaction(function () use ($ids) {
+            foreach ($ids as $order => $id) {
+                HelpArticle::where('id', $id)->update(['sort_order' => $order]);
+            }
+        });
 
         return back();
     }

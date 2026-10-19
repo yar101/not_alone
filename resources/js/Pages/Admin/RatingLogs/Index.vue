@@ -2,6 +2,8 @@
 import { ref } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
+import AdminPagination from '@/Components/Admin/AdminPagination.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -18,6 +20,8 @@ const EVENT_LABELS = {
     review_2star:            'Отзыв 2★',
     review_1star:            'Отзыв 1★',
     order_completed:         'Заказ выполнен',
+    order_refunded:          'Возврат по заказу (спор)',
+    strike:                  'Вынесен страйк',
     report_accepted:         'Репорт принят',
     review_dispute_approved: 'Спор выигран',
     admin_manual:            'Ручное изменение',
@@ -50,7 +54,11 @@ function formatDate(dt) {
 
 <template>
     <div>
-        <h1 class="page-title">Логи рейтинга айдолов</h1>
+        <AdminPageHeader
+            title="Логи рейтинга айдолов"
+            subtitle="История изменения рейтинга айдолов по заказам, отзывам и штрафам"
+            :count="logs.total"
+        />
 
         <!-- Filters -->
         <div class="filters">
@@ -101,17 +109,7 @@ function formatDate(dt) {
             </table>
         </div>
 
-        <div class="pagination" v-if="logs.last_page > 1">
-            <a
-                v-for="link in logs.links"
-                :key="link.label"
-                :href="link.url || '#'"
-                class="page-link"
-                :class="{ 'page-link--active': link.active, 'page-link--disabled': !link.url }"
-                v-html="link.label"
-                @click.prevent="link.url && router.get(link.url, {}, { preserveState: true })"
-            />
-        </div>
+        <AdminPagination :pagination="logs" />
     </div>
 </template>
 

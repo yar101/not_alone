@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import { Plus } from '@element-plus/icons-vue';
+import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import CreateButton from '@/Components/CreateButton.vue';
 
@@ -59,8 +60,14 @@ function submit() {
 }
 
 function destroy(id) {
-    if (!confirm('Удалить единицу времени?')) return;
-    router.delete(route('admin.services.time-units.destroy', id), { preserveScroll: true });
+    ElMessageBox.confirm('Удалить эту единицу времени?', 'Удаление единицы времени', {
+        confirmButtonText: 'Удалить',
+        cancelButtonText: 'Отмена',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger',
+    }).then(() => {
+        router.delete(route('admin.services.time-units.destroy', id), { preserveScroll: true });
+    }).catch(() => {});
 }
 </script>
 
