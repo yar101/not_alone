@@ -50,7 +50,7 @@ test('user cannot purchase their own content pack', function () {
         'items' => [$pack->id],
     ]);
 
-    $response->assertOk();
+    $response->assertStatus(422);
     expect(ContentPackPurchase::where('user_id', $user->id)->where('content_pack_id', $pack->id)->count())->toBe(0);
 });
 

@@ -300,12 +300,12 @@ class FinancialSecurityDeepAuditTest extends TestCase
             'status' => 'published',
         ]);
 
-        // Attempting to buy own pack skips purchase and returns 0 purchased items
+        // Attempting to buy own pack is rejected with 422
         $resOwn = $this->actingAs($buyer)->postJson('/content-packs/purchase', [
             'items' => [$ownPack->id],
         ]);
-        $resOwn->assertStatus(200);
-        $resOwn->assertJson(['success' => true, 'purchased' => []]);
+        $resOwn->assertStatus(422);
+        $resOwn->assertJson(['error' => 'Нельзя приобрести собственный контент-пак.']);
         $this->assertEquals(0, ContentPackPurchase::where('user_id', $buyer->id)->where('content_pack_id', $ownPack->id)->count());
 
         // Attempting to buy non-existent or unpublished pack alongside valid pack

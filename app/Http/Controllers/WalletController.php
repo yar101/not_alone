@@ -48,7 +48,7 @@ class WalletController extends Controller
                 \App\Enums\WalletTransactionType::PackPurchase,
                 \App\Enums\WalletTransactionType::PackSale,
             ]);
-        } elseif ($filter === 'withdrawal') {
+        } elseif ($filter === 'withdrawal' || $filter === 'withdrawals') {
             $query->where('type', \App\Enums\WalletTransactionType::Withdrawal);
         }
 
@@ -125,7 +125,7 @@ class WalletController extends Controller
                 \App\Enums\WalletTransactionType::PackPurchase,
                 \App\Enums\WalletTransactionType::PackSale,
             ]);
-        } elseif ($filter === 'withdrawal') {
+        } elseif ($filter === 'withdrawal' || $filter === 'withdrawals') {
             $query->where('type', \App\Enums\WalletTransactionType::Withdrawal);
         }
 

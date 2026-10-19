@@ -43,9 +43,13 @@ class ReleaseIdolHoldsCommand extends Command
 
         $count = 0;
         foreach ($orders as $order) {
-            $released = $walletService->releaseIdolPayout($order);
-            if ($released) {
-                $count++;
+            try {
+                $released = $walletService->releaseIdolPayout($order);
+                if ($released) {
+                    $count++;
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error("Failed to release idol hold for order #{$order->id}: {$e->getMessage()}");
             }
         }
 

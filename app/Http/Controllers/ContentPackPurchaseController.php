@@ -38,6 +38,9 @@ class ContentPackPurchaseController extends Controller
         }
 
         foreach ($packs as $pack) {
+            if ($pack->user_id === $user->id) {
+                return response()->json(['error' => 'Нельзя приобрести собственный контент-пак.'], 422);
+            }
             if ($pack->user) {
                 $wallet = $this->walletService->getOrCreateWallet($pack->user);
                 $pack->user->setRelation('wallet', $wallet);
@@ -50,10 +53,6 @@ class ContentPackPurchaseController extends Controller
             $created = DB::transaction(function () use ($sortedPacks, $user) {
                 $createdIds = [];
                 foreach ($sortedPacks as $pack) {
-                    if ($pack->user_id === $user->id) {
-                        continue;
-                    }
-
                     $purchase = $this->walletService->purchaseContentPack($user, $pack);
 
                     if ($purchase->wasRecentlyCreated) {

@@ -95,7 +95,11 @@ class OrderService
             $order->logStatusChange(null, OrderStatus::Pending->value, 'user', $customer->id);
 
             foreach ($services as $service) {
-                $qty = (int) ($quantityMap[$service->id]['quantity'] ?? 1);
+                $rawQty = (int) ($quantityMap[$service->id]['quantity'] ?? 1);
+                if ($service->is_trial && $rawQty > 1) {
+                    throw new \DomainException('Ознакомительная услуга может быть заказана только в количестве 1 шт.');
+                }
+                $qty = max(1, min(100, $rawQty));
                 $price = ($service->is_trial && ! $hasUsedTrial) ? 0 : $service->price;
                 $order->items()->create(['service_id' => $service->id, 'quantity' => $qty, 'price' => $price]);
             }
@@ -128,7 +132,7 @@ class OrderService
                         'name' => $s->name,
                         'price' => ($s->is_trial && ! $hasUsedTrial) ? 0 : $s->price,
                         'time_unit' => $s->timeUnit?->name,
-                        'quantity' => (int) ($quantityMap[$s->id]['quantity'] ?? 1),
+                        'quantity' => $s->is_trial ? 1 : max(1, min(100, (int) ($quantityMap[$s->id]['quantity'] ?? 1))),
                     ])->values()->all(),
                 ],
             ]);

@@ -10,4 +10,5 @@ Artisan::command('inspire', function () {
 
 Schedule::command('content-packs:prune-rejected')->daily();
 Schedule::command('orders:release-idol-holds')->everyMinute()->withoutOverlapping();
+Schedule::command('orders:auto-complete')->hourly()->withoutOverlapping();
 

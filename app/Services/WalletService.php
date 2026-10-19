@@ -474,7 +474,9 @@ class WalletService
             $lockedIdolWallet = Wallet::where('id', $idolWallet->id)->lockForUpdate()->first();
 
             if (! $lockedIdolWallet->is_active) {
-                throw new \DomainException('Кошелёк айдола деактивирован.');
+                \Illuminate\Support\Facades\Log::warning("Idol wallet #{$lockedIdolWallet->id} is deactivated; skipping payout release for order #{$lockedOrder->id}");
+
+                return null;
             }
 
             $heldBefore = $lockedIdolWallet->held_balance;

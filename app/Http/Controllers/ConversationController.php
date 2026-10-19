@@ -379,6 +379,10 @@ class ConversationController extends Controller
 
         abort_if($services->count() !== count(array_unique($request->services)), 422, 'Некоторые услуги недоступны');
 
+        if ($conversation->order_id && $services->contains('is_trial', true)) {
+            abort(422, 'Ознакомительную услугу можно оформить только при создании первого заказа.');
+        }
+
         $msg = $conversation->messages()->create([
             'sender_id' => $user->id,
             'body' => '',

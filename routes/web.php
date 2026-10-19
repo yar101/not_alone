@@ -117,7 +117,7 @@ Route::middleware(['auth', 'not_banned'])->group(function () {
 
         // Content packs
         Route::post('/content-packs', [ContentPackController::class, 'store'])->name('content-packs.store');
-        Route::post('/content-packs/purchase', [ContentPackPurchaseController::class, 'store'])->name('content-packs.purchase');
+        Route::post('/content-packs/purchase', [ContentPackPurchaseController::class, 'store'])->middleware('throttle:30,1')->name('content-packs.purchase');
         Route::post('/content-packs/{pack}/view', [ContentPackPurchaseController::class, 'markAsViewed'])->name('content-packs.view');
         Route::patch('/content-packs/{pack}', [ContentPackController::class, 'update'])->name('content-packs.update');
         Route::post('/content-packs/{pack}/publish', [ContentPackController::class, 'publish'])->name('content-packs.publish');
@@ -176,7 +176,7 @@ Route::middleware(['auth', 'not_banned'])->group(function () {
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/disputable', [OrderController::class, 'disputable'])->name('orders.disputable');
     Route::patch('/orders/{order}/accept', [OrderController::class, 'accept'])->name('orders.accept');
-    Route::patch('/orders/{order}/pay', [OrderController::class, 'pay'])->name('orders.pay');
+    Route::patch('/orders/{order}/pay', [OrderController::class, 'pay'])->middleware('throttle:30,1')->name('orders.pay');
     Route::patch('/orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
     Route::patch('/orders/{order}/confirm-completion', [OrderController::class, 'confirmCompletion'])->name('orders.confirm-completion');
     Route::post('/orders/{order}/dispute', [OrderController::class, 'dispute'])->name('orders.dispute');
