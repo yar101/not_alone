@@ -16,8 +16,12 @@ class AchievementListener implements ShouldQueue
 
     public function handle(OrderCompletedEvent $event): void
     {
-        $this->evaluateUser($event->order->idol);
-        $this->evaluateUser($event->order->customer);
+        if ($event->order->idol) {
+            $this->evaluateUser($event->order->idol);
+        }
+        if ($event->order->customer) {
+            $this->evaluateUser($event->order->customer);
+        }
     }
 
     private function evaluateUser(User $user): void
@@ -34,7 +38,7 @@ class AchievementListener implements ShouldQueue
             $condition = ConditionRegistry::get($frame->condition_class);
 
             if ($condition && $condition->check($user)) {
-                $user->avatarFrames()->attach($frame->id);
+                $user->avatarFrames()->syncWithoutDetaching([$frame->id]);
 
                 Log::info("User {$user->id} unlocked frame {$frame->id} ({$frame->name})");
 

@@ -282,6 +282,7 @@ class ConversationController extends Controller
         $request->validate(['target_user_id' => 'required|exists:users,id']);
 
         $target = User::findOrFail($request->target_user_id);
+        abort_if((int) $target->id === (int) $request->user()->id, 422, 'cannot_message_self');
         abort_if($target->isActiveBanned(), 422, 'user_banned');
         abort_if($target->is_idol, 422, 'target_is_idol');
         abort_if($target->disallow_idol_messages, 403, 'target_disallows_idol_messages');

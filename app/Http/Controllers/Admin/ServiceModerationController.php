@@ -103,12 +103,12 @@ class ServiceModerationController extends Controller
                 'created_at' => $service->created_at,
                 'category' => $service->category?->getTranslation('name', 'ru'),
                 'time_unit' => $service->timeUnit?->getTranslation('name', 'ru'),
-                'user' => [
+                'user' => $service->user ? [
                     'id' => $service->user->id,
                     'name' => $service->user->name,
                     'email' => $service->user->email,
                     'avatar_url' => $service->user->avatar_url,
-                ],
+                ] : null,
                 'history' => $service->reviews->map(fn ($r) => [
                     'id' => 'review_'.$r->id,
                     'type' => 'initial',

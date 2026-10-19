@@ -78,12 +78,12 @@ class ContentPackModerationController extends Controller
                 'cover_url' => $pack->cover_url,
                 'cover_path' => $pack->cover_path,
                 'created_at' => $pack->created_at,
-                'user' => [
+                'user' => $pack->user ? [
                     'id' => $pack->user->id,
                     'name' => $pack->user->name,
                     'avatar_url' => $pack->user->avatar_url,
                     'email' => $pack->user->email,
-                ],
+                ] : null,
                 'photos' => $pack->photos->map(fn ($ph) => [
                     'id' => $ph->id,
                     'url' => $ph->url,

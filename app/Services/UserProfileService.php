@@ -30,6 +30,7 @@ class UserProfileService
             ->where('status', 'approved')
             ->where('user_id', '!=', $user->id)
             ->where('category_id', $category->id)
+            ->whereHas('user', fn ($q) => $q->whereNull('deleted_at')->where('is_banned', false))
             ->select('user_id')
             ->groupBy('user_id')
             ->orderByRaw('md5(concat(user_id, cast(? as text)))', [(string) $seed])
@@ -37,12 +38,14 @@ class UserProfileService
             ->paginate($perPage, ['*'], 'page', $page);
 
         return [
-            'idols' => collect($paginator->items())->map(fn ($s) => [
-                'id' => $s->user->id,
-                'name' => $s->user->name,
-                'avatar_url' => $s->user->avatar_url,
-                'rating' => $s->user->rating,
-            ])->values(),
+            'idols' => collect($paginator->items())
+                ->filter(fn ($s) => $s->user !== null)
+                ->map(fn ($s) => [
+                    'id' => $s->user->id,
+                    'name' => $s->user->name,
+                    'avatar_url' => $s->user->avatar_url,
+                    'rating' => $s->user->rating,
+                ])->values(),
             'total' => $paginator->total(),
             'page' => $page,
             'hasMore' => $paginator->hasMorePages(),

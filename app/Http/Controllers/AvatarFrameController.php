@@ -47,6 +47,10 @@ class AvatarFrameController extends Controller
      */
     public function equip(Request $request, AvatarFrame $avatarFrame)
     {
+        if (! $avatarFrame->is_active) {
+            return response()->json(['message' => 'Эта рамка временно недоступна.'], 422);
+        }
+
         $user = $request->user();
 
         // Проверяем, есть ли у юзера доступ к этой рамке

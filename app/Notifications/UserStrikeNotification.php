@@ -74,6 +74,7 @@ class UserStrikeNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         return [
+            'type' => 'strike',
             'strike_id' => $this->strike->id,
             'rating_deducted' => $this->strike->rating_deducted,
             'admin_note' => $this->strike->admin_note,

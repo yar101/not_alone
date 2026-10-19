@@ -271,12 +271,16 @@ class User extends Authenticatable implements MustVerifyEmail
         $this->traits()->detach();
         $this->interests()->detach();
         $this->languages()->delete();
+        $this->avatarFrames()->detach();
+        $this->services()->update(['is_active' => false]);
+        $this->contentPacks()->update(['hidden_at' => now()]);
 
         $this->fill([
             'name' => 'Удалённый пользователь',
             'email' => 'deleted_'.$this->id.'@deleted.ru',
             'password' => bcrypt(Str::random(40)),
             'avatar_path' => null,
+            'active_frame_id' => null,
             'voice_path' => null,
             'about' => null,
             'birth_date' => null,

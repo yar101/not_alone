@@ -11,7 +11,7 @@ trait NotificationTypes
         'content_pack_change_remarks', 'content_pack_change_rejected',
         'service_approved', 'service_rejected', 'service_remarks',
         'service_change_approved', 'service_change_remarks', 'service_change_rejected',
-        'test', 'new_review', 'wallet_adjustment',
+        'test', 'new_review', 'wallet_adjustment', 'idol_payout_released', 'strike',
     ];
 
     protected array $ORDER_TYPES = ['order_created', 'order_accepted', 'order_cancelled', 'order_paid', 'order_completed'];
@@ -42,6 +42,7 @@ trait NotificationTypes
         'test' => \App\Notifications\TestNotification::class,
         'new_review' => \App\Notifications\NewReviewNotification::class,
         'wallet_adjustment' => \App\Notifications\WalletAdjustmentNotification::class,
+        'idol_payout_released' => \App\Notifications\IdolPayoutReleasedNotification::class,
         'order_created' => \App\Notifications\OrderCreatedNotification::class,
         'order_accepted' => \App\Notifications\OrderAcceptedNotification::class,
         'order_cancelled' => \App\Notifications\OrderCancelledNotification::class,

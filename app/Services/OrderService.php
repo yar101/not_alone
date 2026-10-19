@@ -631,26 +631,26 @@ class OrderService
             'cancelled_by' => $order->cancelled_by,
             'cancelled_by_name' => $order->cancelledBy?->name,
             'conversation_id' => $order->conversation_id,
-            'created_at' => $order->created_at->toISOString(),
+            'created_at' => $order->created_at?->toISOString(),
             'paid_at' => $order->paid_at?->toISOString(),
             'completed_at' => $order->completed_at?->toISOString(),
             'is_customer' => $isCustomer,
             'completion_confirmed_by_idol' => (bool) $order->completion_confirmed_by_idol,
             'completion_confirmed_by_customer' => (bool) $order->completion_confirmed_by_customer,
-            'customer' => [
+            'customer' => $order->customer ? [
                 'id' => $order->customer->id,
                 'name' => $order->customer->name,
                 'avatar_url' => $order->customer->avatar_url,
                 'active_frame' => $order->customer->activeFrame,
                 'gender' => $order->customer->gender,
-            ],
-            'idol' => [
+            ] : null,
+            'idol' => $order->idol ? [
                 'id' => $order->idol->id,
                 'name' => $order->idol->name,
                 'avatar_url' => $order->idol->avatar_url,
                 'active_frame' => $order->idol->activeFrame,
                 'gender' => $order->idol->gender,
-            ],
+            ] : null,
             'items' => $order->items->map(fn ($item) => [
                 'id' => $item->id,
                 'quantity' => $item->quantity ?? 1,

@@ -7,6 +7,7 @@ use App\Models\PlatformSetting;
 use App\Models\User;
 use App\Notifications\AdminRatingNotification;
 use App\Notifications\LowRatingWarningNotification;
+use Illuminate\Support\Facades\DB;
 
 class IdolRatingService
 {
@@ -45,7 +46,7 @@ class IdolRatingService
             return;
         }
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($user, $event, $delta, $note) {
+        DB::transaction(function () use ($user, $event, $delta, $note) {
             $lockedUser = User::lockForUpdate()->find($user->id);
             if (! $lockedUser || ! $lockedUser->is_idol) {
                 return;

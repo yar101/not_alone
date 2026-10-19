@@ -134,7 +134,7 @@ class OrderController extends Controller
                     'id' => $o->id,
                     'status' => $o->status->value,
                     'status_label' => $o->status->label(),
-                    'idol_name' => $o->idol->name,
+                    'idol_name' => $o->idol?->name ?? 'Пользователь',
                     'total' => $o->total_price,
                     'created_at' => $o->created_at->toISOString(),
                     'paid_at' => $o->paid_at?->toISOString(),
