@@ -13,6 +13,7 @@ use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -30,10 +31,11 @@ class OrderController extends Controller
         ])->latest();
 
         if ($s = $request->search) {
-            $query->where(function ($q) use ($s) {
+            $likeOp = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $query->where(function ($q) use ($s, $likeOp) {
                 $q->where('id', is_numeric($s) ? (int) $s : 0)
-                    ->orWhereHas('customer', fn ($q) => $q->where('name', 'like', "%{$s}%")->orWhere('email', 'like', "%{$s}%"))
-                    ->orWhereHas('idol', fn ($q) => $q->where('name', 'like', "%{$s}%")->orWhere('email', 'like', "%{$s}%"));
+                    ->orWhereHas('customer', fn ($q) => $q->where('name', $likeOp, "%{$s}%")->orWhere('email', $likeOp, "%{$s}%"))
+                    ->orWhereHas('idol', fn ($q) => $q->where('name', $likeOp, "%{$s}%")->orWhere('email', $likeOp, "%{$s}%"));
             });
         }
 

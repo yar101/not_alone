@@ -27,14 +27,15 @@ class ServiceModerationController extends Controller
         $status = $request->input('status', 'pending');
         $search = $request->input('search');
         $categoryId = $request->input('category_id');
+        $likeOp = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
         $query = Service::with(['user', 'category', 'timeUnit', 'latestReview'])
             ->when($status === 'pending', fn ($q) => $q->where('status', 'pending')->whereNull('resubmitted_at'))
             ->when($status === 'resubmitted', fn ($q) => $q->where('status', 'pending')->whereNotNull('resubmitted_at'))
             ->when(! in_array($status, ['all', 'pending', 'resubmitted']), fn ($q) => $q->where('status', $status))
-            ->when($search, fn ($q) => $q->where(fn ($q2) => $q2->where('name', 'like', "%{$search}%")
-                ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%"))
+            ->when($search, fn ($q) => $q->where(fn ($q2) => $q2->where('name', $likeOp, "%{$search}%")
+                ->orWhereHas('user', fn ($u) => $u->where('name', $likeOp, "%{$search}%")
+                    ->orWhere('email', $likeOp, "%{$search}%"))
             ))
             ->when($categoryId, fn ($q) => $q->where('category_id', $categoryId));
 
@@ -302,14 +303,15 @@ class ServiceModerationController extends Controller
         $status = $request->input('status', 'pending');
         $search = $request->input('search');
         $categoryId = $request->input('category_id');
+        $likeOp = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
         return Service::query()
             ->when($status === 'pending', fn ($q) => $q->where('status', 'pending')->whereNull('resubmitted_at'))
             ->when($status === 'resubmitted', fn ($q) => $q->where('status', 'pending')->whereNotNull('resubmitted_at'))
             ->when(! in_array($status, ['all', 'pending', 'resubmitted']), fn ($q) => $q->where('status', $status))
-            ->when($search, fn ($q) => $q->where(fn ($q2) => $q2->where('name', 'like', "%{$search}%")
-                ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%"))
+            ->when($search, fn ($q) => $q->where(fn ($q2) => $q2->where('name', $likeOp, "%{$search}%")
+                ->orWhereHas('user', fn ($u) => $u->where('name', $likeOp, "%{$search}%")
+                    ->orWhere('email', $likeOp, "%{$search}%"))
             ))
             ->when($categoryId, fn ($q) => $q->where('category_id', $categoryId));
     }

@@ -23,6 +23,7 @@ use App\Models\UserLanguage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -251,17 +252,20 @@ class UserProfileController extends Controller
     {
         $data = $request->validate(['languages' => ['array'], 'languages.*' => ['string', 'max:10']]);
         $user = $request->user();
-        $user->languages()->delete();
-        if (! empty($data['languages'])) {
-            $now = now();
-            $rows = array_map(fn ($code) => [
-                'user_id' => $user->id,
-                'language_code' => $code,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ], array_unique($data['languages']));
-            UserLanguage::insert($rows);
-        }
+
+        DB::transaction(function () use ($user, $data) {
+            $user->languages()->delete();
+            if (! empty($data['languages'])) {
+                $now = now();
+                $rows = array_map(fn ($code) => [
+                    'user_id' => $user->id,
+                    'language_code' => $code,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ], array_unique($data['languages']));
+                UserLanguage::insert($rows);
+            }
+        });
 
         return back();
     }

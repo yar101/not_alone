@@ -208,7 +208,7 @@ class QuizQuestionController extends Controller
 
         \DB::transaction(function () use ($questions, $mode) {
             if ($mode === 'replace') {
-                IdolQuizQuestion::truncate();
+                IdolQuizQuestion::query()->delete();
             }
 
             foreach ($questions as $q) {

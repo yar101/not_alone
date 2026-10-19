@@ -20,7 +20,15 @@ class ContentPackPolicy
      */
     public function view(User $user, ContentPack $contentPack): bool
     {
-        return false;
+        if ($user->id === $contentPack->user_id) {
+            return true;
+        }
+
+        if ($contentPack->purchases()->where('user_id', $user->id)->exists()) {
+            return true;
+        }
+
+        return $contentPack->status === 'published' && $contentPack->hidden_at === null;
     }
 
     /**
@@ -28,7 +36,7 @@ class ContentPackPolicy
      */
     public function create(User $user): bool
     {
-        return false;
+        return (bool) $user->is_idol;
     }
 
     /**

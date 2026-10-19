@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Models\AdminBroadcast;
 use App\Models\AdminLog;
@@ -33,7 +34,7 @@ class DashboardController extends Controller
                 'users_with_cooldown' => User::whereNotNull('idol_quiz_cooldown_until')
                     ->where('idol_quiz_cooldown_until', '>', now())
                     ->count(),
-                'active_orders_count' => Order::whereIn('status', ['paid', 'in_progress'])->count(),
+                'active_orders_count' => Order::whereIn('status', [OrderStatus::Paid->value, OrderStatus::Accepted->value])->count(),
                 'open_disputes_count' => OrderDispute::where('status', 'open')->count(),
                 'pending_content_packs_count' => ContentPack::where('status', 'pending_review')->count(),
                 'pending_changes_count' => ContentPackChangeRequest::where('status', 'pending')->count() + ServiceChangeRequest::where('status', 'pending')->count(),

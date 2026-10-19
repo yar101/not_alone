@@ -307,12 +307,21 @@ class UserController extends Controller
 
     public function resetQuizProgress(User $user): RedirectResponse
     {
-        $user->idolQuizSessions()->where('status', 'active')->update(['status' => 'failed', 'completed_at' => now()]);
-        $user->update([
-            'idol_quiz_passed_at' => null,
-            'idol_quiz_cooldown_until' => null,
-        ]);
-        $user->idolApplication()->whereIn('status', ['pending', 'rejected'])->delete();
+        DB::transaction(function () use ($user) {
+            $user->idolQuizSessions()->where('status', 'active')->update(['status' => 'failed', 'completed_at' => now()]);
+            $user->update([
+                'idol_quiz_passed_at' => null,
+                'idol_quiz_cooldown_until' => null,
+            ]);
+            $user->idolApplication()->whereIn('status', ['pending', 'rejected'])->delete();
+
+            AdminLogService::log(
+                auth('admin')->id(),
+                'reset_quiz_progress',
+                'user',
+                $user->id
+            );
+        });
 
         return back()->with('success', 'Прогресс пользователя сброшен.');
     }

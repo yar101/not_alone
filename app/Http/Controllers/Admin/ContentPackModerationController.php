@@ -287,11 +287,12 @@ class ContentPackModerationController extends Controller
     {
         $status = $request->input('status', 'pending_review');
         $search = $request->input('search');
+        $likeOp = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
         return ContentPack::with(['user:id,name,avatar_path'])
             ->when($status !== 'all', fn ($q) => $q->where('status', $status))
-            ->when($search, fn ($q) => $q->where(fn ($q2) => $q2->where('title', 'like', "%{$search}%")
-                ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%"))
+            ->when($search, fn ($q) => $q->where(fn ($q2) => $q2->where('title', $likeOp, "%{$search}%")
+                ->orWhereHas('user', fn ($u) => $u->where('name', $likeOp, "%{$search}%"))
             ));
     }
 }

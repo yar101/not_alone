@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\News;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -24,9 +25,10 @@ class NewsPublicController extends Controller
             ->orderBy('published_at', $sortDir);
 
         if ($search = $request->get('search')) {
-            $query->where(fn ($q) => $q->where('title', 'like', "%{$search}%")
-                ->orWhere('excerpt', 'like', "%{$search}%")
-                ->orWhere('body', 'like', "%{$search}%")
+            $likeOp = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $query->where(fn ($q) => $q->where('title', $likeOp, "%{$search}%")
+                ->orWhere('excerpt', $likeOp, "%{$search}%")
+                ->orWhere('body', $likeOp, "%{$search}%")
             );
         }
 

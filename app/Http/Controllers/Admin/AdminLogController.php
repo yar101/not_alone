@@ -40,7 +40,7 @@ class AdminLogController extends Controller
             $isPgsql = DB::connection()->getDriverName() === 'pgsql';
             $likeOp = $isPgsql ? 'ilike' : 'like';
             $query->where(function ($q) use ($search, $likeOp) {
-                $q->where('target_id', 'like', "%{$search}%")
+                $q->where('target_id', $likeOp, "%{$search}%")
                     ->orWhereRaw("CAST(details AS TEXT) {$likeOp} ?", ["%{$search}%"]);
             });
         }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Conversation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class ConversationController extends Controller
@@ -40,13 +41,14 @@ class ConversationController extends Controller
 
         if ($request->filled('user_search')) {
             $search = $request->user_search;
-            $query->whereHas('users', function ($q) use ($search) {
+            $likeOp = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            $query->whereHas('users', function ($q) use ($search, $likeOp) {
                 if (is_numeric($search)) {
                     $q->where('users.id', $search);
                 } else {
-                    $q->where(function ($sub) use ($search) {
-                        $sub->where('users.name', 'like', '%'.$search.'%')
-                            ->orWhere('users.email', 'like', '%'.$search.'%');
+                    $q->where(function ($sub) use ($search, $likeOp) {
+                        $sub->where('users.name', $likeOp, '%'.$search.'%')
+                            ->orWhere('users.email', $likeOp, '%'.$search.'%');
                     });
                 }
             });

@@ -22,7 +22,8 @@ class SystemLogController extends Controller
         $levelFilter = strtolower((string) $request->get('level', 'all'));
         $search = trim((string) $request->get('search', ''));
 
-        $entries = $this->parseLogFile($logPath);
+        $allEntries = $this->parseLogFile($logPath);
+        $entries = $allEntries;
 
         // Apply filters
         if ($levelFilter !== 'all') {
@@ -54,7 +55,6 @@ class SystemLogController extends Controller
         }
 
         // Stats by level
-        $allEntries = $this->parseLogFile($logPath);
         $levelCounts = [
             'total' => count($allEntries),
             'error' => 0,

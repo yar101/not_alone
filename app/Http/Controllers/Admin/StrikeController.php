@@ -195,7 +195,7 @@ class StrikeController extends Controller
             // If rating was deducted from idol, return it
             if ($user && $user->is_idol && $strike->rating_deducted < 0) {
                 $restoreAmount = abs((float) $strike->rating_deducted);
-                $user->increment('rating', $restoreAmount);
+                IdolRatingService::adjust($user, 'strike_cancelled', $restoreAmount, 'Отмена страйка #'.$strike->id);
             }
 
             AdminLogService::log(
