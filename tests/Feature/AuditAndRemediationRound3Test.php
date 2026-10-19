@@ -33,7 +33,7 @@ function createAuditR3Admin(array $attributes = []): Admin
     ], $attributes));
 }
 
-test('SetLocale middleware respects user locale and session locale', function () {
+test('SetLocale middleware enforces ru locale for RF operations', function () {
     $middleware = new SetLocale;
 
     // 1. Default fallback when no session and unauthenticated
@@ -45,24 +45,23 @@ test('SetLocale middleware respects user locale and session locale', function ()
     expect(App::getLocale())->toBe('ru')
         ->and(Session::get('locale'))->toBe('ru');
 
-    // 2. Session locale 'en' for guest
+    // 2. Session with en is forced to ru
     Session::put('locale', 'en');
     $middleware->handle($request, function () {
         return response('ok');
     });
-    expect(App::getLocale())->toBe('en')
-        ->and(Session::get('locale'))->toBe('en');
+    expect(App::getLocale())->toBe('ru')
+        ->and(Session::get('locale'))->toBe('ru');
 
-    // 3. Authenticated user with locale 'en'
+    // 3. Authenticated user with en is forced to ru
     $user = User::factory()->create(['locale' => 'en']);
     $this->actingAs($user);
-    Session::put('locale', 'ru'); // session has ru, but user preference is en
 
     $middleware->handle($request, function () {
         return response('ok');
     });
-    expect(App::getLocale())->toBe('en')
-        ->and(Session::get('locale'))->toBe('en');
+    expect(App::getLocale())->toBe('ru')
+        ->and(Session::get('locale'))->toBe('ru');
 });
 
 test('ReviewEpithet and BanReason reorder clears cache keys', function () {
