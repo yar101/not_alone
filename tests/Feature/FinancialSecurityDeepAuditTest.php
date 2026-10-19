@@ -25,6 +25,7 @@ class FinancialSecurityDeepAuditTest extends TestCase
     use RefreshDatabase;
 
     protected WalletService $walletService;
+
     protected OrderService $orderService;
 
     protected function setUp(): void

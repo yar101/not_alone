@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Enums\WalletTransactionStatus;
 use App\Enums\WalletTransactionType;
 use App\Events\NewNotification;
 use App\Events\WalletBalanceUpdated;
@@ -271,4 +270,3 @@ it('does not send notification when notify_user is false or omitted', function (
     expect($user->notifications()->count())->toBe(0);
     Event::assertNotDispatched(NewNotification::class);
 });
-

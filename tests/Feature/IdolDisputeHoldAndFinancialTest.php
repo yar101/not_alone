@@ -495,4 +495,3 @@ it('strictly maintains ledger invariant sum(completed transactions) == balance f
     expect(abs($customerTxSum - (float) $customerWallet->balance))->toBeLessThan(0.001);
     expect(abs($idolTxSum - (float) $idolWallet->balance))->toBeLessThan(0.001);
 });
-

@@ -27,12 +27,12 @@ class WalletController extends Controller
         } elseif ($filter === 'holds') {
             $query->where(function ($q) {
                 $q->where('type', \App\Enums\WalletTransactionType::OrderHold)
-                  ->orWhere(function ($sub) {
-                      $sub->where('type', \App\Enums\WalletTransactionType::OrderPayout)
-                          ->where('status', \App\Enums\WalletTransactionStatus::Pending);
-                  })
-                  ->orWhere('type', \App\Enums\WalletTransactionType::OrderHoldRelease)
-                  ->orWhereColumn('held_balance_before', '!=', 'held_balance_after');
+                    ->orWhere(function ($sub) {
+                        $sub->where('type', \App\Enums\WalletTransactionType::OrderPayout)
+                            ->where('status', \App\Enums\WalletTransactionStatus::Pending);
+                    })
+                    ->orWhere('type', \App\Enums\WalletTransactionType::OrderHoldRelease)
+                    ->orWhereColumn('held_balance_before', '!=', 'held_balance_after');
             });
         } elseif ($filter === 'orders') {
             $query->whereIn('type', [
@@ -104,12 +104,12 @@ class WalletController extends Controller
         } elseif ($filter === 'holds') {
             $query->where(function ($q) {
                 $q->where('type', \App\Enums\WalletTransactionType::OrderHold)
-                  ->orWhere(function ($sub) {
-                      $sub->where('type', \App\Enums\WalletTransactionType::OrderPayout)
-                          ->where('status', \App\Enums\WalletTransactionStatus::Pending);
-                  })
-                  ->orWhere('type', \App\Enums\WalletTransactionType::OrderHoldRelease)
-                  ->orWhereColumn('held_balance_before', '!=', 'held_balance_after');
+                    ->orWhere(function ($sub) {
+                        $sub->where('type', \App\Enums\WalletTransactionType::OrderPayout)
+                            ->where('status', \App\Enums\WalletTransactionStatus::Pending);
+                    })
+                    ->orWhere('type', \App\Enums\WalletTransactionType::OrderHoldRelease)
+                    ->orWhereColumn('held_balance_before', '!=', 'held_balance_after');
             });
         } elseif ($filter === 'orders') {
             $query->whereIn('type', [

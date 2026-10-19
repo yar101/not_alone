@@ -39,7 +39,7 @@ class ReleaseIdolHoldsCommand extends Command
             ->whereDoesntHave('disputes', function ($q) {
                 $q->where('status', 'open');
             })
-            ->get();
+            ->lazyById(100);
 
         $count = 0;
         foreach ($orders as $order) {

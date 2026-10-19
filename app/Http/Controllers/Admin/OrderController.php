@@ -131,7 +131,7 @@ class OrderController extends Controller
 
         $items = $order->items->map(fn ($item) => [
             'id' => $item->id,
-            'title' => $item->title ?? $item->service?->name ?? ('Услуга #' . $item->service_id),
+            'title' => $item->title ?? $item->service?->name ?? ('Услуга #'.$item->service_id),
             'category_name' => $item->service?->category?->name ?? '—',
             'time_unit' => $item->service?->timeUnit?->name ?? '—',
             'price' => (float) ($item->price ?? $item->service?->price ?? 0),

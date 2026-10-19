@@ -31,6 +31,7 @@ class LoginController extends Controller
 
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             $seconds = RateLimiter::availableIn($throttleKey);
+
             return back()->withErrors([
                 'email' => "Слишком много неудачных попыток входа. Пожалуйста, повторите через {$seconds} сек.",
             ]);

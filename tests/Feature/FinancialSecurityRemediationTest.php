@@ -33,8 +33,8 @@ function createSecurityTestOrder(float $orderAmount = 1000.00, float $customerBa
 
     $customerWallet->update(['balance' => $customerBalance]);
 
-    $category = ServiceCategory::create(['name' => 'Тест_' . uniqid()]);
-    $timeUnit = ServiceTimeUnit::create(['name' => 'Час_' . uniqid()]);
+    $category = ServiceCategory::create(['name' => 'Тест_'.uniqid()]);
+    $timeUnit = ServiceTimeUnit::create(['name' => 'Час_'.uniqid()]);
 
     $service = Service::create([
         'user_id' => $idol->id,

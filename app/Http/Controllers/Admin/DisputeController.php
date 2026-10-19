@@ -39,9 +39,9 @@ class DisputeController extends Controller
                     $q->where('order_id', (int) $search);
                 }
                 $q->orWhereHas('customer', fn ($cq) => $cq->where('name', 'ilike', "%{$search}%")->orWhere('email', 'ilike', "%{$search}%"))
-                  ->orWhereHas('order.idol', fn ($iq) => $iq->where('name', 'ilike', "%{$search}%")->orWhere('email', 'ilike', "%{$search}%"))
-                  ->orWhere('reason', 'ilike', "%{$search}%")
-                  ->orWhere('details', 'ilike', "%{$search}%");
+                    ->orWhereHas('order.idol', fn ($iq) => $iq->where('name', 'ilike', "%{$search}%")->orWhere('email', 'ilike', "%{$search}%"))
+                    ->orWhere('reason', 'ilike', "%{$search}%")
+                    ->orWhere('details', 'ilike', "%{$search}%");
             });
         }
 

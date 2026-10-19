@@ -31,7 +31,7 @@ class QuickSearchController extends Controller
                     $query->where('id', (int) $q);
                 }
                 $query->orWhere('name', 'ilike', "%{$q}%")
-                      ->orWhere('email', 'ilike', "%{$q}%");
+                    ->orWhere('email', 'ilike', "%{$q}%");
             })
             ->limit(5)
             ->get()
@@ -51,7 +51,7 @@ class QuickSearchController extends Controller
                     $query->where('id', (int) $q);
                 }
                 $query->orWhereHas('customer', fn ($cq) => $cq->where('name', 'ilike', "%{$q}%")->orWhere('email', 'ilike', "%{$q}%"))
-                      ->orWhereHas('idol', fn ($iq) => $iq->where('name', 'ilike', "%{$q}%")->orWhere('email', 'ilike', "%{$q}%"));
+                    ->orWhereHas('idol', fn ($iq) => $iq->where('name', 'ilike', "%{$q}%")->orWhere('email', 'ilike', "%{$q}%"));
             })
             ->latest('id')
             ->limit(5)
@@ -59,7 +59,7 @@ class QuickSearchController extends Controller
             ->map(fn (Order $o) => [
                 'id' => $o->id,
                 'title' => "Заказ #{$o->id}",
-                'subtitle' => ($o->customer?->name ?? '—') . ' → ' . ($o->idol?->name ?? '—'),
+                'subtitle' => ($o->customer?->name ?? '—').' → '.($o->idol?->name ?? '—'),
                 'badge' => $o->status->label(),
                 'status_color' => $o->status->color(),
                 'url' => route('admin.orders.show', $o->id),
@@ -72,7 +72,7 @@ class QuickSearchController extends Controller
                     $query->where('id', (int) $q);
                 }
                 $query->orWhere('title', 'ilike', "%{$q}%")
-                      ->orWhereHas('user', fn ($uq) => $uq->where('name', 'ilike', "%{$q}%"));
+                    ->orWhereHas('user', fn ($uq) => $uq->where('name', 'ilike', "%{$q}%"));
             })
             ->latest('id')
             ->limit(5)
@@ -80,7 +80,7 @@ class QuickSearchController extends Controller
             ->map(fn (ContentPack $p) => [
                 'id' => $p->id,
                 'title' => $p->title,
-                'subtitle' => 'Айдол: ' . ($p->user?->name ?? '—') . ' (' . number_format($p->price, 0, '', ' ') . ' ₽)',
+                'subtitle' => 'Айдол: '.($p->user?->name ?? '—').' ('.number_format($p->price, 0, '', ' ').' ₽)',
                 'badge' => $p->status,
                 'url' => route('admin.content-packs.show', $p->id),
             ]);
@@ -92,15 +92,15 @@ class QuickSearchController extends Controller
                     $query->where('id', (int) $q);
                 }
                 $query->orWhere('idempotency_key', 'ilike', "%{$q}%")
-                      ->orWhere('description', 'ilike', "%{$q}%");
+                    ->orWhere('description', 'ilike', "%{$q}%");
             })
             ->latest('id')
             ->limit(5)
             ->get()
             ->map(fn (WalletTransaction $t) => [
                 'id' => $t->id,
-                'title' => "Транзакция #{$t->id} (" . number_format($t->amount, 2, '.', ' ') . " ₽)",
-                'subtitle' => ($t->user?->name ?? 'Система') . ' • ' . $t->description,
+                'title' => "Транзакция #{$t->id} (".number_format($t->amount, 2, '.', ' ').' ₽)',
+                'subtitle' => ($t->user?->name ?? 'Система').' • '.$t->description,
                 'badge' => $t->status instanceof \BackedEnum ? $t->status->value : (string) $t->status,
                 'url' => route('admin.transactions.index', ['search' => $t->id]),
             ]);

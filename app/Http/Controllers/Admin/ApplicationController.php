@@ -17,6 +17,7 @@ use Inertia\Inertia;
 class ApplicationController extends Controller
 {
     use SafeBroadcast;
+
     public function index(Request $request)
     {
         $query = IdolApplication::with(['user', 'reviewer'])

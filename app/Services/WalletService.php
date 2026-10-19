@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Enums\OrderStatus;
 use App\Enums\WalletTransactionStatus;
 use App\Enums\WalletTransactionType;
+use App\Events\NewNotification;
 use App\Exceptions\InsufficientFundsException;
+use App\Jobs\ReleaseIdolOrderHoldJob;
 use App\Models\Admin;
 use App\Models\ContentPack;
 use App\Models\ContentPackPurchase;
@@ -14,8 +16,6 @@ use App\Models\PlatformSetting;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
-use App\Events\NewNotification;
-use App\Jobs\ReleaseIdolOrderHoldJob;
 use App\Notifications\IdolPayoutReleasedNotification;
 use App\Traits\SafeBroadcast;
 use Illuminate\Database\Eloquent\Model;
@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\DB;
 class WalletService
 {
     use SafeBroadcast;
+
     /**
      * Get the user's wallet or create one if it doesn't exist.
      */
@@ -195,7 +196,7 @@ class WalletService
                         ->count();
                     $idempotencyKey = $idempotencyKey
                         ? ($existingCount > 0 ? "{$idempotencyKey}_{$existingCount}" : $idempotencyKey)
-                        : "order_hold_{$reference->getKey()}" . ($existingCount > 0 ? "_{$existingCount}" : '');
+                        : "order_hold_{$reference->getKey()}".($existingCount > 0 ? "_{$existingCount}" : '');
                 } elseif ($idempotencyKey) {
                     $existing = WalletTransaction::where('idempotency_key', $idempotencyKey)->first();
                     if ($existing) {
@@ -668,7 +669,7 @@ class WalletService
                         'reference_type' => Order::class,
                         'reference_id' => $lockedOrder->id,
                         'idempotency_key' => "order_clawback_{$lockedOrder->id}_{$latestHold->id}",
-                        'description' => "Списание по спору/отмене выполненного заказа #{$lockedOrder->id}" . ($reason ? ": {$reason}" : ''),
+                        'description' => "Списание по спору/отмене выполненного заказа #{$lockedOrder->id}".($reason ? ": {$reason}" : ''),
                         'metadata' => [
                             'order_id' => $lockedOrder->id,
                             'gross_amount' => $grossAmount,
@@ -700,7 +701,7 @@ class WalletService
                     'reference_type' => Order::class,
                     'reference_id' => $lockedOrder->id,
                     'idempotency_key' => "order_refund_{$lockedOrder->id}_{$latestHold->id}",
-                    'description' => "Возврат средств по заказу #{$lockedOrder->id}" . ($reason ? ": {$reason}" : ''),
+                    'description' => "Возврат средств по заказу #{$lockedOrder->id}".($reason ? ": {$reason}" : ''),
                     'metadata' => [
                         'order_id' => $lockedOrder->id,
                         'reason' => $reason,
@@ -740,7 +741,7 @@ class WalletService
                 'reference_type' => Order::class,
                 'reference_id' => $lockedOrder->id,
                 'idempotency_key' => "order_refund_{$lockedOrder->id}_{$latestHold->id}",
-                'description' => "Возврат средств по заказу #{$lockedOrder->id}" . ($reason ? ": {$reason}" : ''),
+                'description' => "Возврат средств по заказу #{$lockedOrder->id}".($reason ? ": {$reason}" : ''),
                 'metadata' => [
                     'order_id' => $lockedOrder->id,
                     'reason' => $reason,

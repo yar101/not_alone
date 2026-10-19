@@ -40,6 +40,7 @@ class SystemLogController extends Controller
                 if ($levelFilter === 'debug') {
                     return $lvl === 'debug';
                 }
+
                 return $lvl === $levelFilter;
             });
         }
@@ -146,7 +147,7 @@ class SystemLogController extends Controller
                     $entries[] = $current;
                 }
                 $current = [
-                    'id' => md5($matches[1] . $matches[3] . substr($matches[4], 0, 50) . count($entries)),
+                    'id' => md5($matches[1].$matches[3].substr($matches[4], 0, 50).count($entries)),
                     'date' => $matches[1],
                     'env' => $matches[2],
                     'level' => strtoupper($matches[3]),
@@ -154,7 +155,7 @@ class SystemLogController extends Controller
                     'trace' => '',
                 ];
             } elseif ($current !== null) {
-                $current['trace'] .= ($current['trace'] === '' ? '' : "\n") . $line;
+                $current['trace'] .= ($current['trace'] === '' ? '' : "\n").$line;
             }
         }
 
@@ -189,7 +190,7 @@ class SystemLogController extends Controller
             $pos -= $readSize;
             fseek($handle, $pos);
             $chunk = fread($handle, $readSize);
-            $buffer = $chunk . $buffer;
+            $buffer = $chunk.$buffer;
 
             $chunkLines = explode("\n", $buffer);
             // The first element might be incomplete, keep in buffer
@@ -215,11 +216,12 @@ class SystemLogController extends Controller
     private function formatBytes(int $bytes): string
     {
         if ($bytes >= 1048576) {
-            return number_format($bytes / 1048576, 2) . ' МБ';
+            return number_format($bytes / 1048576, 2).' МБ';
         }
         if ($bytes >= 1024) {
-            return number_format($bytes / 1024, 1) . ' КБ';
+            return number_format($bytes / 1024, 1).' КБ';
         }
-        return $bytes . ' Б';
+
+        return $bytes.' Б';
     }
 }

@@ -65,7 +65,7 @@ class StrikeController extends Controller
                     $q->where('id', (int) $search)->orWhere('user_id', (int) $search);
                 }
                 $q->orWhereHas('user', fn ($uq) => $uq->where('name', 'ilike', "%{$search}%")->orWhere('email', 'ilike', "%{$search}%"))
-                  ->orWhere('admin_note', 'ilike', "%{$search}%");
+                    ->orWhere('admin_note', 'ilike', "%{$search}%");
             });
         }
 

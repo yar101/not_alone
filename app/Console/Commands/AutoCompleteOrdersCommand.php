@@ -36,7 +36,7 @@ class AutoCompleteOrdersCommand extends Command
         $orders = Order::where('status', OrderStatus::Paid)
             ->whereNotNull('paid_at')
             ->where('paid_at', '<=', $cutoff)
-            ->get();
+            ->lazyById(100);
 
         $count = 0;
         foreach ($orders as $order) {

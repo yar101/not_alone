@@ -21,6 +21,7 @@ use Inertia\Response;
 class ContentPackModerationController extends Controller
 {
     use SafeBroadcast;
+
     public function index(Request $request): Response
     {
         $status = $request->input('status', 'pending_review');
@@ -294,4 +295,3 @@ class ContentPackModerationController extends Controller
             ));
     }
 }
-

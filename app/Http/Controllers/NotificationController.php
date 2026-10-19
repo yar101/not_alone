@@ -32,7 +32,8 @@ class NotificationController extends Controller
         $rows = $user->notifications()
             ->whereNotIn('type', $excludedClasses)
             ->when($before, fn ($q) => $q->where('created_at', '<', $before))
-            ->latest()
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->limit(self::PER_PAGE + 1)
             ->get();
 
@@ -68,7 +69,8 @@ class NotificationController extends Controller
         $rows = $user->notifications()
             ->whereIn('type', $serviceClasses)
             ->when($before, fn ($q) => $q->where('created_at', '<', $before))
-            ->latest()
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->limit(self::PER_PAGE + 1)
             ->get();
 
@@ -103,7 +105,8 @@ class NotificationController extends Controller
         // 1. Персональные уведомления
         $notifications = $user->notifications()
             ->when($before, fn ($q) => $q->where('created_at', '<', $before))
-            ->latest()
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->limit(self::PER_PAGE + 1)
             ->get();
 
@@ -111,7 +114,8 @@ class NotificationController extends Controller
         $broadcasts = AdminBroadcast::where('target', '!=', 'user')
             ->forUser($user)
             ->when($before, fn ($q) => $q->where('created_at', '<', $before))
-            ->latest()
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->limit(self::PER_PAGE + 1)
             ->get();
 
@@ -192,7 +196,8 @@ class NotificationController extends Controller
         $rows = $user->notifications()
             ->whereIn('type', $orderClasses)
             ->when($before, fn ($q) => $q->where('created_at', '<', $before))
-            ->latest()
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->limit(self::PER_PAGE + 1)
             ->get();
 

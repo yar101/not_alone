@@ -321,7 +321,7 @@ test('HandleInertiaRequests generates flash token and suppresses flash on partia
     $request = \Illuminate\Http\Request::create('/admin/dashboard', 'GET');
     $request->setLaravelSession($sessionStore);
 
-    $middleware = new \App\Http\Middleware\HandleInertiaRequests();
+    $middleware = new \App\Http\Middleware\HandleInertiaRequests;
     $shared = $middleware->share($request);
 
     $flashFn = $shared['flash'];
@@ -353,5 +353,3 @@ test('admin can clear system logs and receives success flash', function () {
     $response->assertRedirect();
     $response->assertSessionHas('success', 'Системный лог успешно очищен.');
 });
-
-

@@ -19,6 +19,7 @@ use Inertia\Response;
 class ServiceChangeRequestController extends Controller
 {
     use SafeBroadcast;
+
     public function index(): Response
     {
         $requests = ServiceChangeRequest::with(['service.user'])

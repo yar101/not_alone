@@ -21,10 +21,7 @@ use App\Notifications\OrderAcceptedNotification;
 use App\Notifications\OrderCancelledNotification;
 use App\Notifications\OrderCompletedNotification;
 use App\Notifications\OrderPaidNotification;
-use App\Enums\WalletTransactionStatus;
-use App\Enums\WalletTransactionType;
-use App\Models\WalletTransaction;
-use App\Services\WalletService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -683,6 +680,7 @@ class OrderService
         $this->walletService->releaseHold($order);
 
         IdolRatingService::adjust($order->idol, 'order_completed');
+        Cache::forget("user_is_newbie_{$order->idol_id}");
 
         $this->broadcastSystemMessage($order, [
             'sender_id' => null,

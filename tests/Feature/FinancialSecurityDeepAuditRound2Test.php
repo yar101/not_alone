@@ -3,18 +3,14 @@
 namespace Tests\Feature;
 
 use App\Enums\OrderStatus;
-use App\Enums\WalletTransactionStatus;
 use App\Enums\WalletTransactionType;
 use App\Models\ContentPack;
-use App\Models\Conversation;
 use App\Models\Order;
-use App\Models\OrderItem;
 use App\Models\PlatformSetting;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\ServiceTimeUnit;
 use App\Models\User;
-use App\Models\WalletTransaction;
 use App\Services\OrderService;
 use App\Services\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -26,6 +22,7 @@ class FinancialSecurityDeepAuditRound2Test extends TestCase
     use RefreshDatabase;
 
     protected WalletService $walletService;
+
     protected OrderService $orderService;
 
     protected function setUp(): void

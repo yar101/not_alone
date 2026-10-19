@@ -19,6 +19,7 @@ use Inertia\Response;
 class ContentPackChangeRequestController extends Controller
 {
     use SafeBroadcast;
+
     public function index(): Response
     {
         $requests = ContentPackChangeRequest::with(['contentPack.user'])

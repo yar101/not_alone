@@ -191,7 +191,7 @@ class ConversationController extends Controller
                     'cancelled_by_name' => $o->cancelledBy?->name,
                     'is_customer' => $o->customer_id === $user->id,
                     'paid_at' => $o->paid_at?->toISOString(),
-                    'auto_complete_at' => $o->paid_at ? $o->paid_at->addSeconds((int) ((float) PlatformSetting::get('order_auto_complete_delay', 72) * 3600))->toISOString() : null,
+                    'auto_complete_at' => $o->paid_at ? $o->paid_at->copy()->addSeconds((int) ((float) PlatformSetting::get('order_auto_complete_delay', 72) * 3600))->toISOString() : null,
                     'completed_at' => $o->completed_at?->toISOString(),
                     'completion_confirmed_by_idol' => $o->completion_confirmed_by_idol,
                     'completion_confirmed_by_customer' => $o->completion_confirmed_by_customer,
@@ -339,6 +339,7 @@ class ConversationController extends Controller
             'sender_id' => $msg->sender_id,
             'sender_name' => $user->name,
             'sender_avatar' => $user->avatar_url,
+            'sender_frame' => $user->activeFrame,
             'created_at' => $msg->created_at->toISOString(),
             'conversation_id' => $msg->conversation_id,
         ]);
@@ -421,6 +422,7 @@ class ConversationController extends Controller
             'sender_id' => $msg->sender_id,
             'sender_name' => $msg->sender->name,
             'sender_avatar' => $msg->sender->avatar_url,
+            'sender_frame' => $msg->sender->activeFrame,
             'created_at' => $msg->created_at->toISOString(),
             'conversation_id' => $msg->conversation_id,
         ]);

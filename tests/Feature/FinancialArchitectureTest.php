@@ -507,4 +507,3 @@ it('dispatches WalletBalanceUpdated broadcast event when balance or held_balance
             && $event->totalBalance === 1900.00;
     });
 });
-

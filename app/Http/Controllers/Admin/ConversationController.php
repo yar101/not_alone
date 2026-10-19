@@ -22,9 +22,9 @@ class ConversationController extends Controller
             $orderId = $request->order_id;
             $query->where(function ($q) use ($orderId) {
                 $q->where('order_id', $orderId)
-                  ->orWhereHas('linkedOrders', function ($sub) use ($orderId) {
-                      $sub->where('id', $orderId);
-                  });
+                    ->orWhereHas('linkedOrders', function ($sub) use ($orderId) {
+                        $sub->where('id', $orderId);
+                    });
             });
         }
 

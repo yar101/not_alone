@@ -77,6 +77,7 @@ class Order extends Model
         if ($this->relationLoaded('items')) {
             return (float) $this->items->sum(function ($item) {
                 $price = $item->price ?? $item->service?->price ?? 0;
+
                 return $price * ($item->quantity ?? 1);
             });
         }

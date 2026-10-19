@@ -23,6 +23,7 @@ use Inertia\Response;
 class TransactionController extends Controller
 {
     use SafeBroadcast;
+
     public function __construct(
         protected WalletService $walletService
     ) {}
@@ -53,11 +54,11 @@ class TransactionController extends Controller
                     $q->where('id', (int) $search);
                 }
                 $q->orWhere('description', 'ilike', "%{$search}%")
-                  ->orWhere('idempotency_key', 'ilike', "%{$search}%")
-                  ->orWhereHas('user', function ($uq) use ($search) {
-                      $uq->where('name', 'ilike', "%{$search}%")
-                         ->orWhere('email', 'ilike', "%{$search}%");
-                  });
+                    ->orWhere('idempotency_key', 'ilike', "%{$search}%")
+                    ->orWhereHas('user', function ($uq) use ($search) {
+                        $uq->where('name', 'ilike', "%{$search}%")
+                            ->orWhere('email', 'ilike', "%{$search}%");
+                    });
             });
         }
 

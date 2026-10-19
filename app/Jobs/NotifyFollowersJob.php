@@ -22,8 +22,6 @@ class NotifyFollowersJob implements ShouldQueue
 
     /**
      * Delete the job if its models no longer exist.
-     *
-     * @var bool
      */
     public bool $deleteWhenMissingModels = true;
 

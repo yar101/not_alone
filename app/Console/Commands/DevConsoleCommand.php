@@ -3,13 +3,9 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\DB;
 
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\info;
-use function Laravel\Prompts\intro;
-use function Laravel\Prompts\note;
 use function Laravel\Prompts\outro;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\spin;
@@ -342,6 +338,7 @@ class DevConsoleCommand extends Command
         } else {
             warning('Ни mkcert, ни openssl не найдены в системе.');
             $this->waitEnter();
+
             return;
         }
 
@@ -461,6 +458,7 @@ class DevConsoleCommand extends Command
         if (! file_exists($logPath)) {
             warning("Файл логов не найден: {$logPath}");
             $this->waitEnter();
+
             return;
         }
 
@@ -567,6 +565,7 @@ class DevConsoleCommand extends Command
     private function isDockerDaemonRunning(): bool
     {
         $res = shell_exec('docker info 2>&1');
+
         return ! str_contains((string) $res, 'Cannot connect to the Docker daemon') && ! str_contains((string) $res, 'command not found');
     }
 
@@ -574,6 +573,7 @@ class DevConsoleCommand extends Command
     {
         $output = shell_exec('docker ps --filter "name=not_alone" --format "{{.Names}}" 2>/dev/null');
         $lines = array_filter(explode("\n", trim((string) $output)));
+
         return count($lines);
     }
 
@@ -591,10 +591,11 @@ class DevConsoleCommand extends Command
         $portsToTry = array_unique([5433, (int) config('database.connections.pgsql.port', 5432), 5432]);
         foreach ($portsToTry as $port) {
             try {
-                new \PDO("pgsql:host=127.0.0.1;port={$port};dbname=not_alone", "postgres", "postgres", [
+                new \PDO("pgsql:host=127.0.0.1;port={$port};dbname=not_alone", 'postgres', 'postgres', [
                     \PDO::ATTR_TIMEOUT => 1,
                     \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                 ]);
+
                 return "<fg=green> Подключено (:{$port})</>";
             } catch (\Throwable $e) {
                 continue;

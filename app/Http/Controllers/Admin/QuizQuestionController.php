@@ -192,7 +192,7 @@ class QuizQuestionController extends Controller
             if (! isset($q['correct_option_index']) || ! is_numeric($q['correct_option_index'])) {
                 $errors[] = "Вопрос #{$n}: поле «correct_option_index» отсутствует или не является числом.";
             } elseif (isset($q['options']) && is_array($q['options']) && ((int) $q['correct_option_index'] < 0 || (int) $q['correct_option_index'] >= count($q['options']))) {
-                $errors[] = "Вопрос #{$n}: «correct_option_index» выходит за границы вариантов ответа (0..".(count($q['options'])-1).").";
+                $errors[] = "Вопрос #{$n}: «correct_option_index» выходит за границы вариантов ответа (0..".(count($q['options']) - 1).').';
             }
             if (count($errors) >= 5) {
                 $errors[] = '…(и другие ошибки)';

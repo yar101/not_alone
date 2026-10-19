@@ -20,7 +20,7 @@ class PruneRejectedContentPacks extends Command
             ->where('status', 'rejected')
             ->where('updated_at', '<=', now()->subDays(7))
             ->with('photos')
-            ->get();
+            ->lazyById(100);
 
         $count = 0;
         foreach ($packs as $pack) {

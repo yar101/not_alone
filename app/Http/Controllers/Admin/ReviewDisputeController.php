@@ -37,8 +37,8 @@ class ReviewDisputeController extends Controller
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->whereHas('idol', fn ($iq) => $iq->where('name', 'ilike', "%{$search}%")->orWhere('email', 'ilike', "%{$search}%"))
-                  ->orWhereHas('review.reviewer', fn ($rq) => $rq->where('name', 'ilike', "%{$search}%")->orWhere('email', 'ilike', "%{$search}%"))
-                  ->orWhere('reason', 'ilike', "%{$search}%");
+                    ->orWhereHas('review.reviewer', fn ($rq) => $rq->where('name', 'ilike', "%{$search}%")->orWhere('email', 'ilike', "%{$search}%"))
+                    ->orWhere('reason', 'ilike', "%{$search}%");
             });
         }
 
