@@ -7,7 +7,6 @@ use App\Events\NewMessageReceived;
 use App\Events\NewNotification;
 use App\Http\Controllers\Controller;
 use App\Models\Conversation;
-use App\Models\Message;
 use App\Models\User;
 use App\Notifications\NewMessageNotification;
 use Illuminate\Http\JsonResponse;
@@ -112,33 +111,6 @@ class SupportChatController extends Controller
             'messages' => $messages->map(fn ($m) => $this->formatMessage($m)),
             'has_more' => $hasMore,
         ]);
-    }
-
-    private function storeFile(Request $request, Conversation $conversation): ?Message
-    {
-        abort_unless($conversation->is_support, 404);
-
-        $path = $request->file('file')->store("chat/{$conversation->id}");
-
-        $admin = auth('admin')->user();
-
-        $msg = $conversation->messages()->create([
-            'sender_id' => null,
-            'body' => '',
-            'type' => 'image',
-            'metadata' => [
-                'admin_id' => $admin->id,
-                'admin_name' => self::ADMIN_NAME,
-                'image_url' => Storage::url($path),
-            ],
-        ]);
-
-        $conversation->touch();
-        $msg->load('sender');
-
-        $this->broadcastToAll($conversation, $msg);
-
-        return $msg;
     }
 
     public function send(Request $request, Conversation $conversation): JsonResponse

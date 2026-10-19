@@ -12,7 +12,7 @@ class PostPolicy
      */
     public function viewAny(User $user): bool
     {
-        return false;
+        return ! (method_exists($user, 'isActiveBanned') && $user->isActiveBanned());
     }
 
     /**
@@ -20,7 +20,15 @@ class PostPolicy
      */
     public function view(User $user, Post $post): bool
     {
-        return false;
+        if (method_exists($user, 'isActiveBanned') && $user->isActiveBanned()) {
+            return false;
+        }
+
+        if ($user->id === $post->user_id) {
+            return true;
+        }
+
+        return ! ($post->user && method_exists($post->user, 'isActiveBanned') && $post->user->isActiveBanned());
     }
 
     /**
@@ -28,7 +36,11 @@ class PostPolicy
      */
     public function create(User $user): bool
     {
-        return false;
+        if (method_exists($user, 'isActiveBanned') && $user->isActiveBanned()) {
+            return false;
+        }
+
+        return (bool) $user->is_idol;
     }
 
     /**
@@ -36,6 +48,10 @@ class PostPolicy
      */
     public function update(User $user, Post $post): bool
     {
+        if (method_exists($user, 'isActiveBanned') && $user->isActiveBanned()) {
+            return false;
+        }
+
         return $user->id === $post->user_id;
     }
 
@@ -44,6 +60,10 @@ class PostPolicy
      */
     public function delete(User $user, Post $post): bool
     {
+        if (method_exists($user, 'isActiveBanned') && $user->isActiveBanned()) {
+            return false;
+        }
+
         return $user->id === $post->user_id;
     }
 

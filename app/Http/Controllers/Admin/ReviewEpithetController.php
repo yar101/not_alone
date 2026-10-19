@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ReviewEpithet;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
@@ -63,6 +64,8 @@ class ReviewEpithetController extends Controller
                     ->update(['sort_order' => $item['sort_order']]);
             }
         });
+
+        Cache::forget('review_epithets_list');
 
         return back();
     }

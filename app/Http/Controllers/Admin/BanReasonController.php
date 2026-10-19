@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\BanReason;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
@@ -86,6 +87,9 @@ class BanReasonController extends Controller
                 BanReason::where('id', $item['id'])->update(['sort_order' => $item['sort_order']]);
             }
         });
+
+        Cache::forget('chat_block_reasons_list');
+        Cache::forget('user_ban_reasons_list');
 
         return back();
     }

@@ -169,9 +169,11 @@ class ServiceChangeRequestController extends Controller
                     'reviewed_at' => now(),
                 ]);
 
-                $service->user->notify(new ServiceChangeApprovedNotification($service, $changeRequest->changed_fields, $data['flagged_fields'] ?? null, $data['field_comments'] ?? null));
-                DB::afterCommit(function () use ($service) {
-                    $this->safeBroadcast(new NewNotification('private', $service->user->id));
+                DB::afterCommit(function () use ($service, $changeRequest, $data) {
+                    $service->user?->notify(new ServiceChangeApprovedNotification($service, $changeRequest->changed_fields, $data['flagged_fields'] ?? null, $data['field_comments'] ?? null));
+                    if ($service->user) {
+                        $this->safeBroadcast(new NewNotification('private', $service->user->id));
+                    }
                 });
             });
 
@@ -193,8 +195,10 @@ class ServiceChangeRequestController extends Controller
                 'reviewed_at' => now(),
             ]);
 
-            $service->user->notify(new ServiceChangeRemarksNotification($service));
-            $this->safeBroadcast(new NewNotification('private', $service->user->id));
+            if ($service->user) {
+                $service->user->notify(new ServiceChangeRemarksNotification($service));
+                $this->safeBroadcast(new NewNotification('private', $service->user->id));
+            }
 
             AdminLogService::log($admin->id, 'remarks_service_change', 'service_change_request', $changeRequest->id, [
                 'flagged_fields' => $flaggedFields,
@@ -208,8 +212,10 @@ class ServiceChangeRequestController extends Controller
                 'admin_comment' => $data['admin_comment'] ?? null,
             ]);
 
-            $service->user->notify(new ServiceChangeRejectedNotification($service, $data['admin_comment'] ?? null));
-            $this->safeBroadcast(new NewNotification('private', $service->user->id));
+            if ($service->user) {
+                $service->user->notify(new ServiceChangeRejectedNotification($service, $data['admin_comment'] ?? null));
+                $this->safeBroadcast(new NewNotification('private', $service->user->id));
+            }
 
             AdminLogService::log($admin->id, 'reject_service_change', 'service_change_request', $changeRequest->id, [
                 'fields' => $changeRequest->changed_fields,

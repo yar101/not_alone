@@ -68,45 +68,60 @@ class ReviewDisputeController extends Controller
             'admin_note' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        if ($reviewDispute->status !== 'pending') {
-            return back()->withErrors(['dispute' => 'Жалоба уже рассмотрена.']);
-        }
-
         $adminId = auth('admin')->id();
-        $idol = $reviewDispute->idol;
+        $alreadyResolved = false;
 
-        DB::transaction(function () use ($reviewDispute, $request, $idol, $adminId) {
-            $reviewDispute->update([
+        DB::transaction(function () use ($reviewDispute, $request, $adminId, &$alreadyResolved) {
+            $lockedDispute = ReviewDispute::where('id', $reviewDispute->id)->lockForUpdate()->first();
+            if (! $lockedDispute || $lockedDispute->status !== 'pending') {
+                $alreadyResolved = true;
+
+                return;
+            }
+
+            $lockedDispute->update([
                 'status' => $request->decision,
                 'admin_note' => $request->admin_note,
                 'resolved_at' => now(),
             ]);
 
+            $idol = $lockedDispute->idol;
+
             if ($request->decision === 'approved') {
-                $reviewDispute->review->update(['is_hidden' => true]);
-                IdolRatingService::adjust($idol, 'review_dispute_approved');
+                $lockedDispute->review?->update(['is_hidden' => true]);
+                if ($idol) {
+                    IdolRatingService::adjust($idol, 'review_dispute_approved');
+                }
             }
 
             AdminLogService::log(
                 $adminId,
                 'resolve_review_dispute',
                 'review_dispute',
-                $reviewDispute->id,
+                $lockedDispute->id,
                 [
                     'decision' => $request->decision,
-                    'review_id' => $reviewDispute->review_id,
+                    'review_id' => $lockedDispute->review_id,
                     'note' => $request->admin_note,
                 ]
             );
+
+            DB::afterCommit(function () use ($idol, $request) {
+                if ($idol) {
+                    if ($request->decision === 'approved') {
+                        $idol->notify(new ReviewDisputeApprovedNotification($request->admin_note));
+                    } else {
+                        $idol->notify(new ReviewDisputeRejectedNotification($request->admin_note));
+                    }
+
+                    $this->safeBroadcast(new NewNotification('private', $idol->id));
+                }
+            });
         });
 
-        if ($request->decision === 'approved') {
-            $idol->notify(new ReviewDisputeApprovedNotification($request->admin_note));
-        } else {
-            $idol->notify(new ReviewDisputeRejectedNotification($request->admin_note));
+        if ($alreadyResolved) {
+            return back()->withErrors(['dispute' => 'Жалоба уже рассмотрена.']);
         }
-
-        $this->safeBroadcast(new NewNotification('private', $idol->id));
 
         return back();
     }

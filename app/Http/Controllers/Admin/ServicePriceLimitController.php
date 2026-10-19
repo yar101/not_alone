@@ -7,6 +7,7 @@ use App\Models\ServicePriceLimit;
 use App\Models\ServiceTimeUnit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -39,7 +40,7 @@ class ServicePriceLimitController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'time_unit_id' => ['required', 'integer', 'exists:service_time_units,id'],
+            'time_unit_id' => ['required', 'integer', 'exists:service_time_units,id', 'unique:service_price_limits,time_unit_id'],
             'max_price' => ['required', 'integer', 'min:1'],
         ]);
 
@@ -51,7 +52,7 @@ class ServicePriceLimitController extends Controller
     public function update(Request $request, ServicePriceLimit $priceLimit): RedirectResponse
     {
         $data = $request->validate([
-            'time_unit_id' => ['sometimes', 'integer', 'exists:service_time_units,id'],
+            'time_unit_id' => ['sometimes', 'integer', 'exists:service_time_units,id', Rule::unique('service_price_limits', 'time_unit_id')->ignore($priceLimit->id)],
             'max_price' => ['sometimes', 'integer', 'min:1'],
         ]);
 

@@ -100,9 +100,11 @@ class ContentPackChangeRequestController extends Controller
                     'reviewed_at' => now(),
                 ]);
 
-                $pack->user->notify(new ContentPackChangeApprovedNotification($pack, $changeRequest->changed_fields));
-                DB::afterCommit(function () use ($pack) {
-                    $this->safeBroadcast(new NewNotification('private', $pack->user->id));
+                DB::afterCommit(function () use ($pack, $changeRequest) {
+                    $pack->user?->notify(new ContentPackChangeApprovedNotification($pack, $changeRequest->changed_fields));
+                    if ($pack->user) {
+                        $this->safeBroadcast(new NewNotification('private', $pack->user->id));
+                    }
                 });
             });
 
@@ -124,8 +126,10 @@ class ContentPackChangeRequestController extends Controller
                 'reviewed_at' => now(),
             ]);
 
-            $pack->user->notify(new ContentPackChangeRemarksNotification($pack));
-            $this->safeBroadcast(new NewNotification('private', $pack->user->id));
+            if ($pack->user) {
+                $pack->user->notify(new ContentPackChangeRemarksNotification($pack));
+                $this->safeBroadcast(new NewNotification('private', $pack->user->id));
+            }
 
             AdminLogService::log($admin->id, 'remarks_content_pack_change', 'content_pack_change_request', $changeRequest->id, [
                 'flagged_fields' => $flaggedFields,
@@ -139,8 +143,10 @@ class ContentPackChangeRequestController extends Controller
                 'admin_comment' => $data['admin_comment'] ?? null,
             ]);
 
-            $pack->user->notify(new ContentPackChangeRejectedNotification($pack, $data['admin_comment'] ?? null));
-            $this->safeBroadcast(new NewNotification('private', $pack->user->id));
+            if ($pack->user) {
+                $pack->user->notify(new ContentPackChangeRejectedNotification($pack, $data['admin_comment'] ?? null));
+                $this->safeBroadcast(new NewNotification('private', $pack->user->id));
+            }
 
             AdminLogService::log($admin->id, 'reject_content_pack_change', 'content_pack_change_request', $changeRequest->id, [
                 'fields' => $changeRequest->changed_fields,

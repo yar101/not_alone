@@ -18,6 +18,7 @@ class PruneRejectedContentPacks extends Command
 
         $packs = ContentPack::query()
             ->where('status', 'rejected')
+            ->doesntHave('purchases')
             ->where('updated_at', '<=', now()->subDays(7))
             ->with('photos')
             ->lazyById(100);

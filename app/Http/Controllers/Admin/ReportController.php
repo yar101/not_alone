@@ -8,6 +8,7 @@ use App\Services\AdminLogService;
 use App\Services\IdolRatingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -70,61 +71,85 @@ class ReportController extends Controller
 
     public function review(Request $request, UserReport $report): RedirectResponse
     {
-        if ($report->status !== 'pending') {
-            return back()->withErrors(['report' => 'Жалоба уже рассмотрена.']);
-        }
-
         $validated = $request->validate([
             'admin_note' => 'nullable|string|max:1000',
         ]);
 
-        $report->update([
-            'status' => 'reviewed',
-            'admin_note' => $validated['admin_note'] ?? null,
-            'reviewed_by' => auth('admin')->id(),
-            'reviewed_at' => now(),
-        ]);
+        $adminId = auth('admin')->id();
+        $alreadyHandled = false;
 
-        $reported = $report->reported;
-        if ($reported?->is_idol) {
-            IdolRatingService::adjust($reported, 'report_accepted');
+        DB::transaction(function () use ($report, $validated, $adminId, &$alreadyHandled) {
+            $lockedReport = UserReport::where('id', $report->id)->lockForUpdate()->first();
+            if (! $lockedReport || $lockedReport->status !== 'pending') {
+                $alreadyHandled = true;
+
+                return;
+            }
+
+            $lockedReport->update([
+                'status' => 'reviewed',
+                'admin_note' => $validated['admin_note'] ?? null,
+                'reviewed_by' => $adminId,
+                'reviewed_at' => now(),
+            ]);
+
+            $reported = $lockedReport->reported;
+            if ($reported?->is_idol) {
+                IdolRatingService::adjust($reported, 'report_accepted');
+            }
+
+            AdminLogService::log(
+                $adminId,
+                'review_report',
+                'user_report',
+                $lockedReport->id,
+                ['admin_note' => $validated['admin_note'] ?? null, 'reported_id' => $lockedReport->reported_id]
+            );
+        });
+
+        if ($alreadyHandled) {
+            return back()->withErrors(['report' => 'Жалоба уже рассмотрена.']);
         }
-
-        AdminLogService::log(
-            auth('admin')->id(),
-            'review_report',
-            'user_report',
-            $report->id,
-            ['admin_note' => $validated['admin_note'] ?? null, 'reported_id' => $report->reported_id]
-        );
 
         return back()->with('success', 'Жалоба рассмотрена.');
     }
 
     public function dismiss(Request $request, UserReport $report): RedirectResponse
     {
-        if ($report->status !== 'pending') {
-            return back()->withErrors(['report' => 'Жалоба уже обработана.']);
-        }
-
         $validated = $request->validate([
             'admin_note' => 'nullable|string|max:1000',
         ]);
 
-        $report->update([
-            'status' => 'dismissed',
-            'admin_note' => $validated['admin_note'] ?? null,
-            'reviewed_by' => auth('admin')->id(),
-            'reviewed_at' => now(),
-        ]);
+        $adminId = auth('admin')->id();
+        $alreadyHandled = false;
 
-        AdminLogService::log(
-            auth('admin')->id(),
-            'dismiss_report',
-            'user_report',
-            $report->id,
-            ['admin_note' => $validated['admin_note'] ?? null, 'reported_id' => $report->reported_id]
-        );
+        DB::transaction(function () use ($report, $validated, $adminId, &$alreadyHandled) {
+            $lockedReport = UserReport::where('id', $report->id)->lockForUpdate()->first();
+            if (! $lockedReport || $lockedReport->status !== 'pending') {
+                $alreadyHandled = true;
+
+                return;
+            }
+
+            $lockedReport->update([
+                'status' => 'dismissed',
+                'admin_note' => $validated['admin_note'] ?? null,
+                'reviewed_by' => $adminId,
+                'reviewed_at' => now(),
+            ]);
+
+            AdminLogService::log(
+                $adminId,
+                'dismiss_report',
+                'user_report',
+                $lockedReport->id,
+                ['admin_note' => $validated['admin_note'] ?? null, 'reported_id' => $lockedReport->reported_id]
+            );
+        });
+
+        if ($alreadyHandled) {
+            return back()->withErrors(['report' => 'Жалоба уже обработана.']);
+        }
 
         return back()->with('success', 'Жалоба отклонена.');
     }
