@@ -27,8 +27,8 @@ class OrderAcceptedNotification extends Notification implements ShouldQueue
             'type' => 'order_accepted',
             'order_id' => $this->order->id,
             'idol_id' => $this->order->idol_id,
-            'idol_name' => $this->order->idol->name,
-            'idol_gender' => $this->order->idol->gender,
+            'idol_name' => $this->order->idol?->name ?? 'Пользователь',
+            'idol_gender' => $this->order->idol?->gender,
         ];
     }
 
@@ -44,7 +44,7 @@ class OrderAcceptedNotification extends Notification implements ShouldQueue
 
     protected function webPushBody(): string
     {
-        return __('push.order_accepted', ['name' => $this->order->idol->name]);
+        return __('push.order_accepted', ['name' => $this->order->idol?->name ?? 'Пользователь']);
     }
 
     protected function webPushUrl(): string

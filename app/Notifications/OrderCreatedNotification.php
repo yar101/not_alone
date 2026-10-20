@@ -27,7 +27,7 @@ class OrderCreatedNotification extends Notification implements ShouldQueue
             'type' => 'order_created',
             'order_id' => $this->order->id,
             'customer_id' => $this->order->customer_id,
-            'customer_name' => $this->order->customer->name,
+            'customer_name' => $this->order->customer?->name ?? 'Пользователь',
         ];
     }
 
@@ -43,7 +43,7 @@ class OrderCreatedNotification extends Notification implements ShouldQueue
 
     protected function webPushBody(): string
     {
-        return __('push.order_created', ['name' => $this->order->customer->name]);
+        return __('push.order_created', ['name' => $this->order->customer?->name ?? 'Пользователь']);
     }
 
     protected function webPushUrl(): string

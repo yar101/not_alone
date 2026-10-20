@@ -13,6 +13,8 @@ class IdolRatingController extends Controller
 {
     public function update(Request $request, User $user): RedirectResponse
     {
+        abort_unless($user->is_idol, 422, 'Пользователь не является айдолом.');
+
         $data = $request->validate([
             'delta' => ['required', 'numeric', 'min:-100', 'max:100'],
             'note' => ['nullable', 'string', 'max:255'],

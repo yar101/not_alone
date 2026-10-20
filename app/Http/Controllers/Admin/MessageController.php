@@ -23,7 +23,7 @@ class MessageController extends Controller
                 'target' => $b->target,
                 'target_user' => $b->targetUser ? ['id' => $b->targetUser->id, 'name' => $b->targetUser->name, 'email' => $b->targetUser->email] : null,
                 'target_filters' => $b->target_filters,
-                'admin' => ['name' => $b->admin?->name],
+                'admin' => ['name' => $b->admin?->name ?? 'Система'],
                 'created_at' => $b->created_at->toIso8601String(),
             ]);
 

@@ -358,12 +358,24 @@ class ConversationController extends Controller
         );
         abort_unless($user->is_idol, 403);
         abort_if(method_exists($user, 'isActiveBanned') && $user->isActiveBanned(), 403, 'Операция недоступна для заблокированного аккаунта.');
+        abort_if($conversation->closed_at !== null, 422, 'chat_closed');
+
+        $targetUser = $conversation->participants->firstWhere('user_id', '!=', $user->id)?->user;
+        if ($targetUser) {
+            abort_if($targetUser->isActiveBanned(), 422, 'user_banned');
+
+            $isBlocked = ChatBlock::active()->where(function ($q) use ($user, $targetUser) {
+                $q->where('blocker_id', $targetUser->id)->where('blocked_id', $user->id)
+                    ->orWhere('blocker_id', $user->id)->where('blocked_id', $targetUser->id);
+            })->exists();
+
+            abort_if($isBlocked, 403, 'blocked');
+        }
 
         if ($conversation->order_id) {
             $order = $conversation->order;
             abort_unless($order && $order->status === OrderStatus::Pending, 422, 'Предлагать услуги можно только для заказов со статусом «Создан»');
         } else {
-            $targetUser = $conversation->participants->firstWhere('user_id', '!=', $user->id)?->user;
             abort_if($targetUser?->disallow_idol_messages, 403, 'target_disallows_idol_messages');
         }
 

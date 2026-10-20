@@ -85,6 +85,7 @@ class DisputeController extends Controller
                 }
 
                 $order = $lockedDispute->order;
+                abort_if(! $order, 404, 'Заказ не найден.');
 
                 $lockedDispute->update([
                     'status' => $request->decision,

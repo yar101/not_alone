@@ -28,7 +28,7 @@ class NewServiceNotification extends Notification implements ShouldQueue
             'service_id' => $this->service->id,
             'service_name' => $this->service->getTranslation('name', 'ru'),
             'user_id' => $this->service->user_id,
-            'user_name' => $this->service->user->name,
+            'user_name' => $this->service->user?->name ?? 'Пользователь',
         ];
     }
 
@@ -44,8 +44,11 @@ class NewServiceNotification extends Notification implements ShouldQueue
 
     protected function webPushBody(): string
     {
-        return __('push.new_service', ['name' => $this->service->user->name, 'title' => $this->service->getTranslation('name', 'ru')])
-            ?: "{$this->service->user->name} добавил(а) новую услугу: {$this->service->getTranslation('name', 'ru')}";
+        $name = $this->service->user?->name ?? 'Пользователь';
+        $title = $this->service->getTranslation('name', 'ru');
+
+        return __('push.new_service', ['name' => $name, 'title' => $title])
+            ?: "{$name} добавил(а) новую услугу: {$title}";
     }
 
     protected function webPushUrl(): string

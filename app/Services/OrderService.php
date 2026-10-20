@@ -66,6 +66,10 @@ class OrderService
             throw new \Exception('Вы заблокированы этим пользователем');
         }
 
+        if (ChatBlock::active()->where('blocker_id', $customer->id)->where('blocked_id', $idol->id)->exists()) {
+            throw new \Exception('Вы заблокировали этого пользователя');
+        }
+
         $trialServicesCount = $services->where('is_trial', true)->count();
         if ($trialServicesCount > 1) {
             throw new \Exception('Нельзя заказать более одной бесплатной услуги одновременно');

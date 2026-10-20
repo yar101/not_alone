@@ -116,6 +116,7 @@ class QuizController extends Controller
             ->firstOrFail();
 
         $question = $sessionQuestion->question;
+        abort_if(! $question, 422, 'Вопрос теста более недоступен.');
         $isCorrect = $validated['answer_index'] === $question->correct_option_index;
 
         $sessionQuestion->update([

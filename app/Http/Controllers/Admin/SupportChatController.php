@@ -274,8 +274,14 @@ class SupportChatController extends Controller
                 \Log::warning('Broadcast NewMessageReceived failed: '.$e->getMessage());
             }
 
-            $participant->user->notify(new NewMessageNotification($msg));
-            broadcast(new NewNotification('private', $participant->user_id));
+            if ($participant->user) {
+                $participant->user->notify(new NewMessageNotification($msg));
+                try {
+                    broadcast(new NewNotification('private', $participant->user_id));
+                } catch (\Throwable $e) {
+                    \Log::warning('Broadcast NewNotification failed: '.$e->getMessage());
+                }
+            }
         }
     }
 }

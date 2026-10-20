@@ -29,6 +29,7 @@ class ContentPackPurchaseController extends Controller
 
         $packs = ContentPack::whereIn('id', $packIds)
             ->where('status', 'published')
+            ->whereNull('hidden_at')
             ->whereHas('user', fn ($q) => $q->where('is_banned', false))
             ->with(['user.wallet'])
             ->get();

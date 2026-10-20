@@ -27,7 +27,7 @@ class NewPostNotification extends Notification implements ShouldQueue
             'type' => 'new_post',
             'post_id' => $this->post->id,
             'user_id' => $this->post->user_id,
-            'user_name' => $this->post->user->name,
+            'user_name' => $this->post->user?->name ?? 'Пользователь',
         ];
     }
 
@@ -43,7 +43,9 @@ class NewPostNotification extends Notification implements ShouldQueue
 
     protected function webPushBody(): string
     {
-        return __('push.new_post', ['name' => $this->post->user->name]) ?: "{$this->post->user->name} опубликовал(а) новую запись";
+        $name = $this->post->user?->name ?? 'Пользователь';
+
+        return __('push.new_post', ['name' => $name]) ?: "{$name} опубликовал(а) новую запись";
     }
 
     protected function webPushUrl(): string

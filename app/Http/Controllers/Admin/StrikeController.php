@@ -122,19 +122,23 @@ class StrikeController extends Controller
         ]);
 
         $user = User::findOrFail($validated['user_id']);
-        $activeStrikes = $user->activeStrikesCount();
 
         // 3rd strike triggers ban validation
-        if ($activeStrikes >= 2) {
+        if ($user->activeStrikesCount() >= 2) {
             $request->validate([
                 'ban_reason' => 'required|string|max:1000',
             ]);
         }
 
-        DB::transaction(function () use ($user, $validated, $activeStrikes) {
+        $wasBanned = false;
+
+        DB::transaction(function () use ($user, $validated, &$wasBanned) {
+            $lockedUser = User::where('id', $user->id)->lockForUpdate()->firstOrFail();
+            $activeStrikes = $lockedUser->activeStrikesCount();
+
             // Create strike (expires in 6 months)
             $strike = UserStrike::create([
-                'user_id' => $user->id,
+                'user_id' => $lockedUser->id,
                 'admin_id' => auth('admin')->id(),
                 'rating_deducted' => $validated['rating_deducted'] ?? 0,
                 'admin_note' => $validated['admin_note'] ?? null,
@@ -142,9 +146,9 @@ class StrikeController extends Controller
             ]);
 
             // Deduct rating for idol via standard rating service
-            if ($user->is_idol && ! empty($validated['rating_deducted']) && (float) $validated['rating_deducted'] < 0) {
+            if ($lockedUser->is_idol && ! empty($validated['rating_deducted']) && (float) $validated['rating_deducted'] < 0) {
                 IdolRatingService::adjust(
-                    $user,
+                    $lockedUser,
                     'strike',
                     (float) $validated['rating_deducted'],
                     'Страйк от администрации: '.($validated['admin_note'] ?? 'без причины')
@@ -153,18 +157,20 @@ class StrikeController extends Controller
 
             // Apply ban if needed
             if ($activeStrikes >= 2) {
-                $user->update([
+                $wasBanned = true;
+                $banReason = $validated['ban_reason'] ?? 'Превышен лимит активных страйков (3 страйка)';
+                $lockedUser->update([
                     'is_banned' => true,
                     'banned_at' => now(),
                     'banned_until' => $validated['banned_until'] ?? null,
-                    'ban_reason' => $validated['ban_reason'],
+                    'ban_reason' => $banReason,
                     'banned_by' => auth('admin')->id(),
                     'remember_token' => \Illuminate\Support\Str::random(60),
                 ]);
 
                 // Invalidate sessions
                 try {
-                    DB::table('sessions')->where('user_id', $user->id)->delete();
+                    DB::table('sessions')->where('user_id', $lockedUser->id)->delete();
                 } catch (\Throwable) {
                     // sessions table might not exist if driver is redis/file/array
                 }
@@ -173,18 +179,18 @@ class StrikeController extends Controller
                     auth('admin')->id(),
                     'ban_user',
                     'user',
-                    $user->id,
-                    ['reason' => $validated['ban_reason'], 'until' => $validated['banned_until'] ?? null, 'auto_strike_ban' => true]
+                    $lockedUser->id,
+                    ['reason' => $banReason, 'until' => $validated['banned_until'] ?? null, 'auto_strike_ban' => true]
                 );
             }
 
             // Notify user (Mail + Database)
-            DB::afterCommit(function () use ($user, $strike) {
-                $user->notify(new UserStrikeNotification($strike));
+            DB::afterCommit(function () use ($lockedUser, $strike) {
+                $lockedUser->notify(new UserStrikeNotification($strike));
             });
         });
 
-        return back()->with('success', 'Страйк успешно выдан'.($activeStrikes >= 2 ? ' и пользователь забанен' : ''));
+        return back()->with('success', 'Страйк успешно выдан'.($wasBanned ? ' и пользователь забанен' : ''));
     }
 
     public function destroy(UserStrike $strike): RedirectResponse

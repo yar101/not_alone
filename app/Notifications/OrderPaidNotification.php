@@ -27,8 +27,8 @@ class OrderPaidNotification extends Notification implements ShouldQueue
             'type' => 'order_paid',
             'order_id' => $this->order->id,
             'customer_id' => $this->order->customer_id,
-            'customer_name' => $this->order->customer->name,
-            'customer_gender' => $this->order->customer->gender,
+            'customer_name' => $this->order->customer?->name ?? 'Пользователь',
+            'customer_gender' => $this->order->customer?->gender,
         ];
     }
 
@@ -44,7 +44,7 @@ class OrderPaidNotification extends Notification implements ShouldQueue
 
     protected function webPushBody(): string
     {
-        return __('push.order_paid', ['name' => $this->order->customer->name]);
+        return __('push.order_paid', ['name' => $this->order->customer?->name ?? 'Пользователь']);
     }
 
     protected function webPushUrl(): string

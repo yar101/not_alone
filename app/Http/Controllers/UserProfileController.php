@@ -432,12 +432,12 @@ class UserProfileController extends Controller
             'likes_count' => $p->likes_count,
             'liked_by_me' => isset($likedIds[$p->id]),
             'comments_count' => $p->comments_count,
-            'author' => [
+            'author' => $p->user ? [
                 'id' => $p->user->id,
                 'name' => $p->user->name,
                 'avatar_url' => $p->user->avatar_url,
                 'gender' => $p->user->gender,
-            ],
+            ] : null,
         ]);
 
         return response()->json([
@@ -481,24 +481,24 @@ class UserProfileController extends Controller
             'id' => $r->id,
             'body' => $r->body,
             'created_at' => $r->created_at->diffForHumans(),
-            'user' => [
+            'user' => $r->user ? [
                 'id' => $r->user->id,
                 'name' => $r->user->name,
                 'avatar_url' => $r->user->avatar_url,
                 'gender' => $r->user->gender,
-            ],
+            ] : null,
         ];
 
         $data = $comments->map(fn (PostComment $c) => [
             'id' => $c->id,
             'body' => $c->body,
             'created_at' => $c->created_at->diffForHumans(),
-            'user' => [
+            'user' => $c->user ? [
                 'id' => $c->user->id,
                 'name' => $c->user->name,
                 'avatar_url' => $c->user->avatar_url,
                 'gender' => $c->user->gender,
-            ],
+            ] : null,
             'replies_count' => $c->replies_count,
             'replies' => $c->replies_count === 1
                 ? $c->replies->map($mapReply)->values()
@@ -529,12 +529,12 @@ class UserProfileController extends Controller
                 'id' => $r->id,
                 'body' => $r->body,
                 'created_at' => $r->created_at->diffForHumans(),
-                'user' => [
+                'user' => $r->user ? [
                     'id' => $r->user->id,
                     'name' => $r->user->name,
                     'avatar_url' => $r->user->avatar_url,
                     'gender' => $r->user->gender,
-                ],
+                ] : null,
             ])->values(),
             'total' => $paginator->total(),
             'has_more' => $paginator->hasMorePages(),
@@ -545,7 +545,8 @@ class UserProfileController extends Controller
     public function toggleLike(Request $request, Post $post): JsonResponse
     {
         $postOwner = User::select(['id', 'is_banned', 'banned_until'])->find($post->user_id);
-        abort_if($postOwner && $postOwner->isActiveBanned(), 422, 'user_banned');
+        abort_if(! $postOwner, 404, 'user_not_found');
+        abort_if($postOwner->isActiveBanned(), 422, 'user_banned');
 
         $userId = $request->user()->id;
         if ($post->user_id !== $userId) {
@@ -586,7 +587,8 @@ class UserProfileController extends Controller
         ]);
 
         $postOwner = User::select(['id', 'is_banned', 'banned_until'])->find($post->user_id);
-        abort_if($postOwner && $postOwner->isActiveBanned(), 422, 'user_banned');
+        abort_if(! $postOwner, 404, 'user_not_found');
+        abort_if($postOwner->isActiveBanned(), 422, 'user_banned');
 
         $userId = $request->user()->id;
         if ($post->user_id !== $userId) {
