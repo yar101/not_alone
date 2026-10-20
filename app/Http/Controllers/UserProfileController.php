@@ -319,8 +319,12 @@ class UserProfileController extends Controller
     {
         $request->validate(['voice' => ['required', 'file', 'mimes:webm,mp4,ogg', 'max:5120']]);
         $user = $request->user();
+        $oldVoice = $user->voice_path;
         $ext = $request->file('voice')->getClientOriginalExtension() ?: 'webm';
         $path = $request->file('voice')->storeAs('voices', "{$user->id}.{$ext}");
+        if ($oldVoice && $oldVoice !== $path) {
+            Storage::disk(config('filesystems.default'))->delete($oldVoice);
+        }
         $user->update(['voice_path' => $path]);
 
         return back();
@@ -608,13 +612,18 @@ class UserProfileController extends Controller
         }
 
         $comment = $this->profileService->createComment($request->user(), $post, $data);
-        $comment->load(['user:id,name,avatar_path,active_frame_id', 'user.activeFrame']);
+        $comment->load(['user:id,name,avatar_path,active_frame_id,gender', 'user.activeFrame']);
 
         return response()->json([
             'id' => $comment->id,
             'body' => $comment->body,
             'created_at' => $comment->created_at->diffForHumans(),
-            'user' => ['id' => $comment->user->id, 'name' => $comment->user->name, 'avatar_url' => $comment->user->avatar_url],
+            'user' => [
+                'id' => $comment->user->id,
+                'name' => $comment->user->name,
+                'avatar_url' => $comment->user->avatar_url,
+                'gender' => $comment->user->gender,
+            ],
             'replies_count' => 0,
             'replies' => [],
         ]);

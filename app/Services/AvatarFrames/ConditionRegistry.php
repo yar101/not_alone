@@ -27,6 +27,11 @@ class ConditionRegistry
         return $instances;
     }
 
+    public static function register(string $key, string $class): void
+    {
+        self::$conditions[$key] = $class;
+    }
+
     /**
      * Получить конкретное условие по его ключу.
      */

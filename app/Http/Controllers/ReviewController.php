@@ -65,7 +65,11 @@ class ReviewController extends Controller
             IdolRatingService::adjust($order->idol, 'review_'.$review->rating.'star');
 
             DB::afterCommit(function () use ($order, $review) {
-                $order->idol->notify(new NewReviewNotification($review));
+                try {
+                    $order->idol?->notify(new NewReviewNotification($review));
+                } catch (\Throwable $e) {
+                    Log::warning('Notification failed in ReviewController::store: '.$e->getMessage());
+                }
                 try {
                     broadcast(new NewNotification('private', $order->idol_id));
                 } catch (\Throwable $e) {

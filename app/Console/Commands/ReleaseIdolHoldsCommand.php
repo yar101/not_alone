@@ -29,7 +29,7 @@ class ReleaseIdolHoldsCommand extends Command
      */
     public function handle(WalletService $walletService): int
     {
-        $windowMinutes = (int) PlatformSetting::get('order_dispute_window_minutes', 60);
+        $windowMinutes = max(1, (int) PlatformSetting::get('order_dispute_window_minutes', 60));
         $cutoff = now()->subMinutes($windowMinutes);
 
         $orders = Order::where('status', OrderStatus::Completed)

@@ -30,7 +30,7 @@ class AutoCompleteOrdersCommand extends Command
      */
     public function handle(OrderService $orderService): int
     {
-        $delayHours = (float) PlatformSetting::get('order_auto_complete_delay', 72);
+        $delayHours = max(0.01, (float) PlatformSetting::get('order_auto_complete_delay', 72));
         $cutoff = now()->subSeconds((int) ($delayHours * 3600));
 
         $orders = Order::where('status', OrderStatus::Paid)

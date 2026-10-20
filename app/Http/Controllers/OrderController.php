@@ -13,6 +13,7 @@ use App\Services\OrderService;
 use App\Traits\SafeBroadcast;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -46,7 +47,11 @@ class OrderController extends Controller
         $this->safeBroadcast(new OrderChanged($idol->id, $this->service->formatOrder($order, $idol->id), 'created'));
         $this->safeBroadcast(new OrderChanged($user->id, $this->service->formatOrder($order, $user->id), 'created'));
 
-        $idol->notify(new OrderCreatedNotification($order));
+        try {
+            $idol?->notify(new OrderCreatedNotification($order));
+        } catch (\Throwable $e) {
+            Log::warning("Failed to notify idol #{$idol->id} about order #{$order->id}: {$e->getMessage()}");
+        }
         $this->safeBroadcast(new NewNotification('private', $idol->id));
 
         return response()->json([

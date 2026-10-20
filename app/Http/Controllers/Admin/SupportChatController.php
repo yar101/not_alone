@@ -267,7 +267,9 @@ class SupportChatController extends Controller
 
         $conversation->loadMissing('participants.user');
 
-        foreach ($conversation->participants as $participant) {
+        $uniqueParticipants = $conversation->participants->unique('user_id');
+
+        foreach ($uniqueParticipants as $participant) {
             try {
                 broadcast(new NewMessageReceived($participant->user_id, $conversation->id, $msg));
             } catch (\Throwable $e) {
@@ -275,7 +277,11 @@ class SupportChatController extends Controller
             }
 
             if ($participant->user) {
-                $participant->user->notify(new NewMessageNotification($msg));
+                try {
+                    $participant->user->notify(new NewMessageNotification($msg));
+                } catch (\Throwable $e) {
+                    \Log::warning('Notification NewMessageNotification failed: '.$e->getMessage());
+                }
                 try {
                     broadcast(new NewNotification('private', $participant->user_id));
                 } catch (\Throwable $e) {

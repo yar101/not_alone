@@ -87,7 +87,7 @@ class HelpCategoryController extends Controller
     public function reorder(Request $request): RedirectResponse
     {
         $ids = $request->validate([
-            'ids' => 'required|array',
+            'ids' => 'required|array|min:1',
             'ids.*' => 'integer|exists:help_categories,id',
         ])['ids'];
 

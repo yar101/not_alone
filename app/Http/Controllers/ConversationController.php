@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Notifications\NewMessageNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class ConversationController extends Controller
@@ -339,7 +340,11 @@ class ConversationController extends Controller
                 $conversation->order_id,
             ));
 
-            $otherUser->notify(new NewMessageNotification($msg));
+            try {
+                $otherUser->notify(new NewMessageNotification($msg));
+            } catch (\Throwable $e) {
+                Log::warning("Failed to notify user #{$otherUser->id} about new message: {$e->getMessage()}");
+            }
             $this->safeBroadcast(new NewNotification('private', $otherParticipant->user_id));
         }
 
@@ -432,9 +437,14 @@ class ConversationController extends Controller
             ->where('user_id', '!=', $user->id)
             ->with('user')
             ->get()
+            ->unique('user_id')
             ->each(function ($participant) use ($conversation, $msg) {
                 $this->safeBroadcast(new NewMessageReceived($participant->user_id, $conversation->id, $msg));
-                $participant->user?->notify(new NewMessageNotification($msg));
+                try {
+                    $participant->user?->notify(new NewMessageNotification($msg));
+                } catch (\Throwable $e) {
+                    Log::warning("Failed to notify user #{$participant->user_id} about service offer: {$e->getMessage()}");
+                }
                 if ($participant->user) {
                     $this->safeBroadcast(new NewNotification('private', $participant->user_id));
                 }

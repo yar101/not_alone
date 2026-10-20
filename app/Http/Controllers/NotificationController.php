@@ -163,7 +163,7 @@ class NotificationController extends Controller
         }))->sortByDesc('created_at')->values();
 
         $hasMore = $combined->count() > self::PER_PAGE;
-        $items = $combined->take(self::PER_PAGE);
+        $items = $combined->take(self::PER_PAGE)->values();
 
         return response()->json(['items' => $items, 'has_more' => $hasMore]);
     }
@@ -204,7 +204,7 @@ class NotificationController extends Controller
         $hasMore = $rows->count() > self::PER_PAGE;
         $items = $rows->take(self::PER_PAGE)->map(fn ($n) => [
             'id' => $n->id,
-            'type' => $n->data['type'],
+            'type' => $n->data['type'] ?? 'order',
             'order_id' => $n->data['order_id'] ?? null,
             'read_at' => $n->read_at?->toIso8601String(),
             'created_at' => $n->created_at->toIso8601String(),

@@ -37,12 +37,20 @@ class AchievementListener implements ShouldQueue
         foreach ($potentialFrames as $frame) {
             $condition = ConditionRegistry::get($frame->condition_class);
 
-            if ($condition && $condition->check($user)) {
-                $user->avatarFrames()->syncWithoutDetaching([$frame->id]);
+            if (! $condition) {
+                continue;
+            }
 
-                Log::info("User {$user->id} unlocked frame {$frame->id} ({$frame->name})");
+            try {
+                if ($condition->check($user)) {
+                    $user->avatarFrames()->syncWithoutDetaching([$frame->id]);
 
-                // TODO: Dispatch a real-time event/notification for UI popup
+                    Log::info("User {$user->id} unlocked frame {$frame->id} ({$frame->name})");
+
+                    // TODO: Dispatch a real-time event/notification for UI popup
+                }
+            } catch (\Throwable $e) {
+                Log::warning("Achievement condition check failed for user {$user->id}, frame {$frame->id}: {$e->getMessage()}");
             }
         }
     }
