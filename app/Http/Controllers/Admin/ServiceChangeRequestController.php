@@ -100,11 +100,11 @@ class ServiceChangeRequestController extends Controller
                 'id' => $service->id,
                 'name' => $service->name,
                 'status' => $service->status,
-                'user' => [
+                'user' => $service->user ? [
                     'id' => $service->user->id,
                     'name' => $service->user->name,
                     'avatar_url' => $service->user->avatar_url,
-                ],
+                ] : null,
                 'history' => $service->reviews->map(fn ($r) => [
                     'id' => 'review_'.$r->id,
                     'type' => 'initial',

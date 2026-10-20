@@ -305,7 +305,9 @@ class ContentPackModerationController extends Controller
         $likeOp = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
         return ContentPack::with(['user:id,name,avatar_path'])
-            ->when($status !== 'all', fn ($q) => $q->where('status', $status))
+            ->when($status === 'pending_review', fn ($q) => $q->where('status', 'pending_review')->whereNull('resubmitted_at'))
+            ->when($status === 'resubmitted', fn ($q) => $q->where('status', 'pending_review')->whereNotNull('resubmitted_at'))
+            ->when(! in_array($status, ['all', 'pending_review', 'resubmitted']), fn ($q) => $q->where('status', $status))
             ->when($search, fn ($q) => $q->where(fn ($q2) => $q2->where('title', $likeOp, "%{$search}%")
                 ->orWhereHas('user', fn ($u) => $u->where('name', $likeOp, "%{$search}%"))
             ));

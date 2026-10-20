@@ -77,11 +77,11 @@ class UserProfileController extends Controller
                 'id' => $i->id,
                 'name_ru' => $i->getTranslation('name', 'ru'),
                 'name_en' => $i->getTranslation('name', 'en', false) ?: null,
-                'category' => [
+                'category' => $i->category ? [
                     'id' => $i->category->id,
                     'name_ru' => $i->category->getTranslation('name', 'ru'),
                     'name_en' => $i->category->getTranslation('name', 'en', false) ?: null,
-                ],
+                ] : null,
             ]), 'about'),
             'languages' => Inertia::defer(fn () => $user->load('languages')->languages->pluck('language_code'), 'about'),
             'allTraits' => Inertia::defer(fn () => cache()->rememberForever('search_traits', fn () => PersonalityTrait::orderBy('sort_order')->get(['id', 'name'])->map(fn ($t) => [

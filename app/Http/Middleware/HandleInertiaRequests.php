@@ -50,7 +50,7 @@ class HandleInertiaRequests extends Middleware
     {
         $user = auth('web')->user();
         if ($user) {
-            $user->loadMissing('activeFrame');
+            $user->loadMissing(['activeFrame', 'idolApplication']);
             $wallet = $user->getOrCreateWallet();
             $user->setRelation('wallet', $wallet);
         }

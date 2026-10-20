@@ -17,7 +17,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 
-class FinancialSecurityDeepAuditRound2Test extends TestCase
+class WalletAndTrialOrderIntegrityTest extends TestCase
 {
     use RefreshDatabase;
 

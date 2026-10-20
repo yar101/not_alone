@@ -56,11 +56,11 @@ class ContentPackChangeRequestController extends Controller
                 'title' => $pack->title,
                 'cover_url' => $pack->cover_url,
                 'status' => $pack->status,
-                'user' => [
+                'user' => $pack->user ? [
                     'id' => $pack->user->id,
                     'name' => $pack->user->name,
                     'avatar_url' => $pack->user->avatar_url,
-                ],
+                ] : null,
                 'photos' => $pack->photos->map(fn ($ph) => [
                     'id' => $ph->id,
                     'url' => $ph->url,

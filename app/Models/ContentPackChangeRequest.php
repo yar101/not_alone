@@ -31,7 +31,7 @@ class ContentPackChangeRequest extends Model
 
     public function contentPack(): BelongsTo
     {
-        return $this->belongsTo(ContentPack::class);
+        return $this->belongsTo(ContentPack::class)->withTrashed();
     }
 
     public function reviewedBy(): BelongsTo
