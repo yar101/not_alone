@@ -11,6 +11,7 @@ use App\Services\AdminLogService;
 use App\Traits\SafeBroadcast;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
@@ -106,8 +107,14 @@ class ApplicationController extends Controller
             $lockedApp->user?->update(['is_idol' => true]);
 
             if ($lockedApp->user) {
-                $lockedApp->user->notify(new IdolApprovedNotification);
-                $this->safeBroadcast(new NewNotification('private', $lockedApp->user->id));
+                DB::afterCommit(function () use ($lockedApp) {
+                    try {
+                        $lockedApp->user?->notify(new IdolApprovedNotification);
+                    } catch (\Throwable $e) {
+                        Log::warning('IdolApprovedNotification failed: '.$e->getMessage());
+                    }
+                    $this->safeBroadcast(new NewNotification('private', $lockedApp->user_id));
+                });
             }
 
             AdminLogService::log($adminId, 'approve_application', 'application', $lockedApp->id);
@@ -153,8 +160,14 @@ class ApplicationController extends Controller
             }
 
             if ($lockedApp->user) {
-                $lockedApp->user->notify(new IdolRejectedNotification($validated['rejection_reason']));
-                $this->safeBroadcast(new NewNotification('private', $lockedApp->user->id));
+                DB::afterCommit(function () use ($lockedApp, $validated) {
+                    try {
+                        $lockedApp->user?->notify(new IdolRejectedNotification($validated['rejection_reason']));
+                    } catch (\Throwable $e) {
+                        Log::warning('IdolRejectedNotification failed: '.$e->getMessage());
+                    }
+                    $this->safeBroadcast(new NewNotification('private', $lockedApp->user_id));
+                });
             }
 
             AdminLogService::log(

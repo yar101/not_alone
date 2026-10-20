@@ -81,6 +81,7 @@ class GalleryController extends Controller
             $query = ContentPackPhoto::query()
                 ->join('content_packs', 'content_pack_photos.content_pack_id', '=', 'content_packs.id')
                 ->where('content_packs.user_id', $userId)
+                ->whereNull('content_packs.deleted_at')
                 ->when($packId, fn ($q) => $q->where('content_pack_photos.content_pack_id', $packId))
                 ->when($cursor, fn ($q) => $q->where('content_pack_photos.id', '<', $cursor))
                 ->select(

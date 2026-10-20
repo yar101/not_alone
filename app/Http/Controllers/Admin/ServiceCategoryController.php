@@ -59,7 +59,7 @@ class ServiceCategoryController extends Controller
 
     public function reorder(Request $request): RedirectResponse
     {
-        $ids = $request->validate(['ids' => 'required|array', 'ids.*' => 'integer'])['ids'];
+        $ids = $request->validate(['ids' => 'required|array|min:1', 'ids.*' => 'integer'])['ids'];
 
         DB::transaction(function () use ($ids) {
             foreach ($ids as $order => $id) {
@@ -95,6 +95,8 @@ class ServiceCategoryController extends Controller
             }
             if (! empty($data['name_en'])) {
                 $category->setTranslation('name', 'en', $data['name_en']);
+            } else {
+                $category->forgetTranslation('name', 'en');
             }
             unset($data['name_ru'], $data['name_en']);
         }
@@ -102,9 +104,13 @@ class ServiceCategoryController extends Controller
         if (array_key_exists('description_ru', $data) || array_key_exists('description_en', $data)) {
             if (! empty($data['description_ru'])) {
                 $category->setTranslation('description', 'ru', $data['description_ru']);
+            } else {
+                $category->forgetTranslation('description', 'ru');
             }
             if (! empty($data['description_en'])) {
                 $category->setTranslation('description', 'en', $data['description_en']);
+            } else {
+                $category->forgetTranslation('description', 'en');
             }
             unset($data['description_ru'], $data['description_en']);
         }

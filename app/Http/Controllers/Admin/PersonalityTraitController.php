@@ -57,6 +57,8 @@ class PersonalityTraitController extends Controller
         $trait->setTranslation('name', 'ru', $data['name_ru']);
         if (! empty($data['name_en'])) {
             $trait->setTranslation('name', 'en', $data['name_en']);
+        } else {
+            $trait->forgetTranslation('name', 'en');
         }
         $trait->sort_order = $data['sort_order'] ?? $trait->sort_order;
         $trait->save();

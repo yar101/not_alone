@@ -46,7 +46,13 @@ class FollowController extends Controller
 
         abort_if($user->isActiveBanned(), 422, 'user_banned');
 
-        if (\App\Models\ChatBlock::active()->where('blocker_id', $user->id)->where('blocked_id', $follower->id)->exists()) {
+        $isBlocked = \App\Models\ChatBlock::active()->where(function ($q) use ($user, $follower) {
+            $q->where('blocker_id', $user->id)->where('blocked_id', $follower->id);
+        })->orWhere(function ($q) use ($user, $follower) {
+            $q->where('blocker_id', $follower->id)->where('blocked_id', $user->id);
+        })->exists();
+
+        if ($isBlocked) {
             abort(403, 'chat_blocked');
         }
 

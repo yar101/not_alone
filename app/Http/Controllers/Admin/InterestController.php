@@ -72,6 +72,8 @@ class InterestController extends Controller
         $interest->setTranslation('name', 'ru', $data['name_ru']);
         if (! empty($data['name_en'])) {
             $interest->setTranslation('name', 'en', $data['name_en']);
+        } else {
+            $interest->forgetTranslation('name', 'en');
         }
         $interest->save();
 

@@ -29,12 +29,14 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'name' => ['required', 'string', 'max:255', 'regex:/^\S+$/u', 'unique:users,name'],
+            'name' => ['required', 'string', 'min:2', 'max:100', 'regex:/^\S+$/u', 'unique:users,name'],
             'gender' => ['required', 'in:male,female'],
             'birth_date' => ['required', 'date', 'before:'.now()->subYears(18)->toDateString()],
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ], [
+            'name.min' => 'Имя слишком короткое.',
+            'name.max' => 'Имя слишком длинное.',
             'name.regex' => 'Имя не должно содержать пробелы.',
             'name.unique' => 'Это имя уже занято.',
         ]);

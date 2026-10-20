@@ -14,6 +14,7 @@ use App\Traits\SafeBroadcast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -226,7 +227,11 @@ class ContentPackModerationController extends Controller
 
         foreach ($packs as $pack) {
             if ($pack->user) {
-                $pack->user->notify(new ContentPackApprovedNotification($pack));
+                try {
+                    $pack->user->notify(new ContentPackApprovedNotification($pack));
+                } catch (\Throwable $e) {
+                    Log::warning('ContentPackApprovedNotification failed: '.$e->getMessage());
+                }
                 $this->safeBroadcast(new NewNotification('private', $pack->user->id));
             }
         }
@@ -281,7 +286,11 @@ class ContentPackModerationController extends Controller
 
         foreach ($packs as $pack) {
             if ($pack->user) {
-                $pack->user->notify(new ContentPackRejectedNotification($pack));
+                try {
+                    $pack->user->notify(new ContentPackRejectedNotification($pack));
+                } catch (\Throwable $e) {
+                    Log::warning('ContentPackRejectedNotification failed: '.$e->getMessage());
+                }
                 $this->safeBroadcast(new NewNotification('private', $pack->user->id));
             }
         }

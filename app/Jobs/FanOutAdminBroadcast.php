@@ -34,7 +34,11 @@ class FanOutAdminBroadcast implements ShouldQueue
                     ->exists();
 
                 if (! $alreadyNotified) {
-                    $user->notify(new AdminBroadcastNotification($broadcast));
+                    try {
+                        $user->notify(new AdminBroadcastNotification($broadcast));
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning('AdminBroadcastNotification failed: '.$e->getMessage());
+                    }
                 }
             }
             $this->safeBroadcast(new NewNotification('private', (int) $broadcast->target_user_id));

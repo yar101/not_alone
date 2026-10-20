@@ -58,6 +58,8 @@ class ServiceTimeUnitController extends Controller
         if (array_key_exists('name_en', $data)) {
             if (! empty($data['name_en'])) {
                 $timeUnit->setTranslation('name', 'en', $data['name_en']);
+            } else {
+                $timeUnit->forgetTranslation('name', 'en');
             }
         }
         $timeUnit->sort_order = $data['sort_order'] ?? $timeUnit->sort_order;

@@ -18,12 +18,12 @@ class ChatBlock extends Model
 
     public function blocker(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'blocker_id');
+        return $this->belongsTo(User::class, 'blocker_id')->withTrashed();
     }
 
     public function blocked(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'blocked_id');
+        return $this->belongsTo(User::class, 'blocked_id')->withTrashed();
     }
 
     public function scopeActive($query)

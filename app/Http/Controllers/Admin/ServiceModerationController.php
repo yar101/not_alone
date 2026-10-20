@@ -15,6 +15,7 @@ use App\Traits\SafeBroadcast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -244,7 +245,11 @@ class ServiceModerationController extends Controller
 
         foreach ($services as $service) {
             if ($service->user) {
-                $service->user->notify(new ServiceApprovedNotification($service));
+                try {
+                    $service->user->notify(new ServiceApprovedNotification($service));
+                } catch (\Throwable $e) {
+                    Log::warning('ServiceApprovedNotification failed: '.$e->getMessage());
+                }
                 $this->safeBroadcast(new NewNotification('private', $service->user->id));
                 NotifyFollowersJob::dispatch($service->user, $service);
             }
@@ -289,8 +294,12 @@ class ServiceModerationController extends Controller
         });
 
         foreach ($services as $service) {
-            $service->user?->notify(new ServiceRejectedNotification($service));
             if ($service->user) {
+                try {
+                    $service->user->notify(new ServiceRejectedNotification($service));
+                } catch (\Throwable $e) {
+                    Log::warning('ServiceRejectedNotification failed: '.$e->getMessage());
+                }
                 $this->safeBroadcast(new NewNotification('private', $service->user->id));
             }
         }

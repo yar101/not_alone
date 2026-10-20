@@ -44,6 +44,8 @@ class InterestCategoryController extends Controller
         $interestCategory->setTranslation('name', 'ru', $data['name_ru']);
         if (! empty($data['name_en'])) {
             $interestCategory->setTranslation('name', 'en', $data['name_en']);
+        } else {
+            $interestCategory->forgetTranslation('name', 'en');
         }
         $interestCategory->save();
 

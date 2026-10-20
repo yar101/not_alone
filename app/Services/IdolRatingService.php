@@ -2,12 +2,14 @@
 
 namespace App\Services;
 
+use App\Events\NewNotification;
 use App\Models\IdolRatingLog;
 use App\Models\PlatformSetting;
 use App\Models\User;
 use App\Notifications\AdminRatingNotification;
 use App\Notifications\LowRatingWarningNotification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class IdolRatingService
 {
@@ -79,7 +81,15 @@ class IdolRatingService
             // Notify idol about manual admin rating change
             if ($event === 'admin_manual') {
                 DB::afterCommit(function () use ($lockedUser, $delta, $newRating, $note) {
-                    $lockedUser->notify(new AdminRatingNotification($delta, $newRating, $note));
+                    try {
+                        $lockedUser->notify(new AdminRatingNotification($delta, $newRating, $note));
+                    } catch (\Throwable $e) {
+                        Log::warning('AdminRatingNotification failed: '.$e->getMessage());
+                    }
+                    try {
+                        broadcast(new NewNotification('private', $lockedUser->id));
+                    } catch (\Throwable) {
+                    }
                 });
             }
 
@@ -87,7 +97,15 @@ class IdolRatingService
             $threshold = (int) PlatformSetting::get('rating_low_threshold', 30);
             if ($oldRating >= $threshold && $newRating < $threshold) {
                 DB::afterCommit(function () use ($lockedUser, $threshold) {
-                    $lockedUser->notify(new LowRatingWarningNotification($threshold));
+                    try {
+                        $lockedUser->notify(new LowRatingWarningNotification($threshold));
+                    } catch (\Throwable $e) {
+                        Log::warning('LowRatingWarningNotification failed: '.$e->getMessage());
+                    }
+                    try {
+                        broadcast(new NewNotification('private', $lockedUser->id));
+                    } catch (\Throwable) {
+                    }
                 });
             }
 
