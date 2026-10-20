@@ -148,6 +148,7 @@ class ServiceChangeRequestController extends Controller
 
         $admin = auth('admin')->user();
         $service = $changeRequest->service;
+        abort_unless($service, 404, 'Услуга не найдена.');
 
         if ($data['decision'] === 'approved') {
             DB::transaction(function () use ($changeRequest, $service, $admin, $data) {

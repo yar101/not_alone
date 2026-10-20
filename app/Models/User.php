@@ -272,6 +272,9 @@ class User extends Authenticatable implements MustVerifyEmail
         $this->interests()->detach();
         $this->languages()->delete();
         $this->avatarFrames()->detach();
+        $this->followers()->detach();
+        $this->following()->detach();
+        ChatBlock::where('blocker_id', $this->id)->orWhere('blocked_id', $this->id)->delete();
         $this->services()->update(['is_active' => false]);
         $this->contentPacks()->update(['hidden_at' => now()]);
 

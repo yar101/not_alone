@@ -86,73 +86,89 @@ class ApplicationController extends Controller
 
     public function approve(Request $request, IdolApplication $application)
     {
-        if ($application->status !== 'pending') {
-            return back()->withErrors(['error' => 'Заявка уже обработана.']);
-        }
-
         $adminId = auth('admin')->id();
+        $alreadyHandled = false;
 
-        DB::transaction(function () use ($application, $adminId) {
-            $application->update([
+        DB::transaction(function () use ($application, $adminId, &$alreadyHandled) {
+            $lockedApp = IdolApplication::where('id', $application->id)->lockForUpdate()->first();
+            if (! $lockedApp || $lockedApp->status !== 'pending') {
+                $alreadyHandled = true;
+
+                return;
+            }
+
+            $lockedApp->update([
                 'status' => 'approved',
                 'reviewed_by' => $adminId,
                 'reviewed_at' => now(),
             ]);
 
-            $application->user?->update(['is_idol' => true]);
+            $lockedApp->user?->update(['is_idol' => true]);
+
+            if ($lockedApp->user) {
+                $lockedApp->user->notify(new IdolApprovedNotification);
+                $this->safeBroadcast(new NewNotification('private', $lockedApp->user->id));
+            }
+
+            AdminLogService::log($adminId, 'approve_application', 'application', $lockedApp->id);
         });
 
-        if ($application->user) {
-            $application->user->notify(new IdolApprovedNotification);
-            $this->safeBroadcast(new NewNotification('private', $application->user->id));
+        if ($alreadyHandled) {
+            return back()->withErrors(['error' => 'Заявка уже обработана.']);
         }
-
-        AdminLogService::log($adminId, 'approve_application', 'application', $application->id);
 
         return back()->with('success', 'Заявка одобрена.');
     }
 
     public function reject(Request $request, IdolApplication $application)
     {
-        if ($application->status !== 'pending') {
-            return back()->withErrors(['error' => 'Заявка уже обработана.']);
-        }
-
         $validated = $request->validate([
             'rejection_reason' => 'required|string|max:1000',
             'reset_quiz' => 'boolean',
         ]);
 
         $adminId = auth('admin')->id();
+        $alreadyHandled = false;
 
-        DB::transaction(function () use ($application, $validated, $request, $adminId) {
-            $application->update([
+        DB::transaction(function () use ($application, $validated, $request, $adminId, &$alreadyHandled) {
+            $lockedApp = IdolApplication::where('id', $application->id)->lockForUpdate()->first();
+            if (! $lockedApp || $lockedApp->status !== 'pending') {
+                $alreadyHandled = true;
+
+                return;
+            }
+
+            $lockedApp->update([
                 'status' => 'rejected',
                 'rejection_reason' => $validated['rejection_reason'],
                 'reviewed_by' => $adminId,
                 'reviewed_at' => now(),
             ]);
 
-            if ($request->boolean('reset_quiz') && $application->user) {
-                $user = $application->user;
+            if ($request->boolean('reset_quiz') && $lockedApp->user) {
+                $user = $lockedApp->user;
                 $user->idolQuizSessions()->where('status', 'active')
                     ->update(['status' => 'failed', 'completed_at' => now()]);
                 $user->update(['idol_quiz_passed_at' => null, 'idol_quiz_cooldown_until' => null]);
             }
+
+            if ($lockedApp->user) {
+                $lockedApp->user->notify(new IdolRejectedNotification($validated['rejection_reason']));
+                $this->safeBroadcast(new NewNotification('private', $lockedApp->user->id));
+            }
+
+            AdminLogService::log(
+                $adminId,
+                'reject_application',
+                'application',
+                $lockedApp->id,
+                ['reason' => $validated['rejection_reason']]
+            );
         });
 
-        if ($application->user) {
-            $application->user->notify(new IdolRejectedNotification($validated['rejection_reason']));
-            $this->safeBroadcast(new NewNotification('private', $application->user->id));
+        if ($alreadyHandled) {
+            return back()->withErrors(['error' => 'Заявка уже обработана.']);
         }
-
-        AdminLogService::log(
-            $adminId,
-            'reject_application',
-            'application',
-            $application->id,
-            ['reason' => $validated['rejection_reason']]
-        );
 
         return back()->with('success', 'Заявка отклонена.');
     }

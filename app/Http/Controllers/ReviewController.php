@@ -38,7 +38,7 @@ class ReviewController extends Controller
         );
 
         $order->loadMissing('idol');
-        abort_if($order->idol->isActiveBanned(), 422, 'user_banned');
+        abort_if(! $order->idol || $order->idol->isActiveBanned(), 422, 'user_banned');
 
         $order->loadMissing(['items.service.category', 'items.service.timeUnit']);
 
@@ -117,13 +117,13 @@ class ReviewController extends Controller
                 'text' => $r->text,
                 'services_snapshot' => $r->services_snapshot,
                 'epithets' => $r->epithets->map(fn ($e) => ['id' => $e->id, 'label' => $e->label])->values(),
-                'reviewer' => [
+                'reviewer' => $r->reviewer ? [
                     'id' => $r->reviewer->id,
                     'name' => $r->reviewer->name,
                     'avatar_url' => $r->reviewer->avatar_url,
                     'active_frame' => $r->reviewer->activeFrame,
                     'gender' => $r->reviewer->gender,
-                ],
+                ] : null,
                 'created_at' => $r->created_at->toISOString(),
                 'dispute_status' => $isOwner ? ($r->latestDispute?->status ?? null) : null,
             ])->values(),

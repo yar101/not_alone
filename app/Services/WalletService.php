@@ -763,7 +763,11 @@ class WalletService
             throw new \DomainException('Операция недоступна для заблокированного аккаунта.');
         }
 
-        if ($pack->user && method_exists($pack->user, 'isActiveBanned') && $pack->user->isActiveBanned()) {
+        if (! $pack->user) {
+            throw new \DomainException('Автор контент-пака недоступен.');
+        }
+
+        if (method_exists($pack->user, 'isActiveBanned') && $pack->user->isActiveBanned()) {
             throw new \DomainException('Автор контент-пака заблокирован.');
         }
 

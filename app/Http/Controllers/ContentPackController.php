@@ -380,7 +380,7 @@ class ContentPackController extends Controller
 
     public function destroy(Request $request, ContentPack $pack): RedirectResponse
     {
-        $this->authorize('update', $pack);
+        $this->authorize('delete', $pack);
 
         // Pack with purchases → soft delete so buyers keep gallery access
         if ($pack->purchases()->exists()) {

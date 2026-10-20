@@ -62,7 +62,7 @@ class DashboardController extends Controller
                     'title_text' => $b->title,
                     'target' => $b->target,
                     'created_at' => $b->created_at->toIso8601String(),
-                    'admin' => ['name' => $b->admin->name],
+                    'admin' => ['name' => $b->admin?->name ?? 'Система'],
                 ]),
             'recent_admin_logs' => AdminLog::with('admin')
                 ->latest('created_at')

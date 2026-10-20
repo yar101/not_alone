@@ -388,7 +388,7 @@ class ServiceController extends Controller
 
     public function destroy(Request $request, Service $service): RedirectResponse
     {
-        $this->authorize('update', $service);
+        $this->authorize('delete', $service);
         $service->delete();
 
         return back()->with('success', 'Услуга удалена.');

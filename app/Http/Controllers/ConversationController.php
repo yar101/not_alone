@@ -458,9 +458,13 @@ class ConversationController extends Controller
             'duration' => 'nullable|integer|min:1',
         ]);
 
+        abort_if($conversation->is_support, 422, 'cannot_block_support');
+
         $otherId = $conversation->participants()
             ->where('user_id', '!=', $user->id)
             ->value('user_id');
+
+        abort_unless($otherId, 422, 'no_recipient');
 
         $blockedUntil = $request->duration
             ? now()->addMinutes($request->duration)

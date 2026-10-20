@@ -85,6 +85,7 @@ class ContentPackChangeRequestController extends Controller
 
         $admin = auth('admin')->user();
         $pack = $changeRequest->contentPack;
+        abort_unless($pack, 404, 'Контент-пак не найден.');
 
         if ($data['decision'] === 'approved') {
             DB::transaction(function () use ($changeRequest, $pack, $admin) {
