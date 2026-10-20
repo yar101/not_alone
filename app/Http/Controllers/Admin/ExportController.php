@@ -21,8 +21,7 @@ class ExportController extends Controller
             fputcsv($handle, ['ID', 'Имя', 'Email', 'Пол', 'Айдол', 'Рейтинг', 'Дата регистрации', 'Заблокирован'], ';');
 
             User::select(['id', 'name', 'email', 'gender', 'is_idol', 'rating', 'created_at', 'is_banned'])
-                ->orderBy('id')
-                ->chunk(500, function ($users) use ($handle) {
+                ->chunkById(500, function ($users) use ($handle) {
                     foreach ($users as $u) {
                         $row = [
                             $u->id,
@@ -52,7 +51,7 @@ class ExportController extends Controller
             fwrite($handle, "\xEF\xBB\xBF");
             fputcsv($handle, ['ID', 'Имя пользователя', 'Email', 'Статус', 'Дата заявки', 'Дата рассмотрения'], ';');
 
-            IdolApplication::with('user')->orderBy('id')->chunk(500, function ($apps) use ($handle) {
+            IdolApplication::with('user')->chunkById(500, function ($apps) use ($handle) {
                 foreach ($apps as $app) {
                     $row = [
                         $app->id,
@@ -81,8 +80,7 @@ class ExportController extends Controller
             fputcsv($handle, ['ID', 'Клиент', 'Email клиента', 'Айдол', 'Email айдола', 'Статус', 'Сумма (₽)', 'Создан', 'Завершен'], ';');
 
             Order::with(['customer', 'idol', 'items.service'])
-                ->orderBy('id', 'desc')
-                ->chunk(500, function ($orders) use ($handle) {
+                ->chunkByIdDesc(500, function ($orders) use ($handle) {
                     foreach ($orders as $order) {
                         $row = [
                             $order->id,
@@ -114,8 +112,7 @@ class ExportController extends Controller
             fputcsv($handle, ['ID', 'Пользователь', 'Email', 'Тип', 'Сумма (₽)', 'Баланс до', 'Баланс после', 'Статус', 'Описание', 'Дата'], ';');
 
             WalletTransaction::with('user')
-                ->orderBy('id', 'desc')
-                ->chunk(500, function ($transactions) use ($handle) {
+                ->chunkByIdDesc(500, function ($transactions) use ($handle) {
                     foreach ($transactions as $tx) {
                         $row = [
                             $tx->id,
@@ -148,8 +145,7 @@ class ExportController extends Controller
             fputcsv($handle, ['ID', 'Администратор', 'Email админа', 'Действие', 'Тип сущности', 'ID сущности', 'Детали', 'Дата'], ';');
 
             AdminLog::with('admin')
-                ->orderBy('id', 'desc')
-                ->chunk(500, function ($logs) use ($handle) {
+                ->chunkByIdDesc(500, function ($logs) use ($handle) {
                     foreach ($logs as $log) {
                         $row = [
                             $log->id,

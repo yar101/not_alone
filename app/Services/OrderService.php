@@ -195,8 +195,12 @@ class OrderService
             $this->broadcastOrderChanged($lockedOrder);
 
             DB::afterCommit(function () use ($lockedOrder) {
-                $lockedOrder->customer?->notify(new OrderAcceptedNotification($lockedOrder));
-                $this->safeBroadcast(new NewNotification('private', $lockedOrder->customer_id));
+                try {
+                    $lockedOrder->customer?->notify(new OrderAcceptedNotification($lockedOrder));
+                    $this->safeBroadcast(new NewNotification('private', $lockedOrder->customer_id));
+                } catch (\Throwable $e) {
+                    Log::warning("Failed to dispatch OrderAcceptedNotification for order #{$lockedOrder->id}: {$e->getMessage()}");
+                }
             });
         });
     }
@@ -249,8 +253,12 @@ class OrderService
             $this->broadcastOrderChanged($lockedOrder);
 
             DB::afterCommit(function () use ($lockedOrder) {
-                $lockedOrder->idol?->notify(new OrderPaidNotification($lockedOrder));
-                $this->safeBroadcast(new NewNotification('private', $lockedOrder->idol_id));
+                try {
+                    $lockedOrder->idol?->notify(new OrderPaidNotification($lockedOrder));
+                    $this->safeBroadcast(new NewNotification('private', $lockedOrder->idol_id));
+                } catch (\Throwable $e) {
+                    Log::warning("Failed to dispatch OrderPaidNotification for order #{$lockedOrder->id}: {$e->getMessage()}");
+                }
 
                 // Auto-complete after delay from settings
                 $delayHours = (float) PlatformSetting::get('order_auto_complete_delay', 72);
@@ -311,8 +319,12 @@ class OrderService
             $other = User::find($otherId);
 
             DB::afterCommit(function () use ($other, $otherId, $lockedOrder) {
-                $other?->notify(new OrderCancelledNotification($lockedOrder));
-                $this->safeBroadcast(new NewNotification('private', $otherId));
+                try {
+                    $other?->notify(new OrderCancelledNotification($lockedOrder));
+                    $this->safeBroadcast(new NewNotification('private', $otherId));
+                } catch (\Throwable $e) {
+                    Log::warning("Failed to dispatch OrderCancelledNotification for order #{$lockedOrder->id}: {$e->getMessage()}");
+                }
             });
         });
     }
@@ -513,8 +525,12 @@ class OrderService
                     }
 
                     DB::afterCommit(function () use ($lockedOrder, $isNewPaid) {
-                        $lockedOrder->idol?->notify(new OrderPaidNotification($lockedOrder));
-                        $this->safeBroadcast(new NewNotification('private', $lockedOrder->idol_id));
+                        try {
+                            $lockedOrder->idol?->notify(new OrderPaidNotification($lockedOrder));
+                            $this->safeBroadcast(new NewNotification('private', $lockedOrder->idol_id));
+                        } catch (\Throwable $e) {
+                            Log::warning("Failed to dispatch OrderPaidNotification for order #{$lockedOrder->id}: {$e->getMessage()}");
+                        }
 
                         if ($isNewPaid) {
                             $delayHours = (float) PlatformSetting::get('order_auto_complete_delay', 72);
@@ -554,10 +570,14 @@ class OrderService
                     }
 
                     DB::afterCommit(function () use ($lockedOrder) {
-                        $lockedOrder->customer?->notify(new OrderCompletedNotification($lockedOrder));
-                        $lockedOrder->idol?->notify(new OrderCompletedNotification($lockedOrder));
-                        $this->safeBroadcast(new NewNotification('private', $lockedOrder->customer_id));
-                        $this->safeBroadcast(new NewNotification('private', $lockedOrder->idol_id));
+                        try {
+                            $lockedOrder->customer?->notify(new OrderCompletedNotification($lockedOrder));
+                            $lockedOrder->idol?->notify(new OrderCompletedNotification($lockedOrder));
+                            $this->safeBroadcast(new NewNotification('private', $lockedOrder->customer_id));
+                            $this->safeBroadcast(new NewNotification('private', $lockedOrder->idol_id));
+                        } catch (\Throwable $e) {
+                            Log::warning("Failed to dispatch OrderCompletedNotification for order #{$lockedOrder->id}: {$e->getMessage()}");
+                        }
                     });
                     break;
 
@@ -703,10 +723,14 @@ class OrderService
 
         DB::afterCommit(function () use ($order) {
             \App\Events\OrderCompletedEvent::dispatch($order);
-            $order->customer?->notify(new OrderCompletedNotification($order));
-            $order->idol?->notify(new OrderCompletedNotification($order));
-            $this->safeBroadcast(new NewNotification('private', $order->customer_id));
-            $this->safeBroadcast(new NewNotification('private', $order->idol_id));
+            try {
+                $order->customer?->notify(new OrderCompletedNotification($order));
+                $order->idol?->notify(new OrderCompletedNotification($order));
+                $this->safeBroadcast(new NewNotification('private', $order->customer_id));
+                $this->safeBroadcast(new NewNotification('private', $order->idol_id));
+            } catch (\Throwable $e) {
+                Log::warning("Failed to dispatch OrderCompletedNotification for order #{$order->id}: {$e->getMessage()}");
+            }
         });
     }
 

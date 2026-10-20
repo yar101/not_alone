@@ -509,7 +509,6 @@ const ownerSortOptions = computed(() => [
                         <div class="pc-card__body">
                             <div class="pc-card__title">{{ pack.title }}</div>
                             <div class="pc-card__badges">
-                                <PackStatusBadge v-if="pack.status === 'has_remarks'" status="pending_review" />
                                 <PackStatusBadge :status="pack.status" />
                                 <PackStatusBadge v-if="pack.hidden_at" status="hidden" />
                                 <PackStatusBadge v-if="pack.pending_change?.status === 'has_remarks'"
@@ -701,7 +700,6 @@ const ownerSortOptions = computed(() => [
 
                 <!-- ⓪ Top bar: badge (owner) + close button -->
                 <div class="pcd-topbar">
-                    <PackStatusBadge v-if="isOwner && detailPack.status === 'has_remarks'" status="pending_review" />
                     <PackStatusBadge v-if="isOwner" :status="detailPack.status" />
                     <PackStatusBadge v-if="isOwner && detailPack.hidden_at" status="hidden" />
                     <PackStatusBadge v-if="isOwner && detailPack.pending_change?.status === 'has_remarks'" status="has_remarks" />

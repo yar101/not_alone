@@ -20,6 +20,7 @@ use App\Notifications\IdolPayoutReleasedNotification;
 use App\Traits\SafeBroadcast;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class WalletService
 {
@@ -530,8 +531,12 @@ class WalletService
             $lockedOrder->forceFill(['payout_released_at' => now()])->save();
 
             DB::afterCommit(function () use ($lockedOrder, $netPayout) {
-                $lockedOrder->idol?->notify(new IdolPayoutReleasedNotification($lockedOrder, $netPayout));
-                $this->safeBroadcast(new NewNotification('private', $lockedOrder->idol_id));
+                try {
+                    $lockedOrder->idol?->notify(new IdolPayoutReleasedNotification($lockedOrder, $netPayout));
+                    $this->safeBroadcast(new NewNotification('private', $lockedOrder->idol_id));
+                } catch (\Throwable $e) {
+                    Log::warning("Failed to dispatch IdolPayoutReleasedNotification for order #{$lockedOrder->id}: {$e->getMessage()}");
+                }
             });
 
             return $payoutTx;
