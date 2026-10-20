@@ -195,7 +195,7 @@ class OrderService
             $this->broadcastOrderChanged($lockedOrder);
 
             DB::afterCommit(function () use ($lockedOrder) {
-                $lockedOrder->customer->notify(new OrderAcceptedNotification($lockedOrder));
+                $lockedOrder->customer?->notify(new OrderAcceptedNotification($lockedOrder));
                 $this->safeBroadcast(new NewNotification('private', $lockedOrder->customer_id));
             });
         });
@@ -249,7 +249,7 @@ class OrderService
             $this->broadcastOrderChanged($lockedOrder);
 
             DB::afterCommit(function () use ($lockedOrder) {
-                $lockedOrder->idol->notify(new OrderPaidNotification($lockedOrder));
+                $lockedOrder->idol?->notify(new OrderPaidNotification($lockedOrder));
                 $this->safeBroadcast(new NewNotification('private', $lockedOrder->idol_id));
 
                 // Auto-complete after delay from settings
@@ -489,7 +489,7 @@ class OrderService
 
                         if (! $hasActiveHold) {
                             $totalAmount = $lockedOrder->total_price;
-                            if ($totalAmount > 0) {
+                            if ($totalAmount > 0 && $lockedOrder->customer) {
                                 if (config('services.payments.mock_purchases', true)) {
                                     $wallet = $this->walletService->getOrCreateWallet($lockedOrder->customer);
                                     if ($wallet->balance < $totalAmount) {
@@ -513,7 +513,7 @@ class OrderService
                     }
 
                     DB::afterCommit(function () use ($lockedOrder, $isNewPaid) {
-                        $lockedOrder->idol->notify(new OrderPaidNotification($lockedOrder));
+                        $lockedOrder->idol?->notify(new OrderPaidNotification($lockedOrder));
                         $this->safeBroadcast(new NewNotification('private', $lockedOrder->idol_id));
 
                         if ($isNewPaid) {
@@ -527,7 +527,7 @@ class OrderService
                     $wasAlreadyCompleted = $lockedOrder->completed_at !== null;
                     $attrs['completed_at'] = $lockedOrder->completed_at ?? now();
 
-                    if (! $wasAlreadyCompleted) {
+                    if (! $wasAlreadyCompleted && $lockedOrder->idol) {
                         IdolRatingService::adjust($lockedOrder->idol, 'order_completed');
                     }
 
@@ -554,8 +554,8 @@ class OrderService
                     }
 
                     DB::afterCommit(function () use ($lockedOrder) {
-                        $lockedOrder->customer->notify(new OrderCompletedNotification($lockedOrder));
-                        $lockedOrder->idol->notify(new OrderCompletedNotification($lockedOrder));
+                        $lockedOrder->customer?->notify(new OrderCompletedNotification($lockedOrder));
+                        $lockedOrder->idol?->notify(new OrderCompletedNotification($lockedOrder));
                         $this->safeBroadcast(new NewNotification('private', $lockedOrder->customer_id));
                         $this->safeBroadcast(new NewNotification('private', $lockedOrder->idol_id));
                     });
@@ -587,7 +587,7 @@ class OrderService
                     break;
 
                 case OrderStatus::Refunded:
-                    if ($lockedOrder->completed_at !== null) {
+                    if ($lockedOrder->completed_at !== null && $lockedOrder->idol) {
                         IdolRatingService::adjust($lockedOrder->idol, 'order_refunded');
                     }
 
@@ -683,7 +683,9 @@ class OrderService
         // Release escrow hold to idol
         $this->walletService->releaseHold($order);
 
-        IdolRatingService::adjust($order->idol, 'order_completed');
+        if ($order->idol) {
+            IdolRatingService::adjust($order->idol, 'order_completed');
+        }
         Cache::forget("user_is_newbie_{$order->idol_id}");
 
         $this->broadcastSystemMessage($order, [
@@ -701,8 +703,8 @@ class OrderService
 
         DB::afterCommit(function () use ($order) {
             \App\Events\OrderCompletedEvent::dispatch($order);
-            $order->customer->notify(new OrderCompletedNotification($order));
-            $order->idol->notify(new OrderCompletedNotification($order));
+            $order->customer?->notify(new OrderCompletedNotification($order));
+            $order->idol?->notify(new OrderCompletedNotification($order));
             $this->safeBroadcast(new NewNotification('private', $order->customer_id));
             $this->safeBroadcast(new NewNotification('private', $order->idol_id));
         });

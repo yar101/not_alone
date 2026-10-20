@@ -143,8 +143,10 @@ class ContentPackModerationController extends Controller
                 'resubmitted_at' => null,
             ]);
 
-            $pack->user->notify(new ContentPackApprovedNotification($pack));
-            $this->safeBroadcast(new NewNotification('private', $pack->user->id));
+            $pack->user?->notify(new ContentPackApprovedNotification($pack));
+            if ($pack->user) {
+                $this->safeBroadcast(new NewNotification('private', $pack->user->id));
+            }
         } elseif ($data['decision'] === 'rejected') {
             foreach ($pack->photos as $photo) {
                 if (Storage::exists($photo->path)) {
@@ -163,12 +165,16 @@ class ContentPackModerationController extends Controller
                 'moderated_at' => now(),
             ]);
 
-            $pack->user->notify(new ContentPackRejectedNotification($pack));
-            $this->safeBroadcast(new NewNotification('private', $pack->user->id));
+            $pack->user?->notify(new ContentPackRejectedNotification($pack));
+            if ($pack->user) {
+                $this->safeBroadcast(new NewNotification('private', $pack->user->id));
+            }
         } else {
             $pack->update(['status' => 'has_remarks', 'resubmitted_at' => null]);
-            $pack->user->notify(new ContentPackRemarksNotification($pack));
-            $this->safeBroadcast(new NewNotification('private', $pack->user->id));
+            $pack->user?->notify(new ContentPackRemarksNotification($pack));
+            if ($pack->user) {
+                $this->safeBroadcast(new NewNotification('private', $pack->user->id));
+            }
         }
 
         AdminLogService::log(

@@ -471,6 +471,10 @@ class WalletService
                 return null;
             }
 
+            if (! $lockedOrder->idol) {
+                return null;
+            }
+
             $idolWallet = $this->getOrCreateWallet($lockedOrder->idol);
             $lockedIdolWallet = Wallet::where('id', $idolWallet->id)->lockForUpdate()->first();
 
@@ -526,7 +530,7 @@ class WalletService
             $lockedOrder->forceFill(['payout_released_at' => now()])->save();
 
             DB::afterCommit(function () use ($lockedOrder, $netPayout) {
-                $lockedOrder->idol->notify(new IdolPayoutReleasedNotification($lockedOrder, $netPayout));
+                $lockedOrder->idol?->notify(new IdolPayoutReleasedNotification($lockedOrder, $netPayout));
                 $this->safeBroadcast(new NewNotification('private', $lockedOrder->idol_id));
             });
 
@@ -581,10 +585,18 @@ class WalletService
                 ->latest('id')
                 ->first();
 
+            if (! $lockedOrder->customer) {
+                throw new \DomainException('Клиент заказа не найден.');
+            }
+
             $customerWallet = $this->getOrCreateWallet($lockedOrder->customer);
 
             if ($payoutTx && $payoutTx->status !== WalletTransactionStatus::Cancelled) {
                 // Completed order refund: claw back funds from idol, return funds to customer
+                if (! $lockedOrder->idol) {
+                    throw new \DomainException('Айдол заказа не найден.');
+                }
+
                 $idolWallet = $this->getOrCreateWallet($lockedOrder->idol);
 
                 // Lock wallets in ascending ID order to avoid deadlocks

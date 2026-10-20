@@ -31,7 +31,7 @@ class ExportController extends Controller
                             $u->gender ?? '',
                             $u->is_idol ? 'Да' : 'Нет',
                             $u->rating ?? '',
-                            $u->created_at->format('d.m.Y H:i'),
+                            $u->created_at?->format('d.m.Y H:i') ?? '',
                             $u->is_banned ? 'Да' : 'Нет',
                         ];
                         fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], $row), ';');
@@ -59,7 +59,7 @@ class ExportController extends Controller
                         $app->user?->name ?? '',
                         $app->user?->email ?? '',
                         $app->status,
-                        $app->created_at->format('d.m.Y H:i'),
+                        $app->created_at?->format('d.m.Y H:i') ?? '',
                         $app->reviewed_at?->format('d.m.Y H:i') ?? '',
                     ];
                     fputcsv($handle, array_map([$this, 'sanitizeCsvCell'], $row), ';');
@@ -80,7 +80,7 @@ class ExportController extends Controller
             fwrite($handle, "\xEF\xBB\xBF");
             fputcsv($handle, ['ID', 'Клиент', 'Email клиента', 'Айдол', 'Email айдола', 'Статус', 'Сумма (₽)', 'Создан', 'Завершен'], ';');
 
-            Order::with(['customer', 'idol', 'items'])
+            Order::with(['customer', 'idol', 'items.service'])
                 ->orderBy('id', 'desc')
                 ->chunk(500, function ($orders) use ($handle) {
                     foreach ($orders as $order) {

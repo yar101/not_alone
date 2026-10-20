@@ -49,12 +49,18 @@ class UserSearchController extends Controller
 
         // Черты (OR)
         if ($v = $request->traits) {
-            $query->whereHas('traits', fn ($q) => $q->whereIn('traits.id', (array) $v));
+            $traitIds = array_filter(array_map('intval', (array) $v));
+            if (! empty($traitIds)) {
+                $query->whereHas('traits', fn ($q) => $q->whereIn('traits.id', $traitIds));
+            }
         }
 
         // Интересы (OR)
         if ($v = $request->interests) {
-            $query->whereHas('interests', fn ($q) => $q->whereIn('interests.id', (array) $v));
+            $interestIds = array_filter(array_map('intval', (array) $v));
+            if (! empty($interestIds)) {
+                $query->whereHas('interests', fn ($q) => $q->whereIn('interests.id', $interestIds));
+            }
         }
 
         // Языки (OR)

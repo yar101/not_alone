@@ -195,8 +195,19 @@ class ConversationController extends Controller
                     'completed_at' => $o->completed_at?->toISOString(),
                     'completion_confirmed_by_idol' => $o->completion_confirmed_by_idol,
                     'completion_confirmed_by_customer' => $o->completion_confirmed_by_customer,
-                    'customer' => ['id' => $o->customer->id, 'name' => $o->customer->name, 'avatar_url' => $o->customer->avatar_url, 'active_frame' => $o->customer->activeFrame],
-                    'idol' => ['id' => $o->idol->id, 'name' => $o->idol->name, 'avatar_url' => $o->idol->avatar_url, 'active_frame' => $o->idol->activeFrame, 'gender' => $o->idol->gender],
+                    'customer' => $o->customer ? [
+                        'id' => $o->customer->id,
+                        'name' => $o->customer->name,
+                        'avatar_url' => $o->customer->avatar_url,
+                        'active_frame' => $o->customer->activeFrame,
+                    ] : null,
+                    'idol' => $o->idol ? [
+                        'id' => $o->idol->id,
+                        'name' => $o->idol->name,
+                        'avatar_url' => $o->idol->avatar_url,
+                        'active_frame' => $o->idol->activeFrame,
+                        'gender' => $o->idol->gender,
+                    ] : null,
                     'items' => $o->items->map(fn ($item) => [
                         'id' => $item->id,
                         'quantity' => $item->quantity ?? 1,
@@ -423,8 +434,10 @@ class ConversationController extends Controller
             ->get()
             ->each(function ($participant) use ($conversation, $msg) {
                 $this->safeBroadcast(new NewMessageReceived($participant->user_id, $conversation->id, $msg));
-                $participant->user->notify(new NewMessageNotification($msg));
-                $this->safeBroadcast(new NewNotification('private', $participant->user_id));
+                $participant->user?->notify(new NewMessageNotification($msg));
+                if ($participant->user) {
+                    $this->safeBroadcast(new NewNotification('private', $participant->user_id));
+                }
             });
 
         return response()->json([

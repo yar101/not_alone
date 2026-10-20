@@ -60,8 +60,8 @@ class QuickSearchController extends Controller
                 'id' => $o->id,
                 'title' => "Заказ #{$o->id}",
                 'subtitle' => ($o->customer?->name ?? '—').' → '.($o->idol?->name ?? '—'),
-                'badge' => $o->status->label(),
-                'status_color' => $o->status->color(),
+                'badge' => $o->status?->label() ?? '—',
+                'status_color' => $o->status?->color() ?? 'gray',
                 'url' => route('admin.orders.show', $o->id),
             ]);
 
@@ -81,7 +81,7 @@ class QuickSearchController extends Controller
                 'id' => $p->id,
                 'title' => $p->title,
                 'subtitle' => 'Айдол: '.($p->user?->name ?? '—').' ('.number_format($p->price, 0, '', ' ').' ₽)',
-                'badge' => $p->status,
+                'badge' => $p->status instanceof \BackedEnum ? $p->status->value : (string) $p->status,
                 'url' => route('admin.content-packs.show', $p->id),
             ]);
 
