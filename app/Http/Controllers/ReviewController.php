@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\OrderStatus;
 use App\Events\NewNotification;
+use App\Events\ReviewCreatedEvent;
 use App\Models\Order;
 use App\Models\Review;
 use App\Models\ReviewEpithet;
@@ -67,6 +68,8 @@ class ReviewController extends Controller
                 IdolRatingService::adjust($order->idol, 'review_'.$review->rating.'star');
 
                 DB::afterCommit(function () use ($order, $review) {
+                    ReviewCreatedEvent::dispatch($review);
+
                     try {
                         $order->idol?->notify(new NewReviewNotification($review));
                     } catch (\Throwable $e) {

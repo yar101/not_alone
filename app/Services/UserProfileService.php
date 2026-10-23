@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\PostCreatedEvent;
 use App\Models\Post;
 use App\Models\PostComment;
 use App\Models\ServiceCategory;
@@ -84,6 +85,8 @@ class UserProfileService
         }
 
         \App\Jobs\NotifyFollowersJob::dispatch($user, $post);
+
+        PostCreatedEvent::dispatch($post);
 
         return $post;
     }

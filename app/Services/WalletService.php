@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\OrderStatus;
 use App\Enums\WalletTransactionStatus;
 use App\Enums\WalletTransactionType;
+use App\Events\ContentPackPurchasedEvent;
 use App\Events\NewNotification;
 use App\Exceptions\InsufficientFundsException;
 use App\Jobs\ReleaseIdolOrderHoldJob;
@@ -928,7 +929,7 @@ class WalletService
                     }
                 }
 
-                return ContentPackPurchase::firstOrCreate(
+                $purchase = ContentPackPurchase::firstOrCreate(
                     [
                         'content_pack_id' => $pack->id,
                         'user_id' => $buyer->id,
@@ -938,6 +939,12 @@ class WalletService
                         'purchased_at' => now(),
                     ]
                 );
+
+                if ($purchase->wasRecentlyCreated) {
+                    DB::afterCommit(fn () => ContentPackPurchasedEvent::dispatch($purchase));
+                }
+
+                return $purchase;
             });
         } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
             $existing = ContentPackPurchase::where('content_pack_id', $pack->id)

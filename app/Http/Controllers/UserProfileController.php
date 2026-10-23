@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\PostLikedEvent;
 use App\Http\Resources\ContentPackResource;
 use App\Http\Resources\ServiceResource;
 use App\Models\ChatBlock;
@@ -575,6 +576,7 @@ class UserProfileController extends Controller
         } else {
             try {
                 PostLike::create(['post_id' => $post->id, 'user_id' => $userId]);
+                PostLikedEvent::dispatch($post, $request->user());
                 $liked = true;
             } catch (\Illuminate\Database\UniqueConstraintViolationException) {
                 $liked = true;

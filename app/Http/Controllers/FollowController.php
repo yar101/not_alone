@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\UserFollowedEvent;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -61,6 +62,7 @@ class FollowController extends Controller
             $message = 'Вы больше не отслеживаете этого пользователя.';
         } else {
             $follower->follow($user->id);
+            UserFollowedEvent::dispatch($user, $follower);
             $message = 'Теперь вы отслеживаете этого пользователя.';
         }
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ContentPackPublishedEvent;
 use App\Jobs\NotifyFollowersJob;
 use App\Models\ContentPack;
 use App\Models\ContentPackPhoto;
@@ -354,6 +355,8 @@ class ContentPackController extends Controller
         ]);
 
         NotifyFollowersJob::dispatch($pack->user, $pack);
+
+        ContentPackPublishedEvent::dispatch($pack);
 
         return back();
     }
