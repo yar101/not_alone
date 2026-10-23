@@ -22,9 +22,17 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $platformFeeTotal = (float) WalletTransaction::where('type', 'platform_fee')->where('status', 'completed')->sum(DB::raw('abs(amount)'));
-        $turnoverTotal = (float) WalletTransaction::whereIn('type', ['order_payout', 'pack_sale'])->where('status', 'completed')->sum('amount');
-        $depositsTotal = (float) WalletTransaction::where('type', 'deposit')->where('status', 'completed')->sum('amount');
+        $walletStats = WalletTransaction::where('status', 'completed')
+            ->selectRaw("
+                COALESCE(SUM(CASE WHEN type = 'platform_fee' THEN ABS(amount) ELSE 0 END), 0) as platform_fee_total,
+                COALESCE(SUM(CASE WHEN type IN ('order_payout', 'pack_sale') THEN amount ELSE 0 END), 0) as turnover_total,
+                COALESCE(SUM(CASE WHEN type = 'deposit' THEN amount ELSE 0 END), 0) as deposits_total
+            ")
+            ->first();
+
+        $platformFeeTotal = (float) ($walletStats->platform_fee_total ?? 0);
+        $turnoverTotal = (float) ($walletStats->turnover_total ?? 0);
+        $depositsTotal = (float) ($walletStats->deposits_total ?? 0);
 
         return Inertia::render('Admin/Dashboard', [
             'metrics' => [
@@ -89,8 +97,13 @@ class DashboardController extends Controller
                 ->get(['id', 'name', 'rating', 'avatar_path'])
                 ->map(fn ($u) => ['name' => $u->name, 'rating' => $u->rating, 'avatar_url' => $u->avatar_url]),
             'quiz_stats' => (function () {
-                $total = IdolQuizSession::count();
-                $passed = IdolQuizSession::where('status', 'passed')->count();
+                $stats = IdolQuizSession::selectRaw("
+                    COUNT(*) as total,
+                    COUNT(*) FILTER (WHERE status = 'passed') as passed
+                ")->first();
+
+                $total = (int) ($stats->total ?? 0);
+                $passed = (int) ($stats->passed ?? 0);
 
                 return [
                     'total' => $total,

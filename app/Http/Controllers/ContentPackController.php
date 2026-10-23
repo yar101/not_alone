@@ -165,31 +165,33 @@ class ContentPackController extends Controller
             array_map('intval', $data['delete_photo_ids'] ?? []),
             $flaggedPhotoIds
         );
-        foreach ($deleteIds as $photoId) {
-            $photo = ContentPackPhoto::find($photoId);
-            if ($photo && $photo->content_pack_id === $pack->id) {
+        if (! empty($deleteIds)) {
+            $photosToDelete = $pack->photos()->whereIn('id', $deleteIds)->get();
+            $coverDeleted = false;
+            foreach ($photosToDelete as $photo) {
                 Storage::delete($photo->path);
                 if ($pack->cover_path === $photo->path) {
-                    $pack->update(['cover_path' => null]);
+                    $coverDeleted = true;
                 }
-                $photo->delete();
             }
+            if ($coverDeleted) {
+                $pack->update(['cover_path' => null]);
+            }
+            $pack->photos()->whereIn('id', $photosToDelete->pluck('id'))->delete();
         }
 
         // Handle photo replacements
         if ($request->hasFile('photos') && ! empty($flaggedPhotoIds)) {
-            $replaceIds = $data['replace_photo_ids'] ?? [];
+            $replaceIds = array_map('intval', $data['replace_photo_ids'] ?? []);
             $files = $request->file('photos');
+            $existingPhotos = $pack->photos()->whereIn('id', array_intersect($replaceIds, $flaggedPhotoIds))->get()->keyBy('id');
 
             foreach ($files as $i => $file) {
                 $photoId = $replaceIds[$i] ?? null;
-                if (! $photoId || ! in_array((int) $photoId, $flaggedPhotoIds)) {
+                if (! $photoId || ! isset($existingPhotos[$photoId])) {
                     continue;
                 }
-                $photo = ContentPackPhoto::find($photoId);
-                if (! $photo || $photo->content_pack_id !== $pack->id) {
-                    continue;
-                }
+                $photo = $existingPhotos[$photoId];
                 // Delete old file
                 Storage::delete($photo->path);
                 // Store new with async processing

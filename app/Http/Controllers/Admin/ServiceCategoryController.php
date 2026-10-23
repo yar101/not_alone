@@ -124,14 +124,11 @@ class ServiceCategoryController extends Controller
             unset($data['name_suggestions_ru'], $data['name_suggestions_en']);
         }
 
-        $category->save();
-        $category->update($data);
-
         if ($request->boolean('remove_image') && ! $request->hasFile('image')) {
             if ($category->image_path) {
                 Storage::delete($category->image_path);
             }
-            $category->update(['image_path' => null]);
+            $data['image_path'] = null;
         } elseif ($request->hasFile('image')) {
             $request->validate(['image' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:4096']]);
             if ($category->image_path) {
@@ -139,8 +136,11 @@ class ServiceCategoryController extends Controller
             }
             $ext = $request->file('image')->getClientOriginalExtension() ?: 'jpg';
             $path = $request->file('image')->storeAs('service-categories', "{$category->id}.{$ext}");
-            $category->update(['image_path' => $path]);
+            $data['image_path'] = $path;
         }
+
+        $category->fill($data);
+        $category->save();
 
         return back()->with('success', 'Категория обновлена.');
     }

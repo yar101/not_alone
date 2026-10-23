@@ -81,13 +81,32 @@ class Conversation extends Model
             return $conversation;
         }
 
-        $conversation = self::create();
-        $conversation->participants()->createMany([
-            ['user_id' => $a->id],
-            ['user_id' => $b->id],
-        ]);
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($a, $b) {
+            if (\Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql') {
+                $minId = min($a->id, $b->id);
+                $maxId = max($a->id, $b->id);
+                \Illuminate\Support\Facades\DB::select('SELECT pg_advisory_xact_lock(?, ?)', [$minId, $maxId]);
+            }
 
-        return $conversation;
+            $existing = self::whereNull('order_id')
+                ->whereHas('participants', function ($q) use ($a) {
+                    $q->where('user_id', $a->id);
+                })->whereHas('participants', function ($q) use ($b) {
+                    $q->where('user_id', $b->id);
+                })->first();
+
+            if ($existing) {
+                return $existing;
+            }
+
+            $conversation = self::create();
+            $conversation->participants()->createMany([
+                ['user_id' => $a->id],
+                ['user_id' => $b->id],
+            ]);
+
+            return $conversation;
+        });
     }
 
     public function scopeWithUser($query, int $userId)

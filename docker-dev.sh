@@ -71,5 +71,10 @@ if command -v npx >/dev/null 2>&1; then
     npx --yes update-browserslist-db@latest >/dev/null 2>&1 || true
 fi
 
-# Run Docker Compose
-docker compose up --build --remove-orphans
+# Run Docker Compose (build conditionally if BUILD=1 or --build argument is passed)
+BUILD_FLAG=""
+if [ "${BUILD:-0}" = "1" ] || [[ "$*" == *"--build"* ]]; then
+    BUILD_FLAG="--build"
+fi
+
+docker compose up $BUILD_FLAG --remove-orphans
