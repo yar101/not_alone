@@ -225,7 +225,8 @@ class OrderService
             // Hold funds in escrow if order has a price
             $totalAmount = $lockedOrder->total_price;
             if ($totalAmount > 0) {
-                if (config('services.payments.mock_purchases', true)) {
+                $isMock = app()->environment('local', 'testing') || (config('services.payments.mock_purchases', false) && ! app()->environment('production'));
+                if ($isMock) {
                     $wallet = $this->walletService->getOrCreateWallet($actor);
                     if ($wallet->balance < $totalAmount) {
                         $needed = (float) bcsub((string) $totalAmount, (string) $wallet->balance, 2);
@@ -502,7 +503,8 @@ class OrderService
                         if (! $hasActiveHold) {
                             $totalAmount = $lockedOrder->total_price;
                             if ($totalAmount > 0 && $lockedOrder->customer) {
-                                if (config('services.payments.mock_purchases', true)) {
+                                $isMock = app()->environment('local', 'testing') || (config('services.payments.mock_purchases', false) && ! app()->environment('production'));
+                                if ($isMock) {
                                     $wallet = $this->walletService->getOrCreateWallet($lockedOrder->customer);
                                     if ($wallet->balance < $totalAmount) {
                                         $needed = (float) bcsub((string) $totalAmount, (string) $wallet->balance, 2);

@@ -56,7 +56,7 @@ class ServiceChangeRequestController extends Controller
         $service = $changeRequest->service;
 
         $fields = [];
-        foreach ($changeRequest->changed_fields as $field) {
+        foreach ($changeRequest->changed_fields ?? [] as $field) {
             $current = match ($field) {
                 'name' => [
                     'ru' => $service->getTranslation('name', 'ru'),
@@ -135,8 +135,6 @@ class ServiceChangeRequestController extends Controller
 
     public function decide(Request $request, ServiceChangeRequest $changeRequest): RedirectResponse
     {
-        abort_if(! in_array($changeRequest->status, ['pending', 'has_remarks']), 422);
-
         $data = $request->validate([
             'decision' => ['required', 'in:approved,has_remarks,rejected'],
             'flagged_fields' => ['sometimes', 'array'],
@@ -147,13 +145,17 @@ class ServiceChangeRequestController extends Controller
         ]);
 
         $admin = auth('admin')->user();
-        $service = $changeRequest->service;
-        abort_unless($service, 404, 'Услуга не найдена.');
 
-        if ($data['decision'] === 'approved') {
-            DB::transaction(function () use ($changeRequest, $service, $admin, $data) {
+        DB::transaction(function () use ($changeRequest, $data, $admin) {
+            $changeRequest = ServiceChangeRequest::where('id', $changeRequest->id)->lockForUpdate()->firstOrFail();
+            abort_if(! in_array($changeRequest->status, ['pending', 'has_remarks']), 422);
+
+            $service = $changeRequest->service;
+            abort_unless($service, 404, 'Услуга не найдена.');
+
+            if ($data['decision'] === 'approved') {
                 $updates = [];
-                foreach ($changeRequest->changed_fields as $field) {
+                foreach ($changeRequest->changed_fields ?? [] as $field) {
                     if ($field === 'name') {
                         $updates['name'] = $changeRequest->pending_name;
                     } else {
@@ -176,52 +178,56 @@ class ServiceChangeRequestController extends Controller
                         $this->safeBroadcast(new NewNotification('private', $service->user->id));
                     }
                 });
-            });
 
-            AdminLogService::log($admin->id, 'approve_service_change', 'service_change_request', $changeRequest->id, [
-                'fields' => $changeRequest->changed_fields,
-            ]);
+                AdminLogService::log($admin->id, 'approve_service_change', 'service_change_request', $changeRequest->id, [
+                    'fields' => $changeRequest->changed_fields,
+                ]);
 
-        } elseif ($data['decision'] === 'has_remarks') {
-            $flaggedFields = $data['flagged_fields'] ?? [];
-            // Only flag fields that are actually changed
-            $flaggedFields = array_values(array_intersect($flaggedFields, $changeRequest->changed_fields));
-            $fieldComments = array_intersect_key($data['field_comments'] ?? [], array_flip($flaggedFields));
+            } elseif ($data['decision'] === 'has_remarks') {
+                $flaggedFields = $data['flagged_fields'] ?? [];
+                // Only flag fields that are actually changed
+                $flaggedFields = array_values(array_intersect($flaggedFields, $changeRequest->changed_fields ?? []));
+                $fieldComments = array_intersect_key($data['field_comments'] ?? [], array_flip($flaggedFields));
 
-            $changeRequest->update([
-                'status' => 'has_remarks',
-                'flagged_fields' => $flaggedFields,
-                'field_comments' => $fieldComments ?: null,
-                'reviewed_by' => $admin->id,
-                'reviewed_at' => now(),
-            ]);
+                $changeRequest->update([
+                    'status' => 'has_remarks',
+                    'flagged_fields' => $flaggedFields,
+                    'field_comments' => $fieldComments ?: null,
+                    'reviewed_by' => $admin->id,
+                    'reviewed_at' => now(),
+                ]);
 
-            if ($service->user) {
-                $service->user->notify(new ServiceChangeRemarksNotification($service));
-                $this->safeBroadcast(new NewNotification('private', $service->user->id));
+                DB::afterCommit(function () use ($service) {
+                    if ($service->user) {
+                        $service->user->notify(new ServiceChangeRemarksNotification($service));
+                        $this->safeBroadcast(new NewNotification('private', $service->user->id));
+                    }
+                });
+
+                AdminLogService::log($admin->id, 'remarks_service_change', 'service_change_request', $changeRequest->id, [
+                    'flagged_fields' => $flaggedFields,
+                ]);
+
+            } else { // rejected
+                $changeRequest->update([
+                    'status' => 'rejected',
+                    'reviewed_by' => $admin->id,
+                    'reviewed_at' => now(),
+                    'admin_comment' => $data['admin_comment'] ?? null,
+                ]);
+
+                DB::afterCommit(function () use ($service, $data) {
+                    if ($service->user) {
+                        $service->user->notify(new ServiceChangeRejectedNotification($service, $data['admin_comment'] ?? null));
+                        $this->safeBroadcast(new NewNotification('private', $service->user->id));
+                    }
+                });
+
+                AdminLogService::log($admin->id, 'reject_service_change', 'service_change_request', $changeRequest->id, [
+                    'fields' => $changeRequest->changed_fields,
+                ]);
             }
-
-            AdminLogService::log($admin->id, 'remarks_service_change', 'service_change_request', $changeRequest->id, [
-                'flagged_fields' => $flaggedFields,
-            ]);
-
-        } else { // rejected
-            $changeRequest->update([
-                'status' => 'rejected',
-                'reviewed_by' => $admin->id,
-                'reviewed_at' => now(),
-                'admin_comment' => $data['admin_comment'] ?? null,
-            ]);
-
-            if ($service->user) {
-                $service->user->notify(new ServiceChangeRejectedNotification($service, $data['admin_comment'] ?? null));
-                $this->safeBroadcast(new NewNotification('private', $service->user->id));
-            }
-
-            AdminLogService::log($admin->id, 'reject_service_change', 'service_change_request', $changeRequest->id, [
-                'fields' => $changeRequest->changed_fields,
-            ]);
-        }
+        });
 
         return back()->with('success', 'Решение отправлено.');
     }

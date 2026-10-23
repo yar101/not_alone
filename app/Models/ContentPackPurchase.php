@@ -25,7 +25,7 @@ class ContentPackPurchase extends Model
 
     public function contentPack(): BelongsTo
     {
-        return $this->belongsTo(ContentPack::class)->with('user');
+        return $this->belongsTo(ContentPack::class)->withTrashed()->with('user');
     }
 
     public function user(): BelongsTo

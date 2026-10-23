@@ -26,8 +26,8 @@ class ReviewDisputeController extends Controller
         $search = $request->get('search', '');
 
         $query = ReviewDispute::with([
-            'review.reviewer:id,name,avatar_path',
-            'idol:id,name,avatar_path',
+            'review.reviewer:id,name,avatar_path,deleted_at',
+            'idol:id,name,avatar_path,deleted_at',
         ])->latest('created_at');
 
         if ($statusFilter !== 'all') {

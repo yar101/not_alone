@@ -40,7 +40,7 @@ class ContentPackChangeRequestController extends Controller
         $pack = $changeRequest->contentPack;
 
         $fields = [];
-        foreach ($changeRequest->changed_fields as $field) {
+        foreach ($changeRequest->changed_fields ?? [] as $field) {
             $fields[$field] = [
                 'current' => $pack->{$field},
                 'pending' => $changeRequest->{"pending_{$field}"},
@@ -72,8 +72,6 @@ class ContentPackChangeRequestController extends Controller
 
     public function decide(Request $request, ContentPackChangeRequest $changeRequest): RedirectResponse
     {
-        abort_if(! in_array($changeRequest->status, ['pending', 'has_remarks']), 422);
-
         $data = $request->validate([
             'decision' => ['required', 'in:approved,has_remarks,rejected'],
             'flagged_fields' => ['sometimes', 'array'],
@@ -84,13 +82,17 @@ class ContentPackChangeRequestController extends Controller
         ]);
 
         $admin = auth('admin')->user();
-        $pack = $changeRequest->contentPack;
-        abort_unless($pack, 404, 'Контент-пак не найден.');
 
-        if ($data['decision'] === 'approved') {
-            DB::transaction(function () use ($changeRequest, $pack, $admin) {
+        DB::transaction(function () use ($changeRequest, $data, $admin) {
+            $changeRequest = ContentPackChangeRequest::where('id', $changeRequest->id)->lockForUpdate()->firstOrFail();
+            abort_if(! in_array($changeRequest->status, ['pending', 'has_remarks']), 422);
+
+            $pack = $changeRequest->contentPack;
+            abort_unless($pack, 404, 'Контент-пак не найден.');
+
+            if ($data['decision'] === 'approved') {
                 $updates = [];
-                foreach ($changeRequest->changed_fields as $field) {
+                foreach ($changeRequest->changed_fields ?? [] as $field) {
                     $updates[$field] = $changeRequest->{"pending_{$field}"};
                 }
                 $pack->update($updates);
@@ -107,52 +109,56 @@ class ContentPackChangeRequestController extends Controller
                         $this->safeBroadcast(new NewNotification('private', $pack->user->id));
                     }
                 });
-            });
 
-            AdminLogService::log($admin->id, 'approve_content_pack_change', 'content_pack_change_request', $changeRequest->id, [
-                'fields' => $changeRequest->changed_fields,
-            ]);
+                AdminLogService::log($admin->id, 'approve_content_pack_change', 'content_pack_change_request', $changeRequest->id, [
+                    'fields' => $changeRequest->changed_fields,
+                ]);
 
-        } elseif ($data['decision'] === 'has_remarks') {
-            $flaggedFields = $data['flagged_fields'] ?? [];
-            // Only flag fields that are actually changed
-            $flaggedFields = array_values(array_intersect($flaggedFields, $changeRequest->changed_fields));
-            $fieldComments = array_intersect_key($data['field_comments'] ?? [], array_flip($flaggedFields));
+            } elseif ($data['decision'] === 'has_remarks') {
+                $flaggedFields = $data['flagged_fields'] ?? [];
+                // Only flag fields that are actually changed
+                $flaggedFields = array_values(array_intersect($flaggedFields, $changeRequest->changed_fields ?? []));
+                $fieldComments = array_intersect_key($data['field_comments'] ?? [], array_flip($flaggedFields));
 
-            $changeRequest->update([
-                'status' => 'has_remarks',
-                'flagged_fields' => $flaggedFields,
-                'field_comments' => $fieldComments ?: null,
-                'reviewed_by' => $admin->id,
-                'reviewed_at' => now(),
-            ]);
+                $changeRequest->update([
+                    'status' => 'has_remarks',
+                    'flagged_fields' => $flaggedFields,
+                    'field_comments' => $fieldComments ?: null,
+                    'reviewed_by' => $admin->id,
+                    'reviewed_at' => now(),
+                ]);
 
-            if ($pack->user) {
-                $pack->user->notify(new ContentPackChangeRemarksNotification($pack));
-                $this->safeBroadcast(new NewNotification('private', $pack->user->id));
+                DB::afterCommit(function () use ($pack) {
+                    if ($pack->user) {
+                        $pack->user->notify(new ContentPackChangeRemarksNotification($pack));
+                        $this->safeBroadcast(new NewNotification('private', $pack->user->id));
+                    }
+                });
+
+                AdminLogService::log($admin->id, 'remarks_content_pack_change', 'content_pack_change_request', $changeRequest->id, [
+                    'flagged_fields' => $flaggedFields,
+                ]);
+
+            } else { // rejected
+                $changeRequest->update([
+                    'status' => 'rejected',
+                    'reviewed_by' => $admin->id,
+                    'reviewed_at' => now(),
+                    'admin_comment' => $data['admin_comment'] ?? null,
+                ]);
+
+                DB::afterCommit(function () use ($pack, $data) {
+                    if ($pack->user) {
+                        $pack->user->notify(new ContentPackChangeRejectedNotification($pack, $data['admin_comment'] ?? null));
+                        $this->safeBroadcast(new NewNotification('private', $pack->user->id));
+                    }
+                });
+
+                AdminLogService::log($admin->id, 'reject_content_pack_change', 'content_pack_change_request', $changeRequest->id, [
+                    'fields' => $changeRequest->changed_fields,
+                ]);
             }
-
-            AdminLogService::log($admin->id, 'remarks_content_pack_change', 'content_pack_change_request', $changeRequest->id, [
-                'flagged_fields' => $flaggedFields,
-            ]);
-
-        } else { // rejected
-            $changeRequest->update([
-                'status' => 'rejected',
-                'reviewed_by' => $admin->id,
-                'reviewed_at' => now(),
-                'admin_comment' => $data['admin_comment'] ?? null,
-            ]);
-
-            if ($pack->user) {
-                $pack->user->notify(new ContentPackChangeRejectedNotification($pack, $data['admin_comment'] ?? null));
-                $this->safeBroadcast(new NewNotification('private', $pack->user->id));
-            }
-
-            AdminLogService::log($admin->id, 'reject_content_pack_change', 'content_pack_change_request', $changeRequest->id, [
-                'fields' => $changeRequest->changed_fields,
-            ]);
-        }
+        });
 
         return back()->with('success', 'Решение отправлено.');
     }

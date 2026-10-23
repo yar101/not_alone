@@ -308,6 +308,10 @@ class WalletService
                 return [];
             }
 
+            if (! $lockedOrder->customer || ! $lockedOrder->idol) {
+                throw new \DomainException('Заказчик или исполнитель не найден.');
+            }
+
             $customerWallet = $this->getOrCreateWallet($lockedOrder->customer);
             $idolWallet = $this->getOrCreateWallet($lockedOrder->idol);
 
@@ -316,7 +320,9 @@ class WalletService
             $secondId = max($customerWallet->id, $idolWallet->id);
 
             $firstLocked = Wallet::where('id', $firstId)->lockForUpdate()->first();
-            $secondLocked = Wallet::where('id', $secondId)->lockForUpdate()->first();
+            $secondLocked = ($firstId !== $secondId)
+                ? Wallet::where('id', $secondId)->lockForUpdate()->first()
+                : $firstLocked;
 
             $lockedCustWallet = $customerWallet->id === $firstLocked->id ? $firstLocked : $secondLocked;
             $lockedIdolWallet = $idolWallet->id === $firstLocked->id ? $firstLocked : $secondLocked;
@@ -609,7 +615,9 @@ class WalletService
                 $secondId = max($customerWallet->id, $idolWallet->id);
 
                 $firstLocked = Wallet::where('id', $firstId)->lockForUpdate()->first();
-                $secondLocked = Wallet::where('id', $secondId)->lockForUpdate()->first();
+                $secondLocked = ($firstId !== $secondId)
+                    ? Wallet::where('id', $secondId)->lockForUpdate()->first()
+                    : $firstLocked;
 
                 $lockedCustomerWallet = $customerWallet->id === $firstLocked->id ? $firstLocked : $secondLocked;
                 $lockedIdolWallet = $idolWallet->id === $firstLocked->id ? $firstLocked : $secondLocked;
@@ -796,7 +804,7 @@ class WalletService
             throw new \InvalidArgumentException('Процент комиссии платформы должен быть в диапазоне от 0 до 100.');
         }
 
-        $isMock = config('services.payments.mock_purchases', true);
+        $isMock = app()->environment('local', 'testing') || (config('services.payments.mock_purchases', false) && ! app()->environment('production'));
         $price = (float) ($pack->price ?? 0);
 
         try {
@@ -826,7 +834,9 @@ class WalletService
                     $secondId = max($buyerWallet->id, $sellerWallet->id);
 
                     $firstLocked = Wallet::where('id', $firstId)->lockForUpdate()->first();
-                    $secondLocked = Wallet::where('id', $secondId)->lockForUpdate()->first();
+                    $secondLocked = ($firstId !== $secondId)
+                        ? Wallet::where('id', $secondId)->lockForUpdate()->first()
+                        : $firstLocked;
 
                     $lockedBuyerWallet = $buyerWallet->id === $firstLocked->id ? $firstLocked : $secondLocked;
                     $lockedSellerWallet = $sellerWallet->id === $firstLocked->id ? $firstLocked : $secondLocked;

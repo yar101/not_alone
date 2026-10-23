@@ -22,10 +22,10 @@ class DisputeController extends Controller
         $statusFilter = $request->get('status', 'open');
 
         $query = OrderDispute::with([
-            'order.customer:id,name,avatar_path',
-            'order.idol:id,name,avatar_path',
+            'order.customer:id,name,avatar_path,deleted_at',
+            'order.idol:id,name,avatar_path,deleted_at',
             'order.items.service',
-            'customer:id,name,avatar_path',
+            'customer:id,name,avatar_path,deleted_at',
         ])->latest('created_at');
 
         if ($statusFilter !== 'all') {
@@ -148,11 +148,13 @@ class DisputeController extends Controller
                     'id' => $d->order?->customer?->id,
                     'name' => $d->order?->customer?->name ?? 'Удаленный пользователь',
                     'avatar' => $d->order?->customer?->avatar_url,
+                    'is_deleted' => (bool) $d->order?->customer?->trashed(),
                 ],
                 'idol' => [
                     'id' => $d->order?->idol?->id,
                     'name' => $d->order?->idol?->name ?? 'Удаленный пользователь',
                     'avatar' => $d->order?->idol?->avatar_url,
+                    'is_deleted' => (bool) $d->order?->idol?->trashed(),
                 ],
             ],
         ];

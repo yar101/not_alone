@@ -125,7 +125,7 @@ function handleItemClick(item) {
 
     if (item.type === 'wallet_adjustment') {
         open.value = false;
-        router.visit(route('wallet.index'));
+        router.visit(route('wallet.show'));
         return;
     }
 

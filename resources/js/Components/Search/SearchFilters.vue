@@ -114,7 +114,7 @@ const sectionSearch = ref({
 });
 
 const filteredTraits = computed(() =>
-    props.traits.filter((t) =>
+    (props.traits ?? []).filter((t) =>
         localName(t)
             .toLowerCase()
             .includes(sectionSearch.value.traits.toLowerCase()),
@@ -122,7 +122,7 @@ const filteredTraits = computed(() =>
 );
 
 const filteredLanguages = computed(() =>
-    props.languages.filter((l) =>
+    (props.languages ?? []).filter((l) =>
         l.label
             .toLowerCase()
             .includes(sectionSearch.value.languages.toLowerCase()),
@@ -130,7 +130,7 @@ const filteredLanguages = computed(() =>
 );
 
 const filteredServiceCategories = computed(() =>
-    props.serviceCategories.filter((c) =>
+    (props.serviceCategories ?? []).filter((c) =>
         localName(c)
             .toLowerCase()
             .includes(

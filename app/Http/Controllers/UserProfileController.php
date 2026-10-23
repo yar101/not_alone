@@ -441,6 +441,7 @@ class UserProfileController extends Controller
                 'name' => $p->user->name,
                 'avatar_url' => $p->user->avatar_url,
                 'gender' => $p->user->gender,
+                'active_frame' => $p->user->activeFrame,
             ] : null,
         ]);
 
@@ -490,6 +491,7 @@ class UserProfileController extends Controller
                 'name' => $r->user->name,
                 'avatar_url' => $r->user->avatar_url,
                 'gender' => $r->user->gender,
+                'active_frame' => $r->user->activeFrame,
             ] : null,
         ];
 
@@ -502,6 +504,7 @@ class UserProfileController extends Controller
                 'name' => $c->user->name,
                 'avatar_url' => $c->user->avatar_url,
                 'gender' => $c->user->gender,
+                'active_frame' => $c->user->activeFrame,
             ] : null,
             'replies_count' => $c->replies_count,
             'replies' => $c->replies_count === 1
@@ -538,6 +541,7 @@ class UserProfileController extends Controller
                     'name' => $r->user->name,
                     'avatar_url' => $r->user->avatar_url,
                     'gender' => $r->user->gender,
+                    'active_frame' => $r->user->activeFrame,
                 ] : null,
             ])->values(),
             'total' => $paginator->total(),
@@ -623,6 +627,7 @@ class UserProfileController extends Controller
                 'name' => $comment->user->name,
                 'avatar_url' => $comment->user->avatar_url,
                 'gender' => $comment->user->gender,
+                'active_frame' => $comment->user->activeFrame,
             ],
             'replies_count' => 0,
             'replies' => [],

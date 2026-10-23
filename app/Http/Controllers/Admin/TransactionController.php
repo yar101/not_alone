@@ -13,6 +13,7 @@ use App\Models\WalletTransaction;
 use App\Notifications\WalletAdjustmentNotification;
 use App\Services\WalletService;
 use App\Traits\SafeBroadcast;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -63,11 +64,11 @@ class TransactionController extends Controller
         }
 
         if ($dateFrom = $request->input('date_from')) {
-            $query->whereDate('created_at', '>=', $dateFrom);
+            $query->where('created_at', '>=', Carbon::parse($dateFrom)->startOfDay());
         }
 
         if ($dateTo = $request->input('date_to')) {
-            $query->whereDate('created_at', '<=', $dateTo);
+            $query->where('created_at', '<=', Carbon::parse($dateTo)->endOfDay());
         }
 
         $transactions = $query->orderByDesc('id')

@@ -233,12 +233,19 @@ class ServiceModerationController extends Controller
 
         $services = Service::whereIn('id', $ids)->with('user')->get();
 
-        DB::transaction(function () use ($ids, $adminId) {
+        DB::transaction(function () use ($services, $ids, $adminId) {
             Service::whereIn('id', $ids)->update([
                 'status' => 'approved',
                 'moderated_by' => $adminId,
                 'moderated_at' => now(),
             ]);
+
+            foreach ($services as $service) {
+                $service->reviews()->create([
+                    'admin_id' => $adminId,
+                    'decision' => 'approved',
+                ]);
+            }
 
             AdminLogService::log($adminId, 'bulk_approve_services', 'service', null, ['count' => $ids->count()]);
         });
@@ -279,13 +286,20 @@ class ServiceModerationController extends Controller
 
         $services = Service::whereIn('id', $ids)->with('user')->get();
 
-        DB::transaction(function () use ($ids, $validated, $adminId) {
+        DB::transaction(function () use ($services, $ids, $validated, $adminId) {
             Service::whereIn('id', $ids)->update([
                 'status' => 'rejected',
                 'rejection_reason' => $validated['rejection_reason'],
                 'moderated_by' => $adminId,
                 'moderated_at' => now(),
             ]);
+
+            foreach ($services as $service) {
+                $service->reviews()->create([
+                    'admin_id' => $adminId,
+                    'decision' => 'rejected',
+                ]);
+            }
 
             AdminLogService::log($adminId, 'bulk_reject_services', 'service', null, [
                 'count' => $ids->count(),

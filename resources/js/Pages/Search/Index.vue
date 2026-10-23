@@ -336,7 +336,7 @@ const activeChips = computed(() => {
         chips.push({ label: tzObj ? tzObj.label : f.value.timezone, key: "timezone" });
     }
     f.value.service_categories.forEach((id) => {
-        const c = props.serviceCategories.find((x) => x.id === id);
+        const c = (props.serviceCategories ?? []).find((x) => x.id === id);
         if (c)
             chips.push({
                 label: localName(c),

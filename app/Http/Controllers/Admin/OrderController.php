@@ -10,6 +10,7 @@ use App\Models\ServiceCategory;
 use App\Models\WalletTransaction;
 use App\Services\AdminLogService;
 use App\Services\OrderService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -52,10 +53,10 @@ class OrderController extends Controller
             $query->whereHas('items.service', fn ($q) => $q->where('category_id', $request->category_id));
         }
         if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', $request->date_from);
+            $query->where('created_at', '>=', Carbon::parse($request->date_from)->startOfDay());
         }
         if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', $request->date_to);
+            $query->where('created_at', '<=', Carbon::parse($request->date_to)->endOfDay());
         }
 
         $rawCounts = Order::query()
@@ -144,16 +145,21 @@ class OrderController extends Controller
 
         $totalAmount = $items->sum('subtotal');
 
-        $statusHistory = $order->statusHistory->map(fn ($h) => [
-            'id' => $h->id,
-            'from' => $h->from_status ? OrderStatus::from($h->from_status)->label() : null,
-            'to' => OrderStatus::from($h->to_status)->label(),
-            'to_color' => OrderStatus::from($h->to_status)->color(),
-            'actor_type' => $h->actor_type,
-            'actor_id' => $h->actor_id,
-            'note' => $h->note,
-            'created_at' => $h->created_at->format('d.m.Y H:i'),
-        ]);
+        $statusHistory = $order->statusHistory->map(function ($h) {
+            $fromEnum = $h->from_status ? OrderStatus::tryFrom($h->from_status) : null;
+            $toEnum = OrderStatus::tryFrom($h->to_status);
+
+            return [
+                'id' => $h->id,
+                'from' => $fromEnum ? $fromEnum->label() : $h->from_status,
+                'to' => $toEnum ? $toEnum->label() : $h->to_status,
+                'to_color' => $toEnum ? $toEnum->color() : 'gray',
+                'actor_type' => $h->actor_type,
+                'actor_id' => $h->actor_id,
+                'note' => $h->note,
+                'created_at' => $h->created_at->format('d.m.Y H:i'),
+            ];
+        });
 
         $disputes = $order->disputes->map(fn ($d) => [
             'id' => $d->id,

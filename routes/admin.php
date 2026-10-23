@@ -241,7 +241,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/reorder', [ReviewEpithetController::class, 'reorder'])->name('reorder');
         });
 
-        // News (О проекте)
+        // [DORMANT] News module is currently inactive/dormant by design. Will be resumed when needed.
         // Route::prefix('news')->name('news.')->group(function () {
         //     Route::get('/',          [NewsController::class, 'index'])->name('index');
         //     Route::post('/',         [NewsController::class, 'store'])->name('store');

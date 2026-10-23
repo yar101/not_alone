@@ -270,14 +270,41 @@ input[type="number"] {
 }
 
 /* ── Element Plus Dark Theme Overrides for MessageBox & Overlay ── */
-.el-overlay {
+.el-overlay:not([style*="display: none"]):not([style*="display:none"]) {
     background-color: rgba(0, 0, 0, 0.75) !important;
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     z-index: 9999 !important;
+}
+
+.el-overlay-message-box {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+}
+
+.el-overlay[style*="display: none"],
+.el-overlay[style*="display:none"] {
+    display: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+.el-dialog {
+    background: #12111a !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(155, 110, 232, 0.15) !important;
+    color: #e4e4e7 !important;
+}
+
+.el-dialog__title {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+
+.el-dialog__body {
+    color: #e4e4e7 !important;
 }
 
 .el-message-box {

@@ -27,29 +27,60 @@ const form = useForm({
 });
 
 const imagePreview = ref(null);
+const fileInput = ref(null);
 
-const handleImageChange = (uploadFile) => {
-    form.image = uploadFile.raw;
-    imagePreview.value = URL.createObjectURL(uploadFile.raw);
+const triggerFileInput = () => {
+    fileInput.value?.click();
+};
+
+const processFile = (file) => {
+    if (!file) return;
+    if (file.type && file.type !== 'image/png' && !file.name.toLowerCase().endsWith('.png')) {
+        ElMessage.error('Допустимы только файлы формата PNG');
+        return;
+    }
+    form.image = file;
+    imagePreview.value = URL.createObjectURL(file);
+    if (form.errors.image) {
+        form.clearErrors('image');
+    }
+};
+
+const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    processFile(file);
+};
+
+const handleFileDrop = (e) => {
+    const file = e.dataTransfer?.files?.[0];
+    processFile(file);
 };
 
 const openCreateDialog = () => {
     editingFrame.value = null;
     form.reset();
+    form.clearErrors();
     imagePreview.value = null;
+    if (fileInput.value) {
+        fileInput.value.value = '';
+    }
     isDialogVisible.value = true;
 };
 
 const openEditDialog = (frame) => {
     editingFrame.value = frame;
+    form.clearErrors();
     form.name = frame.name;
     form.description = frame.description || '';
     form.type = frame.type;
     form.price = frame.price;
     form.condition_class = frame.condition_class || '';
-    form.is_active = frame.is_active;
+    form.is_active = Boolean(frame.is_active);
     form.image = null;
     imagePreview.value = frame.image_url;
+    if (fileInput.value) {
+        fileInput.value.value = '';
+    }
     isDialogVisible.value = true;
 };
 
@@ -148,7 +179,14 @@ const deleteFrame = (frame) => {
                 </el-table-column>
             </el-table>
 
-            <el-dialog v-model="isDialogVisible" :title="editingFrame ? 'Редактировать рамку' : 'Новая рамка'" width="500px" append-to-body>
+            <el-dialog
+                v-if="isDialogVisible"
+                v-model="isDialogVisible"
+                :title="editingFrame ? 'Редактировать рамку' : 'Новая рамка'"
+                width="500px"
+                destroy-on-close
+                append-to-body
+            >
                 <el-form :model="form" label-position="top">
                     <el-form-item label="Название" required>
                         <el-input v-model="form.name" />
@@ -176,16 +214,32 @@ const deleteFrame = (frame) => {
                     </el-form-item>
 
                     <el-form-item label="Изображение рамки (PNG, прозрачный центр)" required>
-                        <el-upload
+                        <div
                             class="frame-uploader"
-                            :auto-upload="false"
-                            :show-file-list="false"
-                            accept=".png"
-                            @change="handleImageChange"
+                            role="button"
+                            tabindex="0"
+                            title="Нажмите или перетащите PNG файл"
+                            @click="triggerFileInput"
+                            @keydown.enter.prevent="triggerFileInput"
+                            @keydown.space.prevent="triggerFileInput"
+                            @dragover.prevent
+                            @drop.prevent="handleFileDrop"
                         >
-                            <img v-if="imagePreview" :src="imagePreview" class="uploaded-preview" />
+                            <template v-if="imagePreview">
+                                <img :src="imagePreview" class="uploaded-preview" alt="Превью рамки" />
+                                <div class="uploader-overlay">
+                                    <el-icon class="uploader-icon-edit"><Edit /></el-icon>
+                                </div>
+                            </template>
                             <el-icon v-else class="uploader-icon"><Plus /></el-icon>
-                        </el-upload>
+                        </div>
+                        <input
+                            ref="fileInput"
+                            type="file"
+                            accept="image/png,.png"
+                            style="display: none"
+                            @change="handleFileChange"
+                        />
                         <div v-if="form.errors.image" class="el-form-item__error">{{ form.errors.image }}</div>
                     </el-form-item>
 
@@ -206,18 +260,17 @@ const deleteFrame = (frame) => {
 
 <style scoped>
 .frames-page {
-    padding: 20px;
-    background: var(--bg-color);
-    min-height: 100vh;
-}
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
+    width: 100%;
 }
 .frames-table {
     width: 100%;
+    --el-table-bg-color: rgba(255, 255, 255, 0.02);
+    --el-table-tr-bg-color: transparent;
+    --el-table-header-bg-color: rgba(255, 255, 255, 0.04);
+    --el-table-border-color: rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 .frame-preview {
     width: 60px;
@@ -260,19 +313,46 @@ const deleteFrame = (frame) => {
     align-items: center;
     justify-content: center;
     background: #111;
+    user-select: none;
 }
 
-.frame-uploader:hover {
+.frame-uploader:hover,
+.frame-uploader:focus-visible {
     border-color: var(--el-color-primary);
+    outline: none;
 }
 
 .uploader-icon {
     font-size: 28px;
     color: #8c939d;
+    pointer-events: none;
 }
+
 .uploaded-preview {
     width: 100%;
     height: 100%;
     object-fit: contain;
+    display: block;
+}
+
+.uploader-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+
+.frame-uploader:hover .uploader-overlay {
+    opacity: 1;
+}
+
+.uploader-icon-edit {
+    font-size: 24px;
+    color: #fff;
 }
 </style>

@@ -82,7 +82,7 @@ class WalletController extends Controller
             ],
             'transactions' => $transactions,
             'activeFilter' => $filter,
-            'canDeposit' => app()->environment('local', 'testing') || config('services.payments.mock_purchases', true),
+            'canDeposit' => app()->environment('local', 'testing') || (config('services.payments.mock_purchases', false) && ! app()->environment('production')),
             'isIdol' => (bool) $user->is_idol,
             'canWithdraw' => (bool) $user->is_idol,
             'depositFeePercent' => (float) PlatformSetting::get('deposit_fee_percent', config('services.payments.deposit_fee_percent', 4.0)),
@@ -165,7 +165,7 @@ class WalletController extends Controller
 
     public function deposit(Request $request): JsonResponse
     {
-        if (! (app()->environment('local', 'testing') || config('services.payments.mock_purchases', true))) {
+        if (! (app()->environment('local', 'testing') || (config('services.payments.mock_purchases', false) && ! app()->environment('production')))) {
             return response()->json(['error' => 'Прямое пополнение доступно только в тестовом режиме'], 403);
         }
 

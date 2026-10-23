@@ -167,7 +167,7 @@ class ConversationController extends Controller
         $this->safeBroadcast(new MessageRead($conversation->id, $user->id, now()->toISOString()));
 
         $otherParticipant = $conversation->participants()
-            ->with('user')
+            ->with(['user', 'user.activeFrame'])
             ->where('user_id', '!=', $user->id)
             ->first();
 

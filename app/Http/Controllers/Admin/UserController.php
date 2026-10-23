@@ -7,6 +7,7 @@ use App\Models\AdminLog;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\AdminLogService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,10 +37,10 @@ class UserController extends Controller
             $query->where('gender', $request->gender);
         }
         if ($request->filled('registered_from')) {
-            $query->whereDate('created_at', '>=', $request->registered_from);
+            $query->where('created_at', '>=', Carbon::parse($request->registered_from)->startOfDay());
         }
         if ($request->filled('registered_to')) {
-            $query->whereDate('created_at', '<=', $request->registered_to);
+            $query->where('created_at', '<=', Carbon::parse($request->registered_to)->endOfDay());
         }
 
         $users = $query->orderByDesc('created_at')->paginate(30)->withQueryString()

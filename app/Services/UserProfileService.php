@@ -26,25 +26,23 @@ class UserProfileService
             $request->session()->put($seedKey, $seed);
         }
 
-        $paginator = \App\Models\Service::where('is_active', true)
-            ->where('status', 'approved')
-            ->where('user_id', '!=', $user->id)
-            ->where('category_id', $category->id)
-            ->whereHas('user', fn ($q) => $q->whereNull('deleted_at')->where('is_banned', false))
-            ->select('user_id')
-            ->groupBy('user_id')
-            ->orderByRaw('md5(concat(user_id, cast(? as text)))', [(string) $seed])
-            ->with(['user:id,name,avatar_path,active_frame_id,rating', 'user.activeFrame'])
+        $paginator = User::where('id', '!=', $user->id)
+            ->whereNull('deleted_at')
+            ->where('is_banned', false)
+            ->whereHas('services', fn ($q) => $q->where('is_active', true)->where('status', 'approved')->where('category_id', $category->id))
+            ->orderByRaw('md5(concat(id, cast(? as text)))', [(string) $seed])
+            ->with(['activeFrame'])
+            ->select(['id', 'name', 'avatar_path', 'active_frame_id', 'rating'])
             ->paginate($perPage, ['*'], 'page', $page);
 
         return [
             'idols' => collect($paginator->items())
-                ->filter(fn ($s) => $s->user !== null)
-                ->map(fn ($s) => [
-                    'id' => $s->user->id,
-                    'name' => $s->user->name,
-                    'avatar_url' => $s->user->avatar_url,
-                    'rating' => $s->user->rating,
+                ->map(fn (User $u) => [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'avatar_url' => $u->avatar_url,
+                    'rating' => $u->rating,
+                    'active_frame' => $u->activeFrame,
                 ])->values(),
             'total' => $paginator->total(),
             'page' => $page,

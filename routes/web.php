@@ -186,8 +186,11 @@ Route::middleware(['auth', 'not_banned'])->group(function () {
     Route::post('/orders', [OrderController::class, 'store'])->middleware('throttle:30,1')->name('orders.store');
     Route::post('/orders/{order}/review', [ReviewController::class, 'store'])->middleware('throttle:20,1')->name('orders.review.store');
 
+    // News: [DORMANT] News module is currently inactive/dormant by design. Will be resumed when needed.
+
     // Wallet
     Route::get('/wallet', [WalletController::class, 'show'])->name('wallet.show');
+    Route::redirect('/wallet/index', '/wallet')->name('wallet.index');
     Route::get('/api/wallet', [WalletController::class, 'showJson'])->name('wallet.data');
     Route::post('/api/wallet/deposit', [WalletController::class, 'deposit'])->middleware('throttle:30,1')->name('wallet.deposit');
     Route::post('/api/wallet/withdraw', [WalletController::class, 'withdraw'])->middleware('throttle:30,1')->name('wallet.withdraw');

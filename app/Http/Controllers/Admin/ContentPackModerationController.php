@@ -256,15 +256,20 @@ class ContentPackModerationController extends Controller
 
         $packs = ContentPack::whereIn('id', $ids)->with(['user', 'photos'])->get();
 
-        DB::transaction(function () use ($packs, $adminId) {
-            foreach ($packs as $pack) {
-                foreach ($pack->photos as $photo) {
-                    if (Storage::exists($photo->path)) {
-                        Storage::delete($photo->path);
-                    }
+        $photosToDelete = [];
+        $dirsToDelete = [];
+        foreach ($packs as $pack) {
+            foreach ($pack->photos as $photo) {
+                if ($photo->path) {
+                    $photosToDelete[] = $photo->path;
                 }
-                Storage::deleteDirectory('content-packs/'.$pack->id);
-                Storage::deleteDirectory('temp/content-packs/'.$pack->id);
+            }
+            $dirsToDelete[] = 'content-packs/'.$pack->id;
+            $dirsToDelete[] = 'temp/content-packs/'.$pack->id;
+        }
+
+        DB::transaction(function () use ($packs, $adminId, $photosToDelete, $dirsToDelete) {
+            foreach ($packs as $pack) {
                 $pack->photos()->delete();
 
                 $pack->update([
@@ -282,6 +287,17 @@ class ContentPackModerationController extends Controller
             }
 
             AdminLogService::log($adminId, 'bulk_reject_content_packs', 'content_pack', null, ['count' => $packs->count()]);
+
+            DB::afterCommit(function () use ($photosToDelete, $dirsToDelete) {
+                foreach ($photosToDelete as $photoPath) {
+                    if (Storage::exists($photoPath)) {
+                        Storage::delete($photoPath);
+                    }
+                }
+                foreach ($dirsToDelete as $dir) {
+                    Storage::deleteDirectory($dir);
+                }
+            });
         });
 
         foreach ($packs as $pack) {

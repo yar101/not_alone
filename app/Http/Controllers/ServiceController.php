@@ -78,11 +78,11 @@ class ServiceController extends Controller
                         'status' => $s->status,
                         'rejection_reason' => $s->rejection_reason,
                         'category_id' => $s->category_id,
-                        'time_unit' => [
+                        'time_unit' => $s->timeUnit ? [
                             'id' => $s->timeUnit->id,
                             'name_ru' => $s->timeUnit->getTranslation('name', 'ru'),
                             'name_en' => $s->timeUnit->getTranslation('name', 'en', false) ?: null,
-                        ],
+                        ] : null,
                     ];
 
                     if ($isOwner) {

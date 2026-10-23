@@ -40,8 +40,11 @@ class OrderController extends Controller
 
         try {
             [$order, $conversation] = $this->service->createOrder($user, $idol, $request->services);
-        } catch (\Exception $e) {
+        } catch (\DomainException|\InvalidArgumentException $e) {
             return response()->json(['error' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            Log::error('Order creation failed: '.$e->getMessage(), ['exception' => $e]);
+            return response()->json(['error' => 'Не удалось создать заказ. Попробуйте позже.'], 422);
         }
 
         $this->safeBroadcast(new OrderChanged($idol->id, $this->service->formatOrder($order, $idol->id), 'created'));
@@ -223,8 +226,8 @@ class OrderController extends Controller
 
         $query = Order::where($scopeByRole)
             ->with([
-                'customer',
-                'idol',
+                'customer.activeFrame',
+                'idol.activeFrame',
                 'cancelledBy',
                 'items.service.category',
                 'items.service.timeUnit',

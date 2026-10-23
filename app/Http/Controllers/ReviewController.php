@@ -31,12 +31,6 @@ class ReviewController extends Controller
 
         abort_unless($order->customer_id === $user->id, 403);
         abort_unless($order->status === OrderStatus::Completed, 422, 'Отзыв можно оставить только на выполненный заказ');
-        abort_if(
-            Review::where('reviewer_id', $user->id)->where('idol_id', $order->idol_id)->exists(),
-            422,
-            'already_reviewed'
-        );
-
         $order->loadMissing('idol');
         abort_if(! $order->idol || $order->idol->isActiveBanned(), 422, 'user_banned');
 
@@ -50,33 +44,44 @@ class ReviewController extends Controller
             'quantity' => $i->quantity ?? 1,
         ])->values()->all();
 
-        DB::transaction(function () use ($user, $order, $request, $snapshot) {
-            $review = Review::create([
-                'reviewer_id' => $user->id,
-                'idol_id' => $order->idol_id,
-                'order_id' => $order->id,
-                'rating' => $request->rating,
-                'text' => $request->text,
-                'services_snapshot' => $snapshot,
-            ]);
+        try {
+            DB::transaction(function () use ($user, $order, $request, $snapshot) {
+                $alreadyReviewed = Review::where('reviewer_id', $user->id)
+                    ->where('idol_id', $order->idol_id)
+                    ->lockForUpdate()
+                    ->exists();
 
-            $review->epithets()->sync($request->epithets ?? []);
+                abort_if($alreadyReviewed, 422, 'already_reviewed');
 
-            IdolRatingService::adjust($order->idol, 'review_'.$review->rating.'star');
+                $review = Review::create([
+                    'reviewer_id' => $user->id,
+                    'idol_id' => $order->idol_id,
+                    'order_id' => $order->id,
+                    'rating' => $request->rating,
+                    'text' => $request->text,
+                    'services_snapshot' => $snapshot,
+                ]);
 
-            DB::afterCommit(function () use ($order, $review) {
-                try {
-                    $order->idol?->notify(new NewReviewNotification($review));
-                } catch (\Throwable $e) {
-                    Log::warning('Notification failed in ReviewController::store: '.$e->getMessage());
-                }
-                try {
-                    broadcast(new NewNotification('private', $order->idol_id));
-                } catch (\Throwable $e) {
-                    Log::warning('Broadcast failed in ReviewController::store: '.$e->getMessage());
-                }
+                $review->epithets()->sync($request->epithets ?? []);
+
+                IdolRatingService::adjust($order->idol, 'review_'.$review->rating.'star');
+
+                DB::afterCommit(function () use ($order, $review) {
+                    try {
+                        $order->idol?->notify(new NewReviewNotification($review));
+                    } catch (\Throwable $e) {
+                        Log::warning('Notification failed in ReviewController::store: '.$e->getMessage());
+                    }
+                    try {
+                        broadcast(new NewNotification('private', $order->idol_id));
+                    } catch (\Throwable $e) {
+                        Log::warning('Broadcast failed in ReviewController::store: '.$e->getMessage());
+                    }
+                });
             });
-        });
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            abort(422, 'already_reviewed');
+        }
 
         return response()->json(['success' => true]);
     }
