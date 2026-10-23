@@ -4,6 +4,7 @@
     "scripts": {
         "build": "vite build",
         "dev": "vite",
+        "docker": "bash dock",
         "update-browserslist": "npx --yes update-browserslist-db@latest"
     },
     "devDependencies": {

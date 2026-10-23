@@ -6,15 +6,17 @@ use Illuminate\Console\Command;
 
 use function Laravel\Prompts\confirm;
 use function Laravel\Prompts\info;
+use function Laravel\Prompts\multiselect;
 use function Laravel\Prompts\outro;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\spin;
+use function Laravel\Prompts\table;
 use function Laravel\Prompts\text;
 use function Laravel\Prompts\warning;
 
 class DevConsoleCommand extends Command
 {
-    protected $signature = 'dev:tui';
+    protected $signature = 'dev:tui {section? : Прямой переход в раздел (docker, env, db, logs...)}';
 
     protected $description = 'Интерактивная консоль разработчика Not Alone (TUI)';
 
@@ -22,23 +24,30 @@ class DevConsoleCommand extends Command
 
     public function handle(): int
     {
+        $initialSection = $this->argument('section');
+        if ($initialSection) {
+            $this->renderHeader();
+            $this->handleSection($initialSection);
+        }
+
         while (true) {
             $this->renderHeader();
 
             $choice = select(
                 label: 'Выберите раздел для работы:',
                 options: [
-                    'env' => '  Серверы и окружение (Docker, Local, LAN, статус)',
-                    'db' => '  База данных и миграции (migrate, fresh, seeders, psql)',
-                    'generators' => '  Генераторы тестовых данных (users, orders, reviews, services)',
-                    'ssl' => '  SSL-сертификаты и сеть (IP, генерация certs, порты)',
-                    'cache' => '  Кэш, ассеты и код (optimize:clear, npm build, ide-helper)',
-                    'test' => '  Тестирование и качество (phpunit, k6 load tests, php lint)',
-                    'logs' => '  Логи и консоль (laravel.log, docker logs, tinker, bash)',
-                    'urls' => '  Ссылки на сервисы (Web App, Mailpit, MinIO, Vite)',
+                    'docker' => '  Docker (контейнеры, сервисы, очистка)',
+                    'env' => '  Серверы и сеть (Dev, LAN, порты)',
+                    'db' => '  База данных (миграции, сидеры, psql)',
+                    'generators' => '  Генераторы данных (пользователи, заказы)',
+                    'ssl' => '  SSL-сертификаты (генерация, статус)',
+                    'cache' => '  Кэш и сборка (optimize, npm build)',
+                    'test' => '  Тесты и линтер (phpunit, k6, php -l)',
+                    'logs' => '  Логи и шелл (laravel.log, docker, tinker)',
+                    'urls' => '  Ссылки на сервисы (Web, Mailpit, MinIO)',
                     'exit' => '  Выход',
                 ],
-                default: 'env',
+                default: 'docker',
                 scroll: self::MENU_SCROLL
             );
 
@@ -60,12 +69,17 @@ class DevConsoleCommand extends Command
         $certsExist = file_exists(base_path("{$lanIp}.pem")) && file_exists(base_path("{$lanIp}-key.pem"));
         $dockerRunning = $this->isDockerDaemonRunning();
         $containersCount = $dockerRunning ? $this->getRunningContainersCount() : 0;
+        $allContainers = $dockerRunning ? $this->getAllContainers() : [];
+        $totalContainers = count($allContainers);
+        $otherCount = $totalContainers - count(array_filter($allContainers, fn ($c) => $c['is_project']));
         $dbStatus = $this->checkDbStatus();
         $redisStatus = $this->checkRedisStatus();
 
         $certText = $certsExist ? '<fg=green> Готовы</>' : '<fg=red> Отсутствуют</>';
         $dockerText = $dockerRunning
-            ? ($containersCount > 0 ? "<fg=green> Активен ({$containersCount} конт.)</>" : '<fg=yellow> Запущен (0 конт.)</>')
+            ? ($containersCount > 0
+                ? "<fg=green> Активен ({$containersCount} конт." . ($otherCount > 0 ? " | <fg=yellow>+{$otherCount} внешних</><fg=green>" : '') . ")</>"
+                : ($totalContainers > 0 ? "<fg=yellow> Запущен ({$totalContainers} внешних/остановленных)</>" : '<fg=yellow> Запущен (0 конт.)</>'))
             : '<fg=red> Выключен</>';
 
         // Smooth ANSI clear (no hard reset)
@@ -73,14 +87,14 @@ class DevConsoleCommand extends Command
 
         $this->output->writeln([
             '',
-            '  <fg=cyan;options=bold>󰄛 NOT ALONE — Интерактивная консоль разработчика</>',
+            '  <fg=cyan;options=bold>󰄛 NOT ALONE — Панель разработчика</>',
             '  <fg=gray>───────────────────────────────────────────────────────────</>',
-            sprintf('  <fg=yellow> Ветка Git:</>         <fg=white>%s</>', $branch),
-            sprintf('  <fg=yellow> LAN IP хоста:</>      <fg=white>%s</>', $lanIp),
-            sprintf('  <fg=yellow> SSL сертификаты:</>   %s', $certText),
-            sprintf('  <fg=yellow> Docker окружение:</>   %s', $dockerText),
-            sprintf('  <fg=yellow> База данных (PG):</>   %s', $dbStatus),
-            sprintf('  <fg=yellow> Redis кэш/очереди:</>  %s', $redisStatus),
+            sprintf('  <fg=yellow> Git ветка:</>         <fg=white>%s</>', $branch),
+            sprintf('  <fg=yellow> LAN IP:</>            <fg=white>%s</>', $lanIp),
+            sprintf('  <fg=yellow> SSL:</>               %s', $certText),
+            sprintf('  <fg=yellow> Docker:</>            %s', $dockerText),
+            sprintf('  <fg=yellow> PostgreSQL:</>        %s', $dbStatus),
+            sprintf('  <fg=yellow> Redis:</>             %s', $redisStatus),
             '  <fg=gray>───────────────────────────────────────────────────────────</>',
             '',
         ]);
@@ -89,6 +103,7 @@ class DevConsoleCommand extends Command
     private function handleSection(string $section): void
     {
         match ($section) {
+            'docker' => $this->menuDocker(),
             'env' => $this->menuEnvironment(),
             'db' => $this->menuDatabase(),
             'generators' => $this->menuGenerators(),
@@ -101,6 +116,421 @@ class DevConsoleCommand extends Command
         };
     }
 
+    // ── 0. Docker и контейнеры ───────────────────────────────────────────────────
+
+    private function menuDocker(): void
+    {
+        while (true) {
+            $choice = select(
+                label: '  Управление Docker и контейнерами:',
+                options: [
+                    'status' => '  Статус контейнеров (таблица)',
+                    'manage_containers' => '  Управление контейнерами (Stop / Rm / Restart)',
+                    'prune_exited' => '  Удалить остановленные контейнеры (container prune)',
+                    'prune_system' => '  Очистить dangling-образы и кэш (system prune)',
+                    'docker_dev' => '  Запустить в foreground (docker-dev.sh)',
+                    'docker_up_d' => '  Запустить в фоне (up -d)',
+                    'docker_up_build' => '  Пересобрать и запустить (up -d --build)',
+                    'restart_service' => '  Перезапустить сервис (app, db, redis...)',
+                    'docker_stop' => '  Остановить проект (compose stop)',
+                    'docker_down' => '  Остановить и удалить контейнеры (compose down)',
+                    'clean_slate' => '  Полный сброс с томами (down -v)',
+                    'service_shell' => '  Открыть Shell в сервисе (app, db, redis...)',
+                    'service_logs' => '  Логи сервиса (tail -f)',
+                    'system_df' => '  Дисковое пространство (docker system df)',
+                    'back' => '  Назад в главное меню',
+                ],
+                scroll: self::MENU_SCROLL
+            );
+
+            if ($choice === 'back') {
+                break;
+            }
+
+            match ($choice) {
+                'status' => $this->showDockerStatus(),
+                'manage_containers' => $this->manageSpecificContainers(),
+                'prune_exited' => $this->pruneExitedContainers(),
+                'prune_system' => $this->pruneSystemDocker(),
+                'docker_dev' => $this->runCommandInteractive('bash docker-dev.sh'),
+                'docker_up_d' => $this->startDockerBackground(false),
+                'docker_up_build' => $this->startDockerBackground(true),
+                'restart_service' => $this->restartSpecificService(),
+                'docker_stop' => $this->stopDockerProject(),
+                'docker_down' => $this->downDockerProject(),
+                'clean_slate' => $this->cleanSlateProject(),
+                'service_shell' => $this->openServiceShell(),
+                'service_logs' => $this->selectAndTailDockerLog(),
+                'system_df' => $this->runCommandInteractive('docker system df'),
+            };
+        }
+    }
+
+    private function showDockerStatus(): void
+    {
+        if (! $this->isDockerDaemonRunning()) {
+            warning('Docker daemon не запущен.');
+            $this->waitEnter();
+
+            return;
+        }
+
+        $containers = $this->getAllContainers();
+        if (empty($containers)) {
+            info('В системе нет Docker контейнеров.');
+            $this->waitEnter();
+
+            return;
+        }
+
+        $rows = [];
+        $projectCount = 0;
+        $otherCount = 0;
+        $runningCount = 0;
+        $exitedCount = 0;
+
+        foreach ($containers as $c) {
+            if ($c['is_project']) {
+                $projectCount++;
+                $badge = '<fg=cyan>Проект</>';
+            } else {
+                $otherCount++;
+                $badge = '<fg=gray>Внешний</>';
+            }
+
+            if ($c['State'] === 'running') {
+                $runningCount++;
+                $statusFormatted = '<fg=green> ' . $c['Status'] . '</>';
+            } elseif ($c['State'] === 'exited') {
+                $exitedCount++;
+                $statusFormatted = '<fg=red> ' . $c['Status'] . '</>';
+            } else {
+                $statusFormatted = '<fg=yellow>◐ ' . $c['Status'] . '</>';
+            }
+
+            $ports = $c['Ports'];
+            $ports = str_replace(['0.0.0.0:', '[::]:'], [':', ':'], $ports);
+            if (mb_strlen($ports) > 32) {
+                $ports = mb_strimwidth($ports, 0, 30, '...');
+            }
+
+            $image = mb_strimwidth($c['Image'], 0, 26, '...');
+
+            $rows[] = [
+                $c['Names'],
+                $badge,
+                $statusFormatted,
+                $image,
+                $ports ?: '<fg=gray>-</>',
+            ];
+        }
+
+        $this->output->writeln([
+            '',
+            '  <fg=cyan;options=bold> Контейнеры Docker:</>',
+        ]);
+
+        table(['Контейнер', 'Тип', 'Статус', 'Образ', 'Порты'], $rows);
+
+        $this->output->writeln([
+            sprintf(
+                '  Всего: <fg=white>%d</> │ Запущено: <fg=green>%d</> │ Остановлено: <fg=red>%d</> │ Проект: <fg=cyan>%d</> │ Внешних: <fg=yellow>%d</>',
+                count($containers),
+                $runningCount,
+                $exitedCount,
+                $projectCount,
+                $otherCount
+            ),
+            '',
+        ]);
+
+        if ($exitedCount > 0) {
+            info(" Остановленных контейнеров: {$exitedCount}. Для очистки выберите пункт 'Удалить остановленные контейнеры'.");
+        }
+
+        $this->waitEnter();
+    }
+
+    private function manageSpecificContainers(): void
+    {
+        if (! $this->isDockerDaemonRunning()) {
+            warning('Docker daemon не запущен.');
+            $this->waitEnter();
+
+            return;
+        }
+
+        $containers = $this->getAllContainers();
+        if (empty($containers)) {
+            info('В системе нет Docker контейнеров.');
+            $this->waitEnter();
+
+            return;
+        }
+
+        $options = [];
+        foreach ($containers as $c) {
+            $tag = $c['is_project'] ? '[Проект]' : '[Внешний]';
+            $stateIcon = $c['State'] === 'running' ? '' : '';
+            $name = mb_strimwidth($c['Names'], 0, 24, '...');
+            $status = mb_strimwidth($c['Status'], 0, 18, '...');
+            $image = mb_strimwidth($c['Image'], 0, 24, '...');
+
+            $label = sprintf(
+                '%s %s %s │ %s │ %s',
+                mb_str_pad($tag, 10),
+                $stateIcon,
+                mb_str_pad($name, 24),
+                mb_str_pad($status, 18),
+                $image
+            );
+            $options[$c['ID']] = $label;
+        }
+
+        $selected = multiselect(
+            label: 'Выберите контейнеры для действия (пробел — выбор, enter — подтвердить):',
+            options: $options,
+            scroll: self::MENU_SCROLL
+        );
+
+        if (empty($selected)) {
+            info('Контейнеры не выбраны.');
+
+            return;
+        }
+
+        $count = count($selected);
+        $action = select(
+            label: "Выбрано контейнеров: {$count}. Действие:",
+            options: [
+                'stop' => ' Остановить (docker stop)',
+                'restart' => ' Перезапустить (docker restart)',
+                'rm' => ' Удалить принудительно (docker rm -f)',
+                'cancel' => ' Отмена',
+            ]
+        );
+
+        if ($action === 'cancel') {
+            return;
+        }
+
+        $ids = implode(' ', array_map('escapeshellarg', $selected));
+
+        if ($action === 'rm') {
+            if (confirm("Удалить выбранные контейнеры ({$count} шт.)?", default: false)) {
+                $this->runCommandWithSpinner("docker rm -f {$ids}", 'Удаление контейнеров...', 'Контейнеры удалены.');
+            }
+        } elseif ($action === 'stop') {
+            $this->runCommandWithSpinner("docker stop {$ids}", 'Остановка контейнеров...', 'Контейнеры остановлены.');
+        } elseif ($action === 'restart') {
+            $this->runCommandWithSpinner("docker restart {$ids}", 'Перезапуск контейнеров...', 'Контейнеры перезапущены.');
+        }
+    }
+
+    private function pruneExitedContainers(): void
+    {
+        if (confirm('Удалить все остановленные контейнеры (docker container prune -f)?', default: true)) {
+            $this->runCommandWithSpinner('docker container prune -f', 'Очистка контейнеров...', 'Остановленные контейнеры удалены.');
+        }
+    }
+
+    private function pruneSystemDocker(): void
+    {
+        if (confirm('Очистить неиспользуемые dangling-образы и кэш сборщика Docker?', default: true)) {
+            $this->runCommandWithSpinner(
+                'docker image prune -f && docker builder prune -f',
+                'Очистка образов и кэша Docker...',
+                'Образы и кэш сборщика успешно очищены.'
+            );
+        }
+    }
+
+    private function startDockerBackground(bool $build = false): void
+    {
+        $ip = $this->getLanIp();
+        $this->ensureSslCertificatesExist($ip);
+
+        $flag = $build ? ' --build' : '';
+        $this->runCommandWithSpinner(
+            "DEV_HOST={$ip} docker compose up -d{$flag} --remove-orphans",
+            $build ? 'Сборка и запуск контейнеров в фоне...' : 'Запуск контейнеров Docker в фоне...',
+            'Контейнеры проекта Not Alone успешно запущены.'
+        );
+    }
+
+    private function stopDockerProject(): void
+    {
+        $this->runCommandWithSpinner(
+            'docker compose stop',
+            'Остановка контейнеров Not Alone...',
+            'Контейнеры проекта Not Alone остановлены.'
+        );
+    }
+
+    private function downDockerProject(): void
+    {
+        $ip = $this->getLanIp();
+        $this->runCommandWithSpinner(
+            "DEV_HOST={$ip} docker compose down --remove-orphans",
+            'Остановка и удаление контейнеров Not Alone...',
+            'Контейнеры проекта Not Alone и сиротские контейнеры удалены.'
+        );
+    }
+
+    private function cleanSlateProject(): void
+    {
+        $confirmed = confirm(
+            label: 'Сбросить проект с удалением всех томов данных (БД, S3, Redis)?',
+            default: false
+        );
+
+        if ($confirmed) {
+            $ip = $this->getLanIp();
+            $this->runCommandWithSpinner(
+                "DEV_HOST={$ip} docker compose down -v --remove-orphans",
+                'Полный сброс окружения проекта...',
+                'Окружение и тома данных успешно удалены.'
+            );
+        }
+    }
+
+    private function restartSpecificService(): void
+    {
+        $service = select(
+            label: 'Выберите сервис для перезапуска:',
+            options: [
+                'all' => ' Все сервисы (compose restart)',
+                'app' => ' app (Nginx + PHP-FPM)',
+                'worker' => ' worker (Queue Worker)',
+                'reverb' => ' reverb (WebSocket)',
+                'scheduler' => ' scheduler (Cron)',
+                'db' => ' db (PostgreSQL)',
+                'redis' => ' redis',
+                'vite' => ' vite (Frontend Dev Server)',
+                'mailpit' => ' mailpit',
+                'minio' => ' minio (S3 Storage)',
+                'cancel' => ' Отмена',
+            ],
+            scroll: self::MENU_SCROLL
+        );
+
+        if ($service === 'cancel') {
+            return;
+        }
+
+        $ip = $this->getLanIp();
+        if ($service === 'all') {
+            $this->runCommandWithSpinner("DEV_HOST={$ip} docker compose restart", 'Перезапуск всех сервисов...', 'Все сервисы перезапущены.');
+        } else {
+            $this->runCommandWithSpinner("DEV_HOST={$ip} docker compose restart {$service}", "Перезапуск сервиса {$service}...", "Сервис {$service} успешно перезапущен.");
+        }
+    }
+
+    private function openServiceShell(): void
+    {
+        $service = select(
+            label: 'Выберите сервис для входа в Shell / CLI:',
+            options: [
+                'app' => ' app (bash)',
+                'db' => ' db (psql)',
+                'redis' => ' redis (redis-cli)',
+                'worker' => ' worker (sh)',
+                'reverb' => ' reverb (sh)',
+                'vite' => ' vite (sh)',
+                'minio' => ' minio (sh)',
+                'custom' => ' Выбрать запущенный контейнер из списка',
+                'cancel' => ' Отмена',
+            ],
+            scroll: self::MENU_SCROLL
+        );
+
+        if ($service === 'cancel') {
+            return;
+        }
+
+        if ($service === 'custom') {
+            $running = array_filter($this->getAllContainers(), fn ($c) => $c['State'] === 'running');
+            if (empty($running)) {
+                warning('Нет запущенных контейнеров.');
+                $this->waitEnter();
+
+                return;
+            }
+
+            $options = [];
+            foreach ($running as $c) {
+                $options[$c['Names']] = sprintf('%-25s (%s)', $c['Names'], $c['Image']);
+            }
+            $options['cancel'] = ' Отмена';
+
+            $target = select(label: 'Выберите запущенный контейнер:', options: $options, scroll: self::MENU_SCROLL);
+            if ($target !== 'cancel') {
+                $this->runCommandInteractive("docker exec -it {$target} sh");
+            }
+
+            return;
+        }
+
+        match ($service) {
+            'app' => $this->runCommandInteractive('docker compose exec -it app bash'),
+            'db' => $this->runCommandInteractive('docker compose exec -it db psql -U postgres -d not_alone'),
+            'redis' => $this->runCommandInteractive('docker compose exec -it redis redis-cli'),
+            default => $this->runCommandInteractive("docker compose exec -it {$service} sh"),
+        };
+    }
+
+    private function getAllContainers(): array
+    {
+        if (! $this->isDockerDaemonRunning()) {
+            return [];
+        }
+
+        $raw = shell_exec('docker ps -a --format "{{json .}}" 2>/dev/null');
+        if (empty(trim((string) $raw))) {
+            return [];
+        }
+
+        $containers = [];
+        $lines = explode("\n", trim((string) $raw));
+        foreach ($lines as $line) {
+            $data = json_decode($line, true);
+            if (! is_array($data) || empty($data['ID'])) {
+                continue;
+            }
+
+            $name = $data['Names'] ?? $data['ID'];
+            $isProject = str_starts_with($name, 'not_alone');
+
+            $containers[] = [
+                'ID' => $data['ID'],
+                'Names' => $name,
+                'Image' => $data['Image'] ?? '-',
+                'State' => strtolower($data['State'] ?? 'unknown'),
+                'Status' => $data['Status'] ?? '-',
+                'Ports' => $data['Ports'] ?? '-',
+                'is_project' => $isProject,
+            ];
+        }
+
+        return $containers;
+    }
+
+    private function ensureSslCertificatesExist(string $ip): void
+    {
+        $certPath = base_path("{$ip}.pem");
+        $keyPath = base_path("{$ip}-key.pem");
+
+        if (file_exists($certPath) && file_exists($keyPath)) {
+            return;
+        }
+
+        if (shell_exec('command -v mkcert')) {
+            shell_exec("mkcert -key-file '{$keyPath}' -cert-file '{$certPath}' '{$ip}' 'localhost' 127.0.0.1 ::1 2>/dev/null");
+        } elseif (shell_exec('command -v openssl')) {
+            shell_exec("openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout '{$keyPath}' -out '{$certPath}' -subj '/CN={$ip}' -addext 'subjectAltName=IP:{$ip},IP:127.0.0.1,DNS:localhost' 2>/dev/null");
+        }
+    }
+
     // ── 1. Серверы и окружение ───────────────────────────────────────────────────
 
     private function menuEnvironment(): void
@@ -109,15 +539,16 @@ class DevConsoleCommand extends Command
             $choice = select(
                 label: '  Управление серверами и окружением:',
                 options: [
-                    'docker_dev' => ' Запустить Docker Dev (docker-dev.sh в foreground)',
-                    'docker_up_d' => ' Поднять Docker в фоне (docker compose up -d)',
-                    'docker_down' => ' Остановить Docker (docker compose down)',
-                    'docker_restart' => ' Перезапустить Docker контейнеры (docker compose restart)',
-                    'docker_ps' => ' Показать статус контейнеров (docker compose ps)',
-                    'local_dev' => ' Запустить локально без Docker (composer run dev)',
-                    'lan_dev' => ' Запустить LAN Dev (bash dev-lan.sh)',
-                    'pwa_lan' => ' Запустить PWA LAN (bash pwa-lan.sh)',
-                    'ports_check' => ' Проверить доступность портов проекта',
+                    'docker_menu' => ' Меню Docker (контейнеры, сервисы)',
+                    'docker_dev' => ' Docker Dev в foreground (docker-dev.sh)',
+                    'docker_up_d' => ' Docker в фоне (compose up -d)',
+                    'docker_down' => ' Остановить Docker (compose down)',
+                    'docker_restart' => ' Перезапустить контейнеры (restart)',
+                    'docker_ps' => ' Статус контейнеров (compose ps)',
+                    'local_dev' => ' Локальный запуск без Docker (composer run dev)',
+                    'lan_dev' => ' LAN Dev сервер (dev-lan.sh)',
+                    'pwa_lan' => ' PWA LAN сервер (pwa-lan.sh)',
+                    'ports_check' => ' Проверка портов проекта',
                     'back' => ' Назад в главное меню',
                 ],
                 scroll: self::MENU_SCROLL
@@ -130,17 +561,10 @@ class DevConsoleCommand extends Command
             $ip = $this->getLanIp();
 
             match ($choice) {
+                'docker_menu' => $this->menuDocker(),
                 'docker_dev' => $this->runCommandInteractive('bash docker-dev.sh'),
-                'docker_up_d' => $this->runCommandWithSpinner(
-                    "DEV_HOST={$ip} docker compose up -d",
-                    'Поднятие контейнеров Docker...',
-                    'Контейнеры Docker успешно запущены в фоне.'
-                ),
-                'docker_down' => $this->runCommandWithSpinner(
-                    "DEV_HOST={$ip} docker compose down",
-                    'Остановка контейнеров Docker...',
-                    'Контейнеры Docker успешно остановлены.'
-                ),
+                'docker_up_d' => $this->startDockerBackground(false),
+                'docker_down' => $this->downDockerProject(),
                 'docker_restart' => $this->runCommandWithSpinner(
                     "DEV_HOST={$ip} docker compose restart",
                     'Перезапуск контейнеров Docker...',
@@ -163,11 +587,11 @@ class DevConsoleCommand extends Command
             $choice = select(
                 label: '  База данных и миграции:',
                 options: [
-                    'migrate' => ' Применить новые миграции (migrate)',
-                    'fresh_seed' => ' Полный сброс БД и запуск сидеров (migrate:fresh --seed)',
-                    'specific_seeder' => '🌱 Выборочный запуск сидера (Admin, Users, HelpCenter...)',
-                    'rollback' => ' Откатить последнюю миграцию (migrate:rollback)',
-                    'psql' => ' Открыть PostgreSQL CLI (psql)',
+                    'migrate' => ' Применить миграции (migrate)',
+                    'fresh_seed' => ' Сбросить БД и засеять (migrate:fresh --seed)',
+                    'specific_seeder' => ' Выборочный запуск сидера',
+                    'rollback' => ' Откатить миграцию (migrate:rollback)',
+                    'psql' => ' Консоль PostgreSQL (psql)',
                     'back' => ' Назад в главное меню',
                 ],
                 scroll: self::MENU_SCROLL
@@ -239,15 +663,15 @@ class DevConsoleCommand extends Command
     {
         while (true) {
             $choice = select(
-                label: '  Генераторы тестовых данных и сущностей:',
+                label: '  Генераторы тестовых данных:',
                 options: [
-                    'make_user' => ' Создать одного пользователя (make:user)',
-                    'gen_users' => ' Массовая генерация пользователей (users:generate)',
+                    'make_user' => ' Создать пользователя (make:user)',
+                    'gen_users' => ' Сгенерировать пользователей (users:generate)',
                     'gen_orders' => ' Сгенерировать заказы (orders:generate)',
-                    'seed_reviews' => ' Сгенерировать отзывы айдолам (reviews:seed)',
-                    'seed_services' => ' Сгенерировать услуги для айдолов (services:seed)',
-                    'gen_gallery' => ' Сгенерировать галерею фотографий (gallery:generate)',
-                    'test_notify' => ' Отправить тестовое уведомление (notifications:test)',
+                    'seed_reviews' => ' Сгенерировать отзывы (reviews:seed)',
+                    'seed_services' => ' Сгенерировать услуги (services:seed)',
+                    'gen_gallery' => ' Сгенерировать галерею (gallery:generate)',
+                    'test_notify' => ' Тестовое уведомление (notifications:test)',
                     'back' => ' Назад в главное меню',
                 ],
                 scroll: self::MENU_SCROLL
@@ -281,9 +705,9 @@ class DevConsoleCommand extends Command
             $choice = select(
                 label: '  SSL-сертификаты и сеть:',
                 options: [
-                    'status' => ' Информация о LAN IP и путях сертификатов',
-                    'generate' => ' Перевыпустить SSL-сертификаты для текущего хоста',
-                    'ports' => ' Проверить занятость портов',
+                    'status' => ' Статус SSL и LAN IP',
+                    'generate' => ' Перевыпустить SSL-сертификаты',
+                    'ports' => ' Проверить доступность портов',
                     'back' => ' Назад в главное меню',
                 ],
                 scroll: self::MENU_SCROLL
@@ -314,11 +738,11 @@ class DevConsoleCommand extends Command
             '',
             '  <fg=cyan;options=bold> Информация о SSL и сертификатах:</>',
             '  <fg=gray>───────────────────────────────────────────────────────────</>',
-            sprintf('  <fg=yellow> Текущий LAN IP:</>        <fg=white>%s</>', $ip),
-            sprintf('  <fg=yellow> Файл сертификата (.pem):</> %s', $certExists ? "<fg=green> {$certPath}</>" : "<fg=red> Не найден ({$certPath})</>"),
-            sprintf('  <fg=yellow> Файл ключа (-key.pem):</>   %s', $keyExists ? "<fg=green> {$keyPath}</>" : "<fg=red> Не найден ({$keyPath})</>"),
-            sprintf('  <fg=yellow> Утилита mkcert:</>         %s', shell_exec('command -v mkcert') ? '<fg=green> Установлена</>' : '<fg=gray> Не установлена</>'),
-            sprintf('  <fg=yellow> Утилита openssl:</>        %s', shell_exec('command -v openssl') ? '<fg=green> Установлена</>' : '<fg=red> Не установлена</>'),
+            sprintf('  <fg=yellow> LAN IP:</>            <fg=white>%s</>', $ip),
+            sprintf('  <fg=yellow> Сертификат (.pem):</>  %s', $certExists ? "<fg=green> {$certPath}</>" : "<fg=red> Не найден ({$certPath})</>"),
+            sprintf('  <fg=yellow> Ключ (-key.pem):</>    %s', $keyExists ? "<fg=green> {$keyPath}</>" : "<fg=red> Не найден ({$keyPath})</>"),
+            sprintf('  <fg=yellow> mkcert:</>             %s', shell_exec('command -v mkcert') ? '<fg=green> Установлена</>' : '<fg=gray> Не установлена</>'),
+            sprintf('  <fg=yellow> openssl:</>            %s', shell_exec('command -v openssl') ? '<fg=green> Установлена</>' : '<fg=red> Не установлена</>'),
             '  <fg=gray>───────────────────────────────────────────────────────────</>',
             '',
         ]);
@@ -361,9 +785,9 @@ class DevConsoleCommand extends Command
                 label: '  Кэш, сборка и ассеты:',
                 options: [
                     'optimize_clear' => ' Очистить все кэши (optimize:clear)',
-                    'npm_build' => ' Собрать фронтенд для продакшена (npm run build)',
-                    'npm_dev' => ' Запустить dev-сервер Vite (npm run dev)',
-                    'ide_helper' => ' Обновить IDE Helpers (composer run ide-helper)',
+                    'npm_build' => ' Собрать фронтенд (npm run build)',
+                    'npm_dev' => ' Dev-сервер Vite (npm run dev)',
+                    'ide_helper' => ' Обновить IDE Helpers (ide-helper)',
                     'back' => ' Назад в главное меню',
                 ],
                 scroll: self::MENU_SCROLL
@@ -390,10 +814,10 @@ class DevConsoleCommand extends Command
             $choice = select(
                 label: '  Тестирование и качество кода:',
                 options: [
-                    'artisan_test' => ' Запустить PHPUnit / Feature тесты (php artisan test)',
-                    'k6_chat' => ' Запустить нагрузочный тест K6 (чат)',
-                    'k6_master' => ' Запустить нагрузочный тест K6 (мастер-сценарий)',
-                    'php_lint' => ' Проверить синтаксис PHP файлов (php -l)',
+                    'artisan_test' => ' Тесты PHPUnit (artisan test)',
+                    'k6_chat' => ' Нагрузочный тест K6 (чат)',
+                    'k6_master' => ' Нагрузочный тест K6 (мастер)',
+                    'php_lint' => ' Проверка синтаксиса PHP (php -l)',
                     'back' => ' Назад в главное меню',
                 ],
                 scroll: self::MENU_SCROLL
@@ -418,7 +842,7 @@ class DevConsoleCommand extends Command
             shell_exec('find app routes database config -name "*.php" -exec php -l {} + > /dev/null 2>&1');
         }, 'Проверка синтаксиса PHP файлов...');
 
-        info(' Все PHP файлы в app, routes, database, config успешно прошли синтаксическую проверку.');
+        info(' Все PHP файлы в app, routes, database, config успешно прошли проверку.');
         $this->waitEnter();
     }
 
@@ -430,10 +854,10 @@ class DevConsoleCommand extends Command
             $choice = select(
                 label: '  Логи и интерактивный шелл:',
                 options: [
-                    'laravel_log' => ' Читать storage/logs/laravel.log (tail -n 50 -f)',
-                    'docker_log' => ' Читать логи Docker контейнера (выбрать сервис)',
-                    'tinker' => ' Открыть интерактивный Laravel Tinker',
-                    'app_bash' => ' Открыть bash в контейнере not_alone_app',
+                    'laravel_log' => ' Лог приложения (laravel.log)',
+                    'docker_log' => ' Логи Docker сервиса',
+                    'tinker' => ' Консоль Laravel Tinker',
+                    'app_bash' => ' Bash в контейнере app',
                     'back' => ' Назад в главное меню',
                 ],
                 scroll: self::MENU_SCROLL
@@ -471,15 +895,15 @@ class DevConsoleCommand extends Command
         $service = select(
             label: 'Выберите Docker сервис для просмотра логов:',
             options: [
-                'app' => ' app (Nginx + PHP-FPM приложение)',
-                'worker' => ' worker (Очереди Queue Worker)',
-                'reverb' => ' reverb (WebSocket сервер)',
-                'scheduler' => ' scheduler (Cron планировщик задач)',
+                'app' => ' app (Nginx + PHP-FPM)',
+                'worker' => ' worker (Queue Worker)',
+                'reverb' => ' reverb (WebSocket)',
+                'scheduler' => ' scheduler (Cron)',
                 'db' => ' db (PostgreSQL)',
-                'redis' => ' redis (Redis кэш)',
-                'mailpit' => ' mailpit (SMTP & Web UI почты)',
-                'minio' => ' minio (S3 хранилище)',
-                'vite' => ' vite (Фронтенд Dev Server)',
+                'redis' => ' redis',
+                'mailpit' => ' mailpit (Почта)',
+                'minio' => ' minio (S3 Хранилище)',
+                'vite' => ' vite (Frontend Dev Server)',
                 'cancel' => ' Отмена',
             ],
             scroll: self::MENU_SCROLL
@@ -497,29 +921,20 @@ class DevConsoleCommand extends Command
     {
         $ip = $this->getLanIp();
 
+        $rows = [
+            ['Web App (HTTPS)', "https://{$ip}:8443", 'Local: https://localhost:8443'],
+            ['Vite Dev Server', "https://{$ip}:5173", 'HMR Dev Server'],
+            ['Mailpit Web UI', "http://{$ip}:8025", 'SMTP: :1025'],
+            ['MinIO Console', "http://{$ip}:8900", 'Логин: sail | Пароль: password'],
+            ['Reverb WebSocket', "https://{$ip}:8443", 'Проксируется в Nginx (:8080)'],
+        ];
+
         $this->output->writeln([
             '',
-            '  <fg=cyan;options=bold> Доступные локальные сервисы Not Alone:</>',
-            '  <fg=gray>───────────────────────────────────────────────────────────</>',
-            '  <fg=yellow>[1] Web Приложение (HTTPS)</>',
-            "      <fg=white>LAN:</>   https://{$ip}:8443",
-            '      <fg=white>Local:</> https://localhost:8443',
-            '',
-            '  <fg=yellow>[2] Vite Dev Server (HMR)</>',
-            "      https://{$ip}:5173",
-            '',
-            '  <fg=yellow>[3] Mailpit Web UI (Почта)</>',
-            "      http://{$ip}:8025",
-            '',
-            '  <fg=yellow>[4] MinIO Console (S3 Хранилище)</>',
-            "      http://{$ip}:8900",
-            '      <fg=gray>Логин: sail | Пароль: password</>',
-            '',
-            '  <fg=yellow>[5] Reverb WebSocket</>',
-            "      https://{$ip}:8443 <fg=gray>(порт 8080 проксируется в Nginx)</>",
-            '  <fg=gray>───────────────────────────────────────────────────────────</>',
-            '',
+            '  <fg=cyan;options=bold> Сервисы Not Alone:</>',
         ]);
+
+        table(['Сервис', 'URL', 'Инфо'], $rows);
 
         $open = select(
             label: 'Открыть сервис в браузере?',
@@ -646,19 +1061,16 @@ class DevConsoleCommand extends Command
         $this->output->writeln([
             '',
             '  <fg=cyan;options=bold> Статус портов проекта:</>',
-            '  <fg=gray>───────────────────────────────────────────────────────────</>',
         ]);
 
+        $rows = [];
         foreach ($ports as $port => $name) {
             $check = trim((string) shell_exec("ss -tulpn 2>/dev/null | grep -E ':{$port}\\b' || true"));
-            $status = ! empty($check) ? '<fg=green> Слушается</>' : '<fg=gray> Свободен</>';
-            $this->output->writeln(sprintf('  <fg=yellow>%-6s</> %-28s %s', $port, $name, $status));
+            $status = ! empty($check) ? '<fg=green> Занят (активен)</>' : '<fg=gray> Свободен</>';
+            $rows[] = [$port, $name, $status];
         }
 
-        $this->output->writeln([
-            '  <fg=gray>───────────────────────────────────────────────────────────</>',
-            '',
-        ]);
+        table(['Порт', 'Сервис', 'Статус'], $rows);
 
         $this->waitEnter();
     }

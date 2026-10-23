@@ -70,6 +70,10 @@
             "Composer\\Config::disableProcessTimeout",
             "bash dev-lan.sh"
         ],
+        "docker": [
+            "Composer\\Config::disableProcessTimeout",
+            "bash dock"
+        ],
         "docker-dev": [
             "Composer\\Config::disableProcessTimeout",
             "bash docker-dev.sh"
