@@ -160,6 +160,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('avatar-frames')->name('avatar-frames.')->group(function () {
             Route::get('/', [AvatarFrameController::class, 'index'])->name('index');
             Route::post('/', [AvatarFrameController::class, 'store'])->name('store');
+            Route::post('/generate-test', [AvatarFrameController::class, 'generateTest'])->name('generate-test');
             Route::patch('/{avatarFrame}', [AvatarFrameController::class, 'update'])->name('update');
             Route::delete('/{avatarFrame}', [AvatarFrameController::class, 'destroy'])->name('destroy');
         });

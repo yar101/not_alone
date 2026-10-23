@@ -89,6 +89,47 @@ class AvatarFrameController extends Controller
         return redirect()->back()->with('success', 'Рамка обновлена');
     }
 
+    public function generateTest()
+    {
+        $size = 200;
+        $img  = imagecreatetruecolor($size, $size);
+        imagesavealpha($img, true);
+        $transparent = imagecolorallocatealpha($img, 0, 0, 0, 127);
+        imagefill($img, 0, 0, $transparent);
+
+        $r = rand(50, 255);
+        $g = rand(50, 255);
+        $b = rand(50, 255);
+        $color = imagecolorallocate($img, $r, $g, $b);
+
+        // Рисуем заполненный эллипс (внешний) — почти на всю область
+        imagefilledellipse($img, $size / 2, $size / 2, $size - 4, $size - 4, $color);
+        // Вырезаем центр прозрачным — получается толстое кольцо ~24px
+        imagealphablending($img, false);
+        $hole = imagecolorallocatealpha($img, 0, 0, 0, 127);
+        imagefilledellipse($img, $size / 2, $size / 2, $size - 52, $size - 52, $hole);
+
+        $tmpPath = sys_get_temp_dir() . '/test_frame_' . uniqid() . '.png';
+        imagepng($img, $tmpPath);
+        imagedestroy($img);
+
+        $stored = Storage::putFileAs(
+            'avatar_frames',
+            new \Illuminate\Http\File($tmpPath),
+            'test_' . uniqid() . '.png'
+        );
+        @unlink($tmpPath);
+
+        AvatarFrame::create([
+            'name'       => 'Test ' . now()->format('H:i:s'),
+            'type'       => 'free',
+            'image_path' => $stored,
+            'is_active'  => true,
+        ]);
+
+        return redirect()->back()->with('success', 'Тестовая рамка создана');
+    }
+
     public function destroy(AvatarFrame $avatarFrame)
     {
         Storage::delete($avatarFrame->image_path);

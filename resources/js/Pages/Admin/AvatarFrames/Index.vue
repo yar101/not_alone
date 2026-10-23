@@ -15,6 +15,7 @@ const props = defineProps({
 
 const isDialogVisible = ref(false);
 const editingFrame = ref(null);
+const generating = ref(false);
 
 const form = useForm({
     name: '',
@@ -114,6 +115,14 @@ const deleteFrame = (frame) => {
         });
     }).catch(() => {});
 };
+
+const generateTest = () => {
+    generating.value = true;
+    router.post(route('admin.avatar-frames.generate-test'), {}, {
+        onFinish: () => (generating.value = false),
+        onSuccess: () => ElMessage.success('Тестовая рамка создана'),
+    });
+};
 </script>
 
 <template>
@@ -126,6 +135,9 @@ const deleteFrame = (frame) => {
                 :count="frames.length"
             >
                 <template #actions>
+                    <el-button @click="generateTest" :loading="generating">
+                        🎲 Тест-рамка
+                    </el-button>
                     <el-button type="primary" :icon="Plus" @click="openCreateDialog">
                         Добавить рамку
                     </el-button>
