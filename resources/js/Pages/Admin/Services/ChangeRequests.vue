@@ -1,6 +1,7 @@
 <script setup>
 import { router, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminPagination from '@/Components/Admin/AdminPagination.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -80,16 +81,7 @@ function switchTab(tab) {
             </table>
         </div>
 
-        <div class="pagination" v-if="requests.last_page > 1">
-            <Link
-                v-for="link in requests.links"
-                :key="link.label"
-                :href="link.url || '#'"
-                class="page-link"
-                :class="{ 'page-link--active': link.active, 'page-link--disabled': !link.url }"
-                v-html="link.label"
-            />
-        </div>
+        <AdminPagination :pagination="requests" />
     </div>
 </template>
 

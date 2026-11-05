@@ -19,7 +19,7 @@ const props = defineProps({
 
 // ── Feed ───────────────────────────────────────────────────
 const posts = ref([]);
-const page = ref(1);
+const cursor = ref(null);
 const hasMore = ref(true);
 const loading = ref(false);
 
@@ -30,12 +30,12 @@ async function fetchPosts() {
         const { data } = await axios.get(
             route("profile.posts.feed", props.profileUserId),
             {
-                params: { page: page.value },
+                params: { cursor: cursor.value || undefined },
             },
         );
         posts.value.push(...data.data);
-        hasMore.value = data.current_page < data.last_page;
-        page.value++;
+        hasMore.value = !!data.has_more;
+        cursor.value = data.next_cursor || null;
     } catch (e) {
         console.error(e);
     } finally {
@@ -45,7 +45,7 @@ async function fetchPosts() {
 
 function resetFeed() {
     posts.value = [];
-    page.value = 1;
+    cursor.value = null;
     hasMore.value = true;
     fetchPosts();
 }

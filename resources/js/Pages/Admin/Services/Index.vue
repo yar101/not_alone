@@ -8,6 +8,7 @@ import CreateButton from '@/Components/CreateButton.vue';
 import ImageDropzone from '@/Components/ImageDropzone.vue';
 import draggable from 'vuedraggable';
 import { ElMessageBox } from 'element-plus';
+import AdminPagination from '@/Components/Admin/AdminPagination.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -966,17 +967,7 @@ function destroyLimit(id) {
                 </table>
             </div>
 
-            <div class="pagination" v-if="moderation_services?.last_page > 1">
-                <a
-                    v-for="link in moderation_services.links"
-                    :key="link.label"
-                    :href="link.url || '#'"
-                    class="page-link"
-                    :class="{ 'page-link--active': link.active, 'page-link--disabled': !link.url }"
-                    v-html="link.label"
-                    @click.prevent="link.url && router.get(link.url, {}, { preserveState: true })"
-                />
-            </div>
+            <AdminPagination :pagination="moderation_services" />
 
             <Teleport to="body">
                 <div v-if="showRejectModal" class="overlay" @click.self="closeRejectModal">

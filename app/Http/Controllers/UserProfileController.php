@@ -412,16 +412,30 @@ class UserProfileController extends Controller
 
     public function getPosts(Request $request, User $user): JsonResponse
     {
-        $paginated = $user->posts()
+        $perPage = 10;
+        $cursor = $request->input('cursor');
+
+        $query = $user->posts()
             ->with(['user:id,name,avatar_path,active_frame_id,gender', 'user.activeFrame'])
             ->withCount(['likes', 'comments'])
-            ->latest()
-            ->paginate(10);
+            ->orderByDesc('id');
+
+        if ($cursor) {
+            $query->where('id', '<', (int) $cursor);
+        } elseif ($request->filled('page') && (int) $request->input('page') > 1) {
+            // Fallback for legacy page offset if cursor not provided
+            $query->offset(((int) $request->input('page') - 1) * $perPage);
+        }
+
+        $posts = $query->limit($perPage + 1)->get();
+        $hasMore = $posts->count() > $perPage;
+        $items = $hasMore ? $posts->slice(0, $perPage) : $posts;
+        $nextCursor = $hasMore ? $items->last()?->id : null;
 
         $authId = auth()->id();
         $likedIds = [];
-        if ($authId) {
-            $postIds = $paginated->pluck('id');
+        if ($authId && $items->isNotEmpty()) {
+            $postIds = $items->pluck('id');
             $likedIds = PostLike::where('user_id', $authId)
                 ->whereIn('post_id', $postIds)
                 ->pluck('post_id')
@@ -429,7 +443,7 @@ class UserProfileController extends Controller
                 ->all();
         }
 
-        $data = $paginated->getCollection()->map(fn (Post $p) => [
+        $data = $items->map(fn (Post $p) => [
             'id' => $p->id,
             'body' => $p->body,
             'photo_url' => $p->photo_url,
@@ -448,9 +462,11 @@ class UserProfileController extends Controller
 
         return response()->json([
             'data' => $data,
-            'next_page_url' => $paginated->nextPageUrl(),
-            'current_page' => $paginated->currentPage(),
-            'last_page' => $paginated->lastPage(),
+            'has_more' => $hasMore,
+            'next_cursor' => $nextCursor,
+            'next_page_url' => $nextCursor ? route('profile.posts.feed', ['user' => $user->id, 'cursor' => $nextCursor]) : null,
+            'current_page' => (int) $request->input('page', 1),
+            'last_page' => $hasMore ? 999999 : (int) $request->input('page', 1),
         ]);
     }
 

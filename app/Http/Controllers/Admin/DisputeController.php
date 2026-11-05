@@ -45,7 +45,7 @@ class DisputeController extends Controller
             });
         }
 
-        $disputes = $query->paginate(20)->withQueryString()->through(fn (OrderDispute $d) => $this->format($d));
+        $disputes = $query->latest('id')->cursorPaginate(20)->withQueryString()->through(fn (OrderDispute $d) => $this->format($d));
 
         $rawCounts = OrderDispute::query()
             ->selectRaw('status, count(*) as count')

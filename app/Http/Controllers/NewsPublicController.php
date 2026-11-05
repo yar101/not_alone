@@ -20,9 +20,12 @@ class NewsPublicController extends Controller
     {
         $sortDir = $request->get('sort', 'desc') === 'asc' ? 'asc' : 'desc';
 
+        $perPage = 8;
+
         $query = News::published()
             ->orderByDesc('is_pinned')
-            ->orderBy('published_at', $sortDir);
+            ->orderBy('published_at', $sortDir)
+            ->orderBy('id', $sortDir);
 
         if ($search = $request->get('search')) {
             $likeOp = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
@@ -32,15 +35,17 @@ class NewsPublicController extends Controller
             );
         }
 
-        $paginated = $query->paginate(8, [
+        $paginated = $query->cursorPaginate($perPage, [
             'id', 'title', 'excerpt', 'body', 'image',
             'is_pinned', 'published_at',
         ]);
 
         return response()->json([
             'data' => $paginated->items(),
-            'current_page' => $paginated->currentPage(),
-            'last_page' => $paginated->lastPage(),
+            'has_more' => $paginated->hasMorePages(),
+            'next_cursor' => $paginated->nextCursor()?->encode(),
+            'current_page' => (int) $request->input('page', 1),
+            'last_page' => $paginated->hasMorePages() ? 999999 : (int) $request->input('page', 1),
         ]);
     }
 

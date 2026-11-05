@@ -54,7 +54,7 @@ class ConversationController extends Controller
             });
         }
 
-        $conversations = $query->paginate(20)->withQueryString()->through(fn ($c) => [
+        $conversations = $query->latest('id')->cursorPaginate(20)->withQueryString()->through(fn ($c) => [
             'id' => $c->id,
             'order_id' => $c->order_id,
             'is_support' => $c->is_support,

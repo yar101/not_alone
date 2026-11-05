@@ -69,7 +69,7 @@ class StrikeController extends Controller
             });
         }
 
-        $strikes = $strikesQuery->paginate(20)->withQueryString()->through(fn (UserStrike $s) => [
+        $strikes = $strikesQuery->latest('id')->cursorPaginate(20)->withQueryString()->through(fn (UserStrike $s) => [
             'id' => $s->id,
             'user' => [
                 'id' => $s->user?->id,

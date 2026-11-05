@@ -3,6 +3,7 @@ import { ref, computed, watch, nextTick, onMounted } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminPagination from '@/Components/Admin/AdminPagination.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -275,17 +276,7 @@ function getSystemText(msg) {
                     </div>
 
                     <!-- Pagination -->
-                    <div class="pagination" v-if="conversations.links && conversations.links.length > 3">
-                        <Link
-                            v-for="link in conversations.links"
-                            :key="link.label"
-                            :href="link.url || '#'"
-                            v-html="link.label"
-                            class="pagination-link"
-                            :class="{ 'pagination-link--active': link.active, 'pagination-link--disabled': !link.url }"
-                            :disabled="!link.url"
-                        />
-                    </div>
+                    <AdminPagination :pagination="conversations" />
                 </div>
             </div>
 

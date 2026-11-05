@@ -21,7 +21,8 @@ class FollowController extends Controller
         $idols = $user->following()
             ->select(['users.id', 'users.name', 'users.avatar_path', 'users.active_frame_id', 'users.gender', 'users.birth_date', 'users.rating', 'users.is_idol'])
             ->with('activeFrame')
-            ->paginate(20);
+            ->orderBy('users.id', 'desc')
+            ->cursorPaginate(20);
 
         return Inertia::render('Tracked/Index', [
             'idols' => $idols,

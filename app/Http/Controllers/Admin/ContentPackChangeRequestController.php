@@ -24,8 +24,8 @@ class ContentPackChangeRequestController extends Controller
     {
         $requests = ContentPackChangeRequest::with(['contentPack.user'])
             ->whereIn('status', ['pending', 'has_remarks'])
-            ->latest()
-            ->paginate(50)
+            ->latest('id')
+            ->cursorPaginate(50)
             ->withQueryString();
 
         return Inertia::render('Admin/ContentPacks/ChangeRequests', [

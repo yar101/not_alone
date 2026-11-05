@@ -14,7 +14,48 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(\Inertia\Ssr\Gateway::class, function () {
+            return new class extends \Inertia\Ssr\HttpGateway {
+                public function dispatch(array $page, ?\Illuminate\Http\Request $request = null): ?\Inertia\Ssr\Response
+                {
+                    if (! $this->ssrIsEnabled($request ?? request())) {
+                        return null;
+                    }
+
+                    $url = $this->getProductionUrl('/render');
+
+                    try {
+                        $response = $this->pendingRequest()->post($url, $page);
+
+                        if ($response->failed()) {
+                            $this->handleSsrFailure($page, $response->json());
+
+                            return null;
+                        }
+
+                        if (! $data = $response->json()) {
+                            return null;
+                        }
+
+                        return new \Inertia\Ssr\Response(
+                            implode("\n", $data['head'] ?? []),
+                            $data['body'] ?? ''
+                        );
+                    } catch (\Exception $e) {
+                        if ($e instanceof \Illuminate\Http\Client\StrayRequestException || $e instanceof \Inertia\Ssr\SsrException) {
+                            throw $e;
+                        }
+
+                        $this->handleSsrFailure($page, [
+                            'error' => $e->getMessage(),
+                            'type' => 'connection',
+                        ]);
+
+                        return null;
+                    }
+                }
+            };
+        });
     }
 
     /**

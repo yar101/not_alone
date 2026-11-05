@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminPagination from '@/Components/Admin/AdminPagination.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -141,17 +142,7 @@ function statusLabel(status) {
             </table>
         </div>
 
-        <div class="pagination" v-if="suggestions.last_page > 1">
-            <a
-                v-for="link in suggestions.links"
-                :key="link.label"
-                :href="link.url || '#'"
-                class="page-link"
-                :class="{ 'page-link--active': link.active, 'page-link--disabled': !link.url }"
-                v-html="link.label"
-                @click.prevent="link.url && router.get(link.url, {}, { preserveState: true })"
-            />
-        </div>
+        <AdminPagination :pagination="suggestions" />
     </div>
 </template>
 

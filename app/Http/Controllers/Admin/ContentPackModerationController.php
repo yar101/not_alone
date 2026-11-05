@@ -30,7 +30,7 @@ class ContentPackModerationController extends Controller
 
         $query = $this->buildFilterQuery($request);
 
-        $packs = $query->latest()->paginate(50)->withQueryString()->through(fn (ContentPack $p) => [
+        $packs = $query->latest('id')->cursorPaginate(50)->withQueryString()->through(fn (ContentPack $p) => [
             'id' => $p->id,
             'title' => $p->title,
             'price' => $p->price,

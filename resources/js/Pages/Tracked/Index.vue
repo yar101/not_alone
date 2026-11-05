@@ -58,22 +58,53 @@ const filteredIdols = computed(() => {
             </div>
 
             <!-- Pagination -->
-            <div v-if="idols.links.length > 3" class="pagination">
-                <Link
-                    v-for="(link, i) in idols.links"
-                    :key="i"
-                    :href="link.url || '#'"
-                    class="pag-btn"
-                    :class="{ active: link.active, disabled: !link.url }"
-                >
-                    <template v-if="link.label.includes('Previous')">
+            <div v-if="idols.prev_page_url || idols.next_page_url || (idols.links && idols.links.length > 3)" class="pagination">
+                <template v-if="idols.prev_page_url || idols.next_page_url">
+                    <Link
+                        v-if="idols.prev_page_url"
+                        :href="idols.prev_page_url"
+                        class="pag-btn"
+                        preserve-scroll
+                    >
                         <el-icon><ArrowLeft /></el-icon>
-                    </template>
-                    <template v-else-if="link.label.includes('Next')">
+                        <span style="margin-left: 0.35rem">Назад</span>
+                    </Link>
+                    <span v-else class="pag-btn disabled">
+                        <el-icon><ArrowLeft /></el-icon>
+                        <span style="margin-left: 0.35rem">Назад</span>
+                    </span>
+
+                    <Link
+                        v-if="idols.next_page_url"
+                        :href="idols.next_page_url"
+                        class="pag-btn"
+                        preserve-scroll
+                    >
+                        <span style="margin-right: 0.35rem">Вперед</span>
                         <el-icon><ArrowRight /></el-icon>
-                    </template>
-                    <span v-else v-html="link.label"></span>
-                </Link>
+                    </Link>
+                    <span v-else class="pag-btn disabled">
+                        <span style="margin-right: 0.35rem">Вперед</span>
+                        <el-icon><ArrowRight /></el-icon>
+                    </span>
+                </template>
+                <template v-else-if="idols.links">
+                    <Link
+                        v-for="(link, i) in idols.links"
+                        :key="i"
+                        :href="link.url || '#'"
+                        class="pag-btn"
+                        :class="{ active: link.active, disabled: !link.url }"
+                    >
+                        <template v-if="link.label.includes('Previous')">
+                            <el-icon><ArrowLeft /></el-icon>
+                        </template>
+                        <template v-else-if="link.label.includes('Next')">
+                            <el-icon><ArrowRight /></el-icon>
+                        </template>
+                        <span v-else v-html="link.label"></span>
+                    </Link>
+                </template>
             </div>
         </div>
     </AppLayout>

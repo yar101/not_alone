@@ -109,7 +109,7 @@ function formatDate(iso) {
         <AdminPageHeader
             title="Контент-паки"
             subtitle="Модерация приватных фото- и контент-паков айдолов"
-            :count="packs.total"
+            :count="packs.total ?? packs.data?.length"
         />
 
         <!-- Status tabs -->
@@ -247,7 +247,7 @@ function formatDate(iso) {
         </div>
 
         <!-- Pagination -->
-        <AdminPagination :links="packs.links" />
+        <AdminPagination :pagination="packs" />
     </div>
 </template>
 

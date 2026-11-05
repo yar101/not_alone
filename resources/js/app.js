@@ -1,6 +1,6 @@
 import '../css/app.css';
 
-if ('serviceWorker' in navigator) {
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
     if (import.meta.env.PROD) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/build/sw.js', { scope: '/' }).catch((err) => {

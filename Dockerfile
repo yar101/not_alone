@@ -11,7 +11,7 @@ COPY . .
 RUN npm run build
 
 # ── Stage 2: production image ─────────────────────────────────────────────────
-FROM php:8.4-fpm
+FROM php:8.4.27-fpm
 
 # System dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -44,8 +44,9 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && pecl install redis \
     && docker-php-ext-enable redis
 
-# Composer
+# Composer and Node (for Inertia SSR server)
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY --from=assets /usr/local/bin/node /usr/local/bin/node
 
 WORKDIR /var/www/html
 

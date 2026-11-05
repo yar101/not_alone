@@ -22,7 +22,7 @@ class ReportController extends Controller
             $query->where('status', $request->status);
         }
 
-        $reports = $query->paginate(30)->withQueryString()->through(fn (UserReport $r) => [
+        $reports = $query->latest('id')->cursorPaginate(30)->withQueryString()->through(fn (UserReport $r) => [
             'id' => $r->id,
             'reporter' => $r->reporter ? ['id' => $r->reporter->id, 'name' => $r->reporter->name, 'email' => $r->reporter->email] : null,
             'reported' => $r->reported ? ['id' => $r->reported->id, 'name' => $r->reported->name, 'email' => $r->reported->email] : null,

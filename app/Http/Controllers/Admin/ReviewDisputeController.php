@@ -42,7 +42,7 @@ class ReviewDisputeController extends Controller
             });
         }
 
-        $disputes = $query->paginate(20)->withQueryString()->through(fn (ReviewDispute $d) => $this->format($d));
+        $disputes = $query->latest('id')->cursorPaginate(20)->withQueryString()->through(fn (ReviewDispute $d) => $this->format($d));
 
         $rawCounts = ReviewDispute::query()
             ->selectRaw('status, count(*) as count')

@@ -24,8 +24,8 @@ class ServiceChangeRequestController extends Controller
     {
         $requests = ServiceChangeRequest::with(['service.user'])
             ->whereIn('status', ['pending', 'has_remarks'])
-            ->latest()
-            ->paginate(50)
+            ->latest('id')
+            ->cursorPaginate(50)
             ->withQueryString()
             ->through(fn (ServiceChangeRequest $r) => [
                 'id' => $r->id,

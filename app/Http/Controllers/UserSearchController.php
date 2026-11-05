@@ -85,7 +85,7 @@ class UserSearchController extends Controller
         // Сортировка
         $sortBy = in_array($request->sort_by, ['rating', 'created_at']) ? $request->sort_by : 'rating';
         $sortDir = $request->sort_dir === 'asc' ? 'asc' : 'desc';
-        $query->orderBy($sortBy, $sortDir);
+        $query->orderBy($sortBy, $sortDir)->orderBy('id', $sortDir);
 
         $users = $query
             ->select(['id', 'name', 'avatar_path', 'active_frame_id', 'gender', 'birth_date', 'is_idol', 'rating', 'about', 'timezone', 'created_at'])
@@ -93,7 +93,7 @@ class UserSearchController extends Controller
             ->withCount(['ordersAsIdol as completed_orders_count' => function ($q) {
                 $q->where('status', 'completed');
             }])
-            ->paginate(20)
+            ->cursorPaginate(20)
             ->withQueryString();
 
         $users->getCollection()->transform(function ($user) {

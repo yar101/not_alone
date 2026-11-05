@@ -76,7 +76,7 @@ class OrderController extends Controller
         ];
 
         return Inertia::render('Admin/Orders/Index', [
-            'orders' => $query->paginate(30)->withQueryString()->through(fn (Order $o) => [
+            'orders' => $query->latest('id')->cursorPaginate(30)->withQueryString()->through(fn (Order $o) => [
                 'id' => $o->id,
                 'customer' => ['id' => $o->customer_id, 'name' => $o->customer?->name ?? '—', 'email' => $o->customer?->email ?? '—'],
                 'idol' => ['id' => $o->idol_id,     'name' => $o->idol?->name ?? '—',     'email' => $o->idol?->email ?? '—'],

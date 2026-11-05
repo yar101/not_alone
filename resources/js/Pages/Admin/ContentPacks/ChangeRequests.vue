@@ -1,6 +1,7 @@
 <script setup>
 import { Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminPagination from '@/Components/Admin/AdminPagination.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -68,15 +69,7 @@ function formatDate(iso) {
             </table>
         </div>
 
-        <div v-if="requests.last_page > 1" class="cr-pagination">
-            <Link
-                v-for="page in requests.last_page"
-                :key="page"
-                :href="requests.links?.find(l => l.label == page)?.url"
-                class="cr-page-btn"
-                :class="{ 'cr-page-btn--active': page === requests.current_page }"
-            >{{ page }}</Link>
-        </div>
+        <AdminPagination :pagination="requests" />
     </div>
 </template>
 

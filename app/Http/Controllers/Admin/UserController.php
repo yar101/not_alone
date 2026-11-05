@@ -43,7 +43,7 @@ class UserController extends Controller
             $query->where('created_at', '<=', Carbon::parse($request->registered_to)->endOfDay());
         }
 
-        $users = $query->orderByDesc('created_at')->paginate(30)->withQueryString()
+        $users = $query->orderByDesc('id')->cursorPaginate(30)->withQueryString()
             ->through(fn (User $u) => [
                 'id' => $u->id,
                 'name' => $u->name,
@@ -137,7 +137,7 @@ class UserController extends Controller
             $query->whereDate('created_at', '<=', $request->registered_to);
         }
 
-        $paginator = $query->orderByDesc('created_at')->paginate(20);
+        $paginator = $query->orderByDesc('id')->cursorPaginate(20);
 
         $data = $paginator->map(fn (User $u) => [
             'id' => $u->id,

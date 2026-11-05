@@ -19,8 +19,8 @@ class TraitSuggestionController extends Controller
         $suggestions = TraitSuggestion::with('user:id,name')
             ->when($status !== 'all', fn ($q) => $q->where('status', $status))
             ->when($search, fn ($q) => $q->where('name', 'ilike', "%{$search}%"))
-            ->latest()
-            ->paginate(30)
+            ->latest('id')
+            ->cursorPaginate(30)
             ->withQueryString();
 
         return Inertia::render('Admin/Traits/Suggestions', [

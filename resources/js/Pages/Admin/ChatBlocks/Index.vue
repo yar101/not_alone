@@ -97,7 +97,7 @@ function goToBan(userId) {
             </div>
 
             <!-- Пагинация -->
-            <AdminPagination :links="blocks.links" />
+            <AdminPagination :pagination="blocks" />
         </section>
     </div>
 </template>

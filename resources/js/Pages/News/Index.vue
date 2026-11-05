@@ -13,6 +13,7 @@ const items       = ref([]);
 const page        = ref(1);
 const hasMore     = ref(true);
 const loading     = ref(false);
+const cursor      = ref(null);
 const search      = ref('');
 const sortDir     = ref('desc');
 const sentinel    = ref(null);
@@ -35,8 +36,8 @@ async function fetchFeed(reset = false) {
     if (loading.value || (!reset && !hasMore.value)) return;
 
     if (reset) {
-        items.value  = [];
-        page.value   = 1;
+        items.value   = [];
+        cursor.value  = null;
         hasMore.value = true;
     }
 
@@ -44,14 +45,14 @@ async function fetchFeed(reset = false) {
     try {
         const { data } = await axios.get(route('news.feed'), {
             params: {
-                page:   page.value,
+                cursor: cursor.value || undefined,
                 search: search.value || undefined,
                 sort:   sortDir.value,
             },
         });
         items.value.push(...data.data);
-        hasMore.value = data.current_page < data.last_page;
-        page.value++;
+        hasMore.value = !!data.has_more;
+        cursor.value = data.next_cursor || null;
     } catch (e) {
         console.error(e);
     } finally {

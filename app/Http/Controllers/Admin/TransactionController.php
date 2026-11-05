@@ -72,7 +72,7 @@ class TransactionController extends Controller
         }
 
         $transactions = $query->orderByDesc('id')
-            ->paginate(25)
+            ->cursorPaginate(25)
             ->withQueryString()
             ->through(fn (WalletTransaction $tx) => [
                 'id' => $tx->id,

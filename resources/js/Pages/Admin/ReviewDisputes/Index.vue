@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminPagination from '@/Components/Admin/AdminPagination.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -162,15 +163,7 @@ const STATUS_CLASS  = { pending: 'badge--pending', approved: 'badge--approved', 
             </table>
         </div>
 
-        <div v-if="disputes.last_page > 1" class="pagination">
-            <a
-                v-for="pg in disputes.last_page"
-                :key="pg"
-                :href="`?page=${pg}&status=${status_filter}&search=${search ?? ''}`"
-                class="page-link"
-                :class="{ 'page-link--active': pg === disputes.current_page }"
-            >{{ pg }}</a>
-        </div>
+        <AdminPagination :pagination="disputes" />
     </div>
 
     <!-- Оверлей -->

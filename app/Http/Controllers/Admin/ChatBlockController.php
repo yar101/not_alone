@@ -14,8 +14,8 @@ class ChatBlockController extends Controller
     {
         $blocks = ChatBlock::active()
             ->with(['blocker', 'blocked'])
-            ->latest()
-            ->paginate(20)
+            ->latest('id')
+            ->cursorPaginate(20)
             ->withQueryString();
 
         $topRows = ChatBlock::active()

@@ -46,7 +46,7 @@ class AdminLogController extends Controller
             });
         }
 
-        $logs = $query->paginate(50)->withQueryString()->through(fn (AdminLog $log) => [
+        $logs = $query->latest('id')->cursorPaginate(50)->withQueryString()->through(fn (AdminLog $log) => [
             'id' => $log->id,
             'admin' => $log->admin ? ['name' => $log->admin->name] : null,
             'action' => $log->action,

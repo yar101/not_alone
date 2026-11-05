@@ -16,15 +16,16 @@ function tick() {
 }
 
 watch(localeLoading, (val) => {
+    if (typeof window === 'undefined') return;
     if (val) {
         rafId = requestAnimationFrame(tick);
     } else {
-        cancelAnimationFrame(rafId);
+        if (rafId) cancelAnimationFrame(rafId);
         rafId = null;
     }
 }, { immediate: true });
 
-onUnmounted(() => { if (rafId) cancelAnimationFrame(rafId); });
+onUnmounted(() => { if (typeof window !== 'undefined' && rafId) cancelAnimationFrame(rafId); });
 </script>
 
 <template>

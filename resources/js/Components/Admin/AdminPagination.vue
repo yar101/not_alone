@@ -13,6 +13,10 @@ const props = defineProps({
     },
 });
 
+const prevUrl = computed(() => props.pagination?.prev_page_url || null);
+const nextUrl = computed(() => props.pagination?.next_page_url || null);
+const hasCursorPagination = computed(() => !!prevUrl.value || !!nextUrl.value || (props.pagination && !props.pagination.links && !props.links));
+
 const resolvedLinks = computed(() => {
     if (props.links) return props.links;
     if (props.pagination?.links) return props.pagination.links;
@@ -20,6 +24,9 @@ const resolvedLinks = computed(() => {
 });
 
 const shouldShow = computed(() => {
+    if (hasCursorPagination.value) {
+        return !!prevUrl.value || !!nextUrl.value;
+    }
     if (props.pagination?.last_page) {
         return props.pagination.last_page > 1;
     }
@@ -27,10 +34,18 @@ const shouldShow = computed(() => {
 });
 
 const summary = computed(() => {
-    if (!props.pagination || !props.pagination.total) return null;
+    if (!props.pagination) return null;
     const { from, to, total } = props.pagination;
-    if (from === undefined || to === undefined) return null;
-    return `Показано ${from}–${to} из ${total}`;
+    if (from !== undefined && to !== undefined && total !== undefined) {
+        return `Показано ${from}–${to} из ${total}`;
+    }
+    if (total !== undefined) {
+        return `Всего записей: ${total}`;
+    }
+    if (props.pagination.data && Array.isArray(props.pagination.data)) {
+        return `Записей на странице: ${props.pagination.data.length}`;
+    }
+    return null;
 });
 
 function formatLabel(label) {
@@ -50,24 +65,56 @@ function formatLabel(label) {
             {{ summary }}
         </div>
         <nav class="pagination-links" aria-label="Пагинация">
-            <template v-for="(link, idx) in resolvedLinks" :key="idx">
+            <!-- Режим курсорной пагинации O(1) -->
+            <template v-if="hasCursorPagination">
                 <Link
-                    v-if="link.url"
-                    :href="link.url"
+                    v-if="prevUrl"
+                    :href="prevUrl"
                     class="page-btn"
-                    :class="{ 'page-btn--active': link.active }"
                     preserve-scroll
                     preserve-state
                 >
-                    <span v-html="formatLabel(link.label)" />
+                    <span>← Назад</span>
                 </Link>
-                <span
-                    v-else
-                    class="page-btn page-btn--disabled"
-                    :class="{ 'page-btn--ellipsis': link.label === '...' }"
-                >
-                    <span v-html="formatLabel(link.label)" />
+                <span v-else class="page-btn page-btn--disabled">
+                    <span>← Назад</span>
                 </span>
+
+                <Link
+                    v-if="nextUrl"
+                    :href="nextUrl"
+                    class="page-btn"
+                    preserve-scroll
+                    preserve-state
+                >
+                    <span>Вперед →</span>
+                </Link>
+                <span v-else class="page-btn page-btn--disabled">
+                    <span>Вперед →</span>
+                </span>
+            </template>
+
+            <!-- Традиционный режим номерных ссылок -->
+            <template v-else>
+                <template v-for="(link, idx) in resolvedLinks" :key="idx">
+                    <Link
+                        v-if="link.url"
+                        :href="link.url"
+                        class="page-btn"
+                        :class="{ 'page-btn--active': link.active }"
+                        preserve-scroll
+                        preserve-state
+                    >
+                        <span v-html="formatLabel(link.label)" />
+                    </Link>
+                    <span
+                        v-else
+                        class="page-btn page-btn--disabled"
+                        :class="{ 'page-btn--ellipsis': link.label === '...' }"
+                    >
+                        <span v-html="formatLabel(link.label)" />
+                    </span>
+                </template>
             </template>
         </nav>
     </div>

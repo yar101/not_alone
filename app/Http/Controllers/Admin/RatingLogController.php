@@ -28,7 +28,7 @@ class RatingLogController extends Controller
             $query->where('created_at', '<=', Carbon::parse($request->date_to)->endOfDay());
         }
 
-        $logs = $query->paginate(50)->withQueryString()->through(fn (IdolRatingLog $log) => [
+        $logs = $query->latest('id')->cursorPaginate(50)->withQueryString()->through(fn (IdolRatingLog $log) => [
             'id' => $log->id,
             'idol' => $log->user ? ['id' => $log->user->id, 'name' => $log->user->name] : null,
             'event' => $log->event,

@@ -84,6 +84,12 @@ class ServiceCategorySeeder extends Seeder
                 'description' => ['ru' => 'Приятно проведите время вместе так, как пожелаете.', 'en' => 'Spend quality time together however you like.'],
                 'name_suggestions' => ['ru' => ['Поиграть вместе онлайн', 'Провести вечер в разговоре', 'Просто пообщаться'], 'en' => ['Play games online together', 'Spend an evening chatting', 'Just hang out']],
             ],
+            [
+                'name' => ['ru' => 'Фитнес',                 'en' => 'Fitness'],
+                'accent_color' => '#f97316',
+                'description' => ['ru' => 'Тренируйтесь вместе, получайте мотивацию и достигайте спортивных целей.', 'en' => 'Work out together, get motivated and achieve your fitness goals.'],
+                'name_suggestions' => ['ru' => ['Совместная тренировка', 'Онлайн-тренировка по видеосвязи', 'Фитнес-мотивация и советы'], 'en' => ['Workout session together', 'Online video workout', 'Fitness motivation & tips']],
+            ],
         ];
 
         foreach ($categories as $i => $cat) {

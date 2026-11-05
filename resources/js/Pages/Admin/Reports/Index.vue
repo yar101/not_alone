@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminPagination from '@/Components/Admin/AdminPagination.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -133,17 +134,7 @@ function submitModal() {
             </table>
         </div>
 
-        <div class="pagination" v-if="reports.last_page > 1">
-            <a
-                v-for="link in reports.links"
-                :key="link.label"
-                :href="link.url || '#'"
-                class="page-link"
-                :class="{ 'page-link--active': link.active, 'page-link--disabled': !link.url }"
-                v-html="link.label"
-                @click.prevent="link.url && router.get(link.url, {}, { preserveState: true })"
-            />
-        </div>
+        <AdminPagination :pagination="reports" />
 
         <!-- Modal -->
         <Teleport to="body">

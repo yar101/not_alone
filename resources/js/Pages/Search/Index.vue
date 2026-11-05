@@ -368,6 +368,7 @@ function resetChip(chip) {
 
 // ── Windowed pagination ──────────────────────────────────────
 const visiblePageLinks = computed(() => {
+    if (!props.users.links) return [];
     const pages = props.users.links.slice(1, -1);
     if (pages.length <= 7)
         return pages.map((p) => ({ ...p, isEllipsis: false }));
@@ -443,7 +444,12 @@ function genderLabel(g) {
                     </div>
                     <div class="sort-bar-right">
                         <div class="found-count">
-                            {{ __("search.found", { count: users.total }) }}
+                            <template v-if="users.total !== undefined">
+                                {{ __("search.found", { count: users.total }) }}
+                            </template>
+                            <template v-else-if="users.data">
+                                Показано: {{ users.data.length }}
+                            </template>
                         </div>
                         <button
                             class="mobile-filters-toggle"
@@ -487,21 +493,24 @@ function genderLabel(g) {
                 </div>
 
                 <!-- Pagination -->
-                <div v-if="users.last_page > 1" class="pagination">
+                <div v-if="users.prev_page_url || users.next_page_url || users.last_page > 1" class="pagination">
                     <!-- Prev -->
                     <Link
-                        v-if="users.links[0]?.url"
-                        :href="users.links[0].url"
+                        v-if="users.prev_page_url || users.links?.[0]?.url"
+                        :href="users.prev_page_url || users.links[0].url"
                         class="page-btn"
+                        preserve-scroll
                     >
                         <el-icon><ArrowLeft /></el-icon>
+                        <span v-if="users.prev_page_url || users.next_page_url" style="margin-left: 0.35rem">Назад</span>
                     </Link>
                     <span v-else class="page-btn page-btn--disabled">
                         <el-icon><ArrowLeft /></el-icon>
+                        <span v-if="users.prev_page_url || users.next_page_url" style="margin-left: 0.35rem">Назад</span>
                     </span>
 
                     <!-- Page numbers -->
-                    <template v-for="(link, i) in visiblePageLinks" :key="i">
+                    <template v-if="visiblePageLinks.length" v-for="(link, i) in visiblePageLinks" :key="i">
                         <span v-if="link.isEllipsis" class="page-ellipsis"
                             >…</span
                         >
@@ -526,13 +535,16 @@ function genderLabel(g) {
 
                     <!-- Next -->
                     <Link
-                        v-if="users.links[users.links.length - 1]?.url"
-                        :href="users.links[users.links.length - 1].url"
+                        v-if="users.next_page_url || users.links?.[users.links?.length - 1]?.url"
+                        :href="users.next_page_url || users.links[users.links.length - 1].url"
                         class="page-btn"
+                        preserve-scroll
                     >
+                        <span v-if="users.prev_page_url || users.next_page_url" style="margin-right: 0.35rem">Вперед</span>
                         <el-icon><ArrowRight /></el-icon>
                     </Link>
                     <span v-else class="page-btn page-btn--disabled">
+                        <span v-if="users.prev_page_url || users.next_page_url" style="margin-right: 0.35rem">Вперед</span>
                         <el-icon><ArrowRight /></el-icon>
                     </span>
                 </div>
