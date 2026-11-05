@@ -7,10 +7,22 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ServicePriceLimit extends Model
 {
-    protected $fillable = ['time_unit_id', 'max_price'];
+    protected $fillable = [
+        'category_id',
+        'max_price',
+        'low_rating_max_price',
+    ];
 
-    public function timeUnit(): BelongsTo
+    protected function casts(): array
     {
-        return $this->belongsTo(ServiceTimeUnit::class, 'time_unit_id');
+        return [
+            'max_price' => 'integer',
+            'low_rating_max_price' => 'integer',
+        ];
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(ServiceCategory::class, 'category_id');
     }
 }

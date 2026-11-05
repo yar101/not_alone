@@ -37,7 +37,7 @@ class OrderService
     public function createOrder(User $customer, User $idol, array $requestedServices): array
     {
         if ($customer->id === $idol->id) {
-            throw new \Exception('Нельзя заказать услуги у самого себя');
+            throw new \DomainException('Нельзя заказать услуги у самого себя');
         }
 
         $serviceIds = collect($requestedServices)->pluck('id');
@@ -51,28 +51,28 @@ class OrderService
             ->get();
 
         if ($services->count() !== $serviceIds->unique()->count()) {
-            throw new \Exception('Некоторые услуги недоступны');
+            throw new \DomainException('Некоторые услуги недоступны');
         }
 
         if (method_exists($customer, 'isActiveBanned') && $customer->isActiveBanned()) {
-            throw new \Exception('Операция недоступна для заблокированного аккаунта.');
+            throw new \DomainException('Операция недоступна для заблокированного аккаунта.');
         }
 
         if ($idol->isActiveBanned()) {
-            throw new \Exception('Пользователь недоступен');
+            throw new \DomainException('Пользователь недоступен');
         }
 
         if (ChatBlock::active()->where('blocker_id', $idol->id)->where('blocked_id', $customer->id)->exists()) {
-            throw new \Exception('Вы заблокированы этим пользователем');
+            throw new \DomainException('Вы заблокированы этим пользователем');
         }
 
         if (ChatBlock::active()->where('blocker_id', $customer->id)->where('blocked_id', $idol->id)->exists()) {
-            throw new \Exception('Вы заблокировали этого пользователя');
+            throw new \DomainException('Вы заблокировали этого пользователя');
         }
 
         $trialServicesCount = $services->where('is_trial', true)->count();
         if ($trialServicesCount > 1) {
-            throw new \Exception('Нельзя заказать более одной бесплатной услуги одновременно');
+            throw new \DomainException('Нельзя заказать более одной бесплатной услуги одновременно');
         }
 
         return DB::transaction(function () use ($customer, $idol, $services, $quantityMap, $trialServicesCount) {
@@ -84,7 +84,7 @@ class OrderService
                     ->exists();
 
                 if ($hasUsedTrial) {
-                    throw new \Exception('Вы уже использовали бесплатный первый заказ у этого пользователя');
+                    throw new \DomainException('Вы уже использовали бесплатный первый заказ у этого пользователя');
                 }
             }
 
@@ -277,6 +277,10 @@ class OrderService
                 throw new \DomainException("Невозможно отменить заказ в статусе {$lockedOrder->status->label()}");
             }
 
+            if ($actor->id === $lockedOrder->customer_id && $lockedOrder->status === OrderStatus::Paid) {
+                throw new \DomainException('Отмена оплаченного заказа клиентом не разрешена. Откройте спор, если услуга не была оказана.');
+            }
+
             if ($actor->id === $lockedOrder->customer_id && $lockedOrder->completion_confirmed_by_idol) {
                 throw new \DomainException('Невозможно отменить заказ после того, как айдол подтвердил его выполнение. Если у вас есть претензии, откройте спор.');
             }
@@ -438,6 +442,9 @@ class OrderService
             }
 
             $existing = $lockedOrder->items()->where('service_id', $service->id)->first();
+            if ($existing && $existing->quantity >= 100) {
+                throw new \DomainException('Превышено максимальное количество для услуги (100).');
+            }
             if ($existing) {
                 $existing->increment('quantity');
             } else {
@@ -482,6 +489,11 @@ class OrderService
             }
 
             $from = $lockedOrder->status->value;
+
+            if (! $lockedOrder->status->canTransitionTo($to)) {
+                throw new \DomainException("Недопустимый переход статуса заказа из {$from} в {$to->value}.");
+            }
+
             $attrs = ['status' => $to];
 
             if ($from === OrderStatus::Disputed->value && $to !== OrderStatus::Disputed) {

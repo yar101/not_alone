@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ServiceCategory;
 use App\Models\ServicePriceLimit;
-use App\Models\ServiceTimeUnit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -16,33 +17,46 @@ class ServicePriceLimitController extends Controller
     public function index(): Response
     {
         return Inertia::render('Admin/Services/Index', [
-            'limits' => ServicePriceLimit::with('timeUnit')->get()->map(fn ($l) => [
+            'limits' => ServicePriceLimit::with('category')->get()->map(fn ($l) => [
                 'id' => $l->id,
-                'time_unit_id' => $l->time_unit_id,
+                'category_id' => $l->category_id,
                 'max_price' => $l->max_price,
-                'time_unit' => $l->timeUnit ? [
-                    'id' => $l->timeUnit->id,
-                    'name_ru' => $l->timeUnit->getTranslation('name', 'ru'),
+                'low_rating_max_price' => $l->low_rating_max_price,
+                'category' => $l->category ? [
+                    'id' => $l->category->id,
+                    'name' => $l->category->getTranslation('name', 'ru'),
+                    'name_ru' => $l->category->getTranslation('name', 'ru'),
                 ] : null,
             ]),
-            'timeUnits' => ServiceTimeUnit::where('is_active', true)
+            'categories' => ServiceCategory::where('is_active', true)
                 ->orderBy('sort_order')
-                ->get()
-                ->map(fn ($u) => [
-                    'id' => $u->id,
-                    'name_ru' => $u->getTranslation('name', 'ru'),
-                    'name_en' => $u->getTranslation('name', 'en', false) ?: '',
-                ]),
+                ->get(['id', 'name']),
             'active_tab' => 'price-limits',
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'time_unit_id' => ['required', 'integer', 'exists:service_time_units,id', 'unique:service_price_limits,time_unit_id'],
-            'max_price' => ['required', 'integer', 'min:1'],
+        $validator = Validator::make($request->all(), [
+            'category_id' => ['required', 'integer', 'exists:service_categories,id', 'unique:service_price_limits,category_id'],
+            'max_price' => ['nullable', 'integer', 'min:1'],
+            'low_rating_max_price' => ['nullable', 'integer', 'min:1'],
         ]);
+
+        $validator->after(function ($validator) use ($request) {
+            $maxPrice = $request->input('max_price');
+            $lowRatingMaxPrice = $request->input('low_rating_max_price');
+
+            if (empty($maxPrice) && empty($lowRatingMaxPrice)) {
+                $validator->errors()->add('max_price', 'Хотя бы один из лимитов должен быть заполнен.');
+            }
+
+            if (! empty($maxPrice) && ! empty($lowRatingMaxPrice) && (int) $lowRatingMaxPrice > (int) $maxPrice) {
+                $validator->errors()->add('low_rating_max_price', 'Лимит для низкого рейтинга не может превышать общий лимит.');
+            }
+        });
+
+        $data = $validator->validate();
 
         ServicePriceLimit::create($data);
 
@@ -51,10 +65,32 @@ class ServicePriceLimitController extends Controller
 
     public function update(Request $request, ServicePriceLimit $priceLimit): RedirectResponse
     {
-        $data = $request->validate([
-            'time_unit_id' => ['sometimes', 'integer', 'exists:service_time_units,id', Rule::unique('service_price_limits', 'time_unit_id')->ignore($priceLimit->id)],
-            'max_price' => ['sometimes', 'integer', 'min:1'],
+        $validator = Validator::make($request->all(), [
+            'category_id' => [
+                'sometimes',
+                'required',
+                'integer',
+                'exists:service_categories,id',
+                Rule::unique('service_price_limits', 'category_id')->ignore($priceLimit->id),
+            ],
+            'max_price' => ['nullable', 'integer', 'min:1'],
+            'low_rating_max_price' => ['nullable', 'integer', 'min:1'],
         ]);
+
+        $validator->after(function ($validator) use ($request, $priceLimit) {
+            $maxPrice = $request->has('max_price') ? $request->input('max_price') : $priceLimit->max_price;
+            $lowRatingMaxPrice = $request->has('low_rating_max_price') ? $request->input('low_rating_max_price') : $priceLimit->low_rating_max_price;
+
+            if (empty($maxPrice) && empty($lowRatingMaxPrice)) {
+                $validator->errors()->add('max_price', 'Хотя бы один из лимитов должен быть заполнен.');
+            }
+
+            if (! empty($maxPrice) && ! empty($lowRatingMaxPrice) && (int) $lowRatingMaxPrice > (int) $maxPrice) {
+                $validator->errors()->add('low_rating_max_price', 'Лимит для низкого рейтинга не может превышать общий лимит.');
+            }
+        });
+
+        $data = $validator->validate();
 
         $priceLimit->update($data);
 

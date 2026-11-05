@@ -138,8 +138,8 @@ test('service controller validates price limit based on user rating below thresh
     $timeUnit = ServiceTimeUnit::create(['name' => ['ru' => 'час', 'en' => 'hour'], 'sort_order' => 1]);
 
     ServicePriceLimit::create([
-        'time_unit_id' => $timeUnit->id,
-        'max_price' => 500,
+        'category_id' => $category->id,
+        'low_rating_max_price' => 500,
     ]);
 
     // Idol with low rating (25.00 < 30)

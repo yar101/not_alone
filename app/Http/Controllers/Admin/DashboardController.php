@@ -15,7 +15,6 @@ use App\Models\OrderDispute;
 use App\Models\ServiceChangeRequest;
 use App\Models\User;
 use App\Models\WalletTransaction;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class DashboardController extends Controller

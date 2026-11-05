@@ -408,22 +408,40 @@ const showLimitForm  = ref(false);
 const limitEditingId = ref(null);
 
 const limitForm = useForm({
-    time_unit_id: null,
-    max_price:    '',
+    category_id:          null,
+    max_price:            '',
+    low_rating_max_price: '',
 });
 
+const limitCategoryOptions = computed(() =>
+    (props.categories || []).map(c => ({
+        value: c.id,
+        label: typeof c.name === 'object' ? (c.name?.ru || c.name?.en || '') : (c.name_ru || c.name || ''),
+    }))
+);
+
+function getLimitCategoryName(cat) {
+    if (!cat) return '—';
+    if (typeof cat.name === 'object') {
+        return cat.name?.ru || cat.name?.en || '—';
+    }
+    return cat.name_ru || cat.name || '—';
+}
+
 function openLimitAdd() {
-    limitEditingId.value    = null;
-    limitForm.time_unit_id  = null;
-    limitForm.max_price     = '';
-    showLimitForm.value     = true;
+    limitEditingId.value            = null;
+    limitForm.category_id          = null;
+    limitForm.max_price             = '';
+    limitForm.low_rating_max_price = '';
+    showLimitForm.value             = true;
 }
 
 function openLimitEdit(limit) {
-    limitEditingId.value   = limit.id;
-    limitForm.time_unit_id = limit.time_unit_id;
-    limitForm.max_price    = limit.max_price;
-    showLimitForm.value    = true;
+    limitEditingId.value            = limit.id;
+    limitForm.category_id          = limit.category_id;
+    limitForm.max_price             = limit.max_price ?? '';
+    limitForm.low_rating_max_price = limit.low_rating_max_price ?? '';
+    showLimitForm.value             = true;
 }
 
 function closeLimitForm() {
@@ -751,21 +769,23 @@ function destroyLimit(id) {
                 </CreateButton>
             </div>
 
-            <p class="hint">Лимиты применяются к айдолам с рейтингом ниже порога (настройки платформы).</p>
+            <p class="hint">Общий лимит применяется ко всем айдолам. Лимит для низкого рейтинга — к айдолам с рейтингом ниже порога платформы.</p>
 
             <div class="table-wrap">
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>Единица времени</th>
-                            <th>Макс. цена (₽)</th>
+                            <th>Категория</th>
+                            <th>Общий лимит (₽)</th>
+                            <th>Лимит для низкого рейтинга (₽)</th>
                             <th>Действия</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="limit in limits" :key="limit.id">
-                            <td>{{ limit.time_unit?.name_ru ?? '—' }}</td>
-                            <td>{{ limit.max_price.toLocaleString('ru') }} ₽</td>
+                            <td>{{ getLimitCategoryName(limit.category) }}</td>
+                            <td>{{ limit.max_price ? `${limit.max_price.toLocaleString('ru')} ₽` : '—' }}</td>
+                            <td>{{ limit.low_rating_max_price ? `${limit.low_rating_max_price.toLocaleString('ru')} ₽` : '—' }}</td>
                             <td>
                                 <div class="actions">
                                     <button class="btn-edit" @click="openLimitEdit(limit)">Изменить</button>
@@ -774,7 +794,7 @@ function destroyLimit(id) {
                             </td>
                         </tr>
                         <tr v-if="!limits.length">
-                            <td colspan="3" class="empty-row">Лимитов нет</td>
+                            <td colspan="4" class="empty-row">Лимитов нет</td>
                         </tr>
                     </tbody>
                 </table>
@@ -789,19 +809,24 @@ function destroyLimit(id) {
                         </div>
                         <form @submit.prevent="submitLimit" class="modal__body">
                             <div class="field">
-                                <label>Единица времени</label>
+                                <label>Категория</label>
                                 <AppSelect
-                                    v-model="limitForm.time_unit_id"
-                                    :options="timeUnits.map(u => ({ value: u.id, label: u.name_ru }))"
-                                    placeholder="Выберите..."
-                                    :error="!!limitForm.errors.time_unit_id"
+                                    v-model="limitForm.category_id"
+                                    :options="limitCategoryOptions"
+                                    placeholder="Выберите категорию..."
+                                    :error="!!limitForm.errors.category_id"
                                 />
-                                <p v-if="limitForm.errors.time_unit_id" class="err">{{ limitForm.errors.time_unit_id }}</p>
+                                <p v-if="limitForm.errors.category_id" class="err">{{ limitForm.errors.category_id }}</p>
                             </div>
                             <div class="field">
-                                <label>Максимальная цена (₽)</label>
-                                <input v-model.number="limitForm.max_price" type="number" min="1" class="input" :class="{ 'input--err': limitForm.errors.max_price }" placeholder="300" />
+                                <label>Общий лимит (₽)</label>
+                                <input v-model.number="limitForm.max_price" type="number" min="1" class="input" :class="{ 'input--err': limitForm.errors.max_price }" placeholder="Не ограничен" />
                                 <p v-if="limitForm.errors.max_price" class="err">{{ limitForm.errors.max_price }}</p>
+                            </div>
+                            <div class="field">
+                                <label>Лимит для низкого рейтинга (₽)</label>
+                                <input v-model.number="limitForm.low_rating_max_price" type="number" min="1" class="input" :class="{ 'input--err': limitForm.errors.low_rating_max_price }" placeholder="Не ограничен" />
+                                <p v-if="limitForm.errors.low_rating_max_price" class="err">{{ limitForm.errors.low_rating_max_price }}</p>
                             </div>
                             <div class="modal__actions">
                                 <button type="button" class="btn-cancel" @click="closeLimitForm">Отмена</button>

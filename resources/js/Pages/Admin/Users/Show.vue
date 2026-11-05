@@ -50,6 +50,7 @@ const transactionTypeLabels = {
     admin_adjustment: 'Корректировка администратором',
     order_clawback: 'Списание по спору',
     order_hold_release: 'Списание из заморозки',
+    order_hold_cancelled: 'Отмена холда',
 };
 
 const orderStatusLabels = {

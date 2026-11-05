@@ -18,6 +18,7 @@ use Tests\TestCase;
 class CursorPaginationTest extends TestCase
 {
     use RefreshDatabase;
+
     public function test_fitness_service_category_exists(): void
     {
         $this->seed(ServiceCategorySeeder::class);
@@ -41,15 +42,15 @@ class CursorPaginationTest extends TestCase
 
         for ($i = 1; $i <= 9; $i++) {
             News::create([
-                'title' => 'New Article ' . $i,
-                'excerpt' => 'New excerpt ' . $i,
-                'body' => 'New body ' . $i,
+                'title' => 'New Article '.$i,
+                'excerpt' => 'New excerpt '.$i,
+                'body' => 'New body '.$i,
                 'is_pinned' => false,
                 'published_at' => now()->subDays($i),
             ]);
         }
 
-        $controller = new NewsPublicController();
+        $controller = new NewsPublicController;
         $req1 = Request::create('/news/feed', 'GET');
         app()->instance('request', $req1);
         $res1 = $controller->feed($req1);
@@ -103,7 +104,7 @@ class CursorPaginationTest extends TestCase
         for ($i = 1; $i <= 55; $i++) {
             AdminLog::create([
                 'admin_id' => $admin->id,
-                'action' => 'action_' . $i,
+                'action' => 'action_'.$i,
                 'target_type' => 'test',
                 'target_id' => $i,
             ]);

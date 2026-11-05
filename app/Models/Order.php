@@ -21,6 +21,8 @@ class Order extends Model
 
     protected $casts = [
         'status' => OrderStatus::class,
+        'completion_confirmed_by_idol' => 'boolean',
+        'completion_confirmed_by_customer' => 'boolean',
         'paid_at' => 'datetime',
         'completed_at' => 'datetime',
         'payout_released_at' => 'datetime',

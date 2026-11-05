@@ -20,8 +20,8 @@ class ContentPackPurchaseController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'items' => ['required', 'array', 'min:1'],
-            'items.*' => ['integer'],
+            'items' => ['required', 'array', 'min:1', 'max:50'],
+            'items.*' => ['integer', 'min:1'],
         ]);
 
         $user = $request->user();
@@ -30,7 +30,7 @@ class ContentPackPurchaseController extends Controller
         $packs = ContentPack::whereIn('id', $packIds)
             ->where('status', 'published')
             ->whereNull('hidden_at')
-            ->whereHas('user', fn ($q) => $q->where('is_banned', false))
+            ->whereHas('user', fn ($q) => $q->whereNull('deleted_at')->where('is_banned', false))
             ->with(['user.wallet'])
             ->get();
 

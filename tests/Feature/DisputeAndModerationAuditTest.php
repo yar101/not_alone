@@ -10,6 +10,7 @@ use App\Models\Post;
 use App\Models\Review;
 use App\Models\ReviewDispute;
 use App\Models\ReviewEpithet;
+use App\Models\ServiceCategory;
 use App\Models\ServicePriceLimit;
 use App\Models\ServiceTimeUnit;
 use App\Models\User;
@@ -279,35 +280,35 @@ test('ReportController::review and dismiss are idempotent and prevent duplicate 
         ->assertSessionHasErrors(['report']);
 });
 
-test('ServicePriceLimitController validates uniqueness of time_unit_id', function () {
+test('ServicePriceLimitController validates uniqueness of category_id', function () {
     $admin = createAuditR3Admin();
-    $timeUnit = ServiceTimeUnit::create(['name' => ['ru' => 'день', 'en' => 'day']]);
+    $category = ServiceCategory::create(['name' => ['ru' => 'день', 'en' => 'day']]);
 
     // Store limit
     $this->actingAs($admin, 'admin')
         ->post(route('admin.services.price-limits.store'), [
-            'time_unit_id' => $timeUnit->id,
+            'category_id' => $category->id,
             'max_price' => 5000,
         ])
         ->assertRedirect()
         ->assertSessionHas('success');
 
-    $limit = ServicePriceLimit::where('time_unit_id', $timeUnit->id)->first();
+    $limit = ServicePriceLimit::where('category_id', $category->id)->first();
     expect($limit)->not->toBeNull()
         ->and($limit->max_price)->toBe(5000);
 
-    // Duplicate store for same time unit fails
+    // Duplicate store for same category fails
     $this->actingAs($admin, 'admin')
         ->post(route('admin.services.price-limits.store'), [
-            'time_unit_id' => $timeUnit->id,
+            'category_id' => $category->id,
             'max_price' => 8000,
         ])
-        ->assertSessionHasErrors(['time_unit_id']);
+        ->assertSessionHasErrors(['category_id']);
 
     // Update same limit succeeds
     $this->actingAs($admin, 'admin')
         ->patch(route('admin.services.price-limits.update', $limit), [
-            'time_unit_id' => $timeUnit->id,
+            'category_id' => $category->id,
             'max_price' => 6000,
         ])
         ->assertRedirect()

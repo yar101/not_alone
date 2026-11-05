@@ -53,6 +53,6 @@ class WalletTransaction extends Model
 
     public function reference(): MorphTo
     {
-        return $this->morphTo();
+        return $this->morphTo()->withTrashed();
     }
 }

@@ -78,7 +78,7 @@ class DevConsoleCommand extends Command
         $certText = $certsExist ? '<fg=green> Готовы</>' : '<fg=red> Отсутствуют</>';
         $dockerText = $dockerRunning
             ? ($containersCount > 0
-                ? "<fg=green> Активен ({$containersCount} конт." . ($otherCount > 0 ? " | <fg=yellow>+{$otherCount} внешних</><fg=green>" : '') . ")</>"
+                ? "<fg=green> Активен ({$containersCount} конт.".($otherCount > 0 ? " | <fg=yellow>+{$otherCount} внешних</><fg=green>" : '').')</>'
                 : ($totalContainers > 0 ? "<fg=yellow> Запущен ({$totalContainers} внешних/остановленных)</>" : '<fg=yellow> Запущен (0 конт.)</>'))
             : '<fg=red> Выключен</>';
 
@@ -200,12 +200,12 @@ class DevConsoleCommand extends Command
 
             if ($c['State'] === 'running') {
                 $runningCount++;
-                $statusFormatted = '<fg=green> ' . $c['Status'] . '</>';
+                $statusFormatted = '<fg=green> '.$c['Status'].'</>';
             } elseif ($c['State'] === 'exited') {
                 $exitedCount++;
-                $statusFormatted = '<fg=red> ' . $c['Status'] . '</>';
+                $statusFormatted = '<fg=red> '.$c['Status'].'</>';
             } else {
-                $statusFormatted = '<fg=yellow>◐ ' . $c['Status'] . '</>';
+                $statusFormatted = '<fg=yellow>◐ '.$c['Status'].'</>';
             }
 
             $ports = $c['Ports'];

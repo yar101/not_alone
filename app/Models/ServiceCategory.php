@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Spatie\Translatable\HasTranslations;
 
 class ServiceCategory extends Model
@@ -25,6 +26,11 @@ class ServiceCategory extends Model
     public function services(): HasMany
     {
         return $this->hasMany(Service::class, 'category_id');
+    }
+
+    public function priceLimit(): HasOne
+    {
+        return $this->hasOne(ServicePriceLimit::class, 'category_id');
     }
 
     public static function clearCache(): void

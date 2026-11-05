@@ -81,6 +81,7 @@ function getTxTypeLabel(type) {
         order_payout: 'Выплата айдолу',
         order_refund: 'Возврат клиенту',
         order_hold_release: 'Снятие холда',
+        order_hold_cancelled: 'Отмена холда',
         platform_fee: 'Комиссия сервиса',
         admin_adjustment: 'Корректировка',
         order_clawback: 'Удержание',

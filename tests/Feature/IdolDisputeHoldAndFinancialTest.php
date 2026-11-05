@@ -46,7 +46,7 @@ function createTestOrderWithWallets(float $orderAmount = 1000.00, float $custome
     $idolWallet = $walletService->getOrCreateWallet($idol);
 
     // Give customer initial balance without fees for clean testing
-    $customerWallet->update(['balance' => $customerBalance]);
+    $customerWallet->forceFill(['balance' => $customerBalance])->save();
 
     $category = ServiceCategory::create(['name' => 'Тест']);
     $timeUnit = ServiceTimeUnit::create(['name' => 'Час']);
@@ -175,6 +175,20 @@ it('releases idol held payout to available balance and notifies idol', function 
     $releasedTx = $walletService->releaseIdolPayout($order);
     expect($releasedTx)->not->toBeNull();
     expect($releasedTx->status)->toBe(WalletTransactionStatus::Completed);
+    expect((float) $releasedTx->held_balance_before)->toBe(800.00);
+    expect((float) $releasedTx->held_balance_after)->toBe(0.00);
+    expect((float) $releasedTx->balance_before)->toBe(0.00);
+    expect((float) $releasedTx->balance_after)->toBe(1000.00);
+
+    $feeTx = WalletTransaction::where('type', WalletTransactionType::PlatformFee)
+        ->where('reference_id', $order->id)
+        ->first();
+    expect($feeTx)->not->toBeNull();
+    expect($feeTx->status)->toBe(WalletTransactionStatus::Completed);
+    expect((float) $feeTx->held_balance_before)->toBe(0.00);
+    expect((float) $feeTx->held_balance_after)->toBe(0.00);
+    expect((float) $feeTx->balance_before)->toBe(1000.00);
+    expect((float) $feeTx->balance_after)->toBe(800.00);
 
     $idolWallet = $walletService->getOrCreateWallet($idol);
     expect((float) $idolWallet->held_balance)->toBe(0.00);
@@ -234,7 +248,7 @@ it('refunds customer from held_balance without touching idol available balance w
 
     // Give idol some existing balance (e.g. from other orders)
     $idolWallet = $walletService->getOrCreateWallet($idol);
-    $idolWallet->update(['balance' => 500.00]);
+    $idolWallet->forceFill(['balance' => 500.00])->save();
 
     $orderService->pay($order, $customer);
     $orderService->confirmCompletion($order, $customer);
@@ -277,6 +291,19 @@ it('refunds customer from held_balance without touching idol available balance w
         ->where('reference_id', $order->id)
         ->first();
     expect($feeTx->status)->toBe(WalletTransactionStatus::Cancelled);
+
+    // Completed OrderHoldCancelled ledger entry recorded for idol
+    $holdCancelledTx = WalletTransaction::where('type', WalletTransactionType::OrderHoldCancelled)
+        ->where('reference_id', $order->id)
+        ->first();
+    expect($holdCancelledTx)->not->toBeNull();
+    expect($holdCancelledTx->status)->toBe(WalletTransactionStatus::Completed);
+    expect((float) $holdCancelledTx->amount)->toBe(0.00);
+    expect((float) $holdCancelledTx->held_balance_before)->toBe(800.00);
+    expect((float) $holdCancelledTx->held_balance_after)->toBe(0.00);
+    expect((float) $holdCancelledTx->balance_before)->toBe(500.00);
+    expect((float) $holdCancelledTx->balance_after)->toBe(500.00);
+    expect($holdCancelledTx->description)->toBe("Отмена холда по спору заказа #{$order->id}");
 });
 
 it('releases payout immediately when admin resolves dispute in idol favor', function () {
@@ -329,7 +356,7 @@ it('allows negative balance on clawback if idol already withdrew released payout
     expect((float) $idolWallet->balance)->toBe(800.00);
 
     // Idol withdraws all money (balance becomes 0)
-    $idolWallet->update(['balance' => 0.00]);
+    $idolWallet->forceFill(['balance' => 0.00])->save();
 
     // Dispute won by customer after payout release -> clawback triggers
     $refundTx = $walletService->refundHold($order, 'Возврат после разблокировки');
@@ -407,7 +434,7 @@ it('supports filtering holds in wallet transactions API', function () {
     expect($payoutItem['status'])->toBe('pending');
 });
 
-it('handles re-opened order refunding correctly without trapping funds (Paid -> Cancelled -> Paid -> Cancelled)', function () {
+it('enforces Cancelled as terminal state and prevents admin from reopening to Paid', function () {
     $data = createTestOrderWithWallets(1000.00, 2000.00);
     $order = $data['order'];
     $customer = $data['customer'];
@@ -428,14 +455,10 @@ it('handles re-opened order refunding correctly without trapping funds (Paid -> 
     expect((float) $customerWallet->balance)->toBe(2000.00);
     expect((float) $customerWallet->held_balance)->toBe(0.00);
 
-    // 3. Admin re-opens to Paid -> creates a second hold
-    $orderService->adminTransition($order, OrderStatus::Paid, $admin->id, 'Переоткрытие заказа');
-    $customerWallet->refresh();
-    expect((float) $customerWallet->balance)->toBe(1000.00);
-    expect((float) $customerWallet->held_balance)->toBe(1000.00);
+    // 3. Admin attempts to re-open to Paid -> blocked by State Machine (Cancelled is terminal)
+    expect(fn () => $orderService->adminTransition($order, OrderStatus::Paid, $admin->id, 'Переоткрытие заказа'))
+        ->toThrow(\DomainException::class, 'Недопустимый переход статуса заказа из cancelled в paid.');
 
-    // 4. Admin cancels again -> second refundHold must refund the second hold, NOT no-op!
-    $orderService->adminTransition($order, OrderStatus::Cancelled, $admin->id, 'Вторая отмена');
     $customerWallet->refresh();
     expect((float) $customerWallet->balance)->toBe(2000.00);
     expect((float) $customerWallet->held_balance)->toBe(0.00);
@@ -494,4 +517,42 @@ it('strictly maintains ledger invariant sum(completed transactions) == balance f
 
     expect(abs($customerTxSum - (float) $customerWallet->balance))->toBeLessThan(0.001);
     expect(abs($idolTxSum - (float) $idolWallet->balance))->toBeLessThan(0.001);
+});
+
+it('creates an immutable ledger entry OrderHoldCancelled with non-negative held balance on dispute refund during hold', function () {
+    $data = createTestOrderWithWallets(1000.00, 2000.00);
+    $order = $data['order'];
+    $customer = $data['customer'];
+    $idol = $data['idol'];
+
+    $orderService = app(OrderService::class);
+    $walletService = app(WalletService::class);
+
+    $orderService->pay($order, $customer);
+    $orderService->confirmCompletion($order, $customer);
+
+    $idolWallet = $walletService->getOrCreateWallet($idol);
+    expect((float) $idolWallet->held_balance)->toBe(800.00);
+
+    // Customer disputes
+    $orderService->dispute($order, $customer, 'Не устроило качество', 'Детали');
+    $refundTx = $walletService->refundHold($order, 'Возврат по спору');
+
+    $holdCancelledTx = WalletTransaction::where('type', WalletTransactionType::OrderHoldCancelled)
+        ->where('reference_id', $order->id)
+        ->first();
+
+    expect($holdCancelledTx)->not->toBeNull();
+    expect($holdCancelledTx->status)->toBe(WalletTransactionStatus::Completed);
+    expect((float) $holdCancelledTx->amount)->toBe(0.00);
+    expect((float) $holdCancelledTx->held_balance_before)->toBe(800.00);
+    expect((float) $holdCancelledTx->held_balance_after)->toBe(0.00);
+    expect($holdCancelledTx->held_balance_before)->toBeGreaterThanOrEqual(0);
+    expect($holdCancelledTx->held_balance_after)->toBeGreaterThanOrEqual(0);
+
+    // Ledger invariant holds: sum(completed transactions) == wallet balance
+    $idolTxSum = (float) WalletTransaction::where('wallet_id', $idolWallet->id)
+        ->where('status', WalletTransactionStatus::Completed)
+        ->sum('amount');
+    expect(abs($idolTxSum - (float) $idolWallet->fresh()->balance))->toBeLessThan(0.001);
 });

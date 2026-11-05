@@ -41,11 +41,11 @@ enum OrderStatus: string
     public function canTransitionTo(OrderStatus $target): bool
     {
         return match ($this) {
-            self::Pending => in_array($target, [self::Accepted, self::Cancelled]),
+            self::Pending => in_array($target, [self::Accepted, self::Paid, self::Cancelled]),
             self::Accepted => in_array($target, [self::Paid, self::Cancelled]),
             self::Paid => in_array($target, [self::Completed, self::Disputed, self::Refunded, self::Cancelled]),
-            self::Disputed => in_array($target, [self::Completed, self::Refunded, self::Cancelled]),
-            self::Completed => false,
+            self::Disputed => in_array($target, [self::Paid, self::Completed, self::Refunded, self::Cancelled]),
+            self::Completed => in_array($target, [self::Disputed, self::Refunded]),
             self::Cancelled => false,
             self::Refunded => false,
         };

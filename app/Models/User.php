@@ -314,8 +314,6 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getOrCreateWallet(): Wallet
     {
         return $this->wallet ?? $this->wallet()->firstOrCreate([], [
-            'balance' => 0.00,
-            'held_balance' => 0.00,
             'currency' => 'RUB',
             'is_active' => true,
         ]);

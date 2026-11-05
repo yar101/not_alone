@@ -54,7 +54,7 @@ class OrderLifecycleAndIndexOptimizationTest extends TestCase
             'ban_reasons_type_sort_order_index',
             'review_epithets_sort_order_index',
             'review_epithet_review_review_epithet_id_index',
-            'service_price_limits_time_unit_id_index',
+            'service_price_limits_category_id_unique',
             'idol_quiz_session_questions_question_id_index',
             'post_comments_user_id_index',
             'user_strikes_admin_id_index',

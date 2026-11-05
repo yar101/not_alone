@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import { Plus } from '@element-plus/icons-vue';
 import { ElMessageBox } from 'element-plus';
@@ -10,30 +10,48 @@ import CreateButton from '@/Components/CreateButton.vue';
 defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
-    limits:    Array,
-    timeUnits: Array,
+    limits:     Array,
+    categories: Array,
 });
 
 const showForm  = ref(false);
 const editingId = ref(null);
 
 const form = useForm({
-    time_unit_id: null,
-    max_price:    '',
+    category_id:          null,
+    max_price:            '',
+    low_rating_max_price: '',
 });
 
+const categoryOptions = computed(() =>
+    (props.categories || []).map(c => ({
+        value: c.id,
+        label: typeof c.name === 'object' ? (c.name?.ru || c.name?.en || '') : (c.name_ru || c.name || ''),
+    }))
+);
+
+function getCategoryName(cat) {
+    if (!cat) return '—';
+    if (typeof cat.name === 'object') {
+        return cat.name?.ru || cat.name?.en || '—';
+    }
+    return cat.name_ru || cat.name || '—';
+}
+
 function openAdd() {
-    editingId.value    = null;
-    form.time_unit_id  = null;
-    form.max_price     = '';
-    showForm.value     = true;
+    editingId.value            = null;
+    form.category_id          = null;
+    form.max_price             = '';
+    form.low_rating_max_price = '';
+    showForm.value             = true;
 }
 
 function openEdit(limit) {
-    editingId.value   = limit.id;
-    form.time_unit_id = limit.time_unit_id;
-    form.max_price    = limit.max_price;
-    showForm.value    = true;
+    editingId.value            = limit.id;
+    form.category_id          = limit.category_id;
+    form.max_price             = limit.max_price ?? '';
+    form.low_rating_max_price = limit.low_rating_max_price ?? '';
+    showForm.value             = true;
 }
 
 function closeForm() {
@@ -79,21 +97,23 @@ function destroy(id) {
             </CreateButton>
         </div>
 
-        <p class="hint">Лимиты применяются к айдолам с рейтингом ниже порога (настройки платформы).</p>
+        <p class="hint">Общий лимит применяется ко всем айдолам. Лимит для низкого рейтинга — к айдолам с рейтингом ниже порога платформы.</p>
 
         <div class="table-wrap">
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>Единица времени</th>
-                        <th>Макс. цена (₽)</th>
+                        <th>Категория</th>
+                        <th>Общий лимит (₽)</th>
+                        <th>Лимит для низкого рейтинга (₽)</th>
                         <th>Действия</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-for="limit in limits" :key="limit.id">
-                        <td>{{ limit.time_unit?.name ?? '—' }}</td>
-                        <td>{{ limit.max_price.toLocaleString('ru') }} ₽</td>
+                        <td>{{ getCategoryName(limit.category) }}</td>
+                        <td>{{ limit.max_price ? `${limit.max_price.toLocaleString('ru')} ₽` : '—' }}</td>
+                        <td>{{ limit.low_rating_max_price ? `${limit.low_rating_max_price.toLocaleString('ru')} ₽` : '—' }}</td>
                         <td>
                             <div class="actions">
                                 <button class="btn-edit" @click="openEdit(limit)">Изменить</button>
@@ -102,7 +122,7 @@ function destroy(id) {
                         </td>
                     </tr>
                     <tr v-if="!limits.length">
-                        <td colspan="3" class="empty-row">Лимитов нет</td>
+                        <td colspan="4" class="empty-row">Лимитов нет</td>
                     </tr>
                 </tbody>
             </table>
@@ -117,19 +137,24 @@ function destroy(id) {
                     </div>
                     <form @submit.prevent="submit" class="modal__body">
                         <div class="field">
-                            <label>Единица времени</label>
+                            <label>Категория</label>
                             <AppSelect
-                                v-model="form.time_unit_id"
-                                :options="timeUnits.map(u => ({ value: u.id, label: u.name }))"
-                                placeholder="Выберите..."
-                                :error="!!form.errors.time_unit_id"
+                                v-model="form.category_id"
+                                :options="categoryOptions"
+                                placeholder="Выберите категорию..."
+                                :error="!!form.errors.category_id"
                             />
-                            <p v-if="form.errors.time_unit_id" class="err">{{ form.errors.time_unit_id }}</p>
+                            <p v-if="form.errors.category_id" class="err">{{ form.errors.category_id }}</p>
                         </div>
                         <div class="field">
-                            <label>Максимальная цена (₽)</label>
-                            <input v-model.number="form.max_price" type="number" min="1" class="input" :class="{ 'input--err': form.errors.max_price }" placeholder="300" />
+                            <label>Общий лимит (₽)</label>
+                            <input v-model.number="form.max_price" type="number" min="1" class="input" :class="{ 'input--err': form.errors.max_price }" placeholder="Не ограничен" />
                             <p v-if="form.errors.max_price" class="err">{{ form.errors.max_price }}</p>
+                        </div>
+                        <div class="field">
+                            <label>Лимит для низкого рейтинга (₽)</label>
+                            <input v-model.number="form.low_rating_max_price" type="number" min="1" class="input" :class="{ 'input--err': form.errors.low_rating_max_price }" placeholder="Не ограничен" />
+                            <p v-if="form.errors.low_rating_max_price" class="err">{{ form.errors.low_rating_max_price }}</p>
                         </div>
                         <div class="modal__actions">
                             <button type="button" class="btn-cancel" @click="closeForm">Отмена</button>

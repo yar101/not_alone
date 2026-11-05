@@ -32,6 +32,7 @@ class WalletController extends Controller
                             ->where('status', \App\Enums\WalletTransactionStatus::Pending);
                     })
                     ->orWhere('type', \App\Enums\WalletTransactionType::OrderHoldRelease)
+                    ->orWhere('type', \App\Enums\WalletTransactionType::OrderHoldCancelled)
                     ->orWhereColumn('held_balance_before', '!=', 'held_balance_after');
             });
         } elseif ($filter === 'orders') {
@@ -40,6 +41,7 @@ class WalletController extends Controller
                 \App\Enums\WalletTransactionType::OrderPayout,
                 \App\Enums\WalletTransactionType::OrderRefund,
                 \App\Enums\WalletTransactionType::OrderHoldRelease,
+                \App\Enums\WalletTransactionType::OrderHoldCancelled,
                 \App\Enums\WalletTransactionType::PlatformFee,
                 \App\Enums\WalletTransactionType::OrderClawback,
             ]);
@@ -109,6 +111,7 @@ class WalletController extends Controller
                             ->where('status', \App\Enums\WalletTransactionStatus::Pending);
                     })
                     ->orWhere('type', \App\Enums\WalletTransactionType::OrderHoldRelease)
+                    ->orWhere('type', \App\Enums\WalletTransactionType::OrderHoldCancelled)
                     ->orWhereColumn('held_balance_before', '!=', 'held_balance_after');
             });
         } elseif ($filter === 'orders') {
@@ -117,6 +120,7 @@ class WalletController extends Controller
                 \App\Enums\WalletTransactionType::OrderPayout,
                 \App\Enums\WalletTransactionType::OrderRefund,
                 \App\Enums\WalletTransactionType::OrderHoldRelease,
+                \App\Enums\WalletTransactionType::OrderHoldCancelled,
                 \App\Enums\WalletTransactionType::PlatformFee,
                 \App\Enums\WalletTransactionType::OrderClawback,
             ]);
@@ -175,14 +179,17 @@ class WalletController extends Controller
         ]);
 
         $rawKey = $request->header('X-Idempotency-Key') ?? $request->input('idempotency_key');
-        if ($rawKey && strlen($rawKey) > 64) {
+        if (is_array($rawKey)) {
+            $rawKey = reset($rawKey);
+        }
+        if ($rawKey !== null && (! is_string($rawKey) || strlen($rawKey) > 64)) {
             return response()->json([
                 'message' => 'The given data was invalid.',
                 'errors' => ['idempotency_key' => ['Длина ключа идемпотентности не должна превышать 64 символа.']],
                 'error' => 'Длина ключа идемпотентности не должна превышать 64 символа.',
             ], 422);
         }
-        $idempotencyKey = $rawKey;
+        $idempotencyKey = $rawKey ? (string) $rawKey : null;
 
         try {
             $tx = $this->walletService->deposit(
@@ -198,6 +205,10 @@ class WalletController extends Controller
                 'balance' => (float) $tx->balance_after,
             ]);
         } catch (\DomainException $e) {
+            if (str_contains(mb_strtolower($e->getMessage()), 'идемпотентност')) {
+                return response()->json(['error' => $e->getMessage()], 409);
+            }
+
             return response()->json(['error' => $e->getMessage()], 403);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['error' => $e->getMessage()], 422);
@@ -218,14 +229,17 @@ class WalletController extends Controller
         ]);
 
         $rawKey = $request->header('X-Idempotency-Key') ?? $request->input('idempotency_key');
-        if ($rawKey && strlen($rawKey) > 64) {
+        if (is_array($rawKey)) {
+            $rawKey = reset($rawKey);
+        }
+        if ($rawKey !== null && (! is_string($rawKey) || strlen($rawKey) > 64)) {
             return response()->json([
                 'message' => 'The given data was invalid.',
                 'errors' => ['idempotency_key' => ['Длина ключа идемпотентности не должна превышать 64 символа.']],
                 'error' => 'Длина ключа идемпотентности не должна превышать 64 символа.',
             ], 422);
         }
-        $idempotencyKey = $rawKey;
+        $idempotencyKey = $rawKey ? (string) $rawKey : null;
 
         try {
             $tx = $this->walletService->withdraw(
@@ -241,6 +255,10 @@ class WalletController extends Controller
                 'balance' => (float) $tx->balance_after,
             ]);
         } catch (\DomainException $e) {
+            if (str_contains(mb_strtolower($e->getMessage()), 'идемпотентност')) {
+                return response()->json(['error' => $e->getMessage()], 409);
+            }
+
             return response()->json(['error' => $e->getMessage()], 403);
         } catch (\App\Exceptions\InsufficientFundsException $e) {
             return response()->json(['error' => $e->getMessage()], 422);

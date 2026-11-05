@@ -31,7 +31,7 @@ function createSecurityTestOrder(float $orderAmount = 1000.00, float $customerBa
     $customerWallet = $walletService->getOrCreateWallet($customer);
     $idolWallet = $walletService->getOrCreateWallet($idol);
 
-    $customerWallet->update(['balance' => $customerBalance]);
+    $customerWallet->forceFill(['balance' => $customerBalance])->save();
 
     $category = ServiceCategory::create(['name' => 'Тест_'.uniqid()]);
     $timeUnit = ServiceTimeUnit::create(['name' => 'Час_'.uniqid()]);
@@ -65,8 +65,9 @@ it('prevents account deletion when user has negative balance', function () {
     $user = User::factory()->create();
     $wallet = Wallet::firstOrCreate(
         ['user_id' => $user->id],
-        ['balance' => -150.00, 'held_balance' => 0.00, 'currency' => 'RUB', 'is_active' => true]
+        ['currency' => 'RUB', 'is_active' => true]
     );
+    $wallet->forceFill(['balance' => -150.00, 'held_balance' => 0.00])->save();
 
     $response = $this->actingAs($user)->delete(route('settings.destroy'), [
         'password' => 'password',
@@ -80,8 +81,9 @@ it('prevents account deletion when user has funds in held_balance', function () 
     $user = User::factory()->create();
     $wallet = Wallet::firstOrCreate(
         ['user_id' => $user->id],
-        ['balance' => 500.00, 'held_balance' => 200.00, 'currency' => 'RUB', 'is_active' => true]
+        ['currency' => 'RUB', 'is_active' => true]
     );
+    $wallet->forceFill(['balance' => 500.00, 'held_balance' => 200.00])->save();
 
     $response = $this->actingAs($user)->delete(route('settings.destroy'), [
         'password' => 'password',
@@ -109,9 +111,10 @@ it('prevents account deletion when user has active orders', function () {
     expect($customer->fresh())->not->toBeNull();
 });
 
-it('correctly charges customer again if an order was refunded and admin transitions back to Paid', function () {
+it('prevents customer from cancelling paid order, allows idol cancellation, and blocks admin transition from cancelled back to Paid', function () {
     $data = createSecurityTestOrder(1000.00, 5000.00);
     $customer = $data['customer'];
+    $idol = $data['idol'];
     $order = $data['order'];
 
     $walletService = app(WalletService::class);
@@ -122,28 +125,33 @@ it('correctly charges customer again if an order was refunded and admin transiti
     expect((float) $customer->wallet->fresh()->held_balance)->toBe(1000.00);
     expect($walletService->hasActiveHold($order))->toBeTrue();
 
-    // 2. Cancel order -> 1000 refunded
-    $orderService->cancel($order, $customer, 'Changed mind');
+    // 2. Customer cannot cancel paid order
+    expect(fn () => $orderService->cancel($order, $customer, 'Changed mind'))
+        ->toThrow(\DomainException::class, 'Отмена оплаченного заказа клиентом не разрешена. Откройте спор, если услуга не была оказана.');
+
+    // 3. Idol can cancel paid order -> 1000 refunded
+    $orderService->cancel($order, $idol, 'Idol refused');
     expect((float) $customer->wallet->fresh()->held_balance)->toBe(0.00);
     expect($walletService->hasActiveHold($order))->toBeFalse();
 
-    // 3. Admin transitions to Paid again -> must charge customer and hold 1000 again!
+    // 4. Admin cannot transition from Cancelled to Paid (terminal status)
     $admin = \App\Models\Admin::create([
         'name' => 'Admin',
         'email' => 'admin_sec@test.com',
         'password' => bcrypt('password'),
     ]);
-    $orderService->adminTransition($order, OrderStatus::Paid, $admin->id, 'Reopened');
+    expect(fn () => $orderService->adminTransition($order, OrderStatus::Paid, $admin->id, 'Reopened'))
+        ->toThrow(\DomainException::class, 'Недопустимый переход статуса заказа из cancelled в paid.');
 
-    expect((float) $customer->wallet->fresh()->held_balance)->toBe(1000.00);
-    expect($walletService->hasActiveHold($order))->toBeTrue();
+    expect((float) $customer->wallet->fresh()->held_balance)->toBe(0.00);
+    expect($walletService->hasActiveHold($order))->toBeFalse();
 
-    // Total OrderHold transactions should be 2
+    // Total OrderHold transactions remains 1
     $holdsCount = WalletTransaction::where('reference_type', Order::class)
         ->where('reference_id', $order->id)
         ->where('type', WalletTransactionType::OrderHold)
         ->count();
-    expect($holdsCount)->toBe(2);
+    expect($holdsCount)->toBe(1);
 });
 
 it('releases idol hold payout using forceFill without mass assignment exception', function () {

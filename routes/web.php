@@ -173,27 +173,30 @@ Route::middleware(['auth', 'not_banned'])->group(function () {
     Route::post('/conversations/{conversation}/block', [ConversationController::class, 'block'])->name('conversations.block');
     Route::delete('/conversations/{conversation}/block', [ConversationController::class, 'unblock'])->name('conversations.unblock');
 
-    // Orders
-    Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
-    Route::get('/orders/disputable', [OrderController::class, 'disputable'])->name('orders.disputable');
-    Route::patch('/orders/{order}/accept', [OrderController::class, 'accept'])->name('orders.accept');
-    Route::patch('/orders/{order}/pay', [OrderController::class, 'pay'])->middleware('throttle:30,1')->name('orders.pay');
-    Route::patch('/orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
-    Route::patch('/orders/{order}/confirm-completion', [OrderController::class, 'confirmCompletion'])->name('orders.confirm-completion');
-    Route::post('/orders/{order}/dispute', [OrderController::class, 'dispute'])->name('orders.dispute');
-    Route::post('/orders/{order}/items', [OrderController::class, 'addItem'])->name('orders.items.add');
-    Route::post('/reviews/{review}/dispute', [ReviewDisputeController::class, 'store'])->name('reviews.dispute.store');
-    Route::post('/orders', [OrderController::class, 'store'])->middleware('throttle:30,1')->name('orders.store');
-    Route::post('/orders/{order}/review', [ReviewController::class, 'store'])->middleware('throttle:20,1')->name('orders.review.store');
+    // Orders & Wallet (verified users only)
+    Route::middleware('verified')->group(function () {
+        // Orders
+        Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+        Route::get('/orders/disputable', [OrderController::class, 'disputable'])->name('orders.disputable');
+        Route::patch('/orders/{order}/accept', [OrderController::class, 'accept'])->middleware('throttle:30,1')->name('orders.accept');
+        Route::patch('/orders/{order}/pay', [OrderController::class, 'pay'])->middleware('throttle:30,1')->name('orders.pay');
+        Route::patch('/orders/{order}/cancel', [OrderController::class, 'cancel'])->middleware('throttle:30,1')->name('orders.cancel');
+        Route::patch('/orders/{order}/confirm-completion', [OrderController::class, 'confirmCompletion'])->middleware('throttle:30,1')->name('orders.confirm-completion');
+        Route::post('/orders/{order}/dispute', [OrderController::class, 'dispute'])->middleware('throttle:30,1')->name('orders.dispute');
+        Route::post('/orders/{order}/items', [OrderController::class, 'addItem'])->middleware('throttle:30,1')->name('orders.items.add');
+        Route::post('/reviews/{review}/dispute', [ReviewDisputeController::class, 'store'])->name('reviews.dispute.store');
+        Route::post('/orders', [OrderController::class, 'store'])->middleware('throttle:30,1')->name('orders.store');
+        Route::post('/orders/{order}/review', [ReviewController::class, 'store'])->middleware('throttle:20,1')->name('orders.review.store');
 
-    // News: [DORMANT] News module is currently inactive/dormant by design. Will be resumed when needed.
+        // News: [DORMANT] News module is currently inactive/dormant by design. Will be resumed when needed.
 
-    // Wallet
-    Route::get('/wallet', [WalletController::class, 'show'])->name('wallet.show');
-    Route::redirect('/wallet/index', '/wallet')->name('wallet.index');
-    Route::get('/api/wallet', [WalletController::class, 'showJson'])->name('wallet.data');
-    Route::post('/api/wallet/deposit', [WalletController::class, 'deposit'])->middleware('throttle:30,1')->name('wallet.deposit');
-    Route::post('/api/wallet/withdraw', [WalletController::class, 'withdraw'])->middleware('throttle:30,1')->name('wallet.withdraw');
+        // Wallet
+        Route::get('/wallet', [WalletController::class, 'show'])->name('wallet.show');
+        Route::redirect('/wallet/index', '/wallet')->name('wallet.index');
+        Route::get('/api/wallet', [WalletController::class, 'showJson'])->name('wallet.data');
+        Route::post('/api/wallet/deposit', [WalletController::class, 'deposit'])->middleware('throttle:30,1')->name('wallet.deposit');
+        Route::post('/api/wallet/withdraw', [WalletController::class, 'withdraw'])->middleware('throttle:30,1')->name('wallet.withdraw');
+    });
 });
 
 require __DIR__.'/auth.php';

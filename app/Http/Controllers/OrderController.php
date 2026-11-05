@@ -44,6 +44,7 @@ class OrderController extends Controller
             return response()->json(['error' => $e->getMessage()], 422);
         } catch (\Throwable $e) {
             Log::error('Order creation failed: '.$e->getMessage(), ['exception' => $e]);
+
             return response()->json(['error' => 'Не удалось создать заказ. Попробуйте позже.'], 422);
         }
 
@@ -183,6 +184,11 @@ class OrderController extends Controller
         $request->validate(['service_id' => ['required', 'integer', 'exists:services,id']]);
 
         try {
+            $existing = $order->items()->where('service_id', $request->integer('service_id'))->first();
+            if ($existing && $existing->quantity >= 100) {
+                throw new \DomainException('Превышено максимальное количество для услуги (100).');
+            }
+
             $this->service->addItem($order, $request->integer('service_id'), $request->user());
         } catch (\DomainException $e) {
             return response()->json(['error' => $e->getMessage()], 422);

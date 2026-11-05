@@ -243,7 +243,7 @@ class TransactionSeeder extends Seeder
                 $recordTx($holdTx);
             }
 
-            $orderService->cancel($order, $customer1, $reason);
+            $orderService->cancel($order, $idol1, $reason);
 
             $refundTx = WalletTransaction::where('reference_type', Order::class)
                 ->where('reference_id', $order->id)

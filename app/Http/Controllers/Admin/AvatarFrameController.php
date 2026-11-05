@@ -92,7 +92,7 @@ class AvatarFrameController extends Controller
     public function generateTest()
     {
         $size = 200;
-        $img  = imagecreatetruecolor($size, $size);
+        $img = imagecreatetruecolor($size, $size);
         imagesavealpha($img, true);
         $transparent = imagecolorallocatealpha($img, 0, 0, 0, 127);
         imagefill($img, 0, 0, $transparent);
@@ -109,22 +109,22 @@ class AvatarFrameController extends Controller
         $hole = imagecolorallocatealpha($img, 0, 0, 0, 127);
         imagefilledellipse($img, $size / 2, $size / 2, $size - 52, $size - 52, $hole);
 
-        $tmpPath = sys_get_temp_dir() . '/test_frame_' . uniqid() . '.png';
+        $tmpPath = sys_get_temp_dir().'/test_frame_'.uniqid().'.png';
         imagepng($img, $tmpPath);
         imagedestroy($img);
 
         $stored = Storage::putFileAs(
             'avatar_frames',
             new \Illuminate\Http\File($tmpPath),
-            'test_' . uniqid() . '.png'
+            'test_'.uniqid().'.png'
         );
         @unlink($tmpPath);
 
         AvatarFrame::create([
-            'name'       => 'Test ' . now()->format('H:i:s'),
-            'type'       => 'free',
+            'name' => 'Test '.now()->format('H:i:s'),
+            'type' => 'free',
             'image_path' => $stored,
-            'is_active'  => true,
+            'is_active' => true,
         ]);
 
         return redirect()->back()->with('success', 'Тестовая рамка создана');

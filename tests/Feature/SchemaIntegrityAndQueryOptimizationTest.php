@@ -2,7 +2,6 @@
 
 use App\Models\Admin;
 use App\Models\Conversation;
-use App\Models\IdolQuizQuestion;
 use App\Models\IdolQuizSession;
 use App\Models\ServiceCategory;
 use App\Models\User;
@@ -50,6 +49,7 @@ test('database schema optimization creates all performance indexes and eliminate
         'review_disputes' => ['review_disputes_status_created_at_index'],
         'admin_logs' => ['admin_logs_created_at_index'],
         'idol_quiz_sessions' => ['idol_quiz_sessions_status_index'],
+        'wallet_transactions' => ['wallet_tx_escrow_lookup_idx', 'wallet_tx_type_status_idx'],
     ];
 
     foreach ($expectedIndexes as $table => $indexes) {
@@ -201,4 +201,34 @@ test('ServiceCategoryController updates translations, suggestions, and attribute
     expect($cat->getTranslation('description', 'ru'))->toBe('Новое описание');
     expect($cat->getTranslation('description', 'en'))->toBe('New description');
     expect($cat->accent_color)->toBe('#123456');
+});
+
+test('wallet table schema integrity enforces overdraft lower bound and optimizes indexes', function () {
+    $user = User::factory()->create();
+    $wallet = $user->getOrCreateWallet();
+
+    if (DB::getDriverName() === 'pgsql') {
+        // Verify redundant B-tree index wallets_user_id_index is absent
+        $walletIndexes = DB::select("SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'wallets'");
+        $walletIndexNames = array_column($walletIndexes, 'indexname');
+
+        expect($walletIndexNames)->not->toContain('wallets_user_id_index');
+        expect($walletIndexNames)->toContain('wallets_user_id_unique');
+
+        // Verify wallet_transactions composite indexes exist
+        $txIndexes = DB::select("SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'wallet_transactions'");
+        $txIndexNames = array_column($txIndexes, 'indexname');
+
+        expect($txIndexNames)->toContain('wallet_tx_escrow_lookup_idx');
+        expect($txIndexNames)->toContain('wallet_tx_type_status_idx');
+
+        // Balance >= -50000.00 is allowed
+        DB::table('wallets')->where('id', $wallet->id)->update(['balance' => -50000.00]);
+        expect((float) DB::table('wallets')->where('id', $wallet->id)->value('balance'))->toBe(-50000.00);
+
+        // Balance < -50000.00 violates check_wallets_balance_lower_bound
+        expect(function () use ($wallet) {
+            DB::table('wallets')->where('id', $wallet->id)->update(['balance' => -50000.01]);
+        })->toThrow(\Illuminate\Database\QueryException::class);
+    }
 });

@@ -47,8 +47,16 @@ class OrderPolicy
             return false;
         }
 
+        if ((int) $user->id === (int) $order->customer_id && $order->status === OrderStatus::Paid) {
+            return false;
+        }
+
         if ((int) $user->id === (int) $order->customer_id && $order->completion_confirmed_by_idol) {
             return false;
+        }
+
+        if ((int) $user->id === (int) $order->customer_id) {
+            return in_array($order->status, [OrderStatus::Pending, OrderStatus::Accepted]);
         }
 
         return in_array($order->status, [OrderStatus::Pending, OrderStatus::Accepted, OrderStatus::Paid]);

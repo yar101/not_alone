@@ -41,19 +41,27 @@ class ReleaseIdolHoldsCommand extends Command
             })
             ->lazyById(100);
 
-        $count = 0;
+        $processedCount = 0;
+        $releasedCount = 0;
+        $skippedCount = 0;
+
         foreach ($orders as $order) {
+            $processedCount++;
             try {
                 $released = $walletService->releaseIdolPayout($order);
                 if ($released) {
-                    $count++;
+                    $releasedCount++;
+                } else {
+                    $skippedCount++;
                 }
             } catch (\Throwable $e) {
+                $skippedCount++;
                 \Illuminate\Support\Facades\Log::error("Failed to release idol hold for order #{$order->id}: {$e->getMessage()}");
             }
         }
 
-        $this->info("Released {$count} idol hold payouts.");
+        $this->info("Processed {$processedCount} orders (released: {$releasedCount}, skipped: {$skippedCount}).");
+        $this->info("Released {$releasedCount} idol hold payouts.");
 
         return self::SUCCESS;
     }

@@ -15,7 +15,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(\Inertia\Ssr\Gateway::class, function () {
-            return new class extends \Inertia\Ssr\HttpGateway {
+            return new class extends \Inertia\Ssr\HttpGateway
+            {
                 public function dispatch(array $page, ?\Illuminate\Http\Request $request = null): ?\Inertia\Ssr\Response
                 {
                     if (! $this->ssrIsEnabled($request ?? request())) {

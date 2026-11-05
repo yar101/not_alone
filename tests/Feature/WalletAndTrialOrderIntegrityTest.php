@@ -15,6 +15,7 @@ use App\Services\OrderService;
 use App\Services\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class WalletAndTrialOrderIntegrityTest extends TestCase
@@ -74,19 +75,25 @@ class WalletAndTrialOrderIntegrityTest extends TestCase
         // Advance completed_at past dispute window for order 2
         $order2->update(['completed_at' => now()->subHours(2)]);
 
-        // Run the command: should not throw DomainException
-        $exitCode = Artisan::call('orders:release-idol-holds');
-        $this->assertEquals(0, $exitCode);
+        // Run the command: should not throw DomainException and track counts
+        $this->artisan('orders:release-idol-holds')
+            ->expectsOutputToContain('Processed 2 orders (released: 1, skipped: 1).')
+            ->assertExitCode(0);
 
-        // Order 1: payout was safely skipped and remains held
+        // Order 1: payout release was locked with timestamp to prevent scheduler loop
         $order1->refresh();
-        $this->assertNull($order1->payout_released_at);
+        $this->assertNotNull($order1->payout_released_at);
 
         // Order 2: payout was successfully released to idol2
         $order2->refresh();
         $this->assertNotNull($order2->payout_released_at);
         $idol2Wallet = $this->walletService->getOrCreateWallet($idol2);
         $this->assertGreaterThan(0, (float) $idol2Wallet->balance);
+
+        // Repeat run: 0 orders processed since both have payout_released_at set
+        $this->artisan('orders:release-idol-holds')
+            ->expectsOutputToContain('Processed 0 orders (released: 0, skipped: 0).')
+            ->assertExitCode(0);
     }
 
     public function test_auto_complete_orders_command_completes_overdue_paid_orders(): void
@@ -257,5 +264,71 @@ class WalletAndTrialOrderIntegrityTest extends TestCase
         ]);
 
         $response->assertStatus(422);
+    }
+
+    public function test_critical_overdraft_threshold_logs_alert_on_clawback(): void
+    {
+        Log::spy();
+
+        $customer = User::factory()->create();
+        $idol = User::factory()->create(['is_idol' => true]);
+
+        $this->walletService->deposit($customer, 50000, 'Init customer', null, [], false);
+
+        $order = Order::create([
+            'customer_id' => $customer->id,
+            'idol_id' => $idol->id,
+            'status' => OrderStatus::Completed,
+            'paid_at' => now()->subHours(5),
+            'completed_at' => now()->subHours(2),
+        ]);
+
+        $this->walletService->hold($customer, 50000, $order, 'Order hold');
+        $this->walletService->releaseHold($order);
+
+        // Release payout to idol (net payout after 10% fee = 45000)
+        $this->walletService->releaseIdolPayout($order);
+        $idolWallet = $this->walletService->getOrCreateWallet($idol)->fresh();
+        $this->assertEquals(45000.00, $idolWallet->balance);
+
+        // Idol withdraws the available 45000 funds, bringing balance to 0
+        $this->walletService->withdraw($idol, 45000, 'w-1');
+        $idolWallet->refresh();
+        $this->assertEquals(0.00, $idolWallet->balance);
+
+        // Now dispute / refund occurs, clawing back 45000 from idol balance
+        // This drops idol balance to -45000, which is <= CRITICAL_OVERDRAFT_THRESHOLD (-40000)
+        $this->walletService->refundHold($order, 'Full clawback after dispute');
+
+        $idolWallet->refresh();
+        $this->assertEquals(-45000.00, $idolWallet->balance);
+
+        Log::shouldHaveReceived('alert')
+            ->once()
+            ->with("Wallet #{$idolWallet->id} for user #{$idol->id} reached critical negative balance: -45000 RUB");
+    }
+
+    public function test_check_overdraft_alert_helper(): void
+    {
+        Log::spy();
+
+        $user = User::factory()->create();
+        $wallet = $this->walletService->getOrCreateWallet($user);
+
+        // Above threshold: no alert
+        $this->walletService->checkOverdraftAlert($wallet, -39999.00);
+        Log::shouldNotHaveReceived('alert');
+
+        // At threshold: triggers alert
+        $this->walletService->checkOverdraftAlert($wallet, -40000.00);
+
+        // Below threshold: triggers alert
+        $this->walletService->checkOverdraftAlert($wallet, -50000.00);
+
+        Log::shouldHaveReceived('alert')->twice();
+        Log::shouldHaveReceived('alert')
+            ->with("Wallet #{$wallet->id} for user #{$user->id} reached critical negative balance: -40000 RUB");
+        Log::shouldHaveReceived('alert')
+            ->with("Wallet #{$wallet->id} for user #{$user->id} reached critical negative balance: -50000 RUB");
     }
 }

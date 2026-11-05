@@ -14,7 +14,6 @@ use App\Models\ServiceCategory;
 use App\Models\ServiceChangeRequest;
 use App\Models\ServiceTimeUnit;
 use App\Models\User;
-use App\Models\WalletTransaction;
 use App\Services\UserProfileService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -309,7 +308,7 @@ test('admin date filtering uses startOfDay and endOfDay boundary ranges correctl
     ]));
 
     $response->assertOk();
-    $response->assertInertia(function (Assert $page) use ($orderMorning, $orderNight, $orderOther) {
+    $response->assertInertia(function (Assert $page) use ($orderMorning, $orderNight) {
         $page->component('Admin/Orders/Index')
             ->has('orders.data', 2)
             ->where('orders.data.0.id', $orderNight->id)

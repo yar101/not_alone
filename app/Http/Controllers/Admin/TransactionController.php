@@ -118,6 +118,7 @@ class TransactionController extends Controller
             'order_payout' => (int) ($rawTypeCounts[WalletTransactionType::OrderPayout->value] ?? 0),
             'order_refund' => (int) ($rawTypeCounts[WalletTransactionType::OrderRefund->value] ?? 0),
             'order_hold_release' => (int) ($rawTypeCounts[WalletTransactionType::OrderHoldRelease->value] ?? 0),
+            'order_hold_cancelled' => (int) ($rawTypeCounts[WalletTransactionType::OrderHoldCancelled->value] ?? 0),
             'platform_fee' => (int) ($rawTypeCounts[WalletTransactionType::PlatformFee->value] ?? 0),
             'admin_adjustment' => (int) ($rawTypeCounts[WalletTransactionType::AdminAdjustment->value] ?? 0),
             'order_clawback' => (int) ($rawTypeCounts[WalletTransactionType::OrderClawback->value] ?? 0),
@@ -209,12 +210,14 @@ class TransactionController extends Controller
             'type' => ['required', 'in:admin_adjustment,deposit,withdrawal'],
             'description' => ['required', 'string', 'min:3', 'max:500'],
             'notify_user' => ['sometimes', 'boolean'],
+            'idempotency_key' => ['nullable', 'string', 'max:64'],
         ], [
             'user_id.required' => 'Выберите пользователя.',
             'user_id.exists' => 'Указанный пользователь не найден.',
             'amount.required' => 'Введите сумму операции.',
             'amount.min' => 'Сумма должна быть не менее 0.01 ₽.',
             'description.required' => 'Укажите причину или описание операции для аудита.',
+            'idempotency_key.max' => 'Длина ключа идемпотентности не должна превышать 64 символа.',
         ]);
 
         if ($validated['direction'] === 'debit' && $validated['type'] === 'deposit') {
@@ -226,6 +229,7 @@ class TransactionController extends Controller
         }
 
         $user = User::findOrFail($validated['user_id']);
+        $idempotencyKey = $validated['idempotency_key'] ?? $request->header('X-Idempotency-Key');
 
         try {
             $tx = $this->walletService->adminAdjust(
@@ -234,7 +238,8 @@ class TransactionController extends Controller
                 direction: $validated['direction'],
                 description: $validated['description'],
                 adminId: auth('admin')->id(),
-                type: $validated['type']
+                type: $validated['type'],
+                idempotencyKey: $idempotencyKey
             );
 
             if ($request->boolean('notify_user')) {

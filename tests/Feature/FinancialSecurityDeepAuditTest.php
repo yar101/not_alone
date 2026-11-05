@@ -492,7 +492,7 @@ class FinancialSecurityDeepAuditTest extends TestCase
             $this->orderService->cancel($order, $customer, 'Direct cancel bypass');
             $this->fail('Expected DomainException was not thrown');
         } catch (\DomainException $e) {
-            $this->assertStringContainsString('Невозможно отменить заказ после того, как айдол подтвердил его выполнение', $e->getMessage());
+            $this->assertStringContainsString('Отмена оплаченного заказа клиентом не разрешена', $e->getMessage());
         }
 
         // Order remains Paid
@@ -687,5 +687,220 @@ class FinancialSecurityDeepAuditTest extends TestCase
         $customerWallet = $this->walletService->getOrCreateWallet($customer);
         $this->assertEquals(1000, $customerWallet->balance);
         $this->assertEquals(0, $customerWallet->held_balance);
+    }
+
+    public function test_user_cannot_reuse_another_users_idempotency_key_at_service_layer(): void
+    {
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+
+        $key = 'shared-idempotency-key-test-123';
+        $txA = $this->walletService->deposit($userA, 100, 'User A deposit', $key, [], false);
+        $this->assertEquals(100, $this->walletService->getOrCreateWallet($userA)->balance);
+
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessage('Ключ идемпотентности уже использован для другой операции.');
+
+        try {
+            $this->walletService->deposit($userB, 100, 'User B deposit with stolen key', $key, [], false);
+        } finally {
+            $this->assertEquals(0, $this->walletService->getOrCreateWallet($userB)->balance);
+            $this->assertEquals(100, $this->walletService->getOrCreateWallet($userA)->fresh()->balance);
+        }
+    }
+
+    public function test_user_cannot_reuse_idempotency_key_with_different_amount_or_type_at_service_layer(): void
+    {
+        $user = User::factory()->create(['is_idol' => true]);
+        $key = 'same-user-idempotency-key-test-456';
+
+        $tx = $this->walletService->deposit($user, 200, 'Initial deposit', $key, [], false);
+        $this->assertNotNull($tx);
+
+        // Different amount on deposit throws DomainException
+        try {
+            $this->walletService->deposit($user, 500, 'Modified deposit', $key, [], false);
+            $this->fail('Expected DomainException for mismatched amount was not thrown.');
+        } catch (\DomainException $e) {
+            $this->assertStringContainsString('Ключ идемпотентности уже использован с другими параметрами.', $e->getMessage());
+        }
+
+        // Different type (withdraw instead of deposit) throws DomainException
+        try {
+            $this->walletService->withdraw($user, 200, $key, 'Withdrawal using deposit key');
+            $this->fail('Expected DomainException for mismatched type was not thrown.');
+        } catch (\DomainException $e) {
+            $this->assertStringContainsString('Ключ идемпотентности уже использован с другими параметрами.', $e->getMessage());
+        }
+    }
+
+    public function test_idempotency_key_isolation_and_conflict_via_wallet_controller(): void
+    {
+        $userA = User::factory()->create(['is_idol' => true]);
+        $userB = User::factory()->create(['is_idol' => true]);
+        $key = 'ctrl-idempotency-deposit-789';
+
+        // 1. User A successfully deposits with key
+        $resA = $this->actingAs($userA)
+            ->withHeader('X-Idempotency-Key', $key)
+            ->postJson('/api/wallet/deposit', ['amount' => 100]);
+        $resA->assertOk();
+        $this->assertTrue($resA->json('success'));
+
+        // 2. User B tries to use the same key -> 409 Conflict and no transaction returned
+        $resB = $this->actingAs($userB)
+            ->withHeader('X-Idempotency-Key', $key)
+            ->postJson('/api/wallet/deposit', ['amount' => 100]);
+        $resB->assertStatus(409);
+        $resB->assertJson(['error' => 'Ключ идемпотентности уже использован для другой операции.']);
+        $this->assertEquals(0, $this->walletService->getOrCreateWallet($userB)->balance);
+
+        // 3. User A tries to use the same key with different amount -> 409 Conflict
+        $resA2 = $this->actingAs($userA)
+            ->withHeader('X-Idempotency-Key', $key)
+            ->postJson('/api/wallet/deposit', ['amount' => 200]);
+        $resA2->assertStatus(409);
+        $resA2->assertJson(['error' => 'Ключ идемпотентности уже использован с другими параметрами.']);
+
+        // 4. User A repeats with exact same key and amount -> idempotent 200 OK
+        $resA3 = $this->actingAs($userA)
+            ->withHeader('X-Idempotency-Key', $key)
+            ->postJson('/api/wallet/deposit', ['amount' => 100]);
+        $resA3->assertOk();
+        $this->assertEquals($resA->json('transaction.id'), $resA3->json('transaction.id'));
+    }
+
+    public function test_withdraw_idempotency_key_isolation_and_conflict_via_wallet_controller(): void
+    {
+        $idolA = User::factory()->create(['is_idol' => true]);
+        $idolB = User::factory()->create(['is_idol' => true]);
+
+        $this->walletService->deposit($idolA, 1000, 'Init idol A', null, [], false);
+        $this->walletService->deposit($idolB, 1000, 'Init idol B', null, [], false);
+
+        $key = 'ctrl-idempotency-withdraw-012';
+
+        // 1. Idol A successfully withdraws with key
+        $resA = $this->actingAs($idolA)
+            ->withHeader('X-Idempotency-Key', $key)
+            ->postJson('/api/wallet/withdraw', ['amount' => 200]);
+        $resA->assertOk();
+        $txAId = $resA->json('transaction.id');
+
+        // 2. Idol B tries to withdraw with Idol A's key -> 409 Conflict
+        $resB = $this->actingAs($idolB)
+            ->withHeader('X-Idempotency-Key', $key)
+            ->postJson('/api/wallet/withdraw', ['amount' => 200]);
+        $resB->assertStatus(409);
+        $resB->assertJson(['error' => 'Ключ идемпотентности уже использован для другой операции.']);
+        $this->assertEquals(1000, $this->walletService->getOrCreateWallet($idolB)->balance);
+
+        // 3. Idol A tries to withdraw with different amount -> 409 Conflict
+        $resA2 = $this->actingAs($idolA)
+            ->withHeader('X-Idempotency-Key', $key)
+            ->postJson('/api/wallet/withdraw', ['amount' => 300]);
+        $resA2->assertStatus(409);
+        $resA2->assertJson(['error' => 'Ключ идемпотентности уже использован с другими параметрами.']);
+
+        // 4. Idol A repeats withdraw with same key and amount -> 200 OK, returns same transaction
+        $resA3 = $this->actingAs($idolA)
+            ->withHeader('X-Idempotency-Key', $key)
+            ->postJson('/api/wallet/withdraw', ['amount' => 200]);
+        $resA3->assertOk();
+        $this->assertEquals($txAId, $resA3->json('transaction.id'));
+        $this->assertEquals(800, $this->walletService->getOrCreateWallet($idolA)->balance);
+    }
+
+    public function test_admin_adjust_is_idempotent_with_idempotency_key(): void
+    {
+        $admin = Admin::create([
+            'name' => 'Admin Idempotent Test',
+            'email' => 'admin_idempotent_test@example.com',
+            'password' => bcrypt('secret'),
+        ]);
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+
+        $key = 'admin-adjust-idempotency-key-999';
+
+        // 1. First admin adjustment creates transaction and credits balance
+        $tx1 = $this->walletService->adminAdjust(
+            user: $userA,
+            amount: 500,
+            direction: 'credit',
+            description: 'Idempotent bonus',
+            adminId: $admin->id,
+            type: 'admin_adjustment',
+            idempotencyKey: $key
+        );
+
+        $this->assertEquals(500, $this->walletService->getOrCreateWallet($userA)->balance);
+        $this->assertEquals($key, $tx1->idempotency_key);
+
+        // 2. Second call with exact same parameters returns the same transaction and does NOT credit twice
+        $tx2 = $this->walletService->adminAdjust(
+            user: $userA,
+            amount: 500,
+            direction: 'credit',
+            description: 'Idempotent bonus duplicate call',
+            adminId: $admin->id,
+            type: 'admin_adjustment',
+            idempotencyKey: $key
+        );
+
+        $this->assertEquals($tx1->id, $tx2->id);
+        $this->assertEquals(500, $this->walletService->getOrCreateWallet($userA)->fresh()->balance);
+        $this->assertEquals(1, WalletTransaction::where('wallet_id', $userA->wallet->id)->count());
+
+        // 3. Different parameters (e.g. amount or direction) throws DomainException
+        try {
+            $this->walletService->adminAdjust(
+                user: $userA,
+                amount: 600,
+                direction: 'credit',
+                description: 'Different amount attempt',
+                adminId: $admin->id,
+                type: 'admin_adjustment',
+                idempotencyKey: $key
+            );
+            $this->fail('Expected DomainException for mismatched amount was not thrown.');
+        } catch (\DomainException $e) {
+            $this->assertStringContainsString('Ключ идемпотентности уже использован с другими параметрами.', $e->getMessage());
+        }
+
+        // 4. Using the same key on a different user throws DomainException
+        try {
+            $this->walletService->adminAdjust(
+                user: $userB,
+                amount: 500,
+                direction: 'credit',
+                description: 'Different user attempt',
+                adminId: $admin->id,
+                type: 'admin_adjustment',
+                idempotencyKey: $key
+            );
+            $this->fail('Expected DomainException for different user was not thrown.');
+        } catch (\DomainException $e) {
+            $this->assertStringContainsString('Ключ идемпотентности уже использован для другой операции.', $e->getMessage());
+        }
+
+        // 5. Calling admin.transactions.store with idempotency_key is idempotent
+        $storeKey = 'admin-store-key-111';
+        $postData = [
+            'user_id' => $userA->id,
+            'direction' => 'credit',
+            'type' => 'admin_adjustment',
+            'amount' => 150.00,
+            'description' => 'Controller idempotent adjustment',
+            'idempotency_key' => $storeKey,
+        ];
+
+        $res1 = $this->actingAs($admin, 'admin')->post(route('admin.transactions.store'), $postData);
+        $res1->assertSessionHasNoErrors();
+        $this->assertEquals(650.00, $this->walletService->getOrCreateWallet($userA)->fresh()->balance);
+
+        $res2 = $this->actingAs($admin, 'admin')->post(route('admin.transactions.store'), $postData);
+        $res2->assertSessionHasNoErrors();
+        $this->assertEquals(650.00, $this->walletService->getOrCreateWallet($userA)->fresh()->balance);
     }
 }

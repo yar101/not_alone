@@ -125,6 +125,7 @@ const createForm = useForm({
     amount: '',
     description: '',
     notify_user: false,
+    idempotency_key: '',
 });
 
 const filteredCreateTypeOptions = computed(() => {
@@ -215,11 +216,13 @@ function openCreateModal() {
     createForm.amount = '';
     createForm.description = '';
     createForm.notify_user = false;
+    createForm.idempotency_key = '';
     createForm.clearErrors();
     showCreateModal.value = true;
 }
 
 function closeCreateModal() {
+    createForm.idempotency_key = '';
     showCreateModal.value = false;
 }
 
@@ -258,8 +261,21 @@ function deselectUserForCreate() {
     userSearchResults.value = [];
 }
 
+function generateUuid() {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
 function submitCreate() {
     if (isSubmitDisabled.value) return;
+    if (!createForm.idempotency_key) {
+        createForm.idempotency_key = generateUuid();
+    }
     createForm.post(route('admin.transactions.store'), {
         preserveScroll: true,
         onSuccess: () => {
@@ -276,6 +292,7 @@ function typeBadgeClass(t) {
         case 'withdrawal': return 'badge--amber';
         case 'order_hold': return 'badge--cyan';
         case 'order_hold_release': return 'badge--blue';
+        case 'order_hold_cancelled': return 'badge--rose';
         case 'order_payout': return 'badge--emerald';
         case 'order_refund': return 'badge--blue';
         case 'platform_fee': return 'badge--violet';
@@ -396,6 +413,7 @@ function isCredit(tx) {
                     { value: 'withdrawal',       label: 'Выводы',        count: typeCounts?.withdrawal ?? 0 },
                     { value: 'order_hold',       label: 'Заморозки',     count: typeCounts?.order_hold ?? 0 },
                     { value: 'order_hold_release', label: 'Списания из заморозки', count: typeCounts?.order_hold_release ?? 0 },
+                    { value: 'order_hold_cancelled', label: 'Отмена холда', count: typeCounts?.order_hold_cancelled ?? 0 },
                     { value: 'order_payout',     label: 'Выплаты',       count: typeCounts?.order_payout ?? 0 },
                     { value: 'order_refund',     label: 'Возвраты',      count: typeCounts?.order_refund ?? 0 },
                     { value: 'order_clawback',   label: 'Списания по спорам', count: typeCounts?.order_clawback ?? 0 },

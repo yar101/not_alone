@@ -175,7 +175,7 @@ class ServiceController extends Controller
             ]);
         }
 
-        $this->validatePriceLimit($idol, $data['time_unit_id'], $data['price']);
+        $this->validatePriceLimit($idol, $data['category_id'], $data['price']);
 
         Service::create([
             'name' => array_filter(['ru' => $data['name_ru'] ?? null, 'en' => $data['name_en'] ?? null]),
@@ -204,11 +204,11 @@ class ServiceController extends Controller
             'is_active' => ['sometimes', 'boolean'],
         ]);
 
-        $timeUnitId = $data['time_unit_id'] ?? $service->time_unit_id;
+        $categoryId = $data['category_id'] ?? $service->category_id;
         $price = $data['price'] ?? $service->price;
 
-        if (isset($data['price']) || isset($data['time_unit_id'])) {
-            $this->validatePriceLimit($request->user(), $timeUnitId, $price);
+        if (isset($data['price']) || isset($data['category_id'])) {
+            $this->validatePriceLimit($request->user(), $categoryId, $price);
         }
 
         // Check if moderated fields actually changed
@@ -417,18 +417,26 @@ class ServiceController extends Controller
         return back()->with('success', 'Отклоненные изменения скрыты.');
     }
 
-    private function validatePriceLimit($idol, int $timeUnitId, int $price): void
+    private function validatePriceLimit($idol, int $categoryId, int $price): void
     {
+        $limit = ServicePriceLimit::where('category_id', $categoryId)->first();
+        if (! $limit) {
+            return;
+        }
+
         $threshold = (float) PlatformSetting::get('rating_low_threshold', 30);
         $rating = (float) ($idol->rating ?? 50);
 
-        if ($rating < $threshold) {
-            $limit = ServicePriceLimit::where('time_unit_id', $timeUnitId)->first();
-            if ($limit && $price > $limit->max_price) {
-                throw ValidationException::withMessages([
-                    'price' => 'При вашем рейтинге цена не может превышать '.$limit->max_price.' ₽ за эту единицу времени.',
-                ]);
-            }
+        if ($rating < $threshold && $limit->low_rating_max_price && $price > $limit->low_rating_max_price) {
+            throw ValidationException::withMessages([
+                'price' => "При вашем рейтинге цена не может превышать {$limit->low_rating_max_price} ₽ для данной категории.",
+            ]);
+        }
+
+        if ($limit->max_price && $price > $limit->max_price) {
+            throw ValidationException::withMessages([
+                'price' => "Цена услуги не может превышать {$limit->max_price} ₽ для данной категории.",
+            ]);
         }
     }
 }

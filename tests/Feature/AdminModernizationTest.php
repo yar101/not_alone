@@ -269,7 +269,7 @@ test('admin quick search supports single digit query for ID lookups', function (
 
 test('admin.transactions.show redirects Inertia requests to transactions.index search', function () {
     $user = User::factory()->create();
-    $wallet = $user->wallet ?? \App\Models\Wallet::create(['user_id' => $user->id, 'balance' => 1000]);
+    $wallet = $user->wallet ?? \App\Models\Wallet::create(['user_id' => $user->id]);
 
     $tx = WalletTransaction::create([
         'wallet_id' => $wallet->id,
@@ -292,7 +292,7 @@ test('admin.transactions.show redirects Inertia requests to transactions.index s
 
 test('admin.transactions.show returns JSON for API requests', function () {
     $user = User::factory()->create();
-    $wallet = $user->wallet ?? \App\Models\Wallet::create(['user_id' => $user->id, 'balance' => 1000]);
+    $wallet = $user->wallet ?? \App\Models\Wallet::create(['user_id' => $user->id]);
 
     $tx = WalletTransaction::create([
         'wallet_id' => $wallet->id,

@@ -524,6 +524,7 @@ async function copyTxId(id) {
 function getTxLabel(tx) {
     if (tx.type === 'order_hold') return 'Заморозка';
     if (tx.type === 'order_hold_release') return 'Списание из заморозки';
+    if (tx.type === 'order_hold_cancelled') return 'Отмена холда';
     if (tx.type === 'deposit') return 'Пополнение';
     if (tx.type === 'order_payout') {
         return 'Оплата за заказ';
@@ -542,7 +543,7 @@ function formatTxDescription(desc) {
 
 function formatSignedAmount(tx) {
     if (!tx) return '0,00 ₽';
-    if (tx.type === 'order_hold_release') {
+    if (tx.type === 'order_hold_release' || tx.type === 'order_hold_cancelled') {
         const heldAmt = tx.metadata?.held_amount ?? (Number(tx.held_balance_before) - Number(tx.held_balance_after));
         if (heldAmt) {
             return `−${formatMoney(Math.abs(heldAmt))} ₽`;

@@ -270,20 +270,20 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('orders')->name('orders.')->group(function () {
             Route::get('/', [OrderController::class, 'index'])->name('index');
             Route::get('/{order}', [OrderController::class, 'show'])->name('show');
-            Route::patch('/{order}/status', [OrderController::class, 'updateStatus'])->name('status');
+            Route::patch('/{order}/status', [OrderController::class, 'updateStatus'])->middleware('throttle:60,1')->name('status');
             Route::get('/{order}/history', [OrderController::class, 'history'])->name('history');
         });
 
         // Transactions
         Route::prefix('transactions')->name('transactions.')->group(function () {
             Route::get('/', [TransactionController::class, 'index'])->name('index');
-            Route::post('/', [TransactionController::class, 'store'])->name('store');
+            Route::post('/', [TransactionController::class, 'store'])->middleware('throttle:60,1')->name('store');
             Route::get('/{transaction}', [TransactionController::class, 'show'])->name('show');
         });
 
         // Disputes
         Route::get('/disputes', [DisputeController::class, 'index'])->name('disputes.index');
-        Route::patch('/disputes/{dispute}/resolve', [DisputeController::class, 'resolve'])->name('disputes.resolve');
+        Route::patch('/disputes/{dispute}/resolve', [DisputeController::class, 'resolve'])->middleware('throttle:60,1')->name('disputes.resolve');
 
         // Review disputes
         Route::prefix('review-disputes')->name('review-disputes.')->group(function () {
