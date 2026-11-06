@@ -183,10 +183,10 @@ it('refunds escrow hold to customer when order is cancelled or refunded', functi
     $refundTx = $service->refundHold($order, 'Заказ отменён');
 
     expect($refundTx->type)->toBe(WalletTransactionType::OrderRefund);
-    expect((float) $refundTx->amount)->toBe(1500.00);
+    expect((float) $refundTx->amount)->toBe(1290.00); // 1500 - 14% fees (210) = 1290
 
     $customerWallet = $customer->wallet->fresh();
-    expect((float) $customerWallet->balance)->toBe(1920.00);
+    expect((float) $customerWallet->balance)->toBe(1710.00); // 420 + 1290 = 1710
     expect((float) $customerWallet->held_balance)->toBe(0.00);
 });
 

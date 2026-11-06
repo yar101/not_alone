@@ -21,6 +21,8 @@ const form = useForm({
     deposit_fee_percent:     props.settings.deposit_fee_percent ?? 4,
     withdrawal_fee_percent:  props.settings.withdrawal_fee_percent ?? 4,
     platform_fee_percent:    props.settings.platform_fee_percent ?? 10,
+    refund_gateway_fee_percent: props.settings.refund_gateway_fee_percent ?? 4,
+    refund_platform_fee_percent: props.settings.refund_platform_fee_percent ?? 10,
     rating_deltas: { ...props.rating_deltas },
 });
 
@@ -167,6 +169,48 @@ const previewBase = computed(() =>
                         </div>
                     </div>
                     <p v-if="form.errors.platform_fee_percent" class="err">{{ form.errors.platform_fee_percent }}</p>
+                </div>
+
+                <div class="field">
+                    <div class="field-row">
+                        <div class="field-meta">
+                            <label class="field-label">Комиссия платёжной системы при возврате, %</label>
+                            <p class="field-hint">Процент эквайринга/шлюза, удерживаемый с клиента при возврате средств (отмена, спор)</p>
+                        </div>
+                        <div class="field-control">
+                            <input
+                                v-model.number="form.refund_gateway_fee_percent"
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="50"
+                                class="input input--sm"
+                                :class="{ 'input--err': form.errors.refund_gateway_fee_percent }"
+                            />
+                        </div>
+                    </div>
+                    <p v-if="form.errors.refund_gateway_fee_percent" class="err">{{ form.errors.refund_gateway_fee_percent }}</p>
+                </div>
+
+                <div class="field">
+                    <div class="field-row">
+                        <div class="field-meta">
+                            <label class="field-label">Комиссия сервиса при возврате, %</label>
+                            <p class="field-hint">Комиссия платформы, удерживаемая с клиента при возврате средств (отмена, спор)</p>
+                        </div>
+                        <div class="field-control">
+                            <input
+                                v-model.number="form.refund_platform_fee_percent"
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="50"
+                                class="input input--sm"
+                                :class="{ 'input--err': form.errors.refund_platform_fee_percent }"
+                            />
+                        </div>
+                    </div>
+                    <p v-if="form.errors.refund_platform_fee_percent" class="err">{{ form.errors.refund_platform_fee_percent }}</p>
                 </div>
             </div>
 

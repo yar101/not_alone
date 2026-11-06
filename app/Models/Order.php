@@ -87,6 +87,17 @@ class Order extends Model
         return (float) $this->items()->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(price, 0) * COALESCE(quantity, 1)'));
     }
 
+    public function getHeldAmountAttribute(): float
+    {
+        $hold = $this->walletTransactions()
+            ->where('type', \App\Enums\WalletTransactionType::OrderHold)
+            ->where('status', \App\Enums\WalletTransactionStatus::Completed)
+            ->latest('id')
+            ->first();
+
+        return $hold ? abs((float) $hold->amount) : (float) $this->total_price;
+    }
+
     public function walletTransactions(): \Illuminate\Database\Eloquent\Relations\MorphMany
     {
         return $this->morphMany(WalletTransaction::class, 'reference');

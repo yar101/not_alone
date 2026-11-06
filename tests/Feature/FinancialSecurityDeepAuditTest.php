@@ -162,10 +162,10 @@ class FinancialSecurityDeepAuditTest extends TestCase
 
         $this->assertNotNull($refundTx);
         $this->assertEquals(WalletTransactionType::OrderRefund, $refundTx->type);
-        $this->assertEquals(500, $refundTx->amount);
+        $this->assertEquals(430, $refundTx->amount);
 
         $customerWallet = $this->walletService->getOrCreateWallet($customer);
-        $this->assertEquals(1000, $customerWallet->balance);
+        $this->assertEquals(930, $customerWallet->balance);
         $this->assertEquals(0, $customerWallet->held_balance);
     }
 
@@ -388,9 +388,9 @@ class FinancialSecurityDeepAuditTest extends TestCase
         $order->refresh();
         $this->assertEquals(OrderStatus::Refunded, $order->status);
 
-        // Check customer wallet was refunded
+        // Check customer wallet was refunded (net refund: 300 - 14% fees = 258 -> 700 + 258 = 958)
         $custWallet = $this->walletService->getOrCreateWallet($customer);
-        $this->assertEquals(1000, $custWallet->balance);
+        $this->assertEquals(958, $custWallet->balance);
         $this->assertEquals(0, $custWallet->held_balance);
     }
 
@@ -683,9 +683,9 @@ class FinancialSecurityDeepAuditTest extends TestCase
         $order->refresh();
         $this->assertEquals(OrderStatus::Cancelled, $order->status);
 
-        // Customer was refunded
+        // Customer was refunded (net refund: 300 - 14% fees = 258 -> 700 + 258 = 958)
         $customerWallet = $this->walletService->getOrCreateWallet($customer);
-        $this->assertEquals(1000, $customerWallet->balance);
+        $this->assertEquals(958, $customerWallet->balance);
         $this->assertEquals(0, $customerWallet->held_balance);
     }
 

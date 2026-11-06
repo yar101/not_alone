@@ -142,9 +142,9 @@ test('completed order refund claws back payout from idol, reverses platform fee,
     $idolWallet->refresh();
     expect((float) $idolWallet->balance)->toEqual(0.00);
 
-    // Customer receives full 500.00 refund back to available balance (460 + 500 = 960)
+    // Customer receives net refund back to available balance (500 - 14% fees = 430 -> 460 + 430 = 890)
     $custWallet->refresh();
-    expect((float) $custWallet->balance)->toEqual(960.00);
+    expect((float) $custWallet->balance)->toEqual(890.00);
 
     // Verify OrderClawback transaction exists on idol wallet
     $clawbackTx = WalletTransaction::where('wallet_id', $idolWallet->id)

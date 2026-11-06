@@ -271,9 +271,9 @@ it('refunds customer from held_balance without touching idol available balance w
     expect((float) $idolWallet->balance)->toBe(500.00);
     expect((float) $idolWallet->held_balance)->toBe(0.00);
 
-    // Customer gets full 1000 refund back to balance
+    // Customer gets net refund back to balance (1000 - 14% fees = 860 -> 1000 + 860 = 1860)
     $customerWallet = $walletService->getOrCreateWallet($customer);
-    expect((float) $customerWallet->balance)->toBe(2000.00);
+    expect((float) $customerWallet->balance)->toBe(1860.00);
 
     // No phantom clawback transaction recorded because payout was never released to available balance
     $clawbackTx = WalletTransaction::where('type', WalletTransactionType::OrderClawback)
@@ -449,10 +449,10 @@ it('enforces Cancelled as terminal state and prevents admin from reopening to Pa
     expect((float) $customerWallet->balance)->toBe(1000.00);
     expect((float) $customerWallet->held_balance)->toBe(1000.00);
 
-    // 2. Admin cancels order -> refundHold releases the hold
+    // 2. Admin cancels order -> refundHold releases the hold with 14% fees deducted
     $orderService->adminTransition($order, OrderStatus::Cancelled, $admin->id, 'Первая отмена');
     $customerWallet->refresh();
-    expect((float) $customerWallet->balance)->toBe(2000.00);
+    expect((float) $customerWallet->balance)->toBe(1860.00);
     expect((float) $customerWallet->held_balance)->toBe(0.00);
 
     // 3. Admin attempts to re-open to Paid -> blocked by State Machine (Cancelled is terminal)
@@ -460,7 +460,7 @@ it('enforces Cancelled as terminal state and prevents admin from reopening to Pa
         ->toThrow(\DomainException::class, 'Недопустимый переход статуса заказа из cancelled в paid.');
 
     $customerWallet->refresh();
-    expect((float) $customerWallet->balance)->toBe(2000.00);
+    expect((float) $customerWallet->balance)->toBe(1860.00);
     expect((float) $customerWallet->held_balance)->toBe(0.00);
 });
 

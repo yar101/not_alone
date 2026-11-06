@@ -134,10 +134,11 @@ class OrderStateMachineAndCancellationTest extends TestCase
         $this->assertEquals($idol->id, $order->cancelled_by);
         $this->assertEquals('Idol is unavailable', $order->cancel_reason);
 
-        // Funds refunded to customer
+        // Funds refunded to customer with fees deducted (4% gateway + 10% platform = 210 RUB fee)
+        // Net refund: 1500 - 210 = 1290 RUB. Customer balance: 1500 remaining + 1290 = 2790 RUB.
         $custWallet->refresh();
         $this->assertEquals(0.00, (float) $custWallet->held_balance);
-        $this->assertEquals(3000.00, (float) $custWallet->balance);
+        $this->assertEquals(2790.00, (float) $custWallet->balance);
 
         // Verify OrderRefund transaction exists
         $refundTx = WalletTransaction::where('reference_type', Order::class)
@@ -146,7 +147,7 @@ class OrderStateMachineAndCancellationTest extends TestCase
             ->first();
 
         $this->assertNotNull($refundTx);
-        $this->assertEquals(1500.00, (float) $refundTx->amount);
+        $this->assertEquals(1290.00, (float) $refundTx->amount);
         $this->assertEquals(WalletTransactionStatus::Completed, $refundTx->status);
     }
 
