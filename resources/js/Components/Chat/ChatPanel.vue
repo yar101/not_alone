@@ -3905,29 +3905,34 @@ function formatDate(iso) {
         <div class="cm-title cm-title--cyan">
             {{ confirmOfferMode === 'create' ? 'Создать заказ' : __("chat.add_to_order") }}
         </div>
+
+        <div class="cm-divider--top"></div>
         
-        <div v-for="(svc, idx) in confirmOfferServices" :key="idx" style="margin-bottom: 0.75rem;">
-            <div class="confirm-add__svc">{{ svc.name }}</div>
-            <div class="confirm-add__price inline-flex items-center gap-1">
-                <span>{{ svc.price.toLocaleString("ru-RU") }}</span>
-                <CoinIcon color="blue" size="xs" />
-                <template v-if="svc.time_unit">&thinsp;/&thinsp;{{ svc.time_unit }}</template>
+        <div class="confirm-add__list">
+            <div v-for="(svc, idx) in confirmOfferServices" :key="idx" class="confirm-add__card">
+                <div class="confirm-add__card-info">
+                    <span class="confirm-add__card-name">{{ svc.name }}</span>
+                </div>
+                <div class="confirm-add__card-price inline-flex items-center gap-1">
+                    <span>{{ (svc.price || 0).toLocaleString("ru-RU") }}</span>
+                    <CoinIcon color="blue" size="xs" />
+                    <template v-if="svc.time_unit">
+                        <span class="confirm-add__card-unit">&thinsp;/&thinsp;{{ svc.time_unit }}</span>
+                    </template>
+                </div>
             </div>
         </div>
 
-        <div class="cm-perf">
+        <div class="cm-perf cm-perf--cyan">
             <span class="cm-perf__line cm-perf__line--cyan"></span>
         </div>
         
-        <div class="confirm-add__summary flex flex-col items-center gap-1.5" style="text-align: center; margin: 1rem 0;">
-            <div v-if="confirmOfferFee > 0" class="inline-flex items-center gap-1 text-sm text-zinc-300 font-medium">
-                <span>Сервисный сбор: {{ confirmOfferFee.toLocaleString("ru-RU") }}</span>
+        <div class="confirm-add__summary inline-flex items-center justify-center gap-1.5" style="margin: 0.85rem 0 1.15rem; width: 100%;">
+            <span class="text-zinc-300 font-semibold text-base">{{ __("chat.msg.total") }}:</span>
+            <span class="text-white font-bold text-lg inline-flex items-center gap-1">
+                <span>{{ confirmOfferServicesSum.toLocaleString("ru-RU") }}</span>
                 <CoinIcon color="blue" size="xs" />
-            </div>
-            <div class="inline-flex items-center gap-1 font-bold text-base text-white">
-                <span>Итого: {{ confirmOfferTotal.toLocaleString("ru-RU") }}</span>
-                <CoinIcon color="blue" size="xs" />
-            </div>
+            </span>
         </div>
         
         <div class="cm-footer">
@@ -5566,14 +5571,91 @@ function formatDate(iso) {
     color: rgba(80, 240, 160, 0.9);
 }
 
+.cm-perf--cyan {
+    margin: 1rem -0.1rem 0.85rem;
+}
+
+.cm-perf--cyan::before,
+.cm-perf--cyan::after {
+    background: #0d1527 !important;
+    border: 1px solid rgba(56, 189, 248, 0.5) !important;
+    box-shadow: 0 0 6px rgba(56, 189, 248, 0.25);
+}
+
+.cm-perf--cyan .cm-perf__line,
 .cm-perf__line--cyan {
-    border-top-color: rgba(60, 200, 180, 0.3);
-    border-top-style: dashed;
+    border-top: 1px dashed rgba(56, 189, 248, 0.45) !important;
 }
 
 .cm-perf__line--green {
     border-top-color: rgba(60, 200, 120, 0.3);
     border-top-style: dashed;
+}
+
+.cm-divider--top {
+    width: 100%;
+    height: 3px;
+    border: none;
+    border-top: 1px solid rgba(56, 189, 248, 0.25);
+    border-bottom: 1px solid rgba(56, 189, 248, 0.1);
+    margin: 0.85rem 0 1rem;
+}
+
+.confirm-add__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 0.1rem 0.15rem;
+    margin: 0.2rem 0;
+}
+
+.confirm-add__card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.85rem;
+    padding: 0.75rem 0.95rem;
+    background: rgba(14, 25, 45, 0.65);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.confirm-add__card:hover {
+    background: rgba(14, 25, 45, 0.85);
+    border-color: rgba(56, 189, 248, 0.4);
+}
+
+.confirm-add__card-info {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+}
+
+.confirm-add__card-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.confirm-add__card-price {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: rgba(100, 210, 255, 1);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.confirm-add__card-unit {
+    font-size: 0.82rem;
+    font-weight: 400;
+    color: rgba(210, 240, 255, 0.6);
 }
 
 .cm-body {
@@ -5582,23 +5664,6 @@ function formatDate(iso) {
     text-align: center;
     margin: 0.5rem 0;
     line-height: 1.5;
-}
-
-.confirm-add__svc {
-    font-size: 1.05rem;
-    color: rgba(255, 255, 255, 0.88);
-    text-align: center;
-    margin: 0.75rem 0 0.25rem;
-    font-weight: 500;
-}
-
-.confirm-add__price {
-    font-family: var(--font-receipt);
-    font-size: 0.92rem;
-    color: rgba(100, 200, 255, 0.75);
-    text-align: center;
-    font-variant-numeric: tabular-nums;
-    margin-bottom: 0.75rem;
 }
 
 .cm-section-label {
