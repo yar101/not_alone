@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AdminPagination from '@/Components/Admin/AdminPagination.vue';
@@ -149,6 +149,28 @@ function getInitials(name) {
 
 function isSystemMessage(msg) {
     return !msg.sender_id || (msg.type && msg.type !== 'user' && msg.type !== 'image');
+}
+
+const page = usePage();
+const feePercent = computed(() => Number(page.props.customer_service_fee_percent ?? 5));
+
+function getMsgFee(msg) {
+    if (msg?.metadata?.service_fee !== undefined && msg?.metadata?.service_fee !== null) {
+        return Number(msg.metadata.service_fee);
+    }
+    const services = msg?.metadata?.services ?? [];
+    const sum = services.reduce((acc, s) => acc + (s.price ?? 0) * (s.quantity ?? 1), 0);
+    return sum > 0 ? Math.round(sum * (feePercent.value / 100) * 100) / 100 : 0;
+}
+
+function getMsgTotal(msg) {
+    if (msg?.metadata?.total_price !== undefined && msg?.metadata?.total_price !== null && msg?.metadata?.service_fee !== undefined) {
+        return Number(msg.metadata.total_price);
+    }
+    const services = msg?.metadata?.services ?? [];
+    const sum = services.reduce((acc, s) => acc + (s.price ?? 0) * (s.quantity ?? 1), 0);
+    const fee = getMsgFee(msg);
+    return Math.round((sum + fee) * 100) / 100;
 }
 
 function getSystemText(msg) {
@@ -354,9 +376,13 @@ function getSystemText(msg) {
                                         <span class="sys-svc-name">{{ svc.name }} <span class="sys-svc-qty">x{{ svc.quantity || 1 }}</span></span>
                                         <span class="sys-svc-price inline-flex items-center gap-1">{{ (svc.price || 0).toLocaleString('ru-RU') }} <CoinIcon color="blue" size="xs" /></span>
                                     </div>
+                                    <div v-if="getMsgFee(msg) > 0" class="sys-svc-line">
+                                        <span class="sys-svc-name">Сервисный сбор</span>
+                                        <span class="sys-svc-price inline-flex items-center gap-1">{{ getMsgFee(msg).toLocaleString('ru-RU') }} <CoinIcon color="blue" size="xs" /></span>
+                                    </div>
                                     <div class="sys-svc-total">
                                         <span>Итого:</span>
-                                        <span class="inline-flex items-center gap-1">{{ msg.metadata.services.reduce((sum, s) => sum + ((s.price || 0) * (s.quantity || 1)), 0).toLocaleString('ru-RU') }} <CoinIcon color="blue" size="xs" /></span>
+                                        <span class="inline-flex items-center gap-1">{{ getMsgTotal(msg).toLocaleString('ru-RU') }} <CoinIcon color="blue" size="xs" /></span>
                                     </div>
                                 </div>
 

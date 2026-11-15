@@ -119,7 +119,17 @@ class OrderService
                 ['user_id' => $idol->id],
             ]);
 
-            $order->update(['conversation_id' => $conversation->id]);
+            // Calculate customer service fee immediately upon order creation
+            $servicePrice = (float) $order->items()->sum(DB::raw('COALESCE(price, 0) * COALESCE(quantity, 1)'));
+            $feePercent = (float) PlatformSetting::get('order_customer_service_fee_percent', 5.0);
+            $serviceFee = $servicePrice > 0 ? $this->walletService->roundFee($servicePrice, $feePercent) : 0.00;
+            $totalPrice = (float) bcadd((string) $servicePrice, (string) $serviceFee, 2);
+
+            $order->update([
+                'conversation_id' => $conversation->id,
+                'customer_service_fee' => $serviceFee,
+                'customer_service_fee_percent' => $feePercent,
+            ]);
 
             $msg = $conversation->messages()->create([
                 'sender_id' => $customer->id,
@@ -135,6 +145,10 @@ class OrderService
                         'time_unit' => $s->timeUnit?->name,
                         'quantity' => $s->is_trial ? 1 : max(1, min(100, (int) ($quantityMap[$s->id]['quantity'] ?? 1))),
                     ])->values()->all(),
+                    'service_fee' => $serviceFee,
+                    'fee_percent' => $feePercent,
+                    'service_price' => $servicePrice,
+                    'total_price' => $totalPrice,
                 ],
             ]);
 
@@ -224,8 +238,8 @@ class OrderService
 
             // Calculate service fee and hold funds in escrow
             $servicePrice = (float) $lockedOrder->total_price;
-            $feePercent = (float) PlatformSetting::get('order_customer_service_fee_percent', 5.0);
-            $serviceFee = $servicePrice > 0 ? $this->walletService->roundFee($servicePrice, $feePercent) : 0.00;
+            $feePercent = (float) ($lockedOrder->customer_service_fee_percent > 0 ? $lockedOrder->customer_service_fee_percent : PlatformSetting::get('order_customer_service_fee_percent', 5.0));
+            $serviceFee = (float) ($lockedOrder->customer_service_fee > 0 ? $lockedOrder->customer_service_fee : ($servicePrice > 0 ? $this->walletService->roundFee($servicePrice, $feePercent) : 0.00));
             $totalAmount = (float) bcadd((string) $servicePrice, (string) $serviceFee, 2);
 
             if ($totalAmount > 0) {
@@ -460,10 +474,23 @@ class OrderService
                 $lockedOrder->items()->create(['service_id' => $service->id, 'quantity' => 1, 'price' => $service->price]);
             }
 
-            $lockedOrder->touch();
+            // Recalculate customer service fee with updated items
+            $lockedOrder->load(['items.service.timeUnit']);
+            $servicePrice = (float) $lockedOrder->items->sum(function ($item) {
+                $price = $item->price ?? $item->service?->price ?? 0;
+
+                return $price * ($item->quantity ?? 1);
+            });
+            $feePercent = (float) ($lockedOrder->customer_service_fee_percent ?: PlatformSetting::get('order_customer_service_fee_percent', 5.0));
+            $serviceFee = $servicePrice > 0 ? $this->walletService->roundFee($servicePrice, $feePercent) : 0.00;
+            $totalPrice = (float) bcadd((string) $servicePrice, (string) $serviceFee, 2);
+
+            $lockedOrder->update([
+                'customer_service_fee' => $serviceFee,
+                'customer_service_fee_percent' => $feePercent,
+            ]);
 
             if ($lockedOrder->conversation_id) {
-                $lockedOrder->load(['items.service.timeUnit']);
                 $allItems = $lockedOrder->items->map(fn ($item) => [
                     'id' => $item->service?->id,
                     'name' => $item->service?->name,
@@ -479,6 +506,10 @@ class OrderService
                     'metadata' => [
                         'event' => 'item_added',
                         'services' => $allItems,
+                        'service_fee' => $serviceFee,
+                        'fee_percent' => $feePercent,
+                        'service_price' => $servicePrice,
+                        'total_price' => $totalPrice,
                     ],
                 ]);
             }

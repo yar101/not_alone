@@ -109,6 +109,17 @@ const confirmOfferModal = ref(false);
 const confirmOfferMode = ref("create"); // 'create' | 'add'
 const confirmOfferServices = ref([]); // array of { id, name, price, time_unit }
 const confirmOfferLoading = ref(false);
+const confirmOfferServicesSum = computed(() =>
+    confirmOfferServices.value.reduce((sum, s) => sum + (s.price || 0), 0)
+);
+const confirmOfferFee = computed(() =>
+    confirmOfferServicesSum.value > 0
+        ? Math.round(confirmOfferServicesSum.value * (feePercent.value / 100) * 100) / 100
+        : 0
+);
+const confirmOfferTotal = computed(() =>
+    Math.round((confirmOfferServicesSum.value + confirmOfferFee.value) * 100) / 100
+);
 
 // ── Orders tab ────────────────────────────────────────────
 const activeTab = ref("messages"); // 'messages' | 'orders'
@@ -1532,6 +1543,25 @@ function getMsgPreview(msg) {
     return msg.body || "";
 }
 
+function getSystemMessageFee(msg) {
+    if (msg?.metadata?.service_fee !== undefined && msg?.metadata?.service_fee !== null) {
+        return Number(msg.metadata.service_fee);
+    }
+    const services = msg?.metadata?.services ?? [];
+    const sum = services.reduce((acc, s) => acc + (s.price ?? 0) * (s.quantity ?? 1), 0);
+    return sum > 0 ? Math.round(sum * (feePercent.value / 100) * 100) / 100 : 0;
+}
+
+function getSystemMessageTotal(msg) {
+    if (msg?.metadata?.total_price !== undefined && msg?.metadata?.total_price !== null && msg?.metadata?.service_fee !== undefined) {
+        return Number(msg.metadata.total_price);
+    }
+    const services = msg?.metadata?.services ?? [];
+    const sum = services.reduce((acc, s) => acc + (s.price ?? 0) * (s.quantity ?? 1), 0);
+    const fee = getSystemMessageFee(msg);
+    return Math.round((sum + fee) * 100) / 100;
+}
+
 function formatTime(iso) {
     if (!iso) return "";
     const loc = locale.value?.current === "ru" ? "ru-RU" : "en-US";
@@ -2607,6 +2637,17 @@ function formatDate(iso) {
                                                                     <template v-if="s.time_unit">&thinsp;/&thinsp;{{ s.time_unit }}</template>
                                                                 </span>
                                                             </div>
+                                                            <div
+                                                                v-if="getSystemMessageFee(item.msg) > 0"
+                                                                class="sc-line"
+                                                            >
+                                                                <span class="sc-line__name">Сервисный сбор</span>
+                                                                <span class="sc-line__dots"></span>
+                                                                <span class="sc-line__price inline-flex items-center gap-1">
+                                                                    <span>{{ getSystemMessageFee(item.msg).toLocaleString("ru-RU") }}</span>
+                                                                    <CoinIcon color="blue" size="xs" />
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                                 <div class="sc-perf">
                                                                     <span class="sc-perf__line"></span>
@@ -2614,7 +2655,7 @@ function formatDate(iso) {
                                                                 <div class="sc-total">
                                                                     <span class="sc-total__label">{{ __("chat.msg.total") }}</span>
                                                                     <span class="sc-total__value inline-flex items-center gap-1">
-                                                                        <span>{{ item.msg.metadata.services.reduce((sum, s) => sum + (s.price ?? 0) * (s.quantity ?? 1), 0).toLocaleString("ru-RU") }}</span>
+                                                                        <span>{{ getSystemMessageTotal(item.msg).toLocaleString("ru-RU") }}</span>
                                                                         <CoinIcon color="blue" size="xs" />
                                                                     </span>
                                                                 </div>
@@ -2829,6 +2870,17 @@ function formatDate(iso) {
                                                                         <template v-if="s.time_unit">&thinsp;/&thinsp;{{ s.time_unit }}</template>
                                                                     </span>
                                                             </div>
+                                                            <div
+                                                                v-if="getSystemMessageFee(item.msg) > 0"
+                                                                class="sc-line"
+                                                            >
+                                                                <span class="sc-line__name">Сервисный сбор</span>
+                                                                <span class="sc-line__dots"></span>
+                                                                <span class="sc-line__price inline-flex items-center gap-1">
+                                                                    <span>{{ getSystemMessageFee(item.msg).toLocaleString("ru-RU") }}</span>
+                                                                    <CoinIcon color="blue" size="xs" />
+                                                                </span>
+                                                            </div>
                                                         </div>
                                                         <div class="sc-perf">
                                                             <span
@@ -2848,27 +2900,7 @@ function formatDate(iso) {
                                                                 class="sc-total__value inline-flex items-center gap-1"
                                                             >
                                                                 <span>{{
-                                                                    (
-                                                                        item.msg
-                                                                            .metadata
-                                                                            .services ??
-                                                                        []
-                                                                    )
-                                                                        .reduce(
-                                                                            (
-                                                                                sum,
-                                                                                s,
-                                                                            ) =>
-                                                                                sum +
-                                                                                (s.price ??
-                                                                                    0) *
-                                                                                (s.quantity ??
-                                                                                    1),
-                                                                            0,
-                                                                        )
-                                                                        .toLocaleString(
-                                                                            "ru-RU",
-                                                                        )
+                                                                    getSystemMessageTotal(item.msg).toLocaleString("ru-RU")
                                                                 }}</span>
                                                                 <CoinIcon color="blue" size="xs" />
                                                             </span>
@@ -3887,12 +3919,13 @@ function formatDate(iso) {
             <span class="cm-perf__line cm-perf__line--cyan"></span>
         </div>
         
-        <div class="confirm-add__total flex flex-col items-center gap-1" style="text-align: center; margin: 1rem 0; font-weight: 600; font-size: 1.05rem; color: #fff;">
-            <div class="text-xs font-normal text-zinc-400">
-                + сбор сервиса {{ feePercent }}% при оплате заказа
+        <div class="confirm-add__summary flex flex-col items-center gap-1.5" style="text-align: center; margin: 1rem 0;">
+            <div v-if="confirmOfferFee > 0" class="inline-flex items-center gap-1 text-sm text-zinc-300 font-medium">
+                <span>Сервисный сбор: {{ confirmOfferFee.toLocaleString("ru-RU") }}</span>
+                <CoinIcon color="blue" size="xs" />
             </div>
-            <div class="inline-flex items-center gap-1">
-                <span>Итого услуги: {{ confirmOfferServices.reduce((sum, svc) => sum + (svc.price || 0), 0).toLocaleString("ru-RU") }}</span>
+            <div class="inline-flex items-center gap-1 font-bold text-base text-white">
+                <span>Итого: {{ confirmOfferTotal.toLocaleString("ru-RU") }}</span>
                 <CoinIcon color="blue" size="xs" />
             </div>
         </div>

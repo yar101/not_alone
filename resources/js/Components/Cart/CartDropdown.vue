@@ -51,6 +51,14 @@ const servicesTotal = computed(() =>
     servicesItems.value.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0)
 );
 
+const customerServiceFee = computed(() =>
+    servicesTotal.value > 0 ? Math.round(servicesTotal.value * (feePercent.value / 100) * 100) / 100 : 0
+);
+
+const servicesTotalWithFee = computed(() =>
+    Math.round((servicesTotal.value + customerServiceFee.value) * 100) / 100
+);
+
 const contentTotal = computed(() =>
     contentItems.value.reduce((sum, item) => sum + (item.price || 0), 0)
 );
@@ -215,15 +223,19 @@ async function purchaseContent() {
                     </div>
 
                     <div class="rc-perf"><span class="rc-perf__line"></span></div>
-                    <div class="rc-total">
-                        <span class="rc-total__label">{{ __('cart.total') }}</span>
-                        <span class="rc-total__sum inline-flex items-center gap-1">
-                            <span>{{ servicesTotal.toLocaleString('ru-RU') }}</span>
+                    <div v-if="servicesItems.length && customerServiceFee > 0" class="rc-fee-row">
+                        <span class="rc-fee-row__label">Сервисный сбор:</span>
+                        <span class="rc-fee-row__sum inline-flex items-center gap-1">
+                            <span>{{ customerServiceFee.toLocaleString('ru-RU') }}</span>
                             <CoinIcon color="blue" size="xs" />
                         </span>
                     </div>
-                    <div class="text-[11px] text-zinc-400 px-4 pb-2 text-right">
-                        + сбор сервиса {{ feePercent }}% при оплате
+                    <div class="rc-total">
+                        <span class="rc-total__label">{{ __('cart.total') }}</span>
+                        <span class="rc-total__sum inline-flex items-center gap-1">
+                            <span>{{ servicesTotalWithFee.toLocaleString('ru-RU') }}</span>
+                            <CoinIcon color="blue" size="xs" />
+                        </span>
                     </div>
                     <div class="rc-perf"><span class="rc-perf__line"></span></div>
                     <div class="rc-footer">
@@ -717,7 +729,27 @@ async function purchaseContent() {
     margin: 0 9px;
 }
 
-/* ── Total ────────────────────────────────────────────── */
+/* ── Service Fee & Total ─────────────────────────────────── */
+.rc-fee-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.1rem 1.5rem 0.35rem;
+}
+
+.rc-fee-row__label {
+    font-size: 0.85rem;
+    color: rgba(210, 240, 255, 0.7);
+    font-weight: 500;
+}
+
+.rc-fee-row__sum {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: rgba(100, 210, 255, 0.9);
+    font-variant-numeric: tabular-nums;
+}
+
 .rc-total {
     display: flex;
     justify-content: space-between;
