@@ -3899,26 +3899,30 @@ function formatDate(iso) {
         :show="confirmOfferModal"
         variant="blue"
         compact
-        max-width="420px"
+        max-width="500px"
         @close="confirmOfferModal = false"
     >
         <div class="cm-title cm-title--cyan">
             {{ confirmOfferMode === 'create' ? 'Создать заказ' : __("chat.add_to_order") }}
         </div>
 
-        <div class="cm-divider--top"></div>
+        <div class="cm-perf cm-perf--cyan">
+            <span class="cm-perf__line cm-perf__line--cyan"></span>
+        </div>
         
         <div class="confirm-add__list">
-            <div v-for="(svc, idx) in confirmOfferServices" :key="idx" class="confirm-add__card">
-                <div class="confirm-add__card-info">
-                    <span class="confirm-add__card-name">{{ svc.name }}</span>
+            <div v-for="(svc, idx) in confirmOfferServices" :key="idx" class="confirm-add__item">
+                <div class="confirm-add__item-top">
+                    <span class="confirm-add__item-name">{{ svc.name }}</span>
                 </div>
-                <div class="confirm-add__card-price inline-flex items-center gap-1">
-                    <span>{{ (svc.price || 0).toLocaleString("ru-RU") }}</span>
-                    <CoinIcon color="blue" size="xs" />
-                    <template v-if="svc.time_unit">
-                        <span class="confirm-add__card-unit">&thinsp;/&thinsp;{{ svc.time_unit }}</span>
-                    </template>
+                <div class="confirm-add__item-bottom">
+                    <span class="confirm-add__item-price inline-flex items-center gap-1.5">
+                        <span>{{ (svc.price || 0).toLocaleString("ru-RU") }}</span>
+                        <CoinIcon color="blue" size="xs" />
+                        <template v-if="svc.time_unit">
+                            <span class="confirm-add__item-unit">&thinsp;/&thinsp;{{ svc.time_unit }}</span>
+                        </template>
+                    </span>
                 </div>
             </div>
         </div>
@@ -3927,9 +3931,9 @@ function formatDate(iso) {
             <span class="cm-perf__line cm-perf__line--cyan"></span>
         </div>
         
-        <div class="confirm-add__summary inline-flex items-center justify-center gap-1.5" style="margin: 0.85rem 0 1.15rem; width: 100%;">
-            <span class="text-zinc-300 font-semibold text-base">{{ __("chat.msg.total") }}:</span>
-            <span class="text-white font-bold text-lg inline-flex items-center gap-1">
+        <div class="confirm-add__total">
+            <span class="confirm-add__total-label">{{ __("chat.msg.total") }}</span>
+            <span class="confirm-add__total-value inline-flex items-center gap-1.5">
                 <span>{{ confirmOfferServicesSum.toLocaleString("ru-RU") }}</span>
                 <CoinIcon color="blue" size="xs" />
             </span>
@@ -5592,70 +5596,93 @@ function formatDate(iso) {
     border-top-style: dashed;
 }
 
-.cm-divider--top {
-    width: 100%;
-    height: 3px;
-    border: none;
-    border-top: 1px solid rgba(56, 189, 248, 0.25);
-    border-bottom: 1px solid rgba(56, 189, 248, 0.1);
-    margin: 0.85rem 0 1rem;
-}
-
 .confirm-add__list {
     display: flex;
     flex-direction: column;
-    gap: 0.55rem;
-    max-height: 280px;
+    gap: 0.6rem;
+    max-height: 290px;
     overflow-y: auto;
-    padding: 0.1rem 0.15rem;
+    padding: 0.15rem 0.2rem;
     margin: 0.2rem 0;
 }
 
-.confirm-add__card {
+.confirm-add__item {
+    font-family: var(--font-receipt);
+    background: rgba(100, 210, 255, 0.04);
+    border: 1px dashed rgba(100, 210, 255, 0.22);
+    border-radius: 6px;
+    padding: 0.8rem 1.1rem;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.85rem;
-    padding: 0.75rem 0.95rem;
-    background: rgba(14, 25, 45, 0.65);
-    border: 1px solid rgba(56, 189, 248, 0.2);
-    border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-    transition: border-color 0.15s, background 0.15s;
+    flex-direction: column;
+    gap: 0.45rem;
+    transition: background 0.15s, border-color 0.15s;
 }
 
-.confirm-add__card:hover {
-    background: rgba(14, 25, 45, 0.85);
-    border-color: rgba(56, 189, 248, 0.4);
+.confirm-add__item:hover {
+    background: rgba(100, 210, 255, 0.07);
+    border-color: rgba(100, 210, 255, 0.38);
 }
 
-.confirm-add__card-info {
-    flex: 1;
-    min-width: 0;
-    text-align: left;
+.confirm-add__item-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
 }
 
-.confirm-add__card-name {
-    font-size: 0.95rem;
+.confirm-add__item-name {
+    font-size: 1rem;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.95);
     line-height: 1.35;
     word-break: break-word;
+    letter-spacing: 0.01em;
 }
 
-.confirm-add__card-price {
+.confirm-add__item-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.confirm-add__item-price {
+    font-family: var(--font-receipt);
     font-size: 1.05rem;
+    font-weight: 700;
+    color: rgba(100, 210, 255, 0.95);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+}
+
+.confirm-add__item-unit {
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: rgba(210, 240, 255, 0.55);
+}
+
+.confirm-add__total {
+    font-family: var(--font-receipt);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0.35rem 0.6rem 0.65rem;
+    width: 100%;
+}
+
+.confirm-add__total-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgba(210, 240, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.confirm-add__total-value {
+    font-size: 1.35rem;
     font-weight: 700;
     color: rgba(100, 210, 255, 1);
     font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-
-.confirm-add__card-unit {
-    font-size: 0.82rem;
-    font-weight: 400;
-    color: rgba(210, 240, 255, 0.6);
+    letter-spacing: 0.02em;
 }
 
 .cm-body {
