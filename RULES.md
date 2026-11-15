@@ -31,7 +31,7 @@
 * **Бэкенд:** PHP 8.4.x, Laravel 11 (`v11.48+`).
 * **База данных:** PostgreSQL 16 Alpine (порт хоста `5433`, внутри `5432`).
 * **Кэш, Сессии, Очереди:** Redis Alpine (`SESSION_DRIVER=redis`, `QUEUE_CONNECTION=redis`, `CACHE_STORE=redis`).
-* **Фронтенд:** Vue 3 (Composition API), Inertia.js v2 (`@inertiajs/vue3`), Vite 6, Tailwind CSS 3, Element Plus.
+* **Фронтенд:** Vue 3 (Composition API), Inertia.js v3 (`@inertiajs/vue3`), Vite 6, Tailwind CSS 3, Element Plus.
 * **WebSockets / Realtime:** Laravel Reverb (порт `8080`).
 * **S3 / Хранилище медиа:** MinIO (S3 API `9000`, консоль `8900`, bucket `not-alone`).
 * **Dev Mail:** Mailpit (веб-интерфейс `8025`, SMTP `1025`).
@@ -154,7 +154,7 @@ $$\text{effectiveDelta} = \max\left(0.01,\, \text{round}\left(\text{baseDelta} \
 *Отрицательные дельты (штрафы) применяются в полном размере без изменений.*
 
 ### 5.4. Защита от накрутки
-* Уникальный индекс `(customer_id, idol_id)` в `reviews` — максимум один отзыв на пару.
+* Уникальный индекс `(reviewer_id, idol_id)` в `reviews` — максимум один отзыв на пару.
 * Отзыв разрешён только к завершённому заказу (`status = completed`).
 * Посты в ленте, лайки и комментарии на рейтинг не влияют.
 * Все изменения пишутся в журнал `idol_rating_logs`.
