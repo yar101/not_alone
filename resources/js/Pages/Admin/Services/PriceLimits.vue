@@ -6,6 +6,7 @@ import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppSelect from '@/Components/AppSelect.vue';
 import CreateButton from '@/Components/CreateButton.vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -104,16 +105,28 @@ function destroy(id) {
                 <thead>
                     <tr>
                         <th>Категория</th>
-                        <th>Общий лимит (₽)</th>
-                        <th>Лимит для низкого рейтинга (₽)</th>
+                        <th>Общий лимит</th>
+                        <th>Лимит для низкого рейтинга</th>
                         <th>Действия</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-for="limit in limits" :key="limit.id">
                         <td>{{ getCategoryName(limit.category) }}</td>
-                        <td>{{ limit.max_price ? `${limit.max_price.toLocaleString('ru')} ₽` : '—' }}</td>
-                        <td>{{ limit.low_rating_max_price ? `${limit.low_rating_max_price.toLocaleString('ru')} ₽` : '—' }}</td>
+                        <td>
+                            <span v-if="limit.max_price" class="inline-flex items-center gap-1">
+                                <span>{{ limit.max_price.toLocaleString('ru') }}</span>
+                                <CoinIcon color="blue" size="xs" />
+                            </span>
+                            <span v-else>—</span>
+                        </td>
+                        <td>
+                            <span v-if="limit.low_rating_max_price" class="inline-flex items-center gap-1">
+                                <span>{{ limit.low_rating_max_price.toLocaleString('ru') }}</span>
+                                <CoinIcon color="blue" size="xs" />
+                            </span>
+                            <span v-else>—</span>
+                        </td>
                         <td>
                             <div class="actions">
                                 <button class="btn-edit" @click="openEdit(limit)">Изменить</button>
@@ -147,12 +160,12 @@ function destroy(id) {
                             <p v-if="form.errors.category_id" class="err">{{ form.errors.category_id }}</p>
                         </div>
                         <div class="field">
-                            <label>Общий лимит (₽)</label>
+                            <label>Общий лимит</label>
                             <input v-model.number="form.max_price" type="number" min="1" class="input" :class="{ 'input--err': form.errors.max_price }" placeholder="Не ограничен" />
                             <p v-if="form.errors.max_price" class="err">{{ form.errors.max_price }}</p>
                         </div>
                         <div class="field">
-                            <label>Лимит для низкого рейтинга (₽)</label>
+                            <label>Лимит для низкого рейтинга</label>
                             <input v-model.number="form.low_rating_max_price" type="number" min="1" class="input" :class="{ 'input--err': form.errors.low_rating_max_price }" placeholder="Не ограничен" />
                             <p v-if="form.errors.low_rating_max_price" class="err">{{ form.errors.low_rating_max_price }}</p>
                         </div>

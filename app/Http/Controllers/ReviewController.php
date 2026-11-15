@@ -100,7 +100,7 @@ class ReviewController extends Controller
             ->with(['reviewer.activeFrame', 'epithets']);
 
         if ($isOwner) {
-            $query->with('latestDispute');
+            $query->with(['latestDispute', 'disputes']);
         }
 
         match ($request->get('sort')) {
@@ -138,6 +138,8 @@ class ReviewController extends Controller
                 ] : null,
                 'created_at' => $r->created_at->toISOString(),
                 'dispute_status' => $isOwner ? ($r->latestDispute?->status ?? null) : null,
+                'can_dispute' => $isOwner && ! $r->is_hidden && $r->disputes->count() < 2 && ($r->latestDispute?->status !== 'pending') && ! ($request->user()?->isActiveBanned() ?? false),
+                'dispute_count' => $isOwner ? $r->disputes->count() : 0,
             ])->values(),
             'total' => $reviews->total(),
             'has_more' => $reviews->hasMorePages(),

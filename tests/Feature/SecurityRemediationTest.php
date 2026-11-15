@@ -110,11 +110,11 @@ test('completed order refund claws back payout from idol, reverses platform fee,
         'quantity' => 1,
     ]);
 
-    // Pay order -> hold customer funds (500)
+    // Pay order -> hold customer funds (500) + 5% service fee (25)
     $orderService->pay($order, $customer);
 
     $custWallet = $walletService->getOrCreateWallet($customer);
-    expect((float) $custWallet->balance)->toEqual(460.00);
+    expect((float) $custWallet->balance)->toEqual(435.00);
     expect((float) $custWallet->held_balance)->toEqual(500.00);
 
     // Complete order (releases customer hold, holds idol net payout during dispute window)
@@ -126,7 +126,7 @@ test('completed order refund claws back payout from idol, reverses platform fee,
     $walletService->releaseIdolPayout($order);
 
     $idolWallet = $walletService->getOrCreateWallet($idol);
-    expect((float) $idolWallet->balance)->toEqual(450.00); // 500 gross - 50 platform fee
+    expect((float) $idolWallet->pink_balance)->toEqual(450.00); // 500 gross - 50 platform fee in pink coins
     $custWallet->refresh();
     expect((float) $custWallet->held_balance)->toEqual(0.00);
 
@@ -138,13 +138,13 @@ test('completed order refund claws back payout from idol, reverses platform fee,
     $order->refresh();
     expect($order->status)->toBe(OrderStatus::Refunded);
 
-    // Idol balance clawed back by net amount (450) -> returns to 0.00
+    // Idol pink balance clawed back by net amount (450) -> returns to 0.00
     $idolWallet->refresh();
-    expect((float) $idolWallet->balance)->toEqual(0.00);
+    expect((float) $idolWallet->pink_balance)->toEqual(0.00);
 
-    // Customer receives net refund back to available balance (500 - 14% fees = 430 -> 460 + 430 = 890)
+    // Customer receives 100% services refund back to available balance (435 + 500 = 935)
     $custWallet->refresh();
-    expect((float) $custWallet->balance)->toEqual(890.00);
+    expect((float) $custWallet->balance)->toEqual(935.00);
 
     // Verify OrderClawback transaction exists on idol wallet
     $clawbackTx = WalletTransaction::where('wallet_id', $idolWallet->id)

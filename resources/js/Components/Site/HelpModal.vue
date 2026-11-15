@@ -6,6 +6,7 @@ import { useModalHistory } from "@/composables/useModalHistory";
 const { __, locale } = useTranslations();
 import axios from "axios";
 import SiteModal from "./SiteModal.vue";
+import CoinIcon from "@/Components/Common/CoinIcon.vue";
 
 const props = defineProps({
     show: {
@@ -338,7 +339,10 @@ async function submitDispute() {
                                     <div class="dispute-order-card__top">
                                         <span class="dispute-order-card__num">#{{ o.id }}</span>
                                         <span class="dispute-order-card__idol">{{ o.idol_name }}</span>
-                                        <span class="dispute-order-card__total">{{ o.total }} ₽</span>
+                                        <span class="dispute-order-card__total inline-flex items-center gap-1">
+                                            <span>{{ o.total }}</span>
+                                            <CoinIcon color="blue" size="xs" />
+                                        </span>
                                         <span class="dispute-order-card__timer">{{ orderTimeLeft(o) }}</span>
                                     </div>
                                     <div class="dispute-order-card__dates">

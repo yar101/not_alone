@@ -39,8 +39,18 @@ class TransactionController extends Controller
 
         if ($type = $request->input('type')) {
             if ($type !== 'all') {
-                $query->where('type', $type);
+                $normalizedType = match ($type) {
+                    'pink_to_blue_conversion' => WalletTransactionType::PinkToBlueConversion->value,
+                    'blue_from_pink_conversion' => WalletTransactionType::BlueFromPinkConversion->value,
+                    default => $type,
+                };
+                $query->where('type', $normalizedType);
             }
+        }
+
+        $currency = $request->input('currency');
+        if ($currency && in_array($currency, ['blue', 'pink'], true)) {
+            $query->where('currency', $currency);
         }
 
         if ($status = $request->input('status')) {
@@ -77,6 +87,7 @@ class TransactionController extends Controller
             ->through(fn (WalletTransaction $tx) => [
                 'id' => $tx->id,
                 'wallet_id' => $tx->wallet_id,
+                'currency' => $tx->currency ?? 'blue',
                 'user' => $tx->user ? [
                     'id' => $tx->user->id,
                     'name' => $tx->user->name,
@@ -125,11 +136,20 @@ class TransactionController extends Controller
             'pack_purchase' => (int) ($rawTypeCounts[WalletTransactionType::PackPurchase->value] ?? 0),
             'pack_sale' => (int) ($rawTypeCounts[WalletTransactionType::PackSale->value] ?? 0),
             'refund_fee' => (int) ($rawTypeCounts[WalletTransactionType::RefundFee->value] ?? 0),
+            'customer_service_fee' => (int) ($rawTypeCounts[WalletTransactionType::CustomerServiceFee->value] ?? 0),
+            'pink_to_blue' => (int) ($rawTypeCounts[WalletTransactionType::PinkToBlueConversion->value] ?? 0),
+            'blue_from_pink' => (int) ($rawTypeCounts[WalletTransactionType::BlueFromPinkConversion->value] ?? 0),
+            'pink_to_blue_conversion' => (int) ($rawTypeCounts[WalletTransactionType::PinkToBlueConversion->value] ?? 0),
+            'blue_from_pink_conversion' => (int) ($rawTypeCounts[WalletTransactionType::BlueFromPinkConversion->value] ?? 0),
         ];
 
         $platformFeeSum = (float) WalletTransaction::where('type', WalletTransactionType::PlatformFee)
             ->where('status', WalletTransactionStatus::Completed)
             ->whereRaw("(metadata->>'refunded') is null")
+            ->sum(DB::raw('abs(amount)'));
+
+        $customerServiceFeeSum = (float) WalletTransaction::where('type', WalletTransactionType::CustomerServiceFee)
+            ->where('status', WalletTransactionStatus::Completed)
             ->sum(DB::raw('abs(amount)'));
 
         $refundFeeSum = (float) WalletTransaction::where('type', WalletTransactionType::OrderRefund)
@@ -147,7 +167,7 @@ class TransactionController extends Controller
             ->whereNotNull('metadata->fee_amount')
             ->sum(DB::raw("cast(metadata->>'fee_amount' as numeric)"));
 
-        $totalFees = round($platformFeeSum + $refundFeeSum + $depositFeeSum + $withdrawalFeeSum, 2);
+        $totalFees = round($platformFeeSum + $customerServiceFeeSum + $refundFeeSum + $depositFeeSum + $withdrawalFeeSum, 2);
 
         // Global KPI Stats
         $kpi = [
@@ -185,6 +205,7 @@ class TransactionController extends Controller
                 'search' => $request->input('search', ''),
                 'type' => $request->input('type', ''),
                 'status' => $request->input('status', ''),
+                'currency' => $request->input('currency', ''),
                 'date_from' => $request->input('date_from', ''),
                 'date_to' => $request->input('date_to', ''),
             ],

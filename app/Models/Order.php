@@ -14,13 +14,16 @@ class Order extends Model
 
     protected $fillable = [
         'customer_id', 'idol_id', 'conversation_id',
-        'status', 'cancel_reason', 'cancelled_by',
+        'status', 'customer_service_fee', 'customer_service_fee_percent',
+        'cancel_reason', 'cancelled_by',
         'completion_confirmed_by_idol', 'completion_confirmed_by_customer',
         'paid_at', 'completed_at', 'payout_released_at',
     ];
 
     protected $casts = [
         'status' => OrderStatus::class,
+        'customer_service_fee' => 'float',
+        'customer_service_fee_percent' => 'float',
         'completion_confirmed_by_idol' => 'boolean',
         'completion_confirmed_by_customer' => 'boolean',
         'paid_at' => 'datetime',
@@ -85,6 +88,11 @@ class Order extends Model
         }
 
         return (float) $this->items()->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(price, 0) * COALESCE(quantity, 1)'));
+    }
+
+    public function getTotalWithFeeAttribute(): float
+    {
+        return (float) bcadd((string) $this->total_price, (string) ($this->customer_service_fee ?? 0.0), 2);
     }
 
     public function getHeldAmountAttribute(): float

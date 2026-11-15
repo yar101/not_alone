@@ -22,6 +22,9 @@ class WalletBalanceUpdated implements ShouldBroadcast
         public float $balance,
         public float $heldBalance,
         public float $totalBalance,
+        public ?float $pinkBalance = null,
+        public ?float $pinkHeldBalance = null,
+        public ?float $pinkTotalBalance = null,
     ) {}
 
     public function broadcastOn(): array
@@ -36,11 +39,19 @@ class WalletBalanceUpdated implements ShouldBroadcast
 
     public function broadcastWith(): array
     {
-        return [
+        $payload = [
             'user_id' => $this->userId,
             'balance' => $this->balance,
             'held_balance' => $this->heldBalance,
             'total_balance' => $this->totalBalance,
         ];
+
+        if ($this->pinkBalance !== null) {
+            $payload['pink_balance'] = $this->pinkBalance;
+            $payload['pink_held_balance'] = $this->pinkHeldBalance ?? 0.0;
+            $payload['pink_total_balance'] = $this->pinkTotalBalance ?? 0.0;
+        }
+
+        return $payload;
     }
 }

@@ -49,14 +49,19 @@ class ReviewDisputeController extends Controller
             ->groupBy('status')
             ->pluck('count', 'status');
 
+        $pendingCount = (int) ($rawCounts['pending'] ?? 0);
+        $approvedCount = (int) ($rawCounts['approved'] ?? 0);
+        $rejectedCount = (int) ($rawCounts['rejected'] ?? 0);
+
         return Inertia::render('Admin/ReviewDisputes/Index', [
             'disputes' => $disputes,
             'status_filter' => $statusFilter,
             'search' => $search,
             'counts' => [
-                'pending' => (int) ($rawCounts['pending'] ?? 0),
-                'approved' => (int) ($rawCounts['approved'] ?? 0),
-                'rejected' => (int) ($rawCounts['rejected'] ?? 0),
+                'all' => $pendingCount + $approvedCount + $rejectedCount,
+                'pending' => $pendingCount,
+                'approved' => $approvedCount,
+                'rejected' => $rejectedCount,
             ],
         ]);
     }
@@ -88,9 +93,30 @@ class ReviewDisputeController extends Controller
             $idol = $lockedDispute->idol;
 
             if ($request->decision === 'approved') {
-                $lockedDispute->review?->update(['is_hidden' => true]);
-                if ($idol) {
-                    IdolRatingService::adjust($idol, 'review_dispute_approved');
+                $review = $lockedDispute->review;
+                $review?->update(['is_hidden' => true]);
+
+                if ($idol && $review) {
+                    $baseDelta = (float) match ((int) $review->rating) {
+                        5 => \App\Models\PlatformSetting::get('rating_delta_review_5star', 0.8),
+                        4 => \App\Models\PlatformSetting::get('rating_delta_review_4star', 0.4),
+                        3 => \App\Models\PlatformSetting::get('rating_delta_review_3star', 0.0),
+                        2 => \App\Models\PlatformSetting::get('rating_delta_review_2star', -0.5),
+                        1 => \App\Models\PlatformSetting::get('rating_delta_review_1star', -1.2),
+                        default => 0.0,
+                    };
+
+                    $reversalDelta = -$baseDelta;
+                    if ($reversalDelta != 0.0) {
+                        IdolRatingService::adjust(
+                            $idol,
+                            'review_dispute_approved',
+                            customDelta: $reversalDelta,
+                            note: "Откат рейтинга за отзыв #{$review->id} ({$review->rating}★) по спору #{$lockedDispute->id}"
+                        );
+                        $idol->refresh();
+                        app(\App\Services\AvatarFrames\AchievementService::class)->evaluateUser($idol);
+                    }
                 }
             }
 

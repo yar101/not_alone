@@ -25,6 +25,7 @@ class PlatformSettingsController extends Controller
                 'deposit_fee_percent' => (float) PlatformSetting::get('deposit_fee_percent', config('services.payments.deposit_fee_percent', 4.0)),
                 'withdrawal_fee_percent' => (float) PlatformSetting::get('withdrawal_fee_percent', config('services.payments.withdrawal_fee_percent', 4.0)),
                 'platform_fee_percent' => (float) PlatformSetting::get('platform_fee_percent', config('services.payments.platform_fee_percent', 10.0)),
+                'order_customer_service_fee_percent' => (float) PlatformSetting::get('order_customer_service_fee_percent', 5.0),
                 'refund_gateway_fee_percent' => (float) PlatformSetting::get('refund_gateway_fee_percent', 4.0),
                 'refund_platform_fee_percent' => (float) PlatformSetting::get('refund_platform_fee_percent', 10.0),
             ],
@@ -34,6 +35,7 @@ class PlatformSettingsController extends Controller
                 'review_2star' => (float) PlatformSetting::get('rating_delta_review_2star', -0.5),
                 'review_1star' => (float) PlatformSetting::get('rating_delta_review_1star', -1.2),
                 'order_completed' => (float) PlatformSetting::get('rating_delta_order_completed', 0.2),
+                'order_refunded' => (float) PlatformSetting::get('rating_delta_order_refunded', -10.0),
                 'report_accepted' => (float) PlatformSetting::get('rating_delta_report_accepted', -2.0),
                 'review_dispute_approved' => (float) PlatformSetting::get('rating_delta_review_dispute_approved', 0.6),
             ],
@@ -53,6 +55,7 @@ class PlatformSettingsController extends Controller
             'deposit_fee_percent' => ['required', 'numeric', 'min:0', 'max:50'],
             'withdrawal_fee_percent' => ['required', 'numeric', 'min:0', 'max:50'],
             'platform_fee_percent' => ['required', 'numeric', 'min:0', 'max:50'],
+            'order_customer_service_fee_percent' => ['sometimes', 'numeric', 'min:0', 'max:50'],
             'refund_gateway_fee_percent' => ['sometimes', 'numeric', 'min:0', 'max:50'],
             'refund_platform_fee_percent' => ['sometimes', 'numeric', 'min:0', 'max:50'],
             'rating_deltas.review_5star' => ['required', 'numeric', 'min:0', 'max:10'],
@@ -60,6 +63,7 @@ class PlatformSettingsController extends Controller
             'rating_deltas.review_2star' => ['required', 'numeric', 'min:-10', 'max:0'],
             'rating_deltas.review_1star' => ['required', 'numeric', 'min:-10', 'max:0'],
             'rating_deltas.order_completed' => ['required', 'numeric', 'min:0', 'max:10'],
+            'rating_deltas.order_refunded' => ['sometimes', 'numeric', 'min:-50', 'max:0'],
             'rating_deltas.report_accepted' => ['required', 'numeric', 'min:-10', 'max:0'],
             'rating_deltas.review_dispute_approved' => ['required', 'numeric', 'min:0', 'max:10'],
         ]);
@@ -76,6 +80,9 @@ class PlatformSettingsController extends Controller
         PlatformSetting::set('deposit_fee_percent', $data['deposit_fee_percent']);
         PlatformSetting::set('withdrawal_fee_percent', $data['withdrawal_fee_percent']);
         PlatformSetting::set('platform_fee_percent', $data['platform_fee_percent']);
+        if (isset($data['order_customer_service_fee_percent'])) {
+            PlatformSetting::set('order_customer_service_fee_percent', $data['order_customer_service_fee_percent']);
+        }
         if (isset($data['refund_gateway_fee_percent'])) {
             PlatformSetting::set('refund_gateway_fee_percent', $data['refund_gateway_fee_percent']);
         }

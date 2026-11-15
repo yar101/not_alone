@@ -1,13 +1,16 @@
 <script setup>
 import { ref, computed, watch, inject, onMounted, onUnmounted } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import { useTranslations } from '@/composables/useTranslations';
 import { useModalHistory } from '@/composables/useModalHistory';
 import { Picture, Briefcase } from '@element-plus/icons-vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 import { extractErrorMessage } from '@/Utils/error';
 
 const { __ } = useTranslations();
+const page = usePage();
+const feePercent = computed(() => Number(page.props.customer_service_fee_percent ?? 5));
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -196,9 +199,11 @@ async function purchaseContent() {
                                     <button v-else class="rc-line__del" @click="askDelete(idx)">✕</button>
                                 </div>
                                 <div class="rc-line__bottom">
-                                    <span class="rc-line__price">{{ (item.price || 0).toLocaleString('ru-RU')
-                                    }}&thinsp;₽<template v-if="item.time_unit">&thinsp;/&thinsp;{{ item.time_unit
-                                        }}</template></span>
+                                    <span class="rc-line__price inline-flex items-center gap-1">
+                                        <span>{{ (item.price || 0).toLocaleString('ru-RU') }}</span>
+                                        <CoinIcon color="blue" size="xs" />
+                                        <template v-if="item.time_unit">&thinsp;/&thinsp;{{ item.time_unit }}</template>
+                                    </span>
                                     <div class="rc-qty">
                                         <button class="rc-qty__btn" :disabled="item.is_trial" @click="emit('change-quantity', idx, -1)">−</button>
                                         <span class="rc-qty__val">{{ item.quantity || 1 }}</span>
@@ -212,7 +217,13 @@ async function purchaseContent() {
                     <div class="rc-perf"><span class="rc-perf__line"></span></div>
                     <div class="rc-total">
                         <span class="rc-total__label">{{ __('cart.total') }}</span>
-                        <span class="rc-total__sum">{{ servicesTotal.toLocaleString('ru-RU') }}&thinsp;₽</span>
+                        <span class="rc-total__sum inline-flex items-center gap-1">
+                            <span>{{ servicesTotal.toLocaleString('ru-RU') }}</span>
+                            <CoinIcon color="blue" size="xs" />
+                        </span>
+                    </div>
+                    <div class="text-[11px] text-zinc-400 px-4 pb-2 text-right">
+                        + сбор сервиса {{ feePercent }}% при оплате
                     </div>
                     <div class="rc-perf"><span class="rc-perf__line"></span></div>
                     <div class="rc-footer">
@@ -246,8 +257,10 @@ async function purchaseContent() {
                                     <button class="rc-line__del" @click="emit('remove-content', idx)">✕</button>
                                 </div>
                                 <div class="rc-line__bottom">
-                                    <span class="rc-line__price">{{ (item.price || 0).toLocaleString('ru-RU')
-                                    }}&thinsp;₽</span>
+                                    <span class="rc-line__price inline-flex items-center gap-1">
+                                        <span>{{ (item.price || 0).toLocaleString('ru-RU') }}</span>
+                                        <CoinIcon color="blue" size="xs" />
+                                    </span>
                                 </div>
                             </div>
                         </template>
@@ -256,7 +269,10 @@ async function purchaseContent() {
                     <div class="rc-perf"><span class="rc-perf__line"></span></div>
                     <div class="rc-total">
                         <span class="rc-total__label">{{ __('cart.total') }}</span>
-                        <span class="rc-total__sum">{{ contentTotal.toLocaleString('ru-RU') }}&thinsp;₽</span>
+                        <span class="rc-total__sum inline-flex items-center gap-1">
+                            <span>{{ contentTotal.toLocaleString('ru-RU') }}</span>
+                            <CoinIcon color="blue" size="xs" />
+                        </span>
                     </div>
                     <div class="rc-perf"><span class="rc-perf__line"></span></div>
                     <div class="rc-footer">

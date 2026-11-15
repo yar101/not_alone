@@ -9,6 +9,7 @@ import CreateContentPackModal from '@/Components/Profile/CreateContentPackModal.
 import ContentPackRemarksModal from '@/Components/Profile/ContentPackRemarksModal.vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import PackStatusBadge from '@/Components/Profile/PackStatusBadge.vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
 const { __ } = useTranslations();
@@ -856,7 +857,7 @@ const ownerSortOptions = computed(() => [
                                     <input class="pcd-price-input" v-model="priceDraft" type="number" min="1"
                                         :disabled="priceUpdating" @keydown.enter="savePrice"
                                         @keydown.esc="cancelEditPrice" autofocus />
-                                    <span class="pcd-price-rub">₽</span>
+                                    <span class="pcd-price-rub"><CoinIcon color="blue" size="xs" /></span>
                                     <button class="pcd-inline-btn pcd-inline-btn--save" :disabled="priceUpdating"
                                         @click="savePrice">OK</button>
                                     <button class="pcd-inline-btn pcd-inline-btn--cancel"
@@ -866,7 +867,10 @@ const ownerSortOptions = computed(() => [
                             </div>
                         </template>
                         <template v-else>
-                            <span class="pcd-meta-price">{{ detailPack.price }} ₽</span>
+                            <span class="pcd-meta-price inline-flex items-center gap-1">
+                                <span>{{ detailPack.price }}</span>
+                                <CoinIcon color="blue" size="xs" />
+                            </span>
                         </template>
                     </div>
 

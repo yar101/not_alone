@@ -13,10 +13,15 @@ class WalletTransaction extends Model
 {
     use HasFactory;
 
+    protected $attributes = [
+        'currency' => 'blue',
+    ];
+
     protected $fillable = [
         'wallet_id',
         'user_id',
         'type',
+        'currency',
         'amount',
         'balance_before',
         'balance_after',

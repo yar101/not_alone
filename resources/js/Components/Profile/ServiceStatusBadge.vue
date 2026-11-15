@@ -24,7 +24,7 @@ const LABELS = computed(() => {
         has_remarks: __("profile.services.status.remarks"),
         rejected: __("profile.services.status.rejected"),
         hidden: __("profile.services.status.hidden"),
-        trial: "1-й заказ 0 ₽",
+        trial: "1-й заказ бесплатно",
     };
 });
 

@@ -327,15 +327,15 @@ class TransactionSeeder extends Seeder
 
         // ── 10. Idol Withdrawals ────────────────────────────────────────────
         $idolWallet = $walletService->getOrCreateWallet($idol1);
-        if ($idolWallet->balance >= 1000) {
+        if ($idolWallet->pink_balance >= 1000) {
             $withdrawAmounts = [
-                min(2000.00, (float) $idolWallet->balance * 0.4),
-                min(1500.00, (float) $idolWallet->balance * 0.3),
+                min(2000.00, (float) $idolWallet->pink_balance * 0.4),
+                min(1500.00, (float) $idolWallet->pink_balance * 0.3),
             ];
 
             foreach ($withdrawAmounts as $wAmount) {
                 $wAmount = round($wAmount, 2);
-                if ($wAmount >= 100 && $idolWallet->fresh()->balance >= $wAmount) {
+                if ($wAmount >= 100 && $idolWallet->fresh()->pink_balance >= $wAmount) {
                     $wTx = $walletService->withdraw(
                         $idol1,
                         $wAmount,

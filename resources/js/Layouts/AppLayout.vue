@@ -13,6 +13,7 @@ import LocaleLoader from "@/Components/LocaleLoader.vue";
 import PwaUpdateModal from "@/Components/PwaUpdateModal.vue";
 import StrikeAlertModal from "@/Components/Site/StrikeAlertModal.vue";
 import ImpersonateBanner from "@/Components/ImpersonateBanner.vue";
+import CoinIcon from "@/Components/Common/CoinIcon.vue";
 import { useTranslations } from "@/composables/useTranslations";
 import { formatMoney } from "@/Utils/money";
 
@@ -223,6 +224,15 @@ function handleWalletUpdated(e) {
         page.props.auth.user.wallet.balance = Number(e.balance);
         page.props.auth.user.wallet.held_balance = Number(e.held_balance);
         page.props.auth.user.wallet.total_balance = Number(e.total_balance);
+        if (e.pink_balance !== undefined) {
+            page.props.auth.user.wallet.pink_balance = Number(e.pink_balance);
+        }
+        if (e.pink_held_balance !== undefined) {
+            page.props.auth.user.wallet.pink_held_balance = Number(e.pink_held_balance);
+        }
+        if (e.pink_total_balance !== undefined) {
+            page.props.auth.user.wallet.pink_total_balance = Number(e.pink_total_balance);
+        }
     }
     window.dispatchEvent(new CustomEvent("notalone:wallet-updated", { detail: e }));
 }
@@ -373,11 +383,12 @@ onUnmounted(() => {
 
                             <Link
                                 :href="route('wallet.show')"
-                                class="user-chip__balance"
+                                class="user-chip__balance inline-flex items-center gap-1"
                                 :title="__('nav.wallet')"
                                 @click.stop
                             >
-                                {{ formatMoney(userBalance) }} ₽
+                                <span>{{ formatMoney(userBalance) }}</span>
+                                <CoinIcon color="blue" size="xs" />
                             </Link>
                         </div>
                     </div>

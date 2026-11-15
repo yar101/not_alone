@@ -5,6 +5,7 @@ import { router, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
 import AdminPagination from '@/Components/Admin/AdminPagination.vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -151,7 +152,7 @@ function systemLabel(msg) {
     <div class="page-wrap">
         <AdminPageHeader
             title="Споры"
-            :subtitle="`${disputes.total} споров зарегистрировано в системе`"
+            :subtitle="`${counts.all ?? (counts.open + counts.approved + counts.rejected)} споров зарегистрировано в системе`"
         />
 
         <!-- Фильтр по статусу -->
@@ -161,7 +162,7 @@ function systemLabel(msg) {
                     { key: 'open',     label: 'Открытые',        count: counts.open },
                     { key: 'approved', label: 'Удовлетворённые', count: counts.approved },
                     { key: 'rejected', label: 'Отклонённые',     count: counts.rejected },
-                    { key: 'all',      label: 'Все',             count: disputes.total },
+                    { key: 'all',      label: 'Все',             count: counts.all ?? (counts.open + counts.approved + counts.rejected) },
                 ]"
                 :key="tab.key"
                 class="filter-tab"
@@ -217,7 +218,12 @@ function systemLabel(msg) {
                                 {{ STATUS_LABELS[d.status] }}
                             </span>
                         </td>
-                        <td class="cell-amount">{{ d.order.total }} ₽</td>
+                        <td class="cell-amount">
+                            <span class="inline-flex items-center gap-1">
+                                <span>{{ d.order.total }}</span>
+                                <CoinIcon color="blue" size="xs" />
+                            </span>
+                        </td>
                         <td class="cell-date">{{ d.created_at }}</td>
                         <td class="cell-date">{{ d.resolved_at ?? '—' }}</td>
                     </tr>
@@ -269,7 +275,10 @@ function systemLabel(msg) {
                     </div>
                     <div class="modal-section">
                         <div class="section-label">Сумма</div>
-                        <span>{{ selected.order.total }} ₽</span>
+                        <span class="inline-flex items-center gap-1">
+                            <span>{{ selected.order.total }}</span>
+                            <CoinIcon color="blue" size="xs" />
+                        </span>
                     </div>
                     <div class="modal-section">
                         <div class="section-label">Оплачен</div>

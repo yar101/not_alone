@@ -52,14 +52,19 @@ class DisputeController extends Controller
             ->groupBy('status')
             ->pluck('count', 'status');
 
+        $openCount = (int) ($rawCounts['open'] ?? 0);
+        $approvedCount = (int) ($rawCounts['approved'] ?? 0);
+        $rejectedCount = (int) ($rawCounts['rejected'] ?? 0);
+
         return Inertia::render('Admin/Disputes/Index', [
             'disputes' => $disputes,
             'status_filter' => $statusFilter,
             'search' => $search,
             'counts' => [
-                'open' => (int) ($rawCounts['open'] ?? 0),
-                'approved' => (int) ($rawCounts['approved'] ?? 0),
-                'rejected' => (int) ($rawCounts['rejected'] ?? 0),
+                'all' => $openCount + $approvedCount + $rejectedCount,
+                'open' => $openCount,
+                'approved' => $approvedCount,
+                'rejected' => $rejectedCount,
             ],
         ]);
     }
@@ -79,13 +84,13 @@ class DisputeController extends Controller
 
         try {
             DB::transaction(function () use ($request, $dispute, $adminId) {
+                // Strict lock hierarchy: lock Order first, then OrderDispute to avoid deadlock
+                $order = \App\Models\Order::where('id', $dispute->order_id)->lockForUpdate()->firstOrFail();
+
                 $lockedDispute = OrderDispute::where('id', $dispute->id)->lockForUpdate()->first();
                 if (! $lockedDispute || $lockedDispute->status !== 'open') {
                     throw new \DomainException('Спор уже рассмотрен.');
                 }
-
-                $order = $lockedDispute->order;
-                abort_if(! $order, 404, 'Заказ не найден.');
 
                 $lockedDispute->update([
                     'status' => $request->decision,

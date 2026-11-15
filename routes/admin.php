@@ -288,7 +288,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Review disputes
         Route::prefix('review-disputes')->name('review-disputes.')->group(function () {
             Route::get('/', [ReviewDisputeController::class, 'index'])->name('index');
-            Route::patch('/{reviewDispute}/resolve', [ReviewDisputeController::class, 'resolve'])->name('resolve');
+            Route::patch('/{reviewDispute}/resolve', [ReviewDisputeController::class, 'resolve'])->middleware('throttle:60,1')->name('resolve');
         });
 
         // Conversations (read-only for admin)

@@ -17,6 +17,7 @@ import { Check, Lock } from "@element-plus/icons-vue";
 import ServiceOfferModal from "@/Components/Chat/ServiceOfferModal.vue";
 import ReviewForm from "@/Components/Chat/ReviewForm.vue";
 import RepeatOrderModal from "@/Components/Chat/RepeatOrderModal.vue";
+import CoinIcon from "@/Components/Common/CoinIcon.vue";
 import { useTranslations } from "@/composables/useTranslations";
 import { useModalHistory } from "@/composables/useModalHistory";
 import { extractErrorMessage } from "@/Utils/error";
@@ -27,6 +28,7 @@ const props = defineProps({
 const emit = defineEmits(["update:modelValue"]);
 
 const page = usePage();
+const feePercent = computed(() => Number(page.props.customer_service_fee_percent ?? 5));
 const { __, transChoice, locale } = useTranslations();
 const authUser = computed(() => page.props.auth.user);
 
@@ -2257,13 +2259,10 @@ function formatDate(iso) {
                                                     )
                                                 }}
                                             </span>
-                                            <span class="order-stub__total"
-                                                >{{
-                                                    orderTotal(
-                                                        order,
-                                                    ).toLocaleString("ru-RU")
-                                                }}&thinsp;₽</span
-                                            >
+                                            <span class="order-stub__total inline-flex items-center gap-1">
+                                                <span>{{ orderTotal(order).toLocaleString("ru-RU") }}</span>
+                                                <CoinIcon color="blue" size="xs" />
+                                            </span>
                                         </div>
                                     </button> </template
                                 ><!-- /visibleOrders -->
@@ -2601,62 +2600,24 @@ function formatDate(iso) {
                                                                     }}</span
                                                                 >
                                                                 <span
-                                                                    class="sc-line__price"
-                                                                    >{{
-                                                                        (
-                                                                            s.price *
-                                                                            (s.quantity ??
-                                                                                1)
-                                                                        )?.toLocaleString(
-                                                                            "ru-RU",
-                                                                        )
-                                                                    }}&thinsp;₽<template
-                                                                        v-if="
-                                                                            s.time_unit
-                                                                        "
-                                                                        >&thinsp;/&thinsp;{{
-                                                                            s.time_unit
-                                                                        }}</template
-                                                                    ></span
+                                                                    class="sc-line__price inline-flex items-center gap-1"
                                                                 >
+                                                                    <span>{{ ((s.price ?? 0) * (s.quantity ?? 1)).toLocaleString("ru-RU") }}</span>
+                                                                    <CoinIcon color="blue" size="xs" />
+                                                                    <template v-if="s.time_unit">&thinsp;/&thinsp;{{ s.time_unit }}</template>
+                                                                </span>
                                                             </div>
                                                         </div>
-                                                        <div class="sc-perf">
-                                                            <span
-                                                                class="sc-perf__line"
-                                                            ></span>
-                                                        </div>
-                                                        <div class="sc-total">
-                                                            <span
-                                                                class="sc-total__label"
-                                                                >{{
-                                                                    __(
-                                                                        "chat.msg.total",
-                                                                    )
-                                                                }}</span
-                                                            >
-                                                            <span
-                                                                class="sc-total__value"
-                                                                >{{
-                                                                    item.msg.metadata.services
-                                                                        .reduce(
-                                                                            (
-                                                                                sum,
-                                                                                s,
-                                                                            ) =>
-                                                                                sum +
-                                                                                (s.price ??
-                                                                                    0) *
-                                                                                    (s.quantity ??
-                                                                                        1),
-                                                                            0,
-                                                                        )
-                                                                        .toLocaleString(
-                                                                            "ru-RU",
-                                                                        )
-                                                                }}&thinsp;₽</span
-                                                            >
-                                                        </div>
+                                                                <div class="sc-perf">
+                                                                    <span class="sc-perf__line"></span>
+                                                                </div>
+                                                                <div class="sc-total">
+                                                                    <span class="sc-total__label">{{ __("chat.msg.total") }}</span>
+                                                                    <span class="sc-total__value inline-flex items-center gap-1">
+                                                                        <span>{{ item.msg.metadata.services.reduce((sum, s) => sum + (s.price ?? 0) * (s.quantity ?? 1), 0).toLocaleString("ru-RU") }}</span>
+                                                                        <CoinIcon color="blue" size="xs" />
+                                                                    </span>
+                                                                </div>
                                                         <p class="sc-date">
                                                             {{
                                                                 formatTime(
@@ -2861,25 +2822,12 @@ function formatDate(iso) {
                                                                     }}</span
                                                                 >
                                                                 <span
-                                                                    class="sc-line__price"
-                                                                    >{{
-                                                                        (
-                                                                            (s.price ??
-                                                                                0) *
-                                                                            (s.quantity ??
-                                                                                1)
-                                                                        ).toLocaleString(
-                                                                            "ru-RU",
-                                                                        )
-                                                                    }}&thinsp;₽<template
-                                                                        v-if="
-                                                                            s.time_unit
-                                                                        "
-                                                                        >&thinsp;/&thinsp;{{
-                                                                            s.time_unit
-                                                                        }}</template
-                                                                    ></span
-                                                                >
+                                                                    class="sc-line__price inline-flex items-center gap-1"
+                                                                    >
+                                                                        <span>{{ (((s.price ?? 0) * (s.quantity ?? 1))).toLocaleString("ru-RU") }}</span>
+                                                                        <CoinIcon color="blue" size="xs" />
+                                                                        <template v-if="s.time_unit">&thinsp;/&thinsp;{{ s.time_unit }}</template>
+                                                                    </span>
                                                             </div>
                                                         </div>
                                                         <div class="sc-perf">
@@ -2897,8 +2845,9 @@ function formatDate(iso) {
                                                                 }}</span
                                                             >
                                                             <span
-                                                                class="sc-total__value"
-                                                                >{{
+                                                                class="sc-total__value inline-flex items-center gap-1"
+                                                            >
+                                                                <span>{{
                                                                     (
                                                                         item.msg
                                                                             .metadata
@@ -2913,15 +2862,16 @@ function formatDate(iso) {
                                                                                 sum +
                                                                                 (s.price ??
                                                                                     0) *
-                                                                                    (s.quantity ??
-                                                                                        1),
+                                                                                (s.quantity ??
+                                                                                    1),
                                                                             0,
                                                                         )
                                                                         .toLocaleString(
                                                                             "ru-RU",
                                                                         )
-                                                                }}&thinsp;₽</span
-                                                            >
+                                                                }}</span>
+                                                                <CoinIcon color="blue" size="xs" />
+                                                            </span>
                                                         </div>
                                                         <p class="sc-date">
                                                             {{
@@ -3926,8 +3876,10 @@ function formatDate(iso) {
         
         <div v-for="(svc, idx) in confirmOfferServices" :key="idx" style="margin-bottom: 0.75rem;">
             <div class="confirm-add__svc">{{ svc.name }}</div>
-            <div class="confirm-add__price">
-                {{ svc.price.toLocaleString("ru-RU") }}&thinsp;₽<template v-if="svc.time_unit">&thinsp;/&thinsp;{{ svc.time_unit }}</template>
+            <div class="confirm-add__price inline-flex items-center gap-1">
+                <span>{{ svc.price.toLocaleString("ru-RU") }}</span>
+                <CoinIcon color="blue" size="xs" />
+                <template v-if="svc.time_unit">&thinsp;/&thinsp;{{ svc.time_unit }}</template>
             </div>
         </div>
 
@@ -3935,8 +3887,14 @@ function formatDate(iso) {
             <span class="cm-perf__line cm-perf__line--cyan"></span>
         </div>
         
-        <div class="confirm-add__total" style="text-align: center; margin: 1rem 0; font-weight: 600; font-size: 1.1rem; color: #fff;">
-            Итого: {{ confirmOfferServices.reduce((sum, svc) => sum + (svc.price || 0), 0).toLocaleString("ru-RU") }}&thinsp;₽
+        <div class="confirm-add__total flex flex-col items-center gap-1" style="text-align: center; margin: 1rem 0; font-weight: 600; font-size: 1.05rem; color: #fff;">
+            <div class="text-xs font-normal text-zinc-400">
+                + сбор сервиса {{ feePercent }}% при оплате заказа
+            </div>
+            <div class="inline-flex items-center gap-1">
+                <span>Итого услуги: {{ confirmOfferServices.reduce((sum, svc) => sum + (svc.price || 0), 0).toLocaleString("ru-RU") }}</span>
+                <CoinIcon color="blue" size="xs" />
+            </div>
         </div>
         
         <div class="cm-footer">

@@ -5,6 +5,7 @@ import { User, UserFilled, Search, Picture, Star, Brush } from '@element-plus/ic
 import AvatarUploader from '@/Components/AvatarUploader.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
 import HelpModal from '@/Components/Site/HelpModal.vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 import { useTranslations } from '@/composables/useTranslations';
 import { useModalHistory } from '@/composables/useModalHistory';
 import { formatMoney } from '@/Utils/money';
@@ -194,7 +195,10 @@ function ageLabel(n) { return `${n} ${transChoice('search.age.years', n)}`; }
                         </div>
                         <div class="usb-feature-card__content">
                             <span class="usb-feature-card__label">{{ __('nav.wallet') }}</span>
-                            <span class="usb-feature-card__balance">{{ formatMoney(userBalance) }} ₽</span>
+                            <span class="usb-feature-card__balance inline-flex items-center gap-1">
+                                <span>{{ formatMoney(userBalance) }}</span>
+                                <CoinIcon color="blue" size="xs" />
+                            </span>
                         </div>
                     </Link>
 

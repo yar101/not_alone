@@ -21,6 +21,7 @@ const form = useForm({
     deposit_fee_percent:     props.settings.deposit_fee_percent ?? 4,
     withdrawal_fee_percent:  props.settings.withdrawal_fee_percent ?? 4,
     platform_fee_percent:    props.settings.platform_fee_percent ?? 10,
+    order_customer_service_fee_percent: props.settings.order_customer_service_fee_percent ?? 5,
     refund_gateway_fee_percent: props.settings.refund_gateway_fee_percent ?? 4,
     refund_platform_fee_percent: props.settings.refund_platform_fee_percent ?? 10,
     rating_deltas: { ...props.rating_deltas },
@@ -53,6 +54,7 @@ const EVENT_GROUPS = [
         label: 'Штрафы',
         events: [
             { key: 'report_accepted', label: 'Репорт принят', positive: false },
+            { key: 'order_refunded',  label: 'Возврат по спору заказа', positive: false },
         ],
     },
 ];
@@ -174,6 +176,27 @@ const previewBase = computed(() =>
                 <div class="field">
                     <div class="field-row">
                         <div class="field-meta">
+                            <label class="field-label">Сервисный сбор с покупателя при заказе, %</label>
+                            <p class="field-hint">Процент, удерживаемый с покупателя при оформлении заказа (не возвращается при возврате/отмене)</p>
+                        </div>
+                        <div class="field-control">
+                            <input
+                                v-model.number="form.order_customer_service_fee_percent"
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="50"
+                                class="input input--sm"
+                                :class="{ 'input--err': form.errors.order_customer_service_fee_percent }"
+                            />
+                        </div>
+                    </div>
+                    <p v-if="form.errors.order_customer_service_fee_percent" class="err">{{ form.errors.order_customer_service_fee_percent }}</p>
+                </div>
+
+                <div class="field">
+                    <div class="field-row">
+                        <div class="field-meta">
                             <label class="field-label">Комиссия платёжной системы при возврате, %</label>
                             <p class="field-hint">Процент эквайринга/шлюза, удерживаемый с клиента при возврате средств (отмена, спор)</p>
                         </div>
@@ -271,7 +294,7 @@ const previewBase = computed(() =>
                 <div class="field">
                     <div class="field-row">
                         <div class="field-meta">
-                            <label class="field-label">Минимальная цена, ₽</label>
+                            <label class="field-label">Минимальная цена</label>
                             <p class="field-hint">Айдол не сможет выставить цену ниже этого значения</p>
                         </div>
                         <div class="field-control">
@@ -290,7 +313,7 @@ const previewBase = computed(() =>
                 <div class="field">
                     <div class="field-row">
                         <div class="field-meta">
-                            <label class="field-label">Максимальная цена, ₽</label>
+                            <label class="field-label">Максимальная цена</label>
                             <p class="field-hint">Айдол не сможет выставить цену выше этого значения</p>
                         </div>
                         <div class="field-control">

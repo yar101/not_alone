@@ -14,6 +14,8 @@ class ReviewDisputeController extends Controller
     {
         $user = $request->user();
 
+        abort_unless($user && $user->is_idol, 403, 'Только айдолы могут оспаривать отзывы.');
+        abort_if(method_exists($user, 'isActiveBanned') && $user->isActiveBanned(), 403, 'Операция недоступна для заблокированного аккаунта.');
         abort_unless($review->idol_id === $user->id, 403);
         abort_if($review->is_hidden, 422, 'already_hidden');
 

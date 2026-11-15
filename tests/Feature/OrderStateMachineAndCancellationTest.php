@@ -120,11 +120,11 @@ class OrderStateMachineAndCancellationTest extends TestCase
         $customer = $data['customer'];
         $idol = $data['idol'];
 
-        // Customer pays 1500 -> held in escrow
+        // Customer pays 1500 service price + 5% service fee (75) -> 1500 held in escrow, 75 fee deducted
         $this->orderService->pay($order, $customer);
         $custWallet = $this->walletService->getOrCreateWallet($customer);
         $this->assertEquals(1500.00, (float) $custWallet->fresh()->held_balance);
-        $this->assertEquals(1500.00, (float) $custWallet->fresh()->balance); // 3000 deposit - 1500 held
+        $this->assertEquals(1425.00, (float) $custWallet->fresh()->balance); // 3000 deposit - 75 fee - 1500 held
 
         // Idol cancels the paid order
         $this->orderService->cancel($order, $idol, 'Idol is unavailable');
@@ -134,11 +134,11 @@ class OrderStateMachineAndCancellationTest extends TestCase
         $this->assertEquals($idol->id, $order->cancelled_by);
         $this->assertEquals('Idol is unavailable', $order->cancel_reason);
 
-        // Funds refunded to customer with fees deducted (4% gateway + 10% platform = 210 RUB fee)
-        // Net refund: 1500 - 210 = 1290 RUB. Customer balance: 1500 remaining + 1290 = 2790 RUB.
+        // Funds refunded to customer: 100% of service amount (1500 RUB), customer fee (75 RUB) retained by platform
+        // Customer balance: 1425 remaining + 1500 refund = 2925 RUB.
         $custWallet->refresh();
         $this->assertEquals(0.00, (float) $custWallet->held_balance);
-        $this->assertEquals(2790.00, (float) $custWallet->balance);
+        $this->assertEquals(2925.00, (float) $custWallet->balance);
 
         // Verify OrderRefund transaction exists
         $refundTx = WalletTransaction::where('reference_type', Order::class)
@@ -147,7 +147,7 @@ class OrderStateMachineAndCancellationTest extends TestCase
             ->first();
 
         $this->assertNotNull($refundTx);
-        $this->assertEquals(1290.00, (float) $refundTx->amount);
+        $this->assertEquals(1500.00, (float) $refundTx->amount);
         $this->assertEquals(WalletTransactionStatus::Completed, $refundTx->status);
     }
 

@@ -9,6 +9,7 @@ import ImageDropzone from '@/Components/ImageDropzone.vue';
 import draggable from 'vuedraggable';
 import { ElMessageBox } from 'element-plus';
 import AdminPagination from '@/Components/Admin/AdminPagination.vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -776,16 +777,28 @@ function destroyLimit(id) {
                     <thead>
                         <tr>
                             <th>Категория</th>
-                            <th>Общий лимит (₽)</th>
-                            <th>Лимит для низкого рейтинга (₽)</th>
+                            <th>Общий лимит</th>
+                            <th>Лимит для низкого рейтинга</th>
                             <th>Действия</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="limit in limits" :key="limit.id">
                             <td>{{ getLimitCategoryName(limit.category) }}</td>
-                            <td>{{ limit.max_price ? `${limit.max_price.toLocaleString('ru')} ₽` : '—' }}</td>
-                            <td>{{ limit.low_rating_max_price ? `${limit.low_rating_max_price.toLocaleString('ru')} ₽` : '—' }}</td>
+                            <td>
+                                <span v-if="limit.max_price" class="inline-flex items-center gap-1">
+                                    <span>{{ limit.max_price.toLocaleString('ru') }}</span>
+                                    <CoinIcon color="blue" size="xs" />
+                                </span>
+                                <span v-else>—</span>
+                            </td>
+                            <td>
+                                <span v-if="limit.low_rating_max_price" class="inline-flex items-center gap-1">
+                                    <span>{{ limit.low_rating_max_price.toLocaleString('ru') }}</span>
+                                    <CoinIcon color="blue" size="xs" />
+                                </span>
+                                <span v-else>—</span>
+                            </td>
                             <td>
                                 <div class="actions">
                                     <button class="btn-edit" @click="openLimitEdit(limit)">Изменить</button>
@@ -819,12 +832,12 @@ function destroyLimit(id) {
                                 <p v-if="limitForm.errors.category_id" class="err">{{ limitForm.errors.category_id }}</p>
                             </div>
                             <div class="field">
-                                <label>Общий лимит (₽)</label>
+                                <label>Общий лимит</label>
                                 <input v-model.number="limitForm.max_price" type="number" min="1" class="input" :class="{ 'input--err': limitForm.errors.max_price }" placeholder="Не ограничен" />
                                 <p v-if="limitForm.errors.max_price" class="err">{{ limitForm.errors.max_price }}</p>
                             </div>
                             <div class="field">
-                                <label>Лимит для низкого рейтинга (₽)</label>
+                                <label>Лимит для низкого рейтинга</label>
                                 <input v-model.number="limitForm.low_rating_max_price" type="number" min="1" class="input" :class="{ 'input--err': limitForm.errors.low_rating_max_price }" placeholder="Не ограничен" />
                                 <p v-if="limitForm.errors.low_rating_max_price" class="err">{{ limitForm.errors.low_rating_max_price }}</p>
                             </div>
@@ -962,7 +975,12 @@ function destroyLimit(id) {
                             <td>{{ s.name }}</td>
                             <td class="no-val">{{ s.category ?? '—' }}</td>
                             <td class="no-val">{{ s.time_unit ?? '—' }}</td>
-                            <td>{{ s.price?.toLocaleString('ru') }} ₽</td>
+                            <td>
+                                <span class="inline-flex items-center gap-1">
+                                    <span>{{ s.price?.toLocaleString('ru') }}</span>
+                                    <CoinIcon color="blue" size="xs" />
+                                </span>
+                            </td>
                             <td>
                                 <div>
                                     <span :class="['badge', `badge--${s.status}`]">

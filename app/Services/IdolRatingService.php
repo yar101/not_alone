@@ -20,7 +20,7 @@ class IdolRatingService
         'review_2star' => -0.5,
         'review_1star' => -1.2,
         'order_completed' => 0.2,
-        'order_refunded' => -0.2,
+        'order_refunded' => -10.0,
         'report_accepted' => -2.0,
         'review_dispute_approved' => 0.6,
         'strike' => null,
@@ -62,7 +62,7 @@ class IdolRatingService
             }
 
             // Asymptotic dampening for positive deltas: harder to grow at high ratings
-            if ($delta > 0 && $event !== 'strike_cancelled') {
+            if ($delta > 0 && ! in_array($event, ['strike_cancelled', 'review_dispute_approved'])) {
                 $delta = max(0.01, round($delta * (100 - $oldRating) / 80, 2));
             }
 

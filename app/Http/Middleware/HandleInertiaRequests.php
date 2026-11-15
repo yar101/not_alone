@@ -9,6 +9,7 @@ use App\Models\ContentPackChangeRequest;
 use App\Models\IdolApplication;
 use App\Models\InterestSuggestion;
 use App\Models\OrderDispute;
+use App\Models\PlatformSetting;
 use App\Models\ReviewDispute;
 use App\Models\Service;
 use App\Models\ServiceChangeRequest;
@@ -171,6 +172,7 @@ class HandleInertiaRequests extends Middleware
                 'available' => config('app.available_locales'),
                 'translations' => $this->getTranslations(),
             ],
+            'customer_service_fee_percent' => (float) PlatformSetting::get('order_customer_service_fee_percent', 5.0),
             'vapid_public_key' => config('webpush.vapid.public_key'),
         ];
     }

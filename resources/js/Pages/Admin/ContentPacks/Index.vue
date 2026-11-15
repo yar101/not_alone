@@ -5,6 +5,7 @@ import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
 import AdminPagination from '@/Components/Admin/AdminPagination.vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -226,7 +227,12 @@ function formatDate(iso) {
                                 Исправлено
                             </span>
                         </td>
-                        <td>{{ pack.price }} ₽</td>
+                        <td>
+                            <span class="inline-flex items-center gap-1">
+                                <span>{{ pack.price }}</span>
+                                <CoinIcon color="blue" size="xs" />
+                            </span>
+                        </td>
                         <td>
                             <span class="cp-status" :class="'cp-status--' + pack.status">
                                 {{ STATUS_LABELS[pack.status] || pack.status }}

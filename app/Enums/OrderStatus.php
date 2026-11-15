@@ -44,7 +44,7 @@ enum OrderStatus: string
             self::Pending => in_array($target, [self::Accepted, self::Paid, self::Cancelled]),
             self::Accepted => in_array($target, [self::Paid, self::Cancelled]),
             self::Paid => in_array($target, [self::Completed, self::Disputed, self::Refunded, self::Cancelled]),
-            self::Disputed => in_array($target, [self::Paid, self::Completed, self::Refunded, self::Cancelled]),
+            self::Disputed => in_array($target, [self::Completed, self::Refunded]),
             self::Completed => in_array($target, [self::Disputed, self::Refunded]),
             self::Cancelled => false,
             self::Refunded => false,

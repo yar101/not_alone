@@ -88,7 +88,7 @@ class WalletAndTrialOrderIntegrityTest extends TestCase
         $order2->refresh();
         $this->assertNotNull($order2->payout_released_at);
         $idol2Wallet = $this->walletService->getOrCreateWallet($idol2);
-        $this->assertGreaterThan(0, (float) $idol2Wallet->balance);
+        $this->assertGreaterThan(0, (float) $idol2Wallet->pink_balance);
 
         // Repeat run: 0 orders processed since both have payout_released_at set
         $this->artisan('orders:release-idol-holds')
@@ -122,7 +122,7 @@ class WalletAndTrialOrderIntegrityTest extends TestCase
 
         // Funds are in idol's held_balance
         $idolWallet = $this->walletService->getOrCreateWallet($idol);
-        $this->assertGreaterThan(0, (float) $idolWallet->held_balance);
+        $this->assertGreaterThan(0, (float) $idolWallet->pink_held_balance);
     }
 
     public function test_create_order_rejects_trial_quantity_greater_than_one(): void
@@ -206,7 +206,8 @@ class WalletAndTrialOrderIntegrityTest extends TestCase
     public function test_wallet_controller_supports_plural_withdrawals_filter(): void
     {
         $idol = User::factory()->create(['is_idol' => true]);
-        $this->walletService->deposit($idol, 2000, 'Init balance', null, [], false);
+        $idolWallet = $this->walletService->getOrCreateWallet($idol);
+        $idolWallet->forceFill(['pink_balance' => 2000.00])->save();
         $this->walletService->withdraw($idol, 500, 'wt_key_1', 'Withdrawal test');
 
         // Test Inertia /wallet?filter=withdrawals
@@ -286,22 +287,22 @@ class WalletAndTrialOrderIntegrityTest extends TestCase
         $this->walletService->hold($customer, 50000, $order, 'Order hold');
         $this->walletService->releaseHold($order);
 
-        // Release payout to idol (net payout after 10% fee = 45000)
+        // Release payout to idol (net payout after 10% fee = 45000 pink coins)
         $this->walletService->releaseIdolPayout($order);
         $idolWallet = $this->walletService->getOrCreateWallet($idol)->fresh();
-        $this->assertEquals(45000.00, $idolWallet->balance);
+        $this->assertEquals(45000.00, $idolWallet->pink_balance);
 
-        // Idol withdraws the available 45000 funds, bringing balance to 0
+        // Idol withdraws the available 45000 funds, bringing pink balance to 0
         $this->walletService->withdraw($idol, 45000, 'w-1');
         $idolWallet->refresh();
-        $this->assertEquals(0.00, $idolWallet->balance);
+        $this->assertEquals(0.00, $idolWallet->pink_balance);
 
-        // Now dispute / refund occurs, clawing back 45000 from idol balance
-        // This drops idol balance to -45000, which is <= CRITICAL_OVERDRAFT_THRESHOLD (-40000)
+        // Now dispute / refund occurs, clawing back 45000 from idol pink balance
+        // This drops idol pink balance to -45000, which is <= CRITICAL_OVERDRAFT_THRESHOLD (-40000)
         $this->walletService->refundHold($order, 'Full clawback after dispute');
 
         $idolWallet->refresh();
-        $this->assertEquals(-45000.00, $idolWallet->balance);
+        $this->assertEquals(-45000.00, $idolWallet->pink_balance);
 
         Log::shouldHaveReceived('alert')
             ->once()

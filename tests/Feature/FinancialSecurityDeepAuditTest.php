@@ -158,7 +158,7 @@ class FinancialSecurityDeepAuditTest extends TestCase
         $idolWallet->update(['is_active' => false]);
 
         // Customer gets refunded without exception
-        $refundTx = $this->walletService->refundHold($order, 'Idol was banned for fraud');
+        $refundTx = $this->walletService->refundHold($order, 'Idol was banned for fraud', deductFees: true);
 
         $this->assertNotNull($refundTx);
         $this->assertEquals(WalletTransactionType::OrderRefund, $refundTx->type);
@@ -388,9 +388,9 @@ class FinancialSecurityDeepAuditTest extends TestCase
         $order->refresh();
         $this->assertEquals(OrderStatus::Refunded, $order->status);
 
-        // Check customer wallet was refunded (net refund: 300 - 14% fees = 258 -> 700 + 258 = 958)
+        // Check customer wallet was refunded
         $custWallet = $this->walletService->getOrCreateWallet($customer);
-        $this->assertEquals(958, $custWallet->balance);
+        $this->assertEquals(1000, $custWallet->balance);
         $this->assertEquals(0, $custWallet->held_balance);
     }
 
@@ -674,18 +674,18 @@ class FinancialSecurityDeepAuditTest extends TestCase
 
         $order->update(['status' => OrderStatus::Disputed]);
 
-        // Admin cancels the order
-        $this->orderService->adminTransition($order, OrderStatus::Cancelled, $admin->id, 'Cancelled and refunded');
+        // Admin refunds the disputed order
+        $this->orderService->adminTransition($order, OrderStatus::Refunded, $admin->id, 'Dispute approved and refunded');
 
         $dispute->refresh();
         $this->assertEquals('approved', $dispute->status);
 
         $order->refresh();
-        $this->assertEquals(OrderStatus::Cancelled, $order->status);
+        $this->assertEquals(OrderStatus::Refunded, $order->status);
 
-        // Customer was refunded (net refund: 300 - 14% fees = 258 -> 700 + 258 = 958)
+        // Customer was refunded
         $customerWallet = $this->walletService->getOrCreateWallet($customer);
-        $this->assertEquals(958, $customerWallet->balance);
+        $this->assertEquals(1000, $customerWallet->balance);
         $this->assertEquals(0, $customerWallet->held_balance);
     }
 
@@ -775,8 +775,8 @@ class FinancialSecurityDeepAuditTest extends TestCase
         $idolA = User::factory()->create(['is_idol' => true]);
         $idolB = User::factory()->create(['is_idol' => true]);
 
-        $this->walletService->deposit($idolA, 1000, 'Init idol A', null, [], false);
-        $this->walletService->deposit($idolB, 1000, 'Init idol B', null, [], false);
+        $this->walletService->getOrCreateWallet($idolA)->forceFill(['pink_balance' => 1000])->save();
+        $this->walletService->getOrCreateWallet($idolB)->forceFill(['pink_balance' => 1000])->save();
 
         $key = 'ctrl-idempotency-withdraw-012';
 
@@ -793,7 +793,7 @@ class FinancialSecurityDeepAuditTest extends TestCase
             ->postJson('/api/wallet/withdraw', ['amount' => 200]);
         $resB->assertStatus(409);
         $resB->assertJson(['error' => 'Ключ идемпотентности уже использован для другой операции.']);
-        $this->assertEquals(1000, $this->walletService->getOrCreateWallet($idolB)->balance);
+        $this->assertEquals(1000, $this->walletService->getOrCreateWallet($idolB)->pink_balance);
 
         // 3. Idol A tries to withdraw with different amount -> 409 Conflict
         $resA2 = $this->actingAs($idolA)
@@ -808,7 +808,7 @@ class FinancialSecurityDeepAuditTest extends TestCase
             ->postJson('/api/wallet/withdraw', ['amount' => 200]);
         $resA3->assertOk();
         $this->assertEquals($txAId, $resA3->json('transaction.id'));
-        $this->assertEquals(800, $this->walletService->getOrCreateWallet($idolA)->balance);
+        $this->assertEquals(800, $this->walletService->getOrCreateWallet($idolA)->pink_balance);
     }
 
     public function test_admin_adjust_is_idempotent_with_idempotency_key(): void

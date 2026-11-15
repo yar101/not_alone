@@ -4,6 +4,7 @@ import { Link, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
 import AdminPagination from '@/Components/Admin/AdminPagination.vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -199,7 +200,12 @@ function submitStatus() {
                             <span v-else class="no-val">—</span>
                         </td>
                         <td class="td-count">{{ order.items_count }}</td>
-                        <td class="td-total">{{ order.total.toLocaleString('ru-RU') }} ₽</td>
+                        <td class="td-total">
+                            <span class="inline-flex items-center gap-1">
+                                <span>{{ order.total.toLocaleString('ru-RU') }}</span>
+                                <CoinIcon color="blue" size="xs" />
+                            </span>
+                        </td>
                         <td class="td-status">
                             <span
                                 class="badge"

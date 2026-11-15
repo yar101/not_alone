@@ -4,6 +4,7 @@ import { Head, Link, usePage, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 import { Lock } from '@element-plus/icons-vue';
 
 defineOptions({ layout: AppLayout });
@@ -127,8 +128,9 @@ const unequip = async () => {
                                         <div v-if="frame.type === 'achievement'" class="frame-desc">
                                             {{ frame.condition_description || 'За достижение' }}
                                         </div>
-                                        <div v-else-if="frame.type === 'paid'" class="frame-desc">
-                                            {{ frame.price }} ₽
+                                        <div v-else-if="frame.type === 'paid'" class="frame-desc inline-flex items-center gap-1">
+                                            <span>{{ frame.price }}</span>
+                                            <CoinIcon color="blue" size="xs" />
                                         </div>
                                         <div v-else class="frame-desc">
                                             Бесплатная

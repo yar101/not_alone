@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Delete, Edit, Plus } from '@element-plus/icons-vue';
 
@@ -166,7 +167,10 @@ const generateTest = () => {
                 </el-table-column>
                 <el-table-column label="Условие / Цена">
                     <template #default="{ row }">
-                        <span v-if="row.type === 'paid'">{{ row.price }} ₽</span>
+                        <span v-if="row.type === 'paid'" class="inline-flex items-center gap-1">
+                            <span>{{ row.price }}</span>
+                            <CoinIcon color="blue" size="xs" />
+                        </span>
                         <span v-else-if="row.type === 'achievement'">
                             {{ conditions.find(c => c.key === row.condition_class)?.description || row.condition_class }}
                         </span>
@@ -214,7 +218,7 @@ const generateTest = () => {
                         </el-select>
                     </el-form-item>
 
-                    <el-form-item v-if="form.type === 'paid'" label="Цена (₽)">
+                    <el-form-item v-if="form.type === 'paid'" label="Цена">
                         <el-input-number v-model="form.price" :min="0" />
                     </el-form-item>
 

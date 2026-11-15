@@ -5,6 +5,7 @@ import axios from 'axios';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppSelect from '@/Components/AppSelect.vue';
 import AdminPagination from '@/Components/Admin/AdminPagination.vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 import { formatMoney } from '@/Utils/money';
 import {
     Coin, Plus, Search, Setting, Close, Check, Loading,
@@ -177,7 +178,7 @@ const isInsufficientBalance = computed(() => {
 const submitButtonLabel = computed(() => {
     if (createForm.processing) return 'Выполняем…';
     if (!parsedAmount.value || parsedAmount.value <= 0) return 'Провести операцию';
-    const formatted = formatMoney(parsedAmount.value) + ' ₽';
+    const formatted = formatMoney(parsedAmount.value);
     if (createForm.direction === 'credit') {
         return `Начислить ${formatted}`;
     } else {
@@ -353,7 +354,10 @@ function isCredit(tx) {
                     <span class="kpi-card__label">Пополнения (депозиты)</span>
                     <span class="kpi-card__icon"><Coin /></span>
                 </div>
-                <div class="kpi-card__value">+{{ formatMoney(kpi?.total_deposits ?? 0) }} ₽</div>
+                <div class="kpi-card__value inline-flex items-center gap-1">
+                    <span>+{{ formatMoney(kpi?.total_deposits ?? 0) }}</span>
+                    <CoinIcon color="blue" size="xs" />
+                </div>
             </div>
 
             <div class="kpi-card kpi-card--withdrawals">
@@ -361,7 +365,10 @@ function isCredit(tx) {
                     <span class="kpi-card__label">Выводы средств</span>
                     <span class="kpi-card__icon"><Wallet /></span>
                 </div>
-                <div class="kpi-card__value">−{{ formatMoney(kpi?.total_withdrawals ?? 0) }} ₽</div>
+                <div class="kpi-card__value inline-flex items-center gap-1">
+                    <span>−{{ formatMoney(kpi?.total_withdrawals ?? 0) }}</span>
+                    <CoinIcon color="pink" size="xs" />
+                </div>
             </div>
 
             <div class="kpi-card kpi-card--fees">
@@ -369,7 +376,10 @@ function isCredit(tx) {
                     <span class="kpi-card__label">Комиссии платформы</span>
                     <span class="kpi-card__icon"><Tickets /></span>
                 </div>
-                <div class="kpi-card__value">{{ formatMoney(kpi?.total_fees ?? 0) }} ₽</div>
+                <div class="kpi-card__value inline-flex items-center gap-1">
+                    <span>{{ formatMoney(kpi?.total_fees ?? 0) }}</span>
+                    <CoinIcon color="blue" size="xs" />
+                </div>
             </div>
 
             <div class="kpi-card kpi-card--total">
@@ -393,9 +403,23 @@ function isCredit(tx) {
                     <span class="user-pill__name">{{ selectedUser.name }}</span>
                     <span class="user-pill__email">({{ selectedUser.email }})</span>
                 </div>
-                <div class="user-filter-banner__balance">
-                    Доступно: <strong>{{ formatMoney(selectedUser.balance) }} ₽</strong>
-                    <span v-if="selectedUser.held_balance > 0"> (Заморожено: {{ formatMoney(selectedUser.held_balance) }} ₽)</span>
+                <div class="user-filter-banner__balance flex items-center gap-1.5 flex-wrap">
+                    <span>Доступно:</span>
+                    <strong class="inline-flex items-center gap-1">
+                        <span>{{ formatMoney(selectedUser.balance) }}</span>
+                        <CoinIcon color="blue" size="xs" />
+                    </strong>
+                    <span v-if="selectedUser.held_balance > 0" class="inline-flex items-center gap-1">
+                        (Заморожено: <span>{{ formatMoney(selectedUser.held_balance) }}</span><CoinIcon color="blue" size="xs" />)
+                    </span>
+                    <template v-if="selectedUser.pink_balance !== undefined">
+                        <span class="text-zinc-500">|</span>
+                        <span>Розовые:</span>
+                        <strong class="inline-flex items-center gap-1 text-pink-400">
+                            <span>{{ formatMoney(selectedUser.pink_balance) }}</span>
+                            <CoinIcon color="pink" size="xs" />
+                        </strong>
+                    </template>
                 </div>
             </div>
             <button class="btn-clear-user" @click="clearUserFilter" title="Сбросить фильтр по пользователю">
@@ -421,6 +445,8 @@ function isCredit(tx) {
                     { value: 'pack_sale',        label: 'Продажи паков', count: typeCounts?.pack_sale ?? 0 },
                     { value: 'platform_fee',     label: 'Комиссии',      count: typeCounts?.platform_fee ?? 0 },
                     { value: 'admin_adjustment', label: 'Корректировки', count: typeCounts?.admin_adjustment ?? 0 },
+                    { value: 'pink_to_blue',     label: 'Конвертация в синие', count: (typeCounts?.pink_to_blue ?? typeCounts?.pink_to_blue_conversion ?? 0) },
+                    { value: 'blue_from_pink',   label: 'Зачисление из розовых', count: (typeCounts?.blue_from_pink ?? typeCounts?.blue_from_pink_conversion ?? 0) },
                 ]"
                 :key="tab.value"
                 class="type-tab"
@@ -508,20 +534,23 @@ function isCredit(tx) {
                         </td>
                         <td class="td-amount">
                             <span
-                                class="amount-val"
+                                class="amount-val inline-flex items-center gap-1"
                                 :class="isCredit(tx) ? 'amount-val--credit' : 'amount-val--debit'"
                             >
-                                {{ isCredit(tx) ? '+' : '' }}{{ formatMoney(tx.amount) }} ₽
+                                <span>{{ isCredit(tx) ? '+' : '' }}{{ formatMoney(tx.amount) }}</span>
+                                <CoinIcon :color="tx.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
                             </span>
                         </td>
                         <td class="td-balance">
-                            <div class="balance-flow">
-                                <span>{{ formatMoney(tx.balance_before) }} ₽</span>
+                            <div class="balance-flow inline-flex items-center gap-1">
+                                <span>{{ formatMoney(tx.balance_before) }}</span>
                                 <span class="flow-arrow">→</span>
-                                <strong class="balance-after">{{ formatMoney(tx.balance_after) }} ₽</strong>
+                                <strong class="balance-after">{{ formatMoney(tx.balance_after) }}</strong>
+                                <CoinIcon :color="tx.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
                             </div>
-                            <div v-if="tx.held_balance_before !== tx.held_balance_after" class="held-sub">
-                                Холд: {{ formatMoney(tx.held_balance_before) }} → {{ formatMoney(tx.held_balance_after) }} ₽
+                            <div v-if="tx.held_balance_before !== tx.held_balance_after" class="held-sub inline-flex items-center gap-1">
+                                <span>Холд: {{ formatMoney(tx.held_balance_before) }} → {{ formatMoney(tx.held_balance_after) }}</span>
+                                <CoinIcon :color="tx.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
                             </div>
                         </td>
                         <td class="td-status">
@@ -576,8 +605,9 @@ function isCredit(tx) {
 
                         <div class="detail-item">
                             <span class="detail-label">Сумма</span>
-                            <strong class="detail-amount" :class="isCredit(modalTx) ? 'amount-val--credit' : 'amount-val--debit'">
-                                {{ isCredit(modalTx) ? '+' : '' }}{{ formatMoney(modalTx.amount) }} ₽
+                            <strong class="detail-amount inline-flex items-center gap-1" :class="isCredit(modalTx) ? 'amount-val--credit' : 'amount-val--debit'">
+                                <span>{{ isCredit(modalTx) ? '+' : '' }}{{ formatMoney(modalTx.amount) }}</span>
+                                <CoinIcon :color="modalTx.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
                             </strong>
                         </div>
 
@@ -598,12 +628,18 @@ function isCredit(tx) {
 
                         <div class="detail-item">
                             <span class="detail-label">Баланс (до / после)</span>
-                            <span>{{ formatMoney(modalTx.balance_before) }} ₽ → <strong>{{ formatMoney(modalTx.balance_after) }} ₽</strong></span>
+                            <span class="inline-flex items-center gap-1">
+                                <span>{{ formatMoney(modalTx.balance_before) }} → <strong>{{ formatMoney(modalTx.balance_after) }}</strong></span>
+                                <CoinIcon :color="modalTx.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
+                            </span>
                         </div>
 
                         <div class="detail-item">
                             <span class="detail-label">Замороженный баланс</span>
-                            <span>{{ formatMoney(modalTx.held_balance_before) }} ₽ → <strong>{{ formatMoney(modalTx.held_balance_after) }} ₽</strong></span>
+                            <span class="inline-flex items-center gap-1">
+                                <span>{{ formatMoney(modalTx.held_balance_before) }} → <strong>{{ formatMoney(modalTx.held_balance_after) }}</strong></span>
+                                <CoinIcon :color="modalTx.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
+                            </span>
                         </div>
 
                         <div class="detail-item detail-item--full">
@@ -692,7 +728,7 @@ function isCredit(tx) {
                                     </div>
                                     <span class="selected-user-card__email">{{ selectedUserForCreate.email }}</span>
                                     <div class="selected-user-card__balance">
-                                        Текущий баланс: <strong>{{ formatMoney(currentSelectedUserBalance) }} ₽</strong>
+                                        Текущий баланс: <strong class="inline-flex items-center gap-1"><span>{{ formatMoney(currentSelectedUserBalance) }}</span><CoinIcon color="blue" size="xs" /></strong>
                                     </div>
                                 </div>
                             </div>
@@ -735,7 +771,7 @@ function isCredit(tx) {
                                     </div>
                                     <div class="dropdown-user-balance">
                                         <span class="dropdown-balance-label">Баланс</span>
-                                        <span class="dropdown-balance-val">{{ formatMoney(u.balance ?? 0) }} ₽</span>
+                                        <span class="dropdown-balance-val inline-flex items-center gap-1"><span>{{ formatMoney(u.balance ?? 0) }}</span><CoinIcon color="blue" size="xs" /></span>
                                     </div>
                                 </div>
                             </div>
@@ -793,7 +829,7 @@ function isCredit(tx) {
                         <div class="field-title-row">
                             <label class="field-title">Сумма операции <span class="req">*</span></label>
                             <span v-if="selectedUserForCreate" class="field-subtitle">
-                                Доступно: <span class="available-val">{{ formatMoney(currentSelectedUserBalance) }} ₽</span>
+                                Доступно: <span class="available-val inline-flex items-center gap-1"><span>{{ formatMoney(currentSelectedUserBalance) }}</span><CoinIcon color="blue" size="xs" /></span>
                             </span>
                         </div>
                         <div class="amount-input-wrap">
@@ -807,7 +843,7 @@ function isCredit(tx) {
                                 :class="{ 'input--error': isInsufficientBalance }"
                                 placeholder="0.00"
                             />
-                            <span class="currency-label">₽</span>
+                            <span class="currency-label"><CoinIcon color="blue" size="xs" /></span>
                         </div>
 
                         <!-- Amount Presets -->
@@ -816,11 +852,12 @@ function isCredit(tx) {
                                 v-for="val in amountPresets"
                                 :key="val"
                                 type="button"
-                                class="preset-btn"
+                                class="preset-btn inline-flex items-center gap-1"
                                 :class="{ 'preset-btn--active': createForm.amount === val }"
                                 @click="setAmountPreset(val)"
                             >
-                                +{{ formatMoney(val) }} ₽
+                                <span>+{{ formatMoney(val) }}</span>
+                                <CoinIcon color="blue" size="xs" />
                             </button>
                         </div>
 
@@ -839,17 +876,18 @@ function isCredit(tx) {
                                 <template v-if="isInsufficientBalance">
                                     <div class="outcome-title">Недостаточно средств для списания</div>
                                     <div class="outcome-desc">
-                                        На балансе пользователя <strong>{{ formatMoney(currentSelectedUserBalance) }} ₽</strong>, а запрошено к списанию <strong>{{ formatMoney(parsedAmount) }} ₽</strong>. Баланс не может быть отрицательным.
+                                        На балансе пользователя <strong class="inline-flex items-center gap-1"><span>{{ formatMoney(currentSelectedUserBalance) }}</span><CoinIcon color="blue" size="xs" /></strong>, а запрошено к списанию <strong class="inline-flex items-center gap-1"><span>{{ formatMoney(parsedAmount) }}</span><CoinIcon color="blue" size="xs" /></strong>. Баланс не может быть отрицательным.
                                     </div>
                                 </template>
                                 <template v-else>
                                     <div class="outcome-title">Баланс после операции:</div>
                                     <div class="outcome-flow">
-                                        <span>{{ formatMoney(currentSelectedUserBalance) }} ₽</span>
+                                        <span class="inline-flex items-center gap-1"><span>{{ formatMoney(currentSelectedUserBalance) }}</span><CoinIcon color="blue" size="xs" /></span>
                                         <span class="outcome-arrow">→</span>
-                                        <strong class="outcome-target">{{ formatMoney(projectedBalance) }} ₽</strong>
-                                        <span class="outcome-delta" :class="createForm.direction === 'credit' ? 'delta--plus' : 'delta--minus'">
-                                            ({{ createForm.direction === 'credit' ? '+' : '−' }}{{ formatMoney(parsedAmount) }} ₽)
+                                        <strong class="outcome-target inline-flex items-center gap-1"><span>{{ formatMoney(projectedBalance) }}</span><CoinIcon color="blue" size="xs" /></strong>
+                                        <span class="outcome-delta inline-flex items-center gap-1" :class="createForm.direction === 'credit' ? 'delta--plus' : 'delta--minus'">
+                                            <span>({{ createForm.direction === 'credit' ? '+' : '−' }}{{ formatMoney(parsedAmount) }})</span>
+                                            <CoinIcon color="blue" size="xs" />
                                         </span>
                                     </div>
                                 </template>

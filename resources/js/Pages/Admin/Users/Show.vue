@@ -4,6 +4,7 @@ import { Link, router } from '@inertiajs/vue3';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -365,7 +366,12 @@ function submitRating() {
                                 <td>{{ s.name }}</td>
                                 <td class="muted">{{ s.category ?? '—' }}</td>
                                 <td class="muted">{{ s.time_unit ?? '—' }}</td>
-                                <td>{{ s.price?.toLocaleString('ru') }} ₽</td>
+                                <td>
+                                    <span class="inline-flex items-center gap-1">
+                                        <span>{{ s.price?.toLocaleString('ru') }}</span>
+                                        <CoinIcon color="blue" size="xs" />
+                                    </span>
+                                </td>
                                 <td>
                                     <span :class="['badge-sm', s.is_active ? 'badge-sm--on' : 'badge-sm--off']">
                                         {{ s.is_active ? 'Да' : 'Нет' }}
@@ -423,11 +429,24 @@ function submitRating() {
                 <div class="wallet-overview">
                     <div class="wallet-stat">
                         <span class="stat-label">Текущий баланс</span>
-                        <strong class="stat-value text-success">{{ user.wallet.balance?.toLocaleString('ru') }} ₽</strong>
+                        <strong class="stat-value text-success inline-flex items-center gap-1">
+                            <span>{{ user.wallet.balance?.toLocaleString('ru') }}</span>
+                            <CoinIcon color="blue" size="xs" />
+                        </strong>
                     </div>
                     <div class="wallet-stat">
                         <span class="stat-label">Заморожено (холд)</span>
-                        <strong class="stat-value text-warning">{{ user.wallet.held_balance?.toLocaleString('ru') }} ₽</strong>
+                        <strong class="stat-value text-warning inline-flex items-center gap-1">
+                            <span>{{ user.wallet.held_balance?.toLocaleString('ru') }}</span>
+                            <CoinIcon color="blue" size="xs" />
+                        </strong>
+                    </div>
+                    <div v-if="user.is_idol && user.wallet.pink_balance !== undefined" class="wallet-stat">
+                        <span class="stat-label">Розовые монеты</span>
+                        <strong class="stat-value text-pink-400 inline-flex items-center gap-1">
+                            <span>{{ user.wallet.pink_balance?.toLocaleString('ru') }}</span>
+                            <CoinIcon color="pink" size="xs" />
+                        </strong>
                     </div>
                     <div class="wallet-stat">
                         <span class="stat-label">Статус кошелька</span>
@@ -458,9 +477,17 @@ function submitRating() {
                                 </td>
                                 <td>{{ transactionTypeLabels[t.type] || t.type }}</td>
                                 <td>
-                                    <strong>{{ t.amount?.toLocaleString('ru') }} ₽</strong>
+                                    <strong class="inline-flex items-center gap-1">
+                                        <span>{{ t.amount?.toLocaleString('ru') }}</span>
+                                        <CoinIcon :color="t.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
+                                    </strong>
                                 </td>
-                                <td class="muted">{{ t.balance_after?.toLocaleString('ru') }} ₽</td>
+                                <td class="muted">
+                                    <span class="inline-flex items-center gap-1">
+                                        <span>{{ t.balance_after?.toLocaleString('ru') }}</span>
+                                        <CoinIcon :color="t.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
+                                    </span>
+                                </td>
                                 <td>
                                     <span :class="['badge-sm', t.status === 'completed' ? 'badge-sm--on' : t.status === 'failed' ? 'badge-sm--off' : 'badge-sm--pending']">
                                         {{ t.status === 'completed' ? 'Успешно' : t.status === 'failed' ? 'Ошибка' : t.status }}

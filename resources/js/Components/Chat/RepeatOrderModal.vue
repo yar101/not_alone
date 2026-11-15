@@ -1,10 +1,14 @@
 <script setup>
 import { ref, computed } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
 const { __ } = useTranslations();
+const page = usePage();
+const feePercent = computed(() => Number(page.props.customer_service_fee_percent ?? 5));
 
 const props = defineProps({
     show:  { type: Boolean, default: false },
@@ -24,6 +28,8 @@ const unavailableItems = computed(() =>
 const total = computed(() =>
     availableItems.value.reduce((s, i) => s + (i.service.price ?? 0) * (i.quantity ?? 1), 0)
 );
+const customerServiceFee = computed(() => Math.round(total.value * (feePercent.value / 100) * 100) / 100);
+const totalWithFee = computed(() => Math.round((total.value + customerServiceFee.value) * 100) / 100);
 const canSubmit = computed(() => availableItems.value.length > 0 && !submitting.value);
 
 async function submit() {
@@ -48,10 +54,10 @@ async function submit() {
     }
 }
 
-function formatPrice(n) {
+function formatNumber(n) {
     const num = Number(n);
     if (isNaN(num)) return '—';
-    return num.toLocaleString('ru-RU') + '\u2009₽';
+    return num.toLocaleString('ru-RU');
 }
 </script>
 
@@ -73,8 +79,9 @@ function formatPrice(n) {
                         {{ item.service.name }}
                         <span class="rom__line-qty">× {{ item.quantity ?? 1 }}</span>
                     </span>
-                    <span class="rom__line-price">
-                        {{ formatPrice((item.service.price ?? 0) * (item.quantity ?? 1)) }}
+                    <span class="rom__line-price inline-flex items-center gap-1">
+                        <span>{{ formatNumber((item.service.price ?? 0) * (item.quantity ?? 1)) }}</span>
+                        <CoinIcon color="blue" size="xs" />
                         <span v-if="item.service.time_unit" class="rom__line-unit">/ {{ item.service.time_unit }}</span>
                     </span>
                 </div>
@@ -87,9 +94,32 @@ function formatPrice(n) {
 
                 <div class="rom__divider rom__divider--sm" />
 
+                <!-- Fee Breakdown -->
+                <div class="text-xs text-zinc-400 space-y-1 py-1">
+                    <div class="flex justify-between items-center">
+                        <span>Стоимость услуг:</span>
+                        <span class="inline-flex items-center gap-1 font-medium text-zinc-300">
+                            {{ formatNumber(total) }}
+                            <CoinIcon color="blue" size="xs" />
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span>Сервисный сбор платформы ({{ feePercent }}%):</span>
+                        <span class="inline-flex items-center gap-1 font-medium text-zinc-300">
+                            {{ formatNumber(customerServiceFee) }}
+                            <CoinIcon color="blue" size="xs" />
+                        </span>
+                    </div>
+                </div>
+
+                <div class="rom__divider rom__divider--sm" />
+
                 <div class="rom__total">
                     <span class="rom__total-label">{{ __('cart.total') }}</span>
-                    <span class="rom__total-value">{{ formatPrice(total) }}</span>
+                    <span class="rom__total-value inline-flex items-center gap-1">
+                        <span>{{ formatNumber(totalWithFee) }}</span>
+                        <CoinIcon color="blue" size="sm" />
+                    </span>
                 </div>
             </div>
 

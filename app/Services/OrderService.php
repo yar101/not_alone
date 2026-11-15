@@ -222,8 +222,12 @@ class OrderService
                 throw new \DomainException('Пользователь недоступен');
             }
 
-            // Hold funds in escrow if order has a price
-            $totalAmount = $lockedOrder->total_price;
+            // Calculate service fee and hold funds in escrow
+            $servicePrice = (float) $lockedOrder->total_price;
+            $feePercent = (float) PlatformSetting::get('order_customer_service_fee_percent', 5.0);
+            $serviceFee = $servicePrice > 0 ? $this->walletService->roundFee($servicePrice, $feePercent) : 0.00;
+            $totalAmount = (float) bcadd((string) $servicePrice, (string) $serviceFee, 2);
+
             if ($totalAmount > 0) {
                 $isMock = app()->environment('local', 'testing') || (config('services.payments.mock_purchases', false) && ! app()->environment('production'));
                 if ($isMock) {
@@ -233,11 +237,16 @@ class OrderService
                         $this->walletService->deposit($actor, $needed, 'Тестовое пополнение для оплаты заказа', null, [], false);
                     }
                 }
-                $this->walletService->hold($actor, $totalAmount, $lockedOrder, "Оплата заказа #{$lockedOrder->id}");
+                $this->walletService->holdOrderWithFee($actor, $lockedOrder, $servicePrice, $serviceFee, $feePercent);
             }
 
             $lockedOrder->logStatusChange(OrderStatus::Accepted->value, OrderStatus::Paid->value, 'user', $actor->id);
-            $lockedOrder->update(['status' => OrderStatus::Paid, 'paid_at' => now()]);
+            $lockedOrder->update([
+                'status' => OrderStatus::Paid,
+                'paid_at' => now(),
+                'customer_service_fee' => $serviceFee,
+                'customer_service_fee_percent' => $feePercent,
+            ]);
 
             $this->broadcastSystemMessage($lockedOrder, [
                 'sender_id' => $actor->id,
@@ -621,12 +630,39 @@ class OrderService
                     break;
 
                 case OrderStatus::Refunded:
-                    if ($lockedOrder->completed_at !== null && $lockedOrder->idol) {
+                    if ($lockedOrder->idol) {
                         IdolRatingService::adjust($lockedOrder->idol, 'order_refunded');
                     }
 
                     // Refund escrow hold to customer (and claw back from idol if already completed)
                     $this->walletService->refundHold($lockedOrder, $note ?? 'Аннулирован администратором');
+
+                    if ($lockedOrder->conversation_id) {
+                        $lockedOrder->conversation->messages()->create([
+                            'sender_id' => null,
+                            'body' => '',
+                            'type' => 'system',
+                            'metadata' => [
+                                'event' => 'order_refunded',
+                                'reason' => $note ?? 'Аннулирован администратором',
+                                'by_admin' => true,
+                            ],
+                        ]);
+                        $lockedOrder->conversation->touch();
+                    }
+
+                    UserIdolTrial::where('order_id', $lockedOrder->id)->delete();
+
+                    DB::afterCommit(function () use ($lockedOrder, $note) {
+                        try {
+                            $lockedOrder->customer?->notify(new \App\Notifications\OrderDisputeResolvedNotification($lockedOrder, 'approved', $note));
+                            $lockedOrder->idol?->notify(new \App\Notifications\OrderDisputeResolvedNotification($lockedOrder, 'approved', $note));
+                            $this->safeBroadcast(new NewNotification('private', $lockedOrder->customer_id));
+                            $this->safeBroadcast(new NewNotification('private', $lockedOrder->idol_id));
+                        } catch (\Throwable $e) {
+                            Log::warning("Failed to dispatch OrderDisputeResolvedNotification for order #{$lockedOrder->id}: {$e->getMessage()}");
+                        }
+                    });
                     break;
 
                 default:
@@ -699,6 +735,10 @@ class OrderService
                     'time_unit' => $item->service->timeUnit?->name,
                 ] : null,
             ])->values()->all(),
+            'service_price' => $order->total_price,
+            'customer_service_fee' => (float) ($order->customer_service_fee ?? 0.0),
+            'customer_service_fee_percent' => (float) ($order->customer_service_fee_percent ?? 0.0),
+            'total_price' => (float) $order->total_with_fee,
         ];
     }
 

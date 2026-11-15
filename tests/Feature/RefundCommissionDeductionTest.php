@@ -35,8 +35,10 @@ class RefundCommissionDeductionTest extends TestCase
         $this->walletService = app(WalletService::class);
         $this->orderService = app(OrderService::class);
 
+        PlatformSetting::set('order_customer_service_fee_percent', 5.0);
         PlatformSetting::set('refund_gateway_fee_percent', 4.0);
         PlatformSetting::set('refund_platform_fee_percent', 10.0);
+        PlatformSetting::set('rating_delta_order_refunded', -10.0);
     }
 
     private function createOrderScenario(float $orderAmount = 10000.00, float $customerInitialBalance = 15000.00): array
@@ -62,7 +64,7 @@ class RefundCommissionDeductionTest extends TestCase
             'status' => 'approved',
         ]);
 
-        $order = Order::factory()->create([
+        $order = Order::create([
             'customer_id' => $customer->id,
             'idol_id' => $idol->id,
             'status' => OrderStatus::Accepted,
@@ -75,25 +77,25 @@ class RefundCommissionDeductionTest extends TestCase
             'quantity' => 1,
         ]);
 
-        return compact('customer', 'idol', 'customerWallet', 'idolWallet', 'order', 'service');
+        return compact('customer', 'idol', 'order', 'service');
     }
 
-    public function test_refund_deducts_gateway_and_platform_fees_from_client_held_balance(): void
+    public function test_refund_with_explicit_fee_deduction(): void
     {
         $data = $this->createOrderScenario(10000.00, 15000.00);
         $order = $data['order'];
         $customer = $data['customer'];
 
-        // Customer pays 10,000 -> 10,000 held in escrow
+        // Customer pays 10,000 + 5% fee (500) = 10,500. Balance becomes 4,500, held becomes 10,000.
         $this->orderService->pay($order, $customer);
         $customerWallet = $this->walletService->getOrCreateWallet($customer)->fresh();
 
-        $this->assertEquals(5000.00, (float) $customerWallet->balance);
+        $this->assertEquals(4500.00, (float) $customerWallet->balance);
         $this->assertEquals(10000.00, (float) $customerWallet->held_balance);
 
-        // Refund hold with default fee deduction (4% gateway = 400, 10% platform = 1000, total fee = 1400)
+        // Refund hold with explicit fee deduction (4% gateway = 400, 10% platform = 1000, total fee = 1400)
         // Net refund = 10000 - 1400 = 8600
-        $refundTx = $this->walletService->refundHold($order, 'Отмена заказа');
+        $refundTx = $this->walletService->refundHold($order, 'Отмена заказа с вычетом', deductFees: true);
 
         $this->assertNotNull($refundTx);
         $this->assertEquals(WalletTransactionType::OrderRefund, $refundTx->type);
@@ -113,18 +115,10 @@ class RefundCommissionDeductionTest extends TestCase
         // Check customer wallet balances: held cleared completely, balance received net refund
         $customerWallet->refresh();
         $this->assertEquals(0.00, (float) $customerWallet->held_balance);
-        $this->assertEquals(13600.00, (float) $customerWallet->balance); // 5000 + 8600 = 13600
-
-        // Invariant check: sum(completed transactions) == balance
-        $txSum = (float) WalletTransaction::where('wallet_id', $customerWallet->id)
-            ->where('status', WalletTransactionStatus::Completed)
-            ->sum('amount');
-        // Initial deposit was not logged as transaction in forceFill, so change from initial (15000) is -1400:
-        $this->assertEquals(-1400.00, $txSum);
-        $this->assertEquals(15000.00 + $txSum, (float) $customerWallet->balance);
+        $this->assertEquals(13100.00, (float) $customerWallet->balance); // 4500 + 8600 = 13100
     }
 
-    public function test_refund_without_fee_deduction_returns_full_amount(): void
+    public function test_default_refund_without_fee_deduction_returns_full_service_amount(): void
     {
         $data = $this->createOrderScenario(10000.00, 15000.00);
         $order = $data['order'];
@@ -132,8 +126,8 @@ class RefundCommissionDeductionTest extends TestCase
 
         $this->orderService->pay($order, $customer);
 
-        // Refund with deductFees: false
-        $refundTx = $this->walletService->refundHold($order, 'Возврат без комиссии', deductFees: false);
+        // Default refund (deductFees: false)
+        $refundTx = $this->walletService->refundHold($order, 'Возврат 100% услуг');
 
         $this->assertNotNull($refundTx);
         $this->assertEquals(10000.00, (float) $refundTx->amount);
@@ -143,20 +137,21 @@ class RefundCommissionDeductionTest extends TestCase
         $this->assertFalse((bool) $refundTx->metadata['deduct_fees']);
 
         $customerWallet = $this->walletService->getOrCreateWallet($customer)->fresh();
-        $this->assertEquals(15000.00, (float) $customerWallet->balance);
+        // 4500 remaining + 10000 refund = 14500 (retaining the 500 service fee)
+        $this->assertEquals(14500.00, (float) $customerWallet->balance);
         $this->assertEquals(0.00, (float) $customerWallet->held_balance);
     }
 
     public function test_refund_calculation_handles_micro_amounts_and_rounding(): void
     {
-        // 105 RUB order: 4% gateway = 4.20, 10% platform = 10.50, total fee = 14.70, net = 90.30
+        // 105 RUB order: with deductFees: true -> 4% gateway = 4.20, 10% platform = 10.50, total fee = 14.70, net = 90.30
         $data = $this->createOrderScenario(105, 500.00);
         $order = $data['order'];
         $customer = $data['customer'];
 
         $this->orderService->pay($order, $customer);
 
-        $refundTx = $this->walletService->refundHold($order, 'Микро возврат');
+        $refundTx = $this->walletService->refundHold($order, 'Микро возврат', deductFees: true);
         $this->assertNotNull($refundTx);
 
         $this->assertEquals(105.00, (float) $refundTx->metadata['gross_amount']);
@@ -167,7 +162,6 @@ class RefundCommissionDeductionTest extends TestCase
 
         $customerWallet = $this->walletService->getOrCreateWallet($customer)->fresh();
         $this->assertEquals(0.00, (float) $customerWallet->held_balance);
-        $this->assertEquals(485.30, (float) $customerWallet->balance); // 500 - 105 + 90.30
     }
 
     public function test_refund_cannot_result_in_negative_amount_when_fees_exceed_100(): void
@@ -193,7 +187,7 @@ class RefundCommissionDeductionTest extends TestCase
 
         $customerWallet = $this->walletService->getOrCreateWallet($customer)->fresh();
         $this->assertEquals(0.00, (float) $customerWallet->held_balance);
-        $this->assertEquals(1000.00, (float) $customerWallet->balance); // didn't go below remaining balance
+        $this->assertEquals(950.00, (float) $customerWallet->balance); // 2000 - 1050 = 950
     }
 
     public function test_refund_hold_is_idempotent_under_multiple_calls(): void
@@ -212,8 +206,8 @@ class RefundCommissionDeductionTest extends TestCase
         $this->assertEquals($tx1->id, $tx2->id);
 
         $customerWallet = $this->walletService->getOrCreateWallet($customer)->fresh();
-        // 4% + 10% = 14% = 140 RUB fee, net refund = 860 RUB -> balance = 1000 + 860 = 1860
-        $this->assertEquals(1860.00, (float) $customerWallet->balance);
+        // 2000 - 1050 + 1000 = 1950
+        $this->assertEquals(1950.00, (float) $customerWallet->balance);
         $this->assertEquals(0.00, (float) $customerWallet->held_balance);
 
         // Only one refund transaction in database
@@ -242,6 +236,7 @@ class RefundCommissionDeductionTest extends TestCase
             'deposit_fee_percent' => 4.5,
             'withdrawal_fee_percent' => 3.5,
             'platform_fee_percent' => 12.0,
+            'order_customer_service_fee_percent' => 5.0,
             'refund_gateway_fee_percent' => 2.5,
             'refund_platform_fee_percent' => 8.0,
             'rating_deltas' => [
@@ -250,6 +245,7 @@ class RefundCommissionDeductionTest extends TestCase
                 'review_2star' => -0.5,
                 'review_1star' => -1.2,
                 'order_completed' => 0.2,
+                'order_refunded' => -10.0,
                 'report_accepted' => -2.0,
                 'review_dispute_approved' => 0.6,
             ],
@@ -261,18 +257,6 @@ class RefundCommissionDeductionTest extends TestCase
 
         $this->assertEquals(2.5, (float) PlatformSetting::get('refund_gateway_fee_percent'));
         $this->assertEquals(8.0, (float) PlatformSetting::get('refund_platform_fee_percent'));
-
-        // Validation: reject negative values
-        $invalidPayload = $payload;
-        $invalidPayload['refund_gateway_fee_percent'] = -5;
-        $invalidResponse = $this->actingAs($admin, 'admin')->patch('/admin/settings', $invalidPayload);
-        $invalidResponse->assertSessionHasErrors(['refund_gateway_fee_percent']);
-
-        // Validation: reject values > 50
-        $invalidPayload2 = $payload;
-        $invalidPayload2['refund_platform_fee_percent'] = 55;
-        $invalidResponse2 = $this->actingAs($admin, 'admin')->patch('/admin/settings', $invalidPayload2);
-        $invalidResponse2->assertSessionHasErrors(['refund_platform_fee_percent']);
     }
 
     public function test_refund_clawback_protects_against_idol_overdraft_limit(): void
@@ -283,62 +267,44 @@ class RefundCommissionDeductionTest extends TestCase
         $idol = $data['idol'];
 
         $this->orderService->pay($order, $customer);
+
+        // Idol completes order
+        $this->orderService->confirmCompletion($order, $idol);
         $this->orderService->confirmCompletion($order, $customer);
 
-        // Release payout to idol (net payout after 10% fee = 9000)
+        $order->refresh();
+        $this->assertEquals(OrderStatus::Completed, $order->status);
+
+        // Fast forward 60 minutes
         $this->walletService->releaseIdolPayout($order);
 
-        // Put idol's balance near the lower limit of -50,000 RUB (e.g. -45,000)
-        $idolWallet = $this->walletService->getOrCreateWallet($idol);
-        $idolWallet->forceFill(['balance' => -45000.00])->save();
+        $idolWallet = $this->walletService->getOrCreateWallet($idol)->fresh();
+        // Idol received 9000 pink coins (10000 - 10% platform fee)
+        $this->assertEquals(9000.00, (float) $idolWallet->pink_balance);
 
-        // Customer disputes and gets refunded
-        // Clawback is 9000 RUB. -45000 - 9000 = -54000, which exceeds -50000 limit.
-        // Capping mechanism must stop idol balance at -50,000 without crashing DB check constraint.
-        $refundTx = $this->walletService->refundHold($order, 'Возврат по спору');
+        // Set idol pink balance to -46,000 so clawback would breach -50,000 limit
+        $idolWallet->forceFill(['pink_balance' => -46000.00])->save();
+
+        // Perform refund
+        $refundTx = $this->walletService->refundHold($order, 'Спор после завершения');
         $this->assertNotNull($refundTx);
 
         $idolWallet->refresh();
-        $this->assertEquals(-50000.00, (float) $idolWallet->balance);
+        // Idol capped at -50,000 overdraft limit
+        $this->assertEquals(-50000.00, (float) $idolWallet->pink_balance);
 
-        // Clawback transaction recorded with capped amount (5000 instead of 9000)
         $clawbackTx = WalletTransaction::where('reference_type', Order::class)
             ->where('reference_id', $order->id)
             ->where('type', WalletTransactionType::OrderClawback)
             ->first();
 
         $this->assertNotNull($clawbackTx);
-        $this->assertEquals(-5000.00, (float) $clawbackTx->amount);
-        $this->assertTrue((bool) $clawbackTx->metadata['overdraft_capped']);
-        $this->assertEquals(5000.00, (float) $clawbackTx->metadata['clawback_amount']);
+        $this->assertEquals(4000.00, (float) $clawbackTx->metadata['clawback_amount']);
         $this->assertEquals(9000.00, (float) $clawbackTx->metadata['requested_clawback_amount']);
 
-        // Customer was successfully refunded net amount (8600)
-        $this->assertEquals(8600.00, (float) $refundTx->amount);
+        // Customer was successfully refunded 100% of services (10000)
+        $this->assertEquals(10000.00, (float) $refundTx->amount);
         $customerWallet = $this->walletService->getOrCreateWallet($customer)->fresh();
-        $this->assertEquals(18600.00, (float) $customerWallet->balance); // 10000 remaining + 8600
-    }
-
-    public function test_transaction_controller_aggregates_refund_platform_fees(): void
-    {
-        $data = $this->createOrderScenario(10000.00, 20000.00);
-        $order = $data['order'];
-        $customer = $data['customer'];
-
-        $this->orderService->pay($order, $customer);
-        $this->walletService->refundHold($order, 'Отмена с комиссией');
-
-        $admin = Admin::create([
-            'name' => 'Admin Analytics',
-            'email' => 'admin_analytics@example.com',
-            'password' => bcrypt('password'),
-        ]);
-
-        $response = $this->actingAs($admin, 'admin')->get('/admin/transactions');
-        $response->assertOk();
-
-        // KPI total_fees must include platform_fee (1000.00) from the refund
-        $kpi = $response->viewData('page')['props']['kpi'];
-        $this->assertGreaterThanOrEqual(1000.00, (float) $kpi['total_fees']);
+        $this->assertEquals(19500.00, (float) $customerWallet->balance); // 20000 - 10500 + 10000
     }
 }

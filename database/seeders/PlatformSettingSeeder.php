@@ -20,6 +20,7 @@ class PlatformSettingSeeder extends Seeder
             'deposit_fee_percent' => '4',
             'withdrawal_fee_percent' => '4',
             'platform_fee_percent' => '10',
+            'order_customer_service_fee_percent' => '5.0',
             'refund_gateway_fee_percent' => '4',
             'refund_platform_fee_percent' => '10',
             'rating_delta_review_5star' => '0.8',
@@ -27,6 +28,7 @@ class PlatformSettingSeeder extends Seeder
             'rating_delta_review_2star' => '-0.5',
             'rating_delta_review_1star' => '-1.2',
             'rating_delta_order_completed' => '0.2',
+            'rating_delta_order_refunded' => '-10.0',
             'rating_delta_report_accepted' => '-2',
             'rating_delta_review_dispute_approved' => '0.6',
         ];

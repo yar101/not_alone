@@ -4,6 +4,7 @@ import { router, Link } from '@inertiajs/vue3';
 import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
 import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -189,7 +190,10 @@ const STATUS_LABELS = {
                         </div>
                         <div class="cps-meta__row">
                             <span class="cps-meta__label">Цена</span>
-                            <span>{{ pack.price }} ₽</span>
+                            <span class="inline-flex items-center gap-1">
+                                <span>{{ pack.price }}</span>
+                                <CoinIcon color="blue" size="xs" />
+                            </span>
                         </div>
                         <div class="cps-meta__row">
                             <span class="cps-meta__label">Фото</span>
@@ -239,7 +243,12 @@ const STATUS_LABELS = {
                             </label>
                             <span class="cps-flag-value">
                                 <template v-if="field === 'title'">{{ pack.title }}</template>
-                                <template v-else-if="field === 'price'">{{ pack.price }} ₽</template>
+                                <template v-else-if="field === 'price'">
+                                    <span class="inline-flex items-center gap-1">
+                                        <span>{{ pack.price }}</span>
+                                        <CoinIcon color="blue" size="xs" />
+                                    </span>
+                                </template>
                                 <template v-else-if="field === 'description'">
                                     {{ pack.description ? pack.description.slice(0, 60) + (pack.description.length > 60 ? '…' : '') : '—' }}
                                 </template>

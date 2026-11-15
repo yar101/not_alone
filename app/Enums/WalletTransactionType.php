@@ -17,6 +17,9 @@ enum WalletTransactionType: string
     case OrderHoldRelease = 'order_hold_release';
     case OrderHoldCancelled = 'order_hold_cancelled';
     case RefundFee = 'refund_fee';
+    case CustomerServiceFee = 'customer_service_fee';
+    case PinkToBlueConversion = 'pink_to_blue';
+    case BlueFromPinkConversion = 'blue_from_pink';
 
     public function label(): string
     {
@@ -34,14 +37,17 @@ enum WalletTransactionType: string
             self::OrderHoldRelease => 'Списание из заморозки',
             self::OrderHoldCancelled => 'Отмена холда',
             self::RefundFee => 'Комиссия при возврате',
+            self::CustomerServiceFee => 'Сервисный сбор',
+            self::PinkToBlueConversion => 'Перевод в синие монеты',
+            self::BlueFromPinkConversion => 'Зачисление из розовых монет',
         };
     }
 
     public function isCredit(): bool
     {
         return match ($this) {
-            self::Deposit, self::OrderPayout, self::OrderRefund, self::PackSale => true,
-            self::Withdrawal, self::OrderHold, self::PackPurchase, self::PlatformFee, self::OrderClawback, self::OrderHoldRelease, self::OrderHoldCancelled, self::RefundFee => false,
+            self::Deposit, self::OrderPayout, self::OrderRefund, self::PackSale, self::BlueFromPinkConversion => true,
+            self::Withdrawal, self::OrderHold, self::PackPurchase, self::PlatformFee, self::OrderClawback, self::OrderHoldRelease, self::OrderHoldCancelled, self::RefundFee, self::CustomerServiceFee, self::PinkToBlueConversion => false,
             self::AdminAdjustment => false,
         };
     }

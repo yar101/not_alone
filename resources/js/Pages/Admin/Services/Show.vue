@@ -3,6 +3,7 @@ import { ref, reactive, computed } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
 import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -186,7 +187,10 @@ function closeHistoryModal() {
                         </div>
                         <div class="sps-meta__row">
                             <span class="sps-meta__label">Цена</span>
-                            <span>{{ service.price?.toLocaleString('ru') }} ₽</span>
+                            <span class="inline-flex items-center gap-1">
+                                <span>{{ service.price?.toLocaleString('ru') }}</span>
+                                <CoinIcon color="blue" size="xs" />
+                            </span>
                         </div>
                         <div class="sps-meta__row" v-if="service.category">
                             <span class="sps-meta__label">Категория</span>
@@ -267,7 +271,12 @@ function closeHistoryModal() {
                             <span class="sps-flag-value">
                                 <template v-if="field === 'name_ru'">{{ service.name_ru || '—' }}</template>
                                 <template v-else-if="field === 'name_en'">{{ service.name_en || '—' }}</template>
-                                <template v-else-if="field === 'price'">{{ service.price?.toLocaleString('ru') }} ₽</template>
+                                <template v-else-if="field === 'price'">
+                                    <span class="inline-flex items-center gap-1">
+                                        <span>{{ service.price?.toLocaleString('ru') }}</span>
+                                        <CoinIcon color="blue" size="xs" />
+                                    </span>
+                                </template>
                                 <template v-else-if="field === 'category_id'">{{ service.category || '—' }}</template>
                                 <template v-else-if="field === 'time_unit_id'">{{ service.time_unit || '—' }}</template>
                             </span>

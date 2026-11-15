@@ -2,6 +2,7 @@
 import { inject, ref, computed, onMounted, onUnmounted } from 'vue';
 import { Picture, ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
 const { __ } = useTranslations();
@@ -102,7 +103,10 @@ function handleAddToCart() {
                         <p v-if="pack.description" class="cdm-desc">{{ pack.description }}</p>
                     </div>
                     <div class="cdm-meta">
-                        <span class="cdm-price">{{ pack.price }} ₽</span>
+                        <span class="cdm-price inline-flex items-center gap-1">
+                            <span>{{ pack.price }}</span>
+                            <CoinIcon color="blue" size="sm" />
+                        </span>
                         <span class="cdm-count">{{ __('pack.photos', { count: pack.photos_count }) }}</span>
                     </div>
                 </div>

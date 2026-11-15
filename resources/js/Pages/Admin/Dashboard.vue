@@ -4,6 +4,7 @@ import { computed } from 'vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
 import AdminStatsCard from '@/Components/Admin/AdminStatsCard.vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -39,7 +40,7 @@ function formatDate(str) {
 
 function formatCurrency(val) {
     const num = Number(val) || 0;
-    return num.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₽';
+    return num.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 const statusLabel = {
@@ -196,21 +197,33 @@ function getTargetLink(type, id) {
                 subtitle="Чистая прибыль сервиса"
                 accent="success"
                 :href="route('admin.transactions.index', { type: 'platform_fee' })"
-            />
+            >
+                <template #icon>
+                    <CoinIcon color="blue" size="sm" />
+                </template>
+            </AdminStatsCard>
             <AdminStatsCard
                 title="Оборот выплат"
                 :value="formatCurrency(metrics.turnover_total)"
                 subtitle="Выплаты за заказы и паки"
                 accent="primary"
                 :href="route('admin.transactions.index')"
-            />
+            >
+                <template #icon>
+                    <CoinIcon color="pink" size="sm" />
+                </template>
+            </AdminStatsCard>
             <AdminStatsCard
                 title="Пополнения балансов"
                 :value="formatCurrency(metrics.deposits_total)"
                 subtitle="Ввод средств клиентами"
                 accent="primary"
                 :href="route('admin.transactions.index', { type: 'deposit' })"
-            />
+            >
+                <template #icon>
+                    <CoinIcon color="blue" size="sm" />
+                </template>
+            </AdminStatsCard>
             <AdminStatsCard
                 title="Пользователи платформы"
                 :value="metrics.total_users"

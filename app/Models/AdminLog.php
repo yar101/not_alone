@@ -9,7 +9,7 @@ class AdminLog extends Model
 {
     public $timestamps = false;
 
-    protected $fillable = ['admin_id', 'action', 'target_type', 'target_id', 'details', 'created_at'];
+    protected $fillable = ['admin_id', 'action', 'ip_address', 'user_agent', 'target_type', 'target_id', 'details', 'created_at'];
 
     protected function casts(): array
     {

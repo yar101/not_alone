@@ -22,6 +22,11 @@ class WalletController extends Controller
         $filter = $request->query('filter', 'all');
         $query = WalletTransaction::where('wallet_id', $wallet->id);
 
+        $currencyFilter = $request->query('currency');
+        if ($currencyFilter && in_array($currencyFilter, ['blue', 'pink'], true)) {
+            $query->where('currency', $currencyFilter);
+        }
+
         if ($filter === 'deposit' || $filter === 'deposits') {
             $query->where('type', \App\Enums\WalletTransactionType::Deposit);
         } elseif ($filter === 'holds') {
@@ -50,6 +55,11 @@ class WalletController extends Controller
                 \App\Enums\WalletTransactionType::PackPurchase,
                 \App\Enums\WalletTransactionType::PackSale,
             ]);
+        } elseif ($filter === 'conversions') {
+            $query->whereIn('type', [
+                \App\Enums\WalletTransactionType::PinkToBlueConversion,
+                \App\Enums\WalletTransactionType::BlueFromPinkConversion,
+            ]);
         } elseif ($filter === 'withdrawal' || $filter === 'withdrawals') {
             $query->where('type', \App\Enums\WalletTransactionType::Withdrawal);
         }
@@ -62,6 +72,7 @@ class WalletController extends Controller
                 'id' => $tx->id,
                 'type' => $tx->type->value,
                 'type_label' => $tx->type->label(),
+                'currency' => $tx->currency ?? 'blue',
                 'amount' => (float) $tx->amount,
                 'balance_before' => (float) $tx->balance_before,
                 'balance_after' => (float) $tx->balance_after,
@@ -74,14 +85,22 @@ class WalletController extends Controller
                 'created_at' => $tx->created_at->toISOString(),
             ]);
 
+        $walletData = [
+            'balance' => (float) $wallet->balance,
+            'held_balance' => (float) $wallet->held_balance,
+            'total_balance' => $wallet->total_balance,
+            'currency' => $wallet->currency,
+            'is_active' => $wallet->is_active,
+        ];
+
+        if ($user->is_idol) {
+            $walletData['pink_balance'] = (float) $wallet->pink_balance;
+            $walletData['pink_held_balance'] = (float) $wallet->pink_held_balance;
+            $walletData['pink_total_balance'] = $wallet->pink_total_balance;
+        }
+
         return Inertia::render('Wallet/Index', [
-            'wallet' => [
-                'balance' => (float) $wallet->balance,
-                'held_balance' => (float) $wallet->held_balance,
-                'total_balance' => $wallet->total_balance,
-                'currency' => $wallet->currency,
-                'is_active' => $wallet->is_active,
-            ],
+            'wallet' => $walletData,
             'transactions' => $transactions,
             'activeFilter' => $filter,
             'canDeposit' => app()->environment('local', 'testing') || (config('services.payments.mock_purchases', false) && ! app()->environment('production')),
@@ -101,6 +120,11 @@ class WalletController extends Controller
         $filter = $request->query('filter', 'all');
         $query = WalletTransaction::where('wallet_id', $wallet->id);
 
+        $currencyFilter = $request->query('currency');
+        if ($currencyFilter && in_array($currencyFilter, ['blue', 'pink'], true)) {
+            $query->where('currency', $currencyFilter);
+        }
+
         if ($filter === 'deposit' || $filter === 'deposits') {
             $query->where('type', \App\Enums\WalletTransactionType::Deposit);
         } elseif ($filter === 'holds') {
@@ -129,6 +153,11 @@ class WalletController extends Controller
                 \App\Enums\WalletTransactionType::PackPurchase,
                 \App\Enums\WalletTransactionType::PackSale,
             ]);
+        } elseif ($filter === 'conversions') {
+            $query->whereIn('type', [
+                \App\Enums\WalletTransactionType::PinkToBlueConversion,
+                \App\Enums\WalletTransactionType::BlueFromPinkConversion,
+            ]);
         } elseif ($filter === 'withdrawal' || $filter === 'withdrawals') {
             $query->where('type', \App\Enums\WalletTransactionType::Withdrawal);
         }
@@ -141,6 +170,7 @@ class WalletController extends Controller
                 'id' => $tx->id,
                 'type' => $tx->type->value,
                 'type_label' => $tx->type->label(),
+                'currency' => $tx->currency ?? 'blue',
                 'amount' => (float) $tx->amount,
                 'balance_before' => (float) $tx->balance_before,
                 'balance_after' => (float) $tx->balance_after,
@@ -153,14 +183,22 @@ class WalletController extends Controller
                 'created_at' => $tx->created_at->toISOString(),
             ]);
 
+        $walletData = [
+            'balance' => (float) $wallet->balance,
+            'held_balance' => (float) $wallet->held_balance,
+            'total_balance' => $wallet->total_balance,
+            'currency' => $wallet->currency,
+            'is_active' => $wallet->is_active,
+        ];
+
+        if ($user->is_idol) {
+            $walletData['pink_balance'] = (float) $wallet->pink_balance;
+            $walletData['pink_held_balance'] = (float) $wallet->pink_held_balance;
+            $walletData['pink_total_balance'] = $wallet->pink_total_balance;
+        }
+
         return response()->json([
-            'wallet' => [
-                'balance' => (float) $wallet->balance,
-                'held_balance' => (float) $wallet->held_balance,
-                'total_balance' => $wallet->total_balance,
-                'currency' => $wallet->currency,
-                'is_active' => $wallet->is_active,
-            ],
+            'wallet' => $walletData,
             'transactions' => $transactions,
             'isIdol' => (bool) $user->is_idol,
             'canWithdraw' => (bool) $user->is_idol,
@@ -252,7 +290,61 @@ class WalletController extends Controller
             return response()->json([
                 'success' => true,
                 'transaction' => $tx,
-                'balance' => (float) $tx->balance_after,
+                'balance' => (float) $user->wallet->fresh()->balance,
+                'pink_balance' => (float) $tx->balance_after,
+            ]);
+        } catch (\DomainException $e) {
+            if (str_contains(mb_strtolower($e->getMessage()), 'идемпотентност')) {
+                return response()->json(['error' => $e->getMessage()], 409);
+            }
+
+            return response()->json(['error' => $e->getMessage()], 403);
+        } catch (\App\Exceptions\InsufficientFundsException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+    }
+
+    public function convertPinkToBlue(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user->is_idol) {
+            return response()->json(['error' => 'Конвертация доступна только айдолам.'], 403);
+        }
+
+        $data = $request->validate([
+            'amount' => ['required', 'numeric', 'min:1', 'max:1000000', 'regex:/^\d+(\.\d{1,2})?$/'],
+            'idempotency_key' => ['nullable', 'string', 'max:64'],
+        ]);
+
+        $rawKey = $request->header('X-Idempotency-Key') ?? $request->input('idempotency_key');
+        if (is_array($rawKey)) {
+            $rawKey = reset($rawKey);
+        }
+        if ($rawKey !== null && (! is_string($rawKey) || strlen($rawKey) > 64)) {
+            return response()->json([
+                'message' => 'The given data was invalid.',
+                'errors' => ['idempotency_key' => ['Длина ключа идемпотентности не должна превышать 64 символа.']],
+                'error' => 'Длина ключа идемпотентности не должна превышать 64 символа.',
+            ], 422);
+        }
+        $idempotencyKey = $rawKey ? (string) $rawKey : null;
+
+        try {
+            $result = $this->walletService->convertPinkToBlue(
+                user: $user,
+                amount: (float) $data['amount'],
+                idempotencyKey: $idempotencyKey
+            );
+
+            return response()->json([
+                'success' => true,
+                'pink_balance' => $result['pink_balance'],
+                'balance' => $result['balance'],
+                'pink_transaction' => $result['pink_transaction'],
+                'blue_transaction' => $result['blue_transaction'],
             ]);
         } catch (\DomainException $e) {
             if (str_contains(mb_strtolower($e->getMessage()), 'идемпотентност')) {

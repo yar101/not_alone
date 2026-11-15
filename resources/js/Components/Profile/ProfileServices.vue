@@ -17,6 +17,7 @@ import CreateButton from "@/Components/CreateButton.vue";
 import SiteModal from "@/Components/Site/SiteModal.vue";
 import ServiceRemarksModal from "@/Components/Profile/ServiceRemarksModal.vue";
 import ServiceStatusBadge from "@/Components/Profile/ServiceStatusBadge.vue";
+import CoinIcon from "@/Components/Common/CoinIcon.vue";
 import { useTranslations, localeLoading } from "@/composables/useTranslations";
 
 const { __, transChoice, locale } = useTranslations();
@@ -543,7 +544,7 @@ const pricePreview = computed(() => {
         (u) => u.id === form.time_unit_id,
     );
     if (!unit) return null;
-    return `${Number(form.price).toLocaleString("ru")} ₽ / ${localUnitName(unit)}`;
+    return `${Number(form.price).toLocaleString("ru")} / ${localUnitName(unit)}`;
 });
 
 // ── #4 Draft ─────────────────────────────────────────────────
@@ -1137,16 +1138,21 @@ watch(selectedCategory, (cat) => {
                             <div class="svc-card__footer">
                                 <div class="svc-card__price-block" :class="{'svc-card__price-block--trial': !isOwner && item.is_trial}">
                                     <template v-if="!isOwner && item.is_trial">
-                                        <div class="svc-card__price-main">
-                                            <span class="svc-card__amount">0</span><span class="svc-card__rub">₽</span><span class="svc-card__sep">/</span><span class="svc-card__unit">{{ localUnitName(item.time_unit) }}</span>
+                                        <div class="svc-card__price-main inline-flex items-center gap-1">
+                                            <span class="svc-card__amount">0</span><CoinIcon color="blue" size="xs" /><span class="svc-card__sep">/</span><span class="svc-card__unit">{{ localUnitName(item.time_unit) }}</span>
                                         </div>
-                                        <div class="svc-card__old-price">{{ item.price.toLocaleString("ru") }} ₽</div>
+                                        <div class="svc-card__old-price inline-flex items-center gap-1">
+                                            <span>{{ item.price.toLocaleString("ru") }}</span>
+                                            <CoinIcon color="blue" size="xs" />
+                                        </div>
                                     </template>
                                     <template v-else>
-                                        <span class="svc-card__amount">{{ item.price.toLocaleString("ru") }}</span
-                                        ><span class="svc-card__rub">₽</span
-                                        ><span class="svc-card__sep">/</span
-                                        ><span class="svc-card__unit">{{ localUnitName(item.time_unit) }}</span>
+                                        <div class="svc-card__price-main inline-flex items-center gap-1">
+                                            <span class="svc-card__amount">{{ item.price.toLocaleString("ru") }}</span>
+                                            <CoinIcon color="blue" size="xs" />
+                                            <span class="svc-card__sep">/</span>
+                                            <span class="svc-card__unit">{{ localUnitName(item.time_unit) }}</span>
+                                        </div>
                                     </template>
                                 </div>
 
@@ -1160,7 +1166,7 @@ watch(selectedCategory, (cat) => {
                                         popper-class="newbie-dark-tooltip"
                                     >
                                         <template #content>
-                                            В корзине уже есть услуга «1-й заказ 0 ₽».<br />
+                                            В корзине уже есть услуга «1-й заказ бесплатно».<br />
                                             Вы можете оформить только одну такую услугу за раз.
                                         </template>
                                         <button
@@ -1312,11 +1318,11 @@ watch(selectedCategory, (cat) => {
                                                         <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
                                                             <span style="display: flex; align-items: center; gap: 0.6rem; white-space: nowrap;">
                                                                 <el-icon><Present /></el-icon>
-                                                                1-й заказ 0 ₽
+                                                                1-й заказ бесплатно
                                                             </span>
                                                             <el-tooltip placement="top" effect="dark" popper-class="newbie-dark-tooltip" :hide-after="0" trigger="click">
                                                                 <template #content>
-                                                                    Новый клиент сможет заказать эту услугу за 0 ₽.<br>
+                                                                    Новый клиент сможет заказать эту услугу бесплатно (0).<br>
                                                                     Один клиент может взять только одну бесплатную услугу.<br>
                                                                     <div style="margin-top: 6px; color: #ffb2ef; display: inline-flex; align-items: center; gap: 4px;">
                                                                         <span>Это помогает привлечению новых клиентов</span>
@@ -1910,13 +1916,13 @@ watch(selectedCategory, (cat) => {
                                 <div style="display: flex; align-items: center; gap: 0.75rem;">
                                     <input type="checkbox" id="is_trial" v-model="form.is_trial" class="svc-custom-checkbox" />
                                     <label for="is_trial" style="color: rgba(255, 255, 255, 0.7); font-size: 0.9rem; cursor: pointer; user-select: none; margin: 0;">
-                                        Сделать <span style="color: var(--color-base-1); font-weight: 600;">1-й заказ 0 ₽</span>
+                                        Сделать <span style="color: var(--color-base-1); font-weight: 600;">1-й заказ бесплатно</span>
                                     </label>
                                 </div>
                                 
                                 <el-tooltip placement="top" effect="dark" popper-class="newbie-dark-tooltip" :hide-after="0" trigger="click">
                                     <template #content>
-                                        Новый клиент сможет заказать эту услугу за 0 ₽.<br>
+                                        Новый клиент сможет заказать эту услугу бесплатно (0).<br>
                                         Один клиент может взять только одну бесплатную услугу.<br>
                                         <div style="margin-top: 6px; color: #ffb2ef; display: inline-flex; align-items: center; gap: 4px;">
                                             <span>Это помогает привлечению новых клиентов</span>

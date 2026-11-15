@@ -110,6 +110,7 @@ class WalletService
                     'wallet_id' => $lockedWallet->id,
                     'user_id' => $user->id,
                     'type' => WalletTransactionType::Deposit,
+                    'currency' => 'blue',
                     'amount' => $netAmount,
                     'balance_before' => $balanceBefore,
                     'balance_after' => $balanceAfter,
@@ -283,6 +284,106 @@ class WalletService
     }
 
     /**
+     * Hold order service price in escrow and charge customer service fee.
+     *
+     * @throws InsufficientFundsException
+     */
+    public function holdOrderWithFee(
+        User $customer,
+        Order $order,
+        float $servicePrice,
+        float $serviceFee,
+        float $feePercent
+    ): array {
+        $totalRequired = (float) bcadd((string) $servicePrice, (string) $serviceFee, 2);
+        $wallet = $this->getOrCreateWallet($customer);
+
+        return DB::transaction(function () use ($customer, $order, $servicePrice, $serviceFee, $feePercent, $totalRequired, $wallet) {
+            $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
+
+            if (! $lockedWallet->is_active) {
+                throw new \DomainException('Кошелёк деактивирован.');
+            }
+
+            if (! $lockedWallet->hasSufficientBalance($totalRequired)) {
+                throw new InsufficientFundsException(
+                    "Недостаточно средств для оплаты заказа. Требуется: {$totalRequired}, доступно: {$lockedWallet->balance}"
+                );
+            }
+
+            // 1. Charge non-refundable customer service fee if > 0
+            $feeTx = null;
+            if ($serviceFee > 0) {
+                $balBeforeFee = (float) $lockedWallet->balance;
+                $balAfterFee = (float) bcsub((string) $balBeforeFee, (string) $serviceFee, 2);
+
+                $lockedWallet->forceFill(['balance' => $balAfterFee])->save();
+
+                $feeTx = WalletTransaction::create([
+                    'wallet_id' => $lockedWallet->id,
+                    'user_id' => $customer->id,
+                    'type' => WalletTransactionType::CustomerServiceFee,
+                    'currency' => 'blue',
+                    'amount' => -$serviceFee,
+                    'balance_before' => $balBeforeFee,
+                    'balance_after' => $balAfterFee,
+                    'held_balance_before' => (float) $lockedWallet->held_balance,
+                    'held_balance_after' => (float) $lockedWallet->held_balance,
+                    'status' => WalletTransactionStatus::Completed,
+                    'reference_type' => Order::class,
+                    'reference_id' => $order->id,
+                    'idempotency_key' => "cust_fee_order_{$order->id}",
+                    'description' => "Сервисный сбор по заказу #{$order->id} ({$feePercent}%)",
+                    'metadata' => [
+                        'order_id' => $order->id,
+                        'service_price' => $servicePrice,
+                        'fee_percent' => $feePercent,
+                        'fee_amount' => $serviceFee,
+                    ],
+                ]);
+            }
+
+            // 2. Hold 100% of the service price in escrow
+            $holdTx = null;
+            if ($servicePrice > 0) {
+                $balBeforeHold = (float) $lockedWallet->balance;
+                $balAfterHold = (float) bcsub((string) $balBeforeHold, (string) $servicePrice, 2);
+
+                $heldBeforeHold = (float) $lockedWallet->held_balance;
+                $heldAfterHold = (float) bcadd((string) $heldBeforeHold, (string) $servicePrice, 2);
+
+                $lockedWallet->forceFill([
+                    'balance' => $balAfterHold,
+                    'held_balance' => $heldAfterHold,
+                ])->save();
+
+                $holdTx = WalletTransaction::create([
+                    'wallet_id' => $lockedWallet->id,
+                    'user_id' => $customer->id,
+                    'type' => WalletTransactionType::OrderHold,
+                    'currency' => 'blue',
+                    'amount' => -$servicePrice,
+                    'balance_before' => $balBeforeHold,
+                    'balance_after' => $balAfterHold,
+                    'held_balance_before' => $heldBeforeHold,
+                    'held_balance_after' => $heldAfterHold,
+                    'status' => WalletTransactionStatus::Completed,
+                    'reference_type' => Order::class,
+                    'reference_id' => $order->id,
+                    'idempotency_key' => "order_hold_{$order->id}",
+                    'description' => "Оплата услуг по заказу #{$order->id}",
+                    'metadata' => [
+                        'order_id' => $order->id,
+                        'service_price' => $servicePrice,
+                    ],
+                ]);
+            }
+
+            return ['fee_transaction' => $feeTx, 'hold_transaction' => $holdTx];
+        });
+    }
+
+    /**
      * Release held escrow funds: deduct from customer's held balance and payout to idol.
      */
     public function releaseHold(Order $order, ?float $platformFeePercent = null): array
@@ -376,6 +477,7 @@ class WalletService
                 'wallet_id' => $lockedCustWallet->id,
                 'user_id' => $lockedOrder->customer_id,
                 'type' => WalletTransactionType::OrderHoldRelease,
+                'currency' => 'blue',
                 'amount' => 0.00,
                 'balance_before' => $lockedCustWallet->balance,
                 'balance_after' => $lockedCustWallet->balance,
@@ -400,22 +502,23 @@ class WalletService
             $windowMinutes = (int) PlatformSetting::get('order_dispute_window_minutes', 60);
             $heldUntil = now()->addMinutes($windowMinutes);
 
-            // 3. Credit net payout into idol's held_balance (held during dispute window)
-            $idolBalBefore = $lockedIdolWallet->balance;
-            $idolHeldBefore = $lockedIdolWallet->held_balance;
-            $idolHeldAfter = (float) bcadd((string) $idolHeldBefore, (string) $netPayout, 2);
+            // 3. Credit net payout into idol's pink_held_balance (held during dispute window)
+            $idolPinkBalBefore = (float) $lockedIdolWallet->pink_balance;
+            $idolPinkHeldBefore = (float) $lockedIdolWallet->pink_held_balance;
+            $idolPinkHeldAfter = (float) bcadd((string) $idolPinkHeldBefore, (string) $netPayout, 2);
 
-            $lockedIdolWallet->forceFill(['held_balance' => $idolHeldAfter])->save();
+            $lockedIdolWallet->forceFill(['pink_held_balance' => $idolPinkHeldAfter])->save();
 
             $payoutTx = WalletTransaction::create([
                 'wallet_id' => $lockedIdolWallet->id,
                 'user_id' => $lockedOrder->idol_id,
                 'type' => WalletTransactionType::OrderPayout,
+                'currency' => 'pink',
                 'amount' => $heldAmount,
-                'balance_before' => $idolBalBefore,
-                'balance_after' => $idolBalBefore,
-                'held_balance_before' => $idolHeldBefore,
-                'held_balance_after' => (float) bcadd((string) $idolHeldBefore, (string) $heldAmount, 2),
+                'balance_before' => $idolPinkBalBefore,
+                'balance_after' => $idolPinkBalBefore,
+                'held_balance_before' => $idolPinkHeldBefore,
+                'held_balance_after' => (float) bcadd((string) $idolPinkHeldBefore, (string) $heldAmount, 2),
                 'status' => WalletTransactionStatus::Pending,
                 'reference_type' => Order::class,
                 'reference_id' => $lockedOrder->id,
@@ -438,11 +541,12 @@ class WalletService
                     'wallet_id' => $lockedIdolWallet->id,
                     'user_id' => $lockedOrder->idol_id,
                     'type' => WalletTransactionType::PlatformFee,
+                    'currency' => 'pink',
                     'amount' => -$feeAmount,
-                    'balance_before' => $idolBalBefore,
-                    'balance_after' => $idolBalBefore,
-                    'held_balance_before' => (float) bcadd((string) $idolHeldBefore, (string) $heldAmount, 2),
-                    'held_balance_after' => $idolHeldAfter,
+                    'balance_before' => $idolPinkBalBefore,
+                    'balance_after' => $idolPinkBalBefore,
+                    'held_balance_before' => (float) bcadd((string) $idolPinkHeldBefore, (string) $heldAmount, 2),
+                    'held_balance_after' => $idolPinkHeldAfter,
                     'status' => WalletTransactionStatus::Pending,
                     'reference_type' => Order::class,
                     'reference_id' => $lockedOrder->id,
@@ -535,14 +639,14 @@ class WalletService
                 return null;
             }
 
-            $heldBefore = $lockedIdolWallet->held_balance;
-            $heldAfter = max(0.00, (float) bcsub((string) $heldBefore, (string) $netPayout, 2));
-            $balBefore = $lockedIdolWallet->balance;
-            $balAfter = (float) bcadd((string) $balBefore, (string) $netPayout, 2);
+            $pinkHeldBefore = (float) $lockedIdolWallet->pink_held_balance;
+            $pinkHeldAfter = max(0.00, (float) bcsub((string) $pinkHeldBefore, (string) $netPayout, 2));
+            $pinkBalBefore = (float) $lockedIdolWallet->pink_balance;
+            $pinkBalAfter = (float) bcadd((string) $pinkBalBefore, (string) $netPayout, 2);
 
             $lockedIdolWallet->forceFill([
-                'balance' => $balAfter,
-                'held_balance' => $heldAfter,
+                'pink_balance' => $pinkBalAfter,
+                'pink_held_balance' => $pinkHeldAfter,
             ])->save();
 
             $payoutMeta['held'] = false;
@@ -556,15 +660,16 @@ class WalletService
                 ->first();
 
             $payoutBalAfter = $feeTx
-                ? (float) bcadd((string) $balBefore, (string) $grossAmount, 2)
-                : $balAfter;
+                ? (float) bcadd((string) $pinkBalBefore, (string) $grossAmount, 2)
+                : $pinkBalAfter;
 
             $payoutTx->update([
                 'status' => WalletTransactionStatus::Completed,
-                'balance_before' => $balBefore,
+                'currency' => 'pink',
+                'balance_before' => $pinkBalBefore,
                 'balance_after' => $payoutBalAfter,
-                'held_balance_before' => $heldBefore,
-                'held_balance_after' => $heldAfter,
+                'held_balance_before' => $pinkHeldBefore,
+                'held_balance_after' => $pinkHeldAfter,
                 'description' => "Оплата за заказ #{$lockedOrder->id}",
                 'metadata' => $payoutMeta,
             ]);
@@ -574,10 +679,11 @@ class WalletService
                 $feeMeta['held'] = false;
                 $feeTx->update([
                     'status' => WalletTransactionStatus::Completed,
+                    'currency' => 'pink',
                     'balance_before' => $payoutBalAfter,
-                    'balance_after' => $balAfter,
-                    'held_balance_before' => $heldAfter,
-                    'held_balance_after' => $heldAfter,
+                    'balance_after' => $pinkBalAfter,
+                    'held_balance_before' => $pinkHeldAfter,
+                    'held_balance_after' => $pinkHeldAfter,
                     'metadata' => $feeMeta,
                 ]);
             }
@@ -603,7 +709,7 @@ class WalletService
     public function refundHold(
         Order $order,
         ?string $reason = null,
-        bool $deductFees = true,
+        bool $deductFees = false,
         ?float $customGatewayFeePercent = null,
         ?float $customPlatformFeePercent = null
     ): ?WalletTransaction {
@@ -719,14 +825,14 @@ class WalletService
 
                     $isStillHeld = ($payoutTx->status === WalletTransactionStatus::Pending);
 
-                    $idolBalBefore = $lockedIdolWallet->balance;
-                    $idolHeldBefore = $lockedIdolWallet->held_balance;
+                    $idolPinkBalBefore = (float) $lockedIdolWallet->pink_balance;
+                    $idolPinkHeldBefore = (float) $lockedIdolWallet->pink_held_balance;
 
                     if ($isStillHeld) {
-                        // Payout is still in held_balance: deduct from held_balance!
-                        $idolHeldAfter = max(0.00, (float) bcsub((string) $idolHeldBefore, (string) $netIdolDeduction, 2));
-                        $idolBalAfter = $idolBalBefore;
-                        $lockedIdolWallet->forceFill(['held_balance' => $idolHeldAfter])->save();
+                        // Payout is still in pink_held_balance: deduct from pink_held_balance!
+                        $idolPinkHeldAfter = max(0.00, (float) bcsub((string) $idolPinkHeldBefore, (string) $netIdolDeduction, 2));
+                        $idolPinkBalAfter = $idolPinkBalBefore;
+                        $lockedIdolWallet->forceFill(['pink_held_balance' => $idolPinkHeldAfter])->save();
 
                         // Cancel the pending payout transaction
                         $payoutTxMeta = $payoutTx->metadata ?? [];
@@ -753,11 +859,12 @@ class WalletService
                             'wallet_id' => $lockedIdolWallet->id,
                             'user_id' => $lockedOrder->idol_id,
                             'type' => WalletTransactionType::OrderHoldCancelled,
+                            'currency' => 'pink',
                             'amount' => 0.00,
-                            'balance_before' => $idolBalBefore,
-                            'balance_after' => $idolBalAfter,
-                            'held_balance_before' => $idolHeldBefore,
-                            'held_balance_after' => $idolHeldAfter,
+                            'balance_before' => $idolPinkBalBefore,
+                            'balance_after' => $idolPinkBalAfter,
+                            'held_balance_before' => $idolPinkHeldBefore,
+                            'held_balance_after' => $idolPinkHeldAfter,
                             'status' => WalletTransactionStatus::Completed,
                             'reference_type' => Order::class,
                             'reference_id' => $lockedOrder->id,
@@ -773,18 +880,18 @@ class WalletService
                             ],
                         ]);
                     } else {
-                        // Payout was already released to available balance: deduct from balance (capped by -50000 overdraft limit)
-                        $targetBalAfter = (float) bcsub((string) $idolBalBefore, (string) $netIdolDeduction, 2);
+                        // Payout was already released to available pink_balance: deduct from pink_balance (capped by -50000 overdraft limit)
+                        $targetBalAfter = (float) bcsub((string) $idolPinkBalBefore, (string) $netIdolDeduction, 2);
                         $minOverdraft = -50000.00;
-                        $idolBalAfter = max($minOverdraft, $targetBalAfter);
-                        $actualClawback = (float) bcsub((string) $idolBalBefore, (string) $idolBalAfter, 2);
+                        $idolPinkBalAfter = max($minOverdraft, $targetBalAfter);
+                        $actualClawback = (float) bcsub((string) $idolPinkBalBefore, (string) $idolPinkBalAfter, 2);
 
-                        $idolHeldAfter = $idolHeldBefore;
-                        $lockedIdolWallet->forceFill(['balance' => $idolBalAfter])->save();
-                        $this->checkOverdraftAlert($lockedIdolWallet, $idolBalAfter);
+                        $idolPinkHeldAfter = $idolPinkHeldBefore;
+                        $lockedIdolWallet->forceFill(['pink_balance' => $idolPinkBalAfter])->save();
+                        $this->checkOverdraftAlert($lockedIdolWallet, $idolPinkBalAfter);
 
                         if ($targetBalAfter < $minOverdraft) {
-                            Log::alert("Idol wallet #{$lockedIdolWallet->id} reached maximum overdraft limit (-50,000 RUB). Clawback capped at {$actualClawback} (attempted {$netIdolDeduction}) for order #{$lockedOrder->id}");
+                            Log::alert("Idol wallet #{$lockedIdolWallet->id} reached maximum overdraft limit (-50,000 pink coins). Clawback capped at {$actualClawback} (attempted {$netIdolDeduction}) for order #{$lockedOrder->id}");
                         }
 
                         if ($feeTx) {
@@ -798,11 +905,12 @@ class WalletService
                             'wallet_id' => $lockedIdolWallet->id,
                             'user_id' => $lockedOrder->idol_id,
                             'type' => WalletTransactionType::OrderClawback,
+                            'currency' => 'pink',
                             'amount' => -$actualClawback,
-                            'balance_before' => $idolBalBefore,
-                            'balance_after' => $idolBalAfter,
-                            'held_balance_before' => $idolHeldBefore,
-                            'held_balance_after' => $idolHeldAfter,
+                            'balance_before' => $idolPinkBalBefore,
+                            'balance_after' => $idolPinkBalAfter,
+                            'held_balance_before' => $idolPinkHeldBefore,
+                            'held_balance_after' => $idolPinkHeldAfter,
                             'status' => WalletTransactionStatus::Completed,
                             'reference_type' => Order::class,
                             'reference_id' => $lockedOrder->id,
@@ -832,6 +940,7 @@ class WalletService
                         'wallet_id' => $lockedCustomerWallet->id,
                         'user_id' => $lockedOrder->customer_id,
                         'type' => WalletTransactionType::OrderRefund,
+                        'currency' => 'blue',
                         'amount' => $netRefund,
                         'balance_before' => $custBalBefore,
                         'balance_after' => $custBalAfter,
@@ -870,6 +979,7 @@ class WalletService
                     'wallet_id' => $lockedWallet->id,
                     'user_id' => $lockedOrder->customer_id,
                     'type' => WalletTransactionType::OrderRefund,
+                    'currency' => 'blue',
                     'amount' => $netRefund,
                     'balance_before' => $balBefore,
                     'balance_after' => $balAfter,
@@ -987,6 +1097,7 @@ class WalletService
                         'wallet_id' => $lockedBuyerWallet->id,
                         'user_id' => $buyer->id,
                         'type' => WalletTransactionType::PackPurchase,
+                        'currency' => 'blue',
                         'amount' => -$price,
                         'balance_before' => $buyerBalBefore,
                         'balance_after' => $buyerBalAfter,
@@ -1000,22 +1111,23 @@ class WalletService
                         'metadata' => ['pack_id' => $pack->id],
                     ]);
 
-                    // 2. Credit seller gross, then deduct fee
+                    // 2. Credit seller idol gross in pink coins, then deduct fee
                     $feePercent = $platformFeePercent ?? (float) PlatformSetting::get('platform_fee_percent', config('services.payments.platform_fee_percent', 10.0));
                     $feeAmount = $this->roundFee($price, $feePercent);
 
-                    $sellerBalBefore = $lockedSellerWallet->balance;
-                    $sellerBalAfterGross = (float) bcadd((string) $sellerBalBefore, (string) $price, 2);
+                    $sellerPinkBalBefore = (float) $lockedSellerWallet->pink_balance;
+                    $sellerPinkBalAfterGross = (float) bcadd((string) $sellerPinkBalBefore, (string) $price, 2);
 
                     WalletTransaction::create([
                         'wallet_id' => $lockedSellerWallet->id,
                         'user_id' => $seller->id,
                         'type' => WalletTransactionType::PackSale,
+                        'currency' => 'pink',
                         'amount' => $price,
-                        'balance_before' => $sellerBalBefore,
-                        'balance_after' => $sellerBalAfterGross,
-                        'held_balance_before' => $lockedSellerWallet->held_balance,
-                        'held_balance_after' => $lockedSellerWallet->held_balance,
+                        'balance_before' => $sellerPinkBalBefore,
+                        'balance_after' => $sellerPinkBalAfterGross,
+                        'held_balance_before' => (float) $lockedSellerWallet->pink_held_balance,
+                        'held_balance_after' => (float) $lockedSellerWallet->pink_held_balance,
                         'status' => WalletTransactionStatus::Completed,
                         'reference_type' => ContentPack::class,
                         'reference_id' => $pack->id,
@@ -1031,18 +1143,19 @@ class WalletService
                     ]);
 
                     if ($feeAmount > 0) {
-                        $sellerBalAfterFee = (float) bcsub((string) $sellerBalAfterGross, (string) $feeAmount, 2);
-                        $lockedSellerWallet->forceFill(['balance' => $sellerBalAfterFee])->save();
+                        $sellerPinkBalAfterFee = (float) bcsub((string) $sellerPinkBalAfterGross, (string) $feeAmount, 2);
+                        $lockedSellerWallet->forceFill(['pink_balance' => $sellerPinkBalAfterFee])->save();
 
                         WalletTransaction::create([
                             'wallet_id' => $lockedSellerWallet->id,
                             'user_id' => $seller->id,
                             'type' => WalletTransactionType::PlatformFee,
+                            'currency' => 'pink',
                             'amount' => -$feeAmount,
-                            'balance_before' => $sellerBalAfterGross,
-                            'balance_after' => $sellerBalAfterFee,
-                            'held_balance_before' => $lockedSellerWallet->held_balance,
-                            'held_balance_after' => $lockedSellerWallet->held_balance,
+                            'balance_before' => $sellerPinkBalAfterGross,
+                            'balance_after' => $sellerPinkBalAfterFee,
+                            'held_balance_before' => (float) $lockedSellerWallet->pink_held_balance,
+                            'held_balance_after' => (float) $lockedSellerWallet->pink_held_balance,
                             'status' => WalletTransactionStatus::Completed,
                             'reference_type' => ContentPack::class,
                             'reference_id' => $pack->id,
@@ -1051,7 +1164,7 @@ class WalletService
                             'metadata' => ['pack_id' => $pack->id, 'fee_percent' => $feePercent],
                         ]);
                     } else {
-                        $lockedSellerWallet->forceFill(['balance' => $sellerBalAfterGross])->save();
+                        $lockedSellerWallet->forceFill(['pink_balance' => $sellerPinkBalAfterGross])->save();
                     }
                 }
 
@@ -1129,9 +1242,9 @@ class WalletService
                     }
                 }
 
-                if (! $lockedWallet->hasSufficientBalance($amount)) {
+                if (! $lockedWallet->hasSufficientPinkBalance($amount)) {
                     throw new InsufficientFundsException(
-                        "Недостаточно средств для вывода. Доступно: {$lockedWallet->balance} руб., запрошено: {$amount} руб."
+                        "Недостаточно розовых монет для вывода. Доступно: {$lockedWallet->pink_balance}, запрошено: {$amount}"
                     );
                 }
 
@@ -1149,21 +1262,22 @@ class WalletService
                     ]);
                 }
 
-                $balanceBefore = $lockedWallet->balance;
-                $balanceAfter = (float) bcsub((string) $balanceBefore, (string) $amount, 2);
+                $pinkBalBefore = (float) $lockedWallet->pink_balance;
+                $pinkBalAfter = (float) bcsub((string) $pinkBalBefore, (string) $amount, 2);
 
-                $lockedWallet->forceFill(['balance' => $balanceAfter])->save();
-                $this->checkOverdraftAlert($lockedWallet, $balanceAfter);
+                $lockedWallet->forceFill(['pink_balance' => $pinkBalAfter])->save();
+                $this->checkOverdraftAlert($lockedWallet, $pinkBalAfter);
 
                 return WalletTransaction::create([
                     'wallet_id' => $lockedWallet->id,
                     'user_id' => $user->id,
                     'type' => WalletTransactionType::Withdrawal,
+                    'currency' => 'pink',
                     'amount' => -$amount,
-                    'balance_before' => $balanceBefore,
-                    'balance_after' => $balanceAfter,
-                    'held_balance_before' => $lockedWallet->held_balance,
-                    'held_balance_after' => $lockedWallet->held_balance,
+                    'balance_before' => $pinkBalBefore,
+                    'balance_after' => $pinkBalAfter,
+                    'held_balance_before' => (float) $lockedWallet->pink_held_balance,
+                    'held_balance_after' => (float) $lockedWallet->pink_held_balance,
                     'status' => WalletTransactionStatus::Completed,
                     'idempotency_key' => $idempotencyKey,
                     'description' => $description ?? 'Вывод средств со счёта',
@@ -1178,6 +1292,168 @@ class WalletService
                 WalletTransactionType::Withdrawal,
                 $amount
             );
+        }
+    }
+
+    /**
+     * Convert an idol's pink coins into spendable blue coins (1:1 ratio).
+     * Blue coins cannot be converted back to pink coins.
+     */
+    public function convertPinkToBlue(User $user, float $amount, ?string $idempotencyKey = null): array
+    {
+        if (! $user->is_idol) {
+            throw new \DomainException('Конвертация доступна только айдолам.');
+        }
+
+        if (method_exists($user, 'isActiveBanned') && $user->isActiveBanned()) {
+            throw new \DomainException('Операция недоступна для заблокированного аккаунта.');
+        }
+
+        $amount = round($amount, 2);
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException('Сумма конвертации должна быть больше нуля.');
+        }
+
+        $wallet = $this->getOrCreateWallet($user);
+
+        $pinkTxKey = $idempotencyKey ? 'p2b_'.substr(hash('sha256', "p_{$idempotencyKey}"), 0, 56) : null;
+        $blueTxKey = $idempotencyKey ? 'b2p_'.substr(hash('sha256', "b_{$idempotencyKey}"), 0, 56) : null;
+
+        if ($pinkTxKey) {
+            $existingPink = WalletTransaction::where('idempotency_key', $pinkTxKey)->first();
+            if ($existingPink) {
+                if ($existingPink->wallet_id !== $wallet->id) {
+                    throw new \DomainException('Ключ идемпотентности уже использован для другой операции.');
+                }
+                if (abs((float) $existingPink->amount) !== (float) $amount) {
+                    throw new \DomainException('Ключ идемпотентности уже использован с другими параметрами.');
+                }
+                $existingBlue = WalletTransaction::where('idempotency_key', $blueTxKey)->first();
+                $currentWallet = $wallet->fresh();
+
+                return [
+                    'pink_transaction' => $existingPink,
+                    'blue_transaction' => $existingBlue,
+                    'pink_balance' => (float) $currentWallet->pink_balance,
+                    'balance' => (float) $currentWallet->balance,
+                ];
+            }
+        }
+
+        try {
+            return DB::transaction(function () use ($user, $amount, $wallet, $pinkTxKey, $blueTxKey) {
+                $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
+
+                if (! $lockedWallet->is_active) {
+                    throw new \DomainException('Кошелёк деактивирован.');
+                }
+
+                if ($pinkTxKey) {
+                    $existingPink = WalletTransaction::where('idempotency_key', $pinkTxKey)->first();
+                    if ($existingPink) {
+                        if ($existingPink->wallet_id !== $lockedWallet->id) {
+                            throw new \DomainException('Ключ идемпотентности уже использован для другой операции.');
+                        }
+                        if (abs((float) $existingPink->amount) !== (float) $amount) {
+                            throw new \DomainException('Ключ идемпотентности уже использован с другими параметрами.');
+                        }
+                        $existingBlue = WalletTransaction::where('idempotency_key', $blueTxKey)->first();
+
+                        return [
+                            'pink_transaction' => $existingPink,
+                            'blue_transaction' => $existingBlue,
+                            'pink_balance' => (float) $lockedWallet->pink_balance,
+                            'balance' => (float) $lockedWallet->balance,
+                        ];
+                    }
+                }
+
+                if (! $lockedWallet->hasSufficientPinkBalance($amount)) {
+                    throw new InsufficientFundsException(
+                        "Недостаточно розовых монет для конвертации. Доступно: {$lockedWallet->pink_balance}, запрошено: {$amount}"
+                    );
+                }
+
+                $pinkBalBefore = (float) $lockedWallet->pink_balance;
+                $pinkBalAfter = (float) bcsub((string) $pinkBalBefore, (string) $amount, 2);
+
+                $blueBalBefore = (float) $lockedWallet->balance;
+                $blueBalAfter = (float) bcadd((string) $blueBalBefore, (string) $amount, 2);
+
+                $lockedWallet->forceFill([
+                    'pink_balance' => $pinkBalAfter,
+                    'balance' => $blueBalAfter,
+                ])->save();
+
+                $pinkTx = WalletTransaction::create([
+                    'wallet_id' => $lockedWallet->id,
+                    'user_id' => $user->id,
+                    'type' => WalletTransactionType::PinkToBlueConversion,
+                    'currency' => 'pink',
+                    'amount' => -$amount,
+                    'balance_before' => $pinkBalBefore,
+                    'balance_after' => $pinkBalAfter,
+                    'held_balance_before' => (float) $lockedWallet->pink_held_balance,
+                    'held_balance_after' => (float) $lockedWallet->pink_held_balance,
+                    'status' => WalletTransactionStatus::Completed,
+                    'idempotency_key' => $pinkTxKey,
+                    'description' => "Перевод {$amount} розовых монет в синие монеты",
+                    'metadata' => [
+                        'amount' => $amount,
+                        'direction' => 'pink_to_blue',
+                    ],
+                ]);
+
+                $blueTx = WalletTransaction::create([
+                    'wallet_id' => $lockedWallet->id,
+                    'user_id' => $user->id,
+                    'type' => WalletTransactionType::BlueFromPinkConversion,
+                    'currency' => 'blue',
+                    'amount' => $amount,
+                    'balance_before' => $blueBalBefore,
+                    'balance_after' => $blueBalAfter,
+                    'held_balance_before' => (float) $lockedWallet->held_balance,
+                    'held_balance_after' => (float) $lockedWallet->held_balance,
+                    'status' => WalletTransactionStatus::Completed,
+                    'idempotency_key' => $blueTxKey,
+                    'description' => "Зачисление {$amount} синих монет из розовых",
+                    'metadata' => [
+                        'amount' => $amount,
+                        'direction' => 'blue_from_pink',
+                        'pink_transaction_id' => $pinkTx->id,
+                    ],
+                ]);
+
+                return [
+                    'pink_transaction' => $pinkTx,
+                    'blue_transaction' => $blueTx,
+                    'pink_balance' => $pinkBalAfter,
+                    'balance' => $blueBalAfter,
+                ];
+            });
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            if ($pinkTxKey) {
+                $existingPink = WalletTransaction::where('idempotency_key', $pinkTxKey)->first();
+                if ($existingPink) {
+                    if ($existingPink->wallet_id !== $wallet->id) {
+                        throw new \DomainException('Ключ идемпотентности уже использован для другой операции.');
+                    }
+                    if (abs((float) $existingPink->amount) !== (float) $amount) {
+                        throw new \DomainException('Ключ идемпотентности уже использован с другими параметрами.');
+                    }
+                    $existingBlue = WalletTransaction::where('idempotency_key', $blueTxKey)->first();
+                    $freshWallet = $wallet->fresh();
+
+                    return [
+                        'pink_transaction' => $existingPink,
+                        'blue_transaction' => $existingBlue,
+                        'pink_balance' => (float) $freshWallet->pink_balance,
+                        'balance' => (float) $freshWallet->balance,
+                    ];
+                }
+            }
+
+            throw $e;
         }
     }
 

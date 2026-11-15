@@ -3,6 +3,7 @@ import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppCheckbox from '@/Components/AppCheckbox.vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
 const { __, locale } = useTranslations();
@@ -107,7 +108,7 @@ function close() {
 }
 
 function fmtPrice(p) {
-    return (p ?? 0).toLocaleString('ru-RU') + '\u2009₽';
+    return (p ?? 0).toLocaleString('ru-RU');
 }
 
 const isMobile = ref(typeof window !== 'undefined' && window.innerWidth <= 768);
@@ -212,7 +213,11 @@ watch(() => props.modelValue, (val) => {
                             :disabled="!isSelected(svc.id) && limitReached"
                         />
                         <span class="sof-svc__name">{{ tName(svc) }}</span>
-                        <span class="sof-svc__price">{{ fmtPrice(svc.price) }}<template v-if="tUnit(svc)">&thinsp;/&thinsp;{{ tUnit(svc) }}</template></span>
+                        <span class="sof-svc__price inline-flex items-center gap-1">
+                            <span>{{ (svc.price ?? 0).toLocaleString('ru-RU') }}</span>
+                            <CoinIcon color="blue" size="xs" />
+                            <template v-if="tUnit(svc)">&thinsp;/&thinsp;{{ tUnit(svc) }}</template>
+                        </span>
                     </label>
                 </div>
             </div>
@@ -258,7 +263,11 @@ watch(() => props.modelValue, (val) => {
                                     :disabled="!isSelected(svc.id) && limitReached"
                                 />
                                 <span class="sof-svc__name">{{ tName(svc) }}</span>
-                                <span class="sof-svc__price">{{ fmtPrice(svc.price) }}<template v-if="tUnit(svc)">&thinsp;/&thinsp;{{ tUnit(svc) }}</template></span>
+                                <span class="sof-svc__price inline-flex items-center gap-1">
+                                    <span>{{ (svc.price ?? 0).toLocaleString('ru-RU') }}</span>
+                                    <CoinIcon color="blue" size="xs" />
+                                    <template v-if="tUnit(svc)">&thinsp;/&thinsp;{{ tUnit(svc) }}</template>
+                                </span>
                             </label>
                         </div>
                     </div>
@@ -276,7 +285,11 @@ watch(() => props.modelValue, (val) => {
                             class="sof-island"
                         >
                             <span class="sof-island__name">{{ s.name }}</span>
-                            <span class="sof-island__price">{{ fmtPrice(s.price) }}<template v-if="s.time_unit">&thinsp;/&thinsp;{{ s.time_unit }}</template></span>
+                            <span class="sof-island__price inline-flex items-center gap-1">
+                                <span>{{ (s.price ?? 0).toLocaleString('ru-RU') }}</span>
+                                <CoinIcon color="blue" size="xs" />
+                                <template v-if="s.time_unit">&thinsp;/&thinsp;{{ s.time_unit }}</template>
+                            </span>
                             <button class="sof-island__remove" @click="removeSelected(s.id)" :aria-label="__('chat.offer.remove')">
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
                                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>

@@ -3,6 +3,7 @@ import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
 import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -74,7 +75,7 @@ function reject() {
 }
 
 function formatPrice(val) {
-    return val != null ? val + ' ₽' : '—';
+    return val != null ? String(val) : '—';
 }
 
 const PRESETS = {
@@ -230,13 +231,17 @@ onUnmounted(() => window.removeEventListener('keydown', handleLbKey));
                     <div class="crs-diff">
                         <div class="crs-diff-col crs-diff-col--current">
                             <p class="crs-diff-label">Текущее</p>
-                            <p class="crs-diff-value">{{ field === 'price' ? formatPrice(vals.current) : (vals.current || '—') }}</p>
+                            <p class="crs-diff-value inline-flex items-center gap-1">
+                                <span>{{ field === 'price' ? formatPrice(vals.current) : (vals.current || '—') }}</span>
+                                <CoinIcon v-if="field === 'price' && vals.current != null" color="blue" size="xs" />
+                            </p>
                         </div>
                         <div class="crs-diff-arrow">→</div>
                         <div class="crs-diff-col crs-diff-col--pending">
                             <p class="crs-diff-label">Запрошено</p>
-                            <p class="crs-diff-value crs-diff-value--new">
-                                {{ field === 'price' ? formatPrice(vals.pending) : (vals.pending || '—') }}
+                            <p class="crs-diff-value crs-diff-value--new inline-flex items-center gap-1">
+                                <span>{{ field === 'price' ? formatPrice(vals.pending) : (vals.pending || '—') }}</span>
+                                <CoinIcon v-if="field === 'price' && vals.pending != null" color="blue" size="xs" />
                             </p>
                         </div>
                     </div>

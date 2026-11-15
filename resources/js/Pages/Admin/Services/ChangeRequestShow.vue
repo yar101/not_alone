@@ -3,6 +3,7 @@ import { ref, reactive, computed } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
 import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -66,7 +67,7 @@ function formatValue(field, data, side) {
         return val?.name ?? '—';
     }
     if (field === 'price') {
-        return Number(val).toLocaleString('ru') + ' ₽';
+        return Number(val).toLocaleString('ru');
     }
     return String(val);
 }
@@ -258,13 +259,17 @@ const PRESETS = {
                         <div class="scr-comp-grid">
                             <div class="scr-side scr-side--current">
                                 <div class="scr-side__label">Сейчас</div>
-                                <div class="scr-side__val">{{ formatValue(field, data, 'current') }}</div>
+                                <div class="scr-side__val inline-flex items-center gap-1">
+                                    <span>{{ formatValue(field, data, 'current') }}</span>
+                                    <CoinIcon v-if="field === 'price' && data.current !== null && data.current !== undefined" color="blue" size="xs" />
+                                </div>
                             </div>
                             <div class="scr-arrow">→</div>
                             <div class="scr-side scr-side--pending">
                                 <div class="scr-side__label">Станет</div>
-                                <div class="scr-side__val" :class="{ 'scr-val--diff': isChanged(field, data) }">
-                                    {{ formatValue(field, data, 'pending') }}
+                                <div class="scr-side__val inline-flex items-center gap-1" :class="{ 'scr-val--diff': isChanged(field, data) }">
+                                    <span>{{ formatValue(field, data, 'pending') }}</span>
+                                    <CoinIcon v-if="field === 'price' && data.pending !== null && data.pending !== undefined" color="blue" size="xs" />
                                 </div>
                             </div>
                         </div>

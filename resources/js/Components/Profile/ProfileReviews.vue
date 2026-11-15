@@ -266,7 +266,8 @@ function formatDate(iso) {
                     </div>
                     <div v-else-if="isOwner && isIdol && r.dispute_status === 'rejected'" class="pr-card__dispute-overlay">
                         <div class="pr-card__dispute-rejected">
-                            {{ __('reviews.dispute.rejected') }} <span class="pr-card__dispute-retry" @click.stop="openDisputeModal(r)">{{ __('reviews.dispute.retry') }}</span>
+                            {{ __('reviews.dispute.rejected') }} <span v-if="r.can_dispute !== false" class="pr-card__dispute-retry" @click.stop="openDisputeModal(r)">{{ __('reviews.dispute.retry') }}</span>
+                            <span v-else class="text-xs text-gray-500 ml-1">{{ __('reviews.dispute.limit_reached') }}</span>
                         </div>
                     </div>
 

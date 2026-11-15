@@ -4,6 +4,7 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppSelect from '@/Components/AppSelect.vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 import axios from 'axios';
 import { extractErrorMessage } from '@/Utils/error';
 import { ElNotification, ElTooltip, ElIcon } from 'element-plus';
@@ -83,23 +84,41 @@ watch(
 
 function onWalletUpdated(e) {
     if (e.detail) {
-        const prevBal = currentWallet.value.balance;
+        const prevBal = Number(currentWallet.value.balance || 0);
         const newBal = Number(e.detail.balance);
         const diff = newBal - prevBal;
+
+        const prevPink = Number(currentWallet.value.pink_balance || 0);
+        const hasPink = e.detail.pink_balance !== undefined;
+        const newPink = hasPink ? Number(e.detail.pink_balance) : prevPink;
+        const pinkDiff = newPink - prevPink;
 
         currentWallet.value = {
             ...currentWallet.value,
             balance: newBal,
             held_balance: Number(e.detail.held_balance),
             total_balance: Number(e.detail.total_balance),
+            pink_balance: hasPink ? newPink : currentWallet.value.pink_balance,
+            pink_held_balance: e.detail.pink_held_balance !== undefined ? Number(e.detail.pink_held_balance) : currentWallet.value.pink_held_balance,
+            pink_total_balance: e.detail.pink_total_balance !== undefined ? Number(e.detail.pink_total_balance) : currentWallet.value.pink_total_balance,
         };
 
-        if (!isDepositing.value && !isWithdrawing.value && Math.abs(diff) > 0.001) {
+        if (!isDepositing.value && !isWithdrawing.value && !isConverting.value && Math.abs(diff) > 0.001) {
             const isPlus = diff > 0;
             showWalletToast({
                 type: isPlus ? 'deposit' : 'admin',
                 title: 'Баланс обновлён',
-                message: `${isPlus ? '+' : '−'}${formatMoney(Math.abs(diff))} ₽`,
+                message: `${isPlus ? '+' : '−'}${formatMoney(Math.abs(diff))}`,
+            });
+        }
+
+        const isIdolUser = Boolean(props.isIdol || page.props.auth?.user?.is_idol);
+        if (isIdolUser && !isDepositing.value && !isWithdrawing.value && !isConverting.value && Math.abs(pinkDiff) > 0.001) {
+            const isPlus = pinkDiff > 0;
+            showWalletToast({
+                type: isPlus ? 'deposit' : 'admin',
+                title: 'Заработок обновлён',
+                message: `${isPlus ? '+' : '−'}${formatMoney(Math.abs(pinkDiff))}`,
             });
         }
     }
@@ -121,6 +140,9 @@ onMounted(() => {
                         balance: data.balance,
                         held_balance: data.held_balance,
                         total_balance: data.total_balance,
+                        pink_balance: data.pink_balance,
+                        pink_held_balance: data.pink_held_balance,
+                        pink_total_balance: data.pink_total_balance,
                     },
                 });
             });
@@ -150,6 +172,80 @@ const activeView = ref(getInitialView()); // 'overview' | 'history'
 const actionTab = ref('deposit'); // 'deposit' | 'withdraw'
 const availableTipVisible = ref(false);
 const frozenTipVisible = ref(false);
+const pinkAvailableTipVisible = ref(false);
+const pinkFrozenTipVisible = ref(false);
+
+// ── Idol Conversion Modal State ──────────────────────────────
+const showConvertModal = ref(false);
+const convertAmount = ref('');
+const isConverting = ref(false);
+const convertError = ref(null);
+
+function openConvertModal() {
+    convertError.value = null;
+    convertAmount.value = '';
+    showConvertModal.value = true;
+}
+
+function convertPreset(pct) {
+    const max = Number(currentWallet.value.pink_balance || 0);
+    if (max <= 0) {
+        convertAmount.value = 0;
+        return;
+    }
+    if (pct === 100) {
+        convertAmount.value = Number(max.toFixed(2));
+        return;
+    }
+    const val = Math.floor(max * (pct / 100));
+    convertAmount.value = val > 0 ? val : 0;
+}
+
+async function handleConvert() {
+    const amt = Number(convertAmount.value);
+    const max = Number(currentWallet.value.pink_balance || 0);
+    if (!amt || amt < 1) {
+        convertError.value = 'Минимальная сумма обмена — 1';
+        return;
+    }
+    if (amt > max) {
+        convertError.value = 'Сумма превышает доступный баланс';
+        return;
+    }
+
+    isConverting.value = true;
+    convertError.value = null;
+    try {
+        const { data } = await axios.post(route('wallet.convert_pink'), {
+            amount: amt,
+        });
+
+        currentWallet.value.pink_balance = Number(data.pink_balance);
+        currentWallet.value.pink_total_balance = Number(data.pink_balance) + Number(currentWallet.value.pink_held_balance || 0);
+        currentWallet.value.balance = Number(data.balance);
+        currentWallet.value.total_balance = Number(data.balance) + Number(currentWallet.value.held_balance || 0);
+
+        if (page.props.auth?.user?.wallet) {
+            page.props.auth.user.wallet.pink_balance = Number(data.pink_balance);
+            page.props.auth.user.wallet.balance = Number(data.balance);
+        }
+
+        showWalletToast({
+            type: 'deposit',
+            title: 'Обмен выполнен',
+            message: `+${formatMoney(amt)} зачислено`,
+        });
+
+        showConvertModal.value = false;
+        convertAmount.value = '';
+
+        router.reload({ only: ['transactions', 'wallet', 'auth'] });
+    } catch (e) {
+        convertError.value = extractErrorMessage(e, 'Не удалось выполнить обмен');
+    } finally {
+        isConverting.value = false;
+    }
+}
 
 function setView(view) {
     activeView.value = view;
@@ -264,6 +360,7 @@ const historyTabs = computed(() => {
     ];
     if (props.isIdol) {
         tabs.push({ id: 'withdrawal', label: 'Вывод' });
+        tabs.push({ id: 'conversions', label: 'Обмен (1:1)' });
     }
     return tabs;
 });
@@ -343,7 +440,7 @@ async function handleDeposit() {
         showWalletToast({
             type: 'warning',
             title: 'Неверная сумма',
-            message: 'Минимум для пополнения — 10 ₽',
+            message: 'Минимум для пополнения — 10',
         });
         return;
     }
@@ -354,17 +451,17 @@ async function handleDeposit() {
             amount: amt,
         });
 
-        currentWallet.value.balance = data.balance;
-        currentWallet.value.total_balance = Number(data.balance) + Number(currentWallet.value.held_balance);
+        currentWallet.value.balance = Number(data.balance);
+        currentWallet.value.total_balance = Number(data.balance) + Number(currentWallet.value.held_balance || 0);
 
         if (page.props.auth?.user?.wallet) {
-            page.props.auth.user.wallet.balance = data.balance;
+            page.props.auth.user.wallet.balance = Number(data.balance);
         }
 
         showWalletToast({
             type: 'deposit',
             title: 'Пополнение счёта',
-            message: `+${formatMoney(amt)} ₽ зачислено на баланс`,
+            message: `+${formatMoney(amt)} зачислено на баланс`,
         });
 
         router.reload({ only: ['transactions', 'wallet', 'auth'] });
@@ -382,16 +479,17 @@ async function handleDeposit() {
 // ── Withdraw ─────────────────────────────────────────────────
 async function handleWithdraw() {
     const amt = Number(withdrawAmount.value);
+    const maxPink = Number(currentWallet.value.pink_balance || 0);
     if (!amt || amt < 100) {
         showWalletToast({
             type: 'warning',
             title: 'Неверная сумма',
-            message: 'Минимальная сумма вывода — 100 ₽',
+            message: 'Минимальная сумма вывода — 100',
         });
         return;
     }
 
-    if (amt > Number(currentWallet.value.balance)) {
+    if (amt > maxPink) {
         showWalletToast({
             type: 'warning',
             title: 'Недостаточно средств',
@@ -409,15 +507,15 @@ async function handleWithdraw() {
         showWalletToast({
             type: 'withdraw',
             title: 'Заявка на вывод',
-            message: `${formatMoney(amt)} ₽ отправлены на выплату`,
+            message: `${formatMoney(amt)} отправлено на выплату`,
         });
 
-        currentWallet.value.balance = data.balance;
-        currentWallet.value.total_balance = Number(data.balance) + Number(currentWallet.value.held_balance);
+        currentWallet.value.pink_balance = Number(data.pink_balance);
+        currentWallet.value.pink_total_balance = Number(data.pink_balance) + Number(currentWallet.value.pink_held_balance || 0);
         withdrawAmount.value = '';
 
         if (page.props.auth?.user?.wallet) {
-            page.props.auth.user.wallet.balance = data.balance;
+            page.props.auth.user.wallet.pink_balance = Number(data.pink_balance);
         }
 
         router.reload({ only: ['transactions', 'wallet', 'auth'] });
@@ -531,6 +629,8 @@ function getTxLabel(tx) {
     }
     if (tx.type === 'platform_fee') return 'Комиссия';
     if (tx.type === 'order_clawback') return 'Списание по спору';
+    if (tx.type === 'pink_to_blue_conversion') return 'Обмен: списание розовых';
+    if (tx.type === 'blue_from_pink_conversion') return 'Обмен: зачисление синих';
     return tx.type_label || 'Операция';
 }
 
@@ -542,18 +642,18 @@ function formatTxDescription(desc) {
 }
 
 function formatSignedAmount(tx) {
-    if (!tx) return '0,00 ₽';
+    if (!tx) return '0,00';
     if (tx.type === 'order_hold_release' || tx.type === 'order_hold_cancelled') {
         const heldAmt = tx.metadata?.held_amount ?? (Number(tx.held_balance_before) - Number(tx.held_balance_after));
         if (heldAmt) {
-            return `−${formatMoney(Math.abs(heldAmt))} ₽`;
+            return `−${formatMoney(Math.abs(heldAmt))}`;
         }
     }
     const num = Number(tx.amount || 0);
     const abs = formatMoney(Math.abs(num));
-    if (num > 0) return `+${abs} ₽`;
-    if (num < 0) return `−${abs} ₽`;
-    return `${abs} ₽`;
+    if (num > 0) return `+${abs}`;
+    if (num < 0) return `−${abs}`;
+    return abs;
 }
 
 function getStatusBadge(tx) {
@@ -631,9 +731,124 @@ function formatFullDate(iso) {
 
                 <!-- ════════════ VIEW 1: MY BALANCE (100% ONE-SCREEN FIT) ════════════ -->
                 <div v-if="activeView === 'overview'" class="wallet-overview">
-                    <!-- 3 Compact Glass Balance Cards -->
+                    <!-- SECTION 1 (IDOL ONLY): PINK COINS ACCOUNT (EARNINGS) -->
+                    <template v-if="isIdol">
+                        <div class="wallet-section-header">
+                            <div class="wallet-section-title">
+                                <CoinIcon color="pink" size="sm" />
+                                <span>Счёт заработка</span>
+                            </div>
+                            <div class="wallet-section-actions">
+                                <button
+                                    type="button"
+                                    class="wallet-pill-btn"
+                                    @click="openConvertModal"
+                                >
+                                    <el-icon><RefreshRight /></el-icon>
+                                    <span>Обменять (1:1)</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="wallet-cards-grid">
+                            <!-- Idol Pink Card 1: Available -->
+                            <el-tooltip
+                                v-model:visible="pinkAvailableTipVisible"
+                                placement="top"
+                                effect="dark"
+                                popper-class="wallet-dark-tooltip"
+                                trigger="click"
+                                :hide-after="0"
+                            >
+                                <template #content>
+                                    <div class="wallet-tip-text">
+                                        Заработанные средства за заказы, паки и чаевые.<br>
+                                        Доступны для вывода на карту (комиссия {{ props.withdrawalFeePercent > 0 ? `${props.withdrawalFeePercent}%` : '4%' }}) или обмена 1:1.
+                                    </div>
+                                </template>
+                                <div
+                                    class="wcard wcard--pink-available"
+                                    :class="{ 'wcard--active': pinkAvailableTipVisible }"
+                                    tabindex="0"
+                                    role="button"
+                                    aria-label="Карточка: Заработанный баланс"
+                                >
+                                    <div class="wcard__watermark wcard__watermark--pink">
+                                        <i class="fa-solid fa-coins"></i>
+                                    </div>
+                                    <div class="wcard__top">
+                                        <div class="wcard__badge wcard__badge--pink">
+                                            <el-icon class="wcard__badge-icon"><WalletFilled /></el-icon>
+                                            Заработано
+                                        </div>
+                                        <div class="wcard__info-trigger" aria-hidden="true">
+                                            <el-icon><InfoFilled /></el-icon>
+                                        </div>
+                                    </div>
+                                    <div class="wcard__amount-row">
+                                        <span class="wcard__amount wcard__amount--pink">
+                                            {{ formatMoney(currentWallet.pink_balance) }}
+                                        </span>
+                                        <CoinIcon color="pink" size="sm" />
+                                    </div>
+                                </div>
+                            </el-tooltip>
+
+                            <!-- Idol Pink Card 2: Frozen / Held -->
+                            <el-tooltip
+                                v-model:visible="pinkFrozenTipVisible"
+                                placement="top"
+                                effect="dark"
+                                popper-class="wallet-dark-tooltip"
+                                trigger="click"
+                                :hide-after="0"
+                            >
+                                <template #content>
+                                    <div class="wallet-tip-text">
+                                        Оплата за завершённый заказ удерживается {{ formatMinutes(holdMinutes) }} на случай открытия спора заказчиком.<br>
+                                        Затем средства автоматически становятся доступны к выводу.
+                                    </div>
+                                </template>
+                                <div
+                                    class="wcard wcard--pink-frozen"
+                                    :class="{ 'wcard--active': pinkFrozenTipVisible }"
+                                    tabindex="0"
+                                    role="button"
+                                    aria-label="Карточка: Замороженный баланс"
+                                >
+                                    <div class="wcard__watermark wcard__watermark--orange">
+                                        <i class="fa-solid fa-clock"></i>
+                                    </div>
+                                    <div class="wcard__top">
+                                        <div class="wcard__badge wcard__badge--orange">
+                                            <el-icon class="wcard__badge-icon"><Lock /></el-icon>
+                                            В холде ({{ formatMinutes(holdMinutes) }})
+                                        </div>
+                                        <div class="wcard__info-trigger" aria-hidden="true">
+                                            <el-icon><InfoFilled /></el-icon>
+                                        </div>
+                                    </div>
+                                    <div class="wcard__amount-row">
+                                        <span class="wcard__amount wcard__amount--orange">
+                                            {{ formatMoney(currentWallet.pink_held_balance) }}
+                                        </span>
+                                        <CoinIcon color="pink" size="sm" />
+                                    </div>
+                                </div>
+                            </el-tooltip>
+                        </div>
+                    </template>
+
+                    <!-- SECTION 2: BLUE COINS ACCOUNT (PURCHASES) -->
+                    <div class="wallet-section-header" :style="isIdol ? 'margin-top: 1.5rem;' : ''">
+                        <div class="wallet-section-title">
+                            <CoinIcon color="blue" size="sm" />
+                            <span>{{ isIdol ? 'Счёт покупок' : 'Баланс' }}</span>
+                        </div>
+                    </div>
+
                     <div class="wallet-cards-grid">
-                        <!-- Card 1: Available -->
+                        <!-- Card 1: Available Blue -->
                         <el-tooltip
                             v-model:visible="availableTipVisible"
                             placement="top"
@@ -644,8 +859,7 @@ function formatFullDate(iso) {
                         >
                             <template #content>
                                 <div class="wallet-tip-text">
-                                    <span v-if="isIdol">Свободные средства.<br>Доступны для оплаты услуг<br>или вывода на карту.</span>
-                                    <span v-else>Свободные средства.<br>Доступны для оплаты услуг<br>и контент-паков.</span>
+                                    <span>Свободные средства.<br>Доступны для оплаты услуг<br>и покупки контент-паков.</span>
                                 </div>
                             </template>
                             <div
@@ -671,12 +885,12 @@ function formatFullDate(iso) {
                                     <span class="wcard__amount wcard__amount--emerald">
                                         {{ formatMoney(currentWallet.balance) }}
                                     </span>
-                                    <span class="wcard__currency">₽</span>
+                                    <CoinIcon color="blue" size="sm" />
                                 </div>
                             </div>
                         </el-tooltip>
 
-                        <!-- Card 2: Frozen / Held -->
+                        <!-- Card 2: Frozen / Held Blue -->
                         <el-tooltip
                             v-model:visible="frozenTipVisible"
                             placement="top"
@@ -687,15 +901,11 @@ function formatFullDate(iso) {
                         >
                             <template #content>
                                 <div class="wallet-tip-text">
-                                    <template v-if="isIdol">
-                                        Оплата за завершённый заказ удерживается {{ formatMinutes(holdMinutes) }} на случай открытия спора заказчиком.<br>
-                                        Затем средства автоматически станут доступны к выводу.
-                                    </template>
-                                    <template v-else>
+                                    <span>
                                         Средства заморожены до сдачи заказа.<br>
                                         Исполнитель получит оплату<br>
                                         только после подтверждения работы.
-                                    </template>
+                                    </span>
                                 </div>
                             </template>
                             <div
@@ -721,7 +931,7 @@ function formatFullDate(iso) {
                                     <span class="wcard__amount wcard__amount--cyan">
                                         {{ formatMoney(currentWallet.held_balance) }}
                                     </span>
-                                    <span class="wcard__currency">₽</span>
+                                    <CoinIcon color="blue" size="sm" />
                                 </div>
                             </div>
                         </el-tooltip>
@@ -742,23 +952,25 @@ function formatFullDate(iso) {
                         <div v-if="isIdol" class="wallet-role-tabs">
                             <button
                                 type="button"
-                                class="wallet-role-tab"
+                                class="wallet-role-tab flex items-center justify-center gap-1.5"
                                 :class="{ 'wallet-role-tab--active-deposit': actionTab === 'deposit' }"
                                 @click="actionTab = 'deposit'"
                             >
                                 <span>Пополнить</span>
+                                <CoinIcon color="blue" size="xs" />
                             </button>
                             <button
                                 type="button"
-                                class="wallet-role-tab"
+                                class="wallet-role-tab flex items-center justify-center gap-1.5"
                                 :class="{ 'wallet-role-tab--active-withdraw': actionTab === 'withdraw' }"
                                 @click="actionTab = 'withdraw'"
                             >
                                 <span>Вывести</span>
+                                <CoinIcon color="pink" size="xs" />
                             </button>
                         </div>
 
-                        <!-- DEPOSIT SECTION -->
+                        <!-- DEPOSIT SECTION (Blue Coins) -->
                         <div v-if="!isIdol || actionTab === 'deposit'" class="wallet-deposit-section">
                             <!-- 3 Presets exactly: 250, 550, 950 -->
                             <div class="wallet-preset-chips">
@@ -770,7 +982,8 @@ function formatFullDate(iso) {
                                     :class="{ 'wallet-preset-chip--active': depositAmount === amt }"
                                     @click="depositAmount = amt"
                                 >
-                                    {{ formatInteger(amt) }} ₽
+                                    <span>{{ formatInteger(amt) }}</span>
+                                    <CoinIcon color="blue" size="xs" />
                                 </button>
                             </div>
 
@@ -783,10 +996,12 @@ function formatFullDate(iso) {
                                         min="10"
                                         step="10"
                                         class="wallet-glass-input"
-                                        placeholder="Сумма от 10 ₽"
+                                        placeholder="Сумма от 10"
                                         @keydown.enter.prevent="handleDeposit"
                                     />
-                                    <span class="wallet-input-currency">₽</span>
+                                    <div class="wallet-input-currency-coin">
+                                        <CoinIcon color="blue" size="sm" />
+                                    </div>
                                 </div>
                                 <button
                                     type="button"
@@ -805,33 +1020,46 @@ function formatFullDate(iso) {
                                 </span>
                                 <span class="wallet-fee-info__item">
                                     <span>К зачислению:</span>
-                                    <strong class="wallet-fee-info__highlight wallet-fee-info__highlight--deposit">
-                                        {{ depositAmount > 0 ? `${formatMoney(depositNetAmount)} ₽` : '—' }}
+                                    <strong class="wallet-fee-info__highlight wallet-fee-info__highlight--deposit flex items-center gap-1">
+                                        <template v-if="depositAmount > 0">
+                                            <span>{{ formatMoney(depositNetAmount) }}</span>
+                                            <CoinIcon color="blue" size="xs" />
+                                        </template>
+                                        <template v-else>—</template>
                                     </strong>
                                 </span>
                             </div>
                         </div>
 
-                        <!-- WITHDRAW SECTION (Idol Only) -->
+                        <!-- WITHDRAW SECTION (Idol Only - Pink Coins) -->
                         <div v-else-if="isIdol && actionTab === 'withdraw'" class="wallet-withdraw-section">
+                            <div class="wallet-withdraw-balance-hint mb-3 flex items-center justify-between text-xs text-slate-400">
+                                <span>Доступно для вывода:</span>
+                                <span class="flex items-center gap-1 font-semibold text-pink-400">
+                                    {{ formatMoney(currentWallet.pink_balance) }}
+                                    <CoinIcon color="pink" size="xs" />
+                                </span>
+                            </div>
                             <div class="wallet-action-form">
                                 <div class="wallet-input-container">
                                     <input
                                         v-model.number="withdrawAmount"
                                         type="number"
                                         min="100"
-                                        :max="currentWallet.balance"
+                                        :max="currentWallet.pink_balance"
                                         step="100"
                                         class="wallet-glass-input"
-                                        placeholder="Сумма от 100 ₽"
+                                        placeholder="Сумма от 100"
                                         @keydown.enter.prevent="handleWithdraw"
                                     />
-                                    <span class="wallet-input-currency">₽</span>
+                                    <div class="wallet-input-currency-coin">
+                                        <CoinIcon color="pink" size="sm" />
+                                    </div>
                                 </div>
                                 <button
                                     type="button"
                                     class="wallet-primary-btn wallet-primary-btn--withdraw"
-                                    :disabled="isWithdrawing || currentWallet.is_active === false || !withdrawAmount || withdrawAmount > currentWallet.balance"
+                                    :disabled="isWithdrawing || currentWallet.is_active === false || !withdrawAmount || withdrawAmount > (currentWallet.pink_balance || 0)"
                                     @click="handleWithdraw"
                                 >
                                     <el-icon v-if="isWithdrawing" class="is-loading"><Loading /></el-icon>
@@ -841,10 +1069,10 @@ function formatFullDate(iso) {
                             <div class="wallet-fee-info">
                                 <span class="wallet-fee-info__item">
                                     <span>Комиссия:</span>
-                                    <strong class="wallet-fee-info__val">{{ props.withdrawalFeePercent > 0 ? `${props.withdrawalFeePercent}%` : '0%' }}</strong>
+                                    <strong class="wallet-fee-info__val">{{ props.withdrawalFeePercent > 0 ? `${props.withdrawalFeePercent}%` : '4%' }}</strong>
                                 </span>
                                 <span class="wallet-fee-info__item">
-                                    <span>К получению:</span>
+                                    <span>К получению на карту:</span>
                                     <strong class="wallet-fee-info__highlight wallet-fee-info__highlight--withdraw">
                                         {{ withdrawAmount > 0 ? `${formatMoney(withdrawPayoutAmount)} ₽` : '—' }}
                                     </strong>
@@ -990,21 +1218,26 @@ function formatFullDate(iso) {
                                 <!-- Col: Amount & Balance -->
                                 <div class="wallet-col wallet-col--amount">
                                     <div
-                                        class="wallet-tx-amount"
+                                        class="wallet-tx-amount flex items-center justify-end gap-1"
                                         :class="{
                                             'wallet-tx-amount--cyan': isHoldTx(tx),
                                             'wallet-tx-amount--emerald': !isHoldTx(tx) && isPositiveTx(tx),
                                             'wallet-tx-amount--coral': !isHoldTx(tx) && !isPositiveTx(tx),
                                         }"
                                     >
-                                        {{ formatSignedAmount(tx) }}
+                                        <span>{{ formatSignedAmount(tx) }}</span>
+                                        <CoinIcon :color="tx.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
                                     </div>
-                                    <div class="wallet-tx-remain">
+                                    <div class="wallet-tx-remain flex items-center justify-end gap-1">
                                         <template v-if="tx.metadata?.held">
-                                            В холде: <span style="color: #38bdf8;">{{ formatMoney(tx.held_balance_after) }} ₽</span>
+                                            <span>В холде:</span>
+                                            <span style="color: #38bdf8;">{{ formatMoney(tx.held_balance_after) }}</span>
+                                            <CoinIcon :color="tx.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
                                         </template>
                                         <template v-else>
-                                            Остаток: <span>{{ formatMoney(tx.balance_after) }} ₽</span>
+                                            <span>Остаток:</span>
+                                            <span>{{ formatMoney(tx.balance_after) }}</span>
+                                            <CoinIcon :color="tx.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
                                         </template>
                                     </div>
                                 </div>
@@ -1075,14 +1308,15 @@ function formatFullDate(iso) {
                     </div>
                     <h3 class="wallet-tx-modal__title">{{ getTxLabel(selectedTx) }}</h3>
                     <div
-                        class="wallet-tx-modal__amount"
+                        class="wallet-tx-modal__amount flex items-center justify-center gap-1.5"
                         :class="{
                             'wallet-tx-amount--cyan': isHoldTx(selectedTx),
                             'wallet-tx-amount--emerald': !isHoldTx(selectedTx) && isPositiveTx(selectedTx),
                             'wallet-tx-amount--coral': !isHoldTx(selectedTx) && !isPositiveTx(selectedTx),
                         }"
                     >
-                        {{ formatSignedAmount(selectedTx) }}
+                        <span>{{ formatSignedAmount(selectedTx) }}</span>
+                        <CoinIcon :color="selectedTx.currency === 'pink' ? 'pink' : 'blue'" size="sm" />
                     </div>
                     <span class="wallet-tx-status-pill" :class="getStatusBadge(selectedTx).class">
                         <span v-if="selectedTx.status !== 'completed'" class="wallet-tx-status-dot"></span>
@@ -1129,8 +1363,9 @@ function formatFullDate(iso) {
                                 <el-icon class="wallet-tx-detail-tip-icon"><QuestionFilled /></el-icon>
                             </span>
                         </el-tooltip>
-                        <span class="wallet-tx-detail-val wallet-tx-detail-val--accent">
-                            {{ formatMoney(selectedTx.balance_after) }} ₽
+                        <span class="wallet-tx-detail-val wallet-tx-detail-val--accent flex items-center gap-1">
+                            <span>{{ formatMoney(selectedTx.balance_after) }}</span>
+                            <CoinIcon :color="selectedTx.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
                         </span>
                     </div>
                     <div
@@ -1154,8 +1389,9 @@ function formatFullDate(iso) {
                                 <el-icon class="wallet-tx-detail-tip-icon"><QuestionFilled /></el-icon>
                             </span>
                         </el-tooltip>
-                        <span class="wallet-tx-detail-val" style="color: #38bdf8;">
-                            {{ formatMoney(selectedTx.held_balance_after) }} ₽
+                        <span class="wallet-tx-detail-val flex items-center gap-1" style="color: #38bdf8;">
+                            <span>{{ formatMoney(selectedTx.held_balance_after) }}</span>
+                            <CoinIcon :color="selectedTx.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
                         </span>
                     </div>
                     <div
@@ -1172,14 +1408,20 @@ function formatFullDate(iso) {
                         class="wallet-tx-detail-row"
                     >
                         <span class="wallet-tx-detail-label">Сумма заказа</span>
-                        <span class="wallet-tx-detail-val">{{ formatMoney(selectedTx.metadata.gross_amount) }} ₽</span>
+                        <span class="wallet-tx-detail-val flex items-center gap-1">
+                            <span>{{ formatMoney(selectedTx.metadata.gross_amount) }}</span>
+                            <CoinIcon :color="selectedTx.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
+                        </span>
                     </div>
                     <div
                         v-if="selectedTx.metadata?.fee_amount"
                         class="wallet-tx-detail-row"
                     >
                         <span class="wallet-tx-detail-label">Комиссия сервиса</span>
-                        <span class="wallet-tx-detail-val" style="color: #fb7185;">-{{ formatMoney(selectedTx.metadata.fee_amount) }} ₽</span>
+                        <span class="wallet-tx-detail-val flex items-center gap-1" style="color: #fb7185;">
+                            <span>-{{ formatMoney(selectedTx.metadata.fee_amount) }}</span>
+                            <CoinIcon :color="selectedTx.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
+                        </span>
                     </div>
                     <div
                         v-if="selectedTx.metadata?.reason"
@@ -1205,6 +1447,114 @@ function formatFullDate(iso) {
                     >
                         Закрыть
                     </button>
+                </div>
+            </div>
+        </SiteModal>
+
+        <!-- Idol Coin Conversion Modal (Pink -> Blue 1:1) -->
+        <SiteModal
+            v-if="isIdol"
+            :show="showConvertModal"
+            variant="pink"
+            compact
+            max-width="440px"
+            no-history
+            @close="showConvertModal = false"
+        >
+            <div class="convert-modal">
+                <div class="convert-modal__header">
+                    <div class="convert-modal__icon">
+                        <CoinIcon color="pink" size="md" />
+                        <el-icon class="convert-arrow"><RefreshRight /></el-icon>
+                        <CoinIcon color="blue" size="md" />
+                    </div>
+                    <h3 class="convert-modal__title">Обмен (1:1)</h3>
+                    <p class="convert-modal__subtitle">
+                        Перевод заработанных средств 1:1 для оплаты услуг на платформе.<br>
+                        Обратный обмен невозможен.
+                    </p>
+                </div>
+
+                <div class="convert-modal__balance-row">
+                    <span class="convert-bal-label">Доступно к обмену:</span>
+                    <div class="convert-bal-val">
+                        <span>{{ formatMoney(currentWallet.pink_balance) }}</span>
+                        <CoinIcon color="pink" size="xs" />
+                    </div>
+                </div>
+
+                <div class="convert-modal__form">
+                    <div class="wallet-preset-chips mb-3">
+                        <button
+                            type="button"
+                            class="wallet-preset-chip"
+                            @click="convertPreset(25)"
+                        >
+                            25%
+                        </button>
+                        <button
+                            type="button"
+                            class="wallet-preset-chip"
+                            @click="convertPreset(50)"
+                        >
+                            50%
+                        </button>
+                        <button
+                            type="button"
+                            class="wallet-preset-chip"
+                            @click="convertPreset(100)"
+                        >
+                            100% (Все)
+                        </button>
+                    </div>
+
+                    <div class="wallet-input-container">
+                        <input
+                            v-model.number="convertAmount"
+                            type="number"
+                            min="1"
+                            :max="currentWallet.pink_balance"
+                            step="1"
+                            class="wallet-glass-input"
+                            placeholder="Количество"
+                            @keydown.enter.prevent="handleConvert"
+                        />
+                        <div class="wallet-input-currency-coin">
+                            <CoinIcon color="pink" size="sm" />
+                        </div>
+                    </div>
+
+                    <div v-if="convertAmount > 0" class="convert-preview">
+                        <span>К зачислению:</span>
+                        <div class="convert-preview-val">
+                            <strong>+{{ formatMoney(convertAmount) }}</strong>
+                            <CoinIcon color="blue" size="xs" />
+                        </div>
+                    </div>
+
+                    <div v-if="convertError" class="convert-error">
+                        <el-icon><CircleCloseFilled /></el-icon>
+                        <span>{{ convertError }}</span>
+                    </div>
+
+                    <div class="convert-modal__actions">
+                        <button
+                            type="button"
+                            class="wallet-primary-btn wallet-primary-btn--convert"
+                            :disabled="isConverting || !convertAmount || convertAmount < 1 || convertAmount > (currentWallet.pink_balance || 0)"
+                            @click="handleConvert"
+                        >
+                            <el-icon v-if="isConverting" class="is-loading"><Loading /></el-icon>
+                            <span>{{ isConverting ? 'Обмен...' : 'Обменять 1:1' }}</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="wallet-secondary-btn"
+                            @click="showConvertModal = false"
+                        >
+                            Отмена
+                        </button>
+                    </div>
                 </div>
             </div>
         </SiteModal>
@@ -1363,6 +1713,18 @@ function formatFullDate(iso) {
     border: 1px solid rgba(100, 210, 255, 0.22);
 }
 
+.wcard--pink-available {
+    background: radial-gradient(circle at 95% 90%, rgba(244, 114, 182, 0.14) 0%, transparent 60%),
+                linear-gradient(135deg, rgba(28, 12, 22, 0.78) 0%, rgba(18, 7, 14, 0.88) 100%);
+    border: 1px solid rgba(244, 114, 182, 0.28);
+}
+
+.wcard--pink-frozen {
+    background: radial-gradient(circle at 95% 90%, rgba(251, 146, 60, 0.14) 0%, transparent 60%),
+                linear-gradient(135deg, rgba(28, 12, 22, 0.78) 0%, rgba(18, 7, 14, 0.88) 100%);
+    border: 1px solid rgba(251, 146, 60, 0.28);
+}
+
 @media (hover: hover) and (pointer: fine) {
     .wcard--available:hover {
         border-color: rgba(76, 222, 143, 0.4);
@@ -1372,6 +1734,16 @@ function formatFullDate(iso) {
     .wcard--frozen:hover {
         border-color: rgba(100, 210, 255, 0.4);
         box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5), 0 0 24px rgba(100, 210, 255, 0.12);
+    }
+
+    .wcard--pink-available:hover {
+        border-color: rgba(244, 114, 182, 0.48);
+        box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5), 0 0 24px rgba(244, 114, 182, 0.18);
+    }
+
+    .wcard--pink-frozen:hover {
+        border-color: rgba(251, 146, 60, 0.48);
+        box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5), 0 0 24px rgba(251, 146, 60, 0.18);
     }
 }
 
@@ -1383,6 +1755,16 @@ function formatFullDate(iso) {
 .wcard--frozen.wcard--active {
     border-color: rgba(100, 210, 255, 0.45);
     box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5), 0 0 24px rgba(100, 210, 255, 0.16);
+}
+
+.wcard--pink-available.wcard--active {
+    border-color: rgba(244, 114, 182, 0.55);
+    box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5), 0 0 24px rgba(244, 114, 182, 0.22);
+}
+
+.wcard--pink-frozen.wcard--active {
+    border-color: rgba(251, 146, 60, 0.55);
+    box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5), 0 0 24px rgba(251, 146, 60, 0.22);
 }
 
 .wcard:hover,
@@ -1412,6 +1794,14 @@ function formatFullDate(iso) {
     color: rgba(100, 210, 255, 0.08);
 }
 
+.wcard__watermark--pink {
+    color: rgba(244, 114, 182, 0.08);
+}
+
+.wcard__watermark--orange {
+    color: rgba(251, 146, 60, 0.08);
+}
+
 .wcard:hover .wcard__watermark,
 .wcard:active .wcard__watermark,
 .wcard.wcard--active .wcard__watermark {
@@ -1428,6 +1818,18 @@ function formatFullDate(iso) {
 .wcard--frozen:active .wcard__watermark--cyan,
 .wcard--frozen.wcard--active .wcard__watermark--cyan {
     color: rgba(100, 210, 255, 0.14);
+}
+
+.wcard--pink-available:hover .wcard__watermark--pink,
+.wcard--pink-available:active .wcard__watermark--pink,
+.wcard--pink-available.wcard--active .wcard__watermark--pink {
+    color: rgba(244, 114, 182, 0.14);
+}
+
+.wcard--pink-frozen:hover .wcard__watermark--orange,
+.wcard--pink-frozen:active .wcard__watermark--orange,
+.wcard--pink-frozen.wcard--active .wcard__watermark--orange {
+    color: rgba(251, 146, 60, 0.14);
 }
 
 .wcard__top {
@@ -1458,6 +1860,14 @@ function formatFullDate(iso) {
 
 .wcard__badge--cyan {
     color: var(--color-base-2, #64d2ff);
+}
+
+.wcard__badge--pink {
+    color: #f472b6;
+}
+
+.wcard__badge--orange {
+    color: #fb923c;
 }
 
 .wcard__badge-icon {
@@ -1536,8 +1946,8 @@ function formatFullDate(iso) {
     position: relative;
     z-index: 1;
     display: flex;
-    align-items: baseline;
-    gap: 0.35rem;
+    align-items: center;
+    gap: 0.5rem;
     margin-bottom: 0;
 }
 
@@ -1558,11 +1968,67 @@ function formatFullDate(iso) {
     color: var(--color-base-2, #64d2ff);
 }
 
+.wcard__amount--pink {
+    color: #f472b6;
+    text-shadow: 0 0 20px rgba(244, 114, 182, 0.35);
+}
+
+.wcard__amount--orange {
+    color: #fb923c;
+    text-shadow: 0 0 20px rgba(251, 146, 60, 0.35);
+}
+
 .wcard__currency {
     font-family: var(--font-receipt);
     font-size: 1.2rem;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.4);
+}
+
+/* ── Section Headers & Dual Account Controls ──────────────── */
+.wallet-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.85rem;
+    padding: 0 0.25rem;
+}
+
+.wallet-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.92);
+    letter-spacing: -0.01em;
+}
+
+.wallet-section-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.wallet-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 9999px;
+    background: rgba(244, 114, 182, 0.12);
+    border: 1px solid rgba(244, 114, 182, 0.28);
+    color: #f472b6;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.wallet-pill-btn:hover {
+    background: rgba(244, 114, 182, 0.22);
+    border-color: rgba(244, 114, 182, 0.45);
+    color: #ffffff;
 }
 
 /* ── Financial Actions Panel ──────────────────────────────── */
@@ -1749,16 +2215,142 @@ function formatFullDate(iso) {
     box-shadow: 0 0 0 3px rgba(255, 178, 239, 0.15);
 }
 
-.wallet-input-currency {
+.wallet-input-currency,
+.wallet-input-currency-coin {
     position: absolute;
-    right: 1rem;
+    right: 0.85rem;
     top: 50%;
     transform: translateY(-50%);
     font-family: var(--font-receipt);
     font-size: 0.95rem;
     font-weight: 700;
     color: rgba(255, 255, 255, 0.4);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     pointer-events: none;
+}
+
+/* ── Conversion Modal (Pink -> Blue) ──────────────────────── */
+.convert-modal {
+    padding: 0.5rem 0.25rem;
+}
+
+.convert-modal__header {
+    text-align: center;
+    margin-bottom: 1.25rem;
+}
+
+.convert-modal__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.convert-arrow {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.convert-modal__title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 0.4rem;
+}
+
+.convert-modal__subtitle {
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.65);
+    margin: 0;
+}
+
+.convert-modal__balance-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 0.95rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+}
+
+.convert-bal-label {
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.convert-bal-val {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 700;
+    color: #f472b6;
+}
+
+.convert-preview {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 0.95rem;
+    background: rgba(100, 210, 255, 0.06);
+    border: 1px solid rgba(100, 210, 255, 0.18);
+    border-radius: 8px;
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.convert-preview-val {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 700;
+    color: #38bdf8;
+}
+
+.convert-error {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+    font-size: 0.8rem;
+    color: #fb7185;
+}
+
+.convert-modal__actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+}
+
+.wallet-primary-btn--convert {
+    flex: 1;
+    background: linear-gradient(135deg, #ec4899 0%, #a855f7 100%);
+    border: 1px solid rgba(236, 72, 153, 0.4);
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(236, 72, 153, 0.35);
+}
+
+.wallet-secondary-btn {
+    padding: 0.65rem 1.2rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.wallet-secondary-btn:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
 }
 
 .wallet-primary-btn {

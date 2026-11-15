@@ -5,6 +5,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
 import AdminModal from '@/Components/Admin/AdminModal.vue';
 import AppSelect from '@/Components/AppSelect.vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 import { ElNotification } from 'element-plus';
 import {
     ArrowLeft, ChatDotRound, User, Coin, Clock, Check,
@@ -153,15 +154,30 @@ function getTxTypeLabel(type) {
                                     </td>
                                     <td>{{ item.category_name }}</td>
                                     <td>{{ item.time_unit }}</td>
-                                    <td class="text-right font-mono">{{ item.price.toLocaleString('ru') }} ₽</td>
+                                    <td class="text-right font-mono">
+                                        <span class="inline-flex items-center gap-1 justify-end">
+                                            <span>{{ item.price.toLocaleString('ru') }}</span>
+                                            <CoinIcon color="blue" size="xs" />
+                                        </span>
+                                    </td>
                                     <td class="text-center">{{ item.quantity }}</td>
-                                    <td class="text-right font-mono font-bold">{{ item.subtotal.toLocaleString('ru') }} ₽</td>
+                                    <td class="text-right font-mono font-bold">
+                                        <span class="inline-flex items-center gap-1 justify-end">
+                                            <span>{{ item.subtotal.toLocaleString('ru') }}</span>
+                                            <CoinIcon color="blue" size="xs" />
+                                        </span>
+                                    </td>
                                 </tr>
                             </tbody>
                             <tfoot>
                                 <tr>
                                     <td colspan="5" class="text-right font-bold total-label">Итоговая сумма:</td>
-                                    <td class="text-right font-mono font-bold total-value">{{ order.total.toLocaleString('ru') }} ₽</td>
+                                    <td class="text-right font-mono font-bold total-value">
+                                        <span class="inline-flex items-center gap-1 justify-end">
+                                            <span>{{ order.total.toLocaleString('ru') }}</span>
+                                            <CoinIcon color="blue" size="xs" />
+                                        </span>
+                                    </td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -208,9 +224,17 @@ function getTxTypeLabel(type) {
                                         <span class="tx-type-tag">{{ getTxTypeLabel(tx.type) }}</span>
                                     </td>
                                     <td class="text-right font-mono font-bold" :class="tx.amount >= 0 ? 'text-success' : 'text-danger'">
-                                        {{ tx.amount > 0 ? '+' : '' }}{{ tx.amount.toLocaleString('ru') }} ₽
+                                        <span class="inline-flex items-center gap-1 justify-end">
+                                            <span>{{ tx.amount > 0 ? '+' : '' }}{{ tx.amount.toLocaleString('ru') }}</span>
+                                            <CoinIcon :color="tx.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
+                                        </span>
                                     </td>
-                                    <td class="text-right font-mono">{{ tx.balance_after.toLocaleString('ru') }} ₽</td>
+                                    <td class="text-right font-mono">
+                                        <span class="inline-flex items-center gap-1 justify-end">
+                                            <span>{{ tx.balance_after.toLocaleString('ru') }}</span>
+                                            <CoinIcon :color="tx.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
+                                        </span>
+                                    </td>
                                     <td class="text-muted text-sm">{{ tx.created_at }}</td>
                                     <td>
                                         <span class="tx-status-pill" :class="'status--' + tx.status">

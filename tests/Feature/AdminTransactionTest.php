@@ -176,12 +176,14 @@ it('allows admin to configure fee percentages in settings and applies them', fun
         'deposit_fee_percent' => 2.0,
         'withdrawal_fee_percent' => 5.0,
         'platform_fee_percent' => 12.5,
+        'order_customer_service_fee_percent' => 5.0,
         'rating_deltas' => [
             'review_5star' => 0.8,
             'review_4star' => 0.4,
             'review_2star' => -0.5,
             'review_1star' => -1.2,
             'order_completed' => 0.2,
+            'order_refunded' => -0.2,
             'report_accepted' => -2.0,
             'review_dispute_approved' => 0.6,
         ],
@@ -211,6 +213,7 @@ it('allows admin to configure fee percentages in settings and applies them', fun
     // Verify withdraw applies 5% fee
     $idol = User::factory()->create(['is_idol' => true]);
     $service->deposit($idol, 2000.00, 'Баланс айдола'); // with 2% fee: 1960.00
+    $idol->wallet->forceFill(['pink_balance' => 1960.00])->save();
     $wTx = $service->withdraw($idol, 500.00);
 
     expect((float) $wTx->amount)->toBe(-500.00);

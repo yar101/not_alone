@@ -452,7 +452,7 @@ function getNotificationMessage(item) {
         const formattedAmount = data.amount !== undefined
             ? Math.abs(Number(data.amount)).toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
             : '';
-        params.amount = `${sign}${formattedAmount} ₽`;
+        params.amount = `${sign}${formattedAmount}`;
         params.description = data.description || '';
     }
 

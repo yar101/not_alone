@@ -4,6 +4,7 @@ import { Link, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AdminPagination from '@/Components/Admin/AdminPagination.vue';
+import CoinIcon from '@/Components/Common/CoinIcon.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -351,11 +352,11 @@ function getSystemText(msg) {
                                 <div v-if="['order_created', 'item_added'].includes(msg.metadata?.event) && msg.metadata?.services?.length" class="system-msg-details">
                                     <div v-for="svc in msg.metadata.services" :key="svc.id" class="sys-svc-line">
                                         <span class="sys-svc-name">{{ svc.name }} <span class="sys-svc-qty">x{{ svc.quantity || 1 }}</span></span>
-                                        <span class="sys-svc-price">{{ (svc.price || 0).toLocaleString('ru-RU') }} ₽</span>
+                                        <span class="sys-svc-price inline-flex items-center gap-1">{{ (svc.price || 0).toLocaleString('ru-RU') }} <CoinIcon color="blue" size="xs" /></span>
                                     </div>
                                     <div class="sys-svc-total">
                                         <span>Итого:</span>
-                                        <span>{{ msg.metadata.services.reduce((sum, s) => sum + ((s.price || 0) * (s.quantity || 1)), 0).toLocaleString('ru-RU') }} ₽</span>
+                                        <span class="inline-flex items-center gap-1">{{ msg.metadata.services.reduce((sum, s) => sum + ((s.price || 0) * (s.quantity || 1)), 0).toLocaleString('ru-RU') }} <CoinIcon color="blue" size="xs" /></span>
                                     </div>
                                 </div>
 

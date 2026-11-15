@@ -160,16 +160,21 @@ class OrderController extends Controller
     {
         $this->authorize('dispute', $order);
 
+        $user = $request->user();
+        if (method_exists($user, 'isActiveBanned') && $user->isActiveBanned()) {
+            return response()->json(['error' => 'Операция недоступна для заблокированного аккаунта.'], 403);
+        }
+
         $request->validate([
             'reason' => ['required', Rule::in(self::DISPUTE_REASONS)],
-            'details' => ['required', 'string', 'min:100'],
+            'details' => ['required', 'string', 'min:100', 'max:5000'],
         ]);
 
         $details = trim($request->details);
-        abort_unless(mb_strlen($details) >= 100, 422);
+        abort_unless(mb_strlen($details) >= 100 && mb_strlen($details) <= 5000, 422);
 
         try {
-            $this->service->dispute($order, $request->user(), $request->reason, $details);
+            $this->service->dispute($order, $user, $request->reason, $details);
         } catch (\DomainException $e) {
             return response()->json(['error' => $e->getMessage()], 422);
         }

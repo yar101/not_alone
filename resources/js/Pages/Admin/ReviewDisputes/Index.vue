@@ -63,7 +63,7 @@ const STATUS_CLASS  = { pending: 'badge--pending', approved: 'badge--approved', 
     <div class="page-wrap">
         <div class="page-header">
             <h1 class="page-title">Жалобы на отзывы</h1>
-            <span class="page-count">{{ disputes.total }} всего</span>
+            <span class="page-count">{{ counts.all ?? (counts.pending + counts.approved + counts.rejected) }} всего</span>
         </div>
 
         <!-- Поиск -->
@@ -85,7 +85,7 @@ const STATUS_CLASS  = { pending: 'badge--pending', approved: 'badge--approved', 
                     { key: 'pending',  label: 'Ожидают',    count: counts.pending },
                     { key: 'approved', label: 'Одобрены',   count: counts.approved },
                     { key: 'rejected', label: 'Отклонены',  count: counts.rejected },
-                    { key: 'all',      label: 'Все',        count: disputes.total },
+                    { key: 'all',      label: 'Все',        count: counts.all ?? (counts.pending + counts.approved + counts.rejected) },
                 ]"
                 :key="tab.key"
                 class="filter-tab"
