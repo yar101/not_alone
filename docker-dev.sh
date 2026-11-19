@@ -85,4 +85,23 @@ if [ "${BUILD:-0}" = "1" ] || [[ "$*" == *"--build"* ]]; then
     BUILD_FLAG="--build"
 fi
 
+# Normalize bind-mount ownership. Containers run artisan/php-fpm roots as uid 0,
+# so storage/, bootstrap/cache, public/build and public/hot would otherwise be
+# created root-owned on the host and block host-side artisan/npm (see AGENTS.md §1.1).
+# Runs in the background: `docker compose up` below stays in the foreground.
+(
+    for _ in $(seq 1 60); do
+        if [ "$(docker inspect -f '{{.State.Running}}' not_alone_app 2>/dev/null)" = "true" ]; then
+            docker exec -u root not_alone_app chown -R "$(id -u):$(id -g)" \
+                /var/www/html/storage \
+                /var/www/html/bootstrap/cache \
+                /var/www/html/bootstrap/ssr \
+                /var/www/html/public/build \
+                /var/www/html/public/hot 2>/dev/null || true
+            break
+        fi
+        sleep 2
+    done
+) >/dev/null 2>&1 &
+
 docker compose up $BUILD_FLAG --remove-orphans

@@ -250,10 +250,14 @@ services:
   vite:
     image: node:22-alpine
     container_name: not_alone_vite
+    # Run as the host user (node image ships uid/gid 1000) so public/hot and
+    # public/build/* land on the bind mount owned by the developer, not root.
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     working_dir: /var/www/html
     ports:
       - "5173:5173"
     environment:
+      HOME: /home/node
       DEV_HOST: ${DEV_HOST:?DEV_HOST не задан, запускайте composer run docker-dev}
       VITE_REVERB_HOST: ${DEV_HOST:?DEV_HOST не задан, запускайте composer run docker-dev}
       VITE_REVERB_PORT: 8443
