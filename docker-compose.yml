@@ -57,7 +57,7 @@ services:
       APP_DEBUG: "true"
       APP_LOCALE: ru
       APP_FALLBACK_LOCALE: ru
-      APP_URL: https://${DEV_HOST:-192.168.1.122}:8443
+      APP_URL: https://${DEV_HOST:?DEV_HOST не задан, запускайте composer run docker-dev}:8443
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
@@ -79,7 +79,7 @@ services:
       REVERB_PORT: 8080
       REVERB_SCHEME: http
       VITE_REVERB_APP_KEY: ${REVERB_APP_KEY:-notalonekey}
-      VITE_REVERB_HOST: ${DEV_HOST:-192.168.1.122}
+      VITE_REVERB_HOST: ${DEV_HOST:?DEV_HOST не задан, запускайте composer run docker-dev}
       VITE_REVERB_PORT: 8443
       VITE_REVERB_SCHEME: https
       AWS_ACCESS_KEY_ID: sail
@@ -87,14 +87,14 @@ services:
       AWS_DEFAULT_REGION: us-east-1
       AWS_BUCKET: not-alone
       AWS_ENDPOINT: http://minio:9000
-      AWS_URL: https://${DEV_HOST:-192.168.1.122}:8443/not-alone
+      AWS_URL: https://${DEV_HOST:?DEV_HOST не задан, запускайте composer run docker-dev}:8443/not-alone
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       FILESYSTEM_DISK: s3
     volumes:
       - .:/var/www/html
       - ./docker/nginx-dev.conf:/etc/nginx/nginx.conf:ro
-      - ./${DEV_HOST:-192.168.1.122}.pem:/etc/nginx/certs/dev.pem:ro
-      - ./${DEV_HOST:-192.168.1.122}-key.pem:/etc/nginx/certs/dev-key.pem:ro
+      - ./${DEV_HOST:?DEV_HOST не задан, запускайте composer run docker-dev}.pem:/etc/nginx/certs/dev.pem:ro
+      - ./${DEV_HOST:?DEV_HOST не задан, запускайте composer run docker-dev}-key.pem:/etc/nginx/certs/dev-key.pem:ro
     depends_on:
       db:
         condition: service_healthy
@@ -117,7 +117,7 @@ services:
       APP_DEBUG: "true"
       APP_LOCALE: ru
       APP_FALLBACK_LOCALE: ru
-      APP_URL: https://${DEV_HOST:-192.168.1.122}:8443
+      APP_URL: https://${DEV_HOST:?DEV_HOST не задан, запускайте composer run docker-dev}:8443
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
@@ -143,7 +143,7 @@ services:
       AWS_DEFAULT_REGION: us-east-1
       AWS_BUCKET: not-alone
       AWS_ENDPOINT: http://minio:9000
-      AWS_URL: https://${DEV_HOST:-192.168.1.122}:8443/not-alone
+      AWS_URL: https://${DEV_HOST:?DEV_HOST не задан, запускайте composer run docker-dev}:8443/not-alone
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       FILESYSTEM_DISK: s3
     volumes:
@@ -166,7 +166,7 @@ services:
       APP_DEBUG: "true"
       APP_LOCALE: ru
       APP_FALLBACK_LOCALE: ru
-      APP_URL: https://${DEV_HOST:-192.168.1.122}:8443
+      APP_URL: https://${DEV_HOST:?DEV_HOST не задан, запускайте composer run docker-dev}:8443
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
@@ -193,7 +193,7 @@ services:
       AWS_DEFAULT_REGION: us-east-1
       AWS_BUCKET: not-alone
       AWS_ENDPOINT: http://minio:9000
-      AWS_URL: https://${DEV_HOST:-192.168.1.122}:8443/not-alone
+      AWS_URL: https://${DEV_HOST:?DEV_HOST не задан, запускайте composer run docker-dev}:8443/not-alone
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       FILESYSTEM_DISK: s3
     volumes:
@@ -254,8 +254,8 @@ services:
     ports:
       - "5173:5173"
     environment:
-      DEV_HOST: ${DEV_HOST:-192.168.1.122}
-      VITE_REVERB_HOST: ${DEV_HOST:-192.168.1.122}
+      DEV_HOST: ${DEV_HOST:?DEV_HOST не задан, запускайте composer run docker-dev}
+      VITE_REVERB_HOST: ${DEV_HOST:?DEV_HOST не задан, запускайте composer run docker-dev}
       VITE_REVERB_PORT: 8443
       VITE_REVERB_SCHEME: https
     volumes:

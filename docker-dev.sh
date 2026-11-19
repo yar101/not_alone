@@ -51,6 +51,14 @@ set +a
 
 export DEV_HOST="$IP"
 
+# Persist DEV_HOST so bare `docker compose ...` (down/logs/exec) interpolates the
+# same value docker-dev.sh exports; docker-compose.yml fails fast if it is missing.
+if grep -qE '^(export )?DEV_HOST=' .env 2>/dev/null; then
+    sed -i -E "s/^(export )?DEV_HOST=.*/DEV_HOST=$IP/" .env
+else
+    echo "DEV_HOST=$IP" >> .env
+fi
+
 echo "================================================================="
 echo "🚀 Starting Docker Compose Dev Environment"
 echo "================================================================="
