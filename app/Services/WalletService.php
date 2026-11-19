@@ -30,6 +30,59 @@ class WalletService
     public const CRITICAL_OVERDRAFT_THRESHOLD = -40000.00;
 
     /**
+     * Calculate idol fee coverage parameters using Option A reverse calculation.
+     *
+     * @return array{
+     *     amount_charged: float,
+     *     net_payout: float,
+     *     platform_fee: float,
+     *     expected_withdrawal_payout: float,
+     *     platform_fee_percent: float,
+     *     withdrawal_fee_percent: float
+     * }
+     */
+    public function calculateFeeCoverage(
+        float $nominalAmount,
+        bool $coverPlatform = false,
+        bool $coverWithdrawal = false,
+        ?float $customPlatformFeePercent = null,
+        ?float $customWithdrawalFeePercent = null
+    ): array {
+        $pPercent = $customPlatformFeePercent ?? (float) PlatformSetting::get('platform_fee_percent', config('services.payments.platform_fee_percent', 10.0));
+        $wPercent = $customWithdrawalFeePercent ?? (float) PlatformSetting::get('withdrawal_fee_percent', config('services.payments.withdrawal_fee_percent', 4.0));
+
+        if ($pPercent < 0 || $pPercent >= 100) {
+            throw new \InvalidArgumentException('Процент комиссии платформы должен быть в диапазоне от 0 до 99.99.');
+        }
+        if ($wPercent < 0 || $wPercent >= 100) {
+            throw new \InvalidArgumentException('Процент комиссии на вывод должен быть в диапазоне от 0 до 99.99.');
+        }
+
+        $pFactor = $coverPlatform ? ((100.0 - $pPercent) / 100.0) : 1.0;
+        $wFactor = $coverWithdrawal ? ((100.0 - $wPercent) / 100.0) : 1.0;
+
+        $combinedFactor = $pFactor * $wFactor;
+        if ($combinedFactor <= 0.0001) {
+            throw new \InvalidArgumentException('Недопустимый совокупный коэффициент комиссии.');
+        }
+
+        $amountCharged = round((float) bcdiv((string) $nominalAmount, (string) $combinedFactor, 4), 2, PHP_ROUND_HALF_UP);
+        $platformFee = $this->roundFee($amountCharged, $pPercent);
+        $netPayout = (float) bcsub((string) $amountCharged, (string) $platformFee, 2);
+        $withdrawalFee = $this->roundFee($netPayout, $wPercent);
+        $expectedWithdrawalPayout = (float) bcsub((string) $netPayout, (string) $withdrawalFee, 2);
+
+        return [
+            'amount_charged' => $amountCharged,
+            'net_payout' => $netPayout,
+            'platform_fee' => $platformFee,
+            'expected_withdrawal_payout' => $expectedWithdrawalPayout,
+            'platform_fee_percent' => $pPercent,
+            'withdrawal_fee_percent' => $wPercent,
+        ];
+    }
+
+    /**
      * Get the user's wallet or create one if it doesn't exist.
      */
     public function getOrCreateWallet(User $user): Wallet
@@ -297,15 +350,18 @@ class WalletService
         Order $order,
         float $servicePrice,
         float $serviceFee,
-        float $feePercent
+        float $feePercent,
+        float $idolFeeCovered = 0.0
     ): array {
         $servicePrice = round($servicePrice, 2);
         $serviceFee = round($serviceFee, 2);
+        $idolFeeCovered = round(max(0.0, $idolFeeCovered), 2);
+        $holdAmount = (float) bcadd((string) $servicePrice, (string) $idolFeeCovered, 2);
 
-        $totalRequired = (float) bcadd((string) $servicePrice, (string) $serviceFee, 2);
+        $totalRequired = (float) bcadd((string) $holdAmount, (string) $serviceFee, 2);
         $wallet = $this->getOrCreateWallet($customer);
 
-        return DB::transaction(function () use ($customer, $order, $servicePrice, $serviceFee, $feePercent, $totalRequired, $wallet) {
+        return DB::transaction(function () use ($customer, $order, $servicePrice, $serviceFee, $feePercent, $idolFeeCovered, $holdAmount, $totalRequired, $wallet) {
             $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
 
             if (! $lockedWallet->is_active) {
@@ -346,30 +402,35 @@ class WalletService
                         'service_price' => $servicePrice,
                         'fee_percent' => $feePercent,
                         'fee_amount' => $serviceFee,
+                        'idol_fee_covered' => $idolFeeCovered,
                     ],
                 ]);
             }
 
-            // 2. Hold 100% of the service price in escrow
+            // 2. Hold service price + covered fee in escrow
             $holdTx = null;
-            if ($servicePrice > 0) {
+            if ($holdAmount > 0) {
                 $balBeforeHold = (float) $lockedWallet->balance;
-                $balAfterHold = (float) bcsub((string) $balBeforeHold, (string) $servicePrice, 2);
+                $balAfterHold = (float) bcsub((string) $balBeforeHold, (string) $holdAmount, 2);
 
                 $heldBeforeHold = (float) $lockedWallet->held_balance;
-                $heldAfterHold = (float) bcadd((string) $heldBeforeHold, (string) $servicePrice, 2);
+                $heldAfterHold = (float) bcadd((string) $heldBeforeHold, (string) $holdAmount, 2);
 
                 $lockedWallet->forceFill([
                     'balance' => $balAfterHold,
                     'held_balance' => $heldAfterHold,
                 ])->save();
 
+                $desc = $idolFeeCovered > 0
+                    ? "Оплата услуг по заказу #{$order->id} (с покрытием комиссий айдола)"
+                    : "Оплата услуг по заказу #{$order->id}";
+
                 $holdTx = WalletTransaction::create([
                     'wallet_id' => $lockedWallet->id,
                     'user_id' => $customer->id,
                     'type' => WalletTransactionType::OrderHold,
                     'currency' => 'blue',
-                    'amount' => -$servicePrice,
+                    'amount' => -$holdAmount,
                     'balance_before' => $balBeforeHold,
                     'balance_after' => $balAfterHold,
                     'held_balance_before' => $heldBeforeHold,
@@ -378,10 +439,14 @@ class WalletService
                     'reference_type' => Order::class,
                     'reference_id' => $order->id,
                     'idempotency_key' => "order_hold_{$order->id}",
-                    'description' => "Оплата услуг по заказу #{$order->id}",
+                    'description' => $desc,
                     'metadata' => [
                         'order_id' => $order->id,
                         'service_price' => $servicePrice,
+                        'idol_fee_covered' => $idolFeeCovered,
+                        'held_amount' => $holdAmount,
+                        'fee_covered_platform' => (bool) $order->fee_covered_platform,
+                        'fee_covered_withdrawal' => (bool) $order->fee_covered_withdrawal,
                     ],
                 ]);
             }
@@ -1012,8 +1077,13 @@ class WalletService
     /**
      * Purchase a content pack with wallet transactions or mock mode.
      */
-    public function purchaseContentPack(User $buyer, ContentPack $pack, ?float $platformFeePercent = null): ContentPackPurchase
-    {
+    public function purchaseContentPack(
+        User $buyer,
+        ContentPack $pack,
+        ?float $platformFeePercent = null,
+        bool $feeCoveredPlatform = false,
+        bool $feeCoveredWithdrawal = false
+    ): ContentPackPurchase {
         if ($buyer->id === $pack->user_id) {
             throw new \DomainException('Нельзя покупать собственный контент-пак');
         }
@@ -1046,7 +1116,7 @@ class WalletService
         $price = (float) ($pack->price ?? 0);
 
         try {
-            return DB::transaction(function () use ($buyer, $pack, $price, $isMock, $platformFeePercent) {
+            return DB::transaction(function () use ($buyer, $pack, $price, $isMock, $platformFeePercent, $feeCoveredPlatform, $feeCoveredWithdrawal) {
                 $alreadyPurchased = ContentPackPurchase::where('content_pack_id', $pack->id)
                     ->where('user_id', $buyer->id)
                     ->lockForUpdate()
@@ -1055,12 +1125,19 @@ class WalletService
                     throw new \DomainException('Контент-пак уже приобретён.');
                 }
 
+                $amountCharged = $price;
                 if ($price > 0) {
+                    $coverage = $this->calculateFeeCoverage($price, $feeCoveredPlatform, $feeCoveredWithdrawal, $platformFeePercent);
+                    $amountCharged = $coverage['amount_charged'];
+                    $feePercent = $coverage['platform_fee_percent'];
+                    $feeAmount = $coverage['platform_fee'];
+                    $netPayout = $coverage['net_payout'];
+
                     $seller = $pack->user;
                     $buyerWallet = $this->getOrCreateWallet($buyer);
 
-                    if ($isMock && ! $buyerWallet->hasSufficientBalance($price)) {
-                        $needed = (float) bcsub((string) $price, (string) $buyerWallet->balance, 2);
+                    if ($isMock && ! $buyerWallet->hasSufficientBalance($amountCharged)) {
+                        $needed = (float) bcsub((string) $amountCharged, (string) $buyerWallet->balance, 2);
                         $this->deposit($buyer, $needed, 'Тестовое пополнение для покупки пака', null, [], false);
                         $buyerWallet->refresh();
                     }
@@ -1083,15 +1160,15 @@ class WalletService
                         throw new \DomainException('Один из кошельков деактивирован.');
                     }
 
-                    if (! $lockedBuyerWallet->hasSufficientBalance($price)) {
+                    if (! $lockedBuyerWallet->hasSufficientBalance($amountCharged)) {
                         throw new InsufficientFundsException(
-                            "Недостаточно средств для покупки пака ({$price} руб.)"
+                            "Недостаточно средств для покупки пака ({$amountCharged} руб.)"
                         );
                     }
 
                     // 1. Deduct from buyer
                     $buyerBalBefore = $lockedBuyerWallet->balance;
-                    $buyerBalAfter = (float) bcsub((string) $buyerBalBefore, (string) $price, 2);
+                    $buyerBalAfter = (float) bcsub((string) $buyerBalBefore, (string) $amountCharged, 2);
                     $lockedBuyerWallet->forceFill(['balance' => $buyerBalAfter])->save();
 
                     $buyerTx = WalletTransaction::create([
@@ -1099,7 +1176,7 @@ class WalletService
                         'user_id' => $buyer->id,
                         'type' => WalletTransactionType::PackPurchase,
                         'currency' => 'blue',
-                        'amount' => -$price,
+                        'amount' => -$amountCharged,
                         'balance_before' => $buyerBalBefore,
                         'balance_after' => $buyerBalAfter,
                         'held_balance_before' => $lockedBuyerWallet->held_balance,
@@ -1109,22 +1186,25 @@ class WalletService
                         'reference_id' => $pack->id,
                         'idempotency_key' => "pack_purchase_{$buyer->id}_{$pack->id}",
                         'description' => "Покупка контент-пака «{$pack->title}»",
-                        'metadata' => ['pack_id' => $pack->id],
+                        'metadata' => [
+                            'pack_id' => $pack->id,
+                            'price' => $price,
+                            'amount_charged' => $amountCharged,
+                            'fee_covered_platform' => $feeCoveredPlatform,
+                            'fee_covered_withdrawal' => $feeCoveredWithdrawal,
+                        ],
                     ]);
 
                     // 2. Credit seller idol gross in pink coins, then deduct fee
-                    $feePercent = $platformFeePercent ?? (float) PlatformSetting::get('platform_fee_percent', config('services.payments.platform_fee_percent', 10.0));
-                    $feeAmount = $this->roundFee($price, $feePercent);
-
                     $sellerPinkBalBefore = (float) $lockedSellerWallet->pink_balance;
-                    $sellerPinkBalAfterGross = (float) bcadd((string) $sellerPinkBalBefore, (string) $price, 2);
+                    $sellerPinkBalAfterGross = (float) bcadd((string) $sellerPinkBalBefore, (string) $amountCharged, 2);
 
                     WalletTransaction::create([
                         'wallet_id' => $lockedSellerWallet->id,
                         'user_id' => $seller->id,
                         'type' => WalletTransactionType::PackSale,
                         'currency' => 'pink',
-                        'amount' => $price,
+                        'amount' => $amountCharged,
                         'balance_before' => $sellerPinkBalBefore,
                         'balance_after' => $sellerPinkBalAfterGross,
                         'held_balance_before' => (float) $lockedSellerWallet->pink_held_balance,
@@ -1137,9 +1217,13 @@ class WalletService
                         'metadata' => [
                             'pack_id' => $pack->id,
                             'buyer_id' => $buyer->id,
-                            'gross_amount' => $price,
+                            'price' => $price,
+                            'gross_amount' => $amountCharged,
                             'fee_percent' => $feePercent,
                             'fee_amount' => $feeAmount,
+                            'net_payout' => $netPayout,
+                            'fee_covered_platform' => $feeCoveredPlatform,
+                            'fee_covered_withdrawal' => $feeCoveredWithdrawal,
                         ],
                     ]);
 
@@ -1162,7 +1246,12 @@ class WalletService
                             'reference_id' => $pack->id,
                             'idempotency_key' => "pack_fee_{$buyer->id}_{$pack->id}",
                             'description' => "Комиссия за контент-пак «{$pack->title}»",
-                            'metadata' => ['pack_id' => $pack->id, 'fee_percent' => $feePercent],
+                            'metadata' => [
+                                'pack_id' => $pack->id,
+                                'fee_percent' => $feePercent,
+                                'fee_covered_platform' => $feeCoveredPlatform,
+                                'fee_covered_withdrawal' => $feeCoveredWithdrawal,
+                            ],
                         ]);
                     } else {
                         $lockedSellerWallet->forceFill(['pink_balance' => $sellerPinkBalAfterGross])->save();
@@ -1176,6 +1265,9 @@ class WalletService
                     ],
                     [
                         'price_paid' => $price,
+                        'amount_charged' => $amountCharged,
+                        'fee_covered_platform' => $feeCoveredPlatform,
+                        'fee_covered_withdrawal' => $feeCoveredWithdrawal,
                         'purchased_at' => now(),
                     ]
                 );

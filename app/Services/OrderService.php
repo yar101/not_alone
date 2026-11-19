@@ -219,13 +219,13 @@ class OrderService
         });
     }
 
-    public function pay(Order $order, User $actor): void
+    public function pay(Order $order, User $actor, bool $feeCoveredPlatform = false, bool $feeCoveredWithdrawal = false): void
     {
         if (method_exists($actor, 'isActiveBanned') && $actor->isActiveBanned()) {
             throw new \DomainException('Операция недоступна для заблокированного аккаунта.');
         }
 
-        DB::transaction(function () use ($order, $actor) {
+        DB::transaction(function () use ($order, $actor, $feeCoveredPlatform, $feeCoveredWithdrawal) {
             $lockedOrder = Order::lockForUpdate()->findOrFail($order->id);
 
             if ($lockedOrder->status !== OrderStatus::Accepted) {
@@ -240,7 +240,14 @@ class OrderService
             $servicePrice = (float) $lockedOrder->total_price;
             $feePercent = (float) ($lockedOrder->customer_service_fee_percent > 0 ? $lockedOrder->customer_service_fee_percent : PlatformSetting::get('order_customer_service_fee_percent', 5.0));
             $serviceFee = (float) ($lockedOrder->customer_service_fee > 0 ? $lockedOrder->customer_service_fee : ($servicePrice > 0 ? $this->walletService->roundFee($servicePrice, $feePercent) : 0.00));
-            $totalAmount = (float) bcadd((string) $servicePrice, (string) $serviceFee, 2);
+
+            $idolFeeCovered = 0.00;
+            if ($servicePrice > 0 && ($feeCoveredPlatform || $feeCoveredWithdrawal)) {
+                $coverage = $this->walletService->calculateFeeCoverage($servicePrice, $feeCoveredPlatform, $feeCoveredWithdrawal);
+                $idolFeeCovered = (float) bcsub((string) $coverage['amount_charged'], (string) $servicePrice, 2);
+            }
+            $totalHold = (float) bcadd((string) $servicePrice, (string) $idolFeeCovered, 2);
+            $totalAmount = (float) bcadd((string) $totalHold, (string) $serviceFee, 2);
 
             if ($totalAmount > 0) {
                 $isMock = app()->environment('local', 'testing') || (config('services.payments.mock_purchases', false) && ! app()->environment('production'));
@@ -251,7 +258,7 @@ class OrderService
                         $this->walletService->deposit($actor, $needed, 'Тестовое пополнение для оплаты заказа', null, [], false);
                     }
                 }
-                $this->walletService->holdOrderWithFee($actor, $lockedOrder, $servicePrice, $serviceFee, $feePercent);
+                $this->walletService->holdOrderWithFee($actor, $lockedOrder, $servicePrice, $serviceFee, $feePercent, $idolFeeCovered);
             }
 
             $lockedOrder->logStatusChange(OrderStatus::Accepted->value, OrderStatus::Paid->value, 'user', $actor->id);
@@ -260,6 +267,9 @@ class OrderService
                 'paid_at' => now(),
                 'customer_service_fee' => $serviceFee,
                 'customer_service_fee_percent' => $feePercent,
+                'fee_covered_platform' => $feeCoveredPlatform,
+                'fee_covered_withdrawal' => $feeCoveredWithdrawal,
+                'idol_fee_covered' => $idolFeeCovered,
             ]);
 
             $this->broadcastSystemMessage($lockedOrder, [
@@ -557,7 +567,18 @@ class OrderService
                             $servicePrice = (float) $lockedOrder->total_price;
                             $feePercent = (float) ($lockedOrder->customer_service_fee_percent > 0 ? $lockedOrder->customer_service_fee_percent : PlatformSetting::get('order_customer_service_fee_percent', 5.0));
                             $serviceFee = (float) ($lockedOrder->customer_service_fee > 0 ? $lockedOrder->customer_service_fee : ($servicePrice > 0 ? $this->walletService->roundFee($servicePrice, $feePercent) : 0.00));
-                            $totalAmount = (float) bcadd((string) $servicePrice, (string) $serviceFee, 2);
+
+                            $idolFeeCovered = (float) ($lockedOrder->idol_fee_covered ?? 0.00);
+                            if ($servicePrice > 0 && $idolFeeCovered <= 0 && ($lockedOrder->fee_covered_platform || $lockedOrder->fee_covered_withdrawal)) {
+                                $coverage = $this->walletService->calculateFeeCoverage(
+                                    $servicePrice,
+                                    (bool) $lockedOrder->fee_covered_platform,
+                                    (bool) $lockedOrder->fee_covered_withdrawal
+                                );
+                                $idolFeeCovered = (float) bcsub((string) $coverage['amount_charged'], (string) $servicePrice, 2);
+                            }
+                            $totalHold = (float) bcadd((string) $servicePrice, (string) $idolFeeCovered, 2);
+                            $totalAmount = (float) bcadd((string) $totalHold, (string) $serviceFee, 2);
 
                             if ($totalAmount > 0 && $lockedOrder->customer) {
                                 $isMock = app()->environment('local', 'testing') || (config('services.payments.mock_purchases', false) && ! app()->environment('production'));
@@ -568,10 +589,11 @@ class OrderService
                                         $this->walletService->deposit($lockedOrder->customer, $needed, 'Тестовое пополнение для оплаты заказа', null, [], false);
                                     }
                                 }
-                                $this->walletService->holdOrderWithFee($lockedOrder->customer, $lockedOrder, $servicePrice, $serviceFee, $feePercent);
+                                $this->walletService->holdOrderWithFee($lockedOrder->customer, $lockedOrder, $servicePrice, $serviceFee, $feePercent, $idolFeeCovered);
 
                                 $attrs['customer_service_fee'] = $serviceFee;
                                 $attrs['customer_service_fee_percent'] = $feePercent;
+                                $attrs['idol_fee_covered'] = $idolFeeCovered;
                             }
                         }
                     }
@@ -773,6 +795,9 @@ class OrderService
             'service_price' => $order->total_price,
             'customer_service_fee' => (float) ($order->customer_service_fee ?? 0.0),
             'customer_service_fee_percent' => (float) ($order->customer_service_fee_percent ?? 0.0),
+            'fee_covered_platform' => (bool) ($order->fee_covered_platform ?? false),
+            'fee_covered_withdrawal' => (bool) ($order->fee_covered_withdrawal ?? false),
+            'idol_fee_covered' => (float) ($order->idol_fee_covered ?? 0.0),
             'total_price' => (float) $order->total_with_fee,
         ];
     }

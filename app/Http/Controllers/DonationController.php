@@ -23,13 +23,17 @@ class DonationController extends Controller
         $donor = $request->user();
 
         try {
+            $feeCoveredPlatform = (bool) ($validated['fee_covered_platform'] ?? $validated['fee_covered_by_donor'] ?? false);
+            $feeCoveredWithdrawal = (bool) ($validated['fee_covered_withdrawal'] ?? false);
+
             $donation = $this->donationService->send(
                 donor: $donor,
                 idol: $user,
                 amount: (float) $validated['amount'],
-                feeCoveredByDonor: (bool) ($validated['fee_covered_by_donor'] ?? false),
+                feeCoveredByDonor: $feeCoveredPlatform,
                 message: $validated['message'] ?? null,
                 idempotencyKey: $validated['idempotency_key'] ?? $request->header('X-Idempotency-Key'),
+                feeCoveredWithdrawal: $feeCoveredWithdrawal,
             );
 
             if ($request->wantsJson()) {
@@ -91,7 +95,9 @@ class DonationController extends Controller
                 'amount' => (float) $d->amount,
                 'amount_charged' => (float) $d->amount_charged,
                 'platform_fee' => (float) $d->platform_fee,
+                'withdrawal_fee' => (float) ($d->withdrawal_fee ?? 0.0),
                 'fee_covered_by_donor' => (bool) $d->fee_covered_by_donor,
+                'fee_covered_withdrawal' => (bool) $d->fee_covered_withdrawal,
                 'message' => $d->message,
                 'created_at' => $d->created_at?->format('d.m.Y H:i'),
                 'created_at_iso' => $d->created_at?->toIso8601String(),

@@ -22,7 +22,7 @@ class Service extends Model
         return [
             'is_active' => 'boolean',
             'is_trial' => 'boolean',
-            'price' => 'integer',
+            'price' => 'decimal:2',
             'moderated_at' => 'datetime',
             'resubmitted_at' => 'datetime',
         ];

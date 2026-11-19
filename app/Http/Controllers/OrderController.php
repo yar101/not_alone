@@ -81,8 +81,18 @@ class OrderController extends Controller
     {
         $this->authorize('pay', $order);
 
+        $validated = $request->validate([
+            'fee_covered_platform' => ['sometimes', 'boolean'],
+            'fee_covered_withdrawal' => ['sometimes', 'boolean'],
+        ]);
+
         try {
-            $this->service->pay($order, $request->user());
+            $this->service->pay(
+                $order,
+                $request->user(),
+                (bool) ($validated['fee_covered_platform'] ?? false),
+                (bool) ($validated['fee_covered_withdrawal'] ?? false),
+            );
         } catch (\DomainException|\App\Exceptions\InsufficientFundsException $e) {
             return response()->json(['error' => $e->getMessage()], 422);
         }

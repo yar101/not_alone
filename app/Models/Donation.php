@@ -17,7 +17,9 @@ class Donation extends Model
         'amount',
         'amount_charged',
         'platform_fee',
+        'withdrawal_fee',
         'fee_covered_by_donor',
+        'fee_covered_withdrawal',
         'message',
         'idempotency_key',
     ];
@@ -26,7 +28,9 @@ class Donation extends Model
         'amount' => 'decimal:2',
         'amount_charged' => 'decimal:2',
         'platform_fee' => 'decimal:2',
+        'withdrawal_fee' => 'decimal:2',
         'fee_covered_by_donor' => 'boolean',
+        'fee_covered_withdrawal' => 'boolean',
     ];
 
     public function donor(): BelongsTo

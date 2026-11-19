@@ -31,7 +31,9 @@ class DonationService
         bool $feeCoveredByDonor = false,
         ?string $message = null,
         ?string $idempotencyKey = null,
-        ?float $platformFeePercent = null
+        ?float $platformFeePercent = null,
+        bool $feeCoveredWithdrawal = false,
+        ?float $withdrawalFeePercent = null
     ): Donation {
         if (! $idol->is_idol) {
             throw new \DomainException('Донаты можно отправлять только айдолам.');
@@ -70,21 +72,17 @@ class DonationService
             throw new \DomainException("Превышен дневной лимит донатов ({$dailyLimit} в день на одного айдола).");
         }
 
-        $feePercent = $platformFeePercent ?? (float) PlatformSetting::get('platform_fee_percent', config('services.payments.platform_fee_percent', 10.0));
-        if ($feePercent < 0 || $feePercent >= 100) {
-            throw new \InvalidArgumentException('Процент комиссии платформы должен быть в диапазоне от 0 до 99.99.');
-        }
-
-        if ($feeCoveredByDonor) {
-            $netPayout = round($amount, 2);
-            $factor = (100 - $feePercent) / 100;
-            $amountCharged = round((float) bcdiv((string) $netPayout, (string) $factor, 4), 2, PHP_ROUND_HALF_UP);
-            $feeAmount = (float) bcsub((string) $amountCharged, (string) $netPayout, 2);
-        } else {
-            $amountCharged = round($amount, 2);
-            $feeAmount = $this->walletService->roundFee($amountCharged, $feePercent);
-            $netPayout = (float) bcsub((string) $amountCharged, (string) $feeAmount, 2);
-        }
+        $coverage = $this->walletService->calculateFeeCoverage(
+            $amount,
+            $feeCoveredByDonor,
+            $feeCoveredWithdrawal,
+            $platformFeePercent,
+            $withdrawalFeePercent
+        );
+        $amountCharged = $coverage['amount_charged'];
+        $feeAmount = $coverage['platform_fee'];
+        $netPayout = $coverage['net_payout'];
+        $withdrawalFee = (float) bcsub((string) $netPayout, (string) $coverage['expected_withdrawal_payout'], 2);
 
         $effectiveKey = $idempotencyKey ?: ('donation_'.$donor->id.'_'.$idol->id.'_'.Str::uuid());
 
@@ -94,7 +92,9 @@ class DonationService
             $amountCharged,
             $netPayout,
             $feeAmount,
+            $withdrawalFee,
             $feeCoveredByDonor,
+            $feeCoveredWithdrawal,
             $message,
             $effectiveKey
         ) {
@@ -144,7 +144,9 @@ class DonationService
                 'amount' => $netPayout,
                 'amount_charged' => $amountCharged,
                 'platform_fee' => $feeAmount,
+                'withdrawal_fee' => $feeCoveredWithdrawal ? $withdrawalFee : 0.00,
                 'fee_covered_by_donor' => $feeCoveredByDonor,
+                'fee_covered_withdrawal' => $feeCoveredWithdrawal,
                 'message' => $message,
                 'idempotency_key' => $effectiveKey,
             ]);
@@ -170,7 +172,9 @@ class DonationService
                     'idol_id' => $idol->id,
                     'net_payout' => $netPayout,
                     'platform_fee' => $feeAmount,
+                    'withdrawal_fee' => $withdrawalFee,
                     'fee_covered_by_donor' => $feeCoveredByDonor,
+                    'fee_covered_withdrawal' => $feeCoveredWithdrawal,
                     'message' => $message,
                 ],
             ]);
@@ -196,7 +200,9 @@ class DonationService
                     'donor_id' => $donor->id,
                     'amount_charged' => $amountCharged,
                     'platform_fee' => $feeAmount,
+                    'withdrawal_fee' => $withdrawalFee,
                     'fee_covered_by_donor' => $feeCoveredByDonor,
+                    'fee_covered_withdrawal' => $feeCoveredWithdrawal,
                     'message' => $message,
                 ],
             ]);

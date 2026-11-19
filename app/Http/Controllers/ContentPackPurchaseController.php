@@ -22,7 +22,12 @@ class ContentPackPurchaseController extends Controller
         $data = $request->validate([
             'items' => ['required', 'array', 'min:1', 'max:50'],
             'items.*' => ['integer', 'min:1'],
+            'fee_covered_platform' => ['sometimes', 'boolean'],
+            'fee_covered_withdrawal' => ['sometimes', 'boolean'],
         ]);
+
+        $feeCoveredPlatform = (bool) ($data['fee_covered_platform'] ?? false);
+        $feeCoveredWithdrawal = (bool) ($data['fee_covered_withdrawal'] ?? false);
 
         $user = $request->user();
         $packIds = array_unique($data['items']);
@@ -51,10 +56,16 @@ class ContentPackPurchaseController extends Controller
         $sortedPacks = $packs->sortBy(fn ($pack) => $pack->user?->wallet?->id ?? $pack->user_id);
 
         try {
-            $created = DB::transaction(function () use ($sortedPacks, $user) {
+            $created = DB::transaction(function () use ($sortedPacks, $user, $feeCoveredPlatform, $feeCoveredWithdrawal) {
                 $createdIds = [];
                 foreach ($sortedPacks as $pack) {
-                    $purchase = $this->walletService->purchaseContentPack($user, $pack);
+                    $purchase = $this->walletService->purchaseContentPack(
+                        $user,
+                        $pack,
+                        null,
+                        $feeCoveredPlatform,
+                        $feeCoveredWithdrawal
+                    );
 
                     if ($purchase->wasRecentlyCreated) {
                         $createdIds[] = $pack->id;

@@ -13,15 +13,29 @@ class ContentPackPurchase extends Model
         'content_pack_id',
         'user_id',
         'price_paid',
+        'amount_charged',
+        'fee_covered_platform',
+        'fee_covered_withdrawal',
         'purchased_at',
         'viewed_at',
     ];
 
     protected $casts = [
-        'price_paid' => 'integer',
+        'amount_charged' => 'float',
+        'fee_covered_platform' => 'boolean',
+        'fee_covered_withdrawal' => 'boolean',
         'purchased_at' => 'datetime',
         'viewed_at' => 'datetime',
     ];
+
+    public function getPricePaidAttribute($value): float|int
+    {
+        if ($value === null) {
+            return 0;
+        }
+
+        return (float) $value == (int) $value ? (int) $value : (float) $value;
+    }
 
     public function contentPack(): BelongsTo
     {

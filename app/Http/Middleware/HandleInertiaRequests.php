@@ -174,6 +174,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'customer_service_fee_percent' => (float) PlatformSetting::get('order_customer_service_fee_percent', 5.0),
             'platform_fee_percent' => (float) PlatformSetting::get('platform_fee_percent', config('services.payments.platform_fee_percent', 10.0)),
+            'withdrawal_fee_percent' => (float) PlatformSetting::get('withdrawal_fee_percent', config('services.payments.withdrawal_fee_percent', 4.0)),
             'vapid_public_key' => config('webpush.vapid.public_key'),
         ];
     }

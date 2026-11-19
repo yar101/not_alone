@@ -15,6 +15,7 @@ class Order extends Model
     protected $fillable = [
         'customer_id', 'idol_id', 'conversation_id',
         'status', 'customer_service_fee', 'customer_service_fee_percent',
+        'fee_covered_platform', 'fee_covered_withdrawal', 'idol_fee_covered',
         'cancel_reason', 'cancelled_by',
         'completion_confirmed_by_idol', 'completion_confirmed_by_customer',
         'paid_at', 'completed_at', 'payout_released_at',
@@ -24,6 +25,9 @@ class Order extends Model
         'status' => OrderStatus::class,
         'customer_service_fee' => 'float',
         'customer_service_fee_percent' => 'float',
+        'fee_covered_platform' => 'boolean',
+        'fee_covered_withdrawal' => 'boolean',
+        'idol_fee_covered' => 'float',
         'completion_confirmed_by_idol' => 'boolean',
         'completion_confirmed_by_customer' => 'boolean',
         'paid_at' => 'datetime',
@@ -92,7 +96,9 @@ class Order extends Model
 
     public function getTotalWithFeeAttribute(): float
     {
-        return (float) bcadd((string) $this->total_price, (string) ($this->customer_service_fee ?? 0.0), 2);
+        $base = bcadd((string) $this->total_price, (string) ($this->customer_service_fee ?? 0.0), 2);
+
+        return (float) bcadd($base, (string) ($this->idol_fee_covered ?? 0.0), 2);
     }
 
     public function getHeldAmountAttribute(): float

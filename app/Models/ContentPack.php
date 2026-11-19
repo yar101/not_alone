@@ -29,7 +29,7 @@ class ContentPack extends Model
     ];
 
     protected $casts = [
-        'price' => 'integer',
+        'price' => 'decimal:2',
         'published_at' => 'datetime',
         'hidden_at' => 'datetime',
         'moderated_at' => 'datetime',

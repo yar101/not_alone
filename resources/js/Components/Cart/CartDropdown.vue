@@ -119,6 +119,23 @@ async function createOrder() {
 // Content tab state
 const purchasing = ref(false);
 const contentError = ref('');
+const platformFeePercent = computed(() => Number(page.props.platform_fee_percent ?? 10));
+const withdrawalFeePercent = computed(() => Number(page.props.withdrawal_fee_percent ?? 4));
+
+const contentFeeCoveredPlatform = ref(false);
+const contentFeeCoveredWithdrawal = ref(false);
+
+const contentTotalCharged = computed(() => {
+    const val = contentTotal.value;
+    if (val <= 0) return 0;
+
+    const pFactor = contentFeeCoveredPlatform.value ? ((100 - platformFeePercent.value) / 100) : 1;
+    const wFactor = contentFeeCoveredWithdrawal.value ? ((100 - withdrawalFeePercent.value) / 100) : 1;
+    const factor = pFactor * wFactor;
+    if (factor <= 0) return val;
+
+    return Math.round((val / factor) * 100) / 100;
+});
 
 async function purchaseContent() {
     if (purchasing.value || !contentItems.value.length) return;
@@ -127,6 +144,8 @@ async function purchaseContent() {
     try {
         await axios.post(route('content-packs.purchase'), {
             items: contentItems.value.map(i => i.pack_id),
+            fee_covered_platform: contentFeeCoveredPlatform.value,
+            fee_covered_withdrawal: contentFeeCoveredWithdrawal.value,
         });
         emit('clear-content');
         if (modalHistory?.skipHistoryBack) modalHistory.skipHistoryBack();
@@ -280,10 +299,35 @@ async function purchaseContent() {
                     </div>
 
                     <div class="rc-perf"><span class="rc-perf__line"></span></div>
+
+                    <!-- Fee coverage options for content -->
+                    <div v-if="contentItems.length" class="rc-fee-options">
+                        <div class="rc-fee-option">
+                            <div class="rc-fee-option__meta">
+                                <span class="rc-fee-option__title">Комиссия сервиса ({{ platformFeePercent }}%)</span>
+                                <span class="rc-fee-option__sub">Автор получит 100% на баланс</span>
+                            </div>
+                            <label class="rc-switch">
+                                <input v-model="contentFeeCoveredPlatform" type="checkbox" />
+                                <span class="rc-slider"></span>
+                            </label>
+                        </div>
+                        <div class="rc-fee-option">
+                            <div class="rc-fee-option__meta">
+                                <span class="rc-fee-option__title">Комиссия на вывод ({{ withdrawalFeePercent }}%)</span>
+                                <span class="rc-fee-option__sub">Автор получит полную сумму на карту</span>
+                            </div>
+                            <label class="rc-switch">
+                                <input v-model="contentFeeCoveredWithdrawal" type="checkbox" />
+                                <span class="rc-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="rc-total">
                         <span class="rc-total__label">{{ __('cart.total') }}</span>
                         <span class="rc-total__sum inline-flex items-center gap-1">
-                            <span>{{ formatMoney(contentTotal) }}</span>
+                            <span>{{ formatMoney(contentTotalCharged) }}</span>
                             <CoinIcon color="blue" size="xs" />
                         </span>
                     </div>
@@ -728,6 +772,87 @@ async function purchaseContent() {
     display: block;
     border-top: 1px dashed rgba(120, 220, 255, 0.35);
     margin: 0 9px;
+}
+
+/* ── Fee Options ────────────────────────────────────────── */
+.rc-fee-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0 1.5rem 0.5rem;
+}
+
+.rc-fee-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    background: rgba(100, 210, 255, 0.03);
+    border: 1px solid rgba(100, 210, 255, 0.08);
+}
+
+.rc-fee-option__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.rc-fee-option__title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgba(210, 240, 255, 0.9);
+}
+
+.rc-fee-option__sub {
+    font-size: 0.75rem;
+    color: rgba(210, 240, 255, 0.5);
+}
+
+.rc-switch {
+    position: relative;
+    display: inline-block;
+    width: 38px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.rc-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.rc-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(120, 220, 255, 0.15);
+    transition: 0.2s;
+    border-radius: 20px;
+}
+
+.rc-slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #d2f0ff;
+    transition: 0.2s;
+    border-radius: 50%;
+}
+
+.rc-switch input:checked + .rc-slider {
+    background-color: #38bdf8;
+}
+
+.rc-switch input:checked + .rc-slider:before {
+    transform: translateX(18px);
 }
 
 /* ── Service Fee & Total ─────────────────────────────────── */

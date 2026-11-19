@@ -10,7 +10,7 @@ class OrderItem extends Model
     protected $fillable = ['order_id', 'service_id', 'quantity', 'price'];
 
     protected $casts = [
-        'price' => 'integer',
+        'price' => 'decimal:2',
         'quantity' => 'integer',
     ];
 

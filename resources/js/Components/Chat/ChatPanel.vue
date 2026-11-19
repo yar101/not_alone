@@ -279,16 +279,71 @@ const myConfirmation = computed(() => {
         : activeOrderData.value.completion_confirmed_by_idol;
 });
 
+// ── Pay order modal state & fee coverage ─────────────────
+const payModal = ref(false);
+const orderFeeCoveredPlatform = ref(false);
+const orderFeeCoveredWithdrawal = ref(false);
+
+const platformFeePercent = computed(() => Number(page.props.platform_fee_percent ?? 10));
+const withdrawalFeePercent = computed(() => Number(page.props.withdrawal_fee_percent ?? 4));
+
+const orderNominalPrice = computed(() => {
+    return Number(activeOrderData.value?.service_price ?? 0);
+});
+
+const orderCustomerFee = computed(() => {
+    return Number(activeOrderData.value?.customer_service_fee ?? 0);
+});
+
+const orderAmountWithCoverage = computed(() => {
+    const val = orderNominalPrice.value;
+    if (val <= 0) return 0;
+
+    const pFactor = orderFeeCoveredPlatform.value ? ((100 - platformFeePercent.value) / 100) : 1;
+    const wFactor = orderFeeCoveredWithdrawal.value ? ((100 - withdrawalFeePercent.value) / 100) : 1;
+    const factor = pFactor * wFactor;
+    if (factor <= 0) return val;
+
+    return Math.round((val / factor) * 100) / 100;
+});
+
+const orderIdolFeeCoveredAmount = computed(() => {
+    return Math.max(0, Math.round((orderAmountWithCoverage.value - orderNominalPrice.value) * 100) / 100);
+});
+
+const orderTotalToPay = computed(() => {
+    return Math.round((orderAmountWithCoverage.value + orderCustomerFee.value) * 100) / 100;
+});
+
+const currentUserBalance = computed(() => {
+    return Number(page.props.auth?.user?.wallet?.balance ?? page.props.auth?.user?.balance ?? 0);
+});
+
+const orderHasSufficientBalance = computed(() => {
+    return currentUserBalance.value >= orderTotalToPay.value;
+});
+
+function openPayModal() {
+    orderFeeCoveredPlatform.value = false;
+    orderFeeCoveredWithdrawal.value = false;
+    payModal.value = true;
+}
+
 async function payOrder() {
     if (
         !activeOrderData.value ||
         activeOrderData.value.status !== "accepted" ||
-        orderAction.value
+        orderAction.value ||
+        !orderHasSufficientBalance.value
     )
         return;
     orderAction.value = "pay";
     try {
-        await axios.patch(route("orders.pay", activeOrderData.value.id));
+        await axios.patch(route("orders.pay", activeOrderData.value.id), {
+            fee_covered_platform: orderFeeCoveredPlatform.value,
+            fee_covered_withdrawal: orderFeeCoveredWithdrawal.value,
+        });
+        payModal.value = false;
     } catch (e) {
         ElNotification({
             title: "Ошибка оплаты",
@@ -423,6 +478,7 @@ let userEchoChannel = null;
 
 const isAnyModalOpen = computed(() => {
     return (
+        payModal.value ||
         blockModal.value ||
         cancelModal.value ||
         confirmOfferModal.value ||
@@ -3504,7 +3560,7 @@ function formatDate(iso) {
                                         "
                                         class="chat-order-btn chat-order-btn--pay"
                                         :disabled="!!orderAction"
-                                        @click="payOrder"
+                                        @click="openPayModal"
                                     >
                                         <span
                                             v-if="orderAction === 'pay'"
@@ -3994,6 +4050,100 @@ function formatDate(iso) {
                     class="order-btn-spinner"
                 />
                 <template v-else>{{ __("order.accept") }}</template>
+            </button>
+        </div>
+    </SiteModal>
+
+    <!-- ── Модалка подтверждения оплаты заказа ──────────── -->
+    <SiteModal
+        :show="payModal"
+        variant="blue"
+        compact
+        max-width="460px"
+        @close="payModal = false"
+    >
+        <div class="cm-title cm-title--blue">
+            {{ __("chat.btn.pay_order") }} #{{ activeOrderData?.id }}
+        </div>
+        <div class="cm-body pay-order-modal">
+            <div class="pay-modal-row">
+                <span class="pay-modal-label">Стоимость услуг:</span>
+                <span class="pay-modal-val inline-flex items-center gap-1 font-semibold text-slate-100">
+                    <span>{{ formatMoney(orderNominalPrice) }}</span>
+                    <CoinIcon color="blue" size="xs" />
+                </span>
+            </div>
+
+            <div v-if="orderCustomerFee > 0" class="pay-modal-row">
+                <span class="pay-modal-label">Сервисный сбор клиента ({{ activeOrderData?.customer_service_fee_percent ?? 5 }}%):</span>
+                <span class="pay-modal-val inline-flex items-center gap-1 text-slate-300">
+                    <span>{{ formatMoney(orderCustomerFee) }}</span>
+                    <CoinIcon color="blue" size="xs" />
+                </span>
+            </div>
+
+            <!-- Toggles for idol fee coverage -->
+            <div class="pay-modal-toggles">
+                <div class="pay-modal-toggle">
+                    <div class="pay-modal-toggle__meta">
+                        <span class="pay-modal-toggle__title">Комиссия сервиса ({{ platformFeePercent }}%)</span>
+                        <span class="pay-modal-toggle__sub">Айдол получит 100% на баланс</span>
+                    </div>
+                    <label class="rc-switch">
+                        <input v-model="orderFeeCoveredPlatform" type="checkbox" />
+                        <span class="rc-slider"></span>
+                    </label>
+                </div>
+
+                <div class="pay-modal-toggle">
+                    <div class="pay-modal-toggle__meta">
+                        <span class="pay-modal-toggle__title">Комиссия на вывод ({{ withdrawalFeePercent }}%)</span>
+                        <span class="pay-modal-toggle__sub">Айдол получит полную сумму на карту</span>
+                    </div>
+                    <label class="rc-switch">
+                        <input v-model="orderFeeCoveredWithdrawal" type="checkbox" />
+                        <span class="rc-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div v-if="orderIdolFeeCoveredAmount > 0" class="pay-modal-note">
+                <span class="text-sky-400 font-medium">Покрытие комиссий (+{{ formatMoney(orderIdolFeeCoveredAmount) }}):</span>
+                <span class="text-slate-400 ml-1">Сумма покрытия вернётся вам на баланс при отмене заказа или возврате по спору.</span>
+            </div>
+
+            <div class="pay-modal-total">
+                <span class="pay-modal-total__label">Итого к списанию:</span>
+                <span class="pay-modal-total__val inline-flex items-center gap-1 font-bold text-lg text-sky-400">
+                    <span>{{ formatMoney(orderTotalToPay) }}</span>
+                    <CoinIcon color="blue" size="sm" />
+                </span>
+            </div>
+
+            <div v-if="!orderHasSufficientBalance" class="pay-modal-warn">
+                Недостаточно средств. Ваш баланс: {{ formatMoney(currentUserBalance) }} монет.
+                <a href="/wallet" class="underline text-sky-400 ml-1" target="_blank">Пополнить</a>
+            </div>
+        </div>
+
+        <div class="cm-perf">
+            <span class="cm-perf__line cm-perf__line--blue"></span>
+        </div>
+        <div class="cm-footer">
+            <button
+                class="cm-btn cm-btn--back"
+                :disabled="orderAction === 'pay'"
+                @click="payModal = false"
+            >
+                {{ __("order.cancel.back") }}
+            </button>
+            <button
+                class="cm-btn cm-btn--confirm-blue"
+                :disabled="orderAction === 'pay' || !orderHasSufficientBalance"
+                @click="payOrder"
+            >
+                <span v-if="orderAction === 'pay'" class="order-btn-spinner" />
+                <template v-else>Оплатить {{ formatMoney(orderTotalToPay) }}</template>
             </button>
         </div>
     </SiteModal>
@@ -5873,6 +6023,153 @@ function formatDate(iso) {
 .cm-btn--confirm-green:disabled {
     opacity: 0.3;
     cursor: not-allowed;
+}
+
+.cm-btn--confirm-blue {
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.45);
+    color: rgba(56, 189, 248, 0.95);
+}
+
+.cm-btn--confirm-blue:hover:not(:disabled) {
+    background: rgba(56, 189, 248, 0.22);
+    border-color: rgba(56, 189, 248, 0.75);
+}
+
+.cm-btn--confirm-blue:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* ── Pay order modal styling ────────────────────────────── */
+.pay-order-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding: 0.25rem 0.1rem;
+}
+
+.pay-modal-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.88rem;
+}
+
+.pay-modal-label {
+    color: rgba(210, 240, 255, 0.7);
+}
+
+.pay-modal-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.pay-modal-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.55rem 0.75rem;
+    border-radius: 6px;
+    background: rgba(120, 220, 255, 0.04);
+    border: 1px solid rgba(120, 220, 255, 0.12);
+}
+
+.pay-modal-toggle__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.pay-modal-toggle__title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgba(210, 240, 255, 0.95);
+}
+
+.pay-modal-toggle__sub {
+    font-size: 0.74rem;
+    color: rgba(210, 240, 255, 0.5);
+}
+
+.pay-modal-note {
+    font-size: 0.78rem;
+    padding: 0.4rem 0.65rem;
+    border-radius: 4px;
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    line-height: 1.35;
+}
+
+.pay-modal-total {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-top: 0.4rem;
+    border-top: 1px dashed rgba(120, 220, 255, 0.2);
+}
+
+.pay-modal-total__label {
+    font-size: 0.9rem;
+    color: rgba(210, 240, 255, 0.8);
+    font-weight: 500;
+}
+
+.pay-modal-warn {
+    font-size: 0.8rem;
+    color: #f87171;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    padding: 0.4rem 0.65rem;
+    border-radius: 4px;
+}
+
+.rc-switch {
+    position: relative;
+    display: inline-block;
+    width: 38px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.rc-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.rc-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(120, 220, 255, 0.15);
+    transition: 0.2s;
+    border-radius: 20px;
+}
+
+.rc-slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: #d2f0ff;
+    transition: 0.2s;
+    border-radius: 50%;
+}
+
+.rc-switch input:checked + .rc-slider {
+    background-color: #38bdf8;
+}
+
+.rc-switch input:checked + .rc-slider:before {
+    transform: translateX(18px);
 }
 
 /* ── Chat tabs ──────────────────────────────────────────── */
