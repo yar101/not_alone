@@ -10,6 +10,7 @@ import ContentPackRemarksModal from '@/Components/Profile/ContentPackRemarksModa
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import PackStatusBadge from '@/Components/Profile/PackStatusBadge.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
+import IdolPayoutHint from '@/Components/Common/IdolPayoutHint.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
 const { __ } = useTranslations();
@@ -864,6 +865,7 @@ const ownerSortOptions = computed(() => [
                                         @click="cancelEditPrice">✕</button>
                                 </div>
                                 <span v-if="priceError" class="pcd-price-err">{{ priceError }}</span>
+                                <IdolPayoutHint :price="priceDraft" />
                             </div>
                         </template>
                         <template v-else>

@@ -5,6 +5,7 @@ import axios from 'axios';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import { useTranslations } from '@/composables/useTranslations';
 import AppSelect from '@/Components/AppSelect.vue';
+import IdolPayoutHint from '@/Components/Common/IdolPayoutHint.vue';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -200,15 +201,17 @@ function localUnitName(unit) {
                                 :placeholder="__('profile.services.form.name_en')"
                             />
                         </template>
-                        <input
-                            v-else-if="field === 'price'"
-                            v-model="editFields.price"
-                            class="rm-input"
-                            type="number"
-                            min="1"
-                            max="999999"
-                            :placeholder="__('profile.services.form.price')"
-                        />
+                        <template v-else-if="field === 'price'">
+                            <input
+                                v-model="editFields.price"
+                                class="rm-input"
+                                type="number"
+                                min="1"
+                                max="999999"
+                                :placeholder="__('profile.services.form.price')"
+                            />
+                            <IdolPayoutHint :price="editFields.price" />
+                        </template>
                         <AppSelect
                             v-else-if="field === 'category_id'"
                             v-model="editFields.category_id"

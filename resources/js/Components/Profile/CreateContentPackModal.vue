@@ -2,6 +2,7 @@
 import { ref, reactive, computed } from 'vue';
 import axios from 'axios';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import IdolPayoutHint from '@/Components/Common/IdolPayoutHint.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
 const { __ } = useTranslations();
@@ -206,6 +207,7 @@ async function submit() {
                     placeholder="500"
                 />
                 <span v-if="errors.price" class="cpm-err">{{ errors.price }}</span>
+                <IdolPayoutHint :price="form.price" />
             </div>
 
             <!-- Photos -->

@@ -856,5 +856,7 @@
     "profile.tour.usb_locale.desc": "Switch the interface language between Russian and English with a single tap.",
     "profile.tour.progressText": "{{current}} of {{total}}",
     "gallery.new_packs": "New packs",
-    "gallery.all_photos": "All photos"
+    "gallery.all_photos": "All photos",
+    "common.payout_hint_prefix": "You will receive:",
+    "common.payout_hint_suffix": "after service fee"
 }

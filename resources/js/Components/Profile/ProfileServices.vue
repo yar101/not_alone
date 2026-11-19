@@ -19,6 +19,7 @@ import SiteModal from "@/Components/Site/SiteModal.vue";
 import ServiceRemarksModal from "@/Components/Profile/ServiceRemarksModal.vue";
 import ServiceStatusBadge from "@/Components/Profile/ServiceStatusBadge.vue";
 import CoinIcon from "@/Components/Common/CoinIcon.vue";
+import IdolPayoutHint from "@/Components/Common/IdolPayoutHint.vue";
 import { useTranslations, localeLoading } from "@/composables/useTranslations";
 
 const { __, transChoice, locale } = useTranslations();
@@ -1884,6 +1885,7 @@ watch(selectedCategory, (cat) => {
                                     <p v-if="form.errors.price" class="sf-err">
                                         {{ form.errors.price }}
                                     </p>
+                                    <IdolPayoutHint :price="form.price" />
                                 </div>
                                 <div class="sf-field">
                                     <label class="sf-label">{{

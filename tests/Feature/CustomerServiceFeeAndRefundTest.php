@@ -198,4 +198,19 @@ class CustomerServiceFeeAndRefundTest extends TestCase
         // Verify UserIdolTrial was deleted (restoring customer's trial eligibility)
         $this->assertFalse(UserIdolTrial::where('order_id', $order->id)->exists());
     }
+
+    public function test_platform_fee_percent_and_customer_fee_are_shared_with_inertia(): void
+    {
+        PlatformSetting::set('platform_fee_percent', 12.5);
+        PlatformSetting::set('order_customer_service_fee_percent', 5.0);
+
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/')
+            ->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+                ->where('platform_fee_percent', 12.5)
+                ->where('customer_service_fee_percent', fn ($v) => (float) $v === 5.0)
+            );
+    }
 }

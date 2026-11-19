@@ -3,6 +3,7 @@ import { ref, reactive, computed, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import SiteModal from '@/Components/Site/SiteModal.vue';
+import IdolPayoutHint from '@/Components/Common/IdolPayoutHint.vue';
 import { useTranslations } from '@/composables/useTranslations';
 
 const { __ } = useTranslations();
@@ -211,15 +212,17 @@ function previewForPhoto(id) {
                             maxlength="2000"
                             :placeholder="__('pack.remark.desc')"
                         />
-                        <input
-                            v-else-if="field === 'price'"
-                            v-model="editFields.price"
-                            class="rm-input"
-                            type="number"
-                            min="1"
-                            max="999999"
-                            :placeholder="__('pack.field.price_placeholder')"
-                        />
+                        <template v-else-if="field === 'price'">
+                            <input
+                                v-model="editFields.price"
+                                class="rm-input"
+                                type="number"
+                                min="1"
+                                max="999999"
+                                :placeholder="__('pack.field.price_placeholder')"
+                            />
+                            <IdolPayoutHint :price="editFields.price" />
+                        </template>
                         <span v-if="errors[field]" class="rm-err">{{ errors[field] }}</span>
                     </div>
                 </div>
