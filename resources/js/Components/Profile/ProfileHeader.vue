@@ -18,6 +18,7 @@ const props = defineProps({
     isIdol: { type: Boolean, default: false },
     isFollowing: { type: Boolean, default: false },
     rating: { default: null },
+    followersCount: { type: Number, default: 0 },
     canReport: { type: Boolean, default: false },
 });
 
@@ -217,6 +218,10 @@ function deleteAvatar() {
                 <IdolBadge v-if="isIdol" :gender="user.gender" />
                 <span v-if="user.gender" class="meta-badge" :class="'meta-badge--' + user.gender"><i :class="user.gender === 'female' ? 'fa-solid fa-venus' : 'fa-solid fa-mars'"></i></span>
                 <span v-if="user.age" class="meta-badge meta-badge--age">{{ ageLabel(user.age) }}</span>
+                <span v-if="isIdol" class="meta-badge meta-badge--followers">
+                    <i class="fa-solid fa-users"></i>
+                    {{ followersCount }}
+                </span>
             </div>
         </div>
 
@@ -531,6 +536,12 @@ function deleteAvatar() {
 
 .meta-badge--age {
     color: rgba(255, 255, 255, 0.45);
+}
+
+.meta-badge--followers {
+    border-color: rgba(255, 178, 239, 0.25);
+    background: rgba(255, 178, 239, 0.05);
+    color: color-mix(in srgb, var(--color-base-1), white 20%);
 }
 
 .meta-icon {

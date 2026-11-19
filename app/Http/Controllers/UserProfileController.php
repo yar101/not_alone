@@ -67,6 +67,7 @@ class UserProfileController extends Controller
                     ->where('blocked_id', auth()->id())
                     ->exists()
                 : false,
+            'followersCount' => $user->followers()->count(),
 
             // Deferred group "about" — traits, interests, languages + their catalogs
             'traits' => Inertia::defer(fn () => $user->load('traits')->traits->map(fn ($t) => [

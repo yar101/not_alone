@@ -41,6 +41,7 @@ const props = defineProps({
     isOwner: { type: Boolean, default: false },
     isIdol: { type: Boolean, default: false },
     rating: { default: null },
+    followersCount: { type: Number, default: 0 },
     // Deferred props — no type constraint; Inertia passes null until resolved
     traits: { default: null },
     interests: { default: null },
@@ -444,6 +445,7 @@ onMounted(async () => {
                         :is-idol="isIdol"
                         :is-following="isFollowing"
                         :rating="rating"
+                        :followers-count="followersCount"
                         :can-report="!isOwner && !!page.props.auth?.user"
                         @report="openReportModal"
                     />
