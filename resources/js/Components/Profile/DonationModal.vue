@@ -6,7 +6,7 @@ import SiteModal from '@/Components/Site/SiteModal.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
 import UserAvatar from '@/Components/UserAvatar.vue';
 import { ElNotification, ElIcon } from 'element-plus';
-import { Check } from '@element-plus/icons-vue';
+import { Check, Present } from '@element-plus/icons-vue';
 
 const props = defineProps({
     show: {
@@ -212,17 +212,6 @@ async function submitDonation() {
                 </label>
             </div>
 
-            <!-- Calculation Breakdown -->
-            <div class="donation-modal__breakdown">
-                <div class="donation-modal__breakdown-row">
-                    <span class="donation-modal__breakdown-label">{{ idol.name }} получит:</span>
-                    <span class="donation-modal__breakdown-val text-pink">
-                        {{ idolPayout }}
-                        <CoinIcon color="pink" size="xs" />
-                    </span>
-                </div>
-            </div>
-
             <!-- Message input -->
             <div class="donation-modal__field">
                 <div class="donation-modal__label-row">
@@ -240,18 +229,9 @@ async function submitDonation() {
                 ></textarea>
             </div>
 
-            <!-- Balance indicator & Warning -->
-            <div class="donation-modal__balance-card" :class="{ 'donation-modal__balance-card--warning': !hasSufficientBalance }">
-                <div class="donation-modal__balance-info">
-                    <span class="donation-modal__balance-title">Ваш баланс:</span>
-                    <span class="donation-modal__balance-val">
-                        {{ userBalance }}
-                        <CoinIcon color="blue" size="xs" />
-                    </span>
-                </div>
-                <div v-if="!hasSufficientBalance" class="donation-modal__balance-warn">
-                    Недостаточно средств. <a href="/wallet" class="donation-modal__link">Пополнить баланс</a>
-                </div>
+            <!-- Insufficient funds warning if any -->
+            <div v-if="!hasSufficientBalance && amount > 0" class="donation-modal__balance-warn">
+                Недостаточно средств. <a href="/wallet" class="donation-modal__link">Пополнить баланс</a>
             </div>
 
             <!-- Error message if any -->
@@ -267,17 +247,9 @@ async function submitDonation() {
                     :disabled="!canSubmit"
                     @click="submitDonation"
                 >
+                    <el-icon v-if="!loading" class="donation-modal__btn-icon"><Present /></el-icon>
                     <span v-if="loading">Отправка...</span>
-                    <span v-else>Подарить {{ amountCharged }}</span>
-                    <CoinIcon v-if="!loading" color="blue" size="xs" />
-                </button>
-                <button
-                    type="button"
-                    class="donation-modal__btn-cancel"
-                    :disabled="loading"
-                    @click="$emit('close')"
-                >
-                    Отмена
+                    <span v-else>Подарить</span>
                 </button>
             </div>
         </div>
@@ -487,40 +459,6 @@ async function submitDonation() {
     transform: translateX(20px);
 }
 
-/* Breakdown */
-.donation-modal__breakdown {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 10px 14px;
-    border-radius: 10px;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px dashed rgba(255, 255, 255, 0.12);
-    font-size: 0.85rem;
-}
-
-.donation-modal__breakdown-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.donation-modal__breakdown-label {
-    color: var(--text-muted, #9ca3af);
-    font-weight: 500;
-}
-
-.donation-modal__breakdown-val {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-weight: 600;
-}
-
-.text-pink {
-    color: #f472b6;
-}
-
 .donation-modal__textarea {
     width: 100%;
     padding: 10px 14px;
@@ -538,48 +476,23 @@ async function submitDonation() {
     border-color: #f472b6;
 }
 
-.donation-modal__balance-card {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+.donation-modal__balance-warn {
+    font-size: 0.82rem;
+    color: #f87171;
     padding: 8px 12px;
     border-radius: 8px;
-    background: rgba(96, 165, 250, 0.08);
-    border: 1px solid rgba(96, 165, 250, 0.2);
-    font-size: 0.85rem;
-}
-
-.donation-modal__balance-card--warning {
     background: rgba(239, 68, 68, 0.1);
-    border-color: rgba(239, 68, 68, 0.3);
-}
-
-.donation-modal__balance-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.donation-modal__balance-title {
-    color: var(--text-secondary, #d1d5db);
-}
-
-.donation-modal__balance-val {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-weight: 600;
-    color: #60a5fa;
-}
-
-.donation-modal__balance-warn {
-    font-size: 0.78rem;
-    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.25);
 }
 
 .donation-modal__link {
     color: #60a5fa;
     text-decoration: underline;
+    margin-left: 4px;
+}
+
+.donation-modal__link:hover {
+    color: #93c5fd;
 }
 
 .donation-modal__error {
@@ -593,62 +506,49 @@ async function submitDonation() {
 
 .donation-modal__actions {
     display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 12px;
+    width: 100%;
     margin-top: 6px;
 }
 
 .donation-modal__btn-submit {
+    width: 100%;
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 10px 22px;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
     border-radius: 10px;
-    background: #180d24;
-    border: 1px solid rgba(244, 114, 182, 0.75);
+    background: linear-gradient(180deg, rgba(244, 114, 182, 0.2) 0%, rgba(244, 114, 182, 0.12) 100%);
+    border: 1px solid rgba(244, 114, 182, 0.4);
     color: #ffffff;
-    font-size: 0.95rem;
-    font-weight: 700;
+    font-size: 0.96rem;
+    font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .donation-modal__btn-submit:hover:not(:disabled) {
-    background: #271438;
-    border-color: #f472b6;
-    box-shadow: 0 4px 16px rgba(244, 114, 182, 0.35);
-    transform: translateY(-1px);
+    background: linear-gradient(180deg, rgba(244, 114, 182, 0.28) 0%, rgba(244, 114, 182, 0.18) 100%);
+    border-color: rgba(244, 114, 182, 0.65);
+    color: #ffffff;
 }
 
 .donation-modal__btn-submit:active:not(:disabled) {
-    transform: translateY(0);
+    background: rgba(244, 114, 182, 0.22);
 }
 
 .donation-modal__btn-submit:disabled {
-    opacity: 0.45;
+    opacity: 0.35;
     cursor: not-allowed;
-    border-color: rgba(255, 255, 255, 0.15);
     background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
     box-shadow: none;
-    transform: none;
+    color: rgba(255, 255, 255, 0.4);
 }
 
-.donation-modal__btn-cancel {
-    padding: 10px 18px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: var(--text-secondary, #d1d5db);
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-}
-
-.donation-modal__btn-cancel:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #ffffff;
+.donation-modal__btn-icon {
+    font-size: 1.15rem;
+    color: #f472b6;
 }
 </style>
