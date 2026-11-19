@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PlatformSetting;
 use App\Models\WalletTransaction;
 use App\Services\WalletService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -21,48 +22,7 @@ class WalletController extends Controller
 
         $filter = $request->query('filter', 'all');
         $query = WalletTransaction::where('wallet_id', $wallet->id);
-
-        $currencyFilter = $request->query('currency');
-        if ($currencyFilter && in_array($currencyFilter, ['blue', 'pink'], true)) {
-            $query->where('currency', $currencyFilter);
-        }
-
-        if ($filter === 'deposit' || $filter === 'deposits') {
-            $query->where('type', \App\Enums\WalletTransactionType::Deposit);
-        } elseif ($filter === 'holds') {
-            $query->where(function ($q) {
-                $q->where('type', \App\Enums\WalletTransactionType::OrderHold)
-                    ->orWhere(function ($sub) {
-                        $sub->where('type', \App\Enums\WalletTransactionType::OrderPayout)
-                            ->where('status', \App\Enums\WalletTransactionStatus::Pending);
-                    })
-                    ->orWhere('type', \App\Enums\WalletTransactionType::OrderHoldRelease)
-                    ->orWhere('type', \App\Enums\WalletTransactionType::OrderHoldCancelled)
-                    ->orWhereColumn('held_balance_before', '!=', 'held_balance_after');
-            });
-        } elseif ($filter === 'orders') {
-            $query->whereIn('type', [
-                \App\Enums\WalletTransactionType::OrderHold,
-                \App\Enums\WalletTransactionType::OrderPayout,
-                \App\Enums\WalletTransactionType::OrderRefund,
-                \App\Enums\WalletTransactionType::OrderHoldRelease,
-                \App\Enums\WalletTransactionType::OrderHoldCancelled,
-                \App\Enums\WalletTransactionType::PlatformFee,
-                \App\Enums\WalletTransactionType::OrderClawback,
-            ]);
-        } elseif ($filter === 'packs') {
-            $query->whereIn('type', [
-                \App\Enums\WalletTransactionType::PackPurchase,
-                \App\Enums\WalletTransactionType::PackSale,
-            ]);
-        } elseif ($filter === 'conversions') {
-            $query->whereIn('type', [
-                \App\Enums\WalletTransactionType::PinkToBlueConversion,
-                \App\Enums\WalletTransactionType::BlueFromPinkConversion,
-            ]);
-        } elseif ($filter === 'withdrawal' || $filter === 'withdrawals') {
-            $query->where('type', \App\Enums\WalletTransactionType::Withdrawal);
-        }
+        $this->applyTransactionFilters($query, $filter, $request->query('currency'));
 
         $transactions = $query
             ->orderByDesc('id')
@@ -119,48 +79,7 @@ class WalletController extends Controller
 
         $filter = $request->query('filter', 'all');
         $query = WalletTransaction::where('wallet_id', $wallet->id);
-
-        $currencyFilter = $request->query('currency');
-        if ($currencyFilter && in_array($currencyFilter, ['blue', 'pink'], true)) {
-            $query->where('currency', $currencyFilter);
-        }
-
-        if ($filter === 'deposit' || $filter === 'deposits') {
-            $query->where('type', \App\Enums\WalletTransactionType::Deposit);
-        } elseif ($filter === 'holds') {
-            $query->where(function ($q) {
-                $q->where('type', \App\Enums\WalletTransactionType::OrderHold)
-                    ->orWhere(function ($sub) {
-                        $sub->where('type', \App\Enums\WalletTransactionType::OrderPayout)
-                            ->where('status', \App\Enums\WalletTransactionStatus::Pending);
-                    })
-                    ->orWhere('type', \App\Enums\WalletTransactionType::OrderHoldRelease)
-                    ->orWhere('type', \App\Enums\WalletTransactionType::OrderHoldCancelled)
-                    ->orWhereColumn('held_balance_before', '!=', 'held_balance_after');
-            });
-        } elseif ($filter === 'orders') {
-            $query->whereIn('type', [
-                \App\Enums\WalletTransactionType::OrderHold,
-                \App\Enums\WalletTransactionType::OrderPayout,
-                \App\Enums\WalletTransactionType::OrderRefund,
-                \App\Enums\WalletTransactionType::OrderHoldRelease,
-                \App\Enums\WalletTransactionType::OrderHoldCancelled,
-                \App\Enums\WalletTransactionType::PlatformFee,
-                \App\Enums\WalletTransactionType::OrderClawback,
-            ]);
-        } elseif ($filter === 'packs') {
-            $query->whereIn('type', [
-                \App\Enums\WalletTransactionType::PackPurchase,
-                \App\Enums\WalletTransactionType::PackSale,
-            ]);
-        } elseif ($filter === 'conversions') {
-            $query->whereIn('type', [
-                \App\Enums\WalletTransactionType::PinkToBlueConversion,
-                \App\Enums\WalletTransactionType::BlueFromPinkConversion,
-            ]);
-        } elseif ($filter === 'withdrawal' || $filter === 'withdrawals') {
-            $query->where('type', \App\Enums\WalletTransactionType::Withdrawal);
-        }
+        $this->applyTransactionFilters($query, $filter, $request->query('currency'));
 
         $transactions = $query
             ->latest('id')
@@ -203,6 +122,60 @@ class WalletController extends Controller
             'isIdol' => (bool) $user->is_idol,
             'canWithdraw' => (bool) $user->is_idol,
         ]);
+    }
+
+    private function applyTransactionFilters(Builder $query, string $filter, ?string $currencyFilter): void
+    {
+        if ($currencyFilter && in_array($currencyFilter, ['blue', 'pink'], true)) {
+            $query->where('currency', $currencyFilter);
+        }
+
+        if ($filter === 'deposit' || $filter === 'deposits') {
+            $query->where('type', \App\Enums\WalletTransactionType::Deposit);
+        } elseif ($filter === 'holds') {
+            $query->where(function ($q) {
+                $q->where('type', \App\Enums\WalletTransactionType::OrderHold)
+                    ->orWhere('type', \App\Enums\WalletTransactionType::OrderHoldRelease)
+                    ->orWhere('type', \App\Enums\WalletTransactionType::OrderHoldCancelled)
+                    ->orWhere(function ($sub) {
+                        $sub->where('type', \App\Enums\WalletTransactionType::OrderPayout)
+                            ->where('status', \App\Enums\WalletTransactionStatus::Pending);
+                    });
+            });
+        } elseif ($filter === 'orders') {
+            $query->where(function ($q) {
+                $q->whereIn('type', [
+                    \App\Enums\WalletTransactionType::OrderHold,
+                    \App\Enums\WalletTransactionType::OrderPayout,
+                    \App\Enums\WalletTransactionType::OrderRefund,
+                    \App\Enums\WalletTransactionType::OrderHoldRelease,
+                    \App\Enums\WalletTransactionType::OrderHoldCancelled,
+                    \App\Enums\WalletTransactionType::OrderClawback,
+                    \App\Enums\WalletTransactionType::CustomerServiceFee,
+                    \App\Enums\WalletTransactionType::RefundFee,
+                ])->orWhere(function ($sub) {
+                    $sub->where('type', \App\Enums\WalletTransactionType::PlatformFee)
+                        ->where('reference_type', \App\Models\Order::class);
+                });
+            });
+        } elseif ($filter === 'packs') {
+            $query->where(function ($q) {
+                $q->whereIn('type', [
+                    \App\Enums\WalletTransactionType::PackPurchase,
+                    \App\Enums\WalletTransactionType::PackSale,
+                ])->orWhere(function ($sub) {
+                    $sub->where('type', \App\Enums\WalletTransactionType::PlatformFee)
+                        ->where('reference_type', \App\Models\ContentPack::class);
+                });
+            });
+        } elseif ($filter === 'conversions') {
+            $query->whereIn('type', [
+                \App\Enums\WalletTransactionType::PinkToBlueConversion,
+                \App\Enums\WalletTransactionType::BlueFromPinkConversion,
+            ]);
+        } elseif ($filter === 'withdrawal' || $filter === 'withdrawals') {
+            $query->where('type', \App\Enums\WalletTransactionType::Withdrawal);
+        }
     }
 
     public function deposit(Request $request): JsonResponse
