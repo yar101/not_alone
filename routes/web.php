@@ -197,7 +197,9 @@ Route::middleware(['auth', 'not_banned'])->group(function () {
         Route::get('/wallet', [WalletController::class, 'show'])->name('wallet.show');
         Route::redirect('/wallet/index', '/wallet')->name('wallet.index');
         Route::get('/api/wallet', [WalletController::class, 'showJson'])->name('wallet.data');
+        Route::get('/api/wallet/coin-packs', [WalletController::class, 'coinPacks'])->name('wallet.coin_packs');
         Route::post('/api/wallet/deposit', [WalletController::class, 'deposit'])->middleware('throttle:30,1')->name('wallet.deposit');
+        Route::post('/api/wallet/deposit-pack', [WalletController::class, 'depositPack'])->middleware('throttle:30,1')->name('wallet.deposit_pack');
         Route::post('/api/wallet/withdraw', [WalletController::class, 'withdraw'])->middleware('throttle:30,1')->name('wallet.withdraw');
         Route::post('/api/wallet/convert-pink-to-blue', [WalletController::class, 'convertPinkToBlue'])->middleware('throttle:30,1')->name('wallet.convert_pink');
     });

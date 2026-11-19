@@ -26,6 +26,7 @@ import {
     CircleCloseFilled,
     WarningFilled,
     RefreshRight,
+    StarFilled,
 } from '@element-plus/icons-vue';
 
 const props = defineProps({
@@ -69,15 +70,30 @@ const props = defineProps({
         type: Number,
         default: 60,
     },
+    coinPacks: {
+        type: Array,
+        default: () => [],
+    },
+    starterUsed: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const page = usePage();
 const currentWallet = ref({ ...props.wallet });
+const isDepositing = ref(false);
+const isWithdrawing = ref(false);
+const isConverting = ref(false);
+let lastDepositTime = 0;
 
 watch(
     () => props.wallet,
     (newWallet) => {
         if (newWallet) {
+            if (isDepositing.value && Number(newWallet.balance) < Number(currentWallet.value.balance)) {
+                return;
+            }
             currentWallet.value = { ...newWallet };
         }
     },
@@ -95,23 +111,30 @@ function onWalletUpdated(e) {
         const newPink = hasPink ? Number(e.detail.pink_balance) : prevPink;
         const pinkDiff = newPink - prevPink;
 
+        const isStaleBalance = isDepositing.value && newBal < prevBal;
+        const targetBalance = isStaleBalance ? prevBal : newBal;
+        const targetTotal = isStaleBalance ? Number(currentWallet.value.total_balance) : Number(e.detail.total_balance);
+
         currentWallet.value = {
             ...currentWallet.value,
-            balance: newBal,
+            balance: targetBalance,
             held_balance: Number(e.detail.held_balance),
-            total_balance: Number(e.detail.total_balance),
+            total_balance: targetTotal,
             pink_balance: hasPink ? newPink : currentWallet.value.pink_balance,
             pink_held_balance: e.detail.pink_held_balance !== undefined ? Number(e.detail.pink_held_balance) : currentWallet.value.pink_held_balance,
             pink_total_balance: e.detail.pink_total_balance !== undefined ? Number(e.detail.pink_total_balance) : currentWallet.value.pink_total_balance,
         };
 
         if (!isDepositing.value && !isWithdrawing.value && !isConverting.value && Math.abs(diff) > 0.001) {
-            const isPlus = diff > 0;
-            showWalletToast({
-                type: isPlus ? 'deposit' : 'admin',
-                title: 'Баланс обновлён',
-                message: `${isPlus ? '+' : '−'}${formatMoney(Math.abs(diff))}`,
-            });
+            const isRecentDeposit = (Date.now() - lastDepositTime) < 4000;
+            if (!(isRecentDeposit && diff < 0)) {
+                const isPlus = diff > 0;
+                showWalletToast({
+                    type: isPlus ? 'deposit' : 'admin',
+                    title: 'Баланс обновлён',
+                    message: `${isPlus ? '+' : '−'}${formatMoney(Math.abs(diff))}`,
+                });
+            }
         }
 
         const isIdolUser = Boolean(props.isIdol || page.props.auth?.user?.is_idol);
@@ -179,7 +202,6 @@ const pinkFrozenTipVisible = ref(false);
 // ── Idol Conversion Modal State ──────────────────────────────
 const showConvertModal = ref(false);
 const convertAmount = ref('');
-const isConverting = ref(false);
 const convertError = ref(null);
 
 function openConvertModal() {
@@ -293,25 +315,60 @@ onUnmounted(() => {
     window.removeEventListener('popstate', syncViewFromUrl);
 });
 
-// ── Financial Actions ────────────────────────────────────────
-const depositAmount = ref(250);
+// ── Financial Actions & Coin Packs ────────────────────────────
+const selectedPackId = ref(null);
 const withdrawAmount = ref('');
-const isDepositing = ref(false);
-const isWithdrawing = ref(false);
 
-const quickAmounts = [250, 550, 950];
-
-// ── Fee & Net Calculations ────────────────────────────────────
-const depositFeeAmount = computed(() => {
-    const amt = Number(depositAmount.value) || 0;
-    if (amt <= 0 || !props.depositFeePercent) return 0;
-    return Math.round(amt * (props.depositFeePercent / 100) * 100) / 100;
+const availablePacks = computed(() => {
+    return (props.coinPacks || []).filter(pack => {
+        if (pack.is_starter && props.starterUsed) {
+            return false;
+        }
+        return true;
+    });
 });
 
-const depositNetAmount = computed(() => {
-    const amt = Number(depositAmount.value) || 0;
-    if (amt <= 0) return 0;
-    return Math.max(0, Math.round((amt - depositFeeAmount.value) * 100) / 100);
+const starterPack = computed(() => {
+    if (props.starterUsed) return null;
+    return (props.coinPacks || []).find(pack => pack.is_starter) || null;
+});
+
+const regularPacks = computed(() => {
+    return (props.coinPacks || []).filter(pack => !pack.is_starter);
+});
+
+const displayPacks = computed(() => {
+    const list = [];
+    if (starterPack.value) {
+        list.push(starterPack.value);
+    }
+    regularPacks.value.forEach(p => list.push(p));
+    return list;
+});
+
+const selectedPack = computed(() => {
+    if (!displayPacks.value.length) return null;
+    return displayPacks.value.find(p => p.id === selectedPackId.value) || displayPacks.value[0];
+});
+
+watch(
+    () => displayPacks.value,
+    (packs) => {
+        if (packs.length > 0 && (!selectedPackId.value || !packs.some(p => p.id === selectedPackId.value))) {
+            const starter = packs.find(p => p.is_starter);
+            selectedPackId.value = starter ? starter.id : packs[0].id;
+        }
+    },
+    { immediate: true }
+);
+
+// ── Fee & Total Payment Calculations (Fee added to rubles to pay) ──
+const totalPriceRub = computed(() => {
+    if (!selectedPack.value) return 0;
+    const coins = Number(selectedPack.value.coins) || 0;
+    const feePct = Number(props.depositFeePercent) || 0;
+    const fee = Math.round(coins * (feePct / 100) * 100) / 100;
+    return Math.round((coins + fee) * 100) / 100;
 });
 
 const withdrawFeeAmount = computed(() => {
@@ -436,20 +493,21 @@ function showWalletToast({
 
 // ── Deposit ──────────────────────────────────────────────────
 async function handleDeposit() {
-    const amt = Number(depositAmount.value);
-    if (!amt || amt < 10) {
+    if (isDepositing.value) return;
+    if (!selectedPack.value) {
         showWalletToast({
             type: 'warning',
-            title: 'Неверная сумма',
-            message: 'Минимум для пополнения — 10',
+            title: 'Выберите пакет',
+            message: 'Пожалуйста, выберите пакет монет для пополнения',
         });
         return;
     }
 
     isDepositing.value = true;
+    lastDepositTime = Date.now();
     try {
-        const { data } = await axios.post(route('wallet.deposit'), {
-            amount: amt,
+        const { data } = await axios.post(route('wallet.deposit_pack'), {
+            coin_pack_id: selectedPack.value.id,
         });
 
         currentWallet.value.balance = Number(data.balance);
@@ -462,17 +520,21 @@ async function handleDeposit() {
         showWalletToast({
             type: 'deposit',
             title: 'Пополнение счёта',
-            message: `+${formatMoney(amt)} зачислено на баланс`,
+            message: `+${formatMoney(selectedPack.value.coins)} зачислено на баланс`,
         });
 
-        router.reload({ only: ['transactions', 'displayTransactions', 'wallet', 'auth'] });
+        router.reload({
+            only: ['transactions', 'displayTransactions', 'wallet', 'auth', 'starterUsed', 'coinPacks'],
+            onFinish: () => {
+                isDepositing.value = false;
+            },
+        });
     } catch (e) {
         showWalletToast({
             type: 'danger',
             title: 'Ошибка пополнения',
             message: extractErrorMessage(e, 'Не удалось выполнить пополнение'),
         });
-    } finally {
         isDepositing.value = false;
     }
 }
@@ -786,64 +848,73 @@ function formatMinutes(m) {
                             </button>
                         </div>
 
-                        <!-- DEPOSIT SECTION (Blue Coins) -->
+                        <!-- DEPOSIT SECTION (Blue Coins Packs) -->
                         <div v-if="!isIdol || actionTab === 'deposit'" class="wallet-deposit-section">
-                            <!-- 3 Presets exactly: 250, 550, 950 -->
-                            <div class="wallet-preset-chips">
+                            <!-- Unified Vertical Coin Packs Grid -->
+                            <div v-if="displayPacks.length" class="coin-packs-grid">
                                 <button
-                                    v-for="amt in quickAmounts"
-                                    :key="amt"
+                                    v-for="pack in displayPacks"
+                                    :key="pack.id"
                                     type="button"
-                                    class="wallet-preset-chip"
-                                    :class="{ 'wallet-preset-chip--active': depositAmount === amt }"
-                                    @click="depositAmount = amt"
+                                    class="coin-pack-card"
+                                    :class="{
+                                        'coin-pack-card--active': selectedPackId === pack.id,
+                                        'coin-pack-card--starter': pack.is_starter,
+                                    }"
+                                    @click="selectedPackId = pack.id"
                                 >
-                                    <span>{{ formatInteger(amt) }}</span>
-                                    <CoinIcon color="blue" size="xs" />
+                                    <!-- Starter Badge Ribbon -->
+                                    <span v-if="pack.is_starter" class="coin-pack-ribbon">1 раз</span>
+
+                                    <!-- Centered Coin Icon with Quantity Gradation -->
+                                    <div class="coin-pack-card__icon-wrap">
+                                        <!-- 1000+ coins: Triple stack -->
+                                        <div v-if="Number(pack.coins) >= 1000" class="coin-stack coin-stack--triple">
+                                            <CoinIcon color="blue" size="md" class="coin-stack__coin coin-stack__coin--1" />
+                                            <CoinIcon color="blue" size="md" class="coin-stack__coin coin-stack__coin--2" />
+                                            <CoinIcon color="blue" size="md" class="coin-stack__coin coin-stack__coin--3" />
+                                        </div>
+                                        <!-- 500-999 coins: Double coins -->
+                                        <div v-else-if="Number(pack.coins) >= 500" class="coin-stack coin-stack--double">
+                                            <CoinIcon color="blue" size="md" class="coin-stack__coin coin-stack__coin--back" />
+                                            <CoinIcon color="blue" size="md" class="coin-stack__coin coin-stack__coin--front" />
+                                        </div>
+                                        <!-- 1-499 coins: Single coin -->
+                                        <div v-else class="coin-stack coin-stack--single">
+                                            <CoinIcon color="blue" size="md" />
+                                        </div>
+                                    </div>
+
+                                    <!-- Bold Coins Amount (No rubles, no word 'монет') -->
+                                    <div class="coin-pack-card__amount">
+                                        {{ formatInteger(pack.coins) }}
+                                    </div>
                                 </button>
                             </div>
 
-                            <!-- Form row -->
-                            <div class="wallet-action-form">
-                                <div class="wallet-input-container">
-                                    <input
-                                        v-model.number="depositAmount"
-                                        type="number"
-                                        min="10"
-                                        step="10"
-                                        class="wallet-glass-input"
-                                        placeholder="Сумма от 10"
-                                        @keydown.enter.prevent="handleDeposit"
-                                    />
-                                    <div class="wallet-input-currency-coin">
+                            <!-- Empty state if no packs configured -->
+                            <div v-else class="text-sm text-slate-400 py-4 text-center">
+                                Нет доступных пакетов пополнения.
+                            </div>
+
+                            <!-- Footer Bar: Summary on Left, Compact Button on Right -->
+                            <div class="wallet-deposit-footer-bar">
+                                <div class="wallet-deposit-summary">
+                                    <span class="wallet-deposit-summary__label">К зачислению:</span>
+                                    <div class="wallet-deposit-summary__value">
+                                        <span class="wallet-deposit-summary__amount">{{ formatInteger(selectedPack?.coins || 0) }}</span>
                                         <CoinIcon color="blue" size="sm" />
                                     </div>
                                 </div>
                                 <button
                                     type="button"
-                                    class="wallet-primary-btn wallet-primary-btn--deposit"
-                                    :disabled="isDepositing || currentWallet.is_active === false"
+                                    class="wallet-primary-btn wallet-primary-btn--deposit wallet-primary-btn--pack-compact"
+                                    :disabled="isDepositing || currentWallet.is_active === false || !selectedPack"
                                     @click="handleDeposit"
                                 >
                                     <el-icon v-if="isDepositing" class="is-loading"><Loading /></el-icon>
-                                    <span>{{ isDepositing ? 'Пополнение...' : 'Пополнить' }}</span>
+                                    <span>{{ isDepositing ? 'Обработка...' : `Оплатить ${selectedPack ? `${formatInteger(totalPriceRub)} ₽` : ''}` }}</span>
                                 </button>
-                            </div>
-                            <div class="wallet-fee-info">
-                                <span class="wallet-fee-info__item">
-                                    <span>Комиссия:</span>
-                                    <strong class="wallet-fee-info__val">{{ props.depositFeePercent > 0 ? `${props.depositFeePercent}%` : '0%' }}</strong>
-                                </span>
-                                <span class="wallet-fee-info__item">
-                                    <span>К зачислению:</span>
-                                    <strong class="wallet-fee-info__highlight wallet-fee-info__highlight--deposit flex items-center gap-1">
-                                        <template v-if="depositAmount > 0">
-                                            <span>{{ formatMoney(depositNetAmount) }}</span>
-                                            <CoinIcon color="blue" size="xs" />
-                                        </template>
-                                        <template v-else>—</template>
-                                    </strong>
-                                </span>
                             </div>
                         </div>
 
@@ -1612,6 +1683,227 @@ function formatMinutes(m) {
 .wallet-action-available strong {
     font-family: var(--font-receipt);
     color: #4cde8f;
+}
+
+/* Coin Packs Vertical Grid & Cards */
+.coin-packs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+@media (max-width: 640px) {
+    .coin-packs-grid {
+        grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+        gap: 0.5rem;
+    }
+}
+
+.coin-pack-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem 0.5rem 1rem;
+    min-height: 105px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    overflow: hidden;
+    box-shadow: none !important;
+}
+
+.coin-pack-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* NO NEON GLOW AT ALL - clean solid accent border and subtle background */
+.coin-pack-card--active {
+    background: rgba(100, 210, 255, 0.08);
+    border-color: #64d2ff;
+    box-shadow: none !important;
+}
+
+.coin-pack-card--active:hover {
+    background: rgba(100, 210, 255, 0.11);
+    border-color: #64d2ff;
+}
+
+.coin-pack-card--starter.coin-pack-card--active {
+    background: rgba(255, 178, 239, 0.08);
+    border-color: #ffb2ef;
+}
+
+/* Starter pack ribbon badge in the corner */
+.coin-pack-ribbon {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: #ffb2ef;
+    color: #120c1d;
+    font-size: 0.65rem;
+    font-weight: 800;
+    line-height: 1;
+    padding: 0.25rem 0.45rem;
+    border-bottom-left-radius: 6px;
+    letter-spacing: 0.02em;
+    user-select: none;
+}
+
+.coin-pack-card__icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    margin-bottom: 0.55rem;
+}
+
+/* Coin stack gradation */
+.coin-stack {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+}
+
+.coin-stack--single {
+    width: 24px;
+}
+
+.coin-stack--double {
+    width: 34px;
+}
+
+.coin-stack--double .coin-stack__coin--back {
+    position: absolute;
+    left: 0;
+    top: 2px;
+    opacity: 0.82;
+    transform: scale(0.9);
+}
+
+.coin-stack--double .coin-stack__coin--front {
+    position: absolute;
+    right: 0;
+    top: 0;
+    z-index: 2;
+    filter: drop-shadow(-2px 2px 3px rgba(0, 0, 0, 0.45));
+}
+
+.coin-stack--triple {
+    width: 42px;
+}
+
+.coin-stack--triple .coin-stack__coin--1 {
+    position: absolute;
+    left: 0;
+    top: 3px;
+    opacity: 0.75;
+    transform: scale(0.85);
+}
+
+.coin-stack--triple .coin-stack__coin--2 {
+    position: absolute;
+    left: 9px;
+    top: 1px;
+    z-index: 1;
+    opacity: 0.9;
+    transform: scale(0.92);
+    filter: drop-shadow(-1px 1px 2px rgba(0, 0, 0, 0.35));
+}
+
+.coin-stack--triple .coin-stack__coin--3 {
+    position: absolute;
+    right: 0;
+    top: 0;
+    z-index: 2;
+    filter: drop-shadow(-2px 2px 4px rgba(0, 0, 0, 0.45));
+}
+
+.coin-pack-card__amount {
+    font-family: var(--font-receipt);
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+
+.coin-pack-card--active .coin-pack-card__amount {
+    color: #64d2ff;
+}
+
+.coin-pack-card--starter.coin-pack-card--active .coin-pack-card__amount {
+    color: #ffb2ef;
+}
+
+/* Footer Bar: Selected pack summary on left, compact button on right */
+.wallet-deposit-footer-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-top: 0.25rem;
+}
+
+.wallet-deposit-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.wallet-deposit-summary__label {
+    font-size: 0.82rem;
+    color: rgba(220, 220, 255, 0.55);
+    font-weight: 500;
+}
+
+.wallet-deposit-summary__value {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.wallet-deposit-summary__amount {
+    font-family: var(--font-receipt);
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #ffffff;
+    font-variant-numeric: tabular-nums;
+}
+
+.wallet-primary-btn--pack-compact {
+    min-width: 170px;
+    height: 42px;
+    padding: 0 1.5rem;
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border-radius: 8px;
+    white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+    .wallet-deposit-footer-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+    .wallet-deposit-summary {
+        justify-content: space-between;
+    }
+    .wallet-primary-btn--pack-compact {
+        width: 100%;
+    }
 }
 
 /* 3 Preset Chips (250, 550, 950) */

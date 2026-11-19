@@ -321,6 +321,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(WalletTransaction::class);
     }
 
+    public function coinPackPurchases(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(CoinPackPurchase::class);
+    }
+
     public function getOrCreateWallet(): Wallet
     {
         return $this->wallet ?? $this->wallet()->firstOrCreate([], [

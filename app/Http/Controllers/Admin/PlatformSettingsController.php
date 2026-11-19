@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\CoinPack;
 use App\Models\PlatformSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -40,6 +41,13 @@ class PlatformSettingsController extends Controller
                 'report_accepted' => (float) PlatformSetting::get('rating_delta_report_accepted', -2.0),
                 'review_dispute_approved' => (float) PlatformSetting::get('rating_delta_review_dispute_approved', 0.6),
             ],
+            'coinPacks' => CoinPack::orderBy('sort_order')->orderBy('coins')->get()->map(fn ($p) => [
+                'id' => $p->id,
+                'coins' => (float) $p->coins,
+                'is_visible' => (bool) $p->is_visible,
+                'is_starter' => (bool) $p->is_starter,
+                'sort_order' => (int) $p->sort_order,
+            ]),
         ]);
     }
 
@@ -107,5 +115,78 @@ class PlatformSettingsController extends Controller
         );
 
         return back()->with('success', 'Настройки сохранены.');
+    }
+
+    public function storeCoinPack(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'coins' => ['required', 'numeric', 'min:1', 'max:1000000', 'regex:/^\d+(\.\d{1,2})?$/'],
+            'is_visible' => ['required', 'boolean'],
+            'is_starter' => ['required', 'boolean'],
+            'sort_order' => ['required', 'integer', 'min:0', 'max:9999'],
+        ]);
+
+        if ($data['is_starter'] && CoinPack::where('is_starter', true)->exists()) {
+            return back()->withErrors(['is_starter' => 'Стартовый пакет уже существует. Может быть только один стартовый пакет.']);
+        }
+
+        $pack = CoinPack::create($data);
+
+        \App\Services\AdminLogService::log(
+            auth('admin')->id(),
+            'create_coin_pack',
+            'coin_pack',
+            $pack->id,
+            $data
+        );
+
+        return back()->with('success', 'Пакет монет успешно добавлен.');
+    }
+
+    public function updateCoinPack(Request $request, CoinPack $coinPack): RedirectResponse
+    {
+        $data = $request->validate([
+            'coins' => ['sometimes', 'required', 'numeric', 'min:1', 'max:1000000', 'regex:/^\d+(\.\d{1,2})?$/'],
+            'is_visible' => ['sometimes', 'required', 'boolean'],
+            'is_starter' => ['sometimes', 'required', 'boolean'],
+            'sort_order' => ['sometimes', 'required', 'integer', 'min:0', 'max:9999'],
+        ]);
+
+        if (! empty($data['is_starter']) && CoinPack::where('is_starter', true)->where('id', '!=', $coinPack->id)->exists()) {
+            return back()->withErrors(['is_starter' => 'Стартовый пакет уже существует. Может быть только один стартовый пакет.']);
+        }
+
+        $coinPack->update($data);
+
+        \App\Services\AdminLogService::log(
+            auth('admin')->id(),
+            'update_coin_pack',
+            'coin_pack',
+            $coinPack->id,
+            $data
+        );
+
+        return back()->with('success', 'Пакет монет успешно обновлён.');
+    }
+
+    public function destroyCoinPack(CoinPack $coinPack): RedirectResponse
+    {
+        $packId = $coinPack->id;
+        $packData = [
+            'coins' => (float) $coinPack->coins,
+            'is_starter' => (bool) $coinPack->is_starter,
+        ];
+
+        $coinPack->delete();
+
+        \App\Services\AdminLogService::log(
+            auth('admin')->id(),
+            'delete_coin_pack',
+            'coin_pack',
+            $packId,
+            $packData
+        );
+
+        return back()->with('success', 'Пакет монет удалён.');
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CoinPack;
+use App\Models\CoinPackPurchase;
 use App\Models\Order;
 use App\Models\PlatformSetting;
 use App\Models\Wallet;
@@ -52,6 +54,17 @@ class WalletController extends Controller
             $walletData['pink_total_balance'] = $wallet->pink_total_balance;
         }
 
+        $coinPacks = CoinPack::visible()->get()->map(fn ($pack) => [
+            'id' => $pack->id,
+            'coins' => (float) $pack->coins,
+            'is_starter' => (bool) $pack->is_starter,
+            'sort_order' => (int) $pack->sort_order,
+        ]);
+
+        $starterUsed = CoinPackPurchase::where('user_id', $user->id)
+            ->where('is_starter', true)
+            ->exists();
+
         return Inertia::render('Wallet/Index', [
             'wallet' => $walletData,
             'transactions' => $transactions,
@@ -63,6 +76,8 @@ class WalletController extends Controller
             'depositFeePercent' => (float) PlatformSetting::get('deposit_fee_percent', config('services.payments.deposit_fee_percent', 4.0)),
             'withdrawalFeePercent' => (float) PlatformSetting::get('withdrawal_fee_percent', config('services.payments.withdrawal_fee_percent', 4.0)),
             'holdMinutes' => (int) PlatformSetting::get('order_dispute_window_minutes', 60),
+            'coinPacks' => $coinPacks,
+            'starterUsed' => $starterUsed,
         ]);
     }
 
@@ -173,11 +188,24 @@ class WalletController extends Controller
             $walletData['pink_total_balance'] = $wallet->pink_total_balance;
         }
 
+        $coinPacks = CoinPack::visible()->get()->map(fn ($pack) => [
+            'id' => $pack->id,
+            'coins' => (float) $pack->coins,
+            'is_starter' => (bool) $pack->is_starter,
+            'sort_order' => (int) $pack->sort_order,
+        ]);
+
+        $starterUsed = CoinPackPurchase::where('user_id', $user->id)
+            ->where('is_starter', true)
+            ->exists();
+
         return response()->json([
             'wallet' => $walletData,
             'transactions' => $transactions,
             'isIdol' => (bool) $user->is_idol,
             'canWithdraw' => (bool) $user->is_idol,
+            'coinPacks' => $coinPacks,
+            'starterUsed' => $starterUsed,
         ]);
     }
 
@@ -389,6 +417,120 @@ class WalletController extends Controller
             return response()->json(['error' => $e->getMessage()], 403);
         } catch (\App\Exceptions\InsufficientFundsException $e) {
             return response()->json(['error' => $e->getMessage()], 422);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+    }
+
+    public function coinPacks(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $coinPacks = CoinPack::visible()->get()->map(fn ($pack) => [
+            'id' => $pack->id,
+            'coins' => (float) $pack->coins,
+            'is_starter' => (bool) $pack->is_starter,
+            'sort_order' => (int) $pack->sort_order,
+        ]);
+
+        $starterUsed = CoinPackPurchase::where('user_id', $user->id)
+            ->where('is_starter', true)
+            ->exists();
+
+        return response()->json([
+            'coinPacks' => $coinPacks,
+            'starterUsed' => $starterUsed,
+        ]);
+    }
+
+    public function depositPack(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'coin_pack_id' => ['required', 'integer', 'exists:coin_packs,id'],
+            'idempotency_key' => ['nullable', 'string', 'max:64'],
+        ]);
+
+        $pack = CoinPack::findOrFail($data['coin_pack_id']);
+
+        if (! $pack->is_visible) {
+            return response()->json(['error' => 'Выбранный пакет недоступен для покупки.'], 422);
+        }
+
+        $user = $request->user();
+
+        if ($pack->is_starter) {
+            $hasBoughtStarter = CoinPackPurchase::where('user_id', $user->id)
+                ->where('is_starter', true)
+                ->exists();
+
+            if ($hasBoughtStarter) {
+                return response()->json(['error' => 'Стартовый пакет можно приобрести только один раз.'], 422);
+            }
+        }
+
+        $rawKey = $request->header('X-Idempotency-Key') ?? $request->input('idempotency_key');
+        if (is_array($rawKey)) {
+            $rawKey = reset($rawKey);
+        }
+        if ($rawKey !== null && (! is_string($rawKey) || strlen($rawKey) > 64)) {
+            return response()->json([
+                'message' => 'The given data was invalid.',
+                'errors' => ['idempotency_key' => ['Длина ключа идемпотентности не должна превышать 64 символа.']],
+                'error' => 'Длина ключа идемпотентности не должна превышать 64 символа.',
+            ], 422);
+        }
+        $idempotencyKey = $rawKey ? (string) $rawKey : null;
+
+        try {
+            $feePercent = (float) PlatformSetting::get('deposit_fee_percent', config('services.payments.deposit_fee_percent', 4.0));
+            $feeAmount = $this->walletService->roundFee((float) $pack->coins, $feePercent);
+            $totalPaidRub = (float) bcadd((string) $pack->coins, (string) $feeAmount, 2);
+
+            $tx = $this->walletService->deposit(
+                user: $user,
+                amount: (float) $pack->coins,
+                description: $pack->is_starter ? 'Пополнение: Стартовый пакет' : "Пополнение: Пакет {$pack->coins} монет",
+                idempotencyKey: $idempotencyKey,
+                metadata: [
+                    'coin_pack_id' => $pack->id,
+                    'coins' => (float) $pack->coins,
+                    'is_starter' => (bool) $pack->is_starter,
+                    'fee_percent' => $feePercent,
+                    'fee_amount' => $feeAmount,
+                    'total_paid_rub' => $totalPaidRub,
+                ],
+                applyFee: false
+            );
+
+            CoinPackPurchase::firstOrCreate(
+                [
+                    'transaction_id' => $tx->id,
+                ],
+                [
+                    'user_id' => $user->id,
+                    'coin_pack_id' => $pack->id,
+                    'coins' => $pack->coins,
+                    'fee_amount' => $feeAmount,
+                    'net_amount' => $pack->coins,
+                    'is_starter' => (bool) $pack->is_starter,
+                ]
+            );
+
+            $starterUsed = CoinPackPurchase::where('user_id', $user->id)
+                ->where('is_starter', true)
+                ->exists();
+
+            return response()->json([
+                'success' => true,
+                'transaction' => $this->serializeTx($tx),
+                'balance' => (float) $tx->balance_after,
+                'starter_used' => $starterUsed,
+            ]);
+        } catch (\DomainException $e) {
+            if (str_contains(mb_strtolower($e->getMessage()), 'идемпотентност')) {
+                return response()->json(['error' => $e->getMessage()], 409);
+            }
+
+            return response()->json(['error' => $e->getMessage()], 403);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['error' => $e->getMessage()], 422);
         }

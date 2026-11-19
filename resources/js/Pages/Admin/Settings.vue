@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { ref, computed, watch } from 'vue';
+import { useForm, router } from '@inertiajs/vue3';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 
 defineOptions({ layout: AdminLayout });
@@ -8,6 +9,7 @@ defineOptions({ layout: AdminLayout });
 const props = defineProps({
     settings:      Object,
     rating_deltas: Object,
+    coinPacks:     { type: Array, default: () => [] },
 });
 
 const form = useForm({
@@ -97,6 +99,90 @@ const previewRows = computed(() => {
 const previewBase = computed(() =>
     previewEvent.value ? Number(form.rating_deltas[previewEvent.value]) || 0 : 0
 );
+
+// ── Управление пакетами монет ─────────────────────────────────────────────────
+const localPacks = ref((props.coinPacks || []).map(p => ({ ...p })));
+
+watch(() => props.coinPacks, (newPacks) => {
+    localPacks.value = (newPacks || []).map(p => ({ ...p }));
+}, { deep: true });
+
+const newPack = ref({
+    coins: '',
+    is_visible: true,
+    is_starter: false,
+    sort_order: 0,
+});
+const isCreatingPack = ref(false);
+const savingPackId = ref(null);
+
+function savePack(pack) {
+    if (!pack.coins || Number(pack.coins) <= 0) {
+        ElMessage.error('Укажите корректную сумму монет');
+        return;
+    }
+    savingPackId.value = pack.id;
+    router.patch(route('admin.coin-packs.update', pack.id), {
+        coins: Number(pack.coins),
+        is_visible: Boolean(pack.is_visible),
+        is_starter: Boolean(pack.is_starter),
+        sort_order: Number(pack.sort_order) || 0,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            ElMessage.success('Пакет сохранён');
+            savingPackId.value = null;
+        },
+        onError: (errors) => {
+            ElMessage.error(Object.values(errors)[0] || 'Ошибка сохранения');
+            savingPackId.value = null;
+        },
+    });
+}
+
+function deletePack(pack) {
+    ElMessageBox.confirm(`Удалить пакет на ${pack.coins} монет?`, 'Удаление пакета', {
+        confirmButtonText: 'Удалить',
+        cancelButtonText: 'Отмена',
+        type: 'warning',
+    }).then(() => {
+        router.delete(route('admin.coin-packs.destroy', pack.id), {
+            preserveScroll: true,
+            onSuccess: () => ElMessage.success('Пакет удалён'),
+            onError: (errors) => ElMessage.error(Object.values(errors)[0] || 'Ошибка удаления'),
+        });
+    }).catch(() => {});
+}
+
+function createPack() {
+    if (!newPack.value.coins || Number(newPack.value.coins) <= 0) {
+        ElMessage.error('Укажите сумму монет для нового пакета');
+        return;
+    }
+    isCreatingPack.value = true;
+    router.post(route('admin.coin-packs.store'), {
+        coins: Number(newPack.value.coins),
+        is_visible: Boolean(newPack.value.is_visible),
+        is_starter: Boolean(newPack.value.is_starter),
+        sort_order: Number(newPack.value.sort_order) || 0,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            ElMessage.success('Новый пакет добавлен');
+            newPack.value = {
+                coins: '',
+                is_visible: true,
+                is_starter: false,
+                sort_order: (localPacks.value.length || 0),
+            };
+            isCreatingPack.value = false;
+        },
+        onError: (errors) => {
+            ElMessage.error(Object.values(errors)[0] || 'Ошибка создания пакета');
+            isCreatingPack.value = false;
+        },
+    });
+}
 </script>
 
 <template>
@@ -257,6 +343,142 @@ const previewBase = computed(() =>
                         </div>
                     </div>
                     <p v-if="form.errors.donation_daily_limit" class="err">{{ form.errors.donation_daily_limit }}</p>
+                </div>
+            </div>
+
+            <!-- ── Раздел: Пакеты монет (пополнение счёта) ── -->
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Пакеты монет (пополнение счёта)</h2>
+                    <p class="section-hint">Пользователи покупают синие монеты только этими пакетами. Стартовый пакет доступен 1 раз на аккаунт.</p>
+                </div>
+
+                <div class="coin-packs-body">
+                    <!-- Таблица паков -->
+                    <div class="coin-packs-table-wrap">
+                        <table class="coin-packs-table">
+                            <thead>
+                                <tr>
+                                    <th>Монеты (₽)</th>
+                                    <th>Видимость</th>
+                                    <th>Тип</th>
+                                    <th>Порядок</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="pack in localPacks" :key="pack.id">
+                                    <td>
+                                        <input
+                                            v-model.number="pack.coins"
+                                            type="number"
+                                            min="1"
+                                            class="input input--sm input--coins"
+                                        />
+                                    </td>
+                                    <td>
+                                        <label class="toggle">
+                                            <input type="checkbox" v-model="pack.is_visible" />
+                                            <span class="toggle__track"></span>
+                                        </label>
+                                    </td>
+                                    <td>
+                                        <label class="pack-type-toggle">
+                                            <input type="checkbox" v-model="pack.is_starter" />
+                                            <span :class="pack.is_starter ? 'text-starter' : 'text-regular'">
+                                                {{ pack.is_starter ? 'Стартовый' : 'Обычный' }}
+                                            </span>
+                                        </label>
+                                    </td>
+                                    <td>
+                                        <input
+                                            v-model.number="pack.sort_order"
+                                            type="number"
+                                            min="0"
+                                            class="input input--sm input--order"
+                                        />
+                                    </td>
+                                    <td>
+                                        <div class="coin-pack-actions">
+                                            <button
+                                                type="button"
+                                                class="btn-pack-save"
+                                                :disabled="savingPackId === pack.id"
+                                                @click="savePack(pack)"
+                                            >
+                                                {{ savingPackId === pack.id ? '…' : 'Сохранить' }}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="btn-pack-delete"
+                                                @click="deletePack(pack)"
+                                            >
+                                                Удалить
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr v-if="!localPacks.length">
+                                    <td colspan="5" class="empty-packs-td">
+                                        Пакетов нет. Добавьте первый пакет ниже.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Форма добавления нового пака -->
+                    <div class="add-pack-box">
+                        <h4 class="add-pack-title">Добавить пакет монет</h4>
+                        <div class="add-pack-row">
+                            <div class="add-pack-col">
+                                <span class="add-pack-label">Монеты (₽)</span>
+                                <input
+                                    v-model.number="newPack.coins"
+                                    type="number"
+                                    min="1"
+                                    placeholder="500"
+                                    class="input input--sm input--coins"
+                                />
+                            </div>
+                            <div class="add-pack-col">
+                                <span class="add-pack-label">Порядок</span>
+                                <input
+                                    v-model.number="newPack.sort_order"
+                                    type="number"
+                                    min="0"
+                                    placeholder="0"
+                                    class="input input--sm input--order"
+                                />
+                            </div>
+                            <div class="add-pack-col">
+                                <span class="add-pack-label">Видимость</span>
+                                <label class="toggle">
+                                    <input type="checkbox" v-model="newPack.is_visible" />
+                                    <span class="toggle__track"></span>
+                                </label>
+                            </div>
+                            <div class="add-pack-col">
+                                <span class="add-pack-label">Стартовый (1 раз)</span>
+                                <label class="pack-type-toggle">
+                                    <input type="checkbox" v-model="newPack.is_starter" />
+                                    <span :class="newPack.is_starter ? 'text-starter' : 'text-regular'">
+                                        {{ newPack.is_starter ? 'Да' : 'Нет' }}
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="add-pack-col-btn">
+                                <button
+                                    type="button"
+                                    class="btn-add-pack"
+                                    :disabled="isCreatingPack"
+                                    @click="createPack"
+                                >
+                                    {{ isCreatingPack ? 'Создание…' : '+ Добавить' }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -528,7 +750,7 @@ const previewBase = computed(() =>
 .page-title { font-size: 1.4rem; color: #fff; margin: 0 0 1.5rem; font-weight: 600; }
 
 /* ── Form ── */
-.settings-form { max-width: 580px; display: flex; flex-direction: column; gap: 1.25rem; }
+.settings-form { max-width: 680px; display: flex; flex-direction: column; gap: 1.25rem; }
 
 /* ── Section ── */
 .section {
@@ -860,4 +1082,173 @@ const previewBase = computed(() =>
 
 .modal-enter-active, .modal-leave-active { transition: opacity 0.2s; }
 .modal-enter-from, .modal-leave-to { opacity: 0; }
+
+/* ── Coin Packs Section ── */
+.coin-packs-body {
+    padding: 1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.coin-packs-table-wrap {
+    overflow-x: auto;
+}
+
+.coin-packs-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.coin-packs-table th {
+    text-align: left;
+    padding: 0.5rem 0.65rem;
+    font-size: 0.74rem;
+    color: rgba(255,255,255,0.35);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.coin-packs-table td {
+    padding: 0.6rem 0.65rem;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    vertical-align: middle;
+}
+
+.coin-packs-table tr:last-child td {
+    border-bottom: none;
+}
+
+.input--coins {
+    width: 95px;
+    text-align: right;
+    font-family: monospace;
+    font-weight: 600;
+}
+
+.input--order {
+    width: 65px;
+    text-align: center;
+}
+
+.pack-type-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.text-starter {
+    color: #ffb2ef;
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+
+.text-regular {
+    color: rgba(255,255,255,0.45);
+    font-size: 0.8rem;
+}
+
+.coin-pack-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.btn-pack-save {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #64d2ff;
+    background: rgba(100, 210, 255, 0.1);
+    border: 1px solid rgba(100, 210, 255, 0.25);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-pack-save:hover:not(:disabled) {
+    background: rgba(100, 210, 255, 0.2);
+    border-color: rgba(100, 210, 255, 0.45);
+}
+
+.btn-pack-delete {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #f87171;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-pack-delete:hover {
+    background: rgba(239, 68, 68, 0.18);
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+.empty-packs-td {
+    text-align: center;
+    padding: 1.5rem 0;
+    color: rgba(255,255,255,0.3);
+    font-size: 0.88rem;
+}
+
+/* ── Add Pack Box ── */
+.add-pack-box {
+    background: rgba(255,255,255,0.02);
+    border: 1px dashed rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 0.85rem 1rem;
+}
+
+.add-pack-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.7);
+    margin: 0 0 0.75rem;
+}
+
+.add-pack-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem;
+}
+
+.add-pack-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.add-pack-label {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.4);
+}
+
+.add-pack-col-btn {
+    margin-left: auto;
+}
+
+.btn-add-pack {
+    padding: 0.45rem 0.95rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(255, 178, 239, 0.2);
+    border: 1px solid rgba(255, 178, 239, 0.4);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-add-pack:hover:not(:disabled) {
+    background: rgba(255, 178, 239, 0.3);
+    border-color: rgba(255, 178, 239, 0.6);
+}
 </style>

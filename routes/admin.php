@@ -169,6 +169,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/settings', [PlatformSettingsController::class, 'index'])->name('settings.index');
         Route::patch('/settings', [PlatformSettingsController::class, 'update'])->name('settings.update');
 
+        // Coin packs
+        Route::prefix('coin-packs')->name('coin-packs.')->group(function () {
+            Route::post('/', [PlatformSettingsController::class, 'storeCoinPack'])->name('store');
+            Route::patch('/{coinPack}', [PlatformSettingsController::class, 'updateCoinPack'])->name('update');
+            Route::delete('/{coinPack}', [PlatformSettingsController::class, 'destroyCoinPack'])->name('destroy');
+        });
+
         // Logs
         Route::get('/logs', [AdminLogController::class, 'index'])->name('logs.index');
         Route::get('/rating-logs', [RatingLogController::class, 'index'])->name('rating-logs.index');
