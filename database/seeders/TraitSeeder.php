@@ -42,13 +42,19 @@ class TraitSeeder extends Seeder
             ['ru' => 'Щедрый',          'en' => 'Generous'],
         ];
 
-        PersonalityTrait::truncate();
-
         foreach ($traits as $index => $t) {
-            PersonalityTrait::create([
-                'name' => ['ru' => $t['ru'], 'en' => $t['en']],
-                'sort_order' => $index,
-            ]);
+            $trait = PersonalityTrait::where('name->ru', $t['ru'])->first();
+            if ($trait) {
+                $trait->setTranslation('name', 'ru', $t['ru']);
+                $trait->setTranslation('name', 'en', $t['en']);
+                $trait->sort_order = $index;
+                $trait->save();
+            } else {
+                PersonalityTrait::create([
+                    'name' => ['ru' => $t['ru'], 'en' => $t['en']],
+                    'sort_order' => $index,
+                ]);
+            }
         }
     }
 }

@@ -127,5 +127,5 @@ test('admin can approve service change request and apply updated price', functio
     $response->assertRedirect(route('admin.services.change-requests.index'));
     $response->assertSessionHas('success');
     expect($changeRequest->fresh()->status)->toBe('approved');
-    expect($service->fresh()->price)->toBe(2000);
+    expect((float) $service->fresh()->price)->toBe(2000.0);
 });

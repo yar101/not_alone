@@ -9,8 +9,6 @@ class ServiceTimeUnitSeeder extends Seeder
 {
     public function run(): void
     {
-        ServiceTimeUnit::truncate();
-
         $units = [
             ['ru' => '1 раз',     'en' => '1 time'],
             ['ru' => '15 минут',  'en' => '15 minutes'],
@@ -24,11 +22,20 @@ class ServiceTimeUnitSeeder extends Seeder
         ];
 
         foreach ($units as $i => $name) {
-            ServiceTimeUnit::create([
-                'name' => $name,
-                'sort_order' => $i,
-                'is_active' => true,
-            ]);
+            $unit = ServiceTimeUnit::where('name->ru', $name['ru'])->first();
+            if ($unit) {
+                $unit->setTranslation('name', 'ru', $name['ru']);
+                $unit->setTranslation('name', 'en', $name['en']);
+                $unit->sort_order = $i;
+                $unit->is_active = true;
+                $unit->save();
+            } else {
+                ServiceTimeUnit::create([
+                    'name' => $name,
+                    'sort_order' => $i,
+                    'is_active' => true,
+                ]);
+            }
         }
     }
 }

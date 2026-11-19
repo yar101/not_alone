@@ -71,7 +71,20 @@ echo "  📦 Redis Port:          $DEV_HOST:6379"
 echo "================================================================="
 echo ""
 
-# Seeding is now handled completely in the container's entrypoint.sh -> DatabaseSeeder
+# Seeding configuration: prompt for DevDatabaseSeeder when running interactively
+SEED_DEV="${SEED_DEV:-false}"
+if [[ "$*" == *"--seed-dev"* ]] || [ "${SEED_DEV}" = "1" ] || [ "${SEED_DEV}" = "true" ]; then
+    SEED_DEV="true"
+    echo "🌱 Запуск с сидированием тестовых данных (DevDatabaseSeeder)..."
+elif [ -t 0 ]; then
+    read -t 5 -p "Засеять базу тестовыми данными (DevDatabaseSeeder)? [y/N] (автопропуск через 5 сек): " USER_SEED_CHOICE || USER_SEED_CHOICE="n"
+    echo ""
+    if [[ "$USER_SEED_CHOICE" =~ ^[YyДд]$ ]]; then
+        SEED_DEV="true"
+        echo "🌱 Будет запущен DevDatabaseSeeder при инициализации контейнера."
+    fi
+fi
+export SEED_DEV
 
 # Auto-update browserslist compatibility database if npx is installed
 if command -v npx >/dev/null 2>&1; then

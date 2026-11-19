@@ -90,6 +90,7 @@ services:
       AWS_URL: https://${DEV_HOST:?DEV_HOST не задан, запускайте composer run docker-dev}:8443/not-alone
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       FILESYSTEM_DISK: s3
+      SEED_DEV: ${SEED_DEV:-false}
     volumes:
       - .:/var/www/html
       - ./docker/nginx-dev.conf:/etc/nginx/nginx.conf:ro
@@ -146,6 +147,7 @@ services:
       AWS_URL: https://${DEV_HOST:?DEV_HOST не задан, запускайте composer run docker-dev}:8443/not-alone
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       FILESYSTEM_DISK: s3
+      SEED_DEV: ${SEED_DEV:-false}
     volumes:
       - .:/var/www/html
     depends_on:
@@ -196,6 +198,7 @@ services:
       AWS_URL: https://${DEV_HOST:?DEV_HOST не задан, запускайте composer run docker-dev}:8443/not-alone
       AWS_USE_PATH_STYLE_ENDPOINT: "true"
       FILESYSTEM_DISK: s3
+      SEED_DEV: ${SEED_DEV:-false}
     volumes:
       - .:/var/www/html
     depends_on:

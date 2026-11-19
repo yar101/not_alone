@@ -9,9 +9,6 @@ class BanReasonSeeder extends Seeder
 {
     public function run(): void
     {
-        // Clean table to prevent duplicates
-        BanReason::query()->delete();
-
         $chatBlockReasons = [
             ['ru' => 'Спам', 'en' => 'Spam'],
             ['ru' => 'Оскорбления', 'en' => 'Insults'],
@@ -22,7 +19,7 @@ class BanReasonSeeder extends Seeder
         ];
 
         foreach ($chatBlockReasons as $i => $label) {
-            $reason = new BanReason;
+            $reason = BanReason::where('type', 'chat_block')->where('label->ru', $label['ru'])->first() ?? new BanReason;
             $reason->type = 'chat_block';
             $reason->sort_order = $i;
             $reason->setTranslation('label', 'ru', $label['ru']);
@@ -39,7 +36,7 @@ class BanReasonSeeder extends Seeder
         ];
 
         foreach ($userBanReasons as $i => $label) {
-            $reason = new BanReason;
+            $reason = BanReason::where('type', 'user_ban')->where('label->ru', $label['ru'])->first() ?? new BanReason;
             $reason->type = 'user_ban';
             $reason->sort_order = $i;
             $reason->setTranslation('label', 'ru', $label['ru']);

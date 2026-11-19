@@ -91,7 +91,9 @@ class Order extends Model
             });
         }
 
-        return (float) $this->items()->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(price, 0) * COALESCE(quantity, 1)'));
+        return (float) $this->items()
+            ->leftJoin('services', 'order_items.service_id', '=', 'services.id')
+            ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(order_items.price, services.price, 0) * COALESCE(order_items.quantity, 1)'));
     }
 
     public function getTotalWithFeeAttribute(): float

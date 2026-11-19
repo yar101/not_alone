@@ -82,21 +82,36 @@ class InterestSeeder extends Seeder
             ]],
         ];
 
-        InterestCategory::truncate();
-        Interest::truncate();
-
         foreach ($data as $catIndex => [$catName, $interests]) {
-            $category = InterestCategory::create([
-                'name' => ['ru' => $catName['ru'], 'en' => $catName['en']],
-                'sort_order' => $catIndex + 1,
-            ]);
+            $category = InterestCategory::where('name->ru', $catName['ru'])->first();
+            if ($category) {
+                $category->setTranslation('name', 'ru', $catName['ru']);
+                $category->setTranslation('name', 'en', $catName['en']);
+                $category->sort_order = $catIndex + 1;
+                $category->save();
+            } else {
+                $category = InterestCategory::create([
+                    'name' => ['ru' => $catName['ru'], 'en' => $catName['en']],
+                    'sort_order' => $catIndex + 1,
+                ]);
+            }
 
             foreach ($interests as $intIndex => $int) {
-                Interest::create([
-                    'category_id' => $category->id,
-                    'name' => ['ru' => $int['ru'], 'en' => $int['en']],
-                    'sort_order' => $intIndex + 1,
-                ]);
+                $interest = Interest::where('category_id', $category->id)
+                    ->where('name->ru', $int['ru'])
+                    ->first();
+                if ($interest) {
+                    $interest->setTranslation('name', 'ru', $int['ru']);
+                    $interest->setTranslation('name', 'en', $int['en']);
+                    $interest->sort_order = $intIndex + 1;
+                    $interest->save();
+                } else {
+                    Interest::create([
+                        'category_id' => $category->id,
+                        'name' => ['ru' => $int['ru'], 'en' => $int['en']],
+                        'sort_order' => $intIndex + 1,
+                    ]);
+                }
             }
         }
     }

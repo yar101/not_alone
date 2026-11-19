@@ -9,8 +9,6 @@ class ServiceCategorySeeder extends Seeder
 {
     public function run(): void
     {
-        ServiceCategory::truncate();
-
         $categories = [
             [
                 'name' => ['ru' => 'Непринуждённая беседа',  'en' => 'Casual Chat'],
@@ -93,15 +91,29 @@ class ServiceCategorySeeder extends Seeder
         ];
 
         foreach ($categories as $i => $cat) {
-            ServiceCategory::create([
-                'name' => $cat['name'],
-                'accent_color' => $cat['accent_color'],
-                'image_path' => $cat['image_path'] ?? null,
-                'description' => $cat['description'],
-                'name_suggestions' => $cat['name_suggestions'],
-                'sort_order' => $i,
-                'is_active' => true,
-            ]);
+            $category = ServiceCategory::where('name->ru', $cat['name']['ru'])->first();
+            if ($category) {
+                $category->setTranslation('name', 'ru', $cat['name']['ru']);
+                $category->setTranslation('name', 'en', $cat['name']['en']);
+                $category->setTranslation('description', 'ru', $cat['description']['ru']);
+                $category->setTranslation('description', 'en', $cat['description']['en']);
+                $category->accent_color = $cat['accent_color'];
+                $category->image_path = $cat['image_path'] ?? null;
+                $category->name_suggestions = $cat['name_suggestions'];
+                $category->sort_order = $i;
+                $category->is_active = true;
+                $category->save();
+            } else {
+                ServiceCategory::create([
+                    'name' => $cat['name'],
+                    'accent_color' => $cat['accent_color'],
+                    'image_path' => $cat['image_path'] ?? null,
+                    'description' => $cat['description'],
+                    'name_suggestions' => $cat['name_suggestions'],
+                    'sort_order' => $i,
+                    'is_active' => true,
+                ]);
+            }
         }
     }
 }

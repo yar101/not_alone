@@ -281,6 +281,7 @@
     "order.cancelled_by_you": "You cancelled",
     "order.cancelled_by": "Cancelled by :name",
     "order.service_count": ":count service|:count services|:count services",
+    "order.no_items": "No items specified",
     "order.cancel.title": "ORDER CANCELLATION",
     "order.cancel.choose": "// SELECT REASON",
     "order.cancel.custom": "// OR WRITE YOUR OWN",

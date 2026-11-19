@@ -410,6 +410,6 @@ test('ServiceChangeRequest decision dispatches notifications safely and handles 
         ->assertSessionHas('success');
 
     $service->refresh();
-    expect($service->price)->toBe(1500)
+    expect((float) $service->price)->toBe(1500.0)
         ->and($changeRequest->fresh()->status)->toBe('approved');
 });

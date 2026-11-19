@@ -281,6 +281,7 @@
     "order.cancelled_by_you": "Отменили вы",
     "order.cancelled_by": "Отменил :name",
     "order.service_count": ":count услуга|:count услуги|:count услуг",
+    "order.no_items": "Позиции не указаны",
     "order.cancel.title": "ОТМЕНА ЗАКАЗА",
     "order.cancel.choose": "// ВЫБЕРИТЕ ПРИЧИНУ",
     "order.cancel.custom": "// ИЛИ НАПИШИТЕ СВОЮ",

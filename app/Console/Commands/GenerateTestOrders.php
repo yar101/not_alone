@@ -72,6 +72,10 @@ class GenerateTestOrders extends Command
         $this->line("Услуга: {$service->name} ({$service->price} ₽)");
         $this->line("Создаю {$count} заказов со статусом «{$status->label()}»…");
 
+        $feePercent = (float) \App\Models\PlatformSetting::get('order_customer_service_fee_percent', 5.0);
+        $servicePrice = (float) ($service->price ?? 500.00);
+        $customerServiceFee = round($servicePrice * ($feePercent / 100), 2);
+
         $bar = $this->output->createProgressBar($count);
         $bar->start();
 
@@ -82,6 +86,8 @@ class GenerateTestOrders extends Command
                 'customer_id' => $customer->id,
                 'idol_id' => $idol->id,
                 'status' => $status,
+                'customer_service_fee' => $customerServiceFee,
+                'customer_service_fee_percent' => $feePercent,
                 'created_at' => $createdAt,
                 'updated_at' => $createdAt,
             ];
@@ -137,6 +143,7 @@ class GenerateTestOrders extends Command
                 'order_id' => $order->id,
                 'service_id' => $service->id,
                 'quantity' => 1,
+                'price' => $servicePrice,
                 'created_at' => $createdAt,
                 'updated_at' => $createdAt,
             ]);

@@ -588,7 +588,8 @@ class DevConsoleCommand extends Command
                 label: '  База данных и миграции:',
                 options: [
                     'migrate' => ' Применить миграции (migrate)',
-                    'fresh_seed' => ' Сбросить БД и засеять (migrate:fresh --seed)',
+                    'dev_reset' => '🔥 Полный сброс dev-окружения (dev:reset)',
+                    'fresh_seed' => ' Сбросить БД и засеять Dev (migrate:fresh --seeder=DevDatabaseSeeder)',
                     'specific_seeder' => ' Выборочный запуск сидера',
                     'rollback' => ' Откатить миграцию (migrate:rollback)',
                     'psql' => ' Консоль PostgreSQL (psql)',
@@ -603,6 +604,7 @@ class DevConsoleCommand extends Command
 
             match ($choice) {
                 'migrate' => $this->runArtisanCommand('migrate'),
+                'dev_reset' => $this->runArtisanCommand('dev:reset'),
                 'fresh_seed' => $this->runFreshSeed(),
                 'specific_seeder' => $this->runSpecificSeeder(),
                 'rollback' => $this->runArtisanCommand('migrate:rollback'),
@@ -614,12 +616,12 @@ class DevConsoleCommand extends Command
     private function runFreshSeed(): void
     {
         $confirmed = confirm(
-            label: 'ВНИМАНИЕ: Это полностью удалит все таблицы и данные в базе. Продолжить?',
+            label: 'ВНИМАНИЕ: Это полностью удалит все таблицы и данные в базе и запустит DevDatabaseSeeder. Продолжить?',
             default: false
         );
 
         if ($confirmed) {
-            $this->runArtisanCommand('migrate:fresh', ['--seed' => true]);
+            $this->runArtisanCommand('migrate:fresh', ['--seeder' => 'DevDatabaseSeeder']);
         } else {
             info('Операция отменена.');
         }
@@ -630,7 +632,8 @@ class DevConsoleCommand extends Command
         $seeder = select(
             label: 'Выберите сидер для запуска:',
             options: [
-                'DatabaseSeeder' => ' DatabaseSeeder (Все основные сидеры)',
+                'DevDatabaseSeeder' => '🌱 DevDatabaseSeeder (Полный набор для разработки: юзеры, услуги, заказы)',
+                'DatabaseSeeder' => '🔒 DatabaseSeeder (Только продакшен-справочники)',
                 'AdminSeeder' => ' AdminSeeder (Администраторы и дефолтные роли)',
                 'TestUsersSeeder' => ' TestUsersSeeder (Тестовые обычные пользователи и айдолы)',
                 'HelpCenterSeeder' => ' HelpCenterSeeder (Статьи базы знаний и FAQ)',

@@ -84,6 +84,14 @@ function partner(order) {
 }
 
 function orderTotal(order) {
+    if (!order) return 0;
+    if (order.service_price !== undefined && order.service_price !== null && Number(order.service_price) > 0) {
+        return Number(order.service_price);
+    }
+    if (order.total_price !== undefined && order.total_price !== null && Number(order.total_price) > 0) {
+        return Number(order.total_price);
+    }
+    if (!order.items || !Array.isArray(order.items)) return 0;
     return order.items.reduce((sum, item) => sum + (item.service?.price ?? 0) * (item.quantity ?? 1), 0);
 }
 
@@ -359,6 +367,9 @@ onUnmounted(() => {
                                 <CoinIcon color="blue" size="xs" />
                             </span>
                         </div>
+                        <div v-if="!order.items || !order.items.length" class="text-xs text-white/40 italic py-1">
+                            {{ __('order.no_items') || 'Позиции не указаны' }}
+                        </div>
                     </div>
 
                     <!-- Foot -->
@@ -446,6 +457,9 @@ onUnmounted(() => {
                                 <CoinIcon color="blue" size="xs" />
                                 <template v-if="item.service?.time_unit">&thinsp;/&thinsp;{{ item.service.time_unit }}</template>
                             </span>
+                        </div>
+                        <div v-if="!selectedOrder.items || !selectedOrder.items.length" class="text-xs text-white/40 italic py-2">
+                            {{ __('order.no_items') || 'Позиции не указаны' }}
                         </div>
                     </div>
 

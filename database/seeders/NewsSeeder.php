@@ -9,8 +9,6 @@ class NewsSeeder extends Seeder
 {
     public function run(): void
     {
-        News::truncate();
-
         // ── Закреплённые новости (2 штуки, всегда наверху) ────────
         $pinned = [
             [
@@ -183,13 +181,12 @@ class NewsSeeder extends Seeder
 
         // Создаём закреплённые
         foreach ($pinned as $item) {
-            News::create($item);
+            News::updateOrCreate(['title' => $item['title']], $item);
         }
 
         // Создаём ручные новости из пула
         foreach ($pool as $item) {
-            News::create([
-                'title' => $item['title'],
+            News::updateOrCreate(['title' => $item['title']], [
                 'excerpt' => $item['excerpt'],
                 'body' => $item['body'],
                 'image' => $item['image'],
@@ -200,8 +197,7 @@ class NewsSeeder extends Seeder
         }
 
         // Несколько черновиков и запланированных
-        News::create([
-            'title' => 'Черновик: внутренние изменения архитектуры',
+        News::updateOrCreate(['title' => 'Черновик: внутренние изменения архитектуры'], [
             'excerpt' => 'Технический черновик для внутреннего использования.',
             'body' => "Этот материал ещё не готов к публикации.\n\nЗдесь будет описание технических обновлений бэкенда и инфраструктурных изменений.",
             'is_pinned' => false,
@@ -209,8 +205,7 @@ class NewsSeeder extends Seeder
             'published_at' => null,
         ]);
 
-        News::create([
-            'title' => 'Запланировано: летний ивент для сообщества',
+        News::updateOrCreate(['title' => 'Запланировано: летний ивент для сообщества'], [
             'excerpt' => 'Готовим большой летний ивент — дата и детали появятся совсем скоро.',
             'body' => "Мы готовим что-то особенное для сообщества not alone этим летом.\n\nДата, формат и детали появятся в начале июля. Следи за новостями.",
             'is_pinned' => false,

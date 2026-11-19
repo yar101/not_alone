@@ -25,4 +25,16 @@ class ServicePriceLimit extends Model
     {
         return $this->belongsTo(ServiceCategory::class, 'category_id');
     }
+
+    protected static function booted()
+    {
+        static::creating(function (ServicePriceLimit $limit) {
+            if ($limit->low_rating_max_price === null && $limit->max_price !== null) {
+                $limit->low_rating_max_price = $limit->max_price;
+            }
+            if ($limit->max_price === null && $limit->low_rating_max_price !== null) {
+                $limit->max_price = $limit->low_rating_max_price;
+            }
+        });
+    }
 }

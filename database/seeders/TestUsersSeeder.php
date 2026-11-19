@@ -46,7 +46,10 @@ class TestUsersSeeder extends Seeder
 
             if ($isIdol) {
                 $photoPath = "content-packs/{$user->id}-test/cover.jpg";
-                Storage::disk(config('filesystems.default'))->put($photoPath, $this->generateImageBuffer($i, 1));
+                $disk = Storage::disk(config('filesystems.default'));
+                if (! $disk->exists($photoPath)) {
+                    $disk->put($photoPath, $this->generateImageBuffer($i, 1));
+                }
 
                 // Generate a pack for this idol
                 $pack = ContentPack::firstOrCreate([

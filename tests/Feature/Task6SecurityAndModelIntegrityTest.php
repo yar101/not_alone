@@ -199,7 +199,7 @@ class Task6SecurityAndModelIntegrityTest extends TestCase
 
         $orderItem = new OrderItem;
         $itemCasts = $orderItem->getCasts();
-        $this->assertSame('integer', $itemCasts['price'] ?? null);
+        $this->assertSame('decimal:2', $itemCasts['price'] ?? null);
         $this->assertSame('integer', $itemCasts['quantity'] ?? null);
     }
 

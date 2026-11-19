@@ -42,7 +42,10 @@ if [ "${CONTAINER_ROLE}" = "web" ] || [ -z "${CONTAINER_ROLE}" ]; then
 
     wait_for_db
     php artisan migrate --force
-    if [ "${RUN_SEEDERS}" = "true" ] || ! php artisan tinker --execute="exit(\App\Models\User::exists() ? 0 : 1);" 2>/dev/null; then
+    if [ "${SEED_DEV}" = "true" ]; then
+        echo "Running dev database seeders (DevDatabaseSeeder)..."
+        php artisan db:seed --class=DevDatabaseSeeder --force
+    elif [ "${RUN_SEEDERS}" = "true" ] || ! php artisan tinker --execute="exit(\App\Models\User::exists() ? 0 : 1);" 2>/dev/null; then
         echo "Running database seeders..."
         php artisan db:seed --force
     else

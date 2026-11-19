@@ -10,9 +10,6 @@ class HelpCenterSeeder extends Seeder
 {
     public function run(): void
     {
-        HelpArticle::query()->delete();
-        HelpCategory::query()->delete();
-
         $data = [
             [
                 'title' => ['ru' => 'Что такое not alone?', 'en' => 'What is not alone?'],
@@ -187,14 +184,16 @@ class HelpCenterSeeder extends Seeder
         ];
 
         foreach ($data as $catIdx => $catData) {
-            $category = new HelpCategory;
+            $category = HelpCategory::where('title->ru', $catData['title']['ru'])->first() ?? new HelpCategory;
             $category->sort_order = $catIdx;
             $category->setTranslation('title', 'ru', $catData['title']['ru']);
             $category->setTranslation('title', 'en', $catData['title']['en']);
             $category->save();
 
             foreach ($catData['articles'] as $artIdx => $artData) {
-                $article = new HelpArticle;
+                $article = HelpArticle::where('category_id', $category->id)
+                    ->where('title->ru', $artData['title']['ru'])
+                    ->first() ?? new HelpArticle;
                 $article->category_id = $category->id;
                 $article->sort_order = $artIdx;
                 $article->setTranslation('title', 'ru', $artData['title']['ru']);

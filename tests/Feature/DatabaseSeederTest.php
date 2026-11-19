@@ -28,11 +28,31 @@ test('TestUsersSeeder seeds users and content pack purchases cleanly even when i
     expect($purchases->count())->toBeGreaterThan(0);
 });
 
-test('DatabaseSeeder executes successfully without exceptions', function () {
+test('DatabaseSeeder executes successfully and seeds only production system data without fake users', function () {
     $this->seed(DatabaseSeeder::class);
 
-    expect(User::where('email', 'u1@test.com')->exists())->toBeTrue();
+    // Production safety invariant: no mock users seeded by DatabaseSeeder
+    expect(User::count())->toBe(0);
     expect(\App\Models\Admin::where('email', 'ia@not-alone.pw')->exists())->toBeTrue();
     expect(\App\Models\IdolQuizQuestion::count())->toBe(55);
     expect(\App\Models\IdolArticleVersion::active()->exists())->toBeTrue();
+    expect(\App\Models\PersonalityTrait::count())->toBe(30);
+    expect(\App\Models\ServiceCategory::count())->toBe(13);
+    expect(\App\Models\ServiceTimeUnit::count())->toBe(9);
+});
+
+test('DevDatabaseSeeder executes successfully and seeds full dev environment', function () {
+    $this->seed(\Database\Seeders\DevDatabaseSeeder::class);
+
+    expect(User::where('email', 'u1@test.com')->exists())->toBeTrue();
+    expect(\App\Models\Service::count())->toBeGreaterThan(0);
+    expect(\App\Models\Order::count())->toBeGreaterThan(0);
+
+    // Ensure all seeded orders have positive amounts (no zero orders)
+    $orders = \App\Models\Order::with('items')->get();
+    foreach ($orders as $order) {
+        expect($order->total_price)->toBeGreaterThan(0.0);
+    }
+
+    expect(\App\Models\News::count())->toBeGreaterThan(0);
 });
