@@ -143,7 +143,13 @@ const STATUS_LABELS = {
     approved:       'Одобрен',
     published:      'Опубликован',
     has_remarks:    'Есть замечания',
+    rejected:       'Отклонён',
 };
+
+function formatDate(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
 </script>
 
 <template>
@@ -198,6 +204,10 @@ const STATUS_LABELS = {
                         <div class="cps-meta__row">
                             <span class="cps-meta__label">Фото</span>
                             <span>{{ pack.photos?.length ?? 0 }} шт.</span>
+                        </div>
+                        <div class="cps-meta__row" v-if="pack.resubmitted_at">
+                            <span class="cps-meta__label">Переподан</span>
+                            <span class="cps-resubmit-badge">Исправлено {{ formatDate(pack.resubmitted_at) }}</span>
                         </div>
                     </div>
                 </div>
@@ -413,6 +423,16 @@ const STATUS_LABELS = {
 .cps-status--approved       { background: rgba(100,210,160,0.15); color: #64d2a0; }
 .cps-status--published      { background: rgba(100,210,255,0.15); color: #64d2ff; }
 .cps-status--has_remarks    { background: rgba(255,123,123,0.15); color: #ff7b7b; }
+.cps-status--rejected       { background: rgba(180,50,50,0.15); color: #ff6060; }
+
+.cps-resubmit-badge {
+    padding: 2px 8px;
+    border-radius: 8px;
+    background: rgba(100,210,160,0.15);
+    color: #64d2a0;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
 
 .cps-review-item { padding: 0.6rem 0; border-top: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
 .cps-review-item:first-child { border-top: none; }

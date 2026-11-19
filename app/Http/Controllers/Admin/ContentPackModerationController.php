@@ -79,6 +79,7 @@ class ContentPackModerationController extends Controller
                 'cover_url' => $pack->cover_url,
                 'cover_path' => $pack->cover_path,
                 'created_at' => $pack->created_at,
+                'resubmitted_at' => $pack->resubmitted_at?->toIso8601String(),
                 'user' => $pack->user ? [
                     'id' => $pack->user->id,
                     'name' => $pack->user->name,

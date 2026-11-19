@@ -91,12 +91,21 @@ function bulkReject() {
     }).catch(() => {});
 }
 
+const TAB_ITEMS = [
+    { key: 'pending_review', label: 'На рассмотрении' },
+    { key: 'resubmitted',    label: 'Переподано' },
+    { key: 'has_remarks',    label: 'Есть замечания' },
+    { key: 'approved',       label: 'Одобрен' },
+    { key: 'published',      label: 'Опубликован' },
+    { key: 'all',            label: 'Все' },
+];
+
 const STATUS_LABELS = {
     pending_review: 'На рассмотрении',
+    has_remarks:    'Есть замечания',
     approved:       'Одобрен',
     published:      'Опубликован',
-    has_remarks:    'Есть замечания',
-    all:            'Все',
+    rejected:       'Отклонён',
 };
 
 function formatDate(iso) {
@@ -116,16 +125,19 @@ function formatDate(iso) {
         <!-- Status tabs -->
         <div class="cp-tabs">
             <button
-                v-for="(label, key) in STATUS_LABELS"
-                :key="key"
+                v-for="tab in TAB_ITEMS"
+                :key="tab.key"
                 class="cp-tab"
-                :class="{ 'cp-tab--active': filterStatus === key }"
-                @click="switchStatus(key)"
+                :class="{ 'cp-tab--active': filterStatus === tab.key }"
+                @click="switchStatus(tab.key)"
             >
-                {{ label }}
-                <span v-if="counts[key] && key !== 'all'" class="cp-tab__badge">{{ counts[key] }}</span>
-                <span v-if="key === 'pending_review' && counts.resubmitted" class="cp-tab__badge cp-tab__badge--resubmit" :title="counts.resubmitted + ' с исправлениями'">
-                    {{ counts.resubmitted }} ✓
+                {{ tab.label }}
+                <span
+                    v-if="counts[tab.key] && tab.key !== 'all'"
+                    class="cp-tab__badge"
+                    :class="{ 'cp-tab__badge--resubmit': tab.key === 'resubmitted' }"
+                >
+                    {{ counts[tab.key] }}
                 </span>
             </button>
         </div>
