@@ -79,7 +79,7 @@ async function copyTxId(id) {
 
 function getTxLabel(tx) {
     if (tx.type === 'order_hold') return 'Заморозка';
-    if (tx.type === 'order_hold_release') return 'Списание из заморозки';
+    if (tx.type === 'order_hold_release') return 'Завершение заказа';
     if (tx.type === 'order_hold_cancelled') return 'Отмена холда';
     if (tx.type === 'deposit') return 'Пополнение';
     if (tx.type === 'order_payout') {
@@ -99,19 +99,19 @@ function formatTxDescription(desc) {
     if (!desc) return '';
     return desc
         .replace(/\s*\(\d+%\)/g, '')
-        .replace(/^Комиссия сервиса/g, 'Комиссия');
+        .replace(/^Комиссия сервиса/g, 'Комиссия')
+        .replace(/\s*\(списание из заморозки\)/gi, '')
+        .replace(/\s*\(холд\)/gi, '')
+        .trim();
 }
 
 function getTxExplanation(tx) {
     if (!tx) return '';
-    if (tx.type === 'order_hold') return 'Средства за услуги списаны с доступного баланса и заморожены до завершения заказа.';
+    if (tx.type === 'order_hold') return 'Оплата зарезервирована до выполнения заказа.';
     if (tx.type === 'customer_service_fee') return 'Сервисный сбор платформы. Не возвращается при отмене заказа.';
-    if (tx.type === 'order_hold_release') return 'Завершение заказа: замороженные средства списаны из холда.';
-    if (tx.type === 'order_payout') return 'Заработок за выполненный заказ. После окна спора поступит на доступный розовый баланс.';
     if (tx.type === 'platform_fee') return 'Комиссия платформы от суммы заказа.';
-    if (tx.type === 'order_hold_cancelled') return 'Средства списаны из холда в связи с отменой или спором по заказу.';
-    if (tx.type === 'order_clawback') return 'Списание за заказ, возвращённый клиенту по спору.';
-    if (tx.type === 'order_refund') return 'Возврат 100% стоимости услуг по отменённому или оспоренному заказу.';
+    if (tx.type === 'order_clawback') return 'Возврат средств клиенту по заказу.';
+    if (tx.type === 'order_refund') return 'Возврат 100% стоимости услуг по заказу.';
     if (tx.type === 'donation_sent') return 'Пожертвование любимому айдолу.';
     if (tx.type === 'donation_received') return 'Донат от пользователя. Зачисляется сразу на розовый баланс.';
     if (tx.type === 'donation_fee') return 'Комиссия сервиса за донат.';
@@ -473,7 +473,7 @@ onUnmounted(() => {
                             v-if="selectedTx.metadata?.held && selectedTx.metadata?.held_until"
                             class="wallet-tx-detail-row"
                         >
-                        <span class="wallet-tx-detail-label">Разморозка</span>
+                        <span class="wallet-tx-detail-label">Доступно с</span>
                         <span class="wallet-tx-detail-val" style="color: #38bdf8;">
                             {{ formatFullDate(selectedTx.metadata.held_until) }}
                         </span>

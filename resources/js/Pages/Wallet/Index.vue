@@ -729,8 +729,7 @@ function formatMinutes(m) {
                             >
                                 <template #content>
                                     <div class="wallet-tip-text">
-                                        Оплата за завершённый заказ удерживается {{ formatMinutes(holdMinutes) }} на случай открытия спора заказчиком.<br>
-                                        Затем средства автоматически становятся доступны к выводу.
+                                        Оплата за завершённый заказ резервируется на {{ formatMinutes(holdMinutes) }}, после чего поступает на доступный баланс.
                                     </div>
                                 </template>
                                 <div

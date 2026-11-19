@@ -36,7 +36,7 @@ enum WalletTransactionType: string
             self::PlatformFee => 'Комиссия',
             self::AdminAdjustment => 'Корректировка администратором',
             self::OrderClawback => 'Списание по спору',
-            self::OrderHoldRelease => 'Списание из заморозки',
+            self::OrderHoldRelease => 'Завершение заказа',
             self::OrderHoldCancelled => 'Отмена холда',
             self::CustomerServiceFee => 'Сервисный сбор',
             self::PinkToBlueConversion => 'Перевод в синие монеты',

@@ -4108,8 +4108,11 @@ function formatDate(iso) {
             </div>
 
             <div v-if="!orderHasSufficientBalance" class="pay-modal-warn">
-                Недостаточно средств. Ваш баланс: {{ formatMoney(currentUserBalance) }} монет.
-                <a href="/wallet" class="underline text-sky-400 ml-1" target="_blank">Пополнить</a>
+                <span class="inline-flex items-center gap-1">
+                    <span>Недостаточно средств. Ваш баланс: {{ formatMoney(currentUserBalance) }}</span>
+                    <CoinIcon color="blue" size="xs" />
+                </span>
+                <a href="/wallet" class="underline text-sky-400 ml-1.5" target="_blank">Пополнить</a>
             </div>
         </div>
 
