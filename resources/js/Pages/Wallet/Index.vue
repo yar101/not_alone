@@ -171,7 +171,6 @@ const getInitialView = () => {
 const activeView = ref(getInitialView()); // 'overview' | 'history'
 const actionTab = ref('deposit'); // 'deposit' | 'withdraw'
 const availableTipVisible = ref(false);
-const frozenTipVisible = ref(false);
 const pinkAvailableTipVisible = ref(false);
 const pinkFrozenTipVisible = ref(false);
 
@@ -884,52 +883,6 @@ function formatFullDate(iso) {
                                 <div class="wcard__amount-row">
                                     <span class="wcard__amount wcard__amount--emerald">
                                         {{ formatMoney(currentWallet.balance) }}
-                                    </span>
-                                    <CoinIcon color="blue" size="sm" />
-                                </div>
-                            </div>
-                        </el-tooltip>
-
-                        <!-- Card 2: Frozen / Held Blue -->
-                        <el-tooltip
-                            v-model:visible="frozenTipVisible"
-                            placement="top"
-                            effect="dark"
-                            popper-class="wallet-dark-tooltip"
-                            trigger="click"
-                            :hide-after="0"
-                        >
-                            <template #content>
-                                <div class="wallet-tip-text">
-                                    <span>
-                                        Средства заморожены до сдачи заказа.<br>
-                                        Исполнитель получит оплату<br>
-                                        только после подтверждения работы.
-                                    </span>
-                                </div>
-                            </template>
-                            <div
-                                class="wcard wcard--frozen"
-                                :class="{ 'wcard--active': frozenTipVisible }"
-                                tabindex="0"
-                                role="button"
-                                aria-label="Карточка: Замороженный баланс"
-                            >
-                                <div class="wcard__watermark wcard__watermark--cyan">
-                                    <i class="fa-solid fa-snowflake"></i>
-                                </div>
-                                <div class="wcard__top">
-                                    <div class="wcard__badge wcard__badge--cyan">
-                                        <i class="fa-solid fa-snowflake wcard__badge-fa"></i>
-                                        Заморожено
-                                    </div>
-                                    <div class="wcard__info-trigger" aria-hidden="true">
-                                        <el-icon><InfoFilled /></el-icon>
-                                    </div>
-                                </div>
-                                <div class="wcard__amount-row">
-                                    <span class="wcard__amount wcard__amount--cyan">
-                                        {{ formatMoney(currentWallet.held_balance) }}
                                     </span>
                                     <CoinIcon color="blue" size="sm" />
                                 </div>
@@ -1682,7 +1635,7 @@ function formatFullDate(iso) {
 /* ── 2 Compact Balance Cards ──────────────────────────────── */
 .wallet-cards-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
     gap: 1.25rem;
     margin-bottom: 1.25rem;
 }
@@ -1707,12 +1660,6 @@ function formatFullDate(iso) {
     border: 1px solid rgba(76, 222, 143, 0.22);
 }
 
-.wcard--frozen {
-    background: radial-gradient(circle at 95% 90%, rgba(100, 210, 255, 0.1) 0%, transparent 60%),
-                linear-gradient(135deg, rgba(16, 12, 28, 0.78) 0%, rgba(10, 7, 18, 0.88) 100%);
-    border: 1px solid rgba(100, 210, 255, 0.22);
-}
-
 .wcard--pink-available {
     background: radial-gradient(circle at 95% 90%, rgba(244, 114, 182, 0.14) 0%, transparent 60%),
                 linear-gradient(135deg, rgba(28, 12, 22, 0.78) 0%, rgba(18, 7, 14, 0.88) 100%);
@@ -1731,11 +1678,6 @@ function formatFullDate(iso) {
         box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5), 0 0 24px rgba(76, 222, 143, 0.12);
     }
 
-    .wcard--frozen:hover {
-        border-color: rgba(100, 210, 255, 0.4);
-        box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5), 0 0 24px rgba(100, 210, 255, 0.12);
-    }
-
     .wcard--pink-available:hover {
         border-color: rgba(244, 114, 182, 0.48);
         box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5), 0 0 24px rgba(244, 114, 182, 0.18);
@@ -1750,11 +1692,6 @@ function formatFullDate(iso) {
 .wcard--available.wcard--active {
     border-color: rgba(76, 222, 143, 0.45);
     box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5), 0 0 24px rgba(76, 222, 143, 0.16);
-}
-
-.wcard--frozen.wcard--active {
-    border-color: rgba(100, 210, 255, 0.45);
-    box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5), 0 0 24px rgba(100, 210, 255, 0.16);
 }
 
 .wcard--pink-available.wcard--active {
@@ -1790,10 +1727,6 @@ function formatFullDate(iso) {
     color: rgba(76, 222, 143, 0.07);
 }
 
-.wcard__watermark--cyan {
-    color: rgba(100, 210, 255, 0.08);
-}
-
 .wcard__watermark--pink {
     color: rgba(244, 114, 182, 0.08);
 }
@@ -1812,12 +1745,6 @@ function formatFullDate(iso) {
 .wcard--available:active .wcard__watermark--emerald,
 .wcard--available.wcard--active .wcard__watermark--emerald {
     color: rgba(76, 222, 143, 0.13);
-}
-
-.wcard--frozen:hover .wcard__watermark--cyan,
-.wcard--frozen:active .wcard__watermark--cyan,
-.wcard--frozen.wcard--active .wcard__watermark--cyan {
-    color: rgba(100, 210, 255, 0.14);
 }
 
 .wcard--pink-available:hover .wcard__watermark--pink,
@@ -1858,10 +1785,6 @@ function formatFullDate(iso) {
     color: #4cde8f;
 }
 
-.wcard__badge--cyan {
-    color: var(--color-base-2, #64d2ff);
-}
-
 .wcard__badge--pink {
     color: #f472b6;
 }
@@ -1879,25 +1802,10 @@ function formatFullDate(iso) {
     transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.wcard__badge-fa {
-    font-size: 0.9rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    transform-origin: center center;
-    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
 .wcard:hover .wcard__badge-icon,
 .wcard:active .wcard__badge-icon,
 .wcard.wcard--active .wcard__badge-icon {
     transform: scale(1.22) rotate(12deg);
-}
-
-.wcard:hover .wcard__badge-fa,
-.wcard:active .wcard__badge-fa,
-.wcard.wcard--active .wcard__badge-fa {
-    transform: scale(1.25) rotate(30deg);
 }
 
 .wcard__info-trigger {
@@ -1962,10 +1870,6 @@ function formatFullDate(iso) {
 
 .wcard__amount--emerald {
     color: #4cde8f;
-}
-
-.wcard__amount--cyan {
-    color: var(--color-base-2, #64d2ff);
 }
 
 .wcard__amount--pink {
@@ -3199,7 +3103,6 @@ function formatFullDate(iso) {
     }
 
     .wallet-cards-grid {
-        grid-template-columns: 1fr;
         gap: 0.75rem;
         margin-bottom: 1rem;
     }
