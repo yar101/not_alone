@@ -150,7 +150,19 @@ const totalAmountReceived = computed(() => {
 
                 <!-- Message bubble -->
                 <div v-if="donation.message" class="profile-donations__message">
-                    <p class="profile-donations__message-text">«{{ donation.message }}»</p>
+                    <svg
+                        class="profile-donations__message-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.75"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                    >
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    <p class="profile-donations__message-text">{{ donation.message }}</p>
                 </div>
             </div>
 
@@ -185,7 +197,7 @@ const totalAmountReceived = computed(() => {
     display: flex;
     flex-direction: column;
     gap: 20px;
-    padding: 16px 0;
+    padding: 16px 12px;
 }
 
 .profile-donations__stats-grid {
@@ -286,11 +298,10 @@ const totalAmountReceived = computed(() => {
 .profile-donations__item {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 16px 18px;
     border-radius: 14px;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
+    overflow: hidden;
     transition: border-color 0.15s;
 }
 
@@ -302,6 +313,7 @@ const totalAmountReceived = computed(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding: 16px 18px;
 }
 
 .profile-donations__donor {
@@ -364,17 +376,31 @@ const totalAmountReceived = computed(() => {
 }
 
 .profile-donations__message {
-    padding: 10px 14px;
-    border-radius: 10px;
-    background: rgba(244, 114, 182, 0.08);
-    border-left: 3px solid #f472b6;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 18px;
+    background: rgba(244, 114, 182, 0.04);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.profile-donations__message-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: #f472b6;
+    opacity: 0.85;
 }
 
 .profile-donations__message-text {
-    font-size: 0.88rem;
-    color: var(--text-secondary, #e5e7eb);
+    font-size: 0.9rem;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.88);
     margin: 0;
-    font-style: italic;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
 .profile-donations__pagination {
