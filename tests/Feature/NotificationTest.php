@@ -85,3 +85,29 @@ test('user can mark all service broadcasts as read in bulk', function () {
 
     expect(AdminBroadcastRead::where('user_id', $user->id)->count())->toBe(2);
 });
+
+test('donation_received notification is categorized as donation in combined list', function () {
+    Event::fake();
+
+    $user = User::factory()->create();
+
+    $user->notifications()->create([
+        'id' => (string) \Illuminate\Support\Str::uuid(),
+        'type' => \App\Notifications\DonationReceivedNotification::class,
+        'data' => [
+            'type' => 'donation_received',
+            'amount' => 150.00,
+            'donor_name' => 'Alice Donor',
+            'message' => 'Вам отправлен донат 150 от Alice Donor!',
+        ],
+        'created_at' => now(),
+    ]);
+
+    $response = $this->actingAs($user)->getJson(route('notifications.combined'));
+    $response->assertOk();
+
+    $items = $response->json('items');
+    expect($items)->toHaveCount(1);
+    expect($items[0]['type'])->toBe('donation_received');
+    expect($items[0]['_cat'])->toBe('donation');
+});

@@ -12,6 +12,7 @@ trait NotificationTypes
         'service_approved', 'service_rejected', 'service_remarks',
         'service_change_approved', 'service_change_remarks', 'service_change_rejected',
         'test', 'new_review', 'wallet_adjustment', 'idol_payout_released', 'strike',
+        'donation_received',
     ];
 
     protected array $ORDER_TYPES = ['order_created', 'order_accepted', 'order_cancelled', 'order_paid', 'order_completed'];
@@ -53,6 +54,7 @@ trait NotificationTypes
         'new_service' => \App\Notifications\NewServiceNotification::class,
         'new_content_pack' => \App\Notifications\NewContentPackNotification::class,
         'strike' => \App\Notifications\UserStrikeNotification::class,
+        'donation_received' => \App\Notifications\DonationReceivedNotification::class,
     ];
 
     protected function getClassesForTypes(array $types): array

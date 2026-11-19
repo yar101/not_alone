@@ -229,6 +229,12 @@ class WalletController extends Controller
                 \App\Enums\WalletTransactionType::PinkToBlueConversion,
                 \App\Enums\WalletTransactionType::BlueFromPinkConversion,
             ]);
+        } elseif ($filter === 'donations') {
+            $query->whereIn('type', [
+                \App\Enums\WalletTransactionType::DonationSent,
+                \App\Enums\WalletTransactionType::DonationReceived,
+                \App\Enums\WalletTransactionType::DonationFee,
+            ]);
         } elseif ($filter === 'withdrawal' || $filter === 'withdrawals') {
             $query->where('type', \App\Enums\WalletTransactionType::Withdrawal);
         }

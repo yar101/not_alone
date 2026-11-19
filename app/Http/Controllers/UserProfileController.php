@@ -12,6 +12,7 @@ use App\Models\IdolCategoryDescription;
 use App\Models\InterestCategory;
 use App\Models\InterestSuggestion;
 use App\Models\PersonalityTrait;
+use App\Models\PlatformSetting;
 use App\Models\Post;
 use App\Models\PostComment;
 use App\Models\PostLike;
@@ -68,6 +69,7 @@ class UserProfileController extends Controller
                     ->exists()
                 : false,
             'followersCount' => $user->followers()->count(),
+            'platformFeePercent' => (float) PlatformSetting::get('platform_fee_percent', config('services.payments.platform_fee_percent', 10.0)),
 
             // Deferred group "about" — traits, interests, languages + their catalogs
             'traits' => Inertia::defer(fn () => $user->load('traits')->traits->map(fn ($t) => [
@@ -216,6 +218,38 @@ class UserProfileController extends Controller
                     ->toArray();
             }, 'content'),
 
+            'donations' => Inertia::defer(function () use ($user) {
+                $authId = auth()->id();
+                if ($authId !== $user->id || ! $user->is_idol) {
+                    return null;
+                }
+
+                return \App\Models\Donation::with('donor:id,name,avatar_path,gender')
+                    ->where('idol_id', $user->id)
+                    ->latest('id')
+                    ->paginate(15)
+                    ->through(fn (\App\Models\Donation $d) => [
+                        'id' => $d->id,
+                        'donor' => $d->donor ? [
+                            'id' => $d->donor->id,
+                            'name' => $d->donor->name,
+                            'avatar_url' => $d->donor->avatar_url,
+                            'gender' => $d->donor->gender,
+                        ] : [
+                            'id' => null,
+                            'name' => 'Удалённый пользователь',
+                            'avatar_url' => null,
+                            'gender' => null,
+                        ],
+                        'amount' => (float) $d->amount,
+                        'amount_charged' => (float) $d->amount_charged,
+                        'platform_fee' => (float) $d->platform_fee,
+                        'fee_covered_by_donor' => (bool) $d->fee_covered_by_donor,
+                        'message' => $d->message,
+                        'created_at' => $d->created_at?->format('d.m.Y H:i'),
+                        'created_at_iso' => $d->created_at?->toIso8601String(),
+                    ]);
+            }, 'donations'),
         ]);
     }
 

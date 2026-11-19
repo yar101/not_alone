@@ -10,6 +10,7 @@ import {
     DocumentAdd, CircleCheckFilled, CircleCloseFilled,
     Coin, SuccessFilled, WarningFilled, Rank, Bell,
     PictureFilled, StarFilled, ChatDotRound, Service, Van, Setting, Back,
+    Present,
 } from '@element-plus/icons-vue';
 
 import { useTranslations } from '@/composables/useTranslations';
@@ -156,6 +157,11 @@ function handleItemClick(item) {
         router.visit(route('profile.show', { user: item.data.user_id }));
         return;
     }
+    if (item._cat === 'donation' && authUser?.id) {
+        open.value = false;
+        router.visit(route('profile.show', { user: authUser.id }) + '#donations');
+        return;
+    }
 
     const contentProfileTypes = [
         'idol_approved', 'idol_rejected',
@@ -185,6 +191,7 @@ function isClickable(item) {
     if (item.type === 'new_message' && item.data?.conversation_id) return true;
     if (item._cat === 'order' && (item.order_id || item.data?.order_id)) return true;
     if (item._cat === 'follow' && item.data?.user_id) return true;
+    if (item._cat === 'donation') return true;
     const profileTypes = [
         'idol_approved', 'idol_rejected', 'low_rating_warning',
         'admin_rating', 'review_dispute_approved', 'review_dispute_rejected',
@@ -206,7 +213,24 @@ function closeOnOutside(e) {
 
 const STORAGE_KEY = 'notif_active_filters';
 const savedFilters = localStorage.getItem(STORAGE_KEY);
-const activeFilters = ref(savedFilters ? JSON.parse(savedFilters) : ['service', 'order']);
+const defaultFilters = ['service', 'order', 'donation'];
+let initialFilters = defaultFilters;
+if (savedFilters) {
+    try {
+        const parsed = JSON.parse(savedFilters);
+        if (Array.isArray(parsed)) {
+            if (!parsed.includes('donation') && !localStorage.getItem('notif_donation_filter_init')) {
+                parsed.push('donation');
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+                localStorage.setItem('notif_donation_filter_init', '1');
+            }
+            initialFilters = parsed;
+        }
+    } catch (e) {
+        initialFilters = defaultFilters;
+    }
+}
+const activeFilters = ref(initialFilters);
 
 const POPUP_STORAGE_KEY = 'notalone_popups_enabled';
 const showSettings = ref(false);
@@ -359,6 +383,7 @@ function getNotificationTitle(item) {
         new_content_pack: __('notification.type.new_content_pack'),
         new_message: data.sender_id ? __('notification.type.new_message') : __('notification.type.support_message'),
         chat_status: __('notification.type.chat_status'),
+        donation_received: __('notification.type.donation_received'),
     }[type] ?? __('notification.type.default');
 }
 
@@ -461,6 +486,12 @@ function getNotificationMessage(item) {
         params.message = data.message_raw;
     }
 
+    if (type === 'donation_received') {
+        params.name = data.donor_name || 'Пользователь';
+        params.amount = formatMoney(data.amount || 0);
+        params.comment = data.donation_message ? ` «${data.donation_message}»` : '';
+    }
+
     const msg = __(`notification.msg.${type}`, params);
 
     // Fallback for old notifications or missing keys
@@ -548,6 +579,9 @@ function relativeTime(dateStr) {
 
 
 function itemIconComponent(item) {
+    if (item._cat === 'donation') {
+        return Present;
+    }
     if (item._cat === 'order') {
         return {
             order_created: DocumentAdd,
@@ -593,6 +627,9 @@ function itemIconComponent(item) {
 }
 
 function itemIconClass(item) {
+    if (item._cat === 'donation') {
+        return 'icon--donation';
+    }
     if (item._cat === 'order') {
         if (item.type === 'order_accepted' || item.type === 'order_completed') return 'icon--success';
         if (item.type === 'order_cancelled') return 'icon--danger';
@@ -778,6 +815,10 @@ defineExpose({ toggleDropdown });
                                 <input type="checkbox" :checked="activeFilters.includes('follow')" @change="toggleFilter('follow')" style="display:none;">
                                 {{ __('notification.tab.follows') }}
                             </label>
+                            <label class="compact-filter" :class="{ 'compact-filter--active': activeFilters.includes('donation') }">
+                                <input type="checkbox" :checked="activeFilters.includes('donation')" @change="toggleFilter('donation')" style="display:none;">
+                                {{ __('notification.tab.donations') }}
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -841,7 +882,7 @@ defineExpose({ toggleDropdown });
                                             {{ getNotificationMessage(item) }}
                                         </p>
                                         <span class="notif-cat-tag" :class="`cat--${item._cat}`">
-                                            {{ item._cat === 'personal' ? __('notification.tag.personal') : item._cat === 'service' ? __('notification.tag.service') : item._cat === 'order' ? __('notification.tag.order') : item._cat === 'follow' ? __('notification.tag.follow') : __('notification.tag.message') }}
+                                            {{ item._cat === 'personal' ? __('notification.tag.personal') : item._cat === 'service' ? __('notification.tag.service') : item._cat === 'order' ? __('notification.tag.order') : item._cat === 'follow' ? __('notification.tag.follow') : item._cat === 'donation' ? __('notification.tag.donation') : __('notification.tag.message') }}
                                         </span>
                                     </div>
                                     <p v-if="getNotificationTitle(item) && !['new_message', 'order_created', 'order_accepted', 'order_cancelled', 'order_paid', 'order_completed'].includes(item.type)" class="notif-msg notif-msg--sub">
@@ -921,6 +962,10 @@ defineExpose({ toggleDropdown });
                                 <input type="checkbox" :checked="activeFilters.includes('follow')" @change="toggleFilter('follow')" style="display:none;">
                                 {{ __('notification.tab.follows') }}
                             </label>
+                            <label class="compact-filter" :class="{ 'compact-filter--active': activeFilters.includes('donation') }">
+                                <input type="checkbox" :checked="activeFilters.includes('donation')" @change="toggleFilter('donation')" style="display:none;">
+                                {{ __('notification.tab.donations') }}
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -978,7 +1023,7 @@ defineExpose({ toggleDropdown });
                                                 {{ getNotificationMessage(item) }}
                                             </p>
                                             <span class="notif-cat-tag" :class="`cat--${item._cat}`">
-                                                {{ item._cat === 'personal' ? __('notification.tag.personal') : item._cat === 'service' ? __('notification.tag.service') : item._cat === 'order' ? __('notification.tag.order') : item._cat === 'follow' ? __('notification.tag.follow') : __('notification.tag.message') }}
+                                                {{ item._cat === 'personal' ? __('notification.tag.personal') : item._cat === 'service' ? __('notification.tag.service') : item._cat === 'order' ? __('notification.tag.order') : item._cat === 'follow' ? __('notification.tag.follow') : item._cat === 'donation' ? __('notification.tag.donation') : __('notification.tag.message') }}
                                             </span>
                                         </div>
                                         <p v-if="getNotificationTitle(item) && !['new_message', 'order_created', 'order_accepted', 'order_cancelled', 'order_paid', 'order_completed'].includes(item.type)" class="notif-msg notif-msg--sub">
@@ -1298,6 +1343,11 @@ defineExpose({ toggleDropdown });
     color: var(--color-base-1);
 }
 
+.icon--donation {
+    background: rgba(244, 114, 182, 0.18);
+    color: #f472b6;
+}
+
 .icon--default {
     background: rgba(255, 255, 255, 0.06);
     color: rgba(255, 255, 255, 0.4);
@@ -1408,6 +1458,11 @@ defineExpose({ toggleDropdown });
 .cat--follow {
     background: rgba(255, 178, 239, 0.12);
     color: rgba(255, 178, 239, 0.7);
+}
+
+.cat--donation {
+    background: rgba(244, 114, 182, 0.16);
+    color: #f472b6;
 }
 
 /* ── Empty state ── */

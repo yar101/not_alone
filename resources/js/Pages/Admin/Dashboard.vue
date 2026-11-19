@@ -225,6 +225,17 @@ function getTargetLink(type, id) {
                 </template>
             </AdminStatsCard>
             <AdminStatsCard
+                title="Доход с донатов"
+                :value="formatCurrency(metrics.donation_income)"
+                :subtitle="`Оборот: ${formatCurrency(metrics.donation_turnover)}`"
+                accent="success"
+                :href="route('admin.transactions.index', { type: 'donation_sent' })"
+            >
+                <template #icon>
+                    <CoinIcon color="pink" size="sm" />
+                </template>
+            </AdminStatsCard>
+            <AdminStatsCard
                 title="Пользователи платформы"
                 :value="metrics.total_users"
                 :subtitle="`${metrics.total_idols} айдолов`"

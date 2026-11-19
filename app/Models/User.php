@@ -194,6 +194,16 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(ContentPackPurchase::class);
     }
 
+    public function donationsSent(): HasMany
+    {
+        return $this->hasMany(Donation::class, 'donor_id');
+    }
+
+    public function donationsReceived(): HasMany
+    {
+        return $this->hasMany(Donation::class, 'idol_id');
+    }
+
     public function following(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'follows', 'follower_id', 'idol_id')->withTimestamps();

@@ -6,6 +6,7 @@ use App\Http\Controllers\ContentPackController;
 use App\Http\Controllers\ContentPackPurchaseController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\CustomizationController;
+use App\Http\Controllers\DonationController;
 use App\Http\Controllers\FollowController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\HelpController;
@@ -92,6 +93,8 @@ Route::middleware(['auth', 'not_banned'])->group(function () {
         Route::get('/search', [UserSearchController::class, 'index'])->name('users.search');
         Route::get('/tracked', [FollowController::class, 'index'])->name('tracked.index');
         Route::post('/users/{user}/follow', [FollowController::class, 'toggle'])->name('users.follow');
+        Route::post('/users/{user}/donate', [DonationController::class, 'store'])->name('users.donate');
+        Route::get('/users/{user}/donations', [DonationController::class, 'index'])->name('users.donations');
 
         // Account settings
         Route::get('/settings', [ProfileController::class, 'edit'])->name('settings.edit');

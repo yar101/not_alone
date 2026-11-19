@@ -21,6 +21,7 @@ import {
     Memo,
     Briefcase,
     Film,
+    Present,
 } from "@element-plus/icons-vue";
 
 defineOptions({ layout: AppLayout });
@@ -35,6 +36,8 @@ import ProfileReviews from "@/Components/Profile/ProfileReviews.vue";
 import ProfileServices from "@/Components/Profile/ProfileServices.vue";
 import ProfileVoice from "@/Components/Profile/ProfileVoice.vue";
 import ProfileContent from "@/Components/Profile/ProfileContent.vue";
+import ProfileDonations from "@/Components/Profile/ProfileDonations.vue";
+import DonationModal from "@/Components/Profile/DonationModal.vue";
 
 const props = defineProps({
     profileUser: { type: Object, required: true },
@@ -55,6 +58,8 @@ const props = defineProps({
     isFollowing: { type: Boolean, default: false },
     contentPacks: { default: null },
     purchasedPackIds: { default: () => [] },
+    donations: { default: null },
+    platformFeePercent: { type: Number, default: 10 },
 });
 
 // ── Auth ──────────────────────────────────────────────────────
@@ -118,9 +123,14 @@ function resendVerification() {
     });
 }
 
+// ── Donation Modal ──────────────────────────────────────────
+const showDonationModal = ref(false);
+
 // ── Tabs ─────────────────────────────────────────────────────
 const TAB_ORDER = props.isIdol
-    ? ["about", "posts", "services", "content", "reviews"]
+    ? (props.isOwner
+        ? ["about", "posts", "services", "content", "reviews", "donations"]
+        : ["about", "posts", "services", "content", "reviews"])
     : ["about"];
 const storedTab = sessionStorage.getItem(`profile_tab_${props.profileUser.id}`);
 const hashTab = window.location.hash.slice(1);
@@ -475,6 +485,26 @@ onMounted(async () => {
                             }}</span>
                         </button>
 
+                        <button
+                            v-if="isIdol"
+                            type="button"
+                            class="sidebar-donate-btn"
+                            @click="showDonationModal = true"
+                        >
+                            <svg
+                                class="sidebar-donate-btn__icon"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                width="18"
+                                height="18"
+                            >
+                                <path
+                                    d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+                                />
+                            </svg>
+                            <span>Подарить</span>
+                        </button>
+
                         <SiteModal
                             :show="showUnfollowConfirm"
                             @close="showUnfollowConfirm = false"
@@ -622,6 +652,15 @@ onMounted(async () => {
                             <span class="tab-label">{{
                                 __("profile.tabs.reviews")
                             }}</span>
+                        </button>
+                        <button
+                            v-if="isIdol && isOwner"
+                            class="tab-btn"
+                            :class="{ active: tab === 'donations' }"
+                            @click="switchTab('donations')"
+                        >
+                            <el-icon class="tab-icon"><Present /></el-icon>
+                            <span class="tab-label">Донаты</span>
                         </button>
                         <button
                             v-if="serviceNav.inCategory"
@@ -786,6 +825,18 @@ onMounted(async () => {
                                 />
                             </div>
 
+                            <div
+                                v-else-if="tab === 'donations'"
+                                key="donations"
+                                class="tab-panel"
+                            >
+                                <ProfileDonations
+                                    :donations="donations"
+                                    :is-owner="isOwner"
+                                    :profile-user-id="profileUser.id"
+                                />
+                            </div>
+
                             <div v-else key="content" class="tab-panel">
                                 <ProfileContent
                                     :content-packs="contentPacks"
@@ -844,6 +895,15 @@ onMounted(async () => {
             <!-- /profile-body -->
         </div>
     </div>
+
+    <!-- Donation modal -->
+    <DonationModal
+        :show="showDonationModal"
+        :idol="profileUser"
+        :fee-percent="platformFeePercent"
+        @close="showDonationModal = false"
+        @donated="() => router.reload({ only: ['auth', 'donations'] })"
+    />
 
     <!-- Report modal -->
     <SiteModal
@@ -1647,6 +1707,50 @@ body.driver-active {
         color-mix(in srgb, var(--color-base-1), transparent 85%)
     );
     border-color: color-mix(in srgb, var(--color-base-1), transparent 20%);
+}
+
+.sidebar-donate-btn {
+    width: 100%;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--profile-border-radius, 8px);
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--color-base-1), transparent 85%),
+        color-mix(in srgb, var(--color-base-1), transparent 94%)
+    );
+    border: 1px solid color-mix(in srgb, var(--color-base-1), transparent 50%);
+    color: var(--color-base-1);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.sidebar-donate-btn:hover {
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--color-base-1), transparent 70%),
+        color-mix(in srgb, var(--color-base-1), transparent 85%)
+    );
+    border-color: color-mix(in srgb, var(--color-base-1), transparent 20%);
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+.sidebar-donate-btn:active {
+    transform: translateY(0) scale(0.98);
+}
+.sidebar-donate-btn__icon {
+    flex-shrink: 0;
 }
 
 /* ── Unfollow confirm ────────────────────────────────────── */

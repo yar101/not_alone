@@ -8,6 +8,7 @@ use App\Models\AdminBroadcast;
 use App\Models\AdminLog;
 use App\Models\ContentPack;
 use App\Models\ContentPackChangeRequest;
+use App\Models\Donation;
 use App\Models\IdolApplication;
 use App\Models\IdolQuizSession;
 use App\Models\Order;
@@ -29,8 +30,11 @@ class DashboardController extends Controller
             ")
             ->first();
 
-        $platformFeeTotal = (float) ($walletStats->platform_fee_total ?? 0);
-        $turnoverTotal = (float) ($walletStats->turnover_total ?? 0);
+        $donationIncome = (float) Donation::sum('platform_fee');
+        $donationTurnover = (float) Donation::sum('amount_charged');
+
+        $platformFeeTotal = (float) ($walletStats->platform_fee_total ?? 0) + $donationIncome;
+        $turnoverTotal = (float) ($walletStats->turnover_total ?? 0) + (float) Donation::sum('amount');
         $depositsTotal = (float) ($walletStats->deposits_total ?? 0);
 
         return Inertia::render('Admin/Dashboard', [
@@ -48,6 +52,8 @@ class DashboardController extends Controller
                 'platform_fee_total' => $platformFeeTotal,
                 'turnover_total' => $turnoverTotal,
                 'deposits_total' => $depositsTotal,
+                'donation_income' => $donationIncome,
+                'donation_turnover' => $donationTurnover,
             ],
             'recent_applications' => IdolApplication::with('user')
                 ->latest()

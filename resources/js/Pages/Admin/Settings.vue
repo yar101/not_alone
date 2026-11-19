@@ -22,6 +22,9 @@ const form = useForm({
     withdrawal_fee_percent:  props.settings.withdrawal_fee_percent ?? 4,
     platform_fee_percent:    props.settings.platform_fee_percent ?? 10,
     order_customer_service_fee_percent: props.settings.order_customer_service_fee_percent ?? 5,
+    donation_min_amount: props.settings.donation_min_amount ?? 1,
+    donation_max_amount: props.settings.donation_max_amount ?? 15000,
+    donation_daily_limit: props.settings.donation_daily_limit ?? 10,
     rating_deltas: { ...props.rating_deltas },
 });
 
@@ -190,6 +193,70 @@ const previewBase = computed(() =>
                         </div>
                     </div>
                     <p v-if="form.errors.order_customer_service_fee_percent" class="err">{{ form.errors.order_customer_service_fee_percent }}</p>
+                </div>
+            </div>
+
+            <!-- ── Раздел: Донаты ── -->
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Донаты (пожертвования)</h2>
+                </div>
+
+                <div class="field">
+                    <div class="field-row">
+                        <div class="field-meta">
+                            <label class="field-label">Минимальная сумма доната, монет</label>
+                            <p class="field-hint">Минимальный размер разового пожертвования айдолу</p>
+                        </div>
+                        <div class="field-control">
+                            <input
+                                v-model.number="form.donation_min_amount"
+                                type="number"
+                                min="1"
+                                class="input input--sm"
+                                :class="{ 'input--err': form.errors.donation_min_amount }"
+                            />
+                        </div>
+                    </div>
+                    <p v-if="form.errors.donation_min_amount" class="err">{{ form.errors.donation_min_amount }}</p>
+                </div>
+
+                <div class="field">
+                    <div class="field-row">
+                        <div class="field-meta">
+                            <label class="field-label">Максимальная сумма доната, монет</label>
+                            <p class="field-hint">Максимальный размер разового пожертвования (в соответствии с лимитами РФ)</p>
+                        </div>
+                        <div class="field-control">
+                            <input
+                                v-model.number="form.donation_max_amount"
+                                type="number"
+                                min="1"
+                                class="input input--sm"
+                                :class="{ 'input--err': form.errors.donation_max_amount }"
+                            />
+                        </div>
+                    </div>
+                    <p v-if="form.errors.donation_max_amount" class="err">{{ form.errors.donation_max_amount }}</p>
+                </div>
+
+                <div class="field">
+                    <div class="field-row">
+                        <div class="field-meta">
+                            <label class="field-label">Дневной лимит донатов на айдола</label>
+                            <p class="field-hint">Максимальное количество донатов от одного пользователя одному айдолу в день (антиспам)</p>
+                        </div>
+                        <div class="field-control">
+                            <input
+                                v-model.number="form.donation_daily_limit"
+                                type="number"
+                                min="1"
+                                class="input input--sm"
+                                :class="{ 'input--err': form.errors.donation_daily_limit }"
+                            />
+                        </div>
+                    </div>
+                    <p v-if="form.errors.donation_daily_limit" class="err">{{ form.errors.donation_daily_limit }}</p>
                 </div>
             </div>
 

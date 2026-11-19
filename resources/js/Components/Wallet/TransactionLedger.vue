@@ -47,7 +47,7 @@ function isPositiveTx(txOrType) {
         return amount > 0;
     }
     const type = typeof txOrType === 'object' ? txOrType?.type : txOrType;
-    return ['deposit', 'order_payout', 'order_refund', 'pack_sale'].includes(type);
+    return ['deposit', 'order_payout', 'order_refund', 'pack_sale', 'donation_received', 'blue_from_pink'].includes(type);
 }
 
 function isHoldTx(txOrType) {
@@ -89,6 +89,9 @@ function getTxLabel(tx) {
     if (tx.type === 'order_clawback') return 'Списание по спору';
     if (tx.type === 'pink_to_blue') return 'Обмен: списание розовых';
     if (tx.type === 'blue_from_pink') return 'Обмен: зачисление синих';
+    if (tx.type === 'donation_sent') return 'Отправка доната';
+    if (tx.type === 'donation_received') return 'Получение доната';
+    if (tx.type === 'donation_fee') return 'Комиссия за донат';
     return tx.type_label || 'Операция';
 }
 
@@ -109,6 +112,9 @@ function getTxExplanation(tx) {
     if (tx.type === 'order_hold_cancelled') return 'Средства списаны из холда в связи с отменой или спором по заказу.';
     if (tx.type === 'order_clawback') return 'Списание за заказ, возвращённый клиенту по спору.';
     if (tx.type === 'order_refund') return 'Возврат 100% стоимости услуг по отменённому или оспоренному заказу.';
+    if (tx.type === 'donation_sent') return 'Пожертвование любимому айдолу.';
+    if (tx.type === 'donation_received') return 'Донат от пользователя. Зачисляется сразу на розовый баланс.';
+    if (tx.type === 'donation_fee') return 'Комиссия сервиса за донат.';
     return '';
 }
 

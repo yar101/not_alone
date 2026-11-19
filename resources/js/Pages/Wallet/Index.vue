@@ -357,6 +357,7 @@ const historyTabs = computed(() => {
         { id: 'orders', label: 'Заказы' },
         { id: 'holds', label: 'Заморозки' },
         { id: 'packs', label: 'Контент' },
+        { id: 'donations', label: 'Донаты' },
     ];
     if (props.isIdol) {
         tabs.push({ id: 'withdrawal', label: 'Вывод' });

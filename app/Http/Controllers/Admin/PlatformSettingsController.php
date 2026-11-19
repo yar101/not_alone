@@ -26,6 +26,9 @@ class PlatformSettingsController extends Controller
                 'withdrawal_fee_percent' => (float) PlatformSetting::get('withdrawal_fee_percent', config('services.payments.withdrawal_fee_percent', 4.0)),
                 'platform_fee_percent' => (float) PlatformSetting::get('platform_fee_percent', config('services.payments.platform_fee_percent', 10.0)),
                 'order_customer_service_fee_percent' => (float) PlatformSetting::get('order_customer_service_fee_percent', 5.0),
+                'donation_min_amount' => (int) PlatformSetting::get('donation_min_amount', 1),
+                'donation_max_amount' => (int) PlatformSetting::get('donation_max_amount', 15000),
+                'donation_daily_limit' => (int) PlatformSetting::get('donation_daily_limit', 10),
             ],
             'rating_deltas' => [
                 'review_5star' => (float) PlatformSetting::get('rating_delta_review_5star', 0.8),
@@ -54,6 +57,9 @@ class PlatformSettingsController extends Controller
             'withdrawal_fee_percent' => ['required', 'numeric', 'min:0', 'max:50'],
             'platform_fee_percent' => ['required', 'numeric', 'min:0', 'max:50'],
             'order_customer_service_fee_percent' => ['sometimes', 'numeric', 'min:0', 'max:50'],
+            'donation_min_amount' => ['sometimes', 'numeric', 'min:1'],
+            'donation_max_amount' => ['sometimes', 'numeric', 'gte:donation_min_amount'],
+            'donation_daily_limit' => ['sometimes', 'integer', 'min:1', 'max:1000'],
             'rating_deltas.review_5star' => ['required', 'numeric', 'min:0', 'max:10'],
             'rating_deltas.review_4star' => ['required', 'numeric', 'min:0', 'max:10'],
             'rating_deltas.review_2star' => ['required', 'numeric', 'min:-10', 'max:0'],
@@ -78,6 +84,15 @@ class PlatformSettingsController extends Controller
         PlatformSetting::set('platform_fee_percent', $data['platform_fee_percent']);
         if (isset($data['order_customer_service_fee_percent'])) {
             PlatformSetting::set('order_customer_service_fee_percent', $data['order_customer_service_fee_percent']);
+        }
+        if (isset($data['donation_min_amount'])) {
+            PlatformSetting::set('donation_min_amount', $data['donation_min_amount']);
+        }
+        if (isset($data['donation_max_amount'])) {
+            PlatformSetting::set('donation_max_amount', $data['donation_max_amount']);
+        }
+        if (isset($data['donation_daily_limit'])) {
+            PlatformSetting::set('donation_daily_limit', $data['donation_daily_limit']);
         }
         foreach ($data['rating_deltas'] as $event => $delta) {
             PlatformSetting::set('rating_delta_'.$event, $delta);

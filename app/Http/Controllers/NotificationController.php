@@ -170,6 +170,10 @@ class NotificationController extends Controller
 
     private function categorize(string $type, $senderId): string
     {
+        if ($type === 'donation_received') {
+            return 'donation';
+        }
+
         if (in_array($type, $this->ORDER_TYPES)) {
             return 'order';
         }

@@ -140,7 +140,12 @@ class TransactionController extends Controller
             'blue_from_pink' => (int) ($rawTypeCounts[WalletTransactionType::BlueFromPinkConversion->value] ?? 0),
             'pink_to_blue_conversion' => (int) ($rawTypeCounts[WalletTransactionType::PinkToBlueConversion->value] ?? 0),
             'blue_from_pink_conversion' => (int) ($rawTypeCounts[WalletTransactionType::BlueFromPinkConversion->value] ?? 0),
+            'donation_sent' => (int) ($rawTypeCounts[WalletTransactionType::DonationSent->value] ?? 0),
+            'donation_received' => (int) ($rawTypeCounts[WalletTransactionType::DonationReceived->value] ?? 0),
+            'donation_fee' => (int) ($rawTypeCounts[WalletTransactionType::DonationFee->value] ?? 0),
         ];
+
+        $donationFeeSum = (float) \App\Models\Donation::sum('platform_fee');
 
         $platformFeeSum = (float) WalletTransaction::where('type', WalletTransactionType::PlatformFee)
             ->where('status', WalletTransactionStatus::Completed)
@@ -161,7 +166,7 @@ class TransactionController extends Controller
             ->whereNotNull('metadata->fee_amount')
             ->sum(DB::raw("cast(metadata->>'fee_amount' as numeric)"));
 
-        $totalFees = round($platformFeeSum + $customerServiceFeeSum + $depositFeeSum + $withdrawalFeeSum, 2);
+        $totalFees = round($platformFeeSum + $customerServiceFeeSum + $depositFeeSum + $withdrawalFeeSum + $donationFeeSum, 2);
 
         // Global KPI Stats
         $kpi = [
