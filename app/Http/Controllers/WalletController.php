@@ -152,7 +152,6 @@ class WalletController extends Controller
                     \App\Enums\WalletTransactionType::OrderHoldCancelled,
                     \App\Enums\WalletTransactionType::OrderClawback,
                     \App\Enums\WalletTransactionType::CustomerServiceFee,
-                    \App\Enums\WalletTransactionType::RefundFee,
                 ])->orWhere(function ($sub) {
                     $sub->where('type', \App\Enums\WalletTransactionType::PlatformFee)
                         ->where('reference_type', \App\Models\Order::class);

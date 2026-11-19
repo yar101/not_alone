@@ -158,14 +158,14 @@ class FinancialSecurityDeepAuditTest extends TestCase
         $idolWallet->update(['is_active' => false]);
 
         // Customer gets refunded without exception
-        $refundTx = $this->walletService->refundHold($order, 'Idol was banned for fraud', deductFees: true);
+        $refundTx = $this->walletService->refundHold($order, 'Idol was banned for fraud');
 
         $this->assertNotNull($refundTx);
         $this->assertEquals(WalletTransactionType::OrderRefund, $refundTx->type);
-        $this->assertEquals(430, $refundTx->amount);
+        $this->assertEquals(500, $refundTx->amount);
 
         $customerWallet = $this->walletService->getOrCreateWallet($customer);
-        $this->assertEquals(930, $customerWallet->balance);
+        $this->assertEquals(1000, $customerWallet->balance);
         $this->assertEquals(0, $customerWallet->held_balance);
     }
 

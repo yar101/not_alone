@@ -2,6 +2,7 @@
 import { ref, computed, watch, inject, onMounted, onUnmounted } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
+import { formatMoney } from '@/Utils/money';
 import { useTranslations } from '@/composables/useTranslations';
 import { useModalHistory } from '@/composables/useModalHistory';
 import { Picture, Briefcase } from '@element-plus/icons-vue';
@@ -208,7 +209,7 @@ async function purchaseContent() {
                                 </div>
                                 <div class="rc-line__bottom">
                                     <span class="rc-line__price inline-flex items-center gap-1">
-                                        <span>{{ (item.price || 0).toLocaleString('ru-RU') }}</span>
+                                        <span>{{ formatMoney(item.price || 0) }}</span>
                                         <CoinIcon color="blue" size="xs" />
                                         <template v-if="item.time_unit">&thinsp;/&thinsp;{{ item.time_unit }}</template>
                                     </span>
@@ -226,14 +227,14 @@ async function purchaseContent() {
                     <div v-if="servicesItems.length && customerServiceFee > 0" class="rc-fee-row">
                         <span class="rc-fee-row__label">Сервисный сбор:</span>
                         <span class="rc-fee-row__sum inline-flex items-center gap-1">
-                            <span>{{ customerServiceFee.toLocaleString('ru-RU') }}</span>
+                            <span>{{ formatMoney(customerServiceFee) }}</span>
                             <CoinIcon color="blue" size="xs" />
                         </span>
                     </div>
                     <div class="rc-total">
                         <span class="rc-total__label">{{ __('cart.total') }}</span>
                         <span class="rc-total__sum inline-flex items-center gap-1">
-                            <span>{{ servicesTotalWithFee.toLocaleString('ru-RU') }}</span>
+                            <span>{{ formatMoney(servicesTotalWithFee) }}</span>
                             <CoinIcon color="blue" size="xs" />
                         </span>
                     </div>
@@ -270,7 +271,7 @@ async function purchaseContent() {
                                 </div>
                                 <div class="rc-line__bottom">
                                     <span class="rc-line__price inline-flex items-center gap-1">
-                                        <span>{{ (item.price || 0).toLocaleString('ru-RU') }}</span>
+                                        <span>{{ formatMoney(item.price || 0) }}</span>
                                         <CoinIcon color="blue" size="xs" />
                                     </span>
                                 </div>
@@ -282,7 +283,7 @@ async function purchaseContent() {
                     <div class="rc-total">
                         <span class="rc-total__label">{{ __('cart.total') }}</span>
                         <span class="rc-total__sum inline-flex items-center gap-1">
-                            <span>{{ contentTotal.toLocaleString('ru-RU') }}</span>
+                            <span>{{ formatMoney(contentTotal) }}</span>
                             <CoinIcon color="blue" size="xs" />
                         </span>
                     </div>

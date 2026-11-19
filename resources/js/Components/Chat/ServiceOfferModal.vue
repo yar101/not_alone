@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
+import { formatMoney } from '@/Utils/money';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppCheckbox from '@/Components/AppCheckbox.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
@@ -108,7 +109,7 @@ function close() {
 }
 
 function fmtPrice(p) {
-    return (p ?? 0).toLocaleString('ru-RU');
+    return formatMoney(p ?? 0);
 }
 
 const isMobile = ref(typeof window !== 'undefined' && window.innerWidth <= 768);
@@ -214,7 +215,7 @@ watch(() => props.modelValue, (val) => {
                         />
                         <span class="sof-svc__name">{{ tName(svc) }}</span>
                         <span class="sof-svc__price inline-flex items-center gap-1">
-                            <span>{{ (svc.price ?? 0).toLocaleString('ru-RU') }}</span>
+                            <span>{{ formatMoney(svc.price ?? 0) }}</span>
                             <CoinIcon color="blue" size="xs" />
                             <template v-if="tUnit(svc)">&thinsp;/&thinsp;{{ tUnit(svc) }}</template>
                         </span>
@@ -264,7 +265,7 @@ watch(() => props.modelValue, (val) => {
                                 />
                                 <span class="sof-svc__name">{{ tName(svc) }}</span>
                                 <span class="sof-svc__price inline-flex items-center gap-1">
-                                    <span>{{ (svc.price ?? 0).toLocaleString('ru-RU') }}</span>
+                                    <span>{{ formatMoney(svc.price ?? 0) }}</span>
                                     <CoinIcon color="blue" size="xs" />
                                     <template v-if="tUnit(svc)">&thinsp;/&thinsp;{{ tUnit(svc) }}</template>
                                 </span>
@@ -286,7 +287,7 @@ watch(() => props.modelValue, (val) => {
                         >
                             <span class="sof-island__name">{{ s.name }}</span>
                             <span class="sof-island__price inline-flex items-center gap-1">
-                                <span>{{ (s.price ?? 0).toLocaleString('ru-RU') }}</span>
+                                <span>{{ formatMoney(s.price ?? 0) }}</span>
                                 <CoinIcon color="blue" size="xs" />
                                 <template v-if="s.time_unit">&thinsp;/&thinsp;{{ s.time_unit }}</template>
                             </span>

@@ -5,6 +5,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
 import AdminStatsCard from '@/Components/Admin/AdminStatsCard.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
+import { formatMoney } from '@/Utils/money';
 
 defineOptions({ layout: AdminLayout });
 
@@ -39,8 +40,7 @@ function formatDate(str) {
 }
 
 function formatCurrency(val) {
-    const num = Number(val) || 0;
-    return num.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return formatMoney(val);
 }
 
 const statusLabel = {

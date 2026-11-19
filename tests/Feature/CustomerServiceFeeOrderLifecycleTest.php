@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\OrderStatus;
 use App\Enums\WalletTransactionType;
+use App\Models\Admin;
 use App\Models\Order;
 use App\Models\PlatformSetting;
 use App\Models\Service;
@@ -142,5 +143,55 @@ class CustomerServiceFeeOrderLifecycleTest extends TestCase
             ->first();
         $this->assertNotNull($feeTx);
         $this->assertEquals(-150.00, (float) $feeTx->amount);
+    }
+
+    public function test_admin_marks_order_as_paid_charges_customer_service_fee(): void
+    {
+        $customer = User::factory()->create();
+        $idol = User::factory()->create(['is_idol' => true]);
+
+        $category = ServiceCategory::create(['name' => 'Test Cat admin paid']);
+        $timeUnit = ServiceTimeUnit::create(['name' => 'Час']);
+
+        $service = Service::create([
+            'user_id' => $idol->id,
+            'category_id' => $category->id,
+            'time_unit_id' => $timeUnit->id,
+            'name' => 'Услуга 1000',
+            'price' => 1000.00,
+            'is_active' => true,
+            'status' => 'approved',
+        ]);
+
+        [$order] = $this->orderService->createOrder($customer, $idol, [
+            ['id' => $service->id, 'quantity' => 1],
+        ]);
+
+        $this->walletService->deposit($customer, 2000.00, 'Init deposit', null, [], false);
+        $this->orderService->accept($order, $idol);
+
+        $admin = Admin::create([
+            'name' => 'Admin',
+            'email' => 'admin_adminpaid@test.com',
+            'password' => bcrypt('password'),
+        ]);
+
+        $this->orderService->adminTransition($order, OrderStatus::Paid, $admin->id, null);
+
+        $order->refresh();
+        $this->assertEquals(OrderStatus::Paid, $order->status);
+        $this->assertEquals(50.00, (float) $order->customer_service_fee);
+        $this->assertEquals(5.00, (float) $order->customer_service_fee_percent);
+
+        $wallet = $customer->wallet->fresh();
+        $this->assertEquals(950.00, (float) $wallet->balance);
+        $this->assertEquals(1000.00, (float) $wallet->held_balance);
+
+        $feeTx = WalletTransaction::where('reference_type', Order::class)
+            ->where('reference_id', $order->id)
+            ->where('type', WalletTransactionType::CustomerServiceFee)
+            ->first();
+        $this->assertNotNull($feeTx);
+        $this->assertEquals(-50.00, (float) $feeTx->amount);
     }
 }

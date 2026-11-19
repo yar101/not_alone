@@ -21,8 +21,6 @@ class PlatformSettingSeeder extends Seeder
             'withdrawal_fee_percent' => '4',
             'platform_fee_percent' => '10',
             'order_customer_service_fee_percent' => '5.0',
-            'refund_gateway_fee_percent' => '4',
-            'refund_platform_fee_percent' => '10',
             'rating_delta_review_5star' => '0.8',
             'rating_delta_review_4star' => '0.4',
             'rating_delta_review_2star' => '-0.5',

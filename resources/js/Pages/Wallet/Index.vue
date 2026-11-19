@@ -7,6 +7,7 @@ import AppSelect from '@/Components/AppSelect.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
 import axios from 'axios';
 import { extractErrorMessage } from '@/Utils/error';
+import { formatMoney } from '@/Utils/money';
 import { ElNotification, ElTooltip, ElIcon } from 'element-plus';
 import {
     Wallet,
@@ -530,13 +531,6 @@ async function handleWithdraw() {
 }
 
 // ── Formatters ───────────────────────────────────────────────
-function formatMoney(val) {
-    return Number(val || 0).toLocaleString('ru-RU', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    });
-}
-
 function formatInteger(val) {
     return Number(val || 0).toLocaleString('ru-RU', {
         maximumFractionDigits: 0,

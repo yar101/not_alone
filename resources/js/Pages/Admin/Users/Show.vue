@@ -5,6 +5,7 @@ import { ElMessageBox, ElMessage } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
+import { formatMoney } from '@/Utils/money';
 
 defineOptions({ layout: AdminLayout });
 
@@ -368,7 +369,7 @@ function submitRating() {
                                 <td class="muted">{{ s.time_unit ?? '—' }}</td>
                                 <td>
                                     <span class="inline-flex items-center gap-1">
-                                        <span>{{ s.price?.toLocaleString('ru') }}</span>
+                                        <span>{{ formatMoney(s.price) }}</span>
                                         <CoinIcon color="blue" size="xs" />
                                     </span>
                                 </td>
@@ -430,21 +431,21 @@ function submitRating() {
                     <div class="wallet-stat">
                         <span class="stat-label">Текущий баланс</span>
                         <strong class="stat-value text-success inline-flex items-center gap-1">
-                            <span>{{ user.wallet.balance?.toLocaleString('ru') }}</span>
+                            <span>{{ formatMoney(user.wallet.balance) }}</span>
                             <CoinIcon color="blue" size="xs" />
                         </strong>
                     </div>
                     <div class="wallet-stat">
                         <span class="stat-label">Заморожено (холд)</span>
                         <strong class="stat-value text-warning inline-flex items-center gap-1">
-                            <span>{{ user.wallet.held_balance?.toLocaleString('ru') }}</span>
+                            <span>{{ formatMoney(user.wallet.held_balance) }}</span>
                             <CoinIcon color="blue" size="xs" />
                         </strong>
                     </div>
                     <div v-if="user.is_idol && user.wallet.pink_balance !== undefined" class="wallet-stat">
                         <span class="stat-label">Розовые монеты</span>
                         <strong class="stat-value text-pink-400 inline-flex items-center gap-1">
-                            <span>{{ user.wallet.pink_balance?.toLocaleString('ru') }}</span>
+                            <span>{{ formatMoney(user.wallet.pink_balance) }}</span>
                             <CoinIcon color="pink" size="xs" />
                         </strong>
                     </div>
@@ -478,13 +479,13 @@ function submitRating() {
                                 <td>{{ transactionTypeLabels[t.type] || t.type }}</td>
                                 <td>
                                     <strong class="inline-flex items-center gap-1">
-                                        <span>{{ t.amount?.toLocaleString('ru') }}</span>
+                                        <span>{{ formatMoney(t.amount) }}</span>
                                         <CoinIcon :color="t.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
                                     </strong>
                                 </td>
                                 <td class="muted">
                                     <span class="inline-flex items-center gap-1">
-                                        <span>{{ t.balance_after?.toLocaleString('ru') }}</span>
+                                        <span>{{ formatMoney(t.balance_after) }}</span>
                                         <CoinIcon :color="t.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
                                     </span>
                                 </td>

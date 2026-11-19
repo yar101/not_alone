@@ -181,13 +181,13 @@ it('refunds escrow hold to customer when order is cancelled or refunded', functi
     expect((float) $customer->wallet->fresh()->balance)->toBe(420.00);
     expect((float) $customer->wallet->fresh()->held_balance)->toBe(1500.00);
 
-    $refundTx = $service->refundHold($order, 'Заказ отменён', deductFees: true);
+    $refundTx = $service->refundHold($order, 'Заказ отменён');
 
     expect($refundTx->type)->toBe(WalletTransactionType::OrderRefund);
-    expect((float) $refundTx->amount)->toBe(1290.00); // 1500 - 14% fees (210) = 1290
+    expect((float) $refundTx->amount)->toBe(1500.00); // 100% холда, комиссии при возврате нет
 
     $customerWallet = $customer->wallet->fresh();
-    expect((float) $customerWallet->balance)->toBe(1710.00); // 420 + 1290 = 1710
+    expect((float) $customerWallet->balance)->toBe(1920.00); // 420 + 1500 = 1920
     expect((float) $customerWallet->held_balance)->toBe(0.00);
 });
 
@@ -506,4 +506,28 @@ it('dispatches WalletBalanceUpdated broadcast event when balance or held_balance
         return $event->userId === $user->id
             && $event->pinkBalance === 1900.00;
     });
+});
+
+it('normalizes money amounts to two decimals at wallet service entry', function () {
+    $customer = User::factory()->create();
+    $idol = User::factory()->create(['is_idol' => true]);
+    $service = app(WalletService::class);
+
+    // 1000.005 -> 1000.01; комиссия 4% -> 40.00; зачислено 960.01
+    $depositTx = $service->deposit($customer, 1000.005);
+
+    expect((float) $depositTx->metadata['fee_amount'])->toBe(40.00);
+    expect((float) $depositTx->amount)->toBe(960.01);
+    expect((float) $customer->wallet->fresh()->balance)->toBe(960.01);
+
+    $order = Order::factory()->create([
+        'customer_id' => $customer->id,
+        'idol_id' => $idol->id,
+        'status' => OrderStatus::Accepted,
+    ]);
+
+    // 100.005 -> 100.01 в холд
+    $service->hold($customer, 100.005, $order);
+
+    expect((float) $customer->wallet->fresh()->held_balance)->toBe(100.01);
 });

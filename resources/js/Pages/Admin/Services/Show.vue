@@ -4,6 +4,7 @@ import { router, Link } from '@inertiajs/vue3';
 import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
+import { formatMoney } from '@/Utils/money';
 
 defineOptions({ layout: AdminLayout });
 
@@ -188,7 +189,7 @@ function closeHistoryModal() {
                         <div class="sps-meta__row">
                             <span class="sps-meta__label">Цена</span>
                             <span class="inline-flex items-center gap-1">
-                                <span>{{ service.price?.toLocaleString('ru') }}</span>
+                                <span>{{ formatMoney(service.price) }}</span>
                                 <CoinIcon color="blue" size="xs" />
                             </span>
                         </div>
@@ -273,7 +274,7 @@ function closeHistoryModal() {
                                 <template v-else-if="field === 'name_en'">{{ service.name_en || '—' }}</template>
                                 <template v-else-if="field === 'price'">
                                     <span class="inline-flex items-center gap-1">
-                                        <span>{{ service.price?.toLocaleString('ru') }}</span>
+                                        <span>{{ formatMoney(service.price) }}</span>
                                         <CoinIcon color="blue" size="xs" />
                                     </span>
                                 </template>

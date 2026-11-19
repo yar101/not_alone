@@ -8,6 +8,7 @@ import CoinIcon from '@/Components/Common/CoinIcon.vue';
 import axios from 'axios';
 import { ElNotification } from 'element-plus';
 import { extractErrorMessage } from '@/Utils/error';
+import { formatMoney } from '@/Utils/money';
 import { useTranslations } from '@/composables/useTranslations';
 
 const { __, transChoice } = useTranslations();
@@ -354,7 +355,7 @@ onUnmounted(() => {
                             <span class="ocard__item-name">{{ item.service?.name }}</span>
                             <span v-if="(item.quantity ?? 1) > 1" class="ocard__item-qty">×{{ item.quantity }}</span>
                             <span class="ocard__item-price inline-flex items-center gap-1">
-                                <span>{{ ((item.service?.price ?? 0) * (item.quantity ?? 1)).toLocaleString('ru-RU') }}</span>
+                                <span>{{ formatMoney((item.service?.price ?? 0) * (item.quantity ?? 1)) }}</span>
                                 <CoinIcon color="blue" size="xs" />
                             </span>
                         </div>
@@ -364,7 +365,7 @@ onUnmounted(() => {
                     <div class="ocard__foot">
                         <span class="ocard__count">{{ servicesNoun(order.items.length) }}</span>
                         <span class="ocard__total inline-flex items-center gap-1">
-                            <span>{{ orderTotal(order).toLocaleString('ru-RU') }}</span>
+                            <span>{{ formatMoney(orderTotal(order)) }}</span>
                             <CoinIcon color="blue" size="xs" />
                         </span>
                     </div>
@@ -441,7 +442,7 @@ onUnmounted(() => {
                                 <span v-if="(item.quantity ?? 1) > 1" class="opanel__line-qty">× {{ item.quantity }}</span>
                             </div>
                             <span class="opanel__line-price inline-flex items-center gap-1">
-                                <span>{{ ((item.service?.price ?? 0) * (item.quantity ?? 1)).toLocaleString('ru-RU') }}</span>
+                                <span>{{ formatMoney((item.service?.price ?? 0) * (item.quantity ?? 1)) }}</span>
                                 <CoinIcon color="blue" size="xs" />
                                 <template v-if="item.service?.time_unit">&thinsp;/&thinsp;{{ item.service.time_unit }}</template>
                             </span>
@@ -452,7 +453,7 @@ onUnmounted(() => {
                     <div class="opanel__total">
                         <span class="opanel__total-label">{{ __('order.total') }}</span>
                         <span class="opanel__total-value inline-flex items-center gap-1 font-bold">
-                            <span>{{ orderTotal(selectedOrder).toLocaleString('ru-RU') }}</span>
+                            <span>{{ formatMoney(orderTotal(selectedOrder)) }}</span>
                             <CoinIcon color="blue" size="sm" />
                         </span>
                     </div>

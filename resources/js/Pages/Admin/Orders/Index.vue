@@ -5,6 +5,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
 import AdminPagination from '@/Components/Admin/AdminPagination.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
+import { formatMoney } from '@/Utils/money';
 
 defineOptions({ layout: AdminLayout });
 
@@ -202,7 +203,7 @@ function submitStatus() {
                         <td class="td-count">{{ order.items_count }}</td>
                         <td class="td-total">
                             <span class="inline-flex items-center gap-1">
-                                <span>{{ order.total.toLocaleString('ru-RU') }}</span>
+                                <span>{{ formatMoney(order.total) }}</span>
                                 <CoinIcon color="blue" size="xs" />
                             </span>
                         </td>

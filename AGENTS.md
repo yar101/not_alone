@@ -20,7 +20,7 @@
   docker exec not_alone_app php artisan test
 
   # Запуск конкретного теста:
-  docker exec not_alone_app php artisan test tests/Feature/RefundCommissionDeductionTest.php
+  docker exec not_alone_app php artisan test tests/Feature/FinancialArchitectureTest.php
 
   # Миграции и сидеры:
   docker exec not_alone_app php artisan migrate
@@ -142,6 +142,7 @@ stateDiagram-v2
 ### 4.1. Правила отмены и подтверждения
 
 * **Клиент:** может отменить заказ **только до оплаты** (`pending`, `accepted`). После оплаты прямая отмена заблокирована — только открытие спора (`Disputed`).
+* **Оплата администратором:** переход `accepted → paid` из админки облагается тем же невозвратным сервисным сбором клиента (`order_customer_service_fee_percent = 5.0%`) и тем же холдом 100% стоимости услуг, что и обычная оплата клиентом.
 * **Айдол:** может отменить в статусах `pending`, `accepted` и `paid` (при отмене оплаченного клиенту начисляется 100% возврат стоимости услуг; сервисный сбор 5% остаётся платформе).
 * **Завершение:** подтверждение со стороны клиента мгновенно завершает заказ. Если подтвердил только айдол — запускается ожидание клиента либо автозавершение через **72 часа** (`order_auto_complete_delay`).
 * **Пробные заказы (Trial):** 0 монет, строго `quantity = 1`, доступен 1 раз для каждого айдола (учёт в `user_idol_trials`). При отмене/возврате trial-заказа право на пробный заказ восстанавливается.
@@ -243,8 +244,6 @@ $$\text{effectiveDelta} = \max\left(0.01,\, \text{round}\left(\text{baseDelta} \
 | `withdrawal_fee_percent` | `4.0%` | Комиссия на вывод средств (только айдолы) |
 | `platform_fee_percent` | `10.0%` | Базовая комиссия платформы со сделок и паков |
 | `order_customer_service_fee_percent` | `5.0%` | Невозвратный сервисный сбор с клиента при оплате заказа |
-| `refund_gateway_fee_percent` | `4.0%` | Невозвратная комиссия платёжной системы при возврате |
-| `refund_platform_fee_percent` | `10.0%` | Невозвратная комиссия платформы при возврате |
 | `order_dispute_window_minutes` | `60` мин | Окно холда выплаты айдолу и подачи спора клиентом |
 | `order_auto_complete_delay` | `72.0` ч | Время автозавершения заказа после подтверждения айдолом |
 | `rating_low_threshold` | `30` | Порог низкого рейтинга айдола |

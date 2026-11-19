@@ -7,6 +7,7 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AppSelect from '@/Components/AppSelect.vue';
 import CreateButton from '@/Components/CreateButton.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
+import { formatMoney } from '@/Utils/money';
 
 defineOptions({ layout: AdminLayout });
 
@@ -115,14 +116,14 @@ function destroy(id) {
                         <td>{{ getCategoryName(limit.category) }}</td>
                         <td>
                             <span v-if="limit.max_price" class="inline-flex items-center gap-1">
-                                <span>{{ limit.max_price.toLocaleString('ru') }}</span>
+                                <span>{{ formatMoney(limit.max_price) }}</span>
                                 <CoinIcon color="blue" size="xs" />
                             </span>
                             <span v-else>—</span>
                         </td>
                         <td>
                             <span v-if="limit.low_rating_max_price" class="inline-flex items-center gap-1">
-                                <span>{{ limit.low_rating_max_price.toLocaleString('ru') }}</span>
+                                <span>{{ formatMoney(limit.low_rating_max_price) }}</span>
                                 <CoinIcon color="blue" size="xs" />
                             </span>
                             <span v-else>—</span>

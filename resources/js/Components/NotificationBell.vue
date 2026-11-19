@@ -2,6 +2,7 @@
 import { ref, computed, watch, inject, onMounted, onUnmounted, h, nextTick } from 'vue';
 import { usePage, router } from '@inertiajs/vue3';
 import axios from 'axios';
+import { formatMoney } from '@/Utils/money';
 import { ElNotification, ElIcon } from 'element-plus';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import {
@@ -450,7 +451,7 @@ function getNotificationMessage(item) {
     if (type === 'wallet_adjustment') {
         const sign = data.is_credit ? '+' : '-';
         const formattedAmount = data.amount !== undefined
-            ? Math.abs(Number(data.amount)).toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+            ? formatMoney(Math.abs(Number(data.amount)))
             : '';
         params.amount = `${sign}${formattedAmount}`;
         params.description = data.description || '';

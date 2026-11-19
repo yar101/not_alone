@@ -135,7 +135,6 @@ class TransactionController extends Controller
             'order_clawback' => (int) ($rawTypeCounts[WalletTransactionType::OrderClawback->value] ?? 0),
             'pack_purchase' => (int) ($rawTypeCounts[WalletTransactionType::PackPurchase->value] ?? 0),
             'pack_sale' => (int) ($rawTypeCounts[WalletTransactionType::PackSale->value] ?? 0),
-            'refund_fee' => (int) ($rawTypeCounts[WalletTransactionType::RefundFee->value] ?? 0),
             'customer_service_fee' => (int) ($rawTypeCounts[WalletTransactionType::CustomerServiceFee->value] ?? 0),
             'pink_to_blue' => (int) ($rawTypeCounts[WalletTransactionType::PinkToBlueConversion->value] ?? 0),
             'blue_from_pink' => (int) ($rawTypeCounts[WalletTransactionType::BlueFromPinkConversion->value] ?? 0),
@@ -152,11 +151,6 @@ class TransactionController extends Controller
             ->where('status', WalletTransactionStatus::Completed)
             ->sum(DB::raw('abs(amount)'));
 
-        $refundFeeSum = (float) WalletTransaction::where('type', WalletTransactionType::OrderRefund)
-            ->where('status', WalletTransactionStatus::Completed)
-            ->whereNotNull('metadata->platform_fee')
-            ->sum(DB::raw("cast(metadata->>'platform_fee' as numeric)"));
-
         $depositFeeSum = (float) WalletTransaction::where('type', WalletTransactionType::Deposit)
             ->where('status', WalletTransactionStatus::Completed)
             ->whereNotNull('metadata->fee_amount')
@@ -167,7 +161,7 @@ class TransactionController extends Controller
             ->whereNotNull('metadata->fee_amount')
             ->sum(DB::raw("cast(metadata->>'fee_amount' as numeric)"));
 
-        $totalFees = round($platformFeeSum + $customerServiceFeeSum + $refundFeeSum + $depositFeeSum + $withdrawalFeeSum, 2);
+        $totalFees = round($platformFeeSum + $customerServiceFeeSum + $depositFeeSum + $withdrawalFeeSum, 2);
 
         // Global KPI Stats
         $kpi = [
@@ -216,8 +210,6 @@ class TransactionController extends Controller
                 'deposit_fee_percent' => (float) PlatformSetting::get('deposit_fee_percent', config('services.payments.deposit_fee_percent', 4.0)),
                 'withdrawal_fee_percent' => (float) PlatformSetting::get('withdrawal_fee_percent', config('services.payments.withdrawal_fee_percent', 4.0)),
                 'platform_fee_percent' => (float) PlatformSetting::get('platform_fee_percent', config('services.payments.platform_fee_percent', 10.0)),
-                'refund_gateway_fee_percent' => (float) PlatformSetting::get('refund_gateway_fee_percent', 4.0),
-                'refund_platform_fee_percent' => (float) PlatformSetting::get('refund_platform_fee_percent', 10.0),
             ],
             'types' => array_map(fn (WalletTransactionType $t) => [
                 'value' => $t->value,

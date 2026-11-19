@@ -10,6 +10,7 @@ import draggable from 'vuedraggable';
 import { ElMessageBox } from 'element-plus';
 import AdminPagination from '@/Components/Admin/AdminPagination.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
+import { formatMoney } from '@/Utils/money';
 
 defineOptions({ layout: AdminLayout });
 
@@ -787,14 +788,14 @@ function destroyLimit(id) {
                             <td>{{ getLimitCategoryName(limit.category) }}</td>
                             <td>
                                 <span v-if="limit.max_price" class="inline-flex items-center gap-1">
-                                    <span>{{ limit.max_price.toLocaleString('ru') }}</span>
+                                    <span>{{ formatMoney(limit.max_price) }}</span>
                                     <CoinIcon color="blue" size="xs" />
                                 </span>
                                 <span v-else>—</span>
                             </td>
                             <td>
                                 <span v-if="limit.low_rating_max_price" class="inline-flex items-center gap-1">
-                                    <span>{{ limit.low_rating_max_price.toLocaleString('ru') }}</span>
+                                    <span>{{ formatMoney(limit.low_rating_max_price) }}</span>
                                     <CoinIcon color="blue" size="xs" />
                                 </span>
                                 <span v-else>—</span>
@@ -977,7 +978,7 @@ function destroyLimit(id) {
                             <td class="no-val">{{ s.time_unit ?? '—' }}</td>
                             <td>
                                 <span class="inline-flex items-center gap-1">
-                                    <span>{{ s.price?.toLocaleString('ru') }}</span>
+                                    <span>{{ formatMoney(s.price) }}</span>
                                     <CoinIcon color="blue" size="xs" />
                                 </span>
                             </td>

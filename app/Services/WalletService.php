@@ -54,6 +54,8 @@ class WalletService
         array $metadata = [],
         bool $applyFee = true
     ): WalletTransaction {
+        $amount = round($amount, 2);
+
         if ($amount <= 0) {
             throw new \InvalidArgumentException('Сумма пополнения должна быть больше 0');
         }
@@ -175,6 +177,8 @@ class WalletService
         ?string $idempotencyKey = null,
         array $metadata = []
     ): ?WalletTransaction {
+        $amount = round($amount, 2);
+
         if ($amount <= 0) {
             return null;
         }
@@ -295,6 +299,9 @@ class WalletService
         float $serviceFee,
         float $feePercent
     ): array {
+        $servicePrice = round($servicePrice, 2);
+        $serviceFee = round($serviceFee, 2);
+
         $totalRequired = (float) bcadd((string) $servicePrice, (string) $serviceFee, 2);
         $wallet = $this->getOrCreateWallet($customer);
 
@@ -495,6 +502,10 @@ class WalletService
             ]);
 
             // 2. Calculate fee and payout
+            // Двойная запись: payout-строка пишет валовую сумму (`amount` = gross, `held_balance_after` = до + gross),
+            // фактически `pink_held` получает net; строка `PlatformFee` (−fee) замыкает цепочку, её `held_balance_after`
+            // равно фактическому состоянию кошелька. Строки нельзя читать поодиночке — только цепочкой по
+            // `idempotency_key` `order_payout_*` + `platform_fee_*`.
             $feePercent = $platformFeePercent ?? (float) PlatformSetting::get('platform_fee_percent', config('services.payments.platform_fee_percent', 10.0));
             $feeAmount = $this->roundFee($heldAmount, $feePercent);
             $netPayout = (float) bcsub((string) $heldAmount, (string) $feeAmount, 2);
@@ -717,15 +728,10 @@ class WalletService
     /**
      * Refund held funds back to the customer's available balance upon cancellation/refund.
      */
-    public function refundHold(
-        Order $order,
-        ?string $reason = null,
-        bool $deductFees = false,
-        ?float $customGatewayFeePercent = null,
-        ?float $customPlatformFeePercent = null
-    ): ?WalletTransaction {
+    public function refundHold(Order $order, ?string $reason = null): ?WalletTransaction
+    {
         try {
-            return DB::transaction(function () use ($order, $reason, $deductFees, $customGatewayFeePercent, $customPlatformFeePercent) {
+            return DB::transaction(function () use ($order, $reason) {
                 $lockedOrder = Order::where('id', $order->id)->lockForUpdate()->first();
                 if (! $lockedOrder) {
                     return null;
@@ -759,30 +765,14 @@ class WalletService
                     return null;
                 }
 
-                $gwPercent = $customGatewayFeePercent ?? (float) PlatformSetting::get('refund_gateway_fee_percent', 4.0);
-                $platPercent = $customPlatformFeePercent ?? (float) PlatformSetting::get('refund_platform_fee_percent', 10.0);
-
-                $gwFee = 0.00;
-                $platFee = 0.00;
+                // Инвариант (AGENTS.md §3.3): клиенту возвращается 100% стоимости услуг из холда.
                 $netRefund = $heldAmount;
-
-                if ($deductFees) {
-                    $gwFee = $this->roundFee($heldAmount, $gwPercent);
-                    $platFee = $this->roundFee($heldAmount, $platPercent);
-                    $totalFee = (float) bcadd((string) $gwFee, (string) $platFee, 2);
-                    $netRefund = max(0.00, (float) bcsub((string) $heldAmount, (string) $totalFee, 2));
-                }
 
                 $refundMetadata = [
                     'order_id' => $lockedOrder->id,
                     'reason' => $reason,
                     'gross_amount' => $heldAmount,
-                    'gateway_fee' => $gwFee,
-                    'platform_fee' => $platFee,
                     'net_refund' => $netRefund,
-                    'refund_gateway_fee_percent' => $gwPercent,
-                    'refund_platform_fee_percent' => $platPercent,
-                    'deduct_fees' => $deductFees,
                 ];
 
                 // Check if payout occurred for this hold
@@ -1217,6 +1207,8 @@ class WalletService
         ?string $description = null,
         ?array $metadata = null
     ): WalletTransaction {
+        $amount = round($amount, 2);
+
         if (! $user->is_idol) {
             throw new \DomainException('Вывод средств разрешён только айдолам.');
         }
@@ -1725,7 +1717,8 @@ class WalletService
     }
 
     /**
-     * Round fee amount using half-up banking rounding.
+     * Округление суммы комиссии: half-up (PHP_ROUND_HALF_UP) до 2 знаков.
+     * Остаток в копейку достаётся платформе: выплата = сумма − комиссия.
      */
     public function roundFee(float $amount, float $feePercent): float
     {

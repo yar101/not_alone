@@ -7,6 +7,7 @@ import AdminModal from '@/Components/Admin/AdminModal.vue';
 import AppSelect from '@/Components/AppSelect.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
 import { ElNotification } from 'element-plus';
+import { formatMoney } from '@/Utils/money';
 import {
     ArrowLeft, ChatDotRound, User, Coin, Clock, Check,
     CircleClose, Warning, Document, EditPen
@@ -156,14 +157,14 @@ function getTxTypeLabel(type) {
                                     <td>{{ item.time_unit }}</td>
                                     <td class="text-right font-mono">
                                         <span class="inline-flex items-center gap-1 justify-end">
-                                            <span>{{ item.price.toLocaleString('ru') }}</span>
+                                            <span>{{ formatMoney(item.price) }}</span>
                                             <CoinIcon color="blue" size="xs" />
                                         </span>
                                     </td>
                                     <td class="text-center">{{ item.quantity }}</td>
                                     <td class="text-right font-mono font-bold">
                                         <span class="inline-flex items-center gap-1 justify-end">
-                                            <span>{{ item.subtotal.toLocaleString('ru') }}</span>
+                                            <span>{{ formatMoney(item.subtotal) }}</span>
                                             <CoinIcon color="blue" size="xs" />
                                         </span>
                                     </td>
@@ -174,7 +175,7 @@ function getTxTypeLabel(type) {
                                     <td colspan="5" class="text-right font-bold total-label">Итоговая сумма:</td>
                                     <td class="text-right font-mono font-bold total-value">
                                         <span class="inline-flex items-center gap-1 justify-end">
-                                            <span>{{ order.total.toLocaleString('ru') }}</span>
+                                            <span>{{ formatMoney(order.total) }}</span>
                                             <CoinIcon color="blue" size="xs" />
                                         </span>
                                     </td>
@@ -225,13 +226,13 @@ function getTxTypeLabel(type) {
                                     </td>
                                     <td class="text-right font-mono font-bold" :class="tx.amount >= 0 ? 'text-success' : 'text-danger'">
                                         <span class="inline-flex items-center gap-1 justify-end">
-                                            <span>{{ tx.amount > 0 ? '+' : '' }}{{ tx.amount.toLocaleString('ru') }}</span>
+                                            <span>{{ tx.amount > 0 ? '+' : '' }}{{ formatMoney(tx.amount) }}</span>
                                             <CoinIcon :color="tx.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
                                         </span>
                                     </td>
                                     <td class="text-right font-mono">
                                         <span class="inline-flex items-center gap-1 justify-end">
-                                            <span>{{ tx.balance_after.toLocaleString('ru') }}</span>
+                                            <span>{{ formatMoney(tx.balance_after) }}</span>
                                             <CoinIcon :color="tx.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
                                         </span>
                                     </td>

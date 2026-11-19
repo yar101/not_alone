@@ -4,6 +4,7 @@ import { router, Link } from '@inertiajs/vue3';
 import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
+import { formatMoney } from '@/Utils/money';
 
 defineOptions({ layout: AdminLayout });
 
@@ -67,7 +68,7 @@ function formatValue(field, data, side) {
         return val?.name ?? '—';
     }
     if (field === 'price') {
-        return Number(val).toLocaleString('ru');
+        return formatMoney(val);
     }
     return String(val);
 }

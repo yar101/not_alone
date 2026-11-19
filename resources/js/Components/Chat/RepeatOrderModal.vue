@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import axios from 'axios';
+import { formatMoney } from '@/Utils/money';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
 import { useTranslations } from '@/composables/useTranslations';
@@ -57,7 +58,7 @@ async function submit() {
 function formatNumber(n) {
     const num = Number(n);
     if (isNaN(num)) return '—';
-    return num.toLocaleString('ru-RU');
+    return formatMoney(num);
 }
 </script>
 

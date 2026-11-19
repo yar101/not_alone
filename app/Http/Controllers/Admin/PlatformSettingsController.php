@@ -26,8 +26,6 @@ class PlatformSettingsController extends Controller
                 'withdrawal_fee_percent' => (float) PlatformSetting::get('withdrawal_fee_percent', config('services.payments.withdrawal_fee_percent', 4.0)),
                 'platform_fee_percent' => (float) PlatformSetting::get('platform_fee_percent', config('services.payments.platform_fee_percent', 10.0)),
                 'order_customer_service_fee_percent' => (float) PlatformSetting::get('order_customer_service_fee_percent', 5.0),
-                'refund_gateway_fee_percent' => (float) PlatformSetting::get('refund_gateway_fee_percent', 4.0),
-                'refund_platform_fee_percent' => (float) PlatformSetting::get('refund_platform_fee_percent', 10.0),
             ],
             'rating_deltas' => [
                 'review_5star' => (float) PlatformSetting::get('rating_delta_review_5star', 0.8),
@@ -56,8 +54,6 @@ class PlatformSettingsController extends Controller
             'withdrawal_fee_percent' => ['required', 'numeric', 'min:0', 'max:50'],
             'platform_fee_percent' => ['required', 'numeric', 'min:0', 'max:50'],
             'order_customer_service_fee_percent' => ['sometimes', 'numeric', 'min:0', 'max:50'],
-            'refund_gateway_fee_percent' => ['sometimes', 'numeric', 'min:0', 'max:50'],
-            'refund_platform_fee_percent' => ['sometimes', 'numeric', 'min:0', 'max:50'],
             'rating_deltas.review_5star' => ['required', 'numeric', 'min:0', 'max:10'],
             'rating_deltas.review_4star' => ['required', 'numeric', 'min:0', 'max:10'],
             'rating_deltas.review_2star' => ['required', 'numeric', 'min:-10', 'max:0'],
@@ -83,13 +79,6 @@ class PlatformSettingsController extends Controller
         if (isset($data['order_customer_service_fee_percent'])) {
             PlatformSetting::set('order_customer_service_fee_percent', $data['order_customer_service_fee_percent']);
         }
-        if (isset($data['refund_gateway_fee_percent'])) {
-            PlatformSetting::set('refund_gateway_fee_percent', $data['refund_gateway_fee_percent']);
-        }
-        if (isset($data['refund_platform_fee_percent'])) {
-            PlatformSetting::set('refund_platform_fee_percent', $data['refund_platform_fee_percent']);
-        }
-
         foreach ($data['rating_deltas'] as $event => $delta) {
             PlatformSetting::set('rating_delta_'.$event, $delta);
         }

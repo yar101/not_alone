@@ -2,6 +2,7 @@
 import { ref, computed, watch, nextTick, onMounted } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
+import { formatMoney } from '@/Utils/money';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AdminPagination from '@/Components/Admin/AdminPagination.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
@@ -374,15 +375,15 @@ function getSystemText(msg) {
                                 <div v-if="['order_created', 'item_added'].includes(msg.metadata?.event) && msg.metadata?.services?.length" class="system-msg-details">
                                     <div v-for="svc in msg.metadata.services" :key="svc.id" class="sys-svc-line">
                                         <span class="sys-svc-name">{{ svc.name }} <span class="sys-svc-qty">x{{ svc.quantity || 1 }}</span></span>
-                                        <span class="sys-svc-price inline-flex items-center gap-1">{{ (svc.price || 0).toLocaleString('ru-RU') }} <CoinIcon color="blue" size="xs" /></span>
+                                        <span class="sys-svc-price inline-flex items-center gap-1">{{ formatMoney(svc.price || 0) }} <CoinIcon color="blue" size="xs" /></span>
                                     </div>
                                     <div v-if="getMsgFee(msg) > 0" class="sys-svc-line">
                                         <span class="sys-svc-name">Сервисный сбор</span>
-                                        <span class="sys-svc-price inline-flex items-center gap-1">{{ getMsgFee(msg).toLocaleString('ru-RU') }} <CoinIcon color="blue" size="xs" /></span>
+                                        <span class="sys-svc-price inline-flex items-center gap-1">{{ formatMoney(getMsgFee(msg)) }} <CoinIcon color="blue" size="xs" /></span>
                                     </div>
                                     <div class="sys-svc-total">
                                         <span>Итого:</span>
-                                        <span class="inline-flex items-center gap-1">{{ getMsgTotal(msg).toLocaleString('ru-RU') }} <CoinIcon color="blue" size="xs" /></span>
+                                        <span class="inline-flex items-center gap-1">{{ formatMoney(getMsgTotal(msg)) }} <CoinIcon color="blue" size="xs" /></span>
                                     </div>
                                 </div>
 

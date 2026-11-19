@@ -246,7 +246,7 @@ class OrderService
                 $isMock = app()->environment('local', 'testing') || (config('services.payments.mock_purchases', false) && ! app()->environment('production'));
                 if ($isMock) {
                     $wallet = $this->walletService->getOrCreateWallet($actor);
-                    if ($wallet->balance < $totalAmount) {
+                    if (bccomp((string) $wallet->balance, (string) $totalAmount, 2) < 0) {
                         $needed = (float) bcsub((string) $totalAmount, (string) $wallet->balance, 2);
                         $this->walletService->deposit($actor, $needed, 'Тестовое пополнение для оплаты заказа', null, [], false);
                     }
@@ -553,17 +553,25 @@ class OrderService
                         $hasActiveHold = $this->walletService->hasActiveHold($lockedOrder);
 
                         if (! $hasActiveHold) {
-                            $totalAmount = $lockedOrder->total_price;
+                            // Тот же расчёт, что и в pay(): 100% стоимости услуг в холд + невозвратный сервисный сбор клиента.
+                            $servicePrice = (float) $lockedOrder->total_price;
+                            $feePercent = (float) ($lockedOrder->customer_service_fee_percent > 0 ? $lockedOrder->customer_service_fee_percent : PlatformSetting::get('order_customer_service_fee_percent', 5.0));
+                            $serviceFee = (float) ($lockedOrder->customer_service_fee > 0 ? $lockedOrder->customer_service_fee : ($servicePrice > 0 ? $this->walletService->roundFee($servicePrice, $feePercent) : 0.00));
+                            $totalAmount = (float) bcadd((string) $servicePrice, (string) $serviceFee, 2);
+
                             if ($totalAmount > 0 && $lockedOrder->customer) {
                                 $isMock = app()->environment('local', 'testing') || (config('services.payments.mock_purchases', false) && ! app()->environment('production'));
                                 if ($isMock) {
                                     $wallet = $this->walletService->getOrCreateWallet($lockedOrder->customer);
-                                    if ($wallet->balance < $totalAmount) {
+                                    if (bccomp((string) $wallet->balance, (string) $totalAmount, 2) < 0) {
                                         $needed = (float) bcsub((string) $totalAmount, (string) $wallet->balance, 2);
                                         $this->walletService->deposit($lockedOrder->customer, $needed, 'Тестовое пополнение для оплаты заказа', null, [], false);
                                     }
                                 }
-                                $this->walletService->hold($lockedOrder->customer, $totalAmount, $lockedOrder, "Оплата заказа #{$lockedOrder->id}");
+                                $this->walletService->holdOrderWithFee($lockedOrder->customer, $lockedOrder, $servicePrice, $serviceFee, $feePercent);
+
+                                $attrs['customer_service_fee'] = $serviceFee;
+                                $attrs['customer_service_fee_percent'] = $feePercent;
                             }
                         }
                     }

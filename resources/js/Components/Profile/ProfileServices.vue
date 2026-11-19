@@ -12,6 +12,7 @@ import { useForm, router, usePage } from "@inertiajs/vue3";
 import { ElTooltip, ElMessage, ElCheckbox, ElIcon, ElSwitch } from "element-plus";
 import { InfoFilled, Present } from "@element-plus/icons-vue";
 import axios from "axios";
+import { formatMoney } from '@/Utils/money';
 import AppSelect from "@/Components/AppSelect.vue";
 import CreateButton from "@/Components/CreateButton.vue";
 import SiteModal from "@/Components/Site/SiteModal.vue";
@@ -544,7 +545,7 @@ const pricePreview = computed(() => {
         (u) => u.id === form.time_unit_id,
     );
     if (!unit) return null;
-    return `${Number(form.price).toLocaleString("ru")} / ${localUnitName(unit)}`;
+    return `${formatMoney(form.price)} / ${localUnitName(unit)}`;
 });
 
 // ── #4 Draft ─────────────────────────────────────────────────
@@ -1142,13 +1143,13 @@ watch(selectedCategory, (cat) => {
                                             <span class="svc-card__amount">0</span><CoinIcon color="blue" size="xs" /><span class="svc-card__sep">/</span><span class="svc-card__unit">{{ localUnitName(item.time_unit) }}</span>
                                         </div>
                                         <div class="svc-card__old-price inline-flex items-center gap-1">
-                                            <span>{{ item.price.toLocaleString("ru") }}</span>
+                                            <span>{{ formatMoney(item.price) }}</span>
                                             <CoinIcon color="blue" size="xs" />
                                         </div>
                                     </template>
                                     <template v-else>
                                         <div class="svc-card__price-main inline-flex items-center gap-1">
-                                            <span class="svc-card__amount">{{ item.price.toLocaleString("ru") }}</span>
+                                            <span class="svc-card__amount">{{ formatMoney(item.price) }}</span>
                                             <CoinIcon color="blue" size="xs" />
                                             <span class="svc-card__sep">/</span>
                                             <span class="svc-card__unit">{{ localUnitName(item.time_unit) }}</span>
