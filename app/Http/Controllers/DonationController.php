@@ -23,8 +23,8 @@ class DonationController extends Controller
         $donor = $request->user();
 
         try {
-            $feeCoveredPlatform = (bool) ($validated['fee_covered_platform'] ?? $validated['fee_covered_by_donor'] ?? false);
-            $feeCoveredWithdrawal = (bool) ($validated['fee_covered_withdrawal'] ?? false);
+            $feeCoveredPlatform = (bool) ($validated['fee_covered_platform'] ?? $validated['fee_covered_by_donor'] ?? $validated['fee_covered'] ?? false);
+            $feeCoveredWithdrawal = (bool) ($validated['fee_covered_withdrawal'] ?? $validated['fee_covered'] ?? false);
 
             $donation = $this->donationService->send(
                 donor: $donor,

@@ -281,8 +281,7 @@ const myConfirmation = computed(() => {
 
 // ── Pay order modal state & fee coverage ─────────────────
 const payModal = ref(false);
-const orderFeeCoveredPlatform = ref(false);
-const orderFeeCoveredWithdrawal = ref(false);
+const orderFeeCovered = ref(false);
 
 const platformFeePercent = computed(() => Number(page.props.platform_fee_percent ?? 10));
 const withdrawalFeePercent = computed(() => Number(page.props.withdrawal_fee_percent ?? 4));
@@ -299,8 +298,8 @@ const orderAmountWithCoverage = computed(() => {
     const val = orderNominalPrice.value;
     if (val <= 0) return 0;
 
-    const pFactor = orderFeeCoveredPlatform.value ? ((100 - platformFeePercent.value) / 100) : 1;
-    const wFactor = orderFeeCoveredWithdrawal.value ? ((100 - withdrawalFeePercent.value) / 100) : 1;
+    const pFactor = orderFeeCovered.value ? ((100 - platformFeePercent.value) / 100) : 1;
+    const wFactor = orderFeeCovered.value ? ((100 - withdrawalFeePercent.value) / 100) : 1;
     const factor = pFactor * wFactor;
     if (factor <= 0) return val;
 
@@ -324,8 +323,7 @@ const orderHasSufficientBalance = computed(() => {
 });
 
 function openPayModal() {
-    orderFeeCoveredPlatform.value = false;
-    orderFeeCoveredWithdrawal.value = false;
+    orderFeeCovered.value = false;
     payModal.value = true;
 }
 
@@ -340,8 +338,8 @@ async function payOrder() {
     orderAction.value = "pay";
     try {
         await axios.patch(route("orders.pay", activeOrderData.value.id), {
-            fee_covered_platform: orderFeeCoveredPlatform.value,
-            fee_covered_withdrawal: orderFeeCoveredWithdrawal.value,
+            fee_covered_platform: orderFeeCovered.value,
+            fee_covered_withdrawal: orderFeeCovered.value,
         });
         payModal.value = false;
     } catch (e) {
@@ -4082,26 +4080,15 @@ function formatDate(iso) {
                 </span>
             </div>
 
-            <!-- Toggles for idol fee coverage -->
+            <!-- Toggle for idol fee coverage -->
             <div class="pay-modal-toggles">
                 <div class="pay-modal-toggle">
                     <div class="pay-modal-toggle__meta">
-                        <span class="pay-modal-toggle__title">Комиссия сервиса ({{ platformFeePercent }}%)</span>
-                        <span class="pay-modal-toggle__sub">Айдол получит 100% на баланс</span>
+                        <span class="pay-modal-toggle__title">Айдол получит 100%</span>
+                        <span class="pay-modal-toggle__sub">Покрыть комиссии платформы и вывода</span>
                     </div>
                     <label class="rc-switch">
-                        <input v-model="orderFeeCoveredPlatform" type="checkbox" />
-                        <span class="rc-slider"></span>
-                    </label>
-                </div>
-
-                <div class="pay-modal-toggle">
-                    <div class="pay-modal-toggle__meta">
-                        <span class="pay-modal-toggle__title">Комиссия на вывод ({{ withdrawalFeePercent }}%)</span>
-                        <span class="pay-modal-toggle__sub">Айдол получит полную сумму на карту</span>
-                    </div>
-                    <label class="rc-switch">
-                        <input v-model="orderFeeCoveredWithdrawal" type="checkbox" />
+                        <input v-model="orderFeeCovered" type="checkbox" />
                         <span class="rc-slider"></span>
                     </label>
                 </div>
@@ -4113,7 +4100,7 @@ function formatDate(iso) {
             </div>
 
             <div class="pay-modal-total">
-                <span class="pay-modal-total__label">Итого к списанию:</span>
+                <span class="pay-modal-total__label">Списание:</span>
                 <span class="pay-modal-total__val inline-flex items-center gap-1 font-bold text-lg text-sky-400">
                     <span>{{ formatMoney(orderTotalToPay) }}</span>
                     <CoinIcon color="blue" size="sm" />

@@ -22,12 +22,13 @@ class ContentPackPurchaseController extends Controller
         $data = $request->validate([
             'items' => ['required', 'array', 'min:1', 'max:50'],
             'items.*' => ['integer', 'min:1'],
+            'fee_covered' => ['sometimes', 'boolean'],
             'fee_covered_platform' => ['sometimes', 'boolean'],
             'fee_covered_withdrawal' => ['sometimes', 'boolean'],
         ]);
 
-        $feeCoveredPlatform = (bool) ($data['fee_covered_platform'] ?? false);
-        $feeCoveredWithdrawal = (bool) ($data['fee_covered_withdrawal'] ?? false);
+        $feeCoveredPlatform = (bool) ($data['fee_covered_platform'] ?? $data['fee_covered'] ?? false);
+        $feeCoveredWithdrawal = (bool) ($data['fee_covered_withdrawal'] ?? $data['fee_covered'] ?? false);
 
         $user = $request->user();
         $packIds = array_unique($data['items']);

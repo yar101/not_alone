@@ -122,15 +122,14 @@ const contentError = ref('');
 const platformFeePercent = computed(() => Number(page.props.platform_fee_percent ?? 10));
 const withdrawalFeePercent = computed(() => Number(page.props.withdrawal_fee_percent ?? 4));
 
-const contentFeeCoveredPlatform = ref(false);
-const contentFeeCoveredWithdrawal = ref(false);
+const contentFeeCovered = ref(false);
 
 const contentTotalCharged = computed(() => {
     const val = contentTotal.value;
     if (val <= 0) return 0;
 
-    const pFactor = contentFeeCoveredPlatform.value ? ((100 - platformFeePercent.value) / 100) : 1;
-    const wFactor = contentFeeCoveredWithdrawal.value ? ((100 - withdrawalFeePercent.value) / 100) : 1;
+    const pFactor = contentFeeCovered.value ? ((100 - platformFeePercent.value) / 100) : 1;
+    const wFactor = contentFeeCovered.value ? ((100 - withdrawalFeePercent.value) / 100) : 1;
     const factor = pFactor * wFactor;
     if (factor <= 0) return val;
 
@@ -144,8 +143,8 @@ async function purchaseContent() {
     try {
         await axios.post(route('content-packs.purchase'), {
             items: contentItems.value.map(i => i.pack_id),
-            fee_covered_platform: contentFeeCoveredPlatform.value,
-            fee_covered_withdrawal: contentFeeCoveredWithdrawal.value,
+            fee_covered_platform: contentFeeCovered.value,
+            fee_covered_withdrawal: contentFeeCovered.value,
         });
         emit('clear-content');
         if (modalHistory?.skipHistoryBack) modalHistory.skipHistoryBack();
@@ -300,25 +299,15 @@ async function purchaseContent() {
 
                     <div class="rc-perf"><span class="rc-perf__line"></span></div>
 
-                    <!-- Fee coverage options for content -->
+                    <!-- Fee coverage option for content -->
                     <div v-if="contentItems.length" class="rc-fee-options">
                         <div class="rc-fee-option">
                             <div class="rc-fee-option__meta">
-                                <span class="rc-fee-option__title">Комиссия сервиса ({{ platformFeePercent }}%)</span>
-                                <span class="rc-fee-option__sub">Автор получит 100% на баланс</span>
+                                <span class="rc-fee-option__title">Автор получит 100%</span>
+                                <span class="rc-fee-option__sub">Покрыть комиссии платформы и вывода</span>
                             </div>
                             <label class="rc-switch">
-                                <input v-model="contentFeeCoveredPlatform" type="checkbox" />
-                                <span class="rc-slider"></span>
-                            </label>
-                        </div>
-                        <div class="rc-fee-option">
-                            <div class="rc-fee-option__meta">
-                                <span class="rc-fee-option__title">Комиссия на вывод ({{ withdrawalFeePercent }}%)</span>
-                                <span class="rc-fee-option__sub">Автор получит полную сумму на карту</span>
-                            </div>
-                            <label class="rc-switch">
-                                <input v-model="contentFeeCoveredWithdrawal" type="checkbox" />
+                                <input v-model="contentFeeCovered" type="checkbox" />
                                 <span class="rc-slider"></span>
                             </label>
                         </div>

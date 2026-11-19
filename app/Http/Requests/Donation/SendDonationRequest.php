@@ -17,6 +17,7 @@ class SendDonationRequest extends FormRequest
     {
         return [
             'amount' => ['required', 'numeric', 'min:0.01'],
+            'fee_covered' => ['sometimes', 'boolean'],
             'fee_covered_by_donor' => ['sometimes', 'boolean'],
             'fee_covered_platform' => ['sometimes', 'boolean'],
             'fee_covered_withdrawal' => ['sometimes', 'boolean'],

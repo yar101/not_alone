@@ -29,8 +29,7 @@ const page = usePage();
 const PRESET_AMOUNTS = [50, 150, 250, 550];
 
 const amount = ref(150);
-const feeCoveredPlatform = ref(false);
-const feeCoveredWithdrawal = ref(false);
+const feeCovered = ref(false);
 const message = ref('');
 const loading = ref(false);
 const errorMessage = ref('');
@@ -43,31 +42,17 @@ const userBalance = computed(() => {
 const platformFeePercent = computed(() => Number(page.props.platform_fee_percent ?? props.feePercent ?? 10));
 const withdrawalFeePercent = computed(() => Number(page.props.withdrawal_fee_percent ?? 4));
 
-// Calculate charged amount and payout using Option A
+// Calculate charged amount using Option A
 const amountCharged = computed(() => {
     const val = Number(amount.value) || 0;
     if (val <= 0) return 0;
 
-    const pFactor = feeCoveredPlatform.value ? ((100 - platformFeePercent.value) / 100) : 1;
-    const wFactor = feeCoveredWithdrawal.value ? ((100 - withdrawalFeePercent.value) / 100) : 1;
+    const pFactor = feeCovered.value ? ((100 - platformFeePercent.value) / 100) : 1;
+    const wFactor = feeCovered.value ? ((100 - withdrawalFeePercent.value) / 100) : 1;
     const factor = pFactor * wFactor;
     if (factor <= 0) return val;
 
     return Number((val / factor).toFixed(2));
-});
-
-const idolPinkPayout = computed(() => {
-    const val = amountCharged.value;
-    if (val <= 0) return 0;
-    const fee = Number(((val * platformFeePercent.value) / 100).toFixed(2));
-    return Number((val - fee).toFixed(2));
-});
-
-const idolCardPayout = computed(() => {
-    const pink = idolPinkPayout.value;
-    if (pink <= 0) return 0;
-    const fee = Number(((pink * withdrawalFeePercent.value) / 100).toFixed(2));
-    return Number((pink - fee).toFixed(2));
 });
 
 const hasSufficientBalance = computed(() => {
@@ -110,9 +95,9 @@ async function submitDonation() {
             route('users.donate', props.idol.id),
             {
                 amount: Number(amount.value),
-                fee_covered_by_donor: feeCoveredPlatform.value,
-                fee_covered_platform: feeCoveredPlatform.value,
-                fee_covered_withdrawal: feeCoveredWithdrawal.value,
+                fee_covered_by_donor: feeCovered.value,
+                fee_covered_platform: feeCovered.value,
+                fee_covered_withdrawal: feeCovered.value,
                 message: message.value.trim() || null,
             },
             {
@@ -208,48 +193,28 @@ async function submitDonation() {
                 </div>
             </div>
 
-            <!-- Fee coverage toggles -->
+            <!-- Fee coverage toggle -->
             <div class="donation-modal__toggles-wrap">
                 <div class="donation-modal__toggle-card">
                     <div class="donation-modal__toggle-meta">
-                        <span class="donation-modal__toggle-title">Комиссия платформы ({{ platformFeePercent }}%)</span>
+                        <span class="donation-modal__toggle-title">Айдол получит 100%</span>
                         <span class="donation-modal__toggle-hint">
-                            Айдол получит 100% на баланс
+                            Покрыть комиссии сервиса и вывода
                         </span>
                     </div>
                     <label class="donation-modal__switch">
-                        <input v-model="feeCoveredPlatform" type="checkbox" />
+                        <input v-model="feeCovered" type="checkbox" />
                         <span class="donation-modal__slider"></span>
                     </label>
                 </div>
 
-                <div class="donation-modal__toggle-card">
-                    <div class="donation-modal__toggle-meta">
-                        <span class="donation-modal__toggle-title">Комиссия на вывод ({{ withdrawalFeePercent }}%)</span>
-                        <span class="donation-modal__toggle-hint">
-                            Айдол получит полную сумму на карту при выводе
-                        </span>
-                    </div>
-                    <label class="donation-modal__switch">
-                        <input v-model="feeCoveredWithdrawal" type="checkbox" />
-                        <span class="donation-modal__slider"></span>
-                    </label>
-                </div>
-
-                <!-- Summary row if any fee covered -->
-                <div v-if="amountCharged > amount" class="donation-modal__summary-card">
+                <!-- Summary row if fee covered -->
+                <div v-if="feeCovered && amountCharged > amount" class="donation-modal__summary-card">
                     <div class="donation-modal__summary-row">
-                        <span class="donation-modal__summary-label">Списание с вашего баланса:</span>
+                        <span class="donation-modal__summary-label">Списание:</span>
                         <span class="donation-modal__summary-val inline-flex items-center gap-1 font-semibold text-white">
                             <span>{{ amountCharged }}</span>
                             <CoinIcon color="blue" size="xs" />
-                        </span>
-                    </div>
-                    <div class="donation-modal__summary-row">
-                        <span class="donation-modal__summary-label">Айдол получит на карту чистыми:</span>
-                        <span class="donation-modal__summary-val inline-flex items-center gap-1 font-semibold text-pink-400">
-                            <span>{{ idolCardPayout }}</span>
-                            <CoinIcon color="pink" size="xs" />
                         </span>
                     </div>
                 </div>
