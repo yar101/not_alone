@@ -1,0 +1,4 @@
+[tools]
+# Matches the project's own images (node:22-alpine for dev, node:22-slim in Dockerfile).
+# node 24.x segfaults `vite build` during "rendering chunks" on this setup.
+node = "22.23.5"
