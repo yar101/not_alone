@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, nextTick } from 'vue';
 import axios from 'axios';
 import { router, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
@@ -16,6 +16,8 @@ const props = defineProps({
 });
 
 const selected    = ref(null);
+const detailsBox  = ref(null);
+const noteBox     = ref(null);
 const decision    = ref('');
 const adminNote   = ref('');
 const submitting  = ref(false);
@@ -36,6 +38,17 @@ function openModal(dispute) {
     chatOpen.value     = false;
     chatMessages.value = [];
     chatConvId.value   = null;
+
+    nextTick(() => {
+        autoGrow(detailsBox.value);
+        autoGrow(noteBox.value);
+    });
+}
+
+function autoGrow(el) {
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = (el.scrollHeight + el.offsetHeight - el.clientHeight) + 'px';
 }
 
 function closeModal() {
@@ -294,12 +307,25 @@ function systemLabel(msg) {
                     </div>
                     <div class="modal-section modal-section--full">
                         <div class="section-label">Детали</div>
-                        <p class="details-text">{{ selected.details }}</p>
+                        <textarea
+                            ref="detailsBox"
+                            class="details-textarea"
+                            :value="selected.details ?? ''"
+                            readonly
+                            rows="3"
+                        ></textarea>
                     </div>
 
                     <div v-if="selected.status !== 'open'" class="modal-section modal-section--full">
                         <div class="section-label">Заметка администратора</div>
-                        <p class="details-text">{{ selected.admin_note ?? '—' }}</p>
+                        <textarea
+                            ref="noteBox"
+                            class="details-textarea"
+                            :value="selected.admin_note ?? ''"
+                            placeholder="—"
+                            readonly
+                            rows="3"
+                        ></textarea>
                     </div>
 
                     <div v-if="selected.order.conversation_id" class="modal-section modal-section--full">
@@ -576,7 +602,6 @@ function systemLabel(msg) {
 .modal-section > p { color: rgba(255,255,255,0.75); font-size: 0.88rem; }
 
 .user-row { display: flex; align-items: center; gap: 0.5rem; color: rgba(255,255,255,0.8); font-size: 0.88rem; }
-.details-text { margin: 0; white-space: pre-wrap; color: rgba(255,255,255,0.65); line-height: 1.5; font-size: 0.88rem; }
 
 .role-tag {
     font-size: 0.65rem; font-weight: 600; padding: 0.1rem 0.45rem;
@@ -620,6 +645,21 @@ function systemLabel(msg) {
 }
 .resolve-textarea:focus { border-color: rgba(190,145,255,0.45); }
 .resolve-textarea::placeholder { color: rgba(255,255,255,0.2); }
+
+/* Read-only display textareas (Детали / Заметка администратора) */
+.details-textarea {
+    width: 100%; box-sizing: border-box;
+    margin: 0; padding: 0.45rem 0.7rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 3px;
+    color: rgba(255,255,255,0.65);
+    font-family: inherit; font-size: 0.88rem; line-height: 1.5;
+    resize: none; outline: none;
+    overflow-y: auto; max-height: 40vh;
+}
+.details-textarea:focus { border-color: rgba(190,145,255,0.45); }
+.details-textarea::placeholder { color: rgba(255,255,255,0.2); }
 
 .resolve-footer { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.75rem; }
 .resolve-cancel {
