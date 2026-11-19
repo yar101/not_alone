@@ -151,6 +151,7 @@ it('releases escrow hold to idol with platform fee deduction on order completion
 
     // Order completed and dispute window expires -> release payout to idol available balance
     $order->update(['status' => OrderStatus::Completed]);
+    $order->forceFill(['completed_at' => now()->subMinutes((int) \App\Models\PlatformSetting::get('order_dispute_window_minutes', 60) + 1)])->save();
     $service->releaseIdolPayout($order);
     expect((float) $idol->wallet->fresh()->pink_balance)->toBe(900.00);
     expect((float) $idol->wallet->fresh()->pink_held_balance)->toBe(0.00);
@@ -235,6 +236,7 @@ it('integrates escrow lifecycle into OrderService pay, cancel, and complete tran
     expect((float) $idol->wallet->fresh()->pink_held_balance)->toBe(1800.00);
 
     // After dispute window expires, payout released to available balance
+    $order->forceFill(['completed_at' => now()->subMinutes((int) \App\Models\PlatformSetting::get('order_dispute_window_minutes', 60) + 1)])->save();
     $walletService->releaseIdolPayout($order);
     expect((float) $idol->wallet->fresh()->pink_balance)->toBe(1800.00);
     expect((float) $idol->wallet->fresh()->pink_held_balance)->toBe(0.00);

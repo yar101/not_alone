@@ -134,6 +134,7 @@ class DualCurrencyWalletTest extends TestCase
         $this->walletService->releaseHold($order);
 
         $order->update(['status' => OrderStatus::Completed]);
+        $order->forceFill(['completed_at' => now()->subMinutes((int) PlatformSetting::get('order_dispute_window_minutes', 60) + 1)])->save();
         $this->walletService->releaseIdolPayout($order);
 
         $idolWallet = $this->walletService->getOrCreateWallet($idol);
@@ -319,6 +320,7 @@ class DualCurrencyWalletTest extends TestCase
         $this->walletService->releaseHold($order);
 
         $order->update(['status' => OrderStatus::Completed]);
+        $order->forceFill(['completed_at' => now()->subMinutes((int) PlatformSetting::get('order_dispute_window_minutes', 60) + 1)])->save();
         $this->walletService->releaseIdolPayout($order);
 
         $idolWallet = $this->walletService->getOrCreateWallet($idol);

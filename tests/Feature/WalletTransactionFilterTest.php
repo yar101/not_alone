@@ -113,6 +113,7 @@ it('holds filter keeps pending payout but drops completed payout and platform fe
     expect($pendingTypes)->toContain('order_payout')
         ->and($pendingTypes)->not->toContain('platform_fee');
 
+    $data['order']->forceFill(['completed_at' => now()->subMinutes((int) PlatformSetting::get('order_dispute_window_minutes', 60) + 1)])->save();
     $walletService->releaseIdolPayout($data['order']);
 
     $released = $this->actingAs($data['idol'])->getJson('/api/wallet?filter=holds');

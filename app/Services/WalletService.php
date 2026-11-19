@@ -598,6 +598,17 @@ class WalletService
                 return null;
             }
 
+            // Выплата заморожена до конца окна спора: клиент должен иметь возможность оспорить заказ всё окно целиком.
+            if (! $lockedOrder->completed_at) {
+                return null;
+            }
+
+            $windowMinutes = (int) PlatformSetting::get('order_dispute_window_minutes', 60);
+            $deadline = $lockedOrder->completed_at->copy()->addMinutes($windowMinutes);
+            if (now()->lt($deadline)) {
+                return null;
+            }
+
             // Find the pending payout transaction
             $payoutTx = WalletTransaction::where('reference_type', Order::class)
                 ->where('reference_id', $lockedOrder->id)

@@ -123,6 +123,7 @@ test('completed order refund claws back payout from idol, reverses platform fee,
     expect($order->status)->toBe(OrderStatus::Completed);
 
     // Release payout to idol available balance
+    $order->forceFill(['completed_at' => now()->subMinutes((int) \App\Models\PlatformSetting::get('order_dispute_window_minutes', 60) + 1)])->save();
     $walletService->releaseIdolPayout($order);
 
     $idolWallet = $walletService->getOrCreateWallet($idol);

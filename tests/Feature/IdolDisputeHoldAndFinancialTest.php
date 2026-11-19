@@ -172,6 +172,9 @@ it('releases idol held payout to available balance and notifies idol', function 
 
     $order->refresh();
 
+    // Advance completed_at past the dispute window
+    $order->forceFill(['completed_at' => now()->subMinutes((int) PlatformSetting::get('order_dispute_window_minutes', 60) + 1)])->save();
+
     // Release payout
     $releasedTx = $walletService->releaseIdolPayout($order);
     expect($releasedTx)->not->toBeNull();
@@ -214,6 +217,9 @@ it('guarantees idempotency: releasing hold multiple times does not duplicate pay
     $orderService->confirmCompletion($order, $customer);
 
     $order->refresh();
+
+    // Advance completed_at past the dispute window
+    $order->forceFill(['completed_at' => now()->subMinutes((int) PlatformSetting::get('order_dispute_window_minutes', 60) + 1)])->save();
 
     // 1st release
     $tx1 = $walletService->releaseIdolPayout($order);
@@ -307,7 +313,7 @@ it('refunds customer from held_balance without touching idol available balance w
     expect($holdCancelledTx->description)->toBe("Отмена холда по спору заказа #{$order->id}");
 });
 
-it('releases payout immediately when admin resolves dispute in idol favor', function () {
+it('releases payout on admin dispute rejection only once the dispute window has expired', function () {
     $data = createTestOrderWithWallets(1000.00, 2000.00);
     $order = $data['order'];
     $customer = $data['customer'];
@@ -326,7 +332,10 @@ it('releases payout immediately when admin resolves dispute in idol favor', func
     $order->refresh();
     expect($order->status)->toBe(OrderStatus::Disputed);
 
-    // Admin rejects dispute -> transitions to Completed
+    // Dispute window already expired while the dispute is being reviewed
+    $order->forceFill(['completed_at' => now()->subMinutes((int) PlatformSetting::get('order_dispute_window_minutes', 60) + 1)])->save();
+
+    // Admin rejects dispute -> transitions to Completed; the expiry already passed, so payout goes out
     $orderService->adminTransition($order, OrderStatus::Completed, $admin->id, 'Претензия необоснованна');
 
     $order->refresh();
@@ -336,6 +345,95 @@ it('releases payout immediately when admin resolves dispute in idol favor', func
     $idolWallet = $walletService->getOrCreateWallet($idol);
     expect((float) $idolWallet->pink_held_balance)->toBe(0.00);
     expect((float) $idolWallet->pink_balance)->toBe(800.00);
+});
+
+it('keeps idol payout frozen while a dispute is open even after the dispute window', function () {
+    $data = createTestOrderWithWallets(1000.00, 2000.00);
+    $order = $data['order'];
+    $customer = $data['customer'];
+    $idol = $data['idol'];
+
+    $orderService = app(OrderService::class);
+    $walletService = app(WalletService::class);
+
+    $orderService->pay($order, $customer);
+    $orderService->confirmCompletion($order, $customer);
+
+    $idolWallet = $walletService->getOrCreateWallet($idol);
+    expect((float) $idolWallet->pink_held_balance)->toBe(800.00);
+    expect((float) $idolWallet->pink_balance)->toBe(0.00);
+
+    // Customer disputes the order
+    $orderService->dispute($order, $customer, 'Качество услуги не соответствует ожиданиям', 'Подробности спора');
+    $order->refresh();
+    expect($order->status)->toBe(OrderStatus::Disputed);
+
+    // Dispute window is long over, but the dispute is still open
+    $this->travel(61)->minutes();
+    $this->artisan('orders:release-idol-holds')->assertExitCode(0);
+
+    $idolWallet->refresh();
+    expect((float) $idolWallet->pink_balance)->toBe(0.00);
+    expect((float) $idolWallet->pink_held_balance)->toBe(800.00);
+    expect($order->fresh()->payout_released_at)->toBeNull();
+    expect($walletService->releaseIdolPayout($order))->toBeNull();
+
+    // Held money cannot be withdrawn
+    expect(fn () => $walletService->withdraw($idol, 100.00))
+        ->toThrow(InsufficientFundsException::class);
+});
+
+it('does not release idol payout before dispute window expires even when dispute was rejected early', function () {
+    $data = createTestOrderWithWallets(1000.00, 2000.00);
+    $order = $data['order'];
+    $customer = $data['customer'];
+    $idol = $data['idol'];
+
+    $admin = \App\Models\Admin::create(['name' => 'Admin', 'email' => 'admin_payoutfreeze@test.com', 'password' => 'secret']);
+
+    $orderService = app(OrderService::class);
+    $walletService = app(WalletService::class);
+
+    $orderService->pay($order, $customer);
+    $orderService->confirmCompletion($order, $customer);
+
+    $idolWallet = $walletService->getOrCreateWallet($idol);
+    expect((float) $idolWallet->pink_held_balance)->toBe(800.00);
+
+    // Dispute opened, then rejected by admin well before the window expires
+    $orderService->dispute($order, $customer, 'Претензия', 'Подробности');
+    $this->travel(5)->minutes();
+    $orderService->adminTransition($order, OrderStatus::Completed, $admin->id, 'Спор отклонён');
+
+    $order->refresh();
+    expect($order->status)->toBe(OrderStatus::Completed);
+    expect($order->payout_released_at)->toBeNull();
+
+    $idolWallet->refresh();
+    expect((float) $idolWallet->pink_balance)->toBe(0.00);
+    expect((float) $idolWallet->pink_held_balance)->toBe(800.00);
+    expect($walletService->releaseIdolPayout($order))->toBeNull();
+
+    // Only after the window elapses does the scheduled sweep pay the idol
+    $this->travel(61)->minutes();
+    $this->artisan('orders:release-idol-holds')->assertExitCode(0);
+
+    $idolWallet->refresh();
+    expect((float) $idolWallet->pink_balance)->toBe(800.00);
+    expect((float) $idolWallet->pink_held_balance)->toBe(0.00);
+
+    $order->refresh();
+    expect($order->payout_released_at)->not->toBeNull();
+
+    $payoutTx = WalletTransaction::where('type', WalletTransactionType::OrderPayout)
+        ->where('reference_id', $order->id)
+        ->first();
+    expect($payoutTx->status)->toBe(WalletTransactionStatus::Completed);
+
+    $feeTx = WalletTransaction::where('type', WalletTransactionType::PlatformFee)
+        ->where('reference_id', $order->id)
+        ->first();
+    expect($feeTx->status)->toBe(WalletTransactionStatus::Completed);
 });
 
 it('allows negative balance on clawback if idol already withdrew released payout', function () {
@@ -350,7 +448,8 @@ it('allows negative balance on clawback if idol already withdrew released payout
     $orderService->pay($order, $customer);
     $orderService->confirmCompletion($order, $customer);
 
-    // Payout released after dispute window
+    // Advance completed_at past the dispute window, then release payout
+    $order->forceFill(['completed_at' => now()->subMinutes((int) PlatformSetting::get('order_dispute_window_minutes', 60) + 1)])->save();
     $walletService->releaseIdolPayout($order);
 
     $idolWallet = $walletService->getOrCreateWallet($idol);
@@ -502,7 +601,8 @@ it('strictly maintains ledger invariant sum(completed transactions) == balance f
     $orderService->pay($order, $customer);
     // Complete
     $orderService->confirmCompletion($order, $customer);
-    // Release idol payout
+    // Release idol payout (after dispute window)
+    $order->forceFill(['completed_at' => now()->subMinutes((int) PlatformSetting::get('order_dispute_window_minutes', 60) + 1)])->save();
     $walletService->releaseIdolPayout($order);
 
     $customerWallet = $customer->wallet->fresh();

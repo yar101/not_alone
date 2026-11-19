@@ -169,6 +169,7 @@ it('releases idol hold payout using forceFill without mass assignment exception'
     expect($order->status)->toBe(OrderStatus::Completed);
 
     // Call releaseIdolPayout
+    $order->forceFill(['completed_at' => now()->subMinutes((int) \App\Models\PlatformSetting::get('order_dispute_window_minutes', 60) + 1)])->save();
     $payoutTx = $walletService->releaseIdolPayout($order);
     expect($payoutTx)->not->toBeNull();
     expect($payoutTx->status)->toBe(WalletTransactionStatus::Completed);

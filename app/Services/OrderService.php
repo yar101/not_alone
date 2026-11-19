@@ -606,12 +606,8 @@ class OrderService
                     // Release escrow hold if still held
                     $this->walletService->releaseHold($lockedOrder);
 
-                    // If dispute was rejected or window already passed, release payout to idol available balance:
-                    $windowMinutes = (int) PlatformSetting::get('order_dispute_window_minutes', 60);
-                    $deadline = $attrs['completed_at']->copy()->addMinutes($windowMinutes);
-                    if (now()->gte($deadline) || $from === OrderStatus::Disputed->value) {
-                        $this->walletService->releaseIdolPayout($lockedOrder);
-                    }
+                    // Выплата айдолу — только если окно спора истекло и споров не осталось; иначе выпуск сделает суwp orders:release-idol-holds.
+                    $this->walletService->releaseIdolPayout($lockedOrder);
 
                     if ($lockedOrder->conversation_id) {
                         $lockedOrder->conversation->messages()->create([

@@ -169,6 +169,7 @@ class TransactionSeeder extends Seeder
                     $recordTx($feeTx);
                 }
 
+                $order->forceFill(['completed_at' => now()->subHours(rand(2, 48))])->save();
                 $walletService->releaseIdolPayout($order);
 
                 $createdOrders[] = $order;
@@ -213,6 +214,7 @@ class TransactionSeeder extends Seeder
                     $recordTx($feeTx);
                 }
 
+                $order->forceFill(['completed_at' => now()->subHours(rand(2, 48))])->save();
                 $walletService->releaseIdolPayout($order);
 
                 $createdOrders[] = $order;
