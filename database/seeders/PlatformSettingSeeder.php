@@ -22,6 +22,7 @@ class PlatformSettingSeeder extends Seeder
             'platform_fee_percent' => '12.0',
             'order_customer_service_fee_percent' => '5.0',
             'payout_min_threshold' => '1000.0',
+            'weekly_payouts_auto_enabled' => '0',
             'donation_min_amount' => '1',
             'donation_max_amount' => '15000',
             'donation_daily_limit' => '10',

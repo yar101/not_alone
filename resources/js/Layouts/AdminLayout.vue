@@ -8,7 +8,7 @@ import {
     Picture, User, ChatDotRound, Tickets, ScaleToOriginal,
     Microphone, Headset, Star, Discount, Lock, ChatSquare,
     Document, QuestionFilled, WarningFilled, Monitor,
-    TrendCharts, Setting, RefreshRight, Help, Coin, Search
+    TrendCharts, Setting, RefreshRight, Help, Coin, Search, Money
 } from '@element-plus/icons-vue';
 
 function logout() {
@@ -466,6 +466,15 @@ onUnmounted(() => {
                     >
                         <el-icon class="nav-icon"><Coin /></el-icon>
                         <span class="nav-text">Транзакции</span>
+                    </Link>
+
+                    <Link
+                        :href="route('admin.payouts.index')"
+                        class="nav-item"
+                        :class="{ 'nav-item--active': isActive('admin.payouts.*') }"
+                    >
+                        <el-icon class="nav-icon"><Money /></el-icon>
+                        <span class="nav-text">Выплаты</span>
                     </Link>
                 </div>
 

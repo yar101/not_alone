@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\InterestSuggestionController;
 use App\Http\Controllers\Admin\MessageController;
 use App\Http\Controllers\Admin\NewsController;
 use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\PayoutManagementController;
 use App\Http\Controllers\Admin\PersonalityTraitController;
 use App\Http\Controllers\Admin\PlatformSettingsController;
 use App\Http\Controllers\Admin\QuickSearchController;
@@ -286,6 +287,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/', [TransactionController::class, 'index'])->name('index');
             Route::post('/', [TransactionController::class, 'store'])->middleware('throttle:60,1')->name('store');
             Route::get('/{transaction}', [TransactionController::class, 'show'])->name('show');
+        });
+
+        // Payouts
+        Route::prefix('payouts')->name('payouts.')->group(function () {
+            Route::get('/', [PayoutManagementController::class, 'index'])->name('index');
+            Route::get('/preview', [PayoutManagementController::class, 'preview'])->name('preview');
+            Route::get('/breakdown/{idol}', [PayoutManagementController::class, 'breakdown'])->name('breakdown');
+            Route::post('/toggle-auto', [PayoutManagementController::class, 'toggleAuto'])->name('toggle-auto');
+            Route::post('/dispatch-batch', [PayoutManagementController::class, 'dispatchBatch'])->name('dispatch-batch');
+            Route::post('/dispatch-single/{idol}', [PayoutManagementController::class, 'dispatchSingle'])->name('dispatch-single');
+            Route::post('/reconcile/{transaction}', [PayoutManagementController::class, 'reconcile'])->name('reconcile');
         });
 
         // Disputes
