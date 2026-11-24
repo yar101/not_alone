@@ -78,6 +78,26 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    minPayoutThreshold: {
+        type: Number,
+        default: 1000,
+    },
+    taxStatus: {
+        type: String,
+        default: 'none',
+    },
+    isPayoutReady: {
+        type: Boolean,
+        default: false,
+    },
+    payoutPhone: {
+        type: String,
+        default: null,
+    },
+    sbpBankId: {
+        type: String,
+        default: null,
+    },
 });
 
 const page = usePage();
@@ -542,21 +562,23 @@ async function handleDeposit() {
 // ── Withdraw ─────────────────────────────────────────────────
 async function handleWithdraw() {
     const amt = Number(withdrawAmount.value);
-    const maxPink = Number(currentWallet.value.pink_balance || 0);
-    if (!amt || amt < 100) {
+    const minThreshold = Number(props.minPayoutThreshold || 1000);
+    const available = Number(currentWallet.value.available_for_payout ?? currentWallet.value.pink_balance ?? 0);
+
+    if (!amt || amt < minThreshold) {
         showWalletToast({
             type: 'warning',
             title: 'Неверная сумма',
-            message: 'Минимальная сумма вывода — 100',
+            message: `Минимальная сумма вывода по СБП — ${formatMoney(minThreshold)} ₽`,
         });
         return;
     }
 
-    if (amt > maxPink) {
+    if (amt > available) {
         showWalletToast({
             type: 'warning',
             title: 'Недостаточно средств',
-            message: 'Сумма превышает доступный баланс',
+            message: 'Сумма превышает доступный лимит с учётом долговых обязательств',
         });
         return;
     }
@@ -569,11 +591,14 @@ async function handleWithdraw() {
 
         showWalletToast({
             type: 'withdraw',
-            title: 'Заявка на вывод',
-            message: `${formatMoney(amt)} отправлено на выплату`,
+            title: 'Заявка на выплату',
+            message: `${formatMoney(amt)} отправлено на выплату по СБП`,
         });
 
         currentWallet.value.pink_balance = Number(data.pink_balance);
+        if (data.available_for_payout !== undefined) {
+            currentWallet.value.available_for_payout = Number(data.available_for_payout);
+        }
         currentWallet.value.pink_total_balance = Number(data.pink_balance) + Number(currentWallet.value.pink_held_balance || 0);
         withdrawAmount.value = '';
 
@@ -901,8 +926,11 @@ function formatMinutes(m) {
                                 <div class="wallet-deposit-summary">
                                     <span class="wallet-deposit-summary__label">К зачислению:</span>
                                     <div class="wallet-deposit-summary__value">
-                                        <span class="wallet-deposit-summary__amount">{{ formatInteger(selectedPack?.coins || 0) }}</span>
+                                        <span class="wallet-deposit-summary__amount">{{ formatInteger(selectedPack?.coins || 0) }} 🪙 ({{ formatInteger(selectedPack?.coins || 0) }} ₽)</span>
                                         <CoinIcon color="blue" size="sm" />
+                                    </div>
+                                    <div class="text-[11px] text-slate-400 mt-0.5">
+                                        0% комиссия эквайринга • Чек 54-ФЗ
                                     </div>
                                 </div>
                                 <button
@@ -912,58 +940,94 @@ function formatMinutes(m) {
                                     @click="handleDeposit"
                                 >
                                     <el-icon v-if="isDepositing" class="is-loading"><Loading /></el-icon>
-                                    <span>{{ isDepositing ? 'Обработка...' : `Оплатить ${selectedPack ? `${formatInteger(totalPriceRub)} ₽` : ''}` }}</span>
+                                    <span>{{ isDepositing ? 'Обработка...' : `Оплатить ${selectedPack ? `${formatInteger(selectedPack.coins)} ₽` : ''}` }}</span>
                                 </button>
                             </div>
                         </div>
 
-                        <!-- WITHDRAW SECTION (Idol Only - Pink Coins) -->
+                        <!-- WITHDRAW SECTION (Idol Only - Pink Coins / SBP) -->
                         <div v-else-if="isIdol && actionTab === 'withdraw'" class="wallet-withdraw-section">
-                            <div class="wallet-withdraw-balance-hint mb-3 flex items-center justify-between text-xs text-slate-400">
-                                <span>Доступно для вывода:</span>
-                                <span class="flex items-center gap-1 font-semibold text-pink-400">
-                                    {{ formatMoney(currentWallet.pink_balance) }}
-                                    <CoinIcon color="pink" size="xs" />
-                                </span>
-                            </div>
-                            <div class="wallet-action-form">
-                                <div class="wallet-input-container">
-                                    <input
-                                        v-model.number="withdrawAmount"
-                                        type="number"
-                                        min="100"
-                                        :max="currentWallet.pink_balance"
-                                        step="100"
-                                        class="wallet-glass-input"
-                                        placeholder="Сумма от 100"
-                                        @keydown.enter.prevent="handleWithdraw"
-                                    />
-                                    <div class="wallet-input-currency-coin">
-                                        <CoinIcon color="pink" size="sm" />
+                            <!-- Gate: Self-Employed Not Verified -->
+                            <div v-if="taxStatus !== 'self_employed' || !isPayoutReady" class="wallet-onboarding-callout mb-4">
+                                <div class="flex items-start gap-3">
+                                    <el-icon class="text-amber-400 text-2xl mt-0.5"><WarningFilled /></el-icon>
+                                    <div class="flex-1">
+                                        <h4 class="font-bold text-slate-100 text-sm">Подключение выплат самозанятого (422-ФЗ)</h4>
+                                        <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                                            Вывод средств доступен только плательщикам НПД со статусом «Мой налог» и привязанными реквизитами СБП.
+                                        </p>
+                                        <div class="mt-3">
+                                            <Link href="/profile/idol-onboarding" class="wallet-pill-btn inline-flex items-center gap-1.5 text-xs py-1.5 px-3">
+                                                <span>Подключить самозанятого</span>
+                                                <el-icon><TopRight /></el-icon>
+                                            </Link>
+                                        </div>
                                     </div>
                                 </div>
-                                <button
-                                    type="button"
-                                    class="wallet-primary-btn wallet-primary-btn--withdraw"
-                                    :disabled="isWithdrawing || currentWallet.is_active === false || !withdrawAmount || withdrawAmount > (currentWallet.pink_balance || 0)"
-                                    @click="handleWithdraw"
-                                >
-                                    <el-icon v-if="isWithdrawing" class="is-loading"><Loading /></el-icon>
-                                    <span>{{ isWithdrawing ? 'Обработка...' : 'Вывести' }}</span>
-                                </button>
                             </div>
-                            <div class="wallet-fee-info">
-                                <span class="wallet-fee-info__item">
-                                    <span>Комиссия:</span>
-                                    <strong class="wallet-fee-info__val">{{ props.withdrawalFeePercent > 0 ? `${props.withdrawalFeePercent}%` : '4%' }}</strong>
-                                </span>
-                                <span class="wallet-fee-info__item">
-                                    <span>К получению на карту:</span>
-                                    <strong class="wallet-fee-info__highlight wallet-fee-info__highlight--withdraw">
-                                        {{ withdrawAmount > 0 ? `${formatMoney(withdrawPayoutAmount)} ₽` : '—' }}
-                                    </strong>
-                                </span>
-                            </div>
+
+                            <!-- Payout Ready -->
+                            <template v-else>
+                                <div class="wallet-withdraw-balance-hint mb-3 flex items-center justify-between text-xs text-slate-400">
+                                    <div class="flex items-center gap-2">
+                                        <span>Доступно для вывода по СБП:</span>
+                                        <span v-if="currentWallet.chargeback_debt > 0" class="text-rose-400 font-medium">
+                                            (долг: -{{ formatMoney(currentWallet.chargeback_debt) }} ₽)
+                                        </span>
+                                    </div>
+                                    <span class="flex items-center gap-1 font-semibold text-pink-400">
+                                        {{ formatMoney(currentWallet.available_for_payout ?? currentWallet.pink_balance) }}
+                                        <CoinIcon color="pink" size="xs" />
+                                    </span>
+                                </div>
+
+                                <div v-if="payoutPhone" class="wallet-sbp-badge mb-3 flex items-center justify-between text-xs p-2.5 rounded-lg bg-pink-950/20 border border-pink-500/20 text-slate-300">
+                                    <span class="flex items-center gap-1.5 text-pink-300">
+                                        <el-icon><Check /></el-icon>
+                                        <span>СБП: {{ payoutPhone }}</span>
+                                    </span>
+                                    <span class="text-slate-400">{{ sbpBankId || 'Банк РФ' }}</span>
+                                </div>
+
+                                <div class="wallet-action-form">
+                                    <div class="wallet-input-container">
+                                        <input
+                                            v-model.number="withdrawAmount"
+                                            type="number"
+                                            :min="minPayoutThreshold"
+                                            :max="currentWallet.available_for_payout ?? currentWallet.pink_balance"
+                                            step="100"
+                                            class="wallet-glass-input"
+                                            :placeholder="`Сумма от ${minPayoutThreshold} ₽`"
+                                            @keydown.enter.prevent="handleWithdraw"
+                                        />
+                                        <div class="wallet-input-currency-coin">
+                                            <CoinIcon color="pink" size="sm" />
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="wallet-primary-btn wallet-primary-btn--withdraw"
+                                        :disabled="isWithdrawing || currentWallet.is_active === false || !withdrawAmount || withdrawAmount < minPayoutThreshold || withdrawAmount > (currentWallet.available_for_payout ?? currentWallet.pink_balance ?? 0)"
+                                        @click="handleWithdraw"
+                                    >
+                                        <el-icon v-if="isWithdrawing" class="is-loading"><Loading /></el-icon>
+                                        <span>{{ isWithdrawing ? 'Обработка...' : 'Вывести по СБП' }}</span>
+                                    </button>
+                                </div>
+                                <div class="wallet-fee-info">
+                                    <span class="wallet-fee-info__item">
+                                        <span>Комиссия:</span>
+                                        <strong class="wallet-fee-info__val text-emerald-400">0% (0.00 ₽)</strong>
+                                    </span>
+                                    <span class="wallet-fee-info__item">
+                                        <span>К получению по СБП:</span>
+                                        <strong class="wallet-fee-info__highlight wallet-fee-info__highlight--withdraw">
+                                            {{ withdrawAmount > 0 ? `${formatMoney(withdrawAmount)} ₽` : '—' }}
+                                        </strong>
+                                    </span>
+                                </div>
+                            </template>
                         </div>
                     </div>
                 </div>
@@ -2593,5 +2657,17 @@ function formatMinutes(m) {
     font-size: 0.85rem;
     color: rgba(254, 202, 202, 0.9);
     line-height: 1.35;
+}
+
+.wallet-onboarding-callout {
+    background: rgba(30, 27, 46, 0.7);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    border-radius: 12px;
+    padding: 1rem 1.15rem;
+}
+
+.wallet-sbp-badge {
+    background: rgba(244, 114, 182, 0.08);
+    border: 1px solid rgba(244, 114, 182, 0.22);
 }
 </style>

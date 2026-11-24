@@ -132,6 +132,7 @@ function submitStatus() {
                     { value: 'cancelled',  label: 'Отменены',    count: counts.cancelled },
                     { value: 'refunded',   label: 'Возвращены',  count: counts.refunded },
                     { value: 'disputed',   label: 'Оспариваются', count: counts.disputed ?? 0 },
+                    { value: 'closed',     label: 'Закрыты',     count: counts.closed ?? 0 },
                 ]"
                 :key="tab.value"
                 class="status-tab"
@@ -355,6 +356,7 @@ function submitStatus() {
 .badge--purple { background: rgba(167,139,250,0.12); color: rgba(167,139,250,0.9); }
 .badge--red    { background: rgba(239,68,68,0.1);    color: rgba(239,68,68,0.7); }
 .badge--orange { background: rgba(251,146,60,0.12);  color: rgba(251,146,60,0.9); }
+.badge--gray   { background: rgba(156,163,175,0.12); color: rgba(209,213,219,0.9); border: 1px solid rgba(156,163,175,0.2); }
 
 /* History */
 .history { border-top: 1px solid rgba(255,255,255,0.07); padding-top: 0.8rem; margin-top: 0.2rem; }

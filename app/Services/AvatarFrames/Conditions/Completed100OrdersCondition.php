@@ -24,7 +24,7 @@ class Completed100OrdersCondition implements FrameCondition
         }
 
         return $user->ordersAsIdol()
-            ->where('status', OrderStatus::Completed)
+            ->whereIn('status', [OrderStatus::Completed, OrderStatus::Closed])
             ->count() >= 100;
     }
 }

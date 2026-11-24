@@ -315,27 +315,34 @@ it('forbids regular users from withdrawing funds', function () {
 });
 
 it('allows idols to withdraw funds with sufficient balance', function () {
-    $idol = User::factory()->create(['is_idol' => true]);
+    $idol = User::factory()->create([
+        'is_idol' => true,
+        'tax_status' => 'self_employed',
+        'tax_verified_at' => now(),
+        'is_payout_ready' => true,
+        'payout_phone' => '+79991234567',
+        'sbp_bank_id' => '100000000004',
+    ]);
     $walletService = app(WalletService::class);
     // Under dual currency, idols withdraw from pink_balance
-    $walletService->getOrCreateWallet($idol)->forceFill(['pink_balance' => 1920.00])->save();
+    $walletService->getOrCreateWallet($idol)->forceFill(['pink_balance' => 2000.00])->save();
 
-    // Withdraw 500: pink_balance reduced by 500 => 1420.00. Fee 4% (20.00), payout 480.00
-    $response = $this->actingAs($idol)->postJson(route('wallet.withdraw'), ['amount' => 500]);
+    // Withdraw 1000: pink_balance reduced by 1000 => 1000.00. Fee 0% (0.00), payout 1000.00 via SBP
+    $response = $this->actingAs($idol)->postJson(route('wallet.withdraw'), ['amount' => 1000]);
     $response->assertOk();
     $response->assertJsonPath('success', true);
-    $response->assertJsonPath('pink_balance', 1420);
+    $response->assertJsonPath('pink_balance', 1000);
 
     $wallet = $idol->wallet->fresh();
-    expect((float) $wallet->pink_balance)->toBe(1420.00);
+    expect((float) $wallet->pink_balance)->toBe(1000.00);
 
     $tx = WalletTransaction::where('wallet_id', $wallet->id)
         ->where('type', WalletTransactionType::Withdrawal)
         ->first();
     expect($tx)->not->toBeNull();
-    expect((float) $tx->amount)->toBe(-500.00);
-    expect((float) $tx->metadata['fee_amount'])->toBe(20.0);
-    expect((float) $tx->metadata['payout_amount'])->toBe(480.0);
+    expect((float) $tx->amount)->toBe(-1000.00);
+    expect((float) $tx->metadata['fee_amount'])->toBe(40.0);
+    expect((float) $tx->metadata['payout_amount'])->toBe(960.0);
     expect($tx->status)->toBe(WalletTransactionStatus::Completed);
 });
 

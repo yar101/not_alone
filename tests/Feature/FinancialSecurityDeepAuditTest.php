@@ -209,9 +209,16 @@ class FinancialSecurityDeepAuditTest extends TestCase
         $response2->assertStatus(422);
         $response2->assertJsonValidationErrors('idempotency_key');
 
-        // Withdraw endpoint validation via body
-        $response3 = $this->actingAs($user)->postJson('/api/wallet/withdraw', [
-            'amount' => 100,
+        // Withdraw endpoint validation via body (for verified idol)
+        $idolUser = User::factory()->create([
+            'is_idol' => true,
+            'tax_status' => 'self_employed',
+            'tax_verified_at' => now(),
+            'is_payout_ready' => true,
+            'payout_phone' => '+79991234567',
+        ]);
+        $response3 = $this->actingAs($idolUser)->postJson('/api/wallet/withdraw', [
+            'amount' => 1000,
             'idempotency_key' => $longKey,
         ]);
         $response3->assertStatus(422);
@@ -772,43 +779,55 @@ class FinancialSecurityDeepAuditTest extends TestCase
 
     public function test_withdraw_idempotency_key_isolation_and_conflict_via_wallet_controller(): void
     {
-        $idolA = User::factory()->create(['is_idol' => true]);
-        $idolB = User::factory()->create(['is_idol' => true]);
+        $idolA = User::factory()->create([
+            'is_idol' => true,
+            'tax_status' => 'self_employed',
+            'tax_verified_at' => now(),
+            'is_payout_ready' => true,
+            'payout_phone' => '+79991234567',
+        ]);
+        $idolB = User::factory()->create([
+            'is_idol' => true,
+            'tax_status' => 'self_employed',
+            'tax_verified_at' => now(),
+            'is_payout_ready' => true,
+            'payout_phone' => '+79991234568',
+        ]);
 
-        $this->walletService->getOrCreateWallet($idolA)->forceFill(['pink_balance' => 1000])->save();
-        $this->walletService->getOrCreateWallet($idolB)->forceFill(['pink_balance' => 1000])->save();
+        $this->walletService->getOrCreateWallet($idolA)->forceFill(['pink_balance' => 5000])->save();
+        $this->walletService->getOrCreateWallet($idolB)->forceFill(['pink_balance' => 5000])->save();
 
         $key = 'ctrl-idempotency-withdraw-012';
 
         // 1. Idol A successfully withdraws with key
         $resA = $this->actingAs($idolA)
             ->withHeader('X-Idempotency-Key', $key)
-            ->postJson('/api/wallet/withdraw', ['amount' => 200]);
+            ->postJson('/api/wallet/withdraw', ['amount' => 1000]);
         $resA->assertOk();
         $txAId = $resA->json('transaction.id');
 
         // 2. Idol B tries to withdraw with Idol A's key -> 409 Conflict
         $resB = $this->actingAs($idolB)
             ->withHeader('X-Idempotency-Key', $key)
-            ->postJson('/api/wallet/withdraw', ['amount' => 200]);
+            ->postJson('/api/wallet/withdraw', ['amount' => 1000]);
         $resB->assertStatus(409);
         $resB->assertJson(['error' => 'Ключ идемпотентности уже использован для другой операции.']);
-        $this->assertEquals(1000, $this->walletService->getOrCreateWallet($idolB)->pink_balance);
+        $this->assertEquals(5000, $this->walletService->getOrCreateWallet($idolB)->pink_balance);
 
         // 3. Idol A tries to withdraw with different amount -> 409 Conflict
         $resA2 = $this->actingAs($idolA)
             ->withHeader('X-Idempotency-Key', $key)
-            ->postJson('/api/wallet/withdraw', ['amount' => 300]);
+            ->postJson('/api/wallet/withdraw', ['amount' => 1500]);
         $resA2->assertStatus(409);
         $resA2->assertJson(['error' => 'Ключ идемпотентности уже использован с другими параметрами.']);
 
         // 4. Idol A repeats withdraw with same key and amount -> 200 OK, returns same transaction
         $resA3 = $this->actingAs($idolA)
             ->withHeader('X-Idempotency-Key', $key)
-            ->postJson('/api/wallet/withdraw', ['amount' => 200]);
+            ->postJson('/api/wallet/withdraw', ['amount' => 1000]);
         $resA3->assertOk();
         $this->assertEquals($txAId, $resA3->json('transaction.id'));
-        $this->assertEquals(800, $this->walletService->getOrCreateWallet($idolA)->pink_balance);
+        $this->assertEquals(4000, $this->walletService->getOrCreateWallet($idolA)->pink_balance);
     }
 
     public function test_admin_adjust_is_idempotent_with_idempotency_key(): void

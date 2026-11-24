@@ -11,6 +11,7 @@ use App\Http\Controllers\FollowController;
 use App\Http\Controllers\GalleryController;
 use App\Http\Controllers\HelpController;
 use App\Http\Controllers\Idol\ApplicationController as IdolApplicationController;
+use App\Http\Controllers\Idol\IdolOnboardingController;
 use App\Http\Controllers\Idol\QuizController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\NotificationController;
@@ -108,6 +109,12 @@ Route::middleware(['auth', 'not_banned'])->group(function () {
         Route::post('/idol/apply', [IdolApplicationController::class, 'store'])->name('idol.apply.store');
         Route::post('/idol/quiz/start', [QuizController::class, 'start'])->name('idol.quiz.start');
         Route::post('/idol/quiz/answer', [QuizController::class, 'answer'])->name('idol.quiz.answer');
+
+        // Idol Self-Employed Onboarding & SBP Requisites (422-ФЗ & Mandarin BaaS)
+        Route::get('/profile/idol-onboarding', [IdolOnboardingController::class, 'show'])->name('profile.idol_onboarding');
+        Route::post('/profile/idol-onboarding/inn', [IdolOnboardingController::class, 'submitInn'])->name('profile.idol_onboarding.inn');
+        Route::post('/profile/idol-onboarding/payout-requisites', [IdolOnboardingController::class, 'savePayoutRequisites'])->name('profile.idol_onboarding.payout_requisites');
+        Route::post('/profile/idol-onboarding/sync', [IdolOnboardingController::class, 'syncTaxStatus'])->name('profile.idol_onboarding.sync');
 
         // Services management
         Route::get('/profile/services/for-offer', [ServiceController::class, 'forOffer'])->name('profile.services.for-offer');

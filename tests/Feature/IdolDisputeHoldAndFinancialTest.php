@@ -339,7 +339,7 @@ it('releases payout on admin dispute rejection only once the dispute window has 
     $orderService->adminTransition($order, OrderStatus::Completed, $admin->id, 'Претензия необоснованна');
 
     $order->refresh();
-    expect($order->status)->toBe(OrderStatus::Completed);
+    expect($order->status)->toBe(OrderStatus::Closed);
     expect($order->payout_released_at)->not->toBeNull();
 
     $idolWallet = $walletService->getOrCreateWallet($idol);
@@ -458,13 +458,14 @@ it('allows negative balance on clawback if idol already withdrew released payout
     // Idol withdraws all money (balance becomes 0)
     $idolWallet->forceFill(['pink_balance' => 0.00])->save();
 
-    // Dispute won by customer after payout release -> clawback triggers
-    $refundTx = $walletService->refundHold($order, 'Возврат после разблокировки');
-    expect($refundTx)->not->toBeNull();
+    // Deal is closed: refund after payout release is prohibited under Art. 720 CC RF (No Overdraft)
+    expect(function () use ($walletService, $order) {
+        $walletService->refundHold($order, 'Возврат после разблокировки');
+    })->toThrow(\DomainException::class);
 
-    // Idol balance goes negative without DB constraint failure!
+    // Idol balance never goes negative: invariant pink_balance >= 0.00 is preserved
     $idolWallet->refresh();
-    expect((float) $idolWallet->pink_balance)->toBe(-800.00);
+    expect((float) $idolWallet->pink_balance)->toBe(0.00);
     expect((float) $idolWallet->pink_held_balance)->toBe(0.00);
 });
 

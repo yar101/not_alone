@@ -48,7 +48,16 @@ class Wallet extends Model
     protected $appends = [
         'total_balance',
         'pink_total_balance',
+        'available_for_payout',
     ];
+
+    public function getAvailableForPayoutAttribute(): float
+    {
+        $pink = (float) $this->pink_balance;
+        $debt = (float) ($this->user?->chargeback_debt ?? 0.00);
+
+        return max(0.00, round($pink - $debt, 2));
+    }
 
     public function user(): BelongsTo
     {

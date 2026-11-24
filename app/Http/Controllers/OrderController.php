@@ -237,7 +237,7 @@ class OrderController extends Controller
             ->groupBy('status')
             ->pluck('cnt', 'status');
 
-        $allStatuses = ['pending', 'accepted', 'paid', 'completed', 'cancelled', 'refunded', 'disputed'];
+        $allStatuses = ['pending', 'accepted', 'paid', 'completed', 'cancelled', 'refunded', 'disputed', 'closed'];
         $counts = ['all' => 0];
         foreach ($allStatuses as $s) {
             $counts[$s] = (int) ($rawCounts[$s] ?? 0);

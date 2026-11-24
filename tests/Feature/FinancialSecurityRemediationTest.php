@@ -61,13 +61,14 @@ function createSecurityTestOrder(float $orderAmount = 1000.00, float $customerBa
     return compact('customer', 'idol', 'order', 'service');
 }
 
-it('prevents account deletion when user has negative balance', function () {
-    $user = User::factory()->create();
-    $wallet = Wallet::firstOrCreate(
-        ['user_id' => $user->id],
-        ['currency' => 'RUB', 'is_active' => true]
-    );
-    $wallet->forceFill(['balance' => -150.00, 'held_balance' => 0.00])->save();
+it('prevents account deletion when user has active debt', function () {
+    $user = User::factory()->create(['is_idol' => true]);
+    \App\Models\ChargebackClaim::create([
+        'idol_id' => $user->id,
+        'amount' => 150.00,
+        'recovered_amount' => 0.00,
+        'status' => 'pending',
+    ]);
 
     $response = $this->actingAs($user)->delete(route('settings.destroy'), [
         'password' => 'password',

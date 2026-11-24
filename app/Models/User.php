@@ -48,6 +48,14 @@ class User extends Authenticatable implements MustVerifyEmail
         'ban_reason',
         'banned_by',
         'remember_token',
+        'tax_status',
+        'inn',
+        'tax_verified_at',
+        'payout_phone',
+        'sbp_bank_id',
+        'payout_requisites_changed_at',
+        'is_payout_ready',
+        'idol_status_revoked_at',
     ];
 
     protected $hidden = [
@@ -72,6 +80,10 @@ class User extends Authenticatable implements MustVerifyEmail
             'is_banned' => 'boolean',
             'banned_at' => 'datetime',
             'banned_until' => 'datetime',
+            'tax_verified_at' => 'datetime',
+            'payout_requisites_changed_at' => 'datetime',
+            'is_payout_ready' => 'boolean',
+            'idol_status_revoked_at' => 'datetime',
         ];
     }
 
@@ -324,6 +336,29 @@ class User extends Authenticatable implements MustVerifyEmail
     public function coinPackPurchases(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(CoinPackPurchase::class);
+    }
+
+    public function chargebackClaims(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ChargebackClaim::class, 'idol_id');
+    }
+
+    public function taxIdCooldown(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(TaxIdCooldown::class);
+    }
+
+    public function getChargebackDebtAttribute(): float
+    {
+        return (float) $this->chargebackClaims()
+            ->whereIn('status', ['pending', 'open'])
+            ->selectRaw('COALESCE(SUM(amount - recovered_amount), 0) as debt')
+            ->value('debt');
+    }
+
+    public function isSelfEmployedVerified(): bool
+    {
+        return $this->tax_status === 'self_employed' && ! is_null($this->tax_verified_at);
     }
 
     public function getOrCreateWallet(): Wallet

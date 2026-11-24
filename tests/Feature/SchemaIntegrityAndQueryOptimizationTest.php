@@ -222,13 +222,13 @@ test('wallet table schema integrity enforces overdraft lower bound and optimizes
         expect($txIndexNames)->toContain('wallet_tx_escrow_lookup_idx');
         expect($txIndexNames)->toContain('wallet_tx_type_status_idx');
 
-        // Balance >= -50000.00 is allowed
-        DB::table('wallets')->where('id', $wallet->id)->update(['balance' => -50000.00]);
-        expect((float) DB::table('wallets')->where('id', $wallet->id)->value('balance'))->toBe(-50000.00);
+        // Under Mandarin BaaS, overdrafts are eliminated: balance >= 0.00 is strictly enforced
+        DB::table('wallets')->where('id', $wallet->id)->update(['balance' => 0.00]);
+        expect((float) DB::table('wallets')->where('id', $wallet->id)->value('balance'))->toBe(0.00);
 
-        // Balance < -50000.00 violates check_wallets_balance_lower_bound
+        // Negative balance violates check_wallets_balance_non_negative
         expect(function () use ($wallet) {
-            DB::table('wallets')->where('id', $wallet->id)->update(['balance' => -50000.01]);
+            DB::table('wallets')->where('id', $wallet->id)->update(['balance' => -0.01]);
         })->toThrow(\Illuminate\Database\QueryException::class);
     }
 });

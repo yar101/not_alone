@@ -11,6 +11,7 @@ enum OrderStatus: string
     case Cancelled = 'cancelled';
     case Refunded = 'refunded';
     case Disputed = 'disputed';
+    case Closed = 'closed';
 
     public function label(): string
     {
@@ -22,6 +23,7 @@ enum OrderStatus: string
             self::Cancelled => 'Отменён',
             self::Refunded => 'Аннулирован',
             self::Disputed => 'Оспаривается',
+            self::Closed => 'Закрыт',
         };
     }
 
@@ -35,6 +37,7 @@ enum OrderStatus: string
             self::Cancelled => 'red',
             self::Refunded => 'orange',
             self::Disputed => 'red',
+            self::Closed => 'gray',
         };
     }
 
@@ -44,10 +47,16 @@ enum OrderStatus: string
             self::Pending => in_array($target, [self::Accepted, self::Paid, self::Cancelled]),
             self::Accepted => in_array($target, [self::Paid, self::Cancelled]),
             self::Paid => in_array($target, [self::Completed, self::Disputed, self::Refunded, self::Cancelled]),
-            self::Disputed => in_array($target, [self::Completed, self::Refunded]),
-            self::Completed => in_array($target, [self::Disputed, self::Refunded]),
+            self::Disputed => in_array($target, [self::Completed, self::Refunded, self::Closed]),
+            self::Completed => in_array($target, [self::Disputed, self::Refunded, self::Closed]),
+            self::Closed => false,
             self::Cancelled => false,
             self::Refunded => false,
         };
+    }
+
+    public function isTerminal(): bool
+    {
+        return in_array($this, [self::Closed, self::Cancelled, self::Refunded]);
     }
 }

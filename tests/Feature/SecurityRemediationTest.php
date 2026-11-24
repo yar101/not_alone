@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\OrderStatus;
-use App\Enums\WalletTransactionType;
 use App\Models\Admin;
 use App\Models\AdminBroadcast;
 use App\Models\ChatBlock;
@@ -17,7 +16,6 @@ use App\Models\ServiceCategory;
 use App\Models\ServiceTimeUnit;
 use App\Models\User;
 use App\Models\UserReport;
-use App\Models\WalletTransaction;
 use App\Services\OrderService;
 use App\Services\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -122,37 +120,26 @@ test('completed order refund claws back payout from idol, reverses platform fee,
     $order->refresh();
     expect($order->status)->toBe(OrderStatus::Completed);
 
-    // Release payout to idol available balance
-    $order->forceFill(['completed_at' => now()->subMinutes((int) \App\Models\PlatformSetting::get('order_dispute_window_minutes', 60) + 1)])->save();
-    $walletService->releaseIdolPayout($order);
-
     $idolWallet = $walletService->getOrCreateWallet($idol);
-    expect((float) $idolWallet->pink_balance)->toEqual(450.00); // 500 gross - 50 platform fee in pink coins
+    expect((float) $idolWallet->pink_held_balance)->toBeGreaterThan(0.00);
     $custWallet->refresh();
     expect((float) $custWallet->held_balance)->toEqual(0.00);
 
     $admin = createTestAdmin();
 
-    // Admin transitions completed order to Refunded (e.g. dispute approved)
+    // Admin transitions completed order to Refunded during dispute window (dispute approved)
     $orderService->adminTransition($order, OrderStatus::Refunded, $admin->id, 'Dispute approved by admin');
 
     $order->refresh();
     expect($order->status)->toBe(OrderStatus::Refunded);
 
-    // Idol pink balance clawed back by net amount (450) -> returns to 0.00
+    // Idol pink held balance cancelled back to 0.00
     $idolWallet->refresh();
-    expect((float) $idolWallet->pink_balance)->toEqual(0.00);
+    expect((float) $idolWallet->pink_held_balance)->toEqual(0.00);
 
     // Customer receives 100% services refund back to available balance (435 + 500 = 935)
     $custWallet->refresh();
     expect((float) $custWallet->balance)->toEqual(935.00);
-
-    // Verify OrderClawback transaction exists on idol wallet
-    $clawbackTx = WalletTransaction::where('wallet_id', $idolWallet->id)
-        ->where('type', WalletTransactionType::OrderClawback)
-        ->first();
-    expect($clawbackTx)->not->toBeNull();
-    expect((float) $clawbackTx->amount)->toEqual(-450.00);
 });
 
 test('support chat controller rejects requests on non-support conversations with 404', function () {

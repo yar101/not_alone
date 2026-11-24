@@ -102,7 +102,7 @@ function getTxTypeLabel(type) {
             :description="`Создан ${order.created_at}`"
         >
             <template #badge>
-                <span class="order-status-badge" :style="{ backgroundColor: order.status_color + '22', color: order.status_color, borderColor: order.status_color + '55' }">
+                <span class="order-status-badge" :class="'order-status-badge--' + order.status_color">
                     {{ order.status_label }}
                 </span>
             </template>
@@ -450,6 +450,13 @@ function getTxTypeLabel(type) {
     text-transform: uppercase;
     letter-spacing: 0.03em;
 }
+.order-status-badge--yellow { background: rgba(251,191,36,0.12); color: rgba(251,191,36,0.9); border-color: rgba(251,191,36,0.3); }
+.order-status-badge--green  { background: rgba(74,222,128,0.1); color: rgba(74,222,128,0.85); border-color: rgba(74,222,128,0.3); }
+.order-status-badge--blue   { background: rgba(96,165,250,0.12); color: rgba(96,165,250,0.9); border-color: rgba(96,165,250,0.3); }
+.order-status-badge--purple { background: rgba(167,139,250,0.12); color: rgba(167,139,250,0.9); border-color: rgba(167,139,250,0.3); }
+.order-status-badge--red    { background: rgba(239,68,68,0.1); color: rgba(239,68,68,0.8); border-color: rgba(239,68,68,0.3); }
+.order-status-badge--orange { background: rgba(251,146,60,0.12); color: rgba(251,146,60,0.9); border-color: rgba(251,146,60,0.3); }
+.order-status-badge--gray   { background: rgba(156,163,175,0.12); color: rgba(209,213,219,0.9); border-color: rgba(156,163,175,0.3); }
 
 .header-actions {
     display: flex;

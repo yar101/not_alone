@@ -70,13 +70,13 @@ class Order extends Model
         return $this->hasMany(OrderStatusHistory::class)->latest('created_at');
     }
 
-    public function logStatusChange(?string $from, string $to, string $actorType, int $actorId, ?string $note = null): void
+    public function logStatusChange(?string $from, string $to, string $actorType, ?int $actorId = 0, ?string $note = null): void
     {
         $this->statusHistory()->create([
             'from_status' => $from,
             'to_status' => $to,
             'actor_type' => $actorType,
-            'actor_id' => $actorId,
+            'actor_id' => $actorId ?? 0,
             'note' => $note,
         ]);
     }

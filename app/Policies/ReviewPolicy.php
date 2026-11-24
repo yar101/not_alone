@@ -15,7 +15,7 @@ class ReviewPolicy
     public function create(User $user, Order $order): bool
     {
         return (int) $order->customer_id === (int) $user->id
-            && $order->status === OrderStatus::Completed
+            && in_array($order->status, [OrderStatus::Completed, OrderStatus::Closed])
             && ! Review::where('reviewer_id', $user->id)->where('idol_id', $order->idol_id)->exists();
     }
 

@@ -50,8 +50,8 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        if ($user->wallet && (float) $user->wallet->balance < 0) {
-            return back()->withErrors(['password' => 'Невозможно удалить аккаунт при отрицательном балансе кошелька. Пожалуйста, погасите задолженность.']);
+        if ($user->chargeback_debt > 0 || ($user->wallet && (float) $user->wallet->balance < 0)) {
+            return back()->withErrors(['password' => 'Невозможно удалить аккаунт при наличии задолженности. Пожалуйста, погасите задолженность.']);
         }
 
         if ($user->wallet && (float) $user->wallet->held_balance > 0) {

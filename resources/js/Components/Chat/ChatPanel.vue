@@ -145,6 +145,7 @@ const orderCounts = ref({
     cancelled: 0,
     refunded: 0,
     disputed: 0,
+    closed: 0,
 });
 const convUnreadOnly = ref(false);
 const orderUnreadOnly = ref(false);
@@ -228,6 +229,7 @@ const orderStatusLabels = computed(() => ({
     cancelled: __("order.status.cancelled"),
     refunded: __("order.status.refunded"),
     disputed: __("order.status.disputed"),
+    closed: __("order.status.closed"),
 }));
 
 const visibleOrders = computed(() => subtabOrders.value);
@@ -1094,7 +1096,7 @@ const isChatClosed = computed(
 );
 const showReviewForm = computed(
     () =>
-        activeOrderData.value?.status === "completed" &&
+        (activeOrderData.value?.status === "completed" || activeOrderData.value?.status === "closed") &&
         activeOrderData.value?.is_customer === true &&
         !hasReview.value,
 );
@@ -2181,6 +2183,12 @@ function formatDate(iso) {
                                                         key: 'disputed',
                                                         label: __(
                                                             'chat.orders.filter.disputed',
+                                                        ),
+                                                    },
+                                                    {
+                                                        key: 'closed',
+                                                        label: __(
+                                                            'chat.orders.filter.closed',
                                                         ),
                                                     },
                                                 ]"
@@ -3713,6 +3721,30 @@ function formatDate(iso) {
                                     >
                                 </div>
 
+                                <!-- Плашка: сделка закрыта (ст. 720 ГК РФ) -->
+                                <div
+                                    v-if="
+                                        activeOrderData?.status === 'closed'
+                                    "
+                                    class="chat-order-closed-bar"
+                                >
+                                    <span
+                                        class="chat-order-closed-bar__label"
+                                        >{{
+                                            __("chat.order.closed_label")
+                                        }}</span
+                                    >
+                                    <span
+                                        v-if="activeOrderData.payout_released_at || activeOrderData.completed_at"
+                                        class="chat-order-closed-bar__time"
+                                        >{{
+                                            formatDate(
+                                                activeOrderData.payout_released_at || activeOrderData.completed_at,
+                                            )
+                                        }}</span
+                                    >
+                                </div>
+
                                 <!-- Textarea (скрыт если заказ завершён в финальном статусе) -->
                                 <div
                                     v-if="
@@ -3722,6 +3754,7 @@ function formatDate(iso) {
                                             'completed',
                                             'disputed',
                                             'refunded',
+                                            'closed',
                                         ].includes(activeOrderData.status)
                                     "
                                     class="chat-input-inner"
@@ -6333,6 +6366,12 @@ function formatDate(iso) {
     border: 1px solid rgba(255, 110, 110, 0.25);
 }
 
+.order-stub__badge--closed {
+    background: rgba(160, 160, 175, 0.12);
+    color: rgba(200, 200, 210, 0.85);
+    border: 1px solid rgba(160, 160, 175, 0.25);
+}
+
 /* perforated tear line */
 .order-stub__perf {
     display: flex;
@@ -6713,6 +6752,12 @@ function formatDate(iso) {
     background: rgba(200, 30, 30, 0.13);
 }
 
+.order-filter-pill--closed.order-filter-pill--active {
+    color: rgba(200, 200, 215, 0.95);
+    border-color: rgba(160, 160, 175, 0.45);
+    background: rgba(160, 160, 175, 0.14);
+}
+
 .order-filter-pill__count {
     font-size: 0.7rem;
     font-weight: 700;
@@ -6817,6 +6862,12 @@ function formatDate(iso) {
     background: rgba(180, 50, 50, 0.15);
     color: rgba(255, 140, 140, 0.8);
     border: 1px solid rgba(180, 50, 50, 0.25);
+}
+
+.chat-order-badge--closed {
+    background: rgba(160, 160, 175, 0.15);
+    color: rgba(200, 200, 210, 0.85);
+    border: 1px solid rgba(160, 160, 175, 0.3);
 }
 
 /* ── Order detail link ──────────────────────────────────── */
@@ -7231,6 +7282,32 @@ function formatDate(iso) {
     font-size: 0.78rem;
     font-weight: 700;
     color: rgba(255, 120, 120, 0.8);
+}
+
+/* ── Closed bar ─────────────────────────────────────────── */
+.chat-order-closed-bar {
+    display: flex;
+    align-items: center;
+    padding: 0.55rem 1.1rem;
+    background: rgba(160, 160, 175, 0.08);
+    border-top: 1px dashed rgba(160, 160, 175, 0.3);
+    border-bottom: 1px dashed rgba(160, 160, 175, 0.3);
+    margin: 0 0 0.4rem;
+    flex-shrink: 0;
+    font-family: var(--font-receipt);
+}
+
+.chat-order-closed-bar__label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: rgba(200, 200, 215, 0.85);
+}
+
+.chat-order-closed-bar__time {
+    margin-left: auto;
+    font-size: 0.78rem;
+    color: rgba(180, 180, 195, 0.75);
+    font-variant-numeric: tabular-nums;
 }
 
 /* ── Service offer bubble ───────────────────────────────── */

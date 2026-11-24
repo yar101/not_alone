@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\OrderStatus;
 use App\Events\NewNotification;
 use App\Events\ReviewCreatedEvent;
 use App\Models\Order;
@@ -31,7 +30,7 @@ class ReviewController extends Controller
         $user = $request->user();
 
         abort_unless($order->customer_id === $user->id, 403);
-        abort_unless($order->status === OrderStatus::Completed, 422, 'Отзыв можно оставить только на выполненный заказ');
+        abort_unless(in_array($order->status, [\App\Enums\OrderStatus::Completed, \App\Enums\OrderStatus::Closed]), 422, 'Отзыв можно оставить только на выполненный заказ');
         $order->loadMissing('idol');
         abort_if(! $order->idol || $order->idol->isActiveBanned(), 422, 'user_banned');
 

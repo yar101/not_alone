@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Contracts\MandarinGatewayInterface;
 use App\Models\CoinPack;
 use App\Models\CoinPackPurchase;
 use App\Models\Order;
@@ -18,7 +19,10 @@ use Inertia\Response;
 
 class WalletController extends Controller
 {
-    public function __construct(private WalletService $walletService) {}
+    public function __construct(
+        private WalletService $walletService,
+        private MandarinGatewayInterface $mandarinGateway
+    ) {}
 
     public function show(Request $request): Response
     {
@@ -52,6 +56,8 @@ class WalletController extends Controller
             $walletData['pink_balance'] = (float) $wallet->pink_balance;
             $walletData['pink_held_balance'] = (float) $wallet->pink_held_balance;
             $walletData['pink_total_balance'] = $wallet->pink_total_balance;
+            $walletData['available_for_payout'] = (float) $wallet->available_for_payout;
+            $walletData['chargeback_debt'] = (float) $user->chargeback_debt;
         }
 
         $coinPacks = CoinPack::visible()->get()->map(fn ($pack) => [
@@ -65,6 +71,10 @@ class WalletController extends Controller
             ->where('is_starter', true)
             ->exists();
 
+        $minPayout = (float) PlatformSetting::get('payout_min_threshold', 1000.0);
+        $depositFeePercent = (float) PlatformSetting::get('deposit_fee_percent', config('services.payments.deposit_fee_percent', 0.0));
+        $withdrawalFeePercent = (float) PlatformSetting::get('withdrawal_fee_percent', config('services.payments.withdrawal_fee_percent', 0.0));
+
         return Inertia::render('Wallet/Index', [
             'wallet' => $walletData,
             'transactions' => $transactions,
@@ -73,8 +83,13 @@ class WalletController extends Controller
             'canDeposit' => app()->environment('local', 'testing') || (config('services.payments.mock_purchases', false) && ! app()->environment('production')),
             'isIdol' => (bool) $user->is_idol,
             'canWithdraw' => (bool) $user->is_idol,
-            'depositFeePercent' => (float) PlatformSetting::get('deposit_fee_percent', config('services.payments.deposit_fee_percent', 4.0)),
-            'withdrawalFeePercent' => (float) PlatformSetting::get('withdrawal_fee_percent', config('services.payments.withdrawal_fee_percent', 4.0)),
+            'taxStatus' => $user->tax_status,
+            'isPayoutReady' => (bool) $user->is_payout_ready,
+            'payoutPhone' => $user->payout_phone,
+            'sbpBankId' => $user->sbp_bank_id,
+            'minPayoutThreshold' => $minPayout,
+            'depositFeePercent' => $depositFeePercent,
+            'withdrawalFeePercent' => $withdrawalFeePercent,
             'holdMinutes' => (int) PlatformSetting::get('order_dispute_window_minutes', 60),
             'coinPacks' => $coinPacks,
             'starterUsed' => $starterUsed,
@@ -186,6 +201,8 @@ class WalletController extends Controller
             $walletData['pink_balance'] = (float) $wallet->pink_balance;
             $walletData['pink_held_balance'] = (float) $wallet->pink_held_balance;
             $walletData['pink_total_balance'] = $wallet->pink_total_balance;
+            $walletData['available_for_payout'] = (float) $wallet->available_for_payout;
+            $walletData['chargeback_debt'] = (float) $user->chargeback_debt;
         }
 
         $coinPacks = CoinPack::visible()->get()->map(fn ($pack) => [
@@ -324,9 +341,21 @@ class WalletController extends Controller
             return response()->json(['error' => 'Вывод средств доступен только айдолам.'], 403);
         }
 
+        if (! $user->isSelfEmployedVerified()) {
+            return response()->json(['error' => 'Для вывода средств необходимо подключить статус самозанятого (422-ФЗ).'], 422);
+        }
+
+        if (! $user->is_payout_ready || empty($user->payout_phone)) {
+            return response()->json(['error' => 'Реквизиты для выплат по СБП не настроены.'], 422);
+        }
+
+        $minThreshold = (float) PlatformSetting::get('payout_min_threshold', 1000.0);
+
         $data = $request->validate([
-            'amount' => ['required', 'numeric', 'min:100', 'max:1000000', 'regex:/^\d+(\.\d{1,2})?$/'],
+            'amount' => ['required', 'numeric', "min:{$minThreshold}", 'max:1000000', 'regex:/^\d+(\.\d{1,2})?$/'],
             'idempotency_key' => ['nullable', 'string', 'max:64'],
+        ], [
+            'amount.min' => "Минимальная сумма вывода по СБП составляет {$minThreshold} ₽.",
         ]);
 
         $rawKey = $request->header('X-Idempotency-Key') ?? $request->input('idempotency_key');
@@ -342,19 +371,33 @@ class WalletController extends Controller
         }
         $idempotencyKey = $rawKey ? (string) $rawKey : null;
 
+        $wallet = $user->getOrCreateWallet();
+        if ((float) $data['amount'] > (float) $wallet->available_for_payout) {
+            return response()->json([
+                'error' => 'Сумма вывода превышает доступный лимит с учётом долговых обязательств.',
+            ], 422);
+        }
+
         try {
             $tx = $this->walletService->withdraw(
                 user: $user,
                 amount: (float) $data['amount'],
                 idempotencyKey: $idempotencyKey,
-                description: 'Вывод средств на привязанную карту'
+                description: 'Вывод средств по СБП',
+                metadata: [
+                    'gateway' => 'mandarin',
+                    'method' => 'sbp',
+                    'payout_phone' => $user->payout_phone,
+                    'sbp_bank_id' => $user->sbp_bank_id,
+                ]
             );
 
             return response()->json([
                 'success' => true,
-                'transaction' => $tx,
+                'transaction' => $this->serializeTx($tx),
                 'balance' => (float) $user->wallet->fresh()->balance,
                 'pink_balance' => (float) $tx->balance_after,
+                'available_for_payout' => (float) $user->wallet->fresh()->available_for_payout,
             ]);
         } catch (\DomainException $e) {
             if (str_contains(mb_strtolower($e->getMessage()), 'идемпотентност')) {
@@ -481,9 +524,19 @@ class WalletController extends Controller
         $idempotencyKey = $rawKey ? (string) $rawKey : null;
 
         try {
-            $feePercent = (float) PlatformSetting::get('deposit_fee_percent', config('services.payments.deposit_fee_percent', 4.0));
+            $feePercent = (float) PlatformSetting::get('deposit_fee_percent', config('services.payments.deposit_fee_percent', 0.0));
             $feeAmount = $this->walletService->roundFee((float) $pack->coins, $feePercent);
             $totalPaidRub = (float) bcadd((string) $pack->coins, (string) $feeAmount, 2);
+
+            $invoice = $this->mandarinGateway->createTopUpInvoice(
+                $user,
+                (float) $pack->coins,
+                route('wallet.show'),
+                [
+                    'coin_pack_id' => $pack->id,
+                    'is_starter' => (bool) $pack->is_starter,
+                ]
+            );
 
             $tx = $this->walletService->deposit(
                 user: $user,
@@ -497,6 +550,8 @@ class WalletController extends Controller
                     'fee_percent' => $feePercent,
                     'fee_amount' => $feeAmount,
                     'total_paid_rub' => $totalPaidRub,
+                    'gateway' => 'mandarin',
+                    'gateway_operation_id' => $invoice['id'] ?? null,
                 ],
                 applyFee: false
             );
@@ -524,6 +579,8 @@ class WalletController extends Controller
                 'transaction' => $this->serializeTx($tx),
                 'balance' => (float) $tx->balance_after,
                 'starter_used' => $starterUsed,
+                'payment_url' => $invoice['payment_url'] ?? null,
+                'invoice_id' => $invoice['id'] ?? null,
             ]);
         } catch (\DomainException $e) {
             if (str_contains(mb_strtolower($e->getMessage()), 'идемпотентност')) {

@@ -76,6 +76,7 @@ const statusLabels = computed(() => ({
     cancelled: __('order.status.cancelled'),
     refunded:  __('order.status.refunded'),
     disputed:  __('order.status.disputed'),
+    closed:    __('order.status.closed'),
 }));
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -135,6 +136,7 @@ const statusCounts = computed(() => ({
     cancelled: baseOrders.value.filter(o => o.status === 'cancelled').length,
     refunded:  baseOrders.value.filter(o => o.status === 'refunded').length,
     disputed:  baseOrders.value.filter(o => o.status === 'disputed').length,
+    closed:    baseOrders.value.filter(o => o.status === 'closed').length,
 }));
 
 // ── Panel ─────────────────────────────────────────────────────
@@ -306,7 +308,7 @@ onUnmounted(() => {
                     <!-- Status filters -->
                     <div class="orders-status-filters">
                         <button
-                            v-for="s in ['all','pending','accepted','paid','completed','cancelled','refunded','disputed']"
+                            v-for="s in ['all','pending','accepted','paid','completed','cancelled','refunded','disputed','closed']"
                             :key="s"
                             class="orders-status-btn"
                             :class="[`orders-status-btn--${s}`, { 'orders-status-btn--active': statusFilter === s }]"
@@ -626,6 +628,7 @@ onUnmounted(() => {
 .orders-status-btn--pending.orders-status-btn--active  { border-color: rgba(255,200,80,0.45); color: rgba(255,200,80,0.9); }
 .orders-status-btn--accepted.orders-status-btn--active { border-color: rgba(80,240,160,0.45); color: rgba(80,240,160,0.9); }
 .orders-status-btn--cancelled.orders-status-btn--active { border-color: rgba(255,110,110,0.45); color: rgba(255,110,110,0.85); }
+.orders-status-btn--closed.orders-status-btn--active { border-color: rgba(160,160,175,0.45); color: rgba(200,200,210,0.95); }
 
 /* Search */
 .orders-search__input {
@@ -742,6 +745,7 @@ onUnmounted(() => {
 .ocard__badge--cancelled,
 .ocard__badge--refunded,
 .ocard__badge--disputed  { background: rgba(255,110,110,0.08); color: rgba(255,110,110,0.85); }
+.ocard__badge--closed    { background: rgba(160,160,175,0.12); color: rgba(200,200,210,0.85); border: 1px solid rgba(160,160,175,0.2); }
 
 /* Perf + Items — скрыты */
 .ocard__perf  { display: none; }
@@ -915,6 +919,7 @@ onUnmounted(() => {
 .opanel__status-badge--completed { background: rgba(80,240,160,0.08);  color: rgba(80,240,160,0.9);  }
 .opanel__status-badge--cancelled,
 .opanel__status-badge--refunded  { background: rgba(255,110,110,0.08); color: rgba(255,110,110,0.85); }
+.opanel__status-badge--closed    { background: rgba(160,160,175,0.12); color: rgba(200,200,210,0.85); border: 1px solid rgba(160,160,175,0.2); }
 
 /* Partner */
 .opanel__partner {

@@ -775,12 +775,40 @@ class WalletService
                 ]);
             }
 
-            $lockedOrder->forceFill(['payout_released_at' => now()])->save();
+            $lockedOrder->forceFill([
+                'payout_released_at' => now(),
+                'status' => OrderStatus::Closed,
+            ])->save();
 
-            DB::afterCommit(function () use ($lockedOrder, $netPayout) {
+            $lockedOrder->logStatusChange(
+                OrderStatus::Completed->value,
+                OrderStatus::Closed->value,
+                'system',
+                null,
+                'Автоматическое закрытие сделки по истечении 60 минут (ст. 720 ГК РФ)'
+            );
+
+            DB::afterCommit(function () use ($lockedOrder, $netPayout, $grossAmount) {
                 try {
                     $lockedOrder->idol?->notify(new IdolPayoutReleasedNotification($lockedOrder, $netPayout));
                     $this->safeBroadcast(new NewNotification('private', $lockedOrder->idol_id));
+
+                    // Автофискализация чека самозанятого по 422-ФЗ в ФНС («Мой налог»)
+                    if ($lockedOrder->idol?->isSelfEmployedVerified() && $lockedOrder->idol->inn) {
+                        try {
+                            $gateway = app(\App\Contracts\MandarinGatewayInterface::class);
+                            $receipt = $gateway->registerSelfEmployedReceipt(
+                                $lockedOrder->idol->inn,
+                                $grossAmount,
+                                "Оказание услуг по заказу #{$lockedOrder->id}",
+                                $lockedOrder->customer?->email,
+                                "order_{$lockedOrder->id}"
+                            );
+                            Log::channel('payments')->info("Registered 422-FZ receipt for order #{$lockedOrder->id}", $receipt);
+                        } catch (\Throwable $e) {
+                            Log::channel('payments')->error("Failed to register 422-FZ receipt for order #{$lockedOrder->id}: {$e->getMessage()}");
+                        }
+                    }
                 } catch (\Throwable $e) {
                     Log::warning("Failed to dispatch IdolPayoutReleasedNotification for order #{$lockedOrder->id}: {$e->getMessage()}");
                 }
@@ -946,53 +974,9 @@ class WalletService
                             ],
                         ]);
                     } else {
-                        // Payout was already released to available pink_balance: deduct from pink_balance (capped by -50000 overdraft limit)
-                        $targetBalAfter = (float) bcsub((string) $idolPinkBalBefore, (string) $netIdolDeduction, 2);
-                        $minOverdraft = -50000.00;
-                        $idolPinkBalAfter = max($minOverdraft, $targetBalAfter);
-                        $actualClawback = (float) bcsub((string) $idolPinkBalBefore, (string) $idolPinkBalAfter, 2);
-
-                        $idolPinkHeldAfter = $idolPinkHeldBefore;
-                        $lockedIdolWallet->forceFill(['pink_balance' => $idolPinkBalAfter])->save();
-                        $this->checkOverdraftAlert($lockedIdolWallet, $idolPinkBalAfter);
-
-                        if ($targetBalAfter < $minOverdraft) {
-                            Log::alert("Idol wallet #{$lockedIdolWallet->id} reached maximum overdraft limit (-50,000 pink coins). Clawback capped at {$actualClawback} (attempted {$netIdolDeduction}) for order #{$lockedOrder->id}");
-                        }
-
-                        if ($feeTx) {
-                            $feeMeta = $feeTx->metadata ?? [];
-                            $feeMeta['refunded'] = true;
-                            $feeMeta['refunded_at'] = now()->toISOString();
-                            $feeTx->update(['metadata' => $feeMeta]);
-                        }
-
-                        WalletTransaction::create([
-                            'wallet_id' => $lockedIdolWallet->id,
-                            'user_id' => $lockedOrder->idol_id,
-                            'type' => WalletTransactionType::OrderClawback,
-                            'currency' => 'pink',
-                            'amount' => -$actualClawback,
-                            'balance_before' => $idolPinkBalBefore,
-                            'balance_after' => $idolPinkBalAfter,
-                            'held_balance_before' => $idolPinkHeldBefore,
-                            'held_balance_after' => $idolPinkHeldAfter,
-                            'status' => WalletTransactionStatus::Completed,
-                            'reference_type' => Order::class,
-                            'reference_id' => $lockedOrder->id,
-                            'idempotency_key' => "order_clawback_{$lockedOrder->id}_{$latestHold->id}",
-                            'description' => "Списание по спору/отмене выполненного заказа #{$lockedOrder->id}".($reason ? ": {$reason}" : ''),
-                            'metadata' => [
-                                'order_id' => $lockedOrder->id,
-                                'gross_amount' => $grossAmount,
-                                'fee_amount' => $feeAmount,
-                                'clawback_amount' => $actualClawback,
-                                'requested_clawback_amount' => $netIdolDeduction,
-                                'overdraft_capped' => ($targetBalAfter < $minOverdraft),
-                                'from_held' => false,
-                                'reason' => $reason,
-                            ],
-                        ]);
+                        // Сделка уже закрыта по ст. 720 ГК РФ, средства переведены исполнителю.
+                        // Овердрафты запрещены. Возврат через платформу после закрытия невозможен.
+                        throw new \DomainException('Сделка по заказу уже закрыта (ст. 720 ГК РФ). Возврат средств через платформу невозможен.');
                     }
 
                     // Refund customer
@@ -1337,25 +1321,30 @@ class WalletService
                     }
                 }
 
+                $available = (float) $lockedWallet->available_for_payout;
+                if ($amount > $available) {
+                    throw new InsufficientFundsException(
+                        "Сумма вывода ({$amount} ₽) превышает доступный лимит ({$available} ₽) с учётом долговых обязательств."
+                    );
+                }
+
                 if (! $lockedWallet->hasSufficientPinkBalance($amount)) {
                     throw new InsufficientFundsException(
                         "Недостаточно розовых монет для вывода. Доступно: {$lockedWallet->pink_balance}, запрошено: {$amount}"
                     );
                 }
 
-                $feePercent = (float) PlatformSetting::get('withdrawal_fee_percent', config('services.payments.withdrawal_fee_percent', 4.0));
+                $feePercent = (float) PlatformSetting::get('withdrawal_fee_percent', config('services.payments.withdrawal_fee_percent', 0.0));
                 $feeAmount = $this->roundFee($amount, $feePercent);
                 $payoutAmount = (float) bcsub((string) $amount, (string) $feeAmount, 2);
 
                 $metadata = $metadata ?? [];
-                if ($feeAmount > 0) {
-                    $metadata = array_merge($metadata, [
-                        'requested_amount' => $amount,
-                        'fee_percent' => $feePercent,
-                        'fee_amount' => $feeAmount,
-                        'payout_amount' => $payoutAmount,
-                    ]);
-                }
+                $metadata = array_merge([
+                    'payout_method' => 'sbp',
+                    'fee_percent' => $feePercent,
+                    'fee_amount' => $feeAmount,
+                    'payout_amount' => $payoutAmount,
+                ], $metadata);
 
                 $pinkBalBefore = (float) $lockedWallet->pink_balance;
                 $pinkBalAfter = (float) bcsub((string) $pinkBalBefore, (string) $amount, 2);

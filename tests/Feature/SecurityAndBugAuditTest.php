@@ -324,14 +324,14 @@ test('Idol ApplicationController cleans up old face photo from storage on reappl
     expect(Storage::exists($newApp->face_photo_path))->toBeTrue();
 });
 
-test('platform fee settings default to 4% deposit, 4% withdrawal, and 10% platform fee', function () {
+test('platform fee settings default to 4% deposit, 4% withdrawal, and 10% platform fee in DB migration, 0% and 12% in Mandarin config', function () {
     expect((float) PlatformSetting::get('deposit_fee_percent'))->toBe(4.0);
     expect((float) PlatformSetting::get('withdrawal_fee_percent'))->toBe(4.0);
     expect((float) PlatformSetting::get('platform_fee_percent'))->toBe(10.0);
 
-    expect(config('services.payments.deposit_fee_percent'))->toBe(4.0);
-    expect(config('services.payments.withdrawal_fee_percent'))->toBe(4.0);
-    expect(config('services.payments.platform_fee_percent'))->toBe(10.0);
+    expect(config('services.payments.deposit_fee_percent'))->toBe(0.0);
+    expect(config('services.payments.withdrawal_fee_percent'))->toBe(0.0);
+    expect(config('services.payments.platform_fee_percent'))->toBe(12.0);
 });
 
 test('test suite execution is isolated and does not flush or poison Redis DB 0 or DB 1', function () {

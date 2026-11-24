@@ -211,6 +211,7 @@ function getStatusBadge(tx) {
         return { class: 'wallet-status--held', label: 'Холд' };
     }
     if (s === 'completed') return { class: 'wallet-status--completed', label: tx.status_label || 'Завершено' };
+    if (s === 'pending_bank') return { class: 'wallet-status--pending-bank', label: tx.status_label || 'В банке (СБП)' };
     if (s === 'pending') return { class: 'wallet-status--pending', label: tx.status_label || 'В обработке' };
     if (s === 'failed') return { class: 'wallet-status--failed', label: tx.status_label || 'Ошибка' };
     if (s === 'cancelled') return { class: 'wallet-status--cancelled', label: tx.status_label || 'Отменено' };
@@ -763,6 +764,16 @@ onUnmounted(() => {
 }
 .wallet-status--pending .wallet-tx-status-dot {
     background: #fbbf24;
+}
+
+.wallet-status--pending-bank {
+    background: rgba(167, 139, 250, 0.12);
+    border: 1px solid rgba(167, 139, 250, 0.3);
+    color: #c084fc;
+}
+.wallet-status--pending-bank .wallet-tx-status-dot {
+    background: #c084fc;
+    animation: status-pulse 1.2s ease-in-out infinite;
 }
 
 .wallet-status--failed {

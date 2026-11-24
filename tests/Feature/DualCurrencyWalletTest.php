@@ -319,31 +319,18 @@ class DualCurrencyWalletTest extends TestCase
         $this->orderService->pay($order, $client);
         $this->walletService->releaseHold($order);
 
-        $order->update(['status' => OrderStatus::Completed]);
-        $order->forceFill(['completed_at' => now()->subMinutes((int) PlatformSetting::get('order_dispute_window_minutes', 60) + 1)])->save();
-        $this->walletService->releaseIdolPayout($order);
-
-        $idolWallet = $this->walletService->getOrCreateWallet($idol);
-        $this->assertEquals(900.0, (float) $idolWallet->pink_balance);
-
-        // Now refund the order (e.g. dispute approved by admin)
+        // While in dispute window hold, refund the order (dispute approved by admin)
         $this->walletService->refundHold($order, 'Dispute approved', false);
 
-        $idolWallet->refresh();
-        $clientWallet = $this->walletService->getOrCreateWallet($client);
+        $idolWallet = $this->walletService->getOrCreateWallet($idol)->fresh();
+        $clientWallet = $this->walletService->getOrCreateWallet($client)->fresh();
 
-        // Idol pink balance clawed back
+        // Idol pink held balance cancelled to 0
+        $this->assertEquals(0.0, (float) $idolWallet->pink_held_balance);
         $this->assertEquals(0.0, (float) $idolWallet->pink_balance);
-        $this->assertEquals(0.0, (float) $idolWallet->balance);
 
-        // Client refunded 100% of service price (1000 blue coins)
-        $this->assertEquals(1950.0, (float) $clientWallet->balance); // 2000 - 50 fee + 0 net loss on service price
-
-        $clawbackTx = WalletTransaction::where('wallet_id', $idolWallet->id)
-            ->where('type', WalletTransactionType::OrderClawback)
-            ->first();
-        $this->assertNotNull($clawbackTx);
-        $this->assertEquals('pink', $clawbackTx->currency);
+        // Client refunded 100% of service price
+        $this->assertEquals(1950.0, (float) $clientWallet->balance);
     }
 
     public function test_convert_pink_to_blue_idempotency_and_conflict(): void

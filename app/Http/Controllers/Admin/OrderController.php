@@ -73,6 +73,7 @@ class OrderController extends Controller
             'cancelled' => (int) ($rawCounts[OrderStatus::Cancelled->value] ?? 0),
             'refunded' => (int) ($rawCounts[OrderStatus::Refunded->value] ?? 0),
             'disputed' => (int) ($rawCounts[OrderStatus::Disputed->value] ?? 0),
+            'closed' => (int) ($rawCounts[OrderStatus::Closed->value] ?? 0),
         ];
 
         return Inertia::render('Admin/Orders/Index', [

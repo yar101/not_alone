@@ -14,6 +14,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(\App\Contracts\MandarinGatewayInterface::class, function ($app) {
+            $secret = config('services.mandarin.secret');
+            if (empty($secret) || $app->environment('local', 'testing')) {
+                return new \App\Services\Mandarin\StubMandarinGateway;
+            }
+
+            return new \App\Services\Mandarin\MandarinGateway;
+        });
+
         $this->app->bind(\Inertia\Ssr\Gateway::class, function () {
             return new class extends \Inertia\Ssr\HttpGateway
             {

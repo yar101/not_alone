@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             BanReasonSeeder::class,
             ReviewEpithetSeeder::class,
             HelpCenterSeeder::class,
+            CoinPackSeeder::class,
         ]);
     }
 }

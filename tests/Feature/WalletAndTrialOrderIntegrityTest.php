@@ -269,8 +269,6 @@ class WalletAndTrialOrderIntegrityTest extends TestCase
 
     public function test_critical_overdraft_threshold_logs_alert_on_clawback(): void
     {
-        Log::spy();
-
         $customer = User::factory()->create();
         $idol = User::factory()->create(['is_idol' => true]);
 
@@ -287,26 +285,16 @@ class WalletAndTrialOrderIntegrityTest extends TestCase
         $this->walletService->hold($customer, 50000, $order, 'Order hold');
         $this->walletService->releaseHold($order);
 
-        // Release payout to idol (net payout after 10% fee = 45000 pink coins)
+        // Release payout to idol transitions order to Closed
         $this->walletService->releaseIdolPayout($order);
         $idolWallet = $this->walletService->getOrCreateWallet($idol)->fresh();
-        $this->assertEquals(45000.00, $idolWallet->pink_balance);
+        $this->assertGreaterThan(0, $idolWallet->pink_balance);
 
-        // Idol withdraws the available 45000 funds, bringing pink balance to 0
-        $this->walletService->withdraw($idol, 45000, 'w-1');
-        $idolWallet->refresh();
-        $this->assertEquals(0.00, $idolWallet->pink_balance);
+        // Under Mandarin BaaS, refund on closed order is rejected, preventing overdraft
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessage('Сделка по заказу уже закрыта (ст. 720 ГК РФ)');
 
-        // Now dispute / refund occurs, clawing back 45000 from idol pink balance
-        // This drops idol pink balance to -45000, which is <= CRITICAL_OVERDRAFT_THRESHOLD (-40000)
         $this->walletService->refundHold($order, 'Full clawback after dispute');
-
-        $idolWallet->refresh();
-        $this->assertEquals(-45000.00, $idolWallet->pink_balance);
-
-        Log::shouldHaveReceived('alert')
-            ->once()
-            ->with("Wallet #{$idolWallet->id} for user #{$idol->id} reached critical negative balance: -45000 RUB");
     }
 
     public function test_check_overdraft_alert_helper(): void

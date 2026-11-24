@@ -722,6 +722,27 @@ class OrderService
                     });
                     break;
 
+                case OrderStatus::Closed:
+                    $attrs['payout_released_at'] = $lockedOrder->payout_released_at ?? now();
+                    $attrs['completed_at'] = $lockedOrder->completed_at ?? now();
+                    $lockedOrder->update($attrs);
+
+                    $this->walletService->releaseIdolPayout($lockedOrder);
+
+                    if ($lockedOrder->conversation_id) {
+                        $lockedOrder->conversation->messages()->create([
+                            'sender_id' => null,
+                            'body' => '',
+                            'type' => 'system',
+                            'metadata' => [
+                                'event' => 'order_closed',
+                                'by_admin' => true,
+                            ],
+                        ]);
+                        $lockedOrder->conversation->touch();
+                    }
+                    break;
+
                 default:
                     break;
             }
