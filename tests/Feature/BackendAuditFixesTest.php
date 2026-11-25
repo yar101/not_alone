@@ -177,14 +177,17 @@ test('order service blocks second trial order for same idol', function () {
     $customer = User::factory()->create();
     $orderService = app(\App\Services\OrderService::class);
 
-    // First trial order succeeds
+    // First trial order succeeds with price 0
     [$order1, $conv1] = $orderService->createOrder($customer, $idol, [
         ['id' => $service->id, 'quantity' => 1],
     ]);
     expect($order1->id)->not->toBeNull();
+    expect((float) $order1->items->first()->price)->toBe(0.0);
 
-    // Second trial order must throw exception
-    expect(fn () => $orderService->createOrder($customer, $idol, [
+    // Second order with the same service succeeds at regular price (is no longer free)
+    [$order2, $conv2] = $orderService->createOrder($customer, $idol, [
         ['id' => $service->id, 'quantity' => 1],
-    ]))->toThrow(\Exception::class, 'Вы уже использовали бесплатный первый заказ у этого пользователя');
+    ]);
+    expect($order2->id)->not->toBeNull();
+    expect((float) $order2->items->first()->price)->toBe(500.0);
 });

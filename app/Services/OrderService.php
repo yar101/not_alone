@@ -70,22 +70,18 @@ class OrderService
             throw new \DomainException('Вы заблокировали этого пользователя');
         }
 
-        $trialServicesCount = $services->where('is_trial', true)->count();
-        if ($trialServicesCount > 1) {
-            throw new \DomainException('Нельзя заказать более одной бесплатной услуги одновременно');
-        }
+        return DB::transaction(function () use ($customer, $idol, $services, $quantityMap) {
+            $hasUsedTrial = UserIdolTrial::where('user_id', $customer->id)
+                ->where('idol_id', $idol->id)
+                ->lockForUpdate()
+                ->exists();
 
-        return DB::transaction(function () use ($customer, $idol, $services, $quantityMap, $trialServicesCount) {
-            $hasUsedTrial = false;
-            if ($trialServicesCount > 0) {
-                $hasUsedTrial = UserIdolTrial::where('user_id', $customer->id)
-                    ->where('idol_id', $idol->id)
-                    ->lockForUpdate()
-                    ->exists();
+            $effectiveTrialServices = ! $hasUsedTrial
+                ? $services->where('is_trial', true)
+                : collect();
 
-                if ($hasUsedTrial) {
-                    throw new \DomainException('Вы уже использовали бесплатный первый заказ у этого пользователя');
-                }
+            if ($effectiveTrialServices->count() > 1) {
+                throw new \DomainException('Нельзя заказать более одной бесплатной услуги одновременно');
             }
 
             $order = Order::create([
@@ -97,15 +93,16 @@ class OrderService
 
             foreach ($services as $service) {
                 $rawQty = (int) ($quantityMap[$service->id]['quantity'] ?? 1);
-                if ($service->is_trial && $rawQty > 1) {
+                $isEffectiveTrial = $service->is_trial && ! $hasUsedTrial;
+                if ($isEffectiveTrial && $rawQty > 1) {
                     throw new \DomainException('Ознакомительная услуга может быть заказана только в количестве 1 шт.');
                 }
                 $qty = max(1, min(100, $rawQty));
-                $price = ($service->is_trial && ! $hasUsedTrial) ? 0 : $service->price;
+                $price = $isEffectiveTrial ? 0 : $service->price;
                 $order->items()->create(['service_id' => $service->id, 'quantity' => $qty, 'price' => $price]);
             }
 
-            if ($trialServicesCount > 0 && ! $hasUsedTrial) {
+            if ($effectiveTrialServices->isNotEmpty()) {
                 UserIdolTrial::create([
                     'user_id' => $customer->id,
                     'idol_id' => $idol->id,
@@ -143,7 +140,7 @@ class OrderService
                         'name' => $s->name,
                         'price' => ($s->is_trial && ! $hasUsedTrial) ? 0 : $s->price,
                         'time_unit' => $s->timeUnit?->name,
-                        'quantity' => $s->is_trial ? 1 : max(1, min(100, (int) ($quantityMap[$s->id]['quantity'] ?? 1))),
+                        'quantity' => ($s->is_trial && ! $hasUsedTrial) ? 1 : max(1, min(100, (int) ($quantityMap[$s->id]['quantity'] ?? 1))),
                     ])->values()->all(),
                     'service_fee' => $serviceFee,
                     'fee_percent' => $feePercent,
