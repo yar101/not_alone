@@ -19,20 +19,20 @@ const props = defineProps({
 const variantClasses = computed(() => {
     switch (props.variant) {
         case 'success':
-            return 'bg-emerald-950/60 text-emerald-400 border-emerald-800/60';
+            return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800/60';
         case 'warning':
-            return 'bg-amber-950/60 text-amber-400 border-amber-800/60';
+            return 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/60 dark:text-amber-400 dark:border-amber-800/60';
         case 'danger':
         case 'destructive':
-            return 'bg-rose-950/60 text-rose-400 border-rose-800/60';
+            return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-800/60';
         case 'info':
-            return 'bg-sky-950/60 text-sky-400 border-sky-800/60';
+            return 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/60 dark:text-sky-400 dark:border-sky-800/60';
         case 'primary':
         case 'purple':
             return 'bg-admin-primary-light text-admin-accent border border-admin-primary';
         case 'neutral':
         default:
-            return 'bg-zinc-800/80 text-zinc-300 border-zinc-700/80';
+            return 'bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800/80 dark:text-zinc-300 dark:border-zinc-700/80';
     }
 });
 

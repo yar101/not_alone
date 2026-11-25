@@ -75,12 +75,12 @@ const borderAccent = computed(() => {
         ]"
     >
         <div class="flex items-center justify-between gap-2 mb-3">
-            <span class="text-xs font-medium uppercase tracking-wider text-zinc-400">
+            <span class="text-xs font-medium uppercase tracking-wider text-admin-muted">
                 {{ title }}
             </span>
             <span
                 v-if="badge"
-                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border"
+                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border border-transparent"
                 :class="badgeClasses"
             >
                 {{ badge }}
@@ -89,15 +89,15 @@ const borderAccent = computed(() => {
         </div>
 
         <div class="flex items-baseline justify-between gap-2">
-            <div class="text-2xl font-bold tracking-tight text-zinc-100">
+            <div class="text-2xl font-bold tracking-tight text-admin-main">
                 {{ typeof value === 'number' ? value.toLocaleString('ru') : value }}
             </div>
-            <div class="text-zinc-500">
+            <div class="text-admin-muted">
                 <slot name="icon" />
             </div>
         </div>
 
-        <div v-if="subtitle || $slots.footer" class="mt-3 pt-3 border-t border-zinc-800/60 text-xs text-zinc-400 flex items-center justify-between">
+        <div v-if="subtitle || $slots.footer" class="mt-3 pt-3 border-t border-admin-subtle text-xs text-admin-muted flex items-center justify-between">
             <span v-if="subtitle">{{ subtitle }}</span>
             <slot name="footer" />
         </div>

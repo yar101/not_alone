@@ -273,29 +273,51 @@ function onGlobalKeyDown(e) {
     }
 }
 
-// ─── Theme Management ────────────────────────────────────────────────────────
-const themes = [
-    { id: 'violet',  name: 'Midnight Violet', color: '#8b5cf6', bg: '#110d22' },
-    { id: 'ocean',   name: 'Deep Ocean',      color: '#3b82f6', bg: '#0a1426' },
-    { id: 'emerald', name: 'Cyber Emerald',   color: '#10b981', bg: '#081a12' },
-    { id: 'rose',    name: 'Crimson Velvet',  color: '#f43f5e', bg: '#1c0a12' },
-    { id: 'amber',   name: 'Warm Amber',      color: '#f59e0b', bg: '#1a1309' },
+// ─── Theme & Accent Management ────────────────────────────────────────────────
+const accents = [
+    { id: 'violet',  name: 'Фиолетовый',  color: '#8b5cf6' },
+    { id: 'ocean',   name: 'Синий океан', color: '#3b82f6' },
+    { id: 'emerald', name: 'Изумрудный',  color: '#10b981' },
+    { id: 'rose',    name: 'Розовый',     color: '#f43f5e' },
+    { id: 'amber',   name: 'Янтарный',    color: '#f59e0b' },
 ];
 
-const currentTheme = ref(typeof window !== 'undefined' ? (localStorage.getItem('admin_theme') || 'violet') : 'violet');
+const currentMode = ref(typeof window !== 'undefined' ? (localStorage.getItem('admin_mode') || 'dark') : 'dark');
+const currentAccent = ref(typeof window !== 'undefined' ? (localStorage.getItem('admin_accent') || localStorage.getItem('admin_theme') || 'violet') : 'violet');
 const themeMenuOpen = ref(false);
 
-const activeTheme = computed(() => {
-    return themes.find(t => t.id === currentTheme.value) || themes[0];
+const activeAccent = computed(() => {
+    return accents.find(a => a.id === currentAccent.value) || accents[0];
 });
 
-function selectTheme(themeId) {
-    currentTheme.value = themeId;
-    themeMenuOpen.value = false;
+function applyThemeToDOM(mode, accent) {
+    if (typeof document === 'undefined') return;
+    const el = document.documentElement;
+    el.setAttribute('data-admin-mode', mode);
+    el.setAttribute('data-admin-accent', accent);
+    el.setAttribute('data-admin-theme', accent);
+    if (mode === 'light') {
+        el.classList.remove('dark');
+    } else {
+        el.classList.add('dark');
+    }
+}
+
+function setMode(mode) {
+    currentMode.value = mode;
     try {
-        localStorage.setItem('admin_theme', themeId);
-        document.documentElement.setAttribute('data-admin-theme', themeId);
+        localStorage.setItem('admin_mode', mode);
     } catch {}
+    applyThemeToDOM(currentMode.value, currentAccent.value);
+}
+
+function setAccent(accentId) {
+    currentAccent.value = accentId;
+    try {
+        localStorage.setItem('admin_accent', accentId);
+        localStorage.setItem('admin_theme', accentId);
+    } catch {}
+    applyThemeToDOM(currentMode.value, currentAccent.value);
 }
 
 function linkClass(isActive) {
@@ -304,14 +326,14 @@ function linkClass(isActive) {
             'w-10 h-10 mx-auto rounded-xl flex items-center justify-center transition-all group relative shrink-0',
             isActive
                 ? 'bg-admin-primary text-white shadow-sm font-semibold'
-                : 'text-zinc-400 hover:text-zinc-100 hover:bg-admin-card'
+                : 'text-admin-muted hover:text-admin-main hover:bg-admin-card'
         ];
     }
     return [
         'flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all group relative',
         isActive
             ? 'bg-admin-primary text-white shadow-sm'
-            : 'text-zinc-400 hover:text-zinc-100 hover:bg-admin-card'
+            : 'text-admin-muted hover:text-admin-main hover:bg-admin-card'
     ];
 }
 
@@ -320,7 +342,7 @@ function sublinkClass(isActive) {
         'flex items-center justify-between py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors',
         isActive
             ? 'text-admin-accent bg-admin-primary-light font-semibold'
-            : 'text-zinc-400 hover:text-zinc-200 hover:bg-admin-card/60'
+            : 'text-admin-muted hover:text-admin-main hover:bg-admin-card/60'
     ];
 }
 
@@ -330,14 +352,14 @@ function groupBtnClass(isActive) {
             'w-10 h-10 mx-auto rounded-xl flex items-center justify-center transition-all group relative shrink-0',
             isActive
                 ? 'text-admin-accent bg-admin-primary-light'
-                : 'text-zinc-400 hover:text-zinc-100 hover:bg-admin-card'
+                : 'text-admin-muted hover:text-admin-main hover:bg-admin-card'
         ];
     }
     return [
         'w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all group',
         isActive
             ? 'text-admin-accent bg-admin-primary-light'
-            : 'text-zinc-400 hover:text-zinc-100 hover:bg-admin-card'
+            : 'text-admin-muted hover:text-admin-main hover:bg-admin-card'
     ];
 }
 
@@ -350,11 +372,15 @@ function onWindowClick(e) {
 onMounted(() => {
     try {
         isRail.value = localStorage.getItem('admin_sidebar_rail') === 'true';
-        const savedTheme = localStorage.getItem('admin_theme');
-        if (savedTheme && themes.some(t => t.id === savedTheme)) {
-            currentTheme.value = savedTheme;
+        const savedMode = localStorage.getItem('admin_mode');
+        if (savedMode === 'light' || savedMode === 'dark') {
+            currentMode.value = savedMode;
         }
-        document.documentElement.setAttribute('data-admin-theme', currentTheme.value);
+        const savedAccent = localStorage.getItem('admin_accent') || localStorage.getItem('admin_theme');
+        if (savedAccent && accents.some(a => a.id === savedAccent)) {
+            currentAccent.value = savedAccent;
+        }
+        applyThemeToDOM(currentMode.value, currentAccent.value);
     } catch {}
     window.addEventListener('keydown', onGlobalKeyDown);
     window.addEventListener('click', onWindowClick);
@@ -362,6 +388,8 @@ onMounted(() => {
 
 onUnmounted(() => {
     try {
+        document.documentElement.removeAttribute('data-admin-mode');
+        document.documentElement.removeAttribute('data-admin-accent');
         document.documentElement.removeAttribute('data-admin-theme');
     } catch {}
     window.removeEventListener('keydown', onGlobalKeyDown);
@@ -372,8 +400,10 @@ onUnmounted(() => {
 <template>
     <div
         id="admin-root"
-        :data-admin-theme="currentTheme"
-        class="h-screen w-screen flex overflow-hidden bg-admin-base font-sans text-zinc-100 antialiased selection:bg-admin-primary selection:text-white"
+        :data-admin-mode="currentMode"
+        :data-admin-accent="currentAccent"
+        :data-admin-theme="currentAccent"
+        class="h-screen w-screen flex overflow-hidden bg-admin-base font-sans text-admin-main antialiased selection:bg-admin-primary selection:text-white"
     >
         <!-- Mobile Sidebar Backdrop -->
         <div
@@ -384,7 +414,7 @@ onUnmounted(() => {
 
         <!-- ─── Sidebar ───────────────────────────────────────────────────────────── -->
         <aside
-            class="fixed inset-y-0 left-0 z-50 flex flex-col bg-admin-surface border-r border-admin-theme transition-all duration-200 select-none lg:static"
+            class="fixed inset-y-0 left-0 z-50 flex flex-col bg-admin-surface border-r border-admin-subtle transition-all duration-200 select-none lg:static"
             :class="[
                 isRail ? 'w-16' : 'w-64',
                 mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
@@ -392,7 +422,7 @@ onUnmounted(() => {
         >
             <!-- Logo Header -->
             <div
-                class="h-16 flex items-center border-b border-admin-theme shrink-0"
+                class="h-16 flex items-center border-b border-admin-subtle shrink-0"
                 :class="isRail ? 'justify-center px-2' : 'justify-between px-4'"
             >
                 <Link v-if="!isRail" :href="route('admin.dashboard')" class="flex items-center gap-3 overflow-hidden">
@@ -885,7 +915,7 @@ onUnmounted(() => {
             </nav>
 
             <!-- Sidebar Footer (Admin Profile & Collapse) -->
-            <div class="p-3 border-t border-admin-theme bg-admin-surface shrink-0" :class="{ 'px-2': isRail }">
+            <div class="p-3 border-t border-admin-subtle bg-admin-surface shrink-0" :class="{ 'px-2': isRail }">
                 <div v-if="adminUser" class="flex items-center" :class="isRail ? 'justify-center' : 'gap-3'">
                     <div
                         class="w-8 h-8 rounded-full bg-admin-primary-light border border-admin-primary text-admin-accent flex items-center justify-center font-bold text-xs shrink-0 cursor-pointer"
@@ -894,13 +924,13 @@ onUnmounted(() => {
                         {{ adminUser.name?.[0]?.toUpperCase() ?? 'A' }}
                     </div>
                     <div v-if="!isRail" class="min-w-0 flex-1">
-                        <div class="text-xs font-semibold text-zinc-200 truncate">{{ adminUser.name }}</div>
-                        <div class="text-[11px] text-zinc-500 truncate">{{ adminUser.email }}</div>
+                        <div class="text-xs font-semibold text-admin-main truncate">{{ adminUser.name }}</div>
+                        <div class="text-[11px] text-admin-muted truncate">{{ adminUser.email }}</div>
                     </div>
                     <button
                         v-if="!isRail"
                         type="button"
-                        class="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-zinc-800 transition-colors"
+                        class="p-1.5 rounded-lg text-admin-muted hover:text-rose-400 hover:bg-admin-card transition-colors"
                         title="Выйти из админки"
                         @click="logout"
                     >
@@ -915,12 +945,12 @@ onUnmounted(() => {
         <!-- ─── Main Content Wrap ────────────────────────────────────────────────── -->
         <div class="flex-1 min-w-0 flex flex-col overflow-hidden bg-admin-base">
             <!-- Topbar -->
-            <header class="h-16 flex items-center justify-between px-4 sm:px-6 bg-admin-surface/80 border-b border-admin-theme backdrop-blur-sm shrink-0 gap-4">
+            <header class="relative z-30 h-16 flex items-center justify-between px-4 sm:px-6 bg-admin-surface/90 border-b border-admin-subtle backdrop-blur-sm shrink-0 gap-4">
                 <!-- Left: Hamburger (Mobile) & Breadcrumbs -->
                 <div class="flex items-center gap-3 min-w-0">
                     <button
                         type="button"
-                        class="lg:hidden p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+                        class="lg:hidden p-2 rounded-lg text-admin-muted hover:text-admin-main hover:bg-admin-card transition-colors"
                         @click="mobileOpen = !mobileOpen"
                     >
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -930,9 +960,9 @@ onUnmounted(() => {
 
                     <!-- Breadcrumbs -->
                     <div class="flex items-center gap-2 text-sm truncate">
-                        <span class="text-zinc-500 font-medium hidden sm:inline">Админ</span>
-                        <span class="text-zinc-600 hidden sm:inline">/</span>
-                        <span class="text-zinc-100 font-semibold truncate">{{ sectionTitle }}</span>
+                        <span class="text-admin-muted font-medium hidden sm:inline">Админ</span>
+                        <span class="text-admin-muted hidden sm:inline">/</span>
+                        <span class="text-admin-main font-semibold truncate">{{ sectionTitle }}</span>
                     </div>
                 </div>
 
@@ -940,14 +970,14 @@ onUnmounted(() => {
                 <div class="flex-1 max-w-md hidden md:block">
                     <button
                         type="button"
-                        class="w-full flex items-center justify-between px-3 py-1.5 text-xs text-zinc-400 bg-admin-card border border-admin-subtle hover:border-admin-theme rounded-lg transition-colors group shadow-inner"
+                        class="w-full flex items-center justify-between px-3 py-1.5 text-xs text-admin-muted bg-admin-card border border-admin-subtle hover:border-admin-theme rounded-lg transition-colors group shadow-inner"
                         @click="openQuickSearch"
                     >
                         <span class="flex items-center gap-2">
-                            <el-icon class="text-zinc-500 group-hover:text-admin-accent transition-colors"><Search /></el-icon>
+                            <el-icon class="text-admin-muted group-hover:text-admin-accent transition-colors"><Search /></el-icon>
                             <span>Поиск пользователей, заказов, транзакций...</span>
                         </span>
-                        <kbd class="px-1.5 py-0.5 text-[10px] font-mono bg-zinc-800 border border-zinc-700 text-zinc-400 rounded">Ctrl K</kbd>
+                        <kbd class="px-1.5 py-0.5 text-[10px] font-mono bg-admin-surface border border-admin-subtle text-admin-muted rounded">Ctrl K</kbd>
                     </button>
                 </div>
 
@@ -978,16 +1008,18 @@ onUnmounted(() => {
                     <div class="relative admin-theme-picker">
                         <button
                             type="button"
-                            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-admin-subtle bg-admin-card text-xs text-zinc-300 hover:text-white hover:border-admin-theme transition"
-                            title="Тема оформления админки"
+                            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-admin-subtle bg-admin-card text-xs text-admin-muted hover:text-admin-main hover:border-admin-theme transition shadow-sm"
+                            title="Тема оформления и акцентный цвет"
                             @click="themeMenuOpen = !themeMenuOpen"
                         >
+                            <span v-if="currentMode === 'dark'" class="text-xs">🌙</span>
+                            <span v-else class="text-xs">☀️</span>
                             <span
-                                class="w-2.5 h-2.5 rounded-full shrink-0"
-                                :style="{ backgroundColor: activeTheme?.color || '#8b5cf6' }"
+                                class="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm"
+                                :style="{ backgroundColor: activeAccent?.color || '#8b5cf6' }"
                             />
-                            <span class="hidden md:inline">{{ activeTheme?.name || 'Тема' }}</span>
-                            <svg class="w-3.5 h-3.5 text-zinc-400" viewBox="0 0 20 20" fill="currentColor">
+                            <span class="hidden md:inline font-medium">{{ activeAccent?.name || 'Тема' }}</span>
+                            <svg class="w-3.5 h-3.5 text-admin-muted" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                             </svg>
                         </button>
@@ -995,35 +1027,63 @@ onUnmounted(() => {
                         <!-- Dropdown Menu -->
                         <div
                             v-if="themeMenuOpen"
-                            class="absolute right-0 mt-2 w-52 rounded-xl border border-admin-theme bg-admin-card/95 backdrop-blur-md p-1.5 shadow-2xl z-50 text-xs space-y-1"
+                            class="absolute right-0 mt-2 w-56 rounded-xl border border-admin-subtle bg-admin-card p-3 shadow-2xl z-50 text-xs space-y-3"
                         >
-                            <div class="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-                                Тема оформления
-                            </div>
-                            <button
-                                v-for="t in themes"
-                                :key="t.id"
-                                type="button"
-                                class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors"
-                                :class="currentTheme === t.id ? 'bg-admin-primary-light text-admin-accent font-semibold border border-admin-primary' : 'text-zinc-400 hover:text-zinc-200 hover:bg-admin-surface'"
-                                @click="selectTheme(t.id)"
-                            >
-                                <span class="flex items-center gap-2">
-                                    <span
-                                        class="w-3.5 h-3.5 rounded-full shrink-0 border-2 flex items-center justify-center"
-                                        :style="{ backgroundColor: t.bg, borderColor: t.color }"
+                            <!-- Mode Toggle -->
+                            <div>
+                                <div class="text-[10px] font-semibold uppercase tracking-wider text-admin-muted mb-1.5">
+                                    Тема интерфейса
+                                </div>
+                                <div class="grid grid-cols-2 gap-1 p-0.5 rounded-lg bg-admin-surface border border-admin-subtle">
+                                    <button
+                                        type="button"
+                                        class="flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition"
+                                        :class="currentMode === 'dark' ? 'bg-admin-card text-admin-main shadow-sm font-semibold' : 'text-admin-muted hover:text-admin-main'"
+                                        @click="setMode('dark')"
                                     >
-                                        <span class="w-1.5 h-1.5 rounded-full" :style="{ backgroundColor: t.color }" />
-                                    </span>
-                                    <span>{{ t.name }}</span>
-                                </span>
-                                <el-icon v-if="currentTheme === t.id" class="text-admin-accent"><Check /></el-icon>
-                            </button>
+                                        <span>🌙 Тёмная</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition"
+                                        :class="currentMode === 'light' ? 'bg-admin-card text-admin-main shadow-sm font-semibold' : 'text-admin-muted hover:text-admin-main'"
+                                        @click="setMode('light')"
+                                    >
+                                        <span>☀️ Светлая</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Accent Color Picker -->
+                            <div>
+                                <div class="text-[10px] font-semibold uppercase tracking-wider text-admin-muted mb-1.5">
+                                    Акцентный цвет
+                                </div>
+                                <div class="space-y-1">
+                                    <button
+                                        v-for="acc in accents"
+                                        :key="acc.id"
+                                        type="button"
+                                        class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors"
+                                        :class="currentAccent === acc.id ? 'bg-admin-primary-light text-admin-accent font-semibold border border-admin-primary' : 'text-admin-muted hover:text-admin-main hover:bg-admin-surface'"
+                                        @click="setAccent(acc.id)"
+                                    >
+                                        <span class="flex items-center gap-2">
+                                            <span
+                                                class="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm"
+                                                :style="{ backgroundColor: acc.color }"
+                                            />
+                                            <span>{{ acc.name }}</span>
+                                        </span>
+                                        <el-icon v-if="currentAccent === acc.id" class="text-admin-accent"><Check /></el-icon>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Profile Dropdown -->
-                    <div v-if="adminUser" class="flex items-center gap-2 pl-2 border-l border-admin-theme">
+                    <div v-if="adminUser" class="flex items-center gap-2 pl-2 border-l border-admin-subtle">
                         <Link
                             :href="route('admin.settings.index')"
                             class="w-8 h-8 rounded-full bg-admin-primary-light border border-admin-primary text-admin-accent flex items-center justify-center font-bold text-xs hover:border-admin-primary transition-colors"
@@ -1046,19 +1106,19 @@ onUnmounted(() => {
             <div v-if="quickSearchOpen" class="fixed inset-0 z-50 p-4 sm:p-6 md:p-20 flex items-start justify-center">
                 <div class="fixed inset-0 bg-black/75 backdrop-blur-[3px] transition-opacity" @click="closeQuickSearch" />
 
-                <div class="relative w-full max-w-xl bg-admin-card border border-admin-theme rounded-2xl shadow-2xl overflow-hidden text-zinc-100 flex flex-col max-h-[80vh] z-10">
-                    <div class="flex items-center px-4 border-b border-admin-theme bg-admin-surface/80">
+                <div class="relative w-full max-w-xl bg-admin-card border border-admin-subtle rounded-2xl shadow-2xl overflow-hidden text-admin-main flex flex-col max-h-[80vh] z-10">
+                    <div class="flex items-center px-4 border-b border-admin-subtle bg-admin-surface/80">
                         <el-icon :size="18" class="text-zinc-500 mr-3"><Search /></el-icon>
                         <input
                             ref="searchInputRef"
                             v-model="quickSearchQuery"
                             type="text"
-                            class="w-full bg-transparent border-0 text-zinc-100 placeholder-zinc-500 py-3.5 text-sm focus:outline-none focus:ring-0"
+                            class="w-full bg-transparent border-0 text-admin-main placeholder-admin-muted py-3.5 text-sm focus:outline-none focus:ring-0"
                             placeholder="Поиск по ID, имени, email, телефону..."
                             @input="onQuickSearchInput"
                             @keydown="onSearchKeydown"
                         />
-                        <button class="text-xs text-zinc-400 bg-zinc-800 border border-zinc-700 px-2 py-0.5 rounded" @click="closeQuickSearch">Esc</button>
+                        <button class="text-xs text-admin-muted bg-admin-surface border border-admin-subtle px-2 py-0.5 rounded" @click="closeQuickSearch">Esc</button>
                     </div>
 
                     <div v-if="quickSearchLoading" class="p-8 text-center text-xs text-zinc-500">

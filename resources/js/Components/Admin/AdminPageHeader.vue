@@ -16,10 +16,10 @@ defineProps({
 </script>
 
 <template>
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-5 border-b border-admin-theme">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-5 border-b border-admin-subtle">
         <div class="min-w-0">
             <div class="flex items-center gap-3 flex-wrap">
-                <h1 class="text-2xl font-bold tracking-tight text-zinc-100">
+                <h1 class="text-2xl font-bold tracking-tight text-admin-main">
                     {{ title }}
                 </h1>
                 <span
@@ -30,7 +30,7 @@ defineProps({
                 </span>
                 <slot name="badge" />
             </div>
-            <p v-if="subtitle" class="mt-1 text-sm text-zinc-400">
+            <p v-if="subtitle" class="mt-1 text-sm text-admin-muted">
                 {{ subtitle }}
             </p>
         </div>

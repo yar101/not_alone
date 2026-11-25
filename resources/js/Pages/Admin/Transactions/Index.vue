@@ -340,18 +340,18 @@ function isCredit(tx) {
         <!-- Header -->
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-                <h1 class="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2.5">
-                    <el-icon class="text-violet-400"><Coin /></el-icon>
+                <h1 class="text-2xl font-bold tracking-tight text-admin-main flex items-center gap-2.5">
+                    <el-icon class="text-admin-accent"><Coin /></el-icon>
                     <span>Транзакции платформы</span>
                 </h1>
-                <p class="text-xs text-zinc-400 mt-0.5">
+                <p class="text-xs text-admin-muted mt-0.5">
                     Реестр финансовых операций по потребительским и заработанным счетам (BaaS)
                 </p>
             </div>
             <div class="flex items-center gap-2.5 flex-wrap">
                 <a
                     :href="route('admin.export.transactions', undefined, false)"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900 text-xs font-medium text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800 transition"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-admin-subtle bg-admin-card text-xs font-medium text-admin-muted hover:text-admin-main hover:bg-admin-surface transition shadow-sm"
                     download="transactions.csv"
                 >
                     <el-icon><Download /></el-icon>
@@ -359,7 +359,7 @@ function isCredit(tx) {
                 </a>
                 <Link
                     :href="route('admin.settings.index')"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900 text-xs font-medium text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800 transition"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-admin-subtle bg-admin-card text-xs font-medium text-admin-muted hover:text-admin-main hover:bg-admin-surface transition shadow-sm"
                 >
                     <el-icon><Setting /></el-icon>
                     <span>Комиссии: ввод {{ fees?.deposit_fee_percent }}% / вывод {{ fees?.withdrawal_fee_percent }}%</span>
@@ -373,51 +373,51 @@ function isCredit(tx) {
 
         <!-- KPI Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="p-4 rounded-xl border border-zinc-800 bg-zinc-900/60 backdrop-blur-sm">
-                <div class="flex items-center justify-between text-xs text-zinc-400 mb-2">
+            <div class="p-4 rounded-xl border border-admin-subtle bg-admin-card shadow-sm">
+                <div class="flex items-center justify-between text-xs text-admin-muted mb-2">
                     <span>Пополнения (депозиты)</span>
-                    <el-icon class="text-emerald-400"><Coin /></el-icon>
+                    <el-icon class="text-emerald-500"><Coin /></el-icon>
                 </div>
-                <div class="flex items-baseline gap-1.5 text-xl font-bold font-mono text-emerald-400">
+                <div class="flex items-baseline gap-1.5 text-xl font-bold font-mono text-emerald-500">
                     <span>+{{ formatMoney(kpi?.total_deposits ?? 0) }}</span>
                     <CoinIcon color="blue" size="xs" />
                 </div>
-                <div class="text-[11px] text-zinc-500 mt-1">Ввод на синий баланс клиентов</div>
+                <div class="text-[11px] text-admin-muted mt-1">Ввод на синий баланс клиентов</div>
             </div>
 
-            <div class="p-4 rounded-xl border border-zinc-800 bg-zinc-900/60 backdrop-blur-sm">
-                <div class="flex items-center justify-between text-xs text-zinc-400 mb-2">
+            <div class="p-4 rounded-xl border border-admin-subtle bg-admin-card shadow-sm">
+                <div class="flex items-center justify-between text-xs text-admin-muted mb-2">
                     <span>Выводы средств (СБП)</span>
-                    <el-icon class="text-pink-400"><Wallet /></el-icon>
+                    <el-icon class="text-pink-500"><Wallet /></el-icon>
                 </div>
-                <div class="flex items-baseline gap-1.5 text-xl font-bold font-mono text-pink-400">
+                <div class="flex items-baseline gap-1.5 text-xl font-bold font-mono text-pink-500">
                     <span>−{{ formatMoney(kpi?.total_withdrawals ?? 0) }}</span>
                     <CoinIcon color="pink" size="xs" />
                 </div>
-                <div class="text-[11px] text-zinc-500 mt-1">Выплаты самозанятым айдолам</div>
+                <div class="text-[11px] text-admin-muted mt-1">Выплаты самозанятым айдолам</div>
             </div>
 
-            <div class="p-4 rounded-xl border border-zinc-800 bg-zinc-900/60 backdrop-blur-sm">
-                <div class="flex items-center justify-between text-xs text-zinc-400 mb-2">
+            <div class="p-4 rounded-xl border border-admin-subtle bg-admin-card shadow-sm">
+                <div class="flex items-center justify-between text-xs text-admin-muted mb-2">
                     <span>Комиссии платформы</span>
-                    <el-icon class="text-violet-400"><Tickets /></el-icon>
+                    <el-icon class="text-admin-accent"><Tickets /></el-icon>
                 </div>
-                <div class="flex items-baseline gap-1.5 text-xl font-bold font-mono text-violet-400">
+                <div class="flex items-baseline gap-1.5 text-xl font-bold font-mono text-admin-accent">
                     <span>{{ formatMoney(kpi?.total_fees ?? 0) }}</span>
                     <CoinIcon color="blue" size="xs" />
                 </div>
-                <div class="text-[11px] text-zinc-500 mt-1">Сбор 5% + комиссия с заказов 12%</div>
+                <div class="text-[11px] text-admin-muted mt-1">Сбор 5% + комиссия с заказов 12%</div>
             </div>
 
-            <div class="p-4 rounded-xl border border-zinc-800 bg-zinc-900/60 backdrop-blur-sm">
-                <div class="flex items-center justify-between text-xs text-zinc-400 mb-2">
+            <div class="p-4 rounded-xl border border-admin-subtle bg-admin-card shadow-sm">
+                <div class="flex items-center justify-between text-xs text-admin-muted mb-2">
                     <span>Всего проводок</span>
-                    <el-icon class="text-zinc-400"><Document /></el-icon>
+                    <el-icon class="text-admin-muted"><Document /></el-icon>
                 </div>
-                <div class="text-xl font-bold font-mono text-zinc-100">
+                <div class="text-xl font-bold font-mono text-admin-main">
                     {{ (kpi?.total_count ?? 0).toLocaleString() }}
                 </div>
-                <div class="text-[11px] text-zinc-500 mt-1">В главной бухгалтерской книге</div>
+                <div class="text-[11px] text-admin-muted mt-1">В главной бухгалтерской книге</div>
             </div>
         </div>
 
@@ -477,13 +477,13 @@ function isCredit(tx) {
                 class="px-2.5 py-1.5 rounded-lg border text-xs font-medium whitespace-nowrap transition flex items-center gap-1.5 shadow-sm"
                 :class="type === tab.value
                     ? 'border-admin-primary bg-admin-primary-light text-admin-accent font-semibold'
-                    : 'border-admin-subtle bg-admin-card text-zinc-400 hover:text-zinc-200 hover:bg-admin-surface'"
+                    : 'border-transparent bg-admin-card text-admin-muted hover:text-admin-main hover:bg-admin-surface'"
                 @click="setType(tab.value)"
             >
                 <span>{{ tab.label }}</span>
                 <span
                     class="px-1.5 py-0.5 rounded text-[10px] font-mono"
-                    :class="type === tab.value ? 'bg-admin-primary text-white' : 'bg-zinc-800 text-zinc-500'"
+                    :class="type === tab.value ? 'bg-admin-primary text-white' : 'bg-admin-surface text-admin-muted border border-admin-subtle'"
                 >
                     {{ tab.count }}
                 </span>
@@ -491,46 +491,54 @@ function isCredit(tx) {
         </div>
 
         <!-- Filter Bar -->
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-            <div class="relative flex-1">
-                <el-icon class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"><Search /></el-icon>
+        <div class="flex flex-col lg:flex-row items-stretch lg:items-center gap-2.5">
+            <div class="relative flex-1 min-w-[280px]">
+                <svg class="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" />
+                </svg>
                 <input
                     v-model="search"
                     type="text"
                     placeholder="Поиск по ID транзакции, описанию, имени пользователя..."
-                    class="w-full h-9 pl-9 pr-8 rounded-lg border border-admin-subtle bg-admin-card text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-admin-primary"
+                    class="w-full h-10 pl-9 pr-8 rounded-lg border border-admin-subtle bg-admin-card text-xs text-admin-main placeholder-zinc-500 focus:outline-none focus:border-admin-primary transition-colors"
                     @input="onSearchInput"
                 />
                 <button
                     v-if="search"
-                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 text-xs"
+                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 text-xs p-1"
+                    title="Очистить поиск"
                     @click="search = ''; applyFilters();"
                 >
                     ✕
                 </button>
             </div>
 
-            <select
-                v-model="status"
-                class="h-9 px-3 rounded-lg border border-admin-subtle bg-admin-card text-xs text-zinc-200 focus:outline-none focus:border-admin-primary"
-            >
-                <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">
-                    {{ opt.label }}
-                </option>
-            </select>
+            <div class="relative shrink-0">
+                <select
+                    v-model="status"
+                    class="h-10 pl-3 pr-8 rounded-lg border border-admin-subtle bg-admin-card text-xs text-admin-main focus:outline-none focus:border-admin-primary appearance-none cursor-pointer"
+                >
+                    <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">
+                        {{ opt.label }}
+                    </option>
+                </select>
+                <svg class="w-3.5 h-3.5 text-zinc-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+            </div>
 
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-1.5 shrink-0">
                 <input
                     v-model="dateFrom"
                     type="date"
-                    class="h-9 px-2.5 rounded-lg border border-admin-subtle bg-admin-card text-xs text-zinc-200 focus:outline-none focus:border-admin-primary"
+                    class="h-10 px-2.5 rounded-lg border border-admin-subtle bg-admin-card text-xs text-admin-main focus:outline-none focus:border-admin-primary"
                     title="Дата с"
                 />
-                <span class="text-zinc-600 text-xs">—</span>
+                <span class="text-admin-muted text-xs">—</span>
                 <input
                     v-model="dateTo"
                     type="date"
-                    class="h-9 px-2.5 rounded-lg border border-admin-subtle bg-admin-card text-xs text-zinc-200 focus:outline-none focus:border-admin-primary"
+                    class="h-10 px-2.5 rounded-lg border border-admin-subtle bg-admin-card text-xs text-admin-main focus:outline-none focus:border-admin-primary"
                     title="Дата по"
                 />
             </div>
@@ -539,6 +547,7 @@ function isCredit(tx) {
                 v-if="hasActiveFilters"
                 variant="ghost"
                 size="sm"
+                class="h-10 shrink-0"
                 @click="resetAllFilters"
             >
                 Сбросить
@@ -550,7 +559,7 @@ function isCredit(tx) {
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
                     <thead>
-                        <tr class="border-b border-admin-theme bg-admin-surface/90 text-zinc-400">
+                        <tr class="border-b border-admin-subtle bg-admin-surface/90 text-admin-muted">
                             <th class="py-3 px-4 font-medium">ID</th>
                             <th class="py-3 px-4 font-medium">Пользователь</th>
                             <th class="py-3 px-4 font-medium">Тип проводки</th>
@@ -562,14 +571,14 @@ function isCredit(tx) {
                             <th class="py-3 px-4 font-medium text-right"></th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-zinc-800/60 text-zinc-300">
+                    <tbody class="divide-y divide-admin-subtle text-admin-main">
                         <tr
                             v-for="tx in transactions.data"
                             :key="tx.id"
-                            class="hover:bg-zinc-800/30 transition cursor-pointer"
+                            class="hover:bg-admin-surface/70 transition cursor-pointer"
                             @click="openDetails(tx)"
                         >
-                            <td class="py-3 px-4 font-mono text-zinc-400">
+                            <td class="py-3 px-4 font-mono text-admin-muted">
                                 #{{ tx.id }}
                             </td>
                             <td class="py-3 px-4" @click.stop>
@@ -577,22 +586,22 @@ function isCredit(tx) {
                                     <img
                                         v-if="tx.user.avatar_url"
                                         :src="tx.user.avatar_url"
-                                        class="w-6 h-6 rounded-full object-cover border border-zinc-700"
+                                        class="w-6 h-6 rounded-full object-cover border border-admin-subtle"
                                     />
-                                    <div v-else class="w-6 h-6 rounded-full bg-zinc-800 text-zinc-400 flex items-center justify-center font-bold text-[10px]">
+                                    <div v-else class="w-6 h-6 rounded-full bg-admin-surface text-admin-muted border border-admin-subtle flex items-center justify-center font-bold text-[10px]">
                                         {{ tx.user.name?.charAt(0).toUpperCase() }}
                                     </div>
                                     <div class="min-w-0">
                                         <Link
                                             :href="route('admin.users.show', tx.user.id)"
-                                            class="text-zinc-200 hover:text-violet-400 font-medium truncate block max-w-[140px]"
+                                            class="text-admin-main hover:text-admin-accent font-medium truncate block max-w-[140px]"
                                         >
                                             {{ tx.user.name }}
                                         </Link>
-                                        <span class="text-[11px] text-zinc-500 truncate block max-w-[140px]">{{ tx.user.email }}</span>
+                                        <span class="text-[11px] text-admin-muted truncate block max-w-[140px]">{{ tx.user.email }}</span>
                                     </div>
                                 </div>
-                                <span v-else class="text-zinc-600">—</span>
+                                <span v-else class="text-admin-muted">—</span>
                             </td>
                             <td class="py-3 px-4">
                                 <AdminBadge :variant="getTypeBadgeVariant(tx.type)" size="sm">
@@ -601,7 +610,7 @@ function isCredit(tx) {
                             </td>
                             <td
                                 class="py-3 px-4 text-right font-mono font-bold whitespace-nowrap"
-                                :class="isCredit(tx) ? 'text-emerald-400' : 'text-rose-400'"
+                                :class="isCredit(tx) ? 'text-emerald-500' : 'text-rose-500'"
                             >
                                 <span class="inline-flex items-center gap-1 justify-end">
                                     <span>{{ isCredit(tx) ? '+' : '' }}{{ formatMoney(tx.amount) }}</span>
@@ -609,13 +618,13 @@ function isCredit(tx) {
                                 </span>
                             </td>
                             <td class="py-3 px-4 text-right font-mono whitespace-nowrap">
-                                <div class="inline-flex items-center gap-1 justify-end text-zinc-400">
+                                <div class="inline-flex items-center gap-1 justify-end text-admin-muted">
                                     <span>{{ formatMoney(tx.balance_before) }}</span>
-                                    <span class="text-zinc-600">→</span>
-                                    <strong class="text-zinc-200">{{ formatMoney(tx.balance_after) }}</strong>
+                                    <span class="text-admin-muted">→</span>
+                                    <strong class="text-admin-main">{{ formatMoney(tx.balance_after) }}</strong>
                                     <CoinIcon :color="tx.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
                                 </div>
-                                <div v-if="tx.held_balance_before !== tx.held_balance_after" class="text-[10px] text-amber-400/80">
+                                <div v-if="tx.held_balance_before !== tx.held_balance_after" class="text-[10px] text-amber-500 font-medium">
                                     холд: {{ formatMoney(tx.held_balance_before) }} → {{ formatMoney(tx.held_balance_after) }}
                                 </div>
                             </td>
@@ -624,15 +633,15 @@ function isCredit(tx) {
                                     {{ tx.status_label }}
                                 </AdminBadge>
                             </td>
-                            <td class="py-3 px-4 max-w-[180px] truncate text-zinc-400" :title="tx.description">
+                            <td class="py-3 px-4 max-w-[180px] truncate text-admin-muted" :title="tx.description">
                                 {{ tx.description || '—' }}
                             </td>
-                            <td class="py-3 px-4 font-mono text-[11px] text-zinc-500 whitespace-nowrap">
+                            <td class="py-3 px-4 font-mono text-[11px] text-admin-muted whitespace-nowrap">
                                 {{ tx.created_at }}
                             </td>
                             <td class="py-3 px-4 text-right" @click.stop>
                                 <button
-                                    class="text-violet-400 hover:text-violet-300 font-medium text-xs hover:underline"
+                                    class="text-admin-accent hover:opacity-80 font-medium text-xs hover:underline"
                                     @click="openDetails(tx)"
                                 >
                                     Детали
@@ -640,8 +649,8 @@ function isCredit(tx) {
                             </td>
                         </tr>
                         <tr v-if="!transactions.data || !transactions.data.length">
-                            <td colspan="9" class="py-12 text-center text-zinc-500">
-                                <el-icon :size="24" class="mx-auto mb-2 text-zinc-600"><Coin /></el-icon>
+                            <td colspan="9" class="py-12 text-center text-admin-muted">
+                                <el-icon :size="24" class="mx-auto mb-2 text-admin-muted"><Coin /></el-icon>
                                 <div>Транзакций не найдено</div>
                             </td>
                         </tr>
@@ -820,7 +829,9 @@ function isCredit(tx) {
 
                     <div v-else class="relative">
                         <div class="relative">
-                            <el-icon class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"><Search /></el-icon>
+                            <svg class="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" />
+                            </svg>
                             <input
                                 v-model="userQuery"
                                 type="text"

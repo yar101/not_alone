@@ -58,8 +58,8 @@ function cleanLabel(label) {
 </script>
 
 <template>
-    <div v-if="shouldShow" class="flex flex-col sm:flex-row items-center justify-between gap-3 py-3 px-1 text-sm text-zinc-400 select-none">
-        <div v-if="summary" class="text-xs font-medium text-zinc-400">
+    <div v-if="shouldShow" class="flex flex-col sm:flex-row items-center justify-between gap-3 py-3 px-1 text-sm text-admin-muted select-none">
+        <div v-if="summary" class="text-xs font-medium text-admin-muted">
             {{ summary }}
         </div>
 
@@ -69,7 +69,7 @@ function cleanLabel(label) {
                 <Link
                     v-if="prevUrl"
                     :href="prevUrl"
-                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/80 transition-colors"
+                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-admin-card hover:bg-admin-surface text-admin-main border border-admin-subtle shadow-sm transition-colors"
                     preserve-scroll
                     preserve-state
                 >
@@ -77,7 +77,7 @@ function cleanLabel(label) {
                 </Link>
                 <span
                     v-else
-                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-900 text-zinc-600 border border-zinc-800/60 cursor-not-allowed opacity-50"
+                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-admin-surface text-admin-muted border border-admin-subtle cursor-not-allowed opacity-40"
                 >
                     ← Назад
                 </span>
@@ -85,7 +85,7 @@ function cleanLabel(label) {
                 <Link
                     v-if="nextUrl"
                     :href="nextUrl"
-                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/80 transition-colors"
+                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-admin-card hover:bg-admin-surface text-admin-main border border-admin-subtle shadow-sm transition-colors"
                     preserve-scroll
                     preserve-state
                 >
@@ -93,7 +93,7 @@ function cleanLabel(label) {
                 </Link>
                 <span
                     v-else
-                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-900 text-zinc-600 border border-zinc-800/60 cursor-not-allowed opacity-50"
+                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-admin-surface text-admin-muted border border-admin-subtle cursor-not-allowed opacity-40"
                 >
                     Вперед →
                 </span>
@@ -108,8 +108,8 @@ function cleanLabel(label) {
                         class="inline-flex items-center justify-center min-w-[32px] h-8 px-2.5 text-xs font-medium rounded-lg transition-colors border"
                         :class="[
                             link.active
-                                ? 'bg-violet-600 border-violet-500 text-white font-semibold shadow-sm'
-                                : 'bg-zinc-800/70 hover:bg-zinc-700 border-zinc-700/70 text-zinc-300'
+                                ? 'bg-admin-primary border-admin-primary text-white font-semibold shadow-sm'
+                                : 'bg-admin-card hover:bg-admin-surface border-admin-subtle text-admin-muted hover:text-admin-main shadow-sm'
                         ]"
                         preserve-scroll
                         preserve-state
@@ -117,7 +117,7 @@ function cleanLabel(label) {
                     />
                     <span
                         v-else
-                        class="inline-flex items-center justify-center min-w-[32px] h-8 px-2 text-xs text-zinc-600 border border-transparent select-none"
+                        class="inline-flex items-center justify-center min-w-[32px] h-8 px-2 text-xs text-admin-muted border border-transparent select-none"
                         v-html="cleanLabel(link.label)"
                     />
                 </template>

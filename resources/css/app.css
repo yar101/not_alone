@@ -12,63 +12,102 @@
 }
 
 /* ─── Admin Theming System ────────────────────────────────── */
+/* 1. Theme Modes (Dark is default, Light is optional) */
 :root,
+[data-admin-mode="dark"] {
+    --admin-bg-base-rgb: 9 9 15;        /* #09090f neutral deep dark */
+    --admin-bg-surface-rgb: 14 13 22;   /* #0e0d16 */
+    --admin-bg-card-rgb: 19 18 31;      /* #13121f */
+
+    --admin-text-main-rgb: 244 244 245;  /* #f4f4f5 zinc-100 */
+    --admin-text-muted-rgb: 161 161 170; /* #a1a1aa zinc-400 */
+    --admin-text-subtle-rgb: 113 113 122;/* #71717a zinc-500 */
+
+    --admin-border-subtle: rgba(255, 255, 255, 0.05);
+    --admin-border: rgba(255, 255, 255, 0.08);
+}
+
+[data-admin-mode="light"] {
+    --admin-bg-base-rgb: 248 250 252;   /* #f8fafc slate-50 */
+    --admin-bg-surface-rgb: 255 255 255;/* #ffffff */
+    --admin-bg-card-rgb: 255 255 255;   /* #ffffff */
+
+    --admin-text-main-rgb: 15 23 42;    /* #0f172a slate-900 */
+    --admin-text-muted-rgb: 71 85 105;  /* #475569 slate-600 */
+    --admin-text-subtle-rgb: 148 163 184;/* #94a3b8 slate-400 */
+
+    --admin-border-subtle: rgba(0, 0, 0, 0.06);
+    --admin-border: rgba(0, 0, 0, 0.10);
+}
+
+/* 2. Accent Colors (Only interactive elements, never page backgrounds) */
+:root,
+[data-admin-accent="violet"],
 [data-admin-theme="violet"] {
-    --admin-bg-base-rgb: 8 6 15;
-    --admin-bg-surface-rgb: 17 13 34;
-    --admin-bg-card-rgb: 22 17 42;
     --admin-primary-rgb: 139 92 246;
     --admin-primary-hover-rgb: 124 58 237;
     --admin-text-accent-rgb: 167 139 250;
-
-    --admin-bg-base: rgb(var(--admin-bg-base-rgb));
-    --admin-bg-surface: rgb(var(--admin-bg-surface-rgb));
-    --admin-bg-card: rgb(var(--admin-bg-card-rgb));
-    --admin-border: rgba(var(--admin-primary-rgb), 0.18);
-    --admin-border-subtle: rgba(255, 255, 255, 0.08);
-    --admin-primary: rgb(var(--admin-primary-rgb));
-    --admin-primary-hover: rgb(var(--admin-primary-hover-rgb));
-    --admin-primary-light: rgba(var(--admin-primary-rgb), 0.15);
-    --admin-primary-border: rgba(var(--admin-primary-rgb), 0.42);
-    --admin-text-accent: rgb(var(--admin-text-accent-rgb));
-    --admin-scrollbar-thumb: rgba(var(--admin-primary-rgb), 0.30);
-    --admin-scrollbar-thumb-hover: rgba(var(--admin-primary-rgb), 0.68);
+}
+[data-admin-mode="light"][data-admin-accent="violet"],
+[data-admin-mode="light"][data-admin-theme="violet"] {
+    --admin-text-accent-rgb: 124 58 237;
 }
 
+[data-admin-accent="ocean"],
 [data-admin-theme="ocean"] {
-    --admin-bg-base-rgb: 5 10 20;
-    --admin-bg-surface-rgb: 10 20 38;
-    --admin-bg-card-rgb: 14 27 51;
     --admin-primary-rgb: 59 130 246;
     --admin-primary-hover-rgb: 37 99 235;
     --admin-text-accent-rgb: 96 165 250;
 }
+[data-admin-mode="light"][data-admin-accent="ocean"],
+[data-admin-mode="light"][data-admin-theme="ocean"] {
+    --admin-text-accent-rgb: 37 99 235;
+}
 
+[data-admin-accent="emerald"],
 [data-admin-theme="emerald"] {
-    --admin-bg-base-rgb: 3 13 9;
-    --admin-bg-surface-rgb: 8 26 18;
-    --admin-bg-card-rgb: 12 34 25;
     --admin-primary-rgb: 16 185 129;
     --admin-primary-hover-rgb: 5 150 105;
     --admin-text-accent-rgb: 52 211 153;
 }
+[data-admin-mode="light"][data-admin-accent="emerald"],
+[data-admin-mode="light"][data-admin-theme="emerald"] {
+    --admin-text-accent-rgb: 5 150 105;
+}
 
+[data-admin-accent="rose"],
 [data-admin-theme="rose"] {
-    --admin-bg-base-rgb: 13 4 8;
-    --admin-bg-surface-rgb: 28 10 18;
-    --admin-bg-card-rgb: 36 13 23;
     --admin-primary-rgb: 244 63 94;
     --admin-primary-hover-rgb: 225 29 72;
     --admin-text-accent-rgb: 251 113 133;
 }
+[data-admin-mode="light"][data-admin-accent="rose"],
+[data-admin-mode="light"][data-admin-theme="rose"] {
+    --admin-text-accent-rgb: 225 29 72;
+}
 
+[data-admin-accent="amber"],
 [data-admin-theme="amber"] {
-    --admin-bg-base-rgb: 12 9 5;
-    --admin-bg-surface-rgb: 26 19 9;
-    --admin-bg-card-rgb: 36 26 13;
     --admin-primary-rgb: 245 158 11;
     --admin-primary-hover-rgb: 217 119 6;
     --admin-text-accent-rgb: 251 191 36;
+}
+[data-admin-mode="light"][data-admin-accent="amber"],
+[data-admin-mode="light"][data-admin-theme="amber"] {
+    --admin-text-accent-rgb: 217 119 6;
+}
+
+:root {
+    --admin-bg-base: rgb(var(--admin-bg-base-rgb));
+    --admin-bg-surface: rgb(var(--admin-bg-surface-rgb));
+    --admin-bg-card: rgb(var(--admin-bg-card-rgb));
+    --admin-primary: rgb(var(--admin-primary-rgb));
+    --admin-primary-hover: rgb(var(--admin-primary-hover-rgb));
+    --admin-primary-light: rgba(var(--admin-primary-rgb), 0.15);
+    --admin-primary-border: rgba(var(--admin-primary-rgb), 0.35);
+    --admin-text-accent: rgb(var(--admin-text-accent-rgb));
+    --admin-scrollbar-thumb: rgba(var(--admin-primary-rgb), 0.30);
+    --admin-scrollbar-thumb-hover: rgba(var(--admin-primary-rgb), 0.68);
 }
 
 /* Dynamic theme border & surface helper utilities */
@@ -89,6 +128,14 @@
 }
 .bg-admin-primary:hover {
     background-color: var(--admin-primary-hover);
+}
+
+/* Crucial: Prevent default Tailwind border-gray-200 (#e5e7eb) from applying stark white borders in admin */
+#admin-root,
+#admin-root *,
+[data-admin-mode] *,
+[data-admin-theme] * {
+    border-color: var(--admin-border-subtle);
 }
 
 /* ─── Admin Custom Scrollbars ─────────────────────────────── */
@@ -157,8 +204,9 @@ html {
     min-height: 100%;
 }
 
-html[data-admin-theme] {
-    background-color: var(--admin-bg-base, #08060f);
+html[data-admin-theme],
+html[data-admin-mode] {
+    background-color: var(--admin-bg-base, #09090f);
     background-image: none;
 }
 

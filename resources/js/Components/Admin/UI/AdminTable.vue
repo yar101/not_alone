@@ -22,12 +22,12 @@ defineProps({
 <template>
     <div class="w-full overflow-hidden rounded-xl border border-admin-subtle bg-admin-card shadow-sm">
         <div class="relative overflow-x-auto">
-            <table class="w-full text-left text-sm text-zinc-300">
-                <thead class="bg-admin-surface/90 backdrop-blur-sm border-b border-admin-theme text-xs font-semibold uppercase tracking-wider text-zinc-400 select-none">
+            <table class="w-full text-left text-sm text-admin-main">
+                <thead class="bg-admin-surface/90 backdrop-blur-sm border-b border-admin-subtle text-xs font-semibold uppercase tracking-wider text-admin-muted select-none">
                     <slot name="header" />
                 </thead>
 
-                <tbody class="divide-y divide-zinc-800/60 font-normal">
+                <tbody class="divide-y divide-admin-subtle font-normal">
                     <slot />
                 </tbody>
             </table>

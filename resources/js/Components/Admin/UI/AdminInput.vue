@@ -55,7 +55,7 @@ const sizeClasses = computed(() => {
 
 <template>
     <div class="relative w-full">
-        <div v-if="$slots.prefix" class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-500">
+        <div v-if="$slots.prefix" class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-admin-muted">
             <slot name="prefix" />
         </div>
 
@@ -66,14 +66,14 @@ const sizeClasses = computed(() => {
             :placeholder="placeholder"
             :disabled="disabled"
             :readonly="readonly"
-            class="block w-full bg-zinc-900 border text-zinc-100 placeholder-zinc-500 transition-colors duration-150 focus:outline-none focus:ring-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="block w-full bg-admin-card border border-admin-subtle text-admin-main placeholder-admin-muted transition-colors duration-150 focus:outline-none focus:ring-1 disabled:opacity-50 disabled:cursor-not-allowed"
             :class="[
                 sizeClasses,
                 $slots.prefix ? 'pl-9' : '',
                 $slots.suffix ? 'pr-9' : '',
                 error
                     ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/30'
-                    : 'border-zinc-800 hover:border-zinc-700 focus:border-violet-500 focus:ring-violet-500/30'
+                    : 'hover:border-admin-theme focus:border-admin-primary focus:ring-admin-primary/30'
             ]"
             @input="emit('update:modelValue', $event.target.value)"
             @change="emit('change', $event)"
@@ -81,7 +81,7 @@ const sizeClasses = computed(() => {
             @focus="emit('focus', $event)"
         />
 
-        <div v-if="$slots.suffix" class="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-500">
+        <div v-if="$slots.suffix" class="absolute inset-y-0 right-0 pr-3 flex items-center text-admin-muted">
             <slot name="suffix" />
         </div>
 

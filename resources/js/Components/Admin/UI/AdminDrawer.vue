@@ -154,12 +154,12 @@ onUnmounted(() => {
                     leave-to-class="translate-x-full"
                 >
                     <div
-                        class="w-screen flex flex-col bg-admin-base border-l border-admin-theme shadow-2xl text-zinc-100 focus:outline-none"
+                        class="w-screen flex flex-col bg-admin-base border-l border-admin-subtle shadow-2xl text-zinc-100 focus:outline-none"
                         :class="drawerClasses"
                         :style="drawerStyle"
                     >
                         <!-- Header -->
-                        <div class="px-6 py-5 border-b border-admin-theme bg-admin-surface/75 backdrop-blur-sm flex items-start justify-between gap-4">
+                        <div class="px-6 py-5 border-b border-admin-subtle bg-admin-surface/75 backdrop-blur-sm flex items-start justify-between gap-4">
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center gap-2.5 flex-wrap">
                                     <h2 class="text-lg font-bold text-zinc-100 truncate">
@@ -193,7 +193,7 @@ onUnmounted(() => {
                         <!-- Footer (Sticky Actions) -->
                         <div
                             v-if="$slots.footer"
-                            class="px-6 py-4 border-t border-admin-theme bg-admin-surface/75 backdrop-blur-sm flex items-center justify-end gap-3"
+                            class="px-6 py-4 border-t border-admin-subtle bg-admin-surface/75 backdrop-blur-sm flex items-center justify-end gap-3"
                         >
                             <slot name="footer" />
                         </div>

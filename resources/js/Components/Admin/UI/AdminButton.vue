@@ -40,17 +40,17 @@ const variantClasses = computed(() => {
         case 'primary':
             return 'bg-admin-primary text-white shadow-sm hover:opacity-90 active:opacity-80 transition-all';
         case 'secondary':
-            return 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/80 shadow-sm focus-visible:ring-zinc-600 active:bg-zinc-800';
+            return 'bg-white hover:bg-zinc-50 text-zinc-700 border border-zinc-300 shadow-sm focus-visible:ring-zinc-400 active:bg-zinc-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-700/80 dark:active:bg-zinc-800';
         case 'destructive':
             return 'bg-rose-600 hover:bg-rose-500 text-white shadow-sm shadow-rose-950/20 focus-visible:ring-rose-500 active:bg-rose-700';
         case 'outline':
-            return 'bg-transparent hover:bg-zinc-800/80 text-zinc-300 border border-zinc-700 focus-visible:ring-zinc-600 active:bg-zinc-800';
+            return 'bg-transparent hover:bg-zinc-100 text-zinc-700 border border-zinc-300 focus-visible:ring-zinc-400 active:bg-zinc-200 dark:hover:bg-zinc-800/80 dark:text-zinc-300 dark:border-zinc-700 dark:active:bg-zinc-800';
         case 'ghost':
-            return 'bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 focus-visible:ring-zinc-700';
+            return 'bg-transparent hover:bg-zinc-100 text-zinc-600 hover:text-zinc-900 focus-visible:ring-zinc-400 dark:hover:bg-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-100';
         case 'success':
             return 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm shadow-emerald-950/20 focus-visible:ring-emerald-500 active:bg-emerald-700';
         default:
-            return 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700';
+            return 'bg-white hover:bg-zinc-50 text-zinc-700 border border-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-200 dark:border-zinc-700';
     }
 });
 

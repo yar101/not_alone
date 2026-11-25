@@ -142,12 +142,12 @@ onUnmounted(() => {
                 leave-to-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
                 <div
-                    class="relative w-full bg-admin-card border border-admin-theme rounded-2xl shadow-2xl overflow-hidden text-zinc-100 transform transition-all flex flex-col max-h-[90vh]"
+                    class="relative w-full bg-admin-card border border-admin-subtle rounded-2xl shadow-2xl overflow-hidden text-zinc-100 transform transition-all flex flex-col max-h-[90vh]"
                     :class="modalClasses"
                 >
                     <!-- Header -->
                     <div
-                        class="px-6 py-4 border-b border-admin-theme bg-admin-surface/75 flex items-start justify-between gap-4"
+                        class="px-6 py-4 border-b border-admin-subtle bg-admin-surface/75 flex items-start justify-between gap-4"
                         :class="{
                             'border-rose-500/30 bg-rose-950/10': variant === 'danger',
                             'border-amber-500/30 bg-amber-950/10': variant === 'warning',
@@ -194,7 +194,7 @@ onUnmounted(() => {
                     <!-- Footer -->
                     <div
                         v-if="$slots.footer"
-                        class="px-6 py-4 border-t border-admin-theme bg-admin-surface/75 flex items-center justify-end gap-3"
+                        class="px-6 py-4 border-t border-admin-subtle bg-admin-surface/75 flex items-center justify-end gap-3"
                     >
                         <slot name="footer" />
                     </div>
