@@ -172,12 +172,12 @@ function reject() {
                     <div class="flex items-center gap-1.5 font-bold text-base text-zinc-100">
                         <span>{{ formatMoney(service.price) }}</span>
                         <CoinIcon color="blue" size="xs" />
-                        <span class="text-xs text-zinc-400 font-normal">/ {{ service.time_unit?.name || 'ед.' }}</span>
+                        <span class="text-xs text-zinc-400 font-normal">/ {{ service.time_unit?.name || (typeof service.time_unit === 'string' ? service.time_unit : 'ед.') }}</span>
                     </div>
                 </div>
                 <div class="text-right">
                     <span class="text-[11px] uppercase tracking-wider text-zinc-500 block">Категория</span>
-                    <span class="text-xs font-semibold text-zinc-200">{{ service.category?.name || '—' }}</span>
+                    <span class="text-xs font-semibold text-zinc-200">{{ service.category?.name || (typeof service.category === 'string' ? service.category : '—') }}</span>
                 </div>
             </div>
         </div>
@@ -269,7 +269,7 @@ function reject() {
                             <span :class="{ 'text-amber-400 font-semibold': flaggedFields.category_id }">Есть замечание</span>
                         </label>
                     </div>
-                    <div class="text-sm text-zinc-200">{{ service.category?.name || '—' }}</div>
+                    <div class="text-sm text-zinc-200">{{ service.category?.name || (typeof service.category === 'string' ? service.category : '—') }}</div>
 
                     <div v-if="flaggedFields.category_id" class="mt-3 pt-3 border-t border-zinc-800 space-y-2">
                         <input

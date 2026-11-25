@@ -129,3 +129,72 @@ test('admin can approve service change request and apply updated price', functio
     expect($changeRequest->fresh()->status)->toBe('approved');
     expect((float) $service->fresh()->price)->toBe(2000.0);
 });
+
+test('admin service moderation show page provides structured category and time unit', function () {
+    $admin = Admin::create([
+        'name' => 'Moderator',
+        'email' => 'moderator_show@test.local',
+        'password' => bcrypt('password'),
+    ]);
+
+    $category = ServiceCategory::create(['name' => ['ru' => 'Видеозвонок', 'en' => 'Video call'], 'sort_order' => 1]);
+    $timeUnit = ServiceTimeUnit::create(['name' => ['ru' => 'минута', 'en' => 'minute'], 'sort_order' => 1]);
+    $idol = User::factory()->create(['is_idol' => true]);
+
+    $service = Service::create([
+        'user_id' => $idol->id,
+        'category_id' => $category->id,
+        'time_unit_id' => $timeUnit->id,
+        'name' => ['ru' => 'Услуга звонка'],
+        'price' => 300,
+        'status' => 'pending',
+    ]);
+
+    $response = $this->actingAs($admin, 'admin')->get(route('admin.services.moderation.show', $service));
+
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->component('Admin/Services/Show')
+        ->where('service.category.name', 'Видеозвонок')
+        ->where('service.category.id', $category->id)
+        ->where('service.time_unit.name', 'минута')
+    );
+});
+
+test('admin can view trait and interest suggestions with simple name', function () {
+    $admin = Admin::create([
+        'name' => 'Moderator',
+        'email' => 'moderator_sugg@test.local',
+        'password' => bcrypt('password'),
+    ]);
+
+    $user = User::factory()->create(['name' => 'uDvaIdol']);
+
+    \App\Models\TraitSuggestion::create([
+        'user_id' => $user->id,
+        'name' => 'Доброта',
+        'status' => 'pending',
+    ]);
+
+    \App\Models\InterestSuggestion::create([
+        'user_id' => $user->id,
+        'name' => 'Аниме',
+        'status' => 'pending',
+    ]);
+
+    $traitRes = $this->actingAs($admin, 'admin')->get(route('admin.traits.suggestions.index'));
+    $traitRes->assertOk();
+    $traitRes->assertInertia(fn ($page) => $page
+        ->component('Admin/Traits/Suggestions')
+        ->has('suggestions.data', 1)
+        ->where('suggestions.data.0.name', 'Доброта')
+    );
+
+    $interestRes = $this->actingAs($admin, 'admin')->get(route('admin.interests.suggestions.index'));
+    $interestRes->assertOk();
+    $interestRes->assertInertia(fn ($page) => $page
+        ->component('Admin/Interests/Suggestions')
+        ->has('suggestions.data', 1)
+        ->where('suggestions.data.0.name', 'Аниме')
+    );
+});

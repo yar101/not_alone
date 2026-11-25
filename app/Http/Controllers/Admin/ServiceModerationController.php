@@ -102,8 +102,14 @@ class ServiceModerationController extends Controller
                 'price' => $service->price,
                 'status' => $service->status,
                 'created_at' => $service->created_at,
-                'category' => $service->category?->getTranslation('name', 'ru'),
-                'time_unit' => $service->timeUnit?->getTranslation('name', 'ru'),
+                'category' => $service->category ? [
+                    'id' => $service->category->id,
+                    'name' => $service->category->getTranslation('name', 'ru'),
+                ] : null,
+                'time_unit' => $service->timeUnit ? [
+                    'id' => $service->timeUnit->id,
+                    'name' => $service->timeUnit->getTranslation('name', 'ru'),
+                ] : null,
                 'user' => $service->user ? [
                     'id' => $service->user->id,
                     'name' => $service->user->name,

@@ -137,9 +137,7 @@ function statusLabel(status) {
                         <tr class="border-b border-zinc-800 bg-zinc-950/40 text-zinc-400">
                             <th class="py-3 px-4 font-medium w-12">#</th>
                             <th class="py-3 px-4 font-medium">Пользователь</th>
-                            <th class="py-3 px-4 font-medium">Категория</th>
-                            <th class="py-3 px-4 font-medium">Название (RU)</th>
-                            <th class="py-3 px-4 font-medium">Название (EN)</th>
+                            <th class="py-3 px-4 font-medium">Название</th>
                             <th class="py-3 px-4 font-medium">Статус</th>
                             <th class="py-3 px-4 font-medium">Дата</th>
                             <th class="py-3 px-4 font-medium text-right"></th>
@@ -147,7 +145,7 @@ function statusLabel(status) {
                     </thead>
                     <tbody class="divide-y divide-zinc-800/60 text-zinc-300">
                         <tr v-if="!suggestions.data?.length">
-                            <td colspan="8" class="py-12 text-center text-zinc-500">
+                            <td colspan="6" class="py-12 text-center text-zinc-500">
                                 Предложений интересов в этой категории нет
                             </td>
                         </tr>
@@ -160,11 +158,7 @@ function statusLabel(status) {
                             <td class="py-3 px-4 font-medium text-zinc-200">
                                 {{ s.user?.name || s.user?.email || '—' }}
                             </td>
-                            <td class="py-3 px-4 text-zinc-400">
-                                {{ s.category?.name_ru || s.category_name || '—' }}
-                            </td>
-                            <td class="py-3 px-4 font-semibold text-zinc-100">{{ s.name_ru }}</td>
-                            <td class="py-3 px-4 text-zinc-400">{{ s.name_en || '—' }}</td>
+                            <td class="py-3 px-4 font-semibold text-zinc-100">{{ s.name }}</td>
                             <td class="py-3 px-4">
                                 <AdminBadge :variant="getBadgeVariant(s.status)" size="sm">
                                     {{ statusLabel(s.status) }}

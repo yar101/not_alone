@@ -317,11 +317,11 @@ function openAdd() {
         showNameRu.value = true;
         showNameEn.value = false;
     }
-    // Pre-fill category if we're inside a category detail
+    loadDraft();
+    // Pre-fill category if we're inside a category detail (takes precedence over draft)
     if (selectedCategory.value) {
         form.category_id = selectedCategory.value.category.id;
     }
-    loadDraft();
     showForm.value = true;
 }
 
