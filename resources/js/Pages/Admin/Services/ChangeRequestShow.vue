@@ -3,8 +3,15 @@ import { ref, reactive, computed } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
 import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminModal from '@/Components/Admin/UI/AdminModal.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
 import { formatMoney } from '@/Utils/money';
+import {
+    ArrowLeft, Check, Close, Warning, ArrowRight
+} from '@element-plus/icons-vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -23,7 +30,7 @@ const FIELD_LABELS = {
     time_unit_id: 'Единица времени',
 };
 
-// Initialize flags from existing remarks
+// Flags for remarks
 const flaggedFields = reactive(Object.fromEntries(
     Object.keys(props.fields).map(f => [f, (props.changeRequest.flagged_fields || []).includes(f)])
 ));
@@ -37,19 +44,25 @@ const errors       = ref({});
 const adminComment = ref(props.changeRequest.admin_comment || '');
 const showReject   = ref(false);
 
-const hasAnyFlag = computed(() => {
-    const flagged = Object.values(flaggedFields).some(v => v);
-    // if (flagged) isApproved.value = false;
-    return flagged;
-});
-
-const canSubmit = computed(() => isApproved.value || hasAnyFlag.value);
+function onToggleFlag(field) {
+    if (flaggedFields[field]) {
+        isApproved.value = false;
+    }
+}
+const canSubmit  = computed(() => isApproved.value || hasAnyFlag.value);
 
 const STATUS_LABELS = {
     pending:     'На рассмотрении',
     has_remarks: 'Есть замечания',
     approved:    'Одобрен',
     rejected:    'Отклонён',
+};
+
+const statusVariant = {
+    pending:     'warning',
+    has_remarks: 'info',
+    approved:    'success',
+    rejected:    'danger',
 };
 
 function formatValue(field, data, side) {
@@ -68,7 +81,7 @@ function formatValue(field, data, side) {
         return val?.name ?? '—';
     }
     if (field === 'price') {
-        return formatMoney(val);
+        return `${formatMoney(val)} 🪙`;
     }
     return String(val);
 }
@@ -83,7 +96,7 @@ function isChanged(field, data) {
     return data.current !== data.pending;
 }
 
-function submit() {
+function submitDecision() {
     if (!canSubmit.value) return;
     errors.value = {};
 
@@ -104,515 +117,255 @@ function submit() {
 }
 
 function reject() {
-    ElMessageBox.confirm(
-        'Отклонить эти изменения? Айдол получит уведомление.',
-        'Отклонение изменений',
-        {
-            confirmButtonText: 'Отклонить',
-            cancelButtonText: 'Отмена',
-            type: 'warning',
-            confirmButtonClass: 'el-button--danger',
-        }
-    ).then(() => {
-        submitting.value = true;
-        router.post(route('admin.services.change-requests.decide', props.changeRequest.id), {
-            decision:      'rejected',
-            admin_comment: adminComment.value,
-        }, {
-            preserveScroll: true,
-            onError: (errs) => { errors.value = errs; submitting.value = false; },
-            onFinish: () => { submitting.value = false; },
-        });
-    }).catch(() => {});
+    submitting.value = true;
+    router.post(route('admin.services.change-requests.decide', props.changeRequest.id), {
+        decision:      'rejected',
+        admin_comment: adminComment.value,
+    }, {
+        preserveScroll: true,
+        onFinish: () => {
+            submitting.value = false;
+            showReject.value = false;
+        },
+    });
 }
-const PRESETS = {
-    name: [
-        'Содержит ссылки / контактную информацию',
-        'Нецензурная лексика или оскорбления',
-        'Опечатки или некорректный регистр',
-    ],
-    name_ru: [
-        'Содержит ссылки / контактную информацию',
-        'Нецензурная лексика или оскорбления',
-        'Опечатки или некорректный регистр',
-    ],
-    name_en: [
-        'Contains links or contact info',
-        'Inappropriate language',
-        'Typos or incorrect casing',
-    ],
-    price: [
-        'Некорректная стоимость услуги',
-        'Цена не соответствует правилам платформы',
-    ],
-    category_id: [
-        'Выбрана неподходящая категория',
-    ],
-    time_unit_id: [
-        'Некорректная единица времени',
-    ],
-    rejection: [
-        'Изменения нарушают правила платформы',
-        'Спам / Дубликат существующей услуги',
-    ],
-};
-
-
 </script>
 
 <template>
-    <div class="scr-wrap">
-        <Link :href="route('admin.services.change-requests.index')" class="scr-back">← К списку</Link>
+    <div class="space-y-6 max-w-5xl mx-auto">
+        <!-- Back Link -->
+        <div>
+            <Link
+                :href="route('admin.services.change-requests.index')"
+                class="inline-flex items-center gap-2 text-xs font-medium text-zinc-400 hover:text-zinc-100 transition-colors"
+            >
+                <el-icon :size="12"><ArrowLeft /></el-icon>
+                <span>Назад ко всем запросам</span>
+            </Link>
+        </div>
 
-        <div class="scr-layout">
-            <!-- LEFT: Service info + history -->
-            <div class="scr-left">
+        <!-- Header -->
+        <AdminPageHeader
+            :title="`Запрос на изменение: ${service?.name}`"
+            :subtitle="`ID запроса #${changeRequest.id} • Подан ${new Date(changeRequest.created_at).toLocaleString('ru')}`"
+        >
+            <template #badge>
+                <AdminBadge :variant="statusVariant[changeRequest.status] || 'neutral'" dot size="md">
+                    {{ STATUS_LABELS[changeRequest.status] ?? changeRequest.status }}
+                </AdminBadge>
+            </template>
+        </AdminPageHeader>
 
-                <!-- Idol + service info -->
-                <div class="scr-card">
-                    <h2 class="scr-card__title">Айдол</h2>
-                    <a :href="route('profile.show', service.user.id)" target="_blank" class="scr-idol-link">
-                        <div class="scr-idol">
-                            <img v-if="service.user.avatar_url" :src="service.user.avatar_url" class="scr-idol__avatar" alt="" />
-                            <div v-else class="scr-idol__avatar scr-idol__avatar--empty">{{ service.user.name?.charAt(0) }}</div>
-                            <div style="min-width: 0; flex: 1;">
-                                <div class="scr-idol__name" :title="service.user.name">{{ service.user.name }}</div>
-                                <div class="scr-idol__email" :title="service.user.email">{{ service.user.email }}</div>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-
-                <div class="scr-card">
-                    <h2 class="scr-card__title">Заявка на изменение #{{ changeRequest.id }}</h2>
-                    <div class="scr-meta">
-                        <div class="scr-meta__row">
-                            <span class="scr-meta__label">Статус</span>
-                            <span class="scr-status" :class="'scr-status--' + changeRequest.status">
-                                {{ STATUS_LABELS[changeRequest.status] || changeRequest.status }}
-                            </span>
-                        </div>
-                        <div class="scr-meta__row">
-                            <span class="scr-meta__label">Услуга</span>
-                            <span>{{ service.name_ru || service.name }} (#{{ service.id }})</span>
-                        </div>
-                        <div class="scr-meta__row">
-                            <span class="scr-meta__label">Создана</span>
-                            <span>{{ new Date(changeRequest.created_at).toLocaleDateString('ru-RU') }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Review history -->
-                <div v-if="service.history?.length" class="scr-card">
-                    <h2 class="scr-card__title">История проверок</h2>
-                    <div v-for="item in service.history" :key="item.id" class="scr-review-item">
-                        <div class="scr-review-item__header">
-                            <span :class="item.decision === 'approved' ? 'scr-dec--ok' : item.decision === 'rejected' ? 'scr-dec--reject' : 'scr-dec--bad'">
-                                {{ item.decision === 'approved' ? '✓ Одобрено' : item.decision === 'rejected' ? '✗ Отклонено' : '⚑ Замечания' }}
-                            </span>
-                            <span class="scr-review-item__type">
-                                {{ item.type === 'initial' ? '(Модерация)' : '(Изменения)' }}
-                            </span>
-                            <span class="scr-review-item__date">{{ new Date(item.created_at).toLocaleDateString('ru-RU') }}</span>
-                            <span v-if="item.admin" class="scr-review-item__admin">{{ item.admin.name }}</span>
-                        </div>
-                        <div v-if="item.flagged_fields?.length" class="scr-review-item__detail">
-                            <span class="scr-review-item__detail-label">Помечено:</span> {{ item.flagged_fields.map(f => FIELD_LABELS[f] || f).join(', ') }}
-                        </div>
-                        <div v-if="item.field_comments && Object.keys(item.field_comments).length" class="scr-review-item__comments">
-                            <div v-for="(comment, field) in item.field_comments" :key="field" class="scr-review-item__comment">
-                                <span class="scr-review-item__comment-field">{{ FIELD_LABELS[field] || field }}:</span>
-                                {{ comment }}
-                            </div>
-                        </div>
-                        <div v-if="item.admin_comment" class="scr-review-item__comment scr-review-item__comment--rejection">
-                            <span class="scr-review-item__comment-field">Причина:</span>
-                            {{ item.admin_comment }}
-                        </div>
-                    </div>
+        <!-- Service & Idol Summary -->
+        <div class="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 flex items-center justify-between flex-wrap gap-4">
+            <div class="flex items-center gap-3">
+                <img
+                    v-if="service?.user?.avatar_url"
+                    :src="service.user.avatar_url"
+                    class="w-10 h-10 rounded-full object-cover border border-zinc-700 shrink-0"
+                    alt=""
+                />
+                <div class="min-w-0">
+                    <div class="text-sm font-bold text-zinc-100">{{ service?.user?.name }}</div>
+                    <div class="text-xs text-zinc-400">{{ service?.user?.email }}</div>
                 </div>
             </div>
 
-            <!-- RIGHT: Decision form & Fields -->
-            <div class="scr-right">
+            <div class="flex items-center gap-4 text-xs text-zinc-400">
+                <span>Услуга ID: <strong class="text-zinc-200">#{{ service?.id }}</strong></span>
+                <span>•</span>
+                <Link
+                    :href="route('admin.services.moderation.show', service?.id)"
+                    class="text-violet-400 hover:underline"
+                >
+                    Карточка услуги ↗
+                </Link>
+            </div>
+        </div>
 
-                <!-- Field flags -->
-                <!-- Field flags -->
-                <div class="scr-card">
-                    <h2 class="scr-card__title">Поля (Запрошенные изменения)</h2>
-                    <div v-for="(data, field) in fields" :key="field" class="scr-flag-row" :class="{ 'scr-flag-row--flagged': flaggedFields[field] }">
-                        <div class="scr-flag-header">
-                            <label class="scr-flag-label">
-                                <input type="checkbox" v-model="flaggedFields[field]" class="scr-checkbox" />
-                                <span class="scr-flag-name" :class="{ 'scr-flag-name--flagged': flaggedFields[field] }">
-                                    {{ FIELD_LABELS[field] || field }}
+        <!-- Side-by-Side Diff Table of Fields -->
+        <div class="space-y-4">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                Сравнение изменённых параметров (Diff)
+            </h3>
+
+            <div class="space-y-3">
+                <div
+                    v-for="(data, field) in fields"
+                    :key="field"
+                    class="rounded-xl border transition-all p-4"
+                    :class="[
+                        isChanged(field, data)
+                            ? 'bg-zinc-900/70 border-violet-800/40 shadow-sm'
+                            : 'bg-zinc-900/30 border-zinc-800/80 opacity-70',
+                        flaggedFields[field] ? 'border-amber-600/80 bg-amber-950/10' : ''
+                    ]"
+                >
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-zinc-200">
+                                {{ FIELD_LABELS[field] || field }}
+                            </span>
+                            <span
+                                v-if="isChanged(field, data)"
+                                class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-violet-950 text-violet-300 border border-violet-800"
+                            >
+                                Изменено
+                            </span>
+                        </div>
+
+                        <!-- Flag remark checkbox (only when pending) -->
+                        <div v-if="changeRequest.status === 'pending'" class="flex items-center gap-2">
+                            <label class="inline-flex items-center gap-2 text-xs text-zinc-400 cursor-pointer select-none">
+                                <input
+                                    type="checkbox"
+                                    v-model="flaggedFields[field]"
+                                    class="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-amber-500 focus:ring-amber-500"
+                                    @change="onToggleFlag(field)"
+                                />
+                                <span :class="{ 'text-amber-400 font-semibold': flaggedFields[field] }">
+                                    Есть замечание к полю
                                 </span>
-                                <svg v-if="flaggedFields[field]" class="scr-warn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff7b7b" stroke-width="2.5">
-                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                                    <line x1="12" y1="9" x2="12" y2="13"/>
-                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
-                                </svg>
                             </label>
-                            <span v-if="isChanged(field, data)" class="scr-changed-badge">изменено</span>
                         </div>
-                        
-                        <div class="scr-comp-grid">
-                            <div class="scr-side scr-side--current">
-                                <div class="scr-side__label">Сейчас</div>
-                                <div class="scr-side__val inline-flex items-center gap-1">
-                                    <span>{{ formatValue(field, data, 'current') }}</span>
-                                    <CoinIcon v-if="field === 'price' && data.current !== null && data.current !== undefined" color="blue" size="xs" />
-                                </div>
-                            </div>
-                            <div class="scr-arrow">→</div>
-                            <div class="scr-side scr-side--pending">
-                                <div class="scr-side__label">Станет</div>
-                                <div class="scr-side__val inline-flex items-center gap-1" :class="{ 'scr-val--diff': isChanged(field, data) }">
-                                    <span>{{ formatValue(field, data, 'pending') }}</span>
-                                    <CoinIcon v-if="field === 'price' && data.pending !== null && data.pending !== undefined" color="blue" size="xs" />
-                                </div>
+                    </div>
+
+                    <!-- Comparison Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+                        <!-- Current (Old) -->
+                        <div class="p-3 rounded-lg bg-zinc-950 border border-zinc-800/80 space-y-1">
+                            <span class="text-[10px] uppercase tracking-wider text-zinc-500 block">Было (Текущее):</span>
+                            <div class="text-rose-400/90 whitespace-pre-wrap">
+                                {{ formatValue(field, data, 'current') }}
                             </div>
                         </div>
 
-                        <div v-if="data.admin_comment" class="scr-prev-comment">
-                            Предыдущее замечание: {{ data.admin_comment }}
-                        </div>
-
-                        <div v-if="flaggedFields[field]" class="scr-comment-wrapper">
-                            <textarea
-                                v-model="fieldComments[field]"
-                                class="scr-comment"
-                                rows="2"
-                                placeholder="Комментарий к замечанию..."
-                            />
-                            <div class="scr-presets">
-                                <button v-for="preset in PRESETS[field]" :key="preset" type="button" class="scr-preset-btn" @click="fieldComments[field] = preset">
-                                    + {{ preset }}
-                                </button>
+                        <!-- Pending (New) -->
+                        <div class="p-3 rounded-lg bg-zinc-950 border border-zinc-800/80 space-y-1">
+                            <span class="text-[10px] uppercase tracking-wider text-zinc-500 block">Стало (Предлагаемое):</span>
+                            <div class="text-emerald-400 whitespace-pre-wrap font-semibold">
+                                {{ formatValue(field, data, 'pending') }}
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Decision -->
-                <div class="scr-card scr-card--sticky">
-                    <h2 class="scr-card__title">Решение</h2>
-
-                    <label class="scr-approved-label">
-                        <input type="checkbox" v-model="isApproved" class="scr-checkbox" />
-                        <span>Одобрить изменения</span>
-                    </label>
-
-                    <p v-if="isApproved" class="scr-decision-hint scr-decision-hint--ok">
-                        Изменения будут применены к услуге. <span v-if="hasAnyFlag">При этом айдолу придут ваши замечания.</span>
-                    </p>
-                    <p v-else-if="hasAnyFlag" class="scr-decision-hint">
-                        Есть пометки, но галочка "Одобрить" не стоит — запрос вернется на доработку («Есть замечания»).
-                    </p>
-
-                    <div v-if="errors._" class="scr-err">{{ errors._ }}</div>
-
-                    <div class="scr-actions">
-                        <button
-                            class="scr-submit"
-                            :disabled="!canSubmit || submitting"
-                            @click="submit"
-                        >
-                            {{ submitting ? 'Отправка…' : 'Отправить решение' }}
-                        </button>
-
-                        <!-- Rejection section -->
-                        <div v-if="showReject" class="scr-reject-form">
-                            <textarea
-                                v-model="adminComment"
-                                class="scr-comment"
-                                rows="3"
-                                placeholder="Причина отклонения (увидит пользователь)..."
-                            />
-                            <div class="scr-presets scr-presets--block">
-                                <button v-for="preset in PRESETS.rejection" :key="preset" type="button" class="scr-preset-btn" @click="adminComment = preset">
-                                    + {{ preset }}
-                                </button>
-                            </div>
-                            <div class="scr-reject-btns">
-                                <button class="scr-reject-confirm" :disabled="submitting" @click="reject">
-                                    {{ submitting ? 'Отправка…' : 'Подтвердить отклонение' }}
-                                </button>
-                                <button type="button" class="scr-cancel" @click="showReject = false; adminComment = ''">
-                                    Отмена
-                                </button>
-                            </div>
-                        </div>
-
-                        <button v-else class="scr-reject" :disabled="submitting" @click="showReject = true">
-                            Отклонить изменения
-                        </button>
+                    <!-- Remark input if flagged -->
+                    <div v-if="flaggedFields[field]" class="mt-3 pt-3 border-t border-zinc-800 space-y-1.5">
+                        <label class="text-[11px] font-semibold text-amber-400 block">
+                            Комментарий айдолу по этому полю:
+                        </label>
+                        <input
+                            v-model="fieldComments[field]"
+                            type="text"
+                            class="w-full bg-zinc-950 border border-amber-900/60 rounded-lg p-2.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                            placeholder="Например: Некорректная цена для данного типа услуги..."
+                        />
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Decision Box (When Pending) -->
+        <div v-if="changeRequest.status === 'pending'" class="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-4">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                Принятие решения по запросу
+            </h3>
+
+            <!-- Decision Options -->
+            <div class="space-y-3">
+                <label
+                    class="flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all"
+                    :class="[
+                        isApproved
+                            ? 'bg-emerald-950/20 border-emerald-600/80 text-emerald-300'
+                            : 'bg-zinc-900/40 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                    ]"
+                >
+                    <input
+                        type="radio"
+                        :value="true"
+                        v-model="isApproved"
+                        class="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
+                        @change="Object.keys(flaggedFields).forEach(f => flaggedFields[f] = false)"
+                    />
+                    <div>
+                        <div class="font-bold text-xs text-zinc-100">Одобрить изменения</div>
+                        <div class="text-[11px] text-zinc-400">Все новые значения будут моментально применены к опубликованной услуге</div>
+                    </div>
+                </label>
+
+                <label
+                    class="flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all"
+                    :class="[
+                        hasAnyFlag && !isApproved
+                            ? 'bg-amber-950/20 border-amber-600/80 text-amber-300'
+                            : 'bg-zinc-900/40 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                    ]"
+                >
+                    <input
+                        type="radio"
+                        :value="false"
+                        v-model="isApproved"
+                        class="w-4 h-4 text-amber-500 focus:ring-amber-500"
+                    />
+                    <div>
+                        <div class="font-bold text-xs text-zinc-100">Вернуть на доработку с замечаниями</div>
+                        <div class="text-[11px] text-zinc-400">Отметьте поля выше галочками и укажите конкретные замечания для айдола</div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="flex items-center justify-between pt-3 border-t border-zinc-800">
+                <AdminButton
+                    variant="destructive"
+                    size="sm"
+                    @click="showReject = true"
+                >
+                    Полностью отклонить
+                </AdminButton>
+
+                <AdminButton
+                    :variant="isApproved ? 'success' : 'warning'"
+                    size="md"
+                    :disabled="!canSubmit || submitting"
+                    :loading="submitting"
+                    @click="submitDecision"
+                >
+                    {{ isApproved ? 'Применить и одобрить' : 'Отправить замечания айдолу' }}
+                </AdminButton>
+            </div>
+        </div>
+
+        <!-- Reject Modal -->
+        <AdminModal
+            :show="showReject"
+            title="Отклонить запрос на изменение?"
+            subtitle="Айдол получит уведомление, изменения будут отменены"
+            @close="showReject = false"
+        >
+            <div class="space-y-3">
+                <label class="text-xs font-semibold text-zinc-300">Причина отклонения:</label>
+                <textarea
+                    v-model="adminComment"
+                    rows="3"
+                    class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-rose-500"
+                    placeholder="Укажите причину..."
+                    required
+                />
+            </div>
+
+            <template #footer>
+                <AdminButton variant="ghost" @click="showReject = false">Отмена</AdminButton>
+                <AdminButton
+                    variant="destructive"
+                    :loading="submitting"
+                    :disabled="!adminComment.trim()"
+                    @click="reject"
+                >
+                    Подтвердить отклонение
+                </AdminButton>
+            </template>
+        </AdminModal>
     </div>
 </template>
-
-<style scoped>
-.scr-wrap { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
-
-.scr-back { color: rgba(255,178,239,0.7); text-decoration: none; font-size: 0.88rem; display: inline-block; margin-bottom: 1.25rem; transition: color 0.15s; }
-.scr-back:hover { color: #ffb2ef; }
-
-.scr-warn-icon {
-    display: inline-block;
-    vertical-align: middle;
-    margin-left: 0.4rem;
-}
-
-.scr-layout { display: grid; grid-template-columns: 320px 1fr; gap: 1.25rem; }
-@media (max-width: 900px) { .scr-layout { grid-template-columns: 1fr; } }
-
-.scr-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 10px;
-    padding: 0.9rem 1rem;
-    margin-bottom: 1rem;
-}
-.scr-card__title { font-size: 0.9rem; font-weight: 600; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.85rem; }
-
-.scr-idol-link {
-    text-decoration: none;
-    display: block;
-}
-.scr-idol-link:hover .scr-idol__name {
-    color: #ffb2ef;
-}
-
-.scr-idol { display: flex; align-items: center; gap: 0.75rem; }
-.scr-idol__avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-.scr-idol__avatar--empty { background: rgba(255,178,239,0.15); display: flex; align-items: center; justify-content: center; color: rgba(255,178,239,0.7); font-weight: 600; }
-.scr-idol__name { font-size: 0.95rem; font-weight: 600; color: rgba(255,255,255,0.85); }
-.scr-idol__meta { font-size: 0.8rem; color: rgba(255,255,255,0.4); margin-top: 2px; display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; }
-
-.scr-status { padding: 1px 7px; border-radius: 10px; font-size: 0.75rem; font-weight: 500; }
-.scr-status--pending     { background: rgba(255,178,239,0.15); color: #ffb2ef; }
-.scr-status--approved    { background: rgba(100,210,160,0.15); color: #64d2a0; }
-.scr-status--has_remarks { background: rgba(255,123,123,0.15); color: #ff7b7b; }
-.scr-status--rejected    { background: rgba(239,68,68,0.15); color: #ef4444; }
-
-/* Comparison */
-.scr-comp-row { padding: 0.9rem 0; border-top: 1px solid rgba(255,255,255,0.05); }
-.scr-comp-row:first-of-type { border-top: none; padding-top: 0; }
-.scr-comp-label { font-size: 0.78rem; color: rgba(255,178,239,0.7); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.55rem; }
-
-.scr-comp-grid { display: grid; grid-template-columns: 1fr 32px 1fr; align-items: stretch; gap: 0.6rem; }
-.scr-side { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.04); border-radius: 7px; padding: 0.7rem 0.85rem; display: flex; flex-direction: column; }
-.scr-side__label { font-size: 0.68rem; color: rgba(255,255,255,0.25); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.35rem; font-weight: 600; }
-.scr-side__val { font-size: 0.9rem; color: rgba(255,255,255,0.75); white-space: pre-line; word-break: break-word; }
-.scr-arrow { display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: rgba(255,255,255,0.15); }
-.scr-val--diff { color: #64d2a0 !important; font-weight: 600; }
-
-.scr-prev-comment { margin-top: 0.45rem; font-size: 0.8rem; color: rgba(255,178,100,0.65); font-style: italic; }
-
-/* Flags */
-.scr-flag-row { margin-bottom: 0.75rem; }
-.scr-flag-header { display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap; }
-.scr-flag-label { display: flex; align-items: center; gap: 0.4rem; cursor: pointer; }
-.scr-flag-name { font-size: 0.88rem; color: rgba(255,255,255,0.65); font-weight: 500; transition: color 0.15s; }
-.scr-flag-name--flagged { color: #ff7b7b; }
-.scr-changed-badge { font-size: 0.72rem; font-weight: 600; color: rgba(100,210,160,0.7); background: rgba(100,210,160,0.08); border: 1px solid rgba(100,210,160,0.2); border-radius: 10px; padding: 0 6px; }
-
-.scr-checkbox { accent-color: #ffb2ef; width: 15px; height: 15px; cursor: pointer; }
-
-.scr-comment {
-    width: 100%;
-    box-sizing: border-box;
-    margin-top: 0.5rem;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,100,100,0.25);
-    border-radius: 6px;
-    color: rgba(255,255,255,0.8);
-    font-size: 0.85rem;
-    font-family: inherit;
-    padding: 0.45rem 0.65rem;
-    resize: vertical;
-    outline: none;
-}
-.scr-comment:focus { border-color: rgba(255,100,100,0.5); }
-.scr-comment::placeholder { color: rgba(255,255,255,0.25); }
-
-.scr-approved-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.92rem; color: rgba(255,255,255,0.7); }
-.scr-approved-label--disabled { opacity: 0.35; cursor: not-allowed; }
-.scr-decision-hint { font-size: 0.83rem; color: rgba(255,123,123,0.8); margin: 0.5rem 0 0; }
-.scr-decision-hint--ok { color: rgba(100,210,160,0.8); }
-
-.scr-err { font-size: 0.83rem; color: #ff7b7b; margin-top: 0.4rem; }
-
-.scr-actions { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
-
-.scr-submit {
-    width: 100%;
-    padding: 0.65rem;
-    border-radius: 8px;
-    background: rgba(255,178,239,0.12);
-    border: 1px solid rgba(255,178,239,0.35);
-    color: #ffb2ef;
-    font-size: 0.95rem;
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-.scr-submit:hover:not(:disabled) { background: rgba(255,178,239,0.22); }
-.scr-submit:disabled { opacity: 0.4; cursor: not-allowed; }
-
-.scr-reject-form { display: flex; flex-direction: column; gap: 0.4rem; }
-.scr-reject-btns { display: flex; gap: 0.4rem; }
-
-.scr-reject-confirm {
-    flex: 1;
-    padding: 0.55rem;
-    border-radius: 8px;
-    background: rgba(180,50,50,0.15);
-    border: 1px solid rgba(200,60,60,0.35);
-    color: rgba(255,110,110,0.9);
-    font-size: 0.88rem;
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-.scr-reject-confirm:hover:not(:disabled) { background: rgba(180,50,50,0.25); }
-.scr-reject-confirm:disabled { opacity: 0.4; cursor: not-allowed; }
-
-.scr-reject {
-    width: 100%;
-    padding: 0.55rem;
-    border-radius: 8px;
-    background: rgba(180,50,50,0.1);
-    border: 1px solid rgba(200,60,60,0.3);
-    color: rgba(255,110,110,0.8);
-    font-size: 0.88rem;
-    font-weight: 500;
-    font-family: inherit;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-.scr-reject:hover:not(:disabled) { background: rgba(180,50,50,0.2); }
-.scr-reject:disabled { opacity: 0.4; cursor: not-allowed; }
-
-.scr-cancel {
-    flex: 0 0 auto;
-    padding: 0.45rem 0.85rem;
-    border-radius: 8px;
-    background: transparent;
-    border: 1px solid rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.45);
-    font-size: 0.85rem;
-    font-family: inherit;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-.scr-cancel:hover { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.65); }
-
-/* Review history styles */
-.scr-review-item { padding: 0.6rem 0; border-top: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
-.scr-review-item:first-child { border-top: none; }
-.scr-review-item__header { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-.scr-review-item__date { color: rgba(255,255,255,0.3); font-size: 0.8rem; }
-.scr-review-item__admin { color: rgba(255,255,255,0.35); font-size: 0.8rem; margin-left: auto; }
-.scr-review-item__detail { margin-top: 0.3rem; color: rgba(255,255,255,0.4); font-size: 0.8rem; }
-.scr-review-item__comments { margin-top: 0.35rem; display: flex; flex-direction: column; gap: 0.2rem; }
-.scr-review-item__comment { font-size: 0.8rem; color: rgba(255,255,255,0.45); }
-.scr-review-item__comment-field { color: rgba(255,178,239,0.6); font-weight: 600; margin-right: 0.3rem; }
-.scr-review-item__type { color: rgba(255,255,255,0.25); font-size: 0.78rem; font-weight: 500; }
-.scr-dec--ok     { color: #64d2a0; }
-.scr-dec--bad    { color: #ff7b7b; }
-.scr-dec--reject { color: #ef4444; }
-
-/* ── Enhanced UI/UX Styles ── */
-.scr-presets {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-top: 0.4rem;
-}
-.scr-presets--block {
-    margin-bottom: 0.75rem;
-}
-.scr-preset-btn {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    color: rgba(255,255,255,0.5);
-    font-size: 0.72rem;
-    padding: 3px 8px;
-    cursor: pointer;
-    transition: all 0.15s;
-}
-.scr-preset-btn:hover {
-    background: rgba(255, 178, 239, 0.1);
-    color: #ffb2ef;
-    border-color: rgba(255, 178, 239, 0.25);
-}
-.scr-indicator {
-    font-size: 0.72rem;
-    font-weight: 600;
-    padding: 1px 6px;
-    border-radius: 4px;
-    margin-left: auto;
-}
-.scr-indicator--ok {
-    color: #64d2a0;
-    background: rgba(100,210,160,0.1);
-}
-.scr-indicator--flagged {
-    color: #ffc850;
-    background: rgba(255,200,80,0.1);
-}
-.scr-flag-row {
-    border: 1px solid transparent;
-    border-radius: 8px;
-    padding: 0.5rem;
-    transition: all 0.2s ease;
-    margin-bottom: 0.75rem;
-}
-.scr-flag-row--flagged {
-    border-color: rgba(255,200,80,0.2);
-    background: rgba(255,200,80,0.01);
-}
-.scr-card--sticky {
-    position: sticky;
-    bottom: 1rem;
-    z-index: 100;
-    background: rgba(30, 30, 42, 0.96) !important;
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 178, 239, 0.25) !important;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-}
-.scr-visual-diff {
-    margin-top: 0.75rem;
-    background: rgba(0, 0, 0, 0.25);
-    padding: 0.6rem;
-    border-radius: 6px;
-    border: 1px solid rgba(255,255,255,0.05);
-}
-.scr-chunk--added {
-    background: rgba(100, 240, 150, 0.18);
-    color: #85f0b5;
-    padding: 1px 3px;
-    border-radius: 3px;
-    font-size: 0.85rem;
-}
-.scr-chunk--removed {
-    background: rgba(240, 100, 100, 0.18);
-    color: #ff9a9a;
-    text-decoration: line-through;
-    padding: 1px 3px;
-    border-radius: 3px;
-    font-size: 0.85rem;
-}
-.scr-chunk--normal {
-    font-size: 0.85rem;
-    color: rgba(255,255,255,0.7);
-}
-</style>

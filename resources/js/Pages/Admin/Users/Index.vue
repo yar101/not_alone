@@ -3,15 +3,21 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
 import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
-import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
+import AdminModal from '@/Components/Admin/UI/AdminModal.vue';
 import AdminPagination from '@/Components/Admin/AdminPagination.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
+import {
+    Search, User, Warning, Check, Close, Download, Clock
+} from '@element-plus/icons-vue';
 
 defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
-    users:  Object,
-    filter: Object,
+    users:       Object,
+    total_count: { type: Number, default: 0 },
+    filter:      Object,
 });
 
 // ─── Filters ─────────────────────────────────────────────────────────────────
@@ -77,21 +83,6 @@ function isCooldownActive(cooldownUntil) {
     return cooldownUntil && new Date(cooldownUntil).getTime() > now.value;
 }
 
-// ─── Rating ──────────────────────────────────────────────────────────────────
-function ratingColor(rating) {
-    if (rating === null || rating === undefined) return 'rgba(255,255,255,0.3)';
-    if (rating >= 60) return 'rgba(74,222,128,0.85)';
-    if (rating >= 30) return 'rgba(251,183,64,0.85)';
-    return 'rgba(239,68,68,0.85)';
-}
-
-function ratingBarColor(rating) {
-    if (rating === null || rating === undefined) return 'rgba(255,255,255,0.1)';
-    if (rating >= 60) return 'rgba(74,222,128,0.6)';
-    if (rating >= 30) return 'rgba(251,183,64,0.6)';
-    return 'rgba(239,68,68,0.6)';
-}
-
 // ─── Ban modal ────────────────────────────────────────────────────────────────
 const showBanModal = ref(false);
 const banTarget    = ref(null);
@@ -154,386 +145,275 @@ function unban(userId) {
     }).catch(() => {});
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 function formatDate(dt) {
     if (!dt) return '—';
-    return new Date(dt).toLocaleString('ru', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    return new Date(dt).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 </script>
 
 <template>
-    <div>
+    <div class="space-y-6">
         <!-- Header -->
-        <AdminPageHeader
-            title="Пользователи"
-            :subtitle="`${users.total} аккаунтов зарегистрировано на платформе`"
-        >
-            <template #actions>
-                <a :href="route('admin.export.users')" class="export-link">Экспорт CSV →</a>
-            </template>
-        </AdminPageHeader>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2.5">
+                    <el-icon class="text-violet-400"><User /></el-icon>
+                    <span>Пользователи платформы</span>
+                </h1>
+                <p class="text-xs text-zinc-400 mt-0.5">
+                    Всего зарегистрировано: <span class="font-mono text-zinc-200">{{ (users?.total ?? total_count ?? 0).toLocaleString() }}</span> аккаунтов
+                </p>
+            </div>
+            <div>
+                <a
+                    :href="route('admin.export.users', undefined, false)"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900 text-xs font-medium text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800 transition"
+                    download="users.csv"
+                >
+                    <el-icon><Download /></el-icon>
+                    Экспорт CSV
+                </a>
+            </div>
+        </div>
 
-        <!-- Filters -->
-        <div class="filters-bar">
-            <input
-                v-model="search"
-                @input="applyFilters(false)"
-                class="filter-search"
-                placeholder="Поиск по имени или email..."
-            />
+        <!-- Filter Bar -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            <div class="relative flex-1">
+                <el-icon class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"><Search /></el-icon>
+                <input
+                    v-model="search"
+                    type="text"
+                    placeholder="Поиск по имени или email..."
+                    class="w-full h-9 pl-9 pr-8 rounded-lg border border-zinc-800 bg-zinc-900/80 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
+                    @input="applyFilters(false)"
+                />
+                <button
+                    v-if="search"
+                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 text-xs"
+                    @click="search = ''; applyFilters(true);"
+                >
+                    ✕
+                </button>
+            </div>
 
-            <select v-model="filterIdol" @change="applyFilters(true)" class="filter-select">
-                <option value="">Айдол: все</option>
-                <option value="1">Айдол: да</option>
-                <option value="0">Айдол: нет</option>
+            <select
+                v-model="filterIdol"
+                class="h-9 px-3 rounded-lg border border-zinc-800 bg-zinc-900/80 text-xs text-zinc-200 focus:outline-none focus:border-violet-500"
+                @change="applyFilters(true)"
+            >
+                <option value="">Роль: все</option>
+                <option value="1">Айдолы</option>
+                <option value="0">Клиенты</option>
             </select>
 
-            <select v-model="filterBanned" @change="applyFilters(true)" class="filter-select">
+            <select
+                v-model="filterBanned"
+                class="h-9 px-3 rounded-lg border border-zinc-800 bg-zinc-900/80 text-xs text-zinc-200 focus:outline-none focus:border-violet-500"
+                @change="applyFilters(true)"
+            >
                 <option value="">Статус: все</option>
                 <option value="0">Активные</option>
-                <option value="1">Забаненные</option>
+                <option value="1">Заблокированные</option>
             </select>
 
-            <select v-model="filterGender" @change="applyFilters(true)" class="filter-select">
+            <select
+                v-model="filterGender"
+                class="h-9 px-3 rounded-lg border border-zinc-800 bg-zinc-900/80 text-xs text-zinc-200 focus:outline-none focus:border-violet-500"
+                @change="applyFilters(true)"
+            >
                 <option value="">Пол: все</option>
                 <option value="male">Мужской</option>
                 <option value="female">Женский</option>
             </select>
 
-            <button class="btn-reset" @click="resetFilters">Сбросить</button>
+            <AdminButton variant="ghost" size="sm" @click="resetFilters">
+                Сбросить
+            </AdminButton>
         </div>
 
-        <!-- Table -->
-        <div class="table-wrap">
-            <table class="users-table">
-                <thead>
-                    <tr>
-                        <th>Пользователь</th>
-                        <th>Статус</th>
-                        <th>Рейтинг</th>
-                        <th>Кулдаун</th>
-                        <th>Зарегистрирован</th>
-                        <th>Действия</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="user in users.data" :key="user.id">
-                        <td>
-                            <div class="user-cell">
-                                <img v-if="user.avatar_url" :src="user.avatar_url" class="user-avatar" alt="" />
-                                <div v-else class="user-avatar user-avatar--initials">{{ user.name[0] }}</div>
-                                <div>
-                                    <Link :href="route('admin.users.show', user.id)" class="user-name-link">
-                                        <div class="user-name">{{ user.name }}</div>
-                                    </Link>
-                                    <div class="user-email">{{ user.email }}</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="badges">
-                                <IdolBadge v-if="user.is_idol" />
-                                <span v-if="user.is_banned" class="badge badge--banned">Забанен</span>
-                            </div>
-                        </td>
-                        <td>
-                            <template v-if="user.is_idol">
-                                <div class="rating-cell">
-                                    <span class="rating-num" :style="{ color: ratingColor(user.rating) }">
-                                        {{ user.rating ?? '—' }}
-                                    </span>
-                                    <div class="rating-bar-track">
-                                        <div
-                                            class="rating-bar-fill"
-                                            :style="{
-                                                width: (user.rating ?? 0) + '%',
-                                                background: ratingBarColor(user.rating),
-                                            }"
-                                        />
+        <!-- Users Table -->
+        <div class="rounded-xl border border-zinc-800 bg-zinc-900/60 overflow-hidden backdrop-blur-sm">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="border-b border-zinc-800 bg-zinc-950/40 text-zinc-400">
+                            <th class="py-3 px-4 font-medium">Пользователь</th>
+                            <th class="py-3 px-4 font-medium">Роль / Статус</th>
+                            <th class="py-3 px-4 font-medium">Рейтинг (0–100)</th>
+                            <th class="py-3 px-4 font-medium">Кулдаун квиза</th>
+                            <th class="py-3 px-4 font-medium">Регистрация</th>
+                            <th class="py-3 px-4 font-medium text-right"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-800/60 text-zinc-300">
+                        <tr v-if="!users.data.length">
+                            <td colspan="6" class="py-12 text-center text-zinc-500">
+                                Пользователей не найдено
+                            </td>
+                        </tr>
+                        <tr
+                            v-for="user in users.data"
+                            :key="user.id"
+                            class="hover:bg-zinc-800/30 transition"
+                        >
+                            <!-- User cell -->
+                            <td class="py-3 px-4">
+                                <div class="flex items-center gap-3">
+                                    <img
+                                        v-if="user.avatar_url"
+                                        :src="user.avatar_url"
+                                        class="w-8 h-8 rounded-full object-cover border border-zinc-700"
+                                    />
+                                    <div
+                                        v-else
+                                        class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs"
+                                        :class="user.is_idol ? 'bg-pink-900/40 text-pink-300 border border-pink-500/40' : 'bg-zinc-800 text-zinc-300 border border-zinc-700'"
+                                    >
+                                        {{ user.name?.charAt(0).toUpperCase() }}
+                                    </div>
+                                    <div class="min-w-0">
+                                        <Link
+                                            :href="route('admin.users.show', user.id)"
+                                            class="font-semibold text-zinc-100 hover:text-violet-400 transition truncate block max-w-[160px]"
+                                        >
+                                            {{ user.name }}
+                                        </Link>
+                                        <span class="text-[11px] text-zinc-500 font-mono truncate block max-w-[160px]">{{ user.email }}</span>
                                     </div>
                                 </div>
-                            </template>
-                            <span v-else class="muted-dash">—</span>
-                        </td>
-                        <td class="timer-cell">
-                            <template v-if="isCooldownActive(user.idol_quiz_cooldown_until)">
-                                {{ formatRemaining(user.idol_quiz_cooldown_until) }}
-                            </template>
-                            <span v-else class="muted-dash">—</span>
-                        </td>
-                        <td class="muted">{{ formatDate(user.created_at) }}</td>
-                        <td>
-                            <div class="actions">
-                                <Link :href="route('admin.users.show', user.id)" class="btn-profile">Профиль →</Link>
-                                <button
-                                    v-if="!user.is_banned"
-                                    class="btn-ban"
-                                    @click="openBanModal(user)"
-                                >Забанить</button>
-                                <button
-                                    v-else
-                                    class="btn-unban"
-                                    @click="unban(user.id)"
-                                >Разбанить</button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr v-if="!users.data.length">
-                        <td colspan="6" class="empty-row">Пользователей не найдено</td>
-                    </tr>
-                </tbody>
-            </table>
+                            </td>
+
+                            <!-- Badges -->
+                            <td class="py-3 px-4">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <IdolBadge v-if="user.is_idol" />
+                                    <AdminBadge v-else variant="neutral" size="sm">Клиент</AdminBadge>
+                                    <AdminBadge v-if="user.is_banned" variant="danger" size="sm">Забанен</AdminBadge>
+                                </div>
+                            </td>
+
+                            <!-- Rating bar -->
+                            <td class="py-3 px-4">
+                                <template v-if="user.is_idol">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-mono font-bold text-xs" :class="(user.rating ?? 0) >= 60 ? 'text-emerald-400' : ((user.rating ?? 0) >= 30 ? 'text-amber-400' : 'text-rose-400')">
+                                            {{ user.rating ?? '—' }}
+                                        </span>
+                                        <div class="w-16 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                                            <div
+                                                class="h-full rounded-full transition-all"
+                                                :style="{
+                                                    width: `${Math.min(100, Math.max(0, user.rating ?? 0))}%`,
+                                                    backgroundColor: (user.rating ?? 0) >= 60 ? '#10b981' : ((user.rating ?? 0) >= 30 ? '#f59e0b' : '#ef4444'),
+                                                }"
+                                            ></div>
+                                        </div>
+                                    </div>
+                                </template>
+                                <span v-else class="text-zinc-600">—</span>
+                            </td>
+
+                            <!-- Cooldown -->
+                            <td class="py-3 px-4">
+                                <span
+                                    v-if="isCooldownActive(user.idol_quiz_cooldown_until)"
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono bg-amber-950/40 text-amber-300 border border-amber-800/40"
+                                >
+                                    <el-icon :size="12"><Clock /></el-icon>
+                                    {{ formatRemaining(user.idol_quiz_cooldown_until) }}
+                                </span>
+                                <span v-else class="text-zinc-600">—</span>
+                            </td>
+
+                            <!-- Created At -->
+                            <td class="py-3 px-4 font-mono text-[11px] text-zinc-500 whitespace-nowrap">
+                                {{ formatDate(user.created_at) }}
+                            </td>
+
+                            <!-- Actions -->
+                            <td class="py-3 px-4 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <Link
+                                        :href="route('admin.users.show', user.id)"
+                                        class="px-2.5 py-1 rounded-lg border border-zinc-800 bg-zinc-900 text-[11px] font-medium text-zinc-300 hover:text-white hover:bg-zinc-800 transition"
+                                    >
+                                        Профиль →
+                                    </Link>
+                                    <button
+                                        v-if="!user.is_banned"
+                                        type="button"
+                                        class="px-2.5 py-1 rounded-lg border border-rose-900/40 bg-rose-950/20 text-[11px] font-medium text-rose-300 hover:bg-rose-900/40 transition"
+                                        @click="openBanModal(user)"
+                                    >
+                                        Забанить
+                                    </button>
+                                    <button
+                                        v-else
+                                        type="button"
+                                        class="px-2.5 py-1 rounded-lg border border-emerald-900/40 bg-emerald-950/20 text-[11px] font-medium text-emerald-300 hover:bg-emerald-900/40 transition"
+                                        @click="unban(user.id)"
+                                    >
+                                        Разбанить
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="p-4 border-t border-zinc-800">
+                <AdminPagination :pagination="users" />
+            </div>
         </div>
 
-        <!-- Pagination -->
-        <AdminPagination :pagination="users" />
-
         <!-- Ban Modal -->
-        <Teleport to="body">
-            <div v-if="showBanModal" class="overlay" @click.self="closeBanModal">
-                <div class="modal">
-                    <div class="modal__header">
-                        <span>Заблокировать: {{ banTarget?.name }}</span>
-                        <button class="modal__close" @click="closeBanModal">✕</button>
-                    </div>
-                    <form @submit.prevent="submitBan" class="modal__body">
-                        <div class="field">
-                            <label>Причина *</label>
-                            <div v-if="$page.props.user_ban_reasons?.length" class="ban-reason-presets">
-                                <button
-                                    v-for="r in $page.props.user_ban_reasons"
-                                    :key="r"
-                                    type="button"
-                                    class="preset-tag"
-                                    :class="{ 'preset-tag--active': banForm.reason === r }"
-                                    @click="banForm.reason = r"
-                                >{{ r }}</button>
-                            </div>
-                            <textarea
-                                v-model="banForm.reason"
-                                class="input input--textarea"
-                                rows="3"
-                                maxlength="500"
-                                required
-                                :class="{ 'input--err': banErrors.reason }"
-                            />
-                            <p v-if="banErrors.reason" class="err">{{ banErrors.reason }}</p>
-                        </div>
-                        <div class="field">
-                            <label>Длительность</label>
-                            <div class="presets">
-                                <button
-                                    v-for="p in banPresets"
-                                    :key="p.label"
-                                    type="button"
-                                    class="preset-btn"
-                                    :class="{ 'preset-btn--active': banForm.duration === p.minutes }"
-                                    @click="banForm.duration = p.minutes"
-                                >{{ p.label }}</button>
-                            </div>
-                            <p v-if="banErrors.banned_until" class="err">{{ banErrors.banned_until }}</p>
-                        </div>
-                        <div class="modal__actions">
-                            <button type="button" class="btn-cancel" @click="closeBanModal">Отмена</button>
-                            <button type="submit" class="btn-danger-submit">Заблокировать</button>
-                        </div>
-                    </form>
+        <AdminModal
+            :show="showBanModal"
+            :title="`Блокировка: ${banTarget?.name || ''}`"
+            @close="closeBanModal"
+        >
+            <form @submit.prevent="submitBan" class="space-y-4 text-xs">
+                <div class="space-y-1.5">
+                    <label class="block font-medium text-zinc-300">Причина блокировки <span class="text-rose-400">*</span></label>
+                    <textarea
+                        v-model="banForm.reason"
+                        rows="2"
+                        class="w-full px-3 py-2 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
+                        placeholder="Укажите причину для пользователя и аудита..."
+                        required
+                    ></textarea>
+                    <p v-if="banErrors.reason" class="text-xs text-rose-400">{{ banErrors.reason }}</p>
                 </div>
-            </div>
-        </Teleport>
+
+                <div class="space-y-1.5">
+                    <label class="block font-medium text-zinc-300">Длительность блокировки</label>
+                    <div class="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
+                        <button
+                            v-for="p in banPresets"
+                            :key="p.label"
+                            type="button"
+                            class="px-2 py-1.5 rounded-lg border text-[11px] font-medium transition"
+                            :class="banForm.duration === p.minutes
+                                ? 'border-rose-500/50 bg-rose-500/20 text-rose-300'
+                                : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-zinc-200'"
+                            @click="banForm.duration = p.minutes"
+                        >
+                            {{ p.label }}
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
+                    <AdminButton variant="outline" size="sm" type="button" @click="closeBanModal">
+                        Отмена
+                    </AdminButton>
+                    <AdminButton variant="destructive" size="sm" type="submit">
+                        Заблокировать
+                    </AdminButton>
+                </div>
+            </form>
+        </AdminModal>
     </div>
 </template>
-
-<style scoped>
-/* Header */
-.page-header { display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
-.page-title  { font-size: 1.4rem; color: #fff; margin: 0; }
-.page-count  { font-size: 0.82rem; color: rgba(255,255,255,0.3); }
-.export-link { font-size: 0.78rem; padding: 0.3rem 0.65rem; border: 1px solid rgba(155,110,232,0.3); color: rgba(190,145,255,0.75); text-decoration: none; white-space: nowrap; margin-left: auto; }
-.export-link:hover { background: rgba(155,110,232,0.08); }
-
-/* Filters */
-.filters-bar {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    margin-bottom: 1.25rem;
-    align-items: center;
-}
-.filter-search {
-    flex: 1;
-    min-width: 200px;
-    max-width: 320px;
-    padding: 0.45rem 0.8rem;
-    border: 1px solid rgba(255,255,255,0.12);
-    background: rgba(255,255,255,0.04);
-    color: #fff;
-    font-size: 0.875rem;
-    outline: none;
-    font-family: inherit;
-}
-.filter-search::placeholder { color: rgba(255,255,255,0.25); }
-.filter-search:focus { border-color: rgba(155,110,232,0.6); }
-
-.filter-select {
-    padding: 0.45rem 0.7rem;
-    border: 1px solid rgba(255,255,255,0.12);
-    background: rgba(255,255,255,0.04);
-    color: rgba(255,255,255,0.7);
-    font-size: 0.82rem;
-    outline: none;
-    cursor: pointer;
-    font-family: inherit;
-}
-.filter-select:focus { border-color: rgba(155,110,232,0.6); }
-.filter-select option { background: #1a1a2e; color: #fff; }
-
-.btn-reset {
-    padding: 0.45rem 0.8rem;
-    border: 1px solid rgba(255,255,255,0.12);
-    background: transparent;
-    color: rgba(255,255,255,0.35);
-    font-size: 0.82rem;
-    cursor: pointer;
-    font-family: inherit;
-}
-.btn-reset:hover { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.6); }
-
-/* Table */
-.table-wrap { overflow-x: auto; }
-.users-table { width: 100%; border-collapse: collapse; }
-.users-table th {
-    text-align: left;
-    padding: 0.75rem 1.25rem;
-    font-size: 0.82rem;
-    color: rgba(255,255,255,0.35);
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    border-bottom: 1px solid rgba(255,255,255,0.12);
-    background: rgba(255,255,255,0.025);
-}
-.users-table td {
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid rgba(255,255,255,0.07);
-    vertical-align: middle;
-    font-size: 0.93rem;
-}
-.users-table tr:hover td { background: rgba(255,255,255,0.03); }
-
-.user-cell { display: flex; align-items: center; gap: 0.75rem; }
-.user-avatar {
-    width: 34px; height: 34px; border-radius: 50%; object-fit: cover;
-    background: rgba(155,110,232,0.15); flex-shrink: 0;
-}
-.user-avatar--initials {
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.85rem; font-weight: 600; color: #9B6EE8;
-    border: 1px solid rgba(155,110,232,0.35);
-}
-.user-name-link { text-decoration: none; }
-.user-name-link:hover .user-name { color: #9B6EE8; }
-.user-name  { font-size: 0.9rem; color: rgba(255,255,255,0.88); font-weight: 500; transition: color 0.15s; }
-.user-email { font-size: 0.78rem; color: rgba(255,255,255,0.35); }
-
-.badges { display: flex; gap: 0.3rem; flex-wrap: wrap; }
-.badge {
-    padding: 0.18rem 0.5rem;
-    font-size: 0.7rem;
-    font-weight: 700;
-    white-space: nowrap;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-}
-.badge--banned { background: rgba(239,68,68,0.12);   color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
-
-/* Rating */
-.rating-cell { display: flex; flex-direction: column; gap: 0.25rem; min-width: 80px; }
-.rating-num  { font-size: 1.1rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
-.rating-bar-track { height: 3px; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden; }
-.rating-bar-fill  { height: 100%; border-radius: 99px; transition: width 0.4s ease; }
-
-/* Cooldown timer */
-.timer-cell {
-    font-size: 0.85rem;
-    color: rgba(255,255,255,0.6);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-}
-.muted { color: rgba(255,255,255,0.35); font-size: 0.82rem; }
-.muted-dash { color: rgba(255,255,255,0.2); font-size: 0.85rem; }
-
-/* Actions */
-.actions { display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center; }
-.btn-profile {
-    padding: 0.22rem 0.6rem;
-    font-size: 0.77rem;
-    border: 1px solid rgba(155,110,232,0.35);
-    color: rgba(190,145,255,0.8);
-    text-decoration: none;
-    white-space: nowrap;
-}
-.btn-profile:hover { background: rgba(155,110,232,0.1); }
-.btn-ban {
-    padding: 0.22rem 0.6rem;
-    font-size: 0.77rem;
-    cursor: pointer;
-    border: 1px solid rgba(239,68,68,0.4);
-    color: #f87171;
-    background: rgba(239,68,68,0.07);
-    white-space: nowrap;
-    font-family: inherit;
-}
-.btn-ban:hover  { background: rgba(239,68,68,0.18); }
-.btn-unban {
-    padding: 0.22rem 0.6rem;
-    font-size: 0.77rem;
-    cursor: pointer;
-    border: 1px solid rgba(76,222,143,0.4);
-    color: #4cde8f;
-    background: rgba(76,222,143,0.07);
-    white-space: nowrap;
-    font-family: inherit;
-}
-.btn-unban:hover { background: rgba(76,222,143,0.18); }
-
-.empty-row { text-align: center; color: rgba(255,255,255,0.3); padding: 3rem; }
-
-/* Pagination */
-.pagination { display: flex; gap: 0.25rem; margin-top: 1.5rem; flex-wrap: wrap; }
-.page-link {
-    padding: 0.28rem 0.6rem;
-    border: 1px solid rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.5);
-    font-size: 0.8rem;
-    text-decoration: none;
-    cursor: pointer;
-}
-.page-link--active   { border-color: rgba(155,110,232,0.6); color: #9B6EE8; background: rgba(155,110,232,0.1); }
-.page-link--disabled { opacity: 0.3; pointer-events: none; }
-
-/* Modal */
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.modal { background: #0a0a0f; border: 1px solid rgba(255,255,255,0.12); width: 100%; max-width: 420px; margin: 1rem; max-height: 90vh; overflow-y: auto; }
-.modal__header { display: flex; align-items: center; justify-content: space-between; padding: 0.8rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.07); font-size: 0.88rem; color: rgba(255,255,255,0.85); font-weight: 600; }
-.modal__close { background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 1rem; }
-.modal__body { padding: 1rem; display: flex; flex-direction: column; gap: 0.8rem; }
-.field { display: flex; flex-direction: column; gap: 0.3rem; }
-.field label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: rgba(255,255,255,0.35); }
-.input { padding: 0.45rem 0.7rem; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.85); font-family: inherit; font-size: 0.88rem; outline: none; transition: border-color 0.15s; box-sizing: border-box; width: 100%; }
-.input:focus { border-color: rgba(190,145,255,0.45); }
-.input--err { border-color: rgba(239,68,68,0.5); }
-.input--textarea { resize: vertical; min-height: 72px; }
-.err { font-size: 0.75rem; color: rgba(239,68,68,0.8); margin: 0; }
-.modal__actions { display: flex; justify-content: flex-end; gap: 0.5rem; padding-top: 0.25rem; }
-.btn-cancel { padding: 0.45rem 0.9rem; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: rgba(255,255,255,0.4); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
-.btn-danger-submit { padding: 0.45rem 1rem; border: 1px solid rgba(239,68,68,0.45); background: rgba(239,68,68,0.1); color: rgba(255,255,255,0.9); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
-
-.ban-reason-presets { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.4rem; }
-.preset-tag { padding: 0.22rem 0.6rem; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.5); font-family: inherit; font-size: 0.78rem; cursor: pointer; transition: all 0.15s; }
-.preset-tag:hover { border-color: rgba(155,110,232,0.4); color: rgba(255,255,255,0.8); }
-.preset-tag--active { border-color: rgba(239,68,68,0.5); background: rgba(239,68,68,0.1); color: #f87171; }
-.presets { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-.preset-btn { padding: 0.3rem 0.65rem; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.55); font-family: inherit; font-size: 0.8rem; cursor: pointer; transition: all 0.15s; }
-.preset-btn:hover { border-color: rgba(155,110,232,0.4); color: rgba(255,255,255,0.8); }
-.preset-btn--active { border-color: rgba(239,68,68,0.6); background: rgba(239,68,68,0.12); color: #f87171; }
-</style>

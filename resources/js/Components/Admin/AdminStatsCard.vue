@@ -21,7 +21,7 @@ const props = defineProps({
     },
     badgeType: {
         type: String,
-        default: 'primary',
+        default: 'primary', // primary | success | warning | danger
     },
     accent: {
         type: String,
@@ -34,127 +34,72 @@ const props = defineProps({
 });
 
 const isLink = computed(() => !!props.href);
+
+const badgeClasses = computed(() => {
+    switch (props.badgeType) {
+        case 'success':
+            return 'bg-emerald-950/60 text-emerald-400 border-emerald-800/60';
+        case 'warning':
+            return 'bg-amber-950/60 text-amber-400 border-amber-800/60';
+        case 'danger':
+            return 'bg-rose-950/60 text-rose-400 border-rose-800/60';
+        case 'primary':
+        default:
+            return 'bg-admin-primary-light text-admin-accent border-admin-primary';
+    }
+});
+
+const borderAccent = computed(() => {
+    switch (props.accent) {
+        case 'success':
+            return 'border-l-emerald-500';
+        case 'warning':
+            return 'border-l-amber-500';
+        case 'danger':
+            return 'border-l-rose-500';
+        case 'primary':
+        default:
+            return 'border-l-admin-primary';
+    }
+});
 </script>
 
 <template>
     <component
         :is="isLink ? Link : 'div'"
         :href="href"
-        class="admin-stats-card"
-        :class="[`admin-stats-card--${accent}`, { 'admin-stats-card--clickable': isLink }]"
+        class="flex flex-col justify-between p-5 bg-admin-card border border-admin-subtle rounded-xl transition-all duration-200 select-none border-l-4"
+        :class="[
+            borderAccent,
+            isLink ? 'hover:bg-admin-surface hover:border-admin-theme hover:shadow-lg hover:shadow-black/20 cursor-pointer transform hover:-translate-y-0.5' : ''
+        ]"
     >
-        <div class="card-top">
-            <span class="card-title">{{ title }}</span>
-            <span v-if="badge" class="card-badge" :class="`badge--${badgeType}`">
+        <div class="flex items-center justify-between gap-2 mb-3">
+            <span class="text-xs font-medium uppercase tracking-wider text-zinc-400">
+                {{ title }}
+            </span>
+            <span
+                v-if="badge"
+                class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border"
+                :class="badgeClasses"
+            >
                 {{ badge }}
             </span>
             <slot name="extra" />
         </div>
-        <div class="card-main">
-            <div class="card-value">
+
+        <div class="flex items-baseline justify-between gap-2">
+            <div class="text-2xl font-bold tracking-tight text-zinc-100">
                 {{ typeof value === 'number' ? value.toLocaleString('ru') : value }}
             </div>
-            <slot name="icon" />
+            <div class="text-zinc-500">
+                <slot name="icon" />
+            </div>
         </div>
-        <div v-if="subtitle || $slots.footer" class="card-footer">
-            <span v-if="subtitle" class="card-subtitle">{{ subtitle }}</span>
+
+        <div v-if="subtitle || $slots.footer" class="mt-3 pt-3 border-t border-zinc-800/60 text-xs text-zinc-400 flex items-center justify-between">
+            <span v-if="subtitle">{{ subtitle }}</span>
             <slot name="footer" />
         </div>
     </component>
 </template>
-
-<style scoped>
-.admin-stats-card {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 1.15rem 1.25rem;
-    background: rgba(255, 255, 255, 0.025);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    position: relative;
-    overflow: hidden;
-    text-decoration: none;
-    transition: all 0.2s ease;
-}
-
-.admin-stats-card--clickable {
-    cursor: pointer;
-}
-
-.admin-stats-card--clickable:hover {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(192, 132, 252, 0.3);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-}
-
-.admin-stats-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 3px;
-    height: 100%;
-}
-
-.admin-stats-card--primary::before { background: #9b6ee8; }
-.admin-stats-card--success::before { background: #10b981; }
-.admin-stats-card--warning::before { background: #f59e0b; }
-.admin-stats-card--danger::before { background: #ef4444; }
-.admin-stats-card--info::before { background: #3b82f6; }
-
-.card-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    margin-bottom: 0.65rem;
-}
-
-.card-title {
-    font-size: 0.78rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.card-badge {
-    padding: 0.15rem 0.5rem;
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    border-radius: 4px;
-}
-
-.badge--primary { background: rgba(155, 110, 232, 0.15); color: #c084fc; }
-.badge--success { background: rgba(16, 185, 129, 0.15); color: #34d399; }
-.badge--warning { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
-.badge--danger  { background: rgba(239, 68, 68, 0.15); color: #f87171; }
-
-.card-main {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0.75rem;
-}
-
-.card-value {
-    font-size: 1.85rem;
-    font-weight: 700;
-    color: #fff;
-    letter-spacing: -0.02em;
-    line-height: 1.1;
-}
-
-.card-footer {
-    margin-top: 0.65rem;
-    padding-top: 0.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.card-subtitle {
-    font-size: 0.76rem;
-    color: rgba(255, 255, 255, 0.4);
-}
-</style>

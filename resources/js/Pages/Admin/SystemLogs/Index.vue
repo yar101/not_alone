@@ -1,10 +1,12 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
 import AdminPagination from '@/Components/Admin/AdminPagination.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -59,6 +61,7 @@ function confirmClearLogs() {
     ).then(() => {
         router.delete(route('admin.system-logs.clear'), {
             preserveScroll: true,
+            onSuccess: () => ElMessage.success('Лог-файл очищен'),
         });
     }).catch(() => {});
 }
@@ -72,499 +75,194 @@ function copyToClipboard(text) {
     });
 }
 
-function getLevelBadgeClass(level) {
+function getLevelBadgeVariant(level) {
     const lvl = (level || '').toLowerCase();
-    if (['error', 'critical', 'alert', 'emergency'].includes(lvl)) return 'badge--error';
-    if (['warning', 'warn'].includes(lvl)) return 'badge--warning';
-    if (['info', 'notice'].includes(lvl)) return 'badge--info';
-    return 'badge--debug';
+    if (['error', 'critical', 'alert', 'emergency'].includes(lvl)) return 'danger';
+    if (['warning', 'warn'].includes(lvl)) return 'warning';
+    if (['info', 'notice'].includes(lvl)) return 'info';
+    return 'secondary';
 }
 </script>
 
 <template>
-    <div class="system-logs-page">
+    <div class="space-y-6">
+        <!-- Header -->
         <AdminPageHeader
-            title="Системные логи"
-            :subtitle="`Файл: laravel.log (${stats?.file_size || '0 B'}, изменен: ${stats?.last_modified || '—'})`"
+            title="Системные логи (laravel.log)"
+            :subtitle="`Размер файла: ${stats?.file_size || '0 B'}, последнее обновление: ${stats?.last_modified || '—'}`"
             :count="stats?.counts?.total ?? 0"
         >
             <template #actions>
-                <button class="btn btn-secondary" @click="refreshLogs" title="Обновить список логов">
-                    <span>↻</span>
-                    <span>Обновить</span>
-                </button>
-                <button class="btn btn-danger" @click="confirmClearLogs" title="Очистить файл laravel.log">
-                    <span>🗑</span>
-                    <span>Очистить лог</span>
-                </button>
+                <div class="flex items-center gap-2">
+                    <AdminButton variant="outline" size="sm" @click="refreshLogs">
+                        <svg class="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                        </svg>
+                        Обновить
+                    </AdminButton>
+
+                    <AdminButton variant="danger" size="sm" @click="confirmClearLogs">
+                        <svg class="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                        </svg>
+                        Очистить лог
+                    </AdminButton>
+                </div>
             </template>
         </AdminPageHeader>
 
-        <!-- Stats and Level Filter Tabs -->
-        <div class="filter-strip">
-            <div class="level-tabs">
+        <!-- Filter Strip -->
+        <div class="bg-zinc-900/60 border border-zinc-800 rounded-xl p-3.5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <!-- Level Tabs -->
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
                 <button
-                    class="tab-btn"
-                    :class="{ 'tab-btn--active': currentLevel === 'all' }"
+                    class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
+                    :class="currentLevel === 'all'
+                        ? 'bg-zinc-800 text-zinc-100 border border-zinc-700'
+                        : 'text-zinc-400 hover:text-zinc-200'"
                     @click="applyFilters('all')"
                 >
                     Все
-                    <span class="tab-count">{{ stats?.counts?.total ?? 0 }}</span>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded bg-zinc-950 text-zinc-400">{{ stats?.counts?.total ?? 0 }}</span>
                 </button>
+
                 <button
-                    class="tab-btn tab-btn--error"
-                    :class="{ 'tab-btn--active': currentLevel === 'error' }"
+                    class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
+                    :class="currentLevel === 'error'
+                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                        : 'text-zinc-400 hover:text-zinc-200'"
                     @click="applyFilters('error')"
                 >
                     Ошибки
-                    <span class="tab-count">{{ stats?.counts?.error ?? 0 }}</span>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded bg-zinc-950 text-rose-400">{{ stats?.counts?.error ?? 0 }}</span>
                 </button>
+
                 <button
-                    class="tab-btn tab-btn--warning"
-                    :class="{ 'tab-btn--active': currentLevel === 'warning' }"
+                    class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
+                    :class="currentLevel === 'warning'
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        : 'text-zinc-400 hover:text-zinc-200'"
                     @click="applyFilters('warning')"
                 >
                     Предупреждения
-                    <span class="tab-count">{{ stats?.counts?.warning ?? 0 }}</span>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded bg-zinc-950 text-amber-400">{{ stats?.counts?.warning ?? 0 }}</span>
                 </button>
+
                 <button
-                    class="tab-btn tab-btn--info"
-                    :class="{ 'tab-btn--active': currentLevel === 'info' }"
+                    class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
+                    :class="currentLevel === 'info'
+                        ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                        : 'text-zinc-400 hover:text-zinc-200'"
                     @click="applyFilters('info')"
                 >
                     Инфо
-                    <span class="tab-count">{{ stats?.counts?.info ?? 0 }}</span>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded bg-zinc-950 text-blue-400">{{ stats?.counts?.info ?? 0 }}</span>
                 </button>
+
                 <button
-                    class="tab-btn tab-btn--debug"
-                    :class="{ 'tab-btn--active': currentLevel === 'debug' }"
+                    class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
+                    :class="currentLevel === 'debug'
+                        ? 'bg-zinc-800 text-zinc-300 border border-zinc-700'
+                        : 'text-zinc-400 hover:text-zinc-200'"
                     @click="applyFilters('debug')"
                 >
                     Дебаг
-                    <span class="tab-count">{{ stats?.counts?.debug ?? 0 }}</span>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded bg-zinc-950 text-zinc-400">{{ stats?.counts?.debug ?? 0 }}</span>
                 </button>
             </div>
 
             <!-- Search box -->
-            <form @submit.prevent="applyFilters(currentLevel)" class="search-form">
-                <div class="search-wrap">
+            <form @submit.prevent="applyFilters(currentLevel)" class="flex items-center gap-2">
+                <div class="relative w-full md:w-72">
                     <input
                         v-model="searchQuery"
                         type="text"
-                        placeholder="Поиск по тексту ошибки или стеку..."
-                        class="search-input"
+                        placeholder="Поиск по ошибке или трейсу..."
+                        class="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-3 pr-7 py-1.5 text-xs text-zinc-200 outline-none focus:border-violet-500"
                     />
-                    <button v-if="searchQuery" type="button" class="btn-clear" @click="clearSearch">✕</button>
+                    <button
+                        v-if="searchQuery"
+                        type="button"
+                        class="absolute right-2 top-1.5 text-zinc-500 hover:text-zinc-300 text-xs"
+                        @click="clearSearch"
+                    >
+                        ✕
+                    </button>
                 </div>
-                <button type="submit" class="btn btn-search">Найти</button>
+                <button
+                    type="submit"
+                    class="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-medium transition-colors"
+                >
+                    Найти
+                </button>
             </form>
         </div>
 
-        <!-- Logs Table -->
-        <div class="table-card">
-            <div v-if="!logs.data?.length" class="empty-state">
-                <div class="empty-icon">✓</div>
-                <div class="empty-text">Логи не найдены или файл пуст</div>
+        <!-- Log Entries Card -->
+        <div class="bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden shadow-sm">
+            <div v-if="!logs.data?.length" class="text-center py-16">
+                <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-lg">
+                    ✓
+                </div>
+                <div class="text-sm font-medium text-zinc-300">Лог-файл пуст или записи не найдены</div>
+                <p class="text-xs text-zinc-500 mt-1">Ошибок по текущему фильтру нет</p>
             </div>
 
-            <div v-else class="log-entries">
+            <div v-else class="divide-y divide-zinc-800/70">
                 <div
                     v-for="entry in logs.data"
                     :key="entry.id"
-                    class="log-row"
-                    :class="{ 'log-row--expanded': expandedTraces[entry.id] }"
+                    class="p-4 hover:bg-zinc-800/10 transition-colors space-y-2"
                 >
-                    <div class="log-main">
-                        <div class="log-meta">
-                            <span :class="['level-badge', getLevelBadgeClass(entry.level)]">
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <AdminBadge :variant="getLevelBadgeVariant(entry.level)" size="sm">
                                 {{ entry.level }}
-                            </span>
-                            <span class="log-date">{{ entry.date }}</span>
-                            <span class="log-env">[{{ entry.env }}]</span>
+                            </AdminBadge>
+                            <span class="text-xs font-mono text-zinc-400">{{ entry.date }}</span>
+                            <span class="text-[11px] font-mono text-zinc-500">[{{ entry.env }}]</span>
                         </div>
 
-                        <div class="log-message-wrap">
-                            <div class="log-message">{{ entry.message }}</div>
-                            <div class="log-actions">
-                                <button
-                                    class="action-link"
-                                    @click="copyToClipboard(entry.message)"
-                                    title="Скопировать сообщение"
-                                >
-                                    Копировать
-                                </button>
-                                <button
-                                    v-if="entry.trace"
-                                    class="action-link"
-                                    @click="toggleTrace(entry.id)"
-                                >
-                                    {{ expandedTraces[entry.id] ? 'Скрыть стек ↑' : 'Показать стек ↓' }}
-                                </button>
-                            </div>
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <button
+                                @click="copyToClipboard(entry.message)"
+                                class="text-[11px] text-zinc-400 hover:text-zinc-200 transition-colors"
+                                title="Скопировать текст сообщения"
+                            >
+                                Копировать
+                            </button>
+                            <button
+                                v-if="entry.trace"
+                                @click="toggleTrace(entry.id)"
+                                class="text-[11px] text-violet-400 hover:text-violet-300 transition-colors font-medium"
+                            >
+                                {{ expandedTraces[entry.id] ? 'Скрыть стек ↑' : 'Стек вызовов ↓' }}
+                            </button>
                         </div>
                     </div>
 
+                    <div class="text-xs font-mono text-zinc-200 whitespace-pre-wrap break-all leading-relaxed">
+                        {{ entry.message }}
+                    </div>
+
                     <!-- Expandable Stack Trace -->
-                    <div v-if="entry.trace && expandedTraces[entry.id]" class="log-trace-wrap">
-                        <div class="trace-header">
-                            <span>Стек вызовов (Stack Trace):</span>
+                    <div v-if="entry.trace && expandedTraces[entry.id]" class="mt-3 p-3 bg-zinc-950 border border-zinc-800/80 rounded-lg">
+                        <div class="flex items-center justify-between pb-2 mb-2 border-b border-zinc-800">
+                            <span class="text-[11px] font-semibold uppercase text-zinc-400">Stack Trace:</span>
                             <button
-                                class="action-link"
                                 @click="copyToClipboard(entry.trace)"
-                                title="Скопировать стек ошибки"
+                                class="text-[11px] text-zinc-400 hover:text-zinc-200 transition-colors"
                             >
                                 Скопировать стек
                             </button>
                         </div>
-                        <pre class="log-trace">{{ entry.trace }}</pre>
+                        <pre class="text-[11px] font-mono text-zinc-400 overflow-x-auto max-h-96 leading-relaxed whitespace-pre-wrap">{{ entry.trace }}</pre>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Reusable Pagination -->
         <AdminPagination :pagination="logs" />
     </div>
 </template>
-
-<style scoped>
-.system-logs-page {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-}
-
-/* Filter Strip */
-.filter-strip {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    flex-wrap: wrap;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 0.75rem 1rem;
-}
-
-.level-tabs {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    flex-wrap: wrap;
-}
-
-.tab-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    padding: 0.4rem 0.75rem;
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.6);
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    cursor: pointer;
-    transition: all 0.15s ease;
-    font-family: inherit;
-}
-
-.tab-btn:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.tab-btn--active {
-    color: #fff;
-    font-weight: 600;
-    background: rgba(155, 110, 232, 0.15);
-    border-color: #9b6ee8;
-}
-
-.tab-count {
-    padding: 0.1rem 0.4rem;
-    font-size: 0.7rem;
-    font-weight: 700;
-    border-radius: 9999px;
-    background: rgba(255, 255, 255, 0.08);
-}
-
-.tab-btn--error.tab-btn--active {
-    background: rgba(239, 68, 68, 0.15);
-    border-color: #ef4444;
-    color: #f87171;
-}
-
-.tab-btn--warning.tab-btn--active {
-    background: rgba(245, 158, 11, 0.15);
-    border-color: #f59e0b;
-    color: #fbbf24;
-}
-
-.tab-btn--info.tab-btn--active {
-    background: rgba(59, 130, 246, 0.15);
-    border-color: #3b82f6;
-    color: #60a5fa;
-}
-
-/* Search Box */
-.search-form {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.search-wrap {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.search-input {
-    width: 280px;
-    padding: 0.45rem 0.75rem;
-    font-size: 0.82rem;
-    color: #fff;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    font-family: inherit;
-    outline: none;
-    transition: border-color 0.15s;
-}
-
-.search-input:focus {
-    border-color: #9b6ee8;
-}
-
-.btn-clear {
-    position: absolute;
-    right: 0.5rem;
-    background: none;
-    border: none;
-    color: rgba(255, 255, 255, 0.4);
-    cursor: pointer;
-    font-size: 0.8rem;
-}
-
-.btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    padding: 0.45rem 0.85rem;
-    font-size: 0.82rem;
-    font-weight: 500;
-    border: none;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    font-family: inherit;
-}
-
-.btn-secondary {
-    color: rgba(255, 255, 255, 0.8);
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-}
-
-.btn-danger {
-    color: #f87171;
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.25);
-}
-
-.btn-danger:hover {
-    background: rgba(239, 68, 68, 0.2);
-    border-color: rgba(239, 68, 68, 0.45);
-    color: #fff;
-}
-
-.btn-search {
-    color: #c084fc;
-    background: rgba(155, 110, 232, 0.12);
-    border: 1px solid rgba(155, 110, 232, 0.3);
-}
-
-.btn-search:hover {
-    background: rgba(155, 110, 232, 0.25);
-    color: #fff;
-}
-
-/* Log Table / List */
-.table-card {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    overflow: hidden;
-}
-
-.empty-state {
-    padding: 4rem 2rem;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.empty-icon {
-    font-size: 2rem;
-    color: #10b981;
-}
-
-.empty-text {
-    font-size: 0.95rem;
-    color: rgba(255, 255, 255, 0.4);
-}
-
-.log-entries {
-    display: flex;
-    flex-direction: column;
-    divide-y: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.log-row {
-    padding: 0.9rem 1.25rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    transition: background 0.15s ease;
-}
-
-.log-row:hover {
-    background: rgba(255, 255, 255, 0.02);
-}
-
-.log-row--expanded {
-    background: rgba(255, 255, 255, 0.025);
-}
-
-.log-main {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-}
-
-.log-meta {
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-    font-size: 0.78rem;
-}
-
-.level-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.15rem 0.5rem;
-    font-size: 0.68rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    border-radius: 3px;
-}
-
-.badge--error {
-    background: rgba(239, 68, 68, 0.18);
-    color: #f87171;
-    border: 1px solid rgba(239, 68, 68, 0.35);
-}
-
-.badge--warning {
-    background: rgba(245, 158, 11, 0.18);
-    color: #fbbf24;
-    border: 1px solid rgba(245, 158, 11, 0.35);
-}
-
-.badge--info {
-    background: rgba(59, 130, 246, 0.18);
-    color: #60a5fa;
-    border: 1px solid rgba(59, 130, 246, 0.35);
-}
-
-.badge--debug {
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.log-date {
-    color: rgba(255, 255, 255, 0.55);
-    font-family: monospace;
-}
-
-.log-env {
-    color: rgba(255, 255, 255, 0.3);
-    font-family: monospace;
-}
-
-.log-message-wrap {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-}
-
-.log-message {
-    font-size: 0.88rem;
-    color: #fff;
-    line-height: 1.45;
-    word-break: break-word;
-    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-}
-
-.log-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    flex-shrink: 0;
-}
-
-.action-link {
-    background: none;
-    border: none;
-    padding: 0;
-    font-size: 0.75rem;
-    color: #c084fc;
-    cursor: pointer;
-    font-family: inherit;
-    text-decoration: underline;
-    text-underline-offset: 3px;
-    opacity: 0.75;
-    transition: opacity 0.15s;
-}
-
-.action-link:hover {
-    opacity: 1;
-}
-
-/* Stack Trace */
-.log-trace-wrap {
-    margin-top: 0.75rem;
-    padding: 0.85rem;
-    background: #050508;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 4px;
-}
-
-.trace-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.5rem;
-    font-size: 0.74rem;
-    color: rgba(255, 255, 255, 0.45);
-}
-
-.log-trace {
-    margin: 0;
-    padding: 0.5rem;
-    font-size: 0.76rem;
-    line-height: 1.4;
-    color: rgba(255, 255, 255, 0.7);
-    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-    white-space: pre-wrap;
-    word-break: break-all;
-    max-height: 350px;
-    overflow-y: auto;
-}
-</style>

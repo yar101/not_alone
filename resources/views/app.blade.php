@@ -14,9 +14,26 @@
 
         <title inertia>{{ config('app.name', 'Not Alone') }}</title>
 
+        <!-- Prevent theme & unstyled content flash (FOUC) -->
+        @if(request()->is('admin*'))
+        <script>
+            (function() {
+                try {
+                    var t = localStorage.getItem('admin_theme') || 'violet';
+                    document.documentElement.setAttribute('data-admin-theme', t);
+                } catch (e) {}
+            })();
+        </script>
+        @endif
+        <style>
+            html, body {
+                background-color: #05040a;
+            }
+        </style>
+
         <!-- Scripts -->
         @routes
-        @vite(['resources/js/app.js', "resources/js/Pages/{$page['component']}.vue"])
+        @vite(['resources/css/app.css', 'resources/js/app.js', "resources/js/Pages/{$page['component']}.vue"])
         @inertiaHead
     </head>
     <body class="font-sans antialiased">

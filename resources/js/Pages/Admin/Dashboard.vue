@@ -5,7 +5,13 @@ import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
 import AdminStatsCard from '@/Components/Admin/AdminStatsCard.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
 import { formatMoney } from '@/Utils/money';
+import {
+    List, ScaleToOriginal, Picture, Tickets,
+    Coin, Monitor, Document, TrendCharts, User,
+    ArrowRight
+} from '@element-plus/icons-vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -25,7 +31,7 @@ const maxReg = computed(() => {
 });
 
 function barHeight(count) {
-    return Math.max(4, Math.round((count / maxReg.value) * 100));
+    return Math.max(8, Math.round((count / maxReg.value) * 100));
 }
 
 function formatDate(str) {
@@ -43,15 +49,21 @@ function formatCurrency(val) {
     return formatMoney(val);
 }
 
+const statusVariant = {
+    pending:  'warning',
+    approved: 'success',
+    rejected: 'danger',
+};
+
 const statusLabel = {
-    pending:  { text: 'На рассмотрении', cls: 'status--pending' },
-    approved: { text: 'Одобрена',        cls: 'status--approved' },
-    rejected: { text: 'Отклонена',       cls: 'status--rejected' },
+    pending:  'На рассмотрении',
+    approved: 'Одобрена',
+    rejected: 'Отклонена',
 };
 
 const targetLabel = {
-    all:      'Все',
-    user:     'Пользователь',
+    all:      'Все пользователи',
+    user:     'Лично',
     filtered: 'По фильтру',
 };
 
@@ -122,196 +134,282 @@ function getTargetLink(type, id) {
 </script>
 
 <template>
-    <div class="dashboard-page">
+    <div class="space-y-8 max-w-7xl mx-auto">
+        <!-- Page Header -->
         <AdminPageHeader
             title="Панель управления"
-            subtitle="Операционные очереди, финансовые показатели и аудит действий платформы"
+            subtitle="Операционные очереди, ключевые финансовые показатели и аудит действий платформы"
         >
             <template #actions>
-                <Link :href="route('admin.system-logs.index')" class="header-btn header-btn--subtle">
-                    <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon">
-                        <path fill-rule="evenodd" d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm3.293 1.293a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 01-1.414-1.414L7.586 10 5.293 7.707a1 1 0 010-1.414zM11 12a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd" />
-                    </svg>
-                    Системные логи
+                <Link
+                    :href="route('admin.system-logs.index')"
+                    class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-zinc-100 transition-colors shadow-sm"
+                >
+                    <el-icon :size="14"><Document /></el-icon>
+                    <span>Системные логи</span>
                 </Link>
-                <Link :href="route('admin.logs.index')" class="header-btn header-btn--primary">
-                    <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
-                    </svg>
-                    Журнал аудита
+                <Link
+                    :href="route('admin.logs.index')"
+                    class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium rounded-lg bg-violet-600 hover:bg-violet-500 text-white transition-colors shadow-sm shadow-violet-950/30"
+                >
+                    <el-icon :size="14"><Monitor /></el-icon>
+                    <span>Журнал аудита</span>
                 </Link>
             </template>
         </AdminPageHeader>
 
-        <!-- Operational Attention Grid -->
-        <div class="section-title-row">
-            <h2 class="subheading">Операционные задачи</h2>
-            <span class="subheading-hint">Элементы, требующие внимания модераторов</span>
-        </div>
-        <div class="stats-grid">
-            <AdminStatsCard
-                title="Заявки айдолов"
-                :value="metrics.pending_applications_count"
-                subtitle="Ожидают проверки"
-                :badge="metrics.pending_applications_count > 0 ? 'Требует внимания' : 'Чисто'"
-                :badge-type="metrics.pending_applications_count > 0 ? 'warning' : 'success'"
-                :accent="metrics.pending_applications_count > 0 ? 'warning' : 'default'"
-                :href="route('admin.applications.index')"
-            />
-            <AdminStatsCard
-                title="Открытые споры"
-                :value="metrics.open_disputes_count"
-                subtitle="Конфликты по заказам"
-                :badge="metrics.open_disputes_count > 0 ? 'Срочно' : 'Нет'"
-                :badge-type="metrics.open_disputes_count > 0 ? 'danger' : 'success'"
-                :accent="metrics.open_disputes_count > 0 ? 'danger' : 'default'"
-                :href="route('admin.disputes.index')"
-            />
-            <AdminStatsCard
-                title="Модерация контента"
-                :value="(metrics.pending_content_packs_count || 0) + (metrics.pending_changes_count || 0)"
-                subtitle="Паки и запросы изменений"
-                :badge="(metrics.pending_content_packs_count + metrics.pending_changes_count) > 0 ? 'В очереди' : 'Чисто'"
-                :badge-type="(metrics.pending_content_packs_count + metrics.pending_changes_count) > 0 ? 'warning' : 'success'"
-                :accent="(metrics.pending_content_packs_count + metrics.pending_changes_count) > 0 ? 'warning' : 'default'"
-                :href="route('admin.content-packs.index')"
-            />
-            <AdminStatsCard
-                title="Активные заказы"
-                :value="metrics.active_orders_count"
-                subtitle="Оплачены или выполняются"
-                accent="info"
-                :href="route('admin.orders.index')"
-            />
-        </div>
-
-        <!-- Financial KPI Grid -->
-        <div class="section-title-row" style="margin-top: 2rem;">
-            <h2 class="subheading">Финансовые показатели</h2>
-            <Link :href="route('admin.transactions.index')" class="subheading-link">Все транзакции →</Link>
-        </div>
-        <div class="stats-grid">
-            <AdminStatsCard
-                title="Комиссия платформы"
-                :value="formatCurrency(metrics.platform_fee_total)"
-                subtitle="Чистая прибыль сервиса"
-                accent="success"
-                :href="route('admin.transactions.index', { type: 'platform_fee' })"
-            >
-                <template #icon>
-                    <CoinIcon color="blue" size="sm" />
-                </template>
-            </AdminStatsCard>
-            <AdminStatsCard
-                title="Оборот выплат"
-                :value="formatCurrency(metrics.turnover_total)"
-                subtitle="Выплаты за заказы и паки"
-                accent="primary"
-                :href="route('admin.transactions.index')"
-            >
-                <template #icon>
-                    <CoinIcon color="pink" size="sm" />
-                </template>
-            </AdminStatsCard>
-            <AdminStatsCard
-                title="Пополнения балансов"
-                :value="formatCurrency(metrics.deposits_total)"
-                subtitle="Ввод средств клиентами"
-                accent="primary"
-                :href="route('admin.transactions.index', { type: 'deposit' })"
-            >
-                <template #icon>
-                    <CoinIcon color="blue" size="sm" />
-                </template>
-            </AdminStatsCard>
-            <AdminStatsCard
-                title="Доход с донатов"
-                :value="formatCurrency(metrics.donation_income)"
-                :subtitle="`Оборот: ${formatCurrency(metrics.donation_turnover)}`"
-                accent="success"
-                :href="route('admin.transactions.index', { type: 'donation_sent' })"
-            >
-                <template #icon>
-                    <CoinIcon color="pink" size="sm" />
-                </template>
-            </AdminStatsCard>
-            <AdminStatsCard
-                title="Пользователи платформы"
-                :value="metrics.total_users"
-                :subtitle="`${metrics.total_idols} айдолов`"
-                accent="default"
-                :href="route('admin.users.index')"
-            />
-        </div>
-
-        <!-- Two Column Tables: Applications & Broadcasts -->
-        <div class="tables-row">
-            <!-- Recent applications -->
-            <div class="table-card">
-                <div class="card-header">
-                    <div>
-                        <h3 class="card-title">Последние заявки на айдола</h3>
-                        <p class="card-desc">Кандидаты на статус исполнителя</p>
-                    </div>
-                    <Link :href="route('admin.applications.index')" class="card-link">Все заявки →</Link>
+        <!-- ─── 1. Операционные задачи (Action Center) ────────────────────────── -->
+        <section class="space-y-3">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-400">
+                        Операционные задачи
+                    </h2>
+                    <p class="text-xs text-zinc-500">Элементы платформы, требующие оперативного решения модераторов</p>
                 </div>
-                <div class="table-wrap">
-                    <table class="data-table">
-                        <thead>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <AdminStatsCard
+                    title="Заявки айдолов"
+                    :value="metrics.pending_applications_count"
+                    subtitle="Кандидаты на проверку"
+                    :badge="metrics.pending_applications_count > 0 ? 'Требует внимания' : 'Чисто'"
+                    :badge-type="metrics.pending_applications_count > 0 ? 'warning' : 'success'"
+                    :accent="metrics.pending_applications_count > 0 ? 'warning' : 'primary'"
+                    :href="route('admin.applications.index', { status: 'pending' })"
+                >
+                    <template #icon>
+                        <el-icon :size="20"><List /></el-icon>
+                    </template>
+                </AdminStatsCard>
+
+                <AdminStatsCard
+                    title="Открытые споры"
+                    :value="metrics.open_disputes_count"
+                    subtitle="Конфликты по заказам"
+                    :badge="metrics.open_disputes_count > 0 ? 'Срочно' : 'Нет'"
+                    :badge-type="metrics.open_disputes_count > 0 ? 'danger' : 'success'"
+                    :accent="metrics.open_disputes_count > 0 ? 'danger' : 'primary'"
+                    :href="route('admin.disputes.index')"
+                >
+                    <template #icon>
+                        <el-icon :size="20"><ScaleToOriginal /></el-icon>
+                    </template>
+                </AdminStatsCard>
+
+                <AdminStatsCard
+                    title="Модерация контента"
+                    :value="(metrics.pending_content_packs_count || 0) + (metrics.pending_changes_count || 0)"
+                    subtitle="Паки и запросы изменений"
+                    :badge="(metrics.pending_content_packs_count + metrics.pending_changes_count) > 0 ? 'В очереди' : 'Чисто'"
+                    :badge-type="(metrics.pending_content_packs_count + metrics.pending_changes_count) > 0 ? 'warning' : 'success'"
+                    :accent="(metrics.pending_content_packs_count + metrics.pending_changes_count) > 0 ? 'warning' : 'primary'"
+                    :href="route('admin.content-packs.index')"
+                >
+                    <template #icon>
+                        <el-icon :size="20"><Picture /></el-icon>
+                    </template>
+                </AdminStatsCard>
+
+                <AdminStatsCard
+                    title="Активные заказы"
+                    :value="metrics.active_orders_count"
+                    subtitle="Оплачены или выполняются"
+                    accent="primary"
+                    :href="route('admin.orders.index')"
+                >
+                    <template #icon>
+                        <el-icon :size="20"><Tickets /></el-icon>
+                    </template>
+                </AdminStatsCard>
+            </div>
+        </section>
+
+        <!-- ─── 2. Финансовые показатели платформы ────────────────────────────── -->
+        <section class="space-y-3">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-400">
+                        Финансовые показатели
+                    </h2>
+                    <p class="text-xs text-zinc-500">Доходы сервиса, оборот кошельков и балансы</p>
+                </div>
+                <Link
+                    :href="route('admin.transactions.index')"
+                    class="text-xs font-medium text-violet-400 hover:text-violet-300 transition-colors flex items-center gap-1"
+                >
+                    <span>Все транзакции</span>
+                    <el-icon :size="12"><ArrowRight /></el-icon>
+                </Link>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <AdminStatsCard
+                    title="Комиссия платформы"
+                    :value="formatCurrency(metrics.platform_fee_total)"
+                    subtitle="Чистый доход сервиса (12% + 5%)"
+                    accent="success"
+                    :href="route('admin.transactions.index', { type: 'platform_fee' })"
+                >
+                    <template #icon>
+                        <CoinIcon color="blue" size="sm" />
+                    </template>
+                </AdminStatsCard>
+
+                <AdminStatsCard
+                    title="Оборот выплат"
+                    :value="formatCurrency(metrics.turnover_total)"
+                    subtitle="Выплаты за заказы и паки"
+                    accent="primary"
+                    :href="route('admin.transactions.index')"
+                >
+                    <template #icon>
+                        <CoinIcon color="pink" size="sm" />
+                    </template>
+                </AdminStatsCard>
+
+                <AdminStatsCard
+                    title="Пополнения балансов"
+                    :value="formatCurrency(metrics.deposits_total)"
+                    subtitle="Покупка CoinPack клиентами"
+                    accent="primary"
+                    :href="route('admin.transactions.index', { type: 'deposit' })"
+                >
+                    <template #icon>
+                        <CoinIcon color="blue" size="sm" />
+                    </template>
+                </AdminStatsCard>
+
+                <AdminStatsCard
+                    title="Доход с донатов"
+                    :value="formatCurrency(metrics.donation_income)"
+                    :subtitle="`Оборот: ${formatCurrency(metrics.donation_turnover)}`"
+                    accent="success"
+                    :href="route('admin.transactions.index', { type: 'donation_sent' })"
+                >
+                    <template #icon>
+                        <CoinIcon color="pink" size="sm" />
+                    </template>
+                </AdminStatsCard>
+
+                <AdminStatsCard
+                    title="Пользователи"
+                    :value="metrics.total_users"
+                    :subtitle="`${metrics.total_idols} верифицированных айдолов`"
+                    accent="primary"
+                    :href="route('admin.users.index')"
+                >
+                    <template #icon>
+                        <el-icon :size="20"><User /></el-icon>
+                    </template>
+                </AdminStatsCard>
+            </div>
+        </section>
+
+        <!-- ─── 3. Две таблицы: Заявки и Рассылки ─────────────────────────────── -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Последние заявки -->
+            <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden shadow-sm flex flex-col">
+                <div class="p-4 border-b border-zinc-800 flex items-center justify-between gap-4">
+                    <div>
+                        <h3 class="text-sm font-bold text-zinc-100">Последние заявки на айдола</h3>
+                        <p class="text-xs text-zinc-500">Кандидаты на статус исполнителя</p>
+                    </div>
+                    <Link
+                        :href="route('admin.applications.index')"
+                        class="text-xs font-medium text-violet-400 hover:text-violet-300 transition-colors flex items-center gap-1"
+                    >
+                        <span>Все заявки</span>
+                        <el-icon :size="12"><ArrowRight /></el-icon>
+                    </Link>
+                </div>
+
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-zinc-900/80 text-zinc-500 uppercase tracking-wider font-semibold border-b border-zinc-800/80">
                             <tr>
-                                <th>Пользователь</th>
-                                <th>Статус</th>
-                                <th>Дата</th>
+                                <th class="py-2.5 px-4">Пользователь</th>
+                                <th class="py-2.5 px-4">Статус</th>
+                                <th class="py-2.5 px-4 text-right">Дата</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr v-for="app in recent_applications" :key="app.id">
-                                <td>
-                                    <Link :href="route('admin.applications.show', app.id)" class="item-link">
-                                        {{ app.user.name }}
+                        <tbody class="divide-y divide-zinc-800/60">
+                            <tr
+                                v-for="app in recent_applications"
+                                :key="app.id"
+                                class="hover:bg-zinc-800/40 transition-colors"
+                            >
+                                <td class="py-3 px-4">
+                                    <Link :href="route('admin.applications.show', app.id)" class="font-medium text-zinc-200 hover:text-violet-400 transition-colors">
+                                        {{ app.user?.name ?? 'Пользователь' }}
                                     </Link>
+                                    <div class="text-[11px] text-zinc-500">{{ app.user?.email }}</div>
                                 </td>
-                                <td>
-                                    <span :class="['status-pill', statusLabel[app.status]?.cls]">
-                                        {{ statusLabel[app.status]?.text ?? app.status }}
-                                    </span>
+                                <td class="py-3 px-4">
+                                    <AdminBadge :variant="statusVariant[app.status] || 'neutral'" size="sm">
+                                        {{ statusLabel[app.status] ?? app.status }}
+                                    </AdminBadge>
                                 </td>
-                                <td class="muted">{{ formatDate(app.created_at) }}</td>
+                                <td class="py-3 px-4 text-right text-zinc-500 whitespace-nowrap">
+                                    {{ formatDate(app.created_at) }}
+                                </td>
                             </tr>
                             <tr v-if="!recent_applications?.length">
-                                <td colspan="3" class="empty-cell">Заявок нет</td>
+                                <td colspan="3" class="py-8 text-center text-zinc-500 text-xs">
+                                    Новых заявок пока нет
+                                </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- Recent broadcasts -->
-            <div class="table-card">
-                <div class="card-header">
+            <!-- Последние рассылки -->
+            <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden shadow-sm flex flex-col">
+                <div class="p-4 border-b border-zinc-800 flex items-center justify-between gap-4">
                     <div>
-                        <h3 class="card-title">Последние рассылки</h3>
-                        <p class="card-desc">Массовые уведомления пользователям</p>
+                        <h3 class="text-sm font-bold text-zinc-100">Последние рассылки</h3>
+                        <p class="text-xs text-zinc-500">Массовые уведомления пользователям</p>
                     </div>
-                    <Link :href="route('admin.messages.index')" class="card-link">Все рассылки →</Link>
+                    <Link
+                        :href="route('admin.messages.index')"
+                        class="text-xs font-medium text-violet-400 hover:text-violet-300 transition-colors flex items-center gap-1"
+                    >
+                        <span>Все рассылки</span>
+                        <el-icon :size="12"><ArrowRight /></el-icon>
+                    </Link>
                 </div>
-                <div class="table-wrap">
-                    <table class="data-table">
-                        <thead>
+
+                <div class="overflow-x-auto flex-1">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-zinc-900/80 text-zinc-500 uppercase tracking-wider font-semibold border-b border-zinc-800/80">
                             <tr>
-                                <th>Заголовок</th>
-                                <th>Аудитория</th>
-                                <th>Дата</th>
+                                <th class="py-2.5 px-4">Заголовок</th>
+                                <th class="py-2.5 px-4">Аудитория</th>
+                                <th class="py-2.5 px-4 text-right">Дата</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr v-for="b in recent_broadcasts" :key="b.id">
-                                <td class="broadcast-cell font-medium">{{ b.title_text }}</td>
-                                <td class="muted">{{ targetLabel[b.target] ?? b.target }}</td>
-                                <td class="muted">{{ formatDate(b.created_at) }}</td>
+                        <tbody class="divide-y divide-zinc-800/60">
+                            <tr
+                                v-for="b in recent_broadcasts"
+                                :key="b.id"
+                                class="hover:bg-zinc-800/40 transition-colors"
+                            >
+                                <td class="py-3 px-4 font-medium text-zinc-200">
+                                    {{ b.title_text }}
+                                </td>
+                                <td class="py-3 px-4 text-zinc-400">
+                                    {{ targetLabel[b.target] ?? b.target }}
+                                </td>
+                                <td class="py-3 px-4 text-right text-zinc-500 whitespace-nowrap">
+                                    {{ formatDate(b.created_at) }}
+                                </td>
                             </tr>
                             <tr v-if="!recent_broadcasts?.length">
-                                <td colspan="3" class="empty-cell">Рассылок нет</td>
+                                <td colspan="3" class="py-8 text-center text-zinc-500 text-xs">
+                                    Рассылок не отправлялось
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -319,49 +417,66 @@ function getTargetLink(type, id) {
             </div>
         </div>
 
-        <!-- Recent Admin Audit Logs Feed -->
-        <div class="table-card" style="margin-top: 1.5rem;" v-if="recent_admin_logs?.length">
-            <div class="card-header">
+        <!-- ─── 4. Лента оперативного аудита действий администраторов ─────────── -->
+        <div v-if="recent_admin_logs?.length" class="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden shadow-sm">
+            <div class="p-4 border-b border-zinc-800 flex items-center justify-between gap-4">
                 <div>
-                    <h3 class="card-title">Лента действий администраторов</h3>
-                    <p class="card-desc">Оперативный аудит последних изменений в панели управления</p>
+                    <h3 class="text-sm font-bold text-zinc-100">Лента действий администраторов</h3>
+                    <p class="text-xs text-zinc-500">Оперативный аудит последних изменений в панели управления</p>
                 </div>
-                <Link :href="route('admin.logs.index')" class="card-link">Полный журнал аудита →</Link>
+                <Link
+                    :href="route('admin.logs.index')"
+                    class="text-xs font-medium text-violet-400 hover:text-violet-300 transition-colors flex items-center gap-1"
+                >
+                    <span>Полный журнал аудита</span>
+                    <el-icon :size="12"><ArrowRight /></el-icon>
+                </Link>
             </div>
-            <div class="table-wrap">
-                <table class="data-table">
-                    <thead>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-zinc-900/80 text-zinc-500 uppercase tracking-wider font-semibold border-b border-zinc-800/80">
                         <tr>
-                            <th>Дата / Время</th>
-                            <th>Администратор</th>
-                            <th>Действие</th>
-                            <th>Объект</th>
+                            <th class="py-2.5 px-4 whitespace-nowrap">Дата / Время</th>
+                            <th class="py-2.5 px-4">Администратор</th>
+                            <th class="py-2.5 px-4">Действие</th>
+                            <th class="py-2.5 px-4">Объект</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr v-for="log in recent_admin_logs" :key="log.id">
-                            <td class="muted nowrap">{{ formatDate(log.created_at) }}</td>
-                            <td class="font-medium">
-                                <span class="admin-badge">{{ log.admin?.name || 'Система' }}</span>
+                    <tbody class="divide-y divide-zinc-800/60">
+                        <tr
+                            v-for="log in recent_admin_logs"
+                            :key="log.id"
+                            class="hover:bg-zinc-800/40 transition-colors"
+                        >
+                            <td class="py-3 px-4 text-zinc-500 whitespace-nowrap">
+                                {{ formatDate(log.created_at) }}
                             </td>
-                            <td>
-                                <span class="action-tag">
+                            <td class="py-3 px-4 font-semibold text-zinc-200">
+                                {{ log.admin?.name || 'Система' }}
+                            </td>
+                            <td class="py-3 px-4">
+                                <span class="text-zinc-300">
                                     {{ ACTION_LABELS[log.action] || log.action }}
                                 </span>
                             </td>
-                            <td>
+                            <td class="py-3 px-4">
                                 <template v-if="log.target_type">
-                                    <span class="target-badge">{{ TARGET_TYPE_LABELS[log.target_type] || log.target_type }}</span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-800 border border-zinc-700 text-zinc-300 mr-2">
+                                        {{ TARGET_TYPE_LABELS[log.target_type] || log.target_type }}
+                                    </span>
                                     <Link
                                         v-if="getTargetLink(log.target_type, log.target_id)"
                                         :href="getTargetLink(log.target_type, log.target_id)"
-                                        class="target-link"
+                                        class="font-mono text-violet-400 hover:underline"
                                     >
                                         #{{ log.target_id }} ↗
                                     </Link>
-                                    <span v-else-if="log.target_id" class="target-id">#{{ log.target_id }}</span>
+                                    <span v-else-if="log.target_id" class="font-mono text-zinc-500">
+                                        #{{ log.target_id }}
+                                    </span>
                                 </template>
-                                <span v-else class="muted">—</span>
+                                <span v-else class="text-zinc-600">—</span>
                             </td>
                         </tr>
                     </tbody>
@@ -369,91 +484,123 @@ function getTargetLink(type, id) {
             </div>
         </div>
 
-        <!-- Analytics sections -->
-        <div class="analytics-row" style="margin-top: 1.5rem;">
-            <!-- Registrations chart -->
-            <div class="table-card">
-                <div class="card-header">
-                    <div>
-                        <h3 class="card-title">Регистрации за 14 дней</h3>
-                        <p class="card-desc">Динамика новых пользователей платформы</p>
+        <!-- ─── 5. Аналитика: График регистраций и Квиз ───────────────────────── -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- График регистраций -->
+            <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5 shadow-sm space-y-4">
+                <div>
+                    <h3 class="text-sm font-bold text-zinc-100">Регистрации за 14 дней</h3>
+                    <p class="text-xs text-zinc-500">Динамика притока новых пользователей</p>
+                </div>
+
+                <div v-if="registrations_by_day?.length" class="flex items-end gap-2 h-44 pt-4 pb-2 px-1 border-b border-zinc-800">
+                    <div
+                        v-for="day in registrations_by_day"
+                        :key="day.date"
+                        class="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group cursor-pointer"
+                        :title="`${day.date}: ${day.count} рег.`"
+                    >
+                        <span class="text-[10px] text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {{ day.count }}
+                        </span>
+                        <div
+                            class="w-full max-w-[20px] rounded-t bg-violet-600/70 group-hover:bg-violet-500 transition-all duration-200"
+                            :style="{ height: barHeight(day.count) + '%' }"
+                        />
+                        <span class="text-[10px] text-zinc-500 font-mono">
+                            {{ new Date(day.date).getDate() }}
+                        </span>
                     </div>
                 </div>
-                <div class="card-body">
-                    <div class="bar-chart" v-if="registrations_by_day?.length">
-                        <div
-                            v-for="day in registrations_by_day"
-                            :key="day.date"
-                            class="bar-col"
-                            :title="`${day.date}: ${day.count}`"
-                        >
-                            <div class="bar-fill" :style="{ height: barHeight(day.count) + '%' }"></div>
-                            <div class="bar-label">{{ new Date(day.date).getDate() }}</div>
-                        </div>
-                    </div>
-                    <div v-else class="empty-cell">Нет данных</div>
+                <div v-else class="py-12 text-center text-xs text-zinc-500">
+                    Нет данных за выбранный период
                 </div>
             </div>
 
-            <!-- Quiz funnel -->
-            <div class="table-card" v-if="quiz_stats">
-                <div class="card-header">
-                    <div>
-                        <h3 class="card-title">Воронка квиза айдолов</h3>
-                        <p class="card-desc">Статистика прохождения квалификационного теста</p>
+            <!-- Воронка квиза айдолов -->
+            <div v-if="quiz_stats" class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5 shadow-sm space-y-4">
+                <div>
+                    <h3 class="text-sm font-bold text-zinc-100">Воронка квиза айдолов</h3>
+                    <p class="text-xs text-zinc-500">Статистика прохождения квалификационного тестирования</p>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="bg-zinc-900 border border-zinc-800 p-3 rounded-lg text-center">
+                        <div class="text-xl font-bold text-zinc-100">{{ quiz_stats.total }}</div>
+                        <div class="text-[11px] text-zinc-500 mt-0.5">Всего сессий</div>
+                    </div>
+                    <div class="bg-emerald-950/30 border border-emerald-900/50 p-3 rounded-lg text-center">
+                        <div class="text-xl font-bold text-emerald-400">{{ quiz_stats.passed }}</div>
+                        <div class="text-[11px] text-emerald-500 mt-0.5">Сдали тест</div>
+                    </div>
+                    <div class="bg-rose-950/30 border border-rose-900/50 p-3 rounded-lg text-center">
+                        <div class="text-xl font-bold text-rose-400">{{ quiz_stats.failed }}</div>
+                        <div class="text-[11px] text-rose-500 mt-0.5">Провалили</div>
                     </div>
                 </div>
-                <div class="card-body">
-                    <div class="quiz-stats">
-                        <div class="quiz-stat">
-                            <div class="quiz-stat__value">{{ quiz_stats.total }}</div>
-                            <div class="quiz-stat__label">Всего сессий</div>
-                        </div>
-                        <div class="quiz-stat">
-                            <div class="quiz-stat__value quiz-stat__value--pass">{{ quiz_stats.passed }}</div>
-                            <div class="quiz-stat__label">Пройдено</div>
-                        </div>
-                        <div class="quiz-stat">
-                            <div class="quiz-stat__value quiz-stat__value--fail">{{ quiz_stats.failed }}</div>
-                            <div class="quiz-stat__label">Провалено</div>
-                        </div>
+
+                <div class="pt-2">
+                    <div class="flex items-center justify-between text-xs text-zinc-400 mb-1.5 font-medium">
+                        <span>Процент успешной сдачи</span>
+                        <span class="text-emerald-400 font-bold">{{ quiz_stats.pass_rate }}%</span>
                     </div>
-                    <div class="quiz-rate">
-                        <span>Процент успешного прохождения:</span>
-                        <strong class="quiz-rate-val">{{ quiz_stats.pass_rate }}%</strong>
+                    <div class="w-full bg-zinc-800 h-2.5 rounded-full overflow-hidden">
+                        <div
+                            class="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                            :style="{ width: `${quiz_stats.pass_rate}%` }"
+                        />
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Top idols -->
-        <div class="table-card" v-if="top_idols?.length" style="margin-top: 1.5rem;">
-            <div class="card-header">
+        <!-- ─── 6. Топ-5 айдолов по рейтингу ──────────────────────────────────── -->
+        <div v-if="top_idols?.length" class="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden shadow-sm">
+            <div class="p-4 border-b border-zinc-800 flex items-center justify-between gap-4">
                 <div>
-                    <h3 class="card-title">Топ-5 айдолов по рейтингу</h3>
-                    <p class="card-desc">Лидеры платформы по удовлетворенности клиентов</p>
+                    <h3 class="text-sm font-bold text-zinc-100">Топ-5 айдолов по рейтингу</h3>
+                    <p class="text-xs text-zinc-500">Лидеры платформы по качеству и оценкам клиентов</p>
                 </div>
-                <Link :href="route('admin.users.index', { is_idol: 1 })" class="card-link">Все айдолы →</Link>
+                <Link
+                    :href="route('admin.users.index', { is_idol: 1 })"
+                    class="text-xs font-medium text-violet-400 hover:text-violet-300 transition-colors flex items-center gap-1"
+                >
+                    <span>Все айдолы</span>
+                    <el-icon :size="12"><ArrowRight /></el-icon>
+                </Link>
             </div>
-            <div class="table-wrap">
-                <table class="data-table">
-                    <thead>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-zinc-900/80 text-zinc-500 uppercase tracking-wider font-semibold border-b border-zinc-800/80">
                         <tr>
-                            <th style="width: 40px;">#</th>
-                            <th>Айдол</th>
-                            <th>Рейтинг</th>
+                            <th class="py-2.5 px-4 w-12 text-center">#</th>
+                            <th class="py-2.5 px-4">Айдол</th>
+                            <th class="py-2.5 px-4">Рейтинг (0–100)</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr v-for="(idol, i) in top_idols" :key="i">
-                            <td class="muted">{{ i + 1 }}</td>
-                            <td class="font-medium">{{ idol.name }}</td>
-                            <td>
-                                <div class="top-rating-row">
-                                    <span class="top-rating-val">{{ idol.rating ?? '—' }}</span>
-                                    <div class="top-rating-bar">
-                                        <div class="top-rating-fill" :style="{ width: (idol.rating ?? 0) + '%' }"></div>
+                    <tbody class="divide-y divide-zinc-800/60">
+                        <tr
+                            v-for="(idol, i) in top_idols"
+                            :key="i"
+                            class="hover:bg-zinc-800/40 transition-colors"
+                        >
+                            <td class="py-3 px-4 text-center font-bold text-zinc-500">
+                                {{ i + 1 }}
+                            </td>
+                            <td class="py-3 px-4 font-semibold text-zinc-100">
+                                {{ idol.name }}
+                            </td>
+                            <td class="py-3 px-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-32 bg-zinc-800 h-2 rounded-full overflow-hidden">
+                                        <div
+                                            class="h-full rounded-full"
+                                            :class="idol.rating >= 60 ? 'bg-emerald-400' : (idol.rating >= 30 ? 'bg-amber-400' : 'bg-rose-400')"
+                                            :style="{ width: `${Math.min(100, Math.max(0, idol.rating))}%` }"
+                                        />
                                     </div>
+                                    <span class="font-mono font-bold text-zinc-200">{{ Number(idol.rating).toFixed(1) }}</span>
                                 </div>
                             </td>
                         </tr>
@@ -463,392 +610,3 @@ function getTargetLink(type, id) {
         </div>
     </div>
 </template>
-
-<style scoped>
-.dashboard-page {
-    display: flex;
-    flex-direction: column;
-}
-
-.section-title-row {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    margin-bottom: 0.85rem;
-}
-
-.subheading {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #fff;
-    margin: 0;
-    letter-spacing: 0.02em;
-}
-
-.subheading-hint {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
-}
-
-.subheading-link {
-    font-size: 0.8rem;
-    color: #9B6EE8;
-    text-decoration: none;
-    transition: color 0.15s;
-}
-
-.subheading-link:hover {
-    color: #B593F5;
-}
-
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.header-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.5rem 0.85rem;
-    border-radius: 8px;
-    font-size: 0.82rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.15s ease;
-}
-
-.btn-icon {
-    width: 1rem;
-    height: 1rem;
-}
-
-.header-btn--subtle {
-    background: rgba(255, 255, 255, 0.05);
-    color: rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.header-btn--subtle:hover {
-    background: rgba(255, 255, 255, 0.09);
-    color: #fff;
-}
-
-.header-btn--primary {
-    background: linear-gradient(135deg, rgba(155, 110, 232, 0.25), rgba(124, 77, 255, 0.35));
-    color: #D6BCFA;
-    border: 1px solid rgba(155, 110, 232, 0.4);
-}
-
-.header-btn--primary:hover {
-    background: linear-gradient(135deg, rgba(155, 110, 232, 0.4), rgba(124, 77, 255, 0.5));
-    color: #fff;
-}
-
-.tables-row, .analytics-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.25rem;
-}
-
-.table-card {
-    background: #0D0D18;
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-.card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.85rem 1.15rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(255, 255, 255, 0.015);
-}
-
-.card-title {
-    font-size: 0.88rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.9);
-    margin: 0;
-}
-
-.card-desc {
-    font-size: 0.72rem;
-    color: rgba(255, 255, 255, 0.4);
-    margin: 0.15rem 0 0;
-}
-
-.card-link {
-    font-size: 0.78rem;
-    color: rgba(155, 110, 232, 0.8);
-    text-decoration: none;
-    transition: color 0.15s;
-    white-space: nowrap;
-}
-
-.card-link:hover {
-    color: #B593F5;
-}
-
-.card-body {
-    padding: 1.15rem;
-}
-
-.table-wrap {
-    overflow-x: auto;
-}
-
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.data-table th {
-    text-align: left;
-    padding: 0.55rem 1.15rem;
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.35);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    font-weight: 600;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.data-table td {
-    padding: 0.65rem 1.15rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    font-size: 0.82rem;
-    color: rgba(255, 255, 255, 0.8);
-}
-
-.data-table tr:last-child td {
-    border-bottom: none;
-}
-
-.item-link {
-    color: #fff;
-    font-weight: 500;
-    text-decoration: none;
-}
-
-.item-link:hover {
-    color: #9B6EE8;
-}
-
-.status-pill {
-    display: inline-block;
-    font-size: 0.68rem;
-    font-weight: 600;
-    padding: 0.15rem 0.5rem;
-    border-radius: 9999px;
-    white-space: nowrap;
-}
-
-.status--pending {
-    background: rgba(234, 179, 8, 0.12);
-    color: #FACC15;
-    border: 1px solid rgba(234, 179, 8, 0.25);
-}
-
-.status--approved {
-    background: rgba(34, 197, 94, 0.12);
-    color: #4ADE80;
-    border: 1px solid rgba(34, 197, 94, 0.25);
-}
-
-.status--rejected {
-    background: rgba(239, 68, 68, 0.12);
-    color: #F87171;
-    border: 1px solid rgba(239, 68, 68, 0.25);
-}
-
-.action-tag {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.85);
-}
-
-.admin-badge {
-    display: inline-block;
-    padding: 0.15rem 0.45rem;
-    background: rgba(155, 110, 232, 0.1);
-    color: #D6BCFA;
-    border-radius: 4px;
-    font-size: 0.75rem;
-}
-
-.target-badge {
-    display: inline-block;
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.45);
-    background: rgba(255, 255, 255, 0.05);
-    padding: 0.1rem 0.35rem;
-    border-radius: 4px;
-    margin-right: 0.35rem;
-}
-
-.target-link {
-    color: #9B6EE8;
-    text-decoration: none;
-    font-size: 0.76rem;
-    font-weight: 600;
-}
-
-.target-link:hover {
-    color: #B593F5;
-    text-decoration: underline;
-}
-
-.target-id {
-    font-size: 0.76rem;
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.muted {
-    color: rgba(255, 255, 255, 0.4);
-}
-
-.nowrap {
-    white-space: nowrap;
-}
-
-.font-medium {
-    font-weight: 500;
-}
-
-.empty-cell {
-    text-align: center;
-    padding: 1.5rem !important;
-    color: rgba(255, 255, 255, 0.3);
-    font-size: 0.8rem;
-}
-
-/* Registrations chart */
-.bar-chart {
-    display: flex;
-    align-items: flex-end;
-    gap: 0.4rem;
-    height: 100px;
-    padding-top: 0.5rem;
-}
-
-.bar-col {
-    flex: 1;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 0.25rem;
-}
-
-.bar-fill {
-    width: 100%;
-    background: linear-gradient(180deg, #9B6EE8 0%, rgba(155, 110, 232, 0.2) 100%);
-    border-radius: 3px 3px 0 0;
-    min-height: 4px;
-    transition: opacity 0.15s;
-}
-
-.bar-col:hover .bar-fill {
-    opacity: 0.8;
-}
-
-.bar-label {
-    font-size: 0.65rem;
-    color: rgba(255, 255, 255, 0.3);
-}
-
-/* Quiz stats */
-.quiz-stats {
-    display: flex;
-    gap: 1.5rem;
-    margin-bottom: 0.85rem;
-}
-
-.quiz-stat {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-}
-
-.quiz-stat__value {
-    font-size: 1.35rem;
-    font-weight: 700;
-    color: #fff;
-    line-height: 1;
-}
-
-.quiz-stat__value--pass {
-    color: #4ADE80;
-}
-
-.quiz-stat__value--fail {
-    color: #F87171;
-}
-
-.quiz-stat__label {
-    font-size: 0.72rem;
-    color: rgba(255, 255, 255, 0.4);
-}
-
-.quiz-rate {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.6);
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-}
-
-.quiz-rate-val {
-    color: #9B6EE8;
-    font-size: 0.95rem;
-}
-
-/* Top idols */
-.top-rating-row {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.top-rating-val {
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: #fff;
-    min-width: 2rem;
-}
-
-.top-rating-bar {
-    flex: 1;
-    max-width: 180px;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 9999px;
-    overflow: hidden;
-}
-
-.top-rating-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #9B6EE8, #4ADE80);
-    border-radius: 9999px;
-}
-
-@media (max-width: 1200px) {
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    .tables-row, .analytics-row {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 640px) {
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-}
-</style>

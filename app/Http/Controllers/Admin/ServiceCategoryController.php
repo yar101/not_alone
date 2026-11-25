@@ -15,14 +15,21 @@ class ServiceCategoryController extends Controller
 {
     public function index(): Response
     {
-        return Inertia::render('Admin/Services/Index', [
+        return Inertia::render('Admin/Services/Categories', [
             'categories' => ServiceCategory::orderBy('sort_order')->get()->map(fn ($c) => array_merge(
                 $c->toArray(),
                 [
+                    'name' => $c->getTranslation('name', 'ru') ?: $c->name,
                     'name_ru' => $c->getTranslation('name', 'ru'),
                     'name_en' => $c->getTranslation('name', 'en', false) ?: '',
+                    'description' => $c->getTranslation('description', 'ru', false) ?: '',
                     'description_ru' => $c->getTranslation('description', 'ru', false) ?: '',
                     'description_en' => $c->getTranslation('description', 'en', false) ?: '',
+                    'name_suggestions' => is_array($c->name_suggestions)
+                        ? (isset($c->name_suggestions['ru']) || isset($c->name_suggestions['en'])
+                            ? array_values(array_unique(array_merge($c->name_suggestions['ru'] ?? [], $c->name_suggestions['en'] ?? [])))
+                            : array_values($c->name_suggestions))
+                        : [],
                     'name_suggestions_ru' => $c->name_suggestions['ru'] ?? [],
                     'name_suggestions_en' => $c->name_suggestions['en'] ?? [],
                 ]

@@ -16,7 +16,7 @@ class ServicePriceLimitController extends Controller
 {
     public function index(): Response
     {
-        return Inertia::render('Admin/Services/Index', [
+        return Inertia::render('Admin/Services/PriceLimits', [
             'limits' => ServicePriceLimit::with('category')->get()->map(fn ($l) => [
                 'id' => $l->id,
                 'category_id' => $l->category_id,

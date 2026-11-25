@@ -2,7 +2,11 @@
 import { ref } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
+import AdminModal from '@/Components/Admin/UI/AdminModal.vue';
 import AdminPagination from '@/Components/Admin/AdminPagination.vue';
+import { Warning, Check, Close, Document } from '@element-plus/icons-vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -32,7 +36,7 @@ function switchStatus(status) {
 
 function formatDate(dt) {
     if (!dt) return '—';
-    return new Date(dt).toLocaleString('ru', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+    return new Date(dt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
 // Review / Dismiss modals
@@ -40,8 +44,9 @@ const showModal    = ref(false);
 const modalAction  = ref('review');
 const modalTarget  = ref(null);
 const adminNote    = ref('');
+const submitting   = ref(false);
 
-function openModal(report, action) {
+function openActionModal(report, action) {
     modalTarget.value  = report;
     modalAction.value  = action;
     adminNote.value    = '';
@@ -53,165 +58,201 @@ function closeModal() {
 }
 
 function submitModal() {
+    submitting.value = true;
     const routeName = modalAction.value === 'review' ? 'admin.reports.review' : 'admin.reports.dismiss';
     router.patch(route(routeName, modalTarget.value.id), {
         admin_note: adminNote.value || null,
     }, {
         preserveScroll: false,
         onSuccess: closeModal,
+        onFinish: () => { submitting.value = false; },
     });
+}
+
+function getReportBadgeVariant(status) {
+    switch (status) {
+        case 'pending': return 'warning';
+        case 'reviewed': return 'success';
+        case 'dismissed': return 'neutral';
+        default: return 'neutral';
+    }
 }
 </script>
 
 <template>
-    <div>
-        <h1 class="page-title">Жалобы</h1>
+    <div class="space-y-6">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2.5">
+                    <el-icon class="text-amber-400"><Warning /></el-icon>
+                    <span>Жалобы пользователей</span>
+                </h1>
+                <p class="text-xs text-zinc-400 mt-0.5">
+                    Модерация пользовательских репортов на спам, мошенничество и неприемлемый контент
+                </p>
+            </div>
+        </div>
 
         <!-- Status tabs -->
-        <div class="tabs-nav">
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
             <button
                 v-for="t in STATUS_TABS"
                 :key="t.key"
-                class="tab-btn"
-                :class="{ 'tab-btn--active': (filter_status ?? '') === t.key }"
+                class="px-3 py-1.5 rounded-lg border text-xs font-medium transition"
+                :class="(filter_status ?? '') === t.key
+                    ? 'border-violet-500/50 bg-violet-500/15 text-violet-300'
+                    : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-zinc-200'"
                 @click="switchStatus(t.key)"
-            >{{ t.label }}</button>
+            >
+                {{ t.label }}
+            </button>
         </div>
 
-        <div class="table-wrap">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Отправитель</th>
-                        <th>На пользователя</th>
-                        <th>Причина</th>
-                        <th>Описание</th>
-                        <th>Статус</th>
-                        <th>Дата</th>
-                        <th>Действия</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="r in reports.data" :key="r.id" class="row-link" @click="router.visit(route('admin.reports.show', r.id))">
-                        <td>
-                            <div class="mini-user">
-                                <div>{{ r.reporter?.name ?? '—' }}</div>
-                                <div class="muted">{{ r.reporter?.email ?? '' }}</div>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="mini-user" v-if="r.reported">
-                                <Link :href="route('admin.users.show', r.reported.id)" class="user-link" @click.stop>{{ r.reported.name }}</Link>
-                                <div class="muted">{{ r.reported.email }}</div>
-                            </div>
-                            <span v-else class="muted">—</span>
-                        </td>
-                        <td>{{ REASON_LABELS[r.reason] ?? r.reason }}</td>
-                        <td class="details-cell">{{ r.details ? r.details.slice(0, 80) + (r.details.length > 80 ? '…' : '') : '—' }}</td>
-                        <td>
-                            <span :class="['status-badge', r.status === 'pending' ? 'status--pending' : r.status === 'reviewed' ? 'status--approved' : 'status--rejected']">
-                                {{ r.status === 'pending' ? 'Ожидает' : r.status === 'reviewed' ? 'Рассмотрена' : 'Отклонена' }}
-                            </span>
-                        </td>
-                        <td class="muted">{{ formatDate(r.created_at) }}</td>
-                        <td>
-                            <div class="actions" v-if="r.status === 'pending'" @click.stop>
-                                <button class="btn-approve" @click="openModal(r, 'review')">Рассмотреть</button>
-                                <button class="btn-danger"  @click="openModal(r, 'dismiss')">Отклонить</button>
-                            </div>
-                            <Link
-                                v-else
-                                :href="route('admin.reports.show', r.id)"
-                                class="btn-view"
-                                @click.stop
-                            >Подробнее →</Link>
-                        </td>
-                    </tr>
-                    <tr v-if="!reports.data.length">
-                        <td colspan="7" class="empty-row">Жалоб нет</td>
-                    </tr>
-                </tbody>
-            </table>
+        <!-- Table -->
+        <div class="rounded-xl border border-zinc-800 bg-zinc-900/60 overflow-hidden backdrop-blur-sm">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="border-b border-zinc-800 bg-zinc-950/40 text-zinc-400">
+                            <th class="py-3 px-4 font-medium">Отправитель</th>
+                            <th class="py-3 px-4 font-medium">На пользователя</th>
+                            <th class="py-3 px-4 font-medium">Причина</th>
+                            <th class="py-3 px-4 font-medium">Описание</th>
+                            <th class="py-3 px-4 font-medium">Статус</th>
+                            <th class="py-3 px-4 font-medium">Дата</th>
+                            <th class="py-3 px-4 font-medium text-right"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-800/60 text-zinc-300">
+                        <tr v-if="!reports.data?.length">
+                            <td colspan="7" class="py-12 text-center text-zinc-500">
+                                Жалоб в выбранной категории нет
+                            </td>
+                        </tr>
+                        <tr
+                            v-for="r in reports.data"
+                            :key="r.id"
+                            class="hover:bg-zinc-800/30 transition cursor-pointer"
+                            @click="router.visit(route('admin.reports.show', r.id))"
+                        >
+                            <!-- Reporter -->
+                            <td class="py-3 px-4" @click.stop>
+                                <Link
+                                    v-if="r.reporter"
+                                    :href="route('admin.users.show', r.reporter.id)"
+                                    class="font-medium text-zinc-200 hover:text-violet-400 block"
+                                >
+                                    {{ r.reporter.name }}
+                                </Link>
+                                <span class="text-[11px] text-zinc-500 font-mono">{{ r.reporter?.email || '—' }}</span>
+                            </td>
+
+                            <!-- Reported User -->
+                            <td class="py-3 px-4" @click.stop>
+                                <Link
+                                    v-if="r.reported"
+                                    :href="route('admin.users.show', r.reported.id)"
+                                    class="font-medium text-zinc-200 hover:text-violet-400 block"
+                                >
+                                    {{ r.reported.name }}
+                                </Link>
+                                <span class="text-[11px] text-zinc-500 font-mono">{{ r.reported?.email || '—' }}</span>
+                            </td>
+
+                            <!-- Reason -->
+                            <td class="py-3 px-4">
+                                <AdminBadge variant="warning" size="sm">
+                                    {{ REASON_LABELS[r.reason] || r.reason }}
+                                </AdminBadge>
+                            </td>
+
+                            <!-- Details -->
+                            <td class="py-3 px-4 max-w-[200px] truncate text-zinc-300" :title="r.details">
+                                {{ r.details || '—' }}
+                            </td>
+
+                            <!-- Status -->
+                            <td class="py-3 px-4">
+                                <AdminBadge :variant="getReportBadgeVariant(r.status)" size="sm">
+                                    {{ r.status === 'pending' ? 'Ожидает' : (r.status === 'reviewed' ? 'Рассмотрена' : 'Отклонена') }}
+                                </AdminBadge>
+                            </td>
+
+                            <!-- Created At -->
+                            <td class="py-3 px-4 font-mono text-[11px] text-zinc-500 whitespace-nowrap">
+                                {{ formatDate(r.created_at) }}
+                            </td>
+
+                            <!-- Actions -->
+                            <td class="py-3 px-4 text-right whitespace-nowrap" @click.stop>
+                                <div class="flex items-center justify-end gap-1.5">
+                                    <Link
+                                        :href="route('admin.reports.show', r.id)"
+                                        class="px-2 py-1 rounded border border-zinc-800 bg-zinc-900 text-zinc-300 hover:text-white text-[11px] transition"
+                                    >
+                                        Обзор →
+                                    </Link>
+                                    <template v-if="r.status === 'pending'">
+                                        <button
+                                            type="button"
+                                            class="px-2 py-1 rounded border border-emerald-900/40 bg-emerald-950/20 text-emerald-400 hover:bg-emerald-900/40 text-[11px] transition"
+                                            @click="openActionModal(r, 'review')"
+                                        >
+                                            Принять
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="px-2 py-1 rounded border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200 text-[11px] transition"
+                                            @click="openActionModal(r, 'dismiss')"
+                                        >
+                                            Отклонить
+                                        </button>
+                                    </template>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="p-4 border-t border-zinc-800">
+                <AdminPagination :pagination="reports" />
+            </div>
         </div>
 
-        <AdminPagination :pagination="reports" />
+        <!-- Action Modal -->
+        <AdminModal
+            :show="showModal"
+            :title="modalAction === 'review' ? 'Подтверждение рассмотрения жалобы' : 'Отклонение жалобы'"
+            @close="closeModal"
+        >
+            <div class="space-y-4 text-xs">
+                <div class="space-y-1.5">
+                    <label class="block font-medium text-zinc-300">Заметка администратора (необязательно)</label>
+                    <textarea
+                        v-model="adminNote"
+                        rows="3"
+                        class="w-full px-3 py-2 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
+                        placeholder="Укажите комментарий для аудита..."
+                    ></textarea>
+                </div>
 
-        <!-- Modal -->
-        <Teleport to="body">
-            <div v-if="showModal" class="overlay" @click.self="closeModal">
-                <div class="modal">
-                    <div class="modal__header">
-                        <span>{{ modalAction === 'review' ? 'Рассмотреть жалобу' : 'Отклонить жалобу' }}</span>
-                        <button class="modal__close" @click="closeModal">✕</button>
-                    </div>
-                    <form @submit.prevent="submitModal" class="modal__body">
-                        <div class="field">
-                            <label>Заметка администратора (необязательно)</label>
-                            <textarea v-model="adminNote" class="input input--textarea" rows="3" maxlength="1000" />
-                        </div>
-                        <div class="modal__actions">
-                            <button type="button" class="btn-cancel" @click="closeModal">Отмена</button>
-                            <button type="submit" class="btn-submit">Подтвердить</button>
-                        </div>
-                    </form>
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
+                    <AdminButton variant="outline" size="sm" type="button" @click="closeModal">
+                        Отмена
+                    </AdminButton>
+                    <AdminButton
+                        :variant="modalAction === 'review' ? 'primary' : 'destructive'"
+                        size="sm"
+                        :loading="submitting"
+                        @click="submitModal"
+                    >
+                        {{ modalAction === 'review' ? 'Подтвердить рассмотрение' : 'Отклонить жалобу' }}
+                    </AdminButton>
                 </div>
             </div>
-        </Teleport>
+        </AdminModal>
     </div>
 </template>
-
-<style scoped>
-.page-title { font-size: 1.4rem; color: #fff; margin: 0 0 1.25rem; }
-
-.tabs-nav { display: flex; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 1.5rem; }
-.tab-btn { padding: 0.6rem 1.25rem; background: none; border: none; border-bottom: 2px solid transparent; color: rgba(255,255,255,0.4); font-size: 0.88rem; cursor: pointer; font-family: inherit; transition: color 0.15s; margin-bottom: -1px; }
-.tab-btn:hover { color: rgba(255,255,255,0.75); }
-.tab-btn--active { color: #9B6EE8; border-bottom-color: #9B6EE8; }
-
-.table-wrap { overflow-x: auto; }
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th { text-align: left; padding: 0.75rem 1.25rem; font-size: 0.82rem; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.07em; border-bottom: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.025); }
-.data-table td { padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.07); font-size: 0.93rem; color: rgba(255,255,255,0.75); vertical-align: middle; }
-.data-table tr:hover td { background: rgba(255,255,255,0.03); }
-.row-link { cursor: pointer; }
-
-.mini-user { display: flex; flex-direction: column; gap: 0.15rem; }
-.user-link { color: rgba(255,255,255,0.85); text-decoration: none; font-size: 0.85rem; }
-.user-link:hover { color: #9B6EE8; }
-.muted { color: rgba(255,255,255,0.35); font-size: 0.78rem; }
-.details-cell { max-width: 260px; font-size: 0.82rem; color: rgba(255,255,255,0.4); }
-.empty-row { text-align: center; color: rgba(255,255,255,0.25); padding: 2.5rem; }
-
-.status-badge { font-size: 0.68rem; padding: 0.12rem 0.45rem; font-weight: 700; white-space: nowrap; letter-spacing: 0.03em; text-transform: uppercase; }
-.status--pending  { background: rgba(251,183,64,0.1); color: #fbb740; border: 1px solid rgba(251,183,64,0.25); }
-.status--approved { background: rgba(74,222,128,0.1); color: #4ade80; border: 1px solid rgba(74,222,128,0.25); }
-.status--rejected { background: rgba(239,68,68,0.1);  color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
-
-.actions { display: flex; gap: 0.4rem; }
-.btn-view { padding: 0.28rem 0.65rem; border: 1px solid rgba(155,110,232,0.35); background: rgba(155,110,232,0.07); color: rgba(190,145,255,0.8); font-family: inherit; font-size: 0.77rem; text-decoration: none; white-space: nowrap; }
-.btn-view:hover { background: rgba(155,110,232,0.18); }
-.btn-approve { padding: 0.28rem 0.65rem; border: 1px solid rgba(76,222,143,0.4); background: rgba(76,222,143,0.07); color: #4cde8f; font-family: inherit; font-size: 0.77rem; cursor: pointer; }
-.btn-approve:hover { background: rgba(76,222,143,0.18); }
-.btn-danger { padding: 0.28rem 0.65rem; border: 1px solid rgba(239,68,68,0.4); background: rgba(239,68,68,0.07); color: #f87171; font-family: inherit; font-size: 0.77rem; cursor: pointer; }
-.btn-danger:hover { background: rgba(239,68,68,0.18); }
-
-.pagination { display: flex; gap: 0.25rem; margin-top: 1.5rem; flex-wrap: wrap; }
-.page-link { padding: 0.28rem 0.6rem; border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); font-size: 0.8rem; text-decoration: none; cursor: pointer; }
-.page-link--active   { border-color: rgba(155,110,232,0.6); color: #9B6EE8; background: rgba(155,110,232,0.1); }
-.page-link--disabled { opacity: 0.3; pointer-events: none; }
-
-/* Modal */
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.modal { background: #0a0a0f; border: 1px solid rgba(255,255,255,0.12); width: 100%; max-width: 420px; margin: 1rem; max-height: 90vh; overflow-y: auto; }
-.modal__header { display: flex; align-items: center; justify-content: space-between; padding: 0.8rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.07); font-size: 0.88rem; color: rgba(255,255,255,0.85); font-weight: 600; }
-.modal__close { background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 1rem; }
-.modal__body { padding: 1rem; display: flex; flex-direction: column; gap: 0.8rem; }
-.field { display: flex; flex-direction: column; gap: 0.3rem; }
-.field label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: rgba(255,255,255,0.35); }
-.input { padding: 0.45rem 0.7rem; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.85); font-family: inherit; font-size: 0.88rem; outline: none; transition: border-color 0.15s; box-sizing: border-box; width: 100%; }
-.input:focus { border-color: rgba(190,145,255,0.45); }
-.input--textarea { resize: vertical; min-height: 72px; }
-.modal__actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
-.btn-cancel { padding: 0.45rem 0.9rem; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: rgba(255,255,255,0.4); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
-.btn-submit { padding: 0.45rem 1rem; border: 1px solid rgba(190,145,255,0.45); background: rgba(190,145,255,0.1); color: rgba(255,255,255,0.9); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
-</style>

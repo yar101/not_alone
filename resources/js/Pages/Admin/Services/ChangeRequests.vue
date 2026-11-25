@@ -1,7 +1,13 @@
 <script setup>
 import { router, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
 import AdminPagination from '@/Components/Admin/AdminPagination.vue';
+import AdminTable from '@/Components/Admin/UI/AdminTable.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import ServicesNavTabs from '@/Components/Admin/ServicesNavTabs.vue';
+import { ArrowRight, View } from '@element-plus/icons-vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -9,151 +15,138 @@ const props = defineProps({
     requests: Object,
 });
 
-function switchTab(tab) {
-    if (tab === 'categories')   router.visit(route('admin.services.categories.index'),   { preserveState: false });
-    if (tab === 'time-units')   router.visit(route('admin.services.time-units.index'),   { preserveState: false });
-    if (tab === 'price-limits') router.visit(route('admin.services.price-limits.index'), { preserveState: false });
-    if (tab === 'moderation')   router.visit(route('admin.services.moderation.index'),   { preserveState: false });
-    if (tab === 'change-requests') router.visit(route('admin.services.change-requests.index'), { preserveState: false });
-}
+const statusVariant = {
+    pending:     'warning',
+    has_remarks: 'info',
+    approved:    'success',
+    rejected:    'danger',
+};
+
+const statusLabel = {
+    pending:     'На рассмотрении',
+    has_remarks: 'Есть замечания',
+    approved:    'Одобрен',
+    rejected:    'Отклонён',
+};
+
+const FIELD_LABELS = {
+    name:         'Название',
+    name_ru:      'Название (RU)',
+    name_en:      'Название (EN)',
+    price:        'Цена',
+    category_id:  'Категория',
+    time_unit_id: 'Единица времени',
+};
 </script>
 
 <template>
-    <div>
-        <!-- Tabs -->
-        <div class="tabs-nav">
-            <button class="tab-btn" @click="switchTab('categories')">Категории</button>
-            <button class="tab-btn" @click="switchTab('time-units')">Ед. времени</button>
-            <button class="tab-btn" @click="switchTab('price-limits')">Лимиты цен</button>
-            <button class="tab-btn" @click="switchTab('moderation')">Модерация</button>
-            <button class="tab-btn tab-btn--active" @click="switchTab('change-requests')">Изменения</button>
-        </div>
+    <div class="space-y-6 max-w-7xl mx-auto">
+        <!-- Sub-navigation Tabs -->
+        <ServicesNavTabs active="change-requests" />
 
-        <div class="page-header">
-            <h1 class="page-title">Запросы на изменение услуг</h1>
-        </div>
+        <!-- Header -->
+        <AdminPageHeader
+            title="Запросы на изменение услуг"
+            subtitle="Модерация правок, внесённых айдолами в ранее опубликованные услуги (цены, названия, категории)"
+            :count="requests?.total"
+        />
 
-        <div class="table-wrap">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Айдол</th>
-                        <th>Услуга</th>
-                        <th>Поля</th>
-                        <th>Статус</th>
-                        <th>Дата</th>
-                        <th>Действия</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="r in requests.data" :key="r.id">
-                        <td>
-                            <div class="mod-user-cell">
-                                <img v-if="r.service?.user?.avatar_url" :src="r.service.user.avatar_url" class="mod-avatar" alt="" />
-                                <div>
-                                    <div class="mod-name">{{ r.service?.user?.name || '—' }}</div>
-                                    <div class="mod-email">{{ r.service?.user?.email || '' }}</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td>{{ r.service?.name || '—' }}</td>
-                        <td>
-                            <div class="changed-fields">
-                                <span v-for="f in r.changed_fields" :key="f" class="field-tag">{{ f }}</span>
-                            </div>
-                        </td>
-                        <td>
-                            <span :class="['badge', `badge--${r.status}`]">
-                                {{ r.status === 'pending' ? 'Ожидает' : r.status === 'has_remarks' ? 'Замечания' : r.status === 'approved' ? 'Одобрено' : 'Отклонено' }}
-                            </span>
-                        </td>
-                        <td>{{ new Date(r.created_at).toLocaleDateString('ru') }}</td>
-                        <td>
-                            <div class="actions">
-                                <Link :href="route('admin.services.change-requests.show', r.id)" class="btn-edit">Проверить</Link>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr v-if="!requests.data.length">
-                        <td colspan="6" class="empty-row">Запросов нет</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <!-- Data Table -->
+        <AdminTable :empty="!requests.data?.length" empty-title="Запросов на изменение не найдено">
+            <template #header>
+                <tr>
+                    <th class="py-3 px-4">Айдол</th>
+                    <th class="py-3 px-4">Услуга</th>
+                    <th class="py-3 px-4">Изменяемые поля</th>
+                    <th class="py-3 px-4">Статус</th>
+                    <th class="py-3 px-4">Дата запроса</th>
+                    <th class="py-3 px-4 text-right">Действия</th>
+                </tr>
+            </template>
 
-        <AdminPagination :pagination="requests" />
+            <tr
+                v-for="r in requests.data"
+                :key="r.id"
+                class="hover:bg-zinc-800/40 transition-colors cursor-pointer group"
+                @click="router.visit(route('admin.services.change-requests.show', r.id))"
+            >
+                <!-- Idol -->
+                <td class="py-3 px-4">
+                    <div class="flex items-center gap-2.5" v-if="r.service?.user">
+                        <img
+                            v-if="r.service.user.avatar_url"
+                            :src="r.service.user.avatar_url"
+                            class="w-8 h-8 rounded-full object-cover shrink-0 border border-zinc-700/60"
+                            alt=""
+                        />
+                        <div
+                            v-else
+                            class="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-xs text-zinc-300 shrink-0"
+                        >
+                            {{ r.service.user.name?.[0] }}
+                        </div>
+
+                        <div class="min-w-0">
+                            <div class="font-semibold text-zinc-100 group-hover:text-violet-300 transition-colors">
+                                {{ r.service.user.name }}
+                            </div>
+                            <div class="text-xs text-zinc-400 truncate">
+                                {{ r.service.user.email }}
+                            </div>
+                        </div>
+                    </div>
+                    <span v-else class="text-zinc-500">—</span>
+                </td>
+
+                <!-- Service -->
+                <td class="py-3 px-4">
+                    <div class="font-medium text-zinc-200">
+                        {{ r.service?.name || '—' }}
+                    </div>
+                    <div class="text-[11px] text-zinc-500">ID услуги: #{{ r.service?.id }}</div>
+                </td>
+
+                <!-- Changed Fields -->
+                <td class="py-3 px-4">
+                    <div class="flex flex-wrap gap-1.5">
+                        <span
+                            v-for="field in r.changed_fields"
+                            :key="field"
+                            class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono bg-violet-950/60 border border-violet-800/60 text-violet-300"
+                        >
+                            {{ FIELD_LABELS[field] || field }}
+                        </span>
+                    </div>
+                </td>
+
+                <!-- Status -->
+                <td class="py-3 px-4">
+                    <AdminBadge :variant="statusVariant[r.status] || 'neutral'" dot size="sm">
+                        {{ statusLabel[r.status] ?? r.status }}
+                    </AdminBadge>
+                </td>
+
+                <!-- Date -->
+                <td class="py-3 px-4 text-xs text-zinc-400 whitespace-nowrap">
+                    {{ new Date(r.created_at).toLocaleDateString('ru', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
+                </td>
+
+                <!-- Actions -->
+                <td class="py-3 px-4 text-right whitespace-nowrap" @click.stop>
+                    <AdminButton
+                        variant="secondary"
+                        size="sm"
+                        @click="router.visit(route('admin.services.change-requests.show', r.id))"
+                    >
+                        <template #icon><el-icon><View /></el-icon></template>
+                        Проверить
+                    </AdminButton>
+                </td>
+            </tr>
+
+            <template #footer>
+                <AdminPagination :pagination="requests" />
+            </template>
+        </AdminTable>
     </div>
 </template>
-
-<style scoped>
-/* Tabs */
-.tabs-nav {
-    display: flex;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    margin-bottom: 1.5rem;
-}
-.tab-btn {
-    padding: 0.6rem 1.25rem;
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    color: rgba(255,255,255,0.4);
-    font-size: 0.88rem;
-    cursor: pointer;
-    font-family: inherit;
-    transition: color 0.15s;
-    margin-bottom: -1px;
-}
-.tab-btn:hover { color: rgba(255,255,255,0.75); }
-.tab-btn--active { color: #9B6EE8; border-bottom-color: #9B6EE8; }
-
-/* Header */
-.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
-.page-title  { font-size: 1.4rem; color: #fff; margin: 0; }
-
-/* Table */
-.table-wrap { overflow-x: auto; }
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th {
-    text-align: left;
-    padding: 0.75rem 1.25rem;
-    font-size: 0.82rem;
-    color: rgba(255,255,255,0.35);
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    border-bottom: 1px solid rgba(255,255,255,0.12);
-    background: rgba(255,255,255,0.025);
-}
-.data-table td {
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid rgba(255,255,255,0.07);
-    color: rgba(255,255,255,0.8);
-    font-size: 0.93rem;
-}
-.data-table tr:hover td { background: rgba(255,255,255,0.03); }
-.empty-row { text-align: center; color: rgba(255,255,255,0.25); padding: 2rem; }
-
-.badge { padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.72rem; font-weight: 600; }
-.badge--pending  { background: rgba(251,146,60,0.12); color: rgba(251,146,60,0.9); }
-.badge--approved { background: rgba(74,222,128,0.1);  color: rgba(74,222,128,0.8); }
-.badge--rejected { background: rgba(239,68,68,0.1);   color: rgba(239,68,68,0.7); }
-.badge--has_remarks { background: #fff3e0; color: #ef6c00; border: 1px solid #ffe0b2; }
-
-.actions { display: flex; gap: 0.5rem; }
-.btn-edit { padding: 0.3rem 0.7rem; border-radius: 3px; font-size: 0.78rem; cursor: pointer; font-family: inherit; transition: background 0.15s; border: 1px solid rgba(255,255,255,0.15); background: transparent; color: rgba(255,255,255,0.6); text-decoration: none; }
-.btn-edit:hover { background: rgba(255,255,255,0.08); }
-
-.mod-user-cell { display: flex; align-items: center; gap: 0.6rem; }
-.mod-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; background: rgba(155,110,232,0.15); flex-shrink: 0; }
-.mod-name  { font-size: 0.85rem; color: rgba(255,255,255,0.85); font-weight: 500; }
-.mod-email { font-size: 0.75rem; color: rgba(255,255,255,0.3); }
-
-.changed-fields { display: flex; flex-wrap: wrap; gap: 0.3rem; }
-.field-tag { font-size: 0.7rem; background: rgba(155,110,232,0.1); color: #9B6EE8; padding: 0.1rem 0.4rem; border-radius: 4px; text-transform: uppercase; border: 1px solid rgba(155,110,232,0.2); }
-
-/* Pagination */
-.pagination { display: flex; gap: 0.25rem; margin-top: 1.5rem; flex-wrap: wrap; }
-.page-link { padding: 0.28rem 0.6rem; border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); font-size: 0.8rem; text-decoration: none; cursor: pointer; }
-.page-link--active   { border-color: rgba(155,110,232,0.6); color: #9B6EE8; background: rgba(155,110,232,0.1); }
-.page-link--disabled { opacity: 0.3; pointer-events: none; }
-</style>

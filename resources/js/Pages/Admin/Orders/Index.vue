@@ -1,24 +1,33 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
 import AdminPagination from '@/Components/Admin/AdminPagination.vue';
+import AdminTable from '@/Components/Admin/UI/AdminTable.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminInput from '@/Components/Admin/UI/AdminInput.vue';
+import AdminModal from '@/Components/Admin/UI/AdminModal.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
 import { formatMoney } from '@/Utils/money';
+import {
+    Download, Search, Filter, View, EditPen,
+    Clock, Warning, Check, Close, ArrowRight
+} from '@element-plus/icons-vue';
 
 defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
-    orders:     Object,
-    counts:     Object,
-    filters:    Object,
-    categories: Array,
-    statuses:   Array,
+    orders:             Object,
+    counts:             Object,
+    filters:            Object,
+    categories:         Array,
+    statuses:           Array,
+    status_transitions: Object,
 });
 
 // ─── Filters ─────────────────────────────────────────────────────────────────
-
 const search      = ref(props.filters?.search      ?? '');
 const status      = ref(props.filters?.status      ?? '');
 const categoryId  = ref(props.filters?.category_id ?? '');
@@ -34,10 +43,11 @@ function applyFilters() {
         category_id: categoryId.value  || undefined,
         date_from:   dateFrom.value    || undefined,
         date_to:     dateTo.value      || undefined,
-    }, { preserveState: true, preserveScroll: true });
+    }, { preserveState: true, preserveScroll: true, replace: true });
 }
 
-function onSearchInput() {
+function onSearchInput(val) {
+    search.value = val;
     clearTimeout(searchTimer);
     searchTimer = setTimeout(applyFilters, 300);
 }
@@ -49,8 +59,7 @@ function setStatus(val) {
 
 watch([categoryId, dateFrom, dateTo], applyFilters);
 
-// ─── Status modal ─────────────────────────────────────────────────────────────
-
+// ─── Status change modal ──────────────────────────────────────────────────────
 const modalOrder     = ref(null);
 const modalStatus    = ref('');
 const modalNote      = ref('');
@@ -60,10 +69,16 @@ const historyLoading  = ref(false);
 const statusError    = ref('');
 const isHistoryOnly  = ref(false);
 
+const availableStatuses = computed(() => {
+    if (!modalOrder.value) return [];
+    return props.status_transitions?.[modalOrder.value.status] ?? [];
+});
+
 async function openModal(order, historyOnly = false) {
     isHistoryOnly.value = historyOnly;
     modalOrder.value  = order;
-    modalStatus.value = order.status;
+    const transitions = props.status_transitions?.[order.status] ?? [];
+    modalStatus.value = transitions[0]?.value || '';
     modalNote.value   = '';
     statusError.value = '';
     modalHistory.value = [];
@@ -101,347 +116,374 @@ function submitStatus() {
         }
     );
 }
+
+const statusVariant = {
+    pending:   'warning',
+    accepted:  'info',
+    paid:      'primary',
+    completed: 'info',
+    cancelled: 'neutral',
+    refunded:  'danger',
+    disputed:  'danger',
+    closed:    'success',
+};
+
+const statusLabelsMap = {
+    pending:   'Ожидает',
+    accepted:  'Принят',
+    paid:      'Оплачен (холд)',
+    completed: 'Завершен',
+    cancelled: 'Отменен',
+    refunded:  'Возвращен',
+    disputed:  'Оспаривается',
+    closed:    'Закрыт',
+};
 </script>
 
 <template>
-    <div class="page">
+    <div class="space-y-6 max-w-7xl mx-auto">
+        <!-- Header -->
         <AdminPageHeader
             title="Заказы"
-            subtitle="Управление заказами, историей статусов и модерация спорных ситуаций"
+            subtitle="Управление заказами платформы, эскроу-холдами, историей статусов и арбитражем"
             :count="counts.total"
         >
             <template #actions>
-                <a :href="route('admin.export.orders')" class="export-btn" download>
-                    <svg class="export-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
-                    </svg>
+                <a
+                    :href="route('admin.export.orders', undefined, false)"
+                    class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-zinc-100 transition-colors shadow-sm"
+                    download="orders.csv"
+                >
+                    <el-icon :size="14"><Download /></el-icon>
                     <span>Экспорт CSV</span>
                 </a>
             </template>
         </AdminPageHeader>
 
-        <!-- Status tabs -->
-        <div class="status-tabs">
+        <!-- Status Filter Tabs -->
+        <div class="flex items-center gap-2 border-b border-zinc-800 pb-3 overflow-x-auto">
             <button
                 v-for="tab in [
-                    { value: '',           label: 'Все',         count: counts.total },
-                    { value: 'pending',    label: 'Ожидают',     count: counts.pending },
-                    { value: 'accepted',   label: 'Приняты',     count: counts.accepted },
-                    { value: 'paid',       label: 'Оплачены',    count: counts.paid },
-                    { value: 'completed',  label: 'Завершены',   count: counts.completed },
-                    { value: 'cancelled',  label: 'Отменены',    count: counts.cancelled },
-                    { value: 'refunded',   label: 'Возвращены',  count: counts.refunded },
+                    { value: '',           label: 'Все заказы',    count: counts.total },
+                    { value: 'paid',       label: 'Оплачены',     count: counts.paid },
+                    { value: 'completed',  label: 'Завершены',    count: counts.completed },
                     { value: 'disputed',   label: 'Оспариваются', count: counts.disputed ?? 0 },
-                    { value: 'closed',     label: 'Закрыты',     count: counts.closed ?? 0 },
+                    { value: 'closed',     label: 'Закрыты',      count: counts.closed ?? 0 },
+                    { value: 'pending',    label: 'Ожидают',      count: counts.pending },
+                    { value: 'accepted',   label: 'Приняты',      count: counts.accepted },
+                    { value: 'refunded',   label: 'Возвращены',   count: counts.refunded },
+                    { value: 'cancelled',  label: 'Отменены',     count: counts.cancelled },
                 ]"
                 :key="tab.value"
-                class="status-tab"
-                :class="{ 'status-tab--active': status === tab.value }"
+                type="button"
+                class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 shrink-0"
+                :class="[status === tab.value ? 'bg-violet-600 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60']"
                 @click="setStatus(tab.value)"
             >
-                {{ tab.label }}
-                <span class="status-tab__count">{{ tab.count }}</span>
+                <span>{{ tab.label }}</span>
+                <span
+                    v-if="tab.count > 0"
+                    class="text-[11px] font-bold"
+                    :class="[status === tab.value ? 'text-white' : (tab.value === 'disputed' ? 'text-rose-400' : 'text-zinc-500')]"
+                >
+                    {{ tab.count }}
+                </span>
             </button>
         </div>
 
-        <!-- Filters row -->
-        <div class="filters">
-            <input
-                v-model="search"
-                class="input filter-search"
-                placeholder="Поиск по ID, имени, email…"
-                @input="onSearchInput"
-            />
-            <select v-model="categoryId" class="input filter-select">
-                <option value="">Все категории</option>
-                <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
-            </select>
-            <input v-model="dateFrom" type="date" class="input filter-date" title="Дата от" />
-            <input v-model="dateTo"   type="date" class="input filter-date" title="Дата до" />
-        </div>
-
-        <!-- Table -->
-        <div class="table-wrap">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Заказчик</th>
-                        <th>Айдол</th>
-                        <th>Категории</th>
-                        <th>Услуг</th>
-                        <th>Сумма</th>
-                        <th>Статус</th>
-                        <th>Дата</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="order in orders.data" :key="order.id">
-                        <td class="td-id">
-                            <Link :href="route('admin.orders.show', order.id)" class="order-id-link">
-                                #{{ order.id }}
-                            </Link>
-                        </td>
-                        <td class="td-user">
-                            <div class="user-cell">
-                                <div class="user-name">{{ order.customer.name }}</div>
-                                <div class="user-email">{{ order.customer.email }}</div>
-                            </div>
-                        </td>
-                        <td class="td-user">
-                            <div class="user-cell">
-                                <div class="user-name">{{ order.idol.name }}</div>
-                                <div class="user-email">{{ order.idol.email }}</div>
-                            </div>
-                        </td>
-                        <td class="td-cats">
-                            <span v-if="order.categories.length" class="cats">
-                                <span v-for="(cat, i) in order.categories" :key="i" class="cat-chip">{{ cat }}</span>
-                            </span>
-                            <span v-else class="no-val">—</span>
-                        </td>
-                        <td class="td-count">{{ order.items_count }}</td>
-                        <td class="td-total">
-                            <span class="inline-flex items-center gap-1">
-                                <span>{{ formatMoney(order.total) }}</span>
-                                <CoinIcon color="blue" size="xs" />
-                            </span>
-                        </td>
-                        <td class="td-status">
-                            <span
-                                class="badge"
-                                :class="`badge--${order.status_color}`"
-                            >{{ order.status_label }}</span>
-                            <div v-if="order.cancel_reason" class="cancel-reason" :title="order.cancel_reason">
-                                {{ order.cancel_reason }}
-                            </div>
-                        </td>
-                        <td class="td-date">{{ order.created_at }}</td>
-                        <td class="td-action">
-                            <div class="actions-group">
-                                <Link :href="route('admin.orders.show', order.id)" class="btn-detail-link">
-                                    Детали →
-                                </Link>
-                                <button class="btn-edit" @click="openModal(order, false)">Статус</button>
-                                <button class="btn-history" @click="openModal(order, true)">История</button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr v-if="!orders.data.length">
-                        <td colspan="9" class="empty-row">Заказов нет</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Pagination -->
-        <AdminPagination :pagination="orders" />
-    </div>
-
-    <!-- Status modal -->
-    <Teleport to="body">
-        <div v-if="modalOrder" class="overlay" @click.self="closeModal">
-            <div class="modal">
-                <div class="modal__header">
-                    <span>Заказ #{{ modalOrder.id }} — {{ isHistoryOnly ? 'История переходов статуса' : 'Управление статусом' }}</span>
-                    <button class="modal__close" @click="closeModal">✕</button>
+        <!-- Filter Toolbar -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5 flex-1 flex-wrap">
+                <!-- Search input -->
+                <div class="w-full sm:w-72">
+                    <AdminInput
+                        :model-value="search"
+                        placeholder="Поиск по номеру #, клиенту, айдолу..."
+                        size="md"
+                        @update:model-value="onSearchInput"
+                    >
+                        <template #prefix>
+                            <el-icon><Search /></el-icon>
+                        </template>
+                    </AdminInput>
                 </div>
-                <div class="modal__body">
-                    <div class="field">
-                        <label>Текущий статус</label>
-                        <span class="badge" :class="`badge--${modalOrder.status_color}`">{{ modalOrder.status_label }}</span>
-                    </div>
 
-                    <template v-if="!isHistoryOnly">
-                        <div class="field">
-                            <label>Новый статус</label>
-                            <select v-model="modalStatus" class="input">
-                                <option v-for="s in statuses" :key="s.value" :value="s.value">{{ s.label }}</option>
-                            </select>
-                        </div>
-                        <div class="field">
-                            <label>Примечание администратора (необязательно)</label>
-                            <textarea v-model="modalNote" class="input input--textarea" placeholder="Причина изменения статуса…" rows="3"></textarea>
-                        </div>
-                        <div v-if="statusError" class="modal__error">{{ statusError }}</div>
-                        <div class="modal__actions">
-                            <button class="btn-cancel" @click="closeModal">Отмена</button>
-                            <button
-                                class="btn-submit"
-                                :disabled="modalLoading || modalStatus === modalOrder.status"
-                                @click="submitStatus"
-                            >{{ modalLoading ? 'Сохраняем…' : 'Сохранить' }}</button>
-                        </div>
-                    </template>
+                <!-- Category select -->
+                <div class="w-48">
+                    <select
+                        v-model="categoryId"
+                        class="block w-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-100 rounded-lg text-xs py-2 px-3 focus:outline-none focus:ring-1 focus:ring-violet-500 transition-colors"
+                    >
+                        <option value="">Все категории</option>
+                        <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+                            {{ cat.name }}
+                        </option>
+                    </select>
+                </div>
 
-                    <!-- History -->
-                    <div class="history">
-                        <div class="history__title">История статусов</div>
-                        <div v-if="historyLoading" class="history__empty">Загрузка…</div>
-                        <div v-else-if="!modalHistory.length" class="history__empty">Изменений не было</div>
-                        <div v-else class="history__list">
-                            <div v-for="(h, i) in modalHistory" :key="i" class="history__item">
-                                <div class="history__arrow">
-                                    <span v-if="h.from" class="history__from">{{ h.from }}</span>
-                                    <span v-if="h.from" class="history__chevron">→</span>
-                                    <span class="badge badge--sm" :class="`badge--${h.to_color}`">{{ h.to }}</span>
-                                </div>
-                                <div class="history__meta">
-                                    <span class="history__actor">{{ h.actor_type === 'admin' ? 'Администратор' : 'Пользователь' }} #{{ h.actor_id }}</span>
-                                    <span class="history__date">{{ h.created_at }}</span>
-                                </div>
-                                <div v-if="h.note" class="history__note">{{ h.note }}</div>
-                            </div>
-                        </div>
-                    </div>
+                <!-- Date pickers -->
+                <div class="flex items-center gap-1.5 text-xs text-zinc-400">
+                    <input
+                        v-model="dateFrom"
+                        type="date"
+                        class="bg-zinc-900 border border-zinc-800 rounded-lg py-1.5 px-2.5 text-xs text-zinc-200 focus:outline-none focus:border-violet-500"
+                        title="Дата с"
+                    />
+                    <span>—</span>
+                    <input
+                        v-model="dateTo"
+                        type="date"
+                        class="bg-zinc-900 border border-zinc-800 rounded-lg py-1.5 px-2.5 text-xs text-zinc-200 focus:outline-none focus:border-violet-500"
+                        title="Дата по"
+                    />
                 </div>
             </div>
         </div>
-    </Teleport>
+
+        <!-- Orders Table -->
+        <AdminTable :empty="!orders.data?.length" empty-title="Заказов не найдено">
+            <template #header>
+                <tr>
+                    <th class="py-3 px-4">Заказ #</th>
+                    <th class="py-3 px-4">Клиент</th>
+                    <th class="py-3 px-4">Айдол</th>
+                    <th class="py-3 px-4">Услуги</th>
+                    <th class="py-3 px-4">Сумма сделки</th>
+                    <th class="py-3 px-4">Статус</th>
+                    <th class="py-3 px-4">Дата</th>
+                    <th class="py-3 px-4 text-right">Действия</th>
+                </tr>
+            </template>
+
+            <tr
+                v-for="order in orders.data"
+                :key="order.id"
+                class="hover:bg-zinc-800/40 transition-colors cursor-pointer group"
+                @click="router.visit(route('admin.orders.show', order.id))"
+            >
+                <!-- Order ID -->
+                <td class="py-3 px-4 font-mono font-bold text-violet-400">
+                    <Link
+                        :href="route('admin.orders.show', order.id)"
+                        class="hover:underline text-violet-400"
+                        @click.stop
+                    >
+                        #{{ order.id }}
+                    </Link>
+                </td>
+
+                <!-- Client -->
+                <td class="py-3 px-4" @click.stop>
+                    <div class="flex items-center gap-2" v-if="order.customer && order.customer.name !== '—'">
+                        <img
+                            v-if="order.customer.avatar_url"
+                            :src="order.customer.avatar_url"
+                            class="w-7 h-7 rounded-full object-cover shrink-0 border border-zinc-700/60"
+                            alt=""
+                        />
+                        <div v-else class="w-7 h-7 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-[10px] text-zinc-400 shrink-0">
+                            {{ (order.customer.name?.[0] || '?').toUpperCase() }}
+                        </div>
+                        <div class="min-w-0">
+                            <Link :href="route('admin.users.show', order.customer.id)" class="text-xs font-medium text-zinc-200 hover:text-violet-400 truncate block">
+                                {{ order.customer.name }}
+                            </Link>
+                            <div class="text-[10px] text-zinc-500 font-mono truncate">{{ order.customer.email }}</div>
+                        </div>
+                    </div>
+                    <span v-else class="text-zinc-500 text-xs">—</span>
+                </td>
+
+                <!-- Idol -->
+                <td class="py-3 px-4" @click.stop>
+                    <div class="flex items-center gap-2" v-if="order.idol && order.idol.name !== '—'">
+                        <img
+                            v-if="order.idol.avatar_url"
+                            :src="order.idol.avatar_url"
+                            class="w-7 h-7 rounded-full object-cover shrink-0 border border-zinc-700/60"
+                            alt=""
+                        />
+                        <div v-else class="w-7 h-7 rounded-full bg-violet-950/60 border border-violet-800/40 flex items-center justify-center font-bold text-[10px] text-violet-300 shrink-0">
+                            {{ (order.idol.name?.[0] || '?').toUpperCase() }}
+                        </div>
+                        <div class="min-w-0">
+                            <Link :href="route('admin.users.show', order.idol.id)" class="text-xs font-medium text-zinc-200 hover:text-violet-400 truncate block">
+                                {{ order.idol.name }}
+                            </Link>
+                            <div class="text-[10px] text-zinc-500 font-mono truncate">{{ order.idol.email }}</div>
+                        </div>
+                    </div>
+                    <span v-else class="text-zinc-500 text-xs">—</span>
+                </td>
+
+                <!-- Services summary -->
+                <td class="py-3 px-4 text-xs text-zinc-300 max-w-xs truncate">
+                    {{ order.services_summary || '—' }}
+                </td>
+
+                <!-- Amount -->
+                <td class="py-3 px-4 whitespace-nowrap">
+                    <div class="flex items-center gap-1.5 font-bold text-zinc-100 text-xs">
+                        <span>{{ formatMoney(order.total) }}</span>
+                        <CoinIcon color="blue" size="xs" />
+                    </div>
+                    <div class="text-[10px] text-zinc-500">
+                        {{ formatMoney(order.total) }} ₽
+                    </div>
+                </td>
+
+                <!-- Status -->
+                <td class="py-3 px-4 whitespace-nowrap">
+                    <AdminBadge :variant="statusVariant[order.status] || 'neutral'" dot size="sm">
+                        {{ statusLabelsMap[order.status] ?? order.status }}
+                    </AdminBadge>
+                </td>
+
+                <!-- Date -->
+                <td class="py-3 px-4 text-xs text-zinc-400 whitespace-nowrap">
+                    {{ order.created_at_formatted || new Date(order.created_at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
+                </td>
+
+                <!-- Actions -->
+                <td class="py-3 px-4 text-right whitespace-nowrap" @click.stop>
+                    <div class="flex items-center justify-end gap-1.5">
+                        <button
+                            type="button"
+                            class="h-7 w-7 rounded-lg border border-zinc-700 bg-zinc-800/90 text-zinc-300 hover:text-amber-400 hover:border-amber-500/50 hover:bg-zinc-700 transition flex items-center justify-center shrink-0 shadow-sm"
+                            title="История изменений статуса"
+                            @click="openModal(order, true)"
+                        >
+                            <el-icon :size="15"><Clock /></el-icon>
+                        </button>
+                        <AdminButton variant="secondary" size="sm" @click="openModal(order, false)" title="Сменить статус">
+                            <template #icon><el-icon :size="12"><EditPen /></el-icon></template>
+                            Статус
+                        </AdminButton>
+                        <AdminButton
+                            variant="outline"
+                            size="sm"
+                            as="Link"
+                            :href="route('admin.orders.show', order.id)"
+                            title="Открыть карточку заказа"
+                        >
+                            <template #icon><el-icon :size="13"><View /></el-icon></template>
+                            Детали
+                        </AdminButton>
+                    </div>
+                </td>
+            </tr>
+
+            <template #footer>
+                <AdminPagination :pagination="orders" />
+            </template>
+        </AdminTable>
+
+        <!-- Status Change & History Modal -->
+        <AdminModal
+            :show="Boolean(modalOrder)"
+            :title="isHistoryOnly ? `История переходов заказа #${modalOrder?.id}` : `Смена статуса заказа #${modalOrder?.id}`"
+            @close="closeModal"
+        >
+            <div class="space-y-4">
+                <!-- Change Status Form (if not history only) -->
+                <div v-if="!isHistoryOnly" class="space-y-3 p-4 rounded-xl bg-zinc-950 border border-zinc-800">
+                    <!-- Current Status Display -->
+                    <div class="flex items-center justify-between p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs">
+                        <span class="text-zinc-400">Текущий статус заказа:</span>
+                        <AdminBadge :variant="statusVariant[modalOrder.status] || 'neutral'" dot size="sm">
+                            {{ statusLabelsMap[modalOrder.status] ?? modalOrder.status }}
+                        </AdminBadge>
+                    </div>
+
+                    <!-- Available State Machine Transitions -->
+                    <template v-if="availableStatuses.length > 0">
+                        <div>
+                            <label class="block text-xs font-semibold text-zinc-300 mb-1">Допустимый новый статус (State Machine):</label>
+                            <select
+                                v-model="modalStatus"
+                                class="block w-full bg-zinc-900 border border-zinc-800 text-zinc-100 rounded-lg text-xs py-2.5 px-3 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                            >
+                                <option v-for="s in availableStatuses" :key="s.value" :value="s.value">
+                                    {{ s.label }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-zinc-300 mb-1">Заметка администратора (причина смены):</label>
+                            <textarea
+                                v-model="modalNote"
+                                rows="2"
+                                class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
+                                placeholder="Обязательно укажите причину ручной смены статуса..."
+                            />
+                        </div>
+
+                        <p v-if="statusError" class="text-xs text-rose-400 font-semibold">{{ statusError }}</p>
+
+                        <div class="flex justify-end pt-1">
+                            <AdminButton
+                                variant="primary"
+                                size="sm"
+                                :loading="modalLoading"
+                                :disabled="!modalStatus"
+                                @click="submitStatus"
+                            >
+                                Применить новый статус
+                            </AdminButton>
+                        </div>
+                    </template>
+
+                    <!-- Terminal State Warning -->
+                    <div v-else class="p-3 rounded-lg bg-zinc-900/60 border border-zinc-800 text-xs text-zinc-400 flex items-center gap-2">
+                        <el-icon class="text-amber-400 shrink-0"><Warning /></el-icon>
+                        <span>Заказ находится в конечном статусе. Дальнейшие переходы по стейт-машине заблокированы.</span>
+                    </div>
+                </div>
+
+                <!-- History Timeline -->
+                <div class="space-y-2">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                        Хронология переходов статусов
+                    </h4>
+
+                    <div v-if="historyLoading" class="p-6 text-center text-xs text-zinc-500">
+                        Загрузка истории...
+                    </div>
+
+                    <div v-else-if="modalHistory.length" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                        <div
+                            v-for="h in modalHistory"
+                            :key="h.id || `${h.from}-${h.to}-${h.created_at}`"
+                            class="p-2.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs flex items-start justify-between gap-3"
+                        >
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="text-zinc-400 font-medium">{{ h.from || 'Создание' }}</span>
+                                    <span class="text-zinc-600">→</span>
+                                    <span class="font-bold text-violet-300">{{ h.to }}</span>
+                                </div>
+                                <div v-if="h.note" class="text-[11px] text-zinc-400 italic mt-1 bg-zinc-900/60 px-2 py-1 rounded border border-zinc-800/80">
+                                    «{{ h.note }}»
+                                </div>
+                            </div>
+
+                            <div class="text-right shrink-0 text-[10px] text-zinc-500">
+                                <div class="font-mono text-zinc-400">{{ h.created_at }}</div>
+                                <div class="text-zinc-500 font-medium">{{ h.actor_type }}<template v-if="h.actor_id && h.actor_id !== 0"> #{{ h.actor_id }}</template></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-else class="text-xs text-zinc-500 py-3 text-center">
+                        История переходов пока пуста
+                    </div>
+                </div>
+            </div>
+
+            <template #footer>
+                <AdminButton variant="ghost" @click="closeModal">Закрыть</AdminButton>
+            </template>
+        </AdminModal>
+    </div>
 </template>
-
-<style scoped>
-.page { max-width: none; }
-.page-header { margin-bottom: 1.5rem; }
-.page-title { font-size: 1.35rem; font-weight: 700; color: rgba(255,255,255,0.9); margin: 0; }
-
-/* Status tabs */
-.status-tabs { display: flex; gap: 0; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08); }
-.status-tab { padding: 0.45rem 1rem; background: none; border: none; border-bottom: 2px solid transparent; color: rgba(255,255,255,0.4); font-size: 0.84rem; cursor: pointer; font-family: inherit; margin-bottom: -1px; transition: color 0.15s; display: flex; align-items: center; gap: 0.4rem; }
-.status-tab:hover { color: rgba(255,255,255,0.7); }
-.status-tab--active { color: #9B6EE8; border-bottom-color: #9B6EE8; }
-.status-tab__count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 0.3rem; background: rgba(255,255,255,0.07); border-radius: 99px; font-size: 0.7rem; color: rgba(255,255,255,0.45); }
-
-/* Filters */
-.filters { display: flex; gap: 0.6rem; margin-bottom: 1rem; flex-wrap: wrap; }
-.filter-search { flex: 1; min-width: 200px; }
-.filter-select { width: 180px; }
-.filter-date { width: 140px; }
-
-/* Table */
-.table-wrap { overflow-x: auto; }
-.table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
-.table th { padding: 0.55rem 0.75rem; text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: rgba(255,255,255,0.3); border-bottom: 1px solid rgba(255,255,255,0.07); white-space: nowrap; }
-.table td { padding: 0.65rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: top; }
-.table tr:hover td { background: rgba(255,255,255,0.02); }
-
-.td-id    { color: rgba(255,255,255,0.3); font-size: 0.78rem; white-space: nowrap; }
-.td-user  { min-width: 140px; }
-.td-cats  { min-width: 120px; }
-.td-count { white-space: nowrap; color: rgba(255,255,255,0.6); text-align: center; }
-.td-total { white-space: nowrap; color: rgba(255,255,255,0.85); font-weight: 600; }
-.td-date  { white-space: nowrap; color: rgba(255,255,255,0.3); font-size: 0.78rem; }
-.td-action { white-space: nowrap; }
-.td-status { min-width: 100px; }
-
-.user-cell { display: flex; flex-direction: column; gap: 0.1rem; }
-.user-name  { font-size: 0.84rem; color: rgba(255,255,255,0.8); }
-.user-email { font-size: 0.72rem; color: rgba(255,255,255,0.3); }
-
-.cats { display: flex; flex-wrap: wrap; gap: 0.25rem; }
-.cat-chip { display: inline-block; padding: 0.15rem 0.45rem; background: rgba(155,110,232,0.1); border: 1px solid rgba(155,110,232,0.2); border-radius: 99px; font-size: 0.72rem; color: rgba(190,145,255,0.75); white-space: nowrap; }
-
-.cancel-reason { font-size: 0.7rem; color: rgba(239,68,68,0.5); margin-top: 0.25rem; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: help; }
-
-.no-val { color: rgba(255,255,255,0.2); }
-.empty-row { text-align: center; padding: 2rem; color: rgba(255,255,255,0.2); font-size: 0.88rem; }
-
-/* Badges */
-.badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.72rem; font-weight: 600; }
-.badge--sm { padding: 0.15rem 0.5rem; font-size: 0.68rem; }
-.badge--yellow { background: rgba(251,191,36,0.12);  color: rgba(251,191,36,0.9); }
-.badge--green  { background: rgba(74,222,128,0.1);   color: rgba(74,222,128,0.8); }
-.badge--blue   { background: rgba(96,165,250,0.12);  color: rgba(96,165,250,0.9); }
-.badge--purple { background: rgba(167,139,250,0.12); color: rgba(167,139,250,0.9); }
-.badge--red    { background: rgba(239,68,68,0.1);    color: rgba(239,68,68,0.7); }
-.badge--orange { background: rgba(251,146,60,0.12);  color: rgba(251,146,60,0.9); }
-.badge--gray   { background: rgba(156,163,175,0.12); color: rgba(209,213,219,0.9); border: 1px solid rgba(156,163,175,0.2); }
-
-/* History */
-.history { border-top: 1px solid rgba(255,255,255,0.07); padding-top: 0.8rem; margin-top: 0.2rem; }
-.history__title { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.07em; color: rgba(255,255,255,0.25); margin-bottom: 0.6rem; }
-.history__empty { font-size: 0.8rem; color: rgba(255,255,255,0.2); }
-.history__list { display: flex; flex-direction: column; gap: 0.6rem; }
-.history__item { display: flex; flex-direction: column; gap: 0.2rem; }
-.history__arrow { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
-.history__from { font-size: 0.78rem; color: rgba(255,255,255,0.35); }
-.history__chevron { font-size: 0.7rem; color: rgba(255,255,255,0.2); }
-.history__meta { display: flex; gap: 0.75rem; font-size: 0.72rem; color: rgba(255,255,255,0.25); }
-.history__note { font-size: 0.75rem; color: rgba(255,255,255,0.4); font-style: italic; padding-left: 0.25rem; border-left: 2px solid rgba(255,255,255,0.1); }
-
-/* Action buttons */
-.order-id-link { color: #38bdf8; text-decoration: none; font-family: ui-monospace, monospace; font-weight: 600; }
-.order-id-link:hover { text-decoration: underline; }
-.actions-group { display: flex; align-items: center; gap: 0.35rem; }
-.btn-detail-link { padding: 0.3rem 0.65rem; border-radius: 3px; font-size: 0.78rem; text-decoration: none; font-family: inherit; transition: all 0.15s; border: 1px solid rgba(56,189,248,0.3); background: rgba(56,189,248,0.08); color: #38bdf8; display: inline-flex; align-items: center; }
-.btn-detail-link:hover { background: rgba(56,189,248,0.2); border-color: rgba(56,189,248,0.5); color: #fff; }
-.btn-edit { padding: 0.3rem 0.7rem; border-radius: 3px; font-size: 0.78rem; cursor: pointer; font-family: inherit; transition: background 0.15s; border: 1px solid rgba(255,255,255,0.15); background: transparent; color: rgba(255,255,255,0.6); }
-.btn-edit:hover { background: rgba(255,255,255,0.08); }
-.btn-history { padding: 0.3rem 0.65rem; border-radius: 3px; font-size: 0.78rem; cursor: pointer; font-family: inherit; transition: all 0.15s; border: 1px solid rgba(155,110,232,0.3); background: rgba(155,110,232,0.08); color: #c084fc; }
-.btn-history:hover { background: rgba(155,110,232,0.2); border-color: rgba(155,110,232,0.5); color: #fff; }
-
-/* Pagination */
-.pagination { display: flex; gap: 0.25rem; margin-top: 1.5rem; flex-wrap: wrap; }
-.page-link { padding: 0.28rem 0.6rem; border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); font-size: 0.8rem; text-decoration: none; cursor: pointer; }
-.page-link--active   { border-color: rgba(155,110,232,0.6); color: #9B6EE8; background: rgba(155,110,232,0.1); }
-.page-link--disabled { opacity: 0.3; pointer-events: none; }
-
-/* Modal */
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.modal { background: #0a0a0f; border: 1px solid rgba(255,255,255,0.12); border-radius: 3px; width: 100%; max-width: 400px; margin: 1rem; }
-.modal__header { display: flex; align-items: center; justify-content: space-between; padding: 0.8rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.07); font-size: 0.88rem; color: rgba(255,255,255,0.85); font-weight: 600; }
-.modal__close { background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 1rem; }
-.modal__body { padding: 1rem; display: flex; flex-direction: column; gap: 0.8rem; }
-.modal__actions { display: flex; justify-content: flex-end; gap: 0.5rem; padding-top: 0.25rem; }
-.modal__error {
-    padding: 0.5rem 0.75rem;
-    background: rgba(248, 113, 113, 0.12);
-    border: 1px solid rgba(248, 113, 113, 0.3);
-    border-radius: 3px;
-    color: #f87171;
-    font-size: 0.82rem;
-    line-height: 1.4;
-}
-
-.field { display: flex; flex-direction: column; gap: 0.3rem; }
-.field label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: rgba(255,255,255,0.35); }
-
-.input { padding: 0.45rem 0.7rem; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 3px; color: rgba(255,255,255,0.85); font-family: inherit; font-size: 0.88rem; outline: none; transition: border-color 0.15s; box-sizing: border-box; width: 100%; }
-.input:focus { border-color: rgba(190,145,255,0.45); }
-.input--textarea { resize: vertical; min-height: 72px; }
-
-.btn-cancel { padding: 0.45rem 0.9rem; border: 1px solid rgba(255,255,255,0.12); border-radius: 3px; background: transparent; color: rgba(255,255,255,0.4); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
-.btn-submit { padding: 0.45rem 1rem; border: 1px solid rgba(190,145,255,0.45); border-radius: 3px; background: rgba(190,145,255,0.1); color: rgba(255,255,255,0.9); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
-.btn-submit:disabled { opacity: 0.5; cursor: default; }
-
-.export-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    padding: 0.45rem 0.85rem;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 0.82rem;
-    font-weight: 500;
-    text-decoration: none;
-    transition: all 0.15s ease;
-}
-.export-btn:hover {
-    background: rgba(190, 145, 255, 0.1);
-    border-color: rgba(190, 145, 255, 0.35);
-    color: #fff;
-}
-.export-btn__icon {
-    width: 15px;
-    height: 15px;
-    stroke: currentColor;
-}
-
-@media (max-width: 600px) {
-    .filter-select,
-    .filter-date { width: 100%; }
-}
-</style>

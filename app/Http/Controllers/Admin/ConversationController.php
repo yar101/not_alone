@@ -54,6 +54,8 @@ class ConversationController extends Controller
             });
         }
 
+        $totalCount = (clone $query)->count();
+
         $conversations = $query->latest('id')->cursorPaginate(20)->withQueryString()->through(fn ($c) => [
             'id' => $c->id,
             'order_id' => $c->order_id,
@@ -61,6 +63,13 @@ class ConversationController extends Controller
             'closed_at' => $c->closed_at?->toISOString(),
             'updated_at' => $c->updated_at->toISOString(),
             'users' => $c->users->map(fn ($u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'avatar_url' => $u->avatar_url,
+                'is_idol' => $u->is_idol,
+            ]),
+            'participants' => $c->users->map(fn ($u) => [
                 'id' => $u->id,
                 'name' => $u->name,
                 'email' => $u->email,
@@ -77,6 +86,7 @@ class ConversationController extends Controller
 
         return Inertia::render('Admin/Conversations/Index', [
             'conversations' => $conversations,
+            'total_count' => $totalCount,
             'filters' => [
                 'id' => $request->id,
                 'order_id' => $request->order_id,

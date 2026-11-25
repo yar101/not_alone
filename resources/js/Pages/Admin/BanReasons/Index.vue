@@ -3,6 +3,11 @@ import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
+import {
+    Warning, Plus, Delete, EditPen, Check, Close, Top, Bottom, Lock, ChatDotRound
+} from '@element-plus/icons-vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -83,214 +88,233 @@ function addBanReason() {
 </script>
 
 <template>
-    <div>
-        <div class="page-header">
-            <h1 class="page-title">Причины блокировок</h1>
+    <div class="space-y-6">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2.5">
+                    <el-icon class="text-rose-400"><Lock /></el-icon>
+                    <span>Причины блокировок</span>
+                </h1>
+                <p class="text-xs text-zinc-400 mt-0.5">
+                    Управление справочниками причин для пользовательских жалоб в чате и блокировок аккаунтов администратором
+                </p>
+            </div>
         </div>
 
-        <div class="sections">
-            <!-- Chat block reasons -->
-            <div class="section">
-                <h2 class="section-title">Блокировки в чате</h2>
-
-                <div class="reason-list">
-                    <div v-for="(item, index) in chat_block_reasons" :key="item.id" class="reason-row">
-                        <div class="order-btns">
-                            <button class="order-btn" :disabled="index === 0" @click="move(chat_block_reasons, index, -1)">↑</button>
-                            <button class="order-btn" :disabled="index === chat_block_reasons.length - 1" @click="move(chat_block_reasons, index, 1)">↓</button>
-                        </div>
-                        <template v-if="editingId === item.id">
-                            <div class="edit-fields">
-                                <input v-model="editingLabelRu" class="edit-input" placeholder="Название (RU)" @keydown.enter="saveEdit(item)" @keydown.escape="cancelEdit" />
-                                <input v-model="editingLabelEn" class="edit-input" placeholder="Название (EN)" @keydown.enter="saveEdit(item)" @keydown.escape="cancelEdit" />
-                            </div>
-                            <button class="btn-save" @click="saveEdit(item)">Сохранить</button>
-                            <button class="btn-cancel" @click="cancelEdit">Отмена</button>
-                        </template>
-                        <template v-else>
-                            <span class="reason-label">
-                                {{ item.label_ru }}
-                                <span v-if="item.label_en" class="reason-label-en">({{ item.label_en }})</span>
-                            </span>
-                            <button class="btn-edit" @click="startEdit(item)">Изменить</button>
-                            <button class="btn-delete" @click="deleteReason(item)">Удалить</button>
-                        </template>
+        <!-- 2 Columns Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Col 1: Chat block reasons -->
+            <div class="p-5 rounded-xl border border-zinc-800 bg-zinc-900/60 backdrop-blur-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+                    <div class="flex items-center gap-2">
+                        <el-icon class="text-pink-400"><ChatDotRound /></el-icon>
+                        <h2 class="text-sm font-semibold text-zinc-100">Блокировки в чате</h2>
                     </div>
-                    <div v-if="!chat_block_reasons.length" class="empty-msg">Нет причин</div>
+                    <span class="text-xs text-zinc-500 font-mono">{{ chat_block_reasons?.length || 0 }} поз.</span>
                 </div>
 
-                <div class="add-row">
-                    <input
-                        v-model="newChatLabelRu"
-                        class="add-input"
-                        placeholder="Причина (RU)..."
-                        maxlength="255"
-                        @keydown.enter.prevent="addChatReason"
-                    />
-                    <input
-                        v-model="newChatLabelEn"
-                        class="add-input"
-                        placeholder="Причина (EN)..."
-                        maxlength="255"
-                        @keydown.enter.prevent="addChatReason"
-                    />
-                    <button
-                        type="button"
-                        class="btn-add"
-                        :disabled="!newChatLabelRu.trim()"
-                        @click="addChatReason"
-                    >Добавить</button>
+                <!-- Add Form -->
+                <form @submit.prevent="addChatReason" class="space-y-2 text-xs">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input
+                            v-model="newChatLabelRu"
+                            type="text"
+                            placeholder="Причина (RU) *"
+                            required
+                            class="h-8 px-2.5 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
+                        />
+                        <input
+                            v-model="newChatLabelEn"
+                            type="text"
+                            placeholder="Причина (EN)"
+                            class="h-8 px-2.5 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
+                        />
+                    </div>
+                    <AdminButton variant="outline" size="sm" type="submit" class="w-full">
+                        <el-icon class="mr-1"><Plus /></el-icon>
+                        Добавить причину блокировки в чате
+                    </AdminButton>
+                </form>
+
+                <!-- List -->
+                <div class="space-y-2 pt-2">
+                    <div
+                        v-for="(item, index) in chat_block_reasons"
+                        :key="item.id"
+                        class="p-2.5 rounded-lg border border-zinc-800 bg-zinc-950/60 flex items-center justify-between gap-2 text-xs"
+                    >
+                        <!-- Order buttons -->
+                        <div class="flex items-center gap-0.5">
+                            <button
+                                type="button"
+                                class="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none"
+                                :disabled="index === 0"
+                                @click="move(chat_block_reasons, index, -1)"
+                            >
+                                <el-icon :size="12"><Top /></el-icon>
+                            </button>
+                            <button
+                                type="button"
+                                class="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none"
+                                :disabled="index === chat_block_reasons.length - 1"
+                                @click="move(chat_block_reasons, index, 1)"
+                            >
+                                <el-icon :size="12"><Bottom /></el-icon>
+                            </button>
+                        </div>
+
+                        <!-- Content or Inline Edit -->
+                        <div v-if="editingId === item.id" class="flex-1 flex items-center gap-1.5">
+                            <input
+                                v-model="editingLabelRu"
+                                type="text"
+                                class="flex-1 h-7 px-2 rounded border border-zinc-700 bg-zinc-900 text-xs text-white"
+                            />
+                            <input
+                                v-model="editingLabelEn"
+                                type="text"
+                                placeholder="EN"
+                                class="w-24 h-7 px-2 rounded border border-zinc-700 bg-zinc-900 text-xs text-white"
+                            />
+                            <button type="button" class="text-emerald-400 hover:text-emerald-300 p-1" @click="saveEdit(item)">
+                                <el-icon><Check /></el-icon>
+                            </button>
+                            <button type="button" class="text-zinc-500 hover:text-zinc-300 p-1" @click="cancelEdit">
+                                <el-icon><Close /></el-icon>
+                            </button>
+                        </div>
+                        <div v-else class="flex-1 min-w-0">
+                            <div class="font-medium text-zinc-200 truncate">{{ item.label_ru }}</div>
+                            <div v-if="item.label_en" class="text-[11px] text-zinc-500 truncate">{{ item.label_en }}</div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div v-if="editingId !== item.id" class="flex items-center gap-1">
+                            <button
+                                type="button"
+                                class="p-1 text-zinc-500 hover:text-zinc-300 transition"
+                                @click="startEdit(item)"
+                            >
+                                <el-icon><EditPen /></el-icon>
+                            </button>
+                            <button
+                                type="button"
+                                class="p-1 text-zinc-500 hover:text-rose-400 transition"
+                                @click="deleteReason(item)"
+                            >
+                                <el-icon><Delete /></el-icon>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- User ban reasons -->
-            <div class="section">
-                <h2 class="section-title">Блокировки пользователей</h2>
-
-                <div class="reason-list">
-                    <div v-for="(item, index) in user_ban_reasons" :key="item.id" class="reason-row">
-                        <div class="order-btns">
-                            <button class="order-btn" :disabled="index === 0" @click="move(user_ban_reasons, index, -1)">↑</button>
-                            <button class="order-btn" :disabled="index === user_ban_reasons.length - 1" @click="move(user_ban_reasons, index, 1)">↓</button>
-                        </div>
-                        <template v-if="editingId === item.id">
-                            <div class="edit-fields">
-                                <input v-model="editingLabelRu" class="edit-input" placeholder="Название (RU)" @keydown.enter="saveEdit(item)" @keydown.escape="cancelEdit" />
-                                <input v-model="editingLabelEn" class="edit-input" placeholder="Название (EN)" @keydown.enter="saveEdit(item)" @keydown.escape="cancelEdit" />
-                            </div>
-                            <button class="btn-save" @click="saveEdit(item)">Сохранить</button>
-                            <button class="btn-cancel" @click="cancelEdit">Отмена</button>
-                        </template>
-                        <template v-else>
-                            <span class="reason-label">
-                                {{ item.label_ru }}
-                                <span v-if="item.label_en" class="reason-label-en">({{ item.label_en }})</span>
-                            </span>
-                            <button class="btn-edit" @click="startEdit(item)">Изменить</button>
-                            <button class="btn-delete" @click="deleteReason(item)">Удалить</button>
-                        </template>
+            <!-- Col 2: User ban reasons -->
+            <div class="p-5 rounded-xl border border-zinc-800 bg-zinc-900/60 backdrop-blur-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+                    <div class="flex items-center gap-2">
+                        <el-icon class="text-rose-400"><Lock /></el-icon>
+                        <h2 class="text-sm font-semibold text-zinc-100">Блокировки аккаунта (Баны)</h2>
                     </div>
-                    <div v-if="!user_ban_reasons.length" class="empty-msg">Нет причин</div>
+                    <span class="text-xs text-zinc-500 font-mono">{{ user_ban_reasons?.length || 0 }} поз.</span>
                 </div>
 
-                <div class="add-row">
-                    <input
-                        v-model="newBanLabelRu"
-                        class="add-input"
-                        placeholder="Причина (RU)..."
-                        maxlength="255"
-                        @keydown.enter.prevent="addBanReason"
-                    />
-                    <input
-                        v-model="newBanLabelEn"
-                        class="add-input"
-                        placeholder="Причина (EN)..."
-                        maxlength="255"
-                        @keydown.enter.prevent="addBanReason"
-                    />
-                    <button
-                        type="button"
-                        class="btn-add"
-                        :disabled="!newBanLabelRu.trim()"
-                        @click="addBanReason"
-                    >Добавить</button>
+                <!-- Add Form -->
+                <form @submit.prevent="addBanReason" class="space-y-2 text-xs">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input
+                            v-model="newBanLabelRu"
+                            type="text"
+                            placeholder="Причина бана (RU) *"
+                            required
+                            class="h-8 px-2.5 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
+                        />
+                        <input
+                            v-model="newBanLabelEn"
+                            type="text"
+                            placeholder="Причина (EN)"
+                            class="h-8 px-2.5 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
+                        />
+                    </div>
+                    <AdminButton variant="outline" size="sm" type="submit" class="w-full">
+                        <el-icon class="mr-1"><Plus /></el-icon>
+                        Добавить причину бана аккаунта
+                    </AdminButton>
+                </form>
+
+                <!-- List -->
+                <div class="space-y-2 pt-2">
+                    <div
+                        v-for="(item, index) in user_ban_reasons"
+                        :key="item.id"
+                        class="p-2.5 rounded-lg border border-zinc-800 bg-zinc-950/60 flex items-center justify-between gap-2 text-xs"
+                    >
+                        <!-- Order buttons -->
+                        <div class="flex items-center gap-0.5">
+                            <button
+                                type="button"
+                                class="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none"
+                                :disabled="index === 0"
+                                @click="move(user_ban_reasons, index, -1)"
+                            >
+                                <el-icon :size="12"><Top /></el-icon>
+                            </button>
+                            <button
+                                type="button"
+                                class="p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 disabled:opacity-30 disabled:pointer-events-none"
+                                :disabled="index === user_ban_reasons.length - 1"
+                                @click="move(user_ban_reasons, index, 1)"
+                            >
+                                <el-icon :size="12"><Bottom /></el-icon>
+                            </button>
+                        </div>
+
+                        <!-- Content or Inline Edit -->
+                        <div v-if="editingId === item.id" class="flex-1 flex items-center gap-1.5">
+                            <input
+                                v-model="editingLabelRu"
+                                type="text"
+                                class="flex-1 h-7 px-2 rounded border border-zinc-700 bg-zinc-900 text-xs text-white"
+                            />
+                            <input
+                                v-model="editingLabelEn"
+                                type="text"
+                                placeholder="EN"
+                                class="w-24 h-7 px-2 rounded border border-zinc-700 bg-zinc-900 text-xs text-white"
+                            />
+                            <button type="button" class="text-emerald-400 hover:text-emerald-300 p-1" @click="saveEdit(item)">
+                                <el-icon><Check /></el-icon>
+                            </button>
+                            <button type="button" class="text-zinc-500 hover:text-zinc-300 p-1" @click="cancelEdit">
+                                <el-icon><Close /></el-icon>
+                            </button>
+                        </div>
+                        <div v-else class="flex-1 min-w-0">
+                            <div class="font-medium text-zinc-200 truncate">{{ item.label_ru }}</div>
+                            <div v-if="item.label_en" class="text-[11px] text-zinc-500 truncate">{{ item.label_en }}</div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div v-if="editingId !== item.id" class="flex items-center gap-1">
+                            <button
+                                type="button"
+                                class="p-1 text-zinc-500 hover:text-zinc-300 transition"
+                                @click="startEdit(item)"
+                            >
+                                <el-icon><EditPen /></el-icon>
+                            </button>
+                            <button
+                                type="button"
+                                class="p-1 text-zinc-500 hover:text-rose-400 transition"
+                                @click="deleteReason(item)"
+                            >
+                                <el-icon><Delete /></el-icon>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </template>
-
-<style scoped>
-.page-header { margin-bottom: 1.5rem; }
-.page-title  { font-size: 1.4rem; color: #fff; margin: 0; }
-
-.sections { display: flex; flex-direction: column; gap: 1.5rem; }
-.section  { background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.08); padding: 1.25rem; }
-.section-title { font-size: 0.9rem; color: rgba(255,255,255,0.6); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; margin: 0 0 1rem; }
-
-.reason-list { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.85rem; }
-
-.reason-row {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.45rem 0.6rem;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07);
-}
-
-.order-btns { display: flex; flex-direction: column; gap: 1px; }
-.order-btn {
-    padding: 0 0.35rem;
-    border: 1px solid rgba(255,255,255,0.1);
-    background: transparent;
-    color: rgba(255,255,255,0.35);
-    font-size: 0.68rem;
-    cursor: pointer;
-    line-height: 1.4;
-    font-family: inherit;
-}
-.order-btn:hover:not(:disabled) { color: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.25); }
-.order-btn:disabled { opacity: 0.25; cursor: default; }
-
-.reason-label { flex: 1; font-size: 0.88rem; color: rgba(255,255,255,0.8); }
-
-.edit-input {
-    flex: 1;
-    padding: 0.3rem 0.55rem;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(190,145,255,0.4);
-    color: rgba(255,255,255,0.9);
-    font-family: inherit;
-    font-size: 0.88rem;
-    outline: none;
-}
-
-.edit-fields {
-    display: flex;
-    gap: 0.5rem;
-    flex: 1;
-}
-
-.reason-label-en {
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 0.8rem;
-    margin-left: 0.25rem;
-}
-
-.btn-edit   { padding: 0.22rem 0.6rem; border: 1px solid rgba(155,110,232,0.3); background: transparent; color: rgba(190,145,255,0.7); font-family: inherit; font-size: 0.78rem; cursor: pointer; }
-.btn-edit:hover { background: rgba(155,110,232,0.1); }
-.btn-save   { padding: 0.22rem 0.6rem; border: 1px solid rgba(76,222,143,0.35); background: rgba(76,222,143,0.07); color: #4cde8f; font-family: inherit; font-size: 0.78rem; cursor: pointer; }
-.btn-save:hover { background: rgba(76,222,143,0.18); }
-.btn-cancel { padding: 0.22rem 0.6rem; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: rgba(255,255,255,0.35); font-family: inherit; font-size: 0.78rem; cursor: pointer; }
-.btn-delete { padding: 0.22rem 0.6rem; border: 1px solid rgba(239,68,68,0.3); background: transparent; color: rgba(239,68,68,0.65); font-family: inherit; font-size: 0.78rem; cursor: pointer; }
-.btn-delete:hover { background: rgba(239,68,68,0.1); }
-
-.empty-msg { font-size: 0.83rem; color: rgba(255,255,255,0.25); padding: 0.5rem 0; }
-
-.add-row { display: flex; gap: 0.5rem; }
-.add-input {
-    flex: 1;
-    padding: 0.38rem 0.65rem;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.85);
-    font-family: inherit;
-    font-size: 0.88rem;
-    outline: none;
-}
-.add-input:focus { border-color: rgba(190,145,255,0.45); }
-.add-input::placeholder { color: rgba(255,255,255,0.2); }
-.btn-add {
-    padding: 0.38rem 0.85rem;
-    border: 1px solid rgba(155,110,232,0.4);
-    background: rgba(155,110,232,0.1);
-    color: rgba(190,145,255,0.85);
-    font-family: inherit;
-    font-size: 0.82rem;
-    cursor: pointer;
-    white-space: nowrap;
-}
-.btn-add:hover:not(:disabled) { background: rgba(155,110,232,0.2); }
-.btn-add:disabled { opacity: 0.35; cursor: default; }
-</style>

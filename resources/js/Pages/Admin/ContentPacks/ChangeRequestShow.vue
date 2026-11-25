@@ -1,16 +1,20 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
-import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
+import { ArrowLeft, ArrowRight, Check, Close, Warning, ZoomIn } from '@element-plus/icons-vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminModal from '@/Components/Admin/UI/AdminModal.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
+import { formatMoney } from '@/Utils/money';
 
 defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
     changeRequest: Object,
     pack:          Object,
-    // fields: { title: { current, pending, flagged, admin_comment }, ... }
     fields:        Object,
 });
 
@@ -20,14 +24,14 @@ const FIELD_LABELS = {
     price:       'Цена',
 };
 
-// ── Decision state ────────────────────────────────────────
+// Decision state
 const isApproved = ref(false);
 const submitting = ref(false);
 const errors     = ref({});
 const showReject = ref(false);
 const rejectComment = ref('');
 
-// Per-field flag + comment (pre-fill from existing remarks)
+// Per-field flag + comment
 const flagged  = reactive({});
 const comments = reactive({});
 for (const field of Object.keys(props.fields)) {
@@ -37,6 +41,12 @@ for (const field of Object.keys(props.fields)) {
 
 const hasAnyFlag = computed(() => Object.values(flagged).some(v => v));
 const canSubmit  = computed(() => isApproved.value || hasAnyFlag.value);
+
+function onToggleFlag(field) {
+    if (flagged[field]) {
+        isApproved.value = false;
+    }
+}
 
 function submit() {
     if (!canSubmit.value) return;
@@ -69,13 +79,9 @@ function reject() {
         { decision: 'rejected', admin_comment: rejectComment.value || null },
         {
             preserveScroll: true,
-            onFinish: () => { submitting.value = false; },
+            onFinish: () => { submitting.value = false; showReject.value = false; },
         }
     );
-}
-
-function formatPrice(val) {
-    return val != null ? String(val) : '—';
 }
 
 const PRESETS = {
@@ -94,38 +100,28 @@ const PRESETS = {
         'Некорректная цена пака',
         'Цена не соответствует правилам платформы',
     ],
-    rejection: [
-        'Пак нарушает правила платформы',
-        'Спам / Дубликат существующего пака',
-    ],
 };
 
-// ── Lightbox ─────────────────────────────────────────────
+// Lightbox
 const lightboxIndex = ref(null);
 const lightboxPhotos = computed(() => {
     const list = [];
-    if (props.pack?.cover_url) {
-        list.push({ id: 'cover', url: props.pack.cover_url });
-    }
-    if (props.pack?.photos) {
-        list.push(...props.pack.photos);
-    }
+    if (props.pack?.cover_url) list.push({ id: 'cover', url: props.pack.cover_url });
+    if (props.pack?.photos) list.push(...props.pack.photos);
     return list;
 });
 
 function openLightboxByUrl(url) {
     const idx = lightboxPhotos.value.findIndex(p => p.url === url);
-    if (idx !== -1) {
-        lightboxIndex.value = idx;
-    }
+    if (idx !== -1) lightboxIndex.value = idx;
 }
-function closeLightbox()   { lightboxIndex.value = null; }
+function closeLightbox() { lightboxIndex.value = null; }
 function prevPhoto() { lightboxIndex.value = (lightboxIndex.value - 1 + lightboxPhotos.value.length) % lightboxPhotos.value.length; }
 function nextPhoto() { lightboxIndex.value = (lightboxIndex.value + 1) % lightboxPhotos.value.length; }
 
 function handleLbKey(e) {
     if (lightboxIndex.value === null) return;
-    if (e.key === 'ArrowLeft')  prevPhoto();
+    if (e.key === 'ArrowLeft') prevPhoto();
     else if (e.key === 'ArrowRight') nextPhoto();
     else if (e.key === 'Escape') closeLightbox();
 }
@@ -134,511 +130,280 @@ onUnmounted(() => window.removeEventListener('keydown', handleLbKey));
 </script>
 
 <template>
-    <div class="crs-wrap">
-        <Link :href="route('admin.content-packs.change-requests.index')" class="crs-back">← К списку изменений</Link>
+    <div class="space-y-6 max-w-5xl mx-auto">
+        <!-- Back Link -->
+        <div>
+            <Link
+                :href="route('admin.content-packs.change-requests.index')"
+                class="inline-flex items-center gap-2 text-xs font-medium text-zinc-400 hover:text-zinc-100 transition-colors"
+            >
+                <el-icon :size="12"><ArrowLeft /></el-icon>
+                <span>Назад к запросам на изменение паков</span>
+            </Link>
+        </div>
 
-        <div class="crs-layout">
-            <!-- LEFT: Pack info -->
-            <div class="crs-left">
-                <div class="crs-card">
-                    <h2 class="crs-card__title">Айдол</h2>
-                    <a :href="route('profile.show', pack.user.id)" target="_blank" class="crs-idol-link">
-                        <div class="crs-idol">
-                            <img v-if="pack.user?.avatar_url" :src="pack.user.avatar_url" class="crs-idol__avatar" alt="" />
-                            <div v-else class="crs-idol__avatar crs-idol__avatar--empty">{{ pack.user?.name?.charAt(0) }}</div>
-                            <div class="crs-idol__name">{{ pack.user?.name }}</div>
-                        </div>
-                    </a>
-                </div>
+        <!-- Header -->
+        <AdminPageHeader
+            :title="`Изменения в паке: ${pack?.title}`"
+            :subtitle="`Запрос #${changeRequest.id} • Подан ${new Date(changeRequest.created_at).toLocaleString('ru')}`"
+        />
 
-                <div class="crs-card">
-                    <h2 class="crs-card__title">Пак</h2>
+        <!-- Layout Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+            <!-- Left Column: Pack Preview -->
+            <div class="md:col-span-5 space-y-4">
+                <!-- Idol Card -->
+                <div class="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 flex items-center gap-3">
                     <img
-                        v-if="pack.cover_url"
-                        :src="pack.cover_url"
-                        class="crs-cover"
-                        style="cursor: pointer;"
-                        @click="openLightboxByUrl(pack.cover_url)"
+                        v-if="pack?.user?.avatar_url"
+                        :src="pack.user.avatar_url"
+                        class="w-10 h-10 rounded-full object-cover border border-zinc-700 shrink-0"
                         alt=""
                     />
-                    <div v-else class="crs-cover crs-cover--empty"></div>
-                    <p class="crs-pack-title">{{ pack.title }}</p>
+                    <div
+                        v-else
+                        class="w-10 h-10 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-xs text-zinc-300 shrink-0"
+                    >
+                        {{ pack?.user?.name?.[0] }}
+                    </div>
+                    <div class="min-w-0">
+                        <div class="text-sm font-bold text-zinc-100">{{ pack?.user?.name }}</div>
+                        <div class="text-xs text-zinc-400">{{ pack?.user?.email }}</div>
+                    </div>
                 </div>
 
-                <div class="crs-card" v-if="pack.photos && pack.photos.length">
-                    <h2 class="crs-card__title">Фотографии в паке</h2>
-                    <div class="crs-photos">
+                <!-- Cover Preview -->
+                <div class="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2">
+                    <span class="text-xs font-semibold text-zinc-400 block uppercase tracking-wider">Обложка пака</span>
+                    <div
+                        v-if="pack?.cover_url"
+                        class="relative rounded-lg overflow-hidden border border-zinc-700 cursor-zoom-in group"
+                        @click="openLightboxByUrl(pack.cover_url)"
+                    >
+                        <img :src="pack.cover_url" class="w-full h-48 object-cover" alt="" />
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs gap-1">
+                            <el-icon><ZoomIn /></el-icon>
+                            <span>Увеличить</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Photo Gallery Preview -->
+                <div v-if="pack?.photos?.length" class="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2">
+                    <span class="text-xs font-semibold text-zinc-400 block uppercase tracking-wider">
+                        Медиафайлы пака ({{ pack.photos.length }})
+                    </span>
+                    <div class="grid grid-cols-4 gap-2">
                         <img
                             v-for="photo in pack.photos"
                             :key="photo.id"
                             :src="photo.url"
-                            class="crs-photo-thumb"
-                            @click="openLightboxByUrl(photo.url)"
+                            class="w-full h-16 rounded-lg object-cover border border-zinc-800 hover:border-violet-500 cursor-zoom-in transition-colors"
                             alt=""
+                            @click="openLightboxByUrl(photo.url)"
                         />
-                    </div>
-                </div>
-
-                <!-- Reject (fully) -->
-                <div class="crs-card crs-card--danger">
-                    <h2 class="crs-card__title">Отклонить полностью</h2>
-                    <p class="crs-hint">Все изменения будут отклонены, пак останется без изменений.</p>
-                    <div v-if="!showReject">
-                        <button class="crs-btn crs-btn--reject-toggle" :disabled="submitting" @click="showReject = true">
-                            Отклонить
-                        </button>
-                    </div>
-                    <div v-else>
-                        <label class="crs-label">Комментарий (необязательно)</label>
-                        <textarea v-model="rejectComment" class="crs-textarea" rows="3" placeholder="Причина отклонения..." />
-                        <div class="crs-presets crs-presets--block">
-                            <button v-for="preset in PRESETS.rejection" :key="preset" type="button" class="crs-preset-btn" @click="rejectComment = preset">
-                                + {{ preset }}
-                            </button>
-                        </div>
-                        <div class="crs-reject-btns">
-                            <button class="crs-btn crs-btn--reject" :disabled="submitting" @click="reject">Подтвердить</button>
-                            <button class="crs-btn crs-btn--cancel" :disabled="submitting" @click="showReject = false">Отмена</button>
-                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- RIGHT: Fields diff + decision -->
-            <div class="crs-right">
-                <div v-if="Object.keys(errors).length" class="crs-err-banner">
+            <!-- Right Column: Diff & Decision -->
+            <div class="md:col-span-7 space-y-5">
+                <div v-if="Object.keys(errors).length" class="p-3 bg-rose-950/40 border border-rose-800 rounded-xl text-xs text-rose-300">
                     <div v-for="(msg, key) in errors" :key="key">{{ msg }}</div>
                 </div>
 
-                <!-- Fields -->
-                <div v-for="(vals, field) in fields" :key="field" class="crs-field-card" :class="{ 'crs-field-card--flagged': flagged[field] }">
-                    <div class="crs-field-header">
-                        <span class="crs-field-name" :class="{ 'crs-field-name--flagged': flagged[field] }">
-                            {{ FIELD_LABELS[field] ?? field }}
-                            <svg v-if="flagged[field]" class="crs-warn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff7b7b" stroke-width="2.5">
-                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                                <line x1="12" y1="9" x2="12" y2="13"/>
-                                <line x1="12" y1="17" x2="12.01" y2="17"/>
-                            </svg>
-                        </span>
-                        <label class="crs-flag-toggle">
-                            <input type="checkbox" v-model="flagged[field]" @change="isApproved = false" />
-                            <span>Замечание</span>
+                <!-- Fields Diff -->
+                <div class="space-y-3">
+                    <div
+                        v-for="(vals, field) in fields"
+                        :key="field"
+                        class="p-4 rounded-xl border transition-all"
+                        :class="[
+                            flagged[field]
+                                ? 'bg-amber-950/20 border-amber-800/80'
+                                : 'bg-zinc-900/60 border-zinc-800'
+                        ]"
+                    >
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-zinc-200">
+                                {{ FIELD_LABELS[field] ?? field }}
+                            </span>
+                            <label class="inline-flex items-center gap-2 text-xs text-zinc-400 cursor-pointer select-none">
+                                <input
+                                    type="checkbox"
+                                    v-model="flagged[field]"
+                                    class="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-amber-500 focus:ring-amber-500"
+                                    @change="onToggleFlag(field)"
+                                />
+                                <span :class="{ 'text-amber-400 font-semibold': flagged[field] }">Замечание</span>
+                            </label>
+                        </div>
+
+                        <!-- Diff current vs pending -->
+                        <div class="grid grid-cols-2 gap-3 text-xs font-mono">
+                            <div class="p-2.5 bg-zinc-950 border border-zinc-800/80 rounded-lg">
+                                <span class="text-[10px] text-zinc-500 uppercase block mb-0.5">Было:</span>
+                                <div class="text-rose-400 font-semibold flex items-center gap-1">
+                                    <span>{{ field === 'price' ? formatMoney(vals.current) : (vals.current || '—') }}</span>
+                                    <CoinIcon v-if="field === 'price' && vals.current != null" color="blue" size="xs" />
+                                </div>
+                            </div>
+
+                            <div class="p-2.5 bg-zinc-950 border border-zinc-800/80 rounded-lg">
+                                <span class="text-[10px] text-zinc-500 uppercase block mb-0.5">Стало:</span>
+                                <div class="text-emerald-400 font-semibold flex items-center gap-1">
+                                    <span>{{ field === 'price' ? formatMoney(vals.pending) : (vals.pending || '—') }}</span>
+                                    <CoinIcon v-if="field === 'price' && vals.pending != null" color="blue" size="xs" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Remarks Input -->
+                        <div v-if="flagged[field]" class="mt-3 pt-3 border-t border-zinc-800 space-y-2">
+                            <div class="flex flex-wrap gap-1" v-if="PRESETS[field]">
+                                <button
+                                    v-for="p in PRESETS[field]"
+                                    :key="p"
+                                    type="button"
+                                    class="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 hover:text-white"
+                                    @click="comments[field] = p"
+                                >
+                                    + {{ p }}
+                                </button>
+                            </div>
+                            <input
+                                v-model="comments[field]"
+                                type="text"
+                                class="w-full bg-zinc-950 border border-amber-900/60 rounded-lg p-2 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none"
+                                placeholder="Комментарий к замечанию..."
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Decision Card -->
+                <div class="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-4">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                        Решение по запросу
+                    </h3>
+
+                    <div class="space-y-3">
+                        <label
+                            class="flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all"
+                            :class="[
+                                isApproved
+                                    ? 'bg-emerald-950/20 border-emerald-600/80 text-emerald-300'
+                                    : 'bg-zinc-900/40 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                            ]"
+                        >
+                            <input
+                                type="radio"
+                                :value="true"
+                                v-model="isApproved"
+                                class="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
+                                @change="Object.keys(flagged).forEach(f => flagged[f] = false)"
+                            />
+                            <div>
+                                <div class="font-bold text-xs text-zinc-100">Одобрить изменения</div>
+                                <div class="text-[11px] text-zinc-400">Новые параметры пака будут моментально применены</div>
+                            </div>
+                        </label>
+
+                        <label
+                            class="flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all"
+                            :class="[
+                                hasAnyFlag && !isApproved
+                                    ? 'bg-amber-950/20 border-amber-600/80 text-amber-300'
+                                    : 'bg-zinc-900/40 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                            ]"
+                        >
+                            <input
+                                type="radio"
+                                :value="false"
+                                v-model="isApproved"
+                                class="w-4 h-4 text-amber-500 focus:ring-amber-500"
+                            />
+                            <div>
+                                <div class="font-bold text-xs text-zinc-100">Вернуть на доработку с замечаниями</div>
+                                <div class="text-[11px] text-zinc-400">Айдол получит замечания по отмеченным полям</div>
+                            </div>
                         </label>
                     </div>
 
-                    <!-- Diff (current vs requested side-by-side) -->
-                    <div class="crs-diff">
-                        <div class="crs-diff-col crs-diff-col--current">
-                            <p class="crs-diff-label">Текущее</p>
-                            <p class="crs-diff-value inline-flex items-center gap-1">
-                                <span>{{ field === 'price' ? formatPrice(vals.current) : (vals.current || '—') }}</span>
-                                <CoinIcon v-if="field === 'price' && vals.current != null" color="blue" size="xs" />
-                            </p>
-                        </div>
-                        <div class="crs-diff-arrow">→</div>
-                        <div class="crs-diff-col crs-diff-col--pending">
-                            <p class="crs-diff-label">Запрошено</p>
-                            <p class="crs-diff-value crs-diff-value--new inline-flex items-center gap-1">
-                                <span>{{ field === 'price' ? formatPrice(vals.pending) : (vals.pending || '—') }}</span>
-                                <CoinIcon v-if="field === 'price' && vals.pending != null" color="blue" size="xs" />
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Comment when flagged -->
-                    <div v-if="flagged[field]" class="crs-field-comment">
-                        <label class="crs-label">Комментарий к «{{ FIELD_LABELS[field] ?? field }}»</label>
-                        <input
-                            v-model="comments[field]"
-                            class="crs-input"
-                            type="text"
-                            :placeholder="'Укажите что не так с ' + (FIELD_LABELS[field] ?? field).toLowerCase() + '...'"
-                        />
-                        <div class="crs-presets">
-                            <button v-for="preset in PRESETS[field]" :key="preset" type="button" class="crs-preset-btn" @click="comments[field] = preset">
-                                + {{ preset }}
-                            </button>
-                        </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-zinc-800">
+                        <AdminButton variant="destructive" size="sm" @click="showReject = true">
+                            Полностью отклонить
+                        </AdminButton>
+                        <AdminButton
+                            :variant="isApproved ? 'success' : 'warning'"
+                            size="md"
+                            :disabled="!canSubmit || submitting"
+                            :loading="submitting"
+                            @click="submit"
+                        >
+                            {{ isApproved ? 'Применить изменения' : 'Отправить замечания' }}
+                        </AdminButton>
                     </div>
                 </div>
-
-                <!-- Decision buttons -->
-                <div class="crs-decision crs-decision--sticky">
-                    <button
-                        class="crs-btn crs-btn--approve"
-                        :disabled="submitting || hasAnyFlag"
-                        @click="isApproved = true; submit()"
-                    >
-                        Одобрить все изменения
-                    </button>
-                    <button
-                        class="crs-btn crs-btn--remarks"
-                        :disabled="submitting || !hasAnyFlag"
-                        @click="isApproved = false; submit()"
-                    >
-                        Отправить замечания
-                    </button>
-                </div>
-                <p v-if="!hasAnyFlag && !isApproved" class="crs-hint crs-hint--center">
-                    Пометьте поля с замечаниями или нажмите «Одобрить»
-                </p>
             </div>
         </div>
-    </div>
 
-    <!-- Lightbox -->
-    <Teleport to="body">
-        <Transition name="lb">
-            <div v-if="lightboxIndex !== null" class="lb-overlay" @click.self="closeLightbox">
-                <button class="lb-close" @click="closeLightbox">✕</button>
-                <button class="lb-arrow lb-arrow--prev" @click="prevPhoto"><el-icon><ArrowLeft /></el-icon></button>
-                <div class="lb-img-wrap">
-                    <img :src="lightboxPhotos[lightboxIndex]?.url" alt="" class="lb-img" />
-                </div>
-                <button class="lb-arrow lb-arrow--next" @click="nextPhoto"><el-icon><ArrowRight /></el-icon></button>
-                <div class="lb-counter">{{ lightboxIndex + 1 }} / {{ lightboxPhotos.length }}</div>
+        <!-- Reject Modal -->
+        <AdminModal
+            :show="showReject"
+            title="Отклонить запрос на изменение?"
+            subtitle="Изменения будут аннулированы, айдол получит уведомление"
+            @close="showReject = false"
+        >
+            <div class="space-y-3">
+                <label class="text-xs font-semibold text-zinc-300">Причина отклонения:</label>
+                <textarea
+                    v-model="rejectComment"
+                    rows="3"
+                    class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-rose-500"
+                    placeholder="Укажите причину..."
+                />
             </div>
-        </Transition>
-    </Teleport>
+
+            <template #footer>
+                <AdminButton variant="ghost" @click="showReject = false">Отмена</AdminButton>
+                <AdminButton variant="destructive" :loading="submitting" @click="reject">
+                    Подтвердить отклонение
+                </AdminButton>
+            </template>
+        </AdminModal>
+
+        <!-- Lightbox -->
+        <Teleport to="body">
+            <div
+                v-if="lightboxIndex !== null"
+                class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out select-none"
+                @click="closeLightbox"
+            >
+                <button
+                    v-if="lightboxPhotos.length > 1"
+                    type="button"
+                    class="absolute left-6 p-3 rounded-full bg-zinc-900/80 text-white hover:bg-zinc-800"
+                    @click.stop="prevPhoto"
+                >
+                    <el-icon :size="20"><ArrowLeft /></el-icon>
+                </button>
+
+                <img
+                    :src="lightboxPhotos[lightboxIndex]?.url"
+                    class="max-w-full max-h-[90vh] object-contain rounded-xl border border-zinc-800"
+                    alt=""
+                />
+
+                <button
+                    v-if="lightboxPhotos.length > 1"
+                    type="button"
+                    class="absolute right-6 p-3 rounded-full bg-zinc-900/80 text-white hover:bg-zinc-800"
+                    @click.stop="nextPhoto"
+                >
+                    <el-icon :size="20"><ArrowRight /></el-icon>
+                </button>
+            </div>
+        </Teleport>
+    </div>
 </template>
-
-<style scoped>
-.crs-wrap { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
-
-.crs-back {
-    display: inline-block;
-    margin-bottom: 1.25rem;
-    color: rgba(255, 178, 239,0.7);
-    text-decoration: none;
-    font-size: 0.88rem;
-}
-.crs-back:hover { color: rgba(200,200,255,0.95); }
-
-.crs-warn-icon {
-    display: inline-block;
-    vertical-align: middle;
-    margin-left: 0.4rem;
-}
-
-.crs-layout {
-    display: grid;
-    grid-template-columns: 260px 1fr;
-    gap: 1.25rem;
-    align-items: start;
-}
-
-.crs-card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 10px;
-    padding: 1.1rem;
-    margin-bottom: 1rem;
-}
-.crs-card--danger { border-color: rgba(255,80,80,0.15); }
-.crs-card__title {
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    color: rgba(255,255,255,0.3);
-    margin: 0 0 0.75rem;
-    font-weight: 600;
-}
-
-.crs-idol { display: flex; align-items: center; gap: 0.6rem; }
-.crs-idol__avatar {
-    width: 34px; height: 34px;
-    border-radius: 50%; object-fit: cover; flex-shrink: 0;
-}
-.crs-idol__avatar--empty {
-    background: rgba(255, 178, 239,0.15);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.85rem; color: rgba(255, 178, 239,0.7);
-}
-.crs-idol__name { font-size: 0.9rem; color: rgba(255,255,255,0.85); }
-
-.crs-cover {
-    width: 100%; aspect-ratio: 3/4; object-fit: cover;
-    border-radius: 7px; display: block; margin-bottom: 0.75rem;
-}
-.crs-cover--empty { background: rgba(255,255,255,0.05); }
-.crs-pack-title { font-size: 0.95rem; font-weight: 600; color: rgba(255,255,255,0.9); margin: 0; }
-
-.crs-hint {
-    font-size: 0.8rem;
-    color: rgba(255,255,255,0.35);
-    margin: 0 0 0.75rem;
-    line-height: 1.4;
-}
-.crs-hint--center { text-align: center; margin-top: 0.5rem; }
-
-/* Fields */
-.crs-field-card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 9px;
-    padding: 1rem 1.1rem;
-    margin-bottom: 0.75rem;
-    transition: border-color 0.15s;
-}
-.crs-field-card--flagged { border-color: rgba(255,200,80,0.3); }
-
-.crs-field-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.75rem;
-}
-.crs-field-name {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: rgba(255,255,255,0.5);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.crs-flag-toggle {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    cursor: pointer;
-    font-size: 0.8rem;
-    color: rgba(255,255,255,0.35);
-    user-select: none;
-}
-.crs-flag-toggle input[type=checkbox] { accent-color: #ffc850; cursor: pointer; }
-.crs-field-card--flagged .crs-flag-toggle { color: #ffc850; }
-
-/* Diff */
-.crs-diff { display: flex; align-items: flex-start; gap: 0.75rem; }
-.crs-diff-col { flex: 1; min-width: 0; }
-.crs-diff-label { font-size: 0.72rem; color: rgba(255,255,255,0.3); margin: 0 0 0.25rem; }
-.crs-diff-value {
-    font-size: 0.9rem;
-    color: rgba(255,255,255,0.5);
-    margin: 0;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-.crs-diff-value--new { color: rgba(255,255,255,0.92); }
-.crs-diff-arrow { color: rgba(255,255,255,0.2); padding-top: 1.35rem; flex-shrink: 0; }
-
-/* Comment field */
-.crs-field-comment { margin-top: 0.75rem; }
-.crs-label { display: block; font-size: 0.78rem; color: rgba(255,255,255,0.4); margin-bottom: 0.35rem; }
-.crs-input {
-    width: 100%;
-    box-sizing: border-box;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 6px;
-    color: rgba(255,255,255,0.85);
-    font-size: 0.88rem;
-    font-family: inherit;
-    padding: 0.4rem 0.7rem;
-    outline: none;
-}
-
-/* Decision */
-.crs-decision { display: flex; gap: 0.75rem; margin-top: 1rem; }
-
-.crs-err-banner {
-    background: rgba(255,80,80,0.1);
-    border: 1px solid rgba(255,80,80,0.25);
-    border-radius: 7px;
-    padding: 0.6rem 0.9rem;
-    color: #ff8080;
-    font-size: 0.88rem;
-    margin-bottom: 1rem;
-}
-
-/* Buttons */
-.crs-btn {
-    padding: 0.6rem 1rem;
-    border-radius: 7px;
-    border: none;
-    font-size: 0.9rem;
-    font-family: inherit;
-    font-weight: 500;
-    cursor: pointer;
-    transition: opacity 0.15s, background 0.15s;
-    flex: 1;
-}
-.crs-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-.crs-btn--approve {
-    background: rgba(100,210,160,0.2);
-    border: 1px solid rgba(100,210,160,0.35);
-    color: #64d2a0;
-}
-.crs-btn--approve:hover:not(:disabled) { background: rgba(100,210,160,0.28); }
-
-.crs-btn--remarks {
-    background: rgba(255,200,80,0.15);
-    border: 1px solid rgba(255,200,80,0.3);
-    color: #ffc850;
-}
-.crs-btn--remarks:hover:not(:disabled) { background: rgba(255,200,80,0.22); }
-
-.crs-btn--reject-toggle {
-    width: 100%;
-    background: rgba(255,80,80,0.1);
-    border: 1px solid rgba(255,80,80,0.2);
-    color: rgba(255,120,120,0.8);
-}
-.crs-btn--reject-toggle:hover:not(:disabled) { background: rgba(255,80,80,0.16); }
-
-.crs-textarea {
-    width: 100%;
-    box-sizing: border-box;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 7px;
-    color: rgba(255,255,255,0.85);
-    font-size: 0.88rem;
-    font-family: inherit;
-    padding: 0.5rem 0.75rem;
-    outline: none;
-    resize: vertical;
-    margin-bottom: 0.5rem;
-}
-.crs-reject-btns { display: flex; gap: 0.5rem; }
-
-.crs-btn--reject {
-    flex: 1;
-    background: rgba(255,80,80,0.2);
-    border: 1px solid rgba(255,80,80,0.35);
-    color: #ff8080;
-}
-.crs-btn--reject:hover:not(:disabled) { background: rgba(255,80,80,0.28); }
-
-.crs-btn--cancel {
-    flex: 1;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.5);
-}
-.crs-btn--cancel:hover:not(:disabled) { background: rgba(255,255,255,0.09); }
-
-/* ── Enhanced UI/UX Styles ── */
-.crs-presets {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-top: 0.4rem;
-}
-.crs-presets--block {
-    margin-bottom: 0.75rem;
-}
-.crs-preset-btn {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    color: rgba(255,255,255,0.5);
-    font-size: 0.72rem;
-    padding: 3px 8px;
-    cursor: pointer;
-    transition: all 0.15s;
-}
-.crs-preset-btn:hover {
-    background: rgba(255, 178, 239, 0.1);
-    color: #ffb2ef;
-    border-color: rgba(255, 178, 239, 0.25);
-}
-.crs-indicator {
-    font-size: 0.72rem;
-    font-weight: 600;
-    padding: 1px 6px;
-    border-radius: 4px;
-}
-.crs-indicator--ok {
-    color: #64d2a0;
-    background: rgba(100,210,160,0.1);
-}
-.crs-indicator--flagged {
-    color: #ffc850;
-    background: rgba(255,200,80,0.1);
-}
-.crs-field-card {
-    transition: all 0.25s ease;
-}
-.crs-field-card--flagged {
-    border-color: rgba(255,200,80,0.2) !important;
-    background: rgba(255,200,80,0.01) !important;
-}
-.crs-decision--sticky {
-    position: sticky;
-    bottom: 1rem;
-    z-index: 100;
-    background: rgba(30, 30, 42, 0.96) !important;
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 178, 239, 0.25) !important;
-    border-radius: 10px;
-    padding: 1rem;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-}
-.crs-idol-link {
-    text-decoration: none;
-    display: block;
-}
-.crs-idol-link:hover .crs-idol__name {
-    color: #ffb2ef;
-}
-
-.crs-photos {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-}
-.crs-photo-thumb {
-    width: 100%;
-    aspect-ratio: 1;
-    object-fit: cover;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: opacity 0.15s, transform 0.15s;
-    border: 1px solid rgba(255,255,255,0.08);
-}
-.crs-photo-thumb:hover {
-    opacity: 0.85;
-    transform: scale(1.02);
-}
-
-/* ── Lightbox ── */
-.lb-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    background: rgba(0,0,0,0.92);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.lb-img-wrap { max-width: 90vw; max-height: 90vh; display: flex; align-items: center; justify-content: center; }
-.lb-img { max-width: 90vw; max-height: 90vh; object-fit: contain; display: block; border-radius: 4px; box-shadow: 0 8px 60px rgba(0,0,0,0.8); }
-.lb-close {
-    position: absolute; top: 18px; right: 22px;
-    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
-    color: rgba(255,255,255,0.7); width: 36px; height: 36px; border-radius: 50%;
-    font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 1;
-}
-.lb-close:hover { background: rgba(255,255,255,0.15); color: #fff; }
-.lb-arrow {
-    position: absolute; top: 50%; transform: translateY(-50%);
-    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.7); width: 46px; height: 46px; border-radius: 50%;
-    font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
-    transition: background 0.15s; z-index: 1;
-}
-.lb-arrow:hover { background: rgba(255,255,255,0.15); color: #fff; }
-.lb-arrow--prev { left: 18px; }
-.lb-arrow--next { right: 18px; }
-.lb-counter {
-    position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
-    background: rgba(0,0,0,0.5); backdrop-filter: blur(6px);
-    color: rgba(255,255,255,0.7); font-size: 0.85rem; padding: 4px 14px; border-radius: 20px;
-}
-.lb-enter-active, .lb-leave-active { transition: opacity 0.18s; }
-.lb-enter-from, .lb-leave-to { opacity: 0; }
-</style>

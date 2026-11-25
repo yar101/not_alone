@@ -2,12 +2,13 @@
 import { ref, computed } from 'vue';
 import { useForm, router, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
-import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
+import AdminModal from '@/Components/Admin/UI/AdminModal.vue';
 import AdminPagination from '@/Components/Admin/AdminPagination.vue';
 import UserPickerModal from '@/Components/Admin/UserPickerModal.vue';
-import AppSelect from '@/Components/AppSelect.vue';
 import { ElMessageBox, ElNotification } from 'element-plus';
-import { Warning, Plus, Delete, Search, User as UserIcon } from '@element-plus/icons-vue';
+import { Warning, Plus, Delete, Search, User as UserIcon, Close } from '@element-plus/icons-vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -120,661 +121,305 @@ function revokeStrike(strike) {
         });
     }).catch(() => {});
 }
+
+function formatDate(dt) {
+    if (!dt) return '—';
+    return new Date(dt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
 </script>
 
 <template>
-    <div class="strikes-page">
-        <AdminPageHeader
-            title="Управление страйками"
-            description="Журнал выданных предупреждений, штрафов и санкций за нарушения"
-        >
-            <template #actions>
-                <button
-                    class="btn-toggle-form"
-                    :class="{ 'btn-toggle-form--active': showCreateForm }"
+    <div class="space-y-6">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2.5">
+                    <el-icon class="text-amber-400"><Warning /></el-icon>
+                    <span>Управление страйками</span>
+                </h1>
+                <p class="text-xs text-zinc-400 mt-0.5">
+                    Журнал выданных предупреждений, штрафов и санкций. 3 активных страйка = автоматический бан.
+                </p>
+            </div>
+            <div>
+                <AdminButton
+                    :variant="showCreateForm ? 'outline' : 'primary'"
+                    size="sm"
                     @click="showCreateForm = !showCreateForm"
                 >
-                    <el-icon><Plus /></el-icon>
+                    <el-icon class="mr-1.5"><Plus /></el-icon>
                     {{ showCreateForm ? 'Скрыть форму' : 'Выдать страйк' }}
-                </button>
-            </template>
-        </AdminPageHeader>
+                </AdminButton>
+            </div>
+        </div>
 
-        <!-- Compose Form (Collapsible) -->
-        <div v-show="showCreateForm" class="compose-card">
-            <h2 class="compose-title">Выдать новый страйк</h2>
+        <!-- Compose Form (Collapsible Card) -->
+        <div v-show="showCreateForm" class="p-5 rounded-xl border border-zinc-800 bg-zinc-900/60 backdrop-blur-sm space-y-4">
+            <h2 class="text-sm font-semibold text-zinc-100 flex items-center gap-2">
+                <el-icon class="text-amber-400"><Warning /></el-icon>
+                <span>Выдать новый страйк пользователю</span>
+            </h2>
 
-            <form @submit.prevent="submit" class="compose-form">
-                <div class="field">
-                    <label class="field-label">Пользователь</label>
-                    <div v-if="selectedUser" class="user-chip">
-                        <span class="user-chip-avatar">{{ (selectedUser.name || selectedUser.email || '?')[0].toUpperCase() }}</span>
-                        <span class="user-chip-info">
-                            <span class="user-chip-name">
-                                {{ selectedUser.name || '—' }} 
-                                <span v-if="selectedUser.is_idol" class="badge-idol">Айдол</span>
-                            </span>
-                            <span class="user-chip-email">{{ selectedUser.email }}</span>
-                        </span>
-                        <div class="strikes-badge" :class="{'strikes-danger': activeStrikesCount > 0}">
-                            Активных страйков: {{ activeStrikesCount }}
+            <form @submit.prevent="submit" class="space-y-4 text-xs">
+                <!-- User Selector -->
+                <div class="space-y-1.5">
+                    <label class="font-medium text-zinc-300">Пользователь <span class="text-rose-400">*</span></label>
+
+                    <div v-if="selectedUser" class="p-3 rounded-lg border border-zinc-800 bg-zinc-950 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-zinc-800 text-zinc-300 flex items-center justify-center font-bold text-xs border border-zinc-700">
+                                {{ (selectedUser.name || selectedUser.email || '?')[0].toUpperCase() }}
+                            </div>
+                            <div>
+                                <div class="font-semibold text-zinc-100 flex items-center gap-2">
+                                    <span>{{ selectedUser.name || '—' }}</span>
+                                    <AdminBadge v-if="selectedUser.is_idol" variant="primary" size="sm">Айдол</AdminBadge>
+                                </div>
+                                <div class="text-[11px] text-zinc-400 font-mono">{{ selectedUser.email }}</div>
+                            </div>
                         </div>
-                        <button type="button" class="btn-change" @click="showPicker = true">Изменить</button>
+
+                        <div class="flex items-center gap-3">
+                            <AdminBadge :variant="activeStrikesCount > 0 ? 'danger' : 'neutral'" size="sm">
+                                Активных страйков: {{ activeStrikesCount }}
+                            </AdminBadge>
+                            <AdminButton variant="ghost" size="sm" type="button" @click="showPicker = true">
+                                Сменить
+                            </AdminButton>
+                        </div>
                     </div>
-                    <button v-else type="button" class="btn-pick" @click="showPicker = true">Выбрать пользователя</button>
-                    <p v-if="form.errors.user_id" class="field-error">{{ form.errors.user_id }}</p>
+
+                    <div v-else>
+                        <AdminButton variant="outline" size="sm" type="button" @click="showPicker = true">
+                            <el-icon class="mr-1.5"><UserIcon /></el-icon>
+                            Выбрать пользователя...
+                        </AdminButton>
+                    </div>
+                    <p v-if="form.errors.user_id" class="text-xs text-rose-400">{{ form.errors.user_id }}</p>
                 </div>
 
                 <template v-if="selectedUser">
-                    <div class="field" v-if="selectedUser.is_idol">
-                        <label class="field-label">Списание рейтинга (только для айдолов)</label>
-                        <AppSelect
+                    <!-- Rating Deduction (if idol) -->
+                    <div v-if="selectedUser.is_idol" class="space-y-1.5">
+                        <label class="font-medium text-zinc-300">Штраф рейтинга (только для айдолов)</label>
+                        <select
                             v-model="form.rating_deducted"
-                            :options="ratingOptions"
-                        />
-                        <p v-if="form.errors.rating_deducted" class="field-error">{{ form.errors.rating_deducted }}</p>
+                            class="w-full h-9 px-3 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-zinc-100 focus:outline-none focus:border-violet-500"
+                        >
+                            <option v-for="opt in ratingOptions" :key="opt.value" :value="opt.value">
+                                {{ opt.label }}
+                            </option>
+                        </select>
+                        <p v-if="form.errors.rating_deducted" class="text-xs text-rose-400">{{ form.errors.rating_deducted }}</p>
                     </div>
 
-                    <div class="field">
-                        <label class="field-label">Причина и примечание (видно в аудите)</label>
+                    <!-- Reason / Note -->
+                    <div class="space-y-1.5">
+                        <label class="font-medium text-zinc-300">Причина нарушения и заметка <span class="text-rose-400">*</span></label>
                         <textarea
                             v-model="form.admin_note"
-                            class="field-textarea"
-                            rows="3"
-                            placeholder="Опишите суть нарушения и контекст..."
+                            rows="2"
                             required
+                            placeholder="Опишите суть нарушения и контекст для аудита..."
+                            class="w-full px-3 py-2 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
                         ></textarea>
-                        <p v-if="form.errors.admin_note" class="field-error">{{ form.errors.admin_note }}</p>
+                        <p v-if="form.errors.admin_note" class="text-xs text-rose-400">{{ form.errors.admin_note }}</p>
                     </div>
 
-                    <div v-if="isThirdStrike" class="ban-warning-block">
-                        <div class="ban-warning-title">
+                    <!-- 3rd Strike Auto-Ban Warning -->
+                    <div v-if="isThirdStrike" class="p-3 rounded-lg border border-rose-900/40 bg-rose-950/20 space-y-3">
+                        <div class="flex items-center gap-2 font-semibold text-rose-300">
                             <el-icon><Warning /></el-icon>
-                            Внимание: Это 3-й активный страйк! Пользователь будет заблокирован.
+                            <span>Внимание: Это 3-й активный страйк! Пользователь будет заблокирован.</span>
                         </div>
-                        <div class="field">
-                            <label class="field-label">Причина блокировки</label>
+
+                        <div class="space-y-1">
+                            <label class="font-medium text-zinc-300">Причина блокировки *</label>
                             <input
                                 v-model="form.ban_reason"
-                                class="field-input"
-                                placeholder="Например: Систематическое нарушение правил платформы (3 страйка)"
+                                type="text"
                                 required
+                                placeholder="Например: Систематическое нарушение правил платформы (3 страйка)"
+                                class="w-full h-9 px-3 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
                             />
-                            <p v-if="form.errors.ban_reason" class="field-error">{{ form.errors.ban_reason }}</p>
+                            <p v-if="form.errors.ban_reason" class="text-xs text-rose-400">{{ form.errors.ban_reason }}</p>
                         </div>
-                        <div class="field">
-                            <label class="field-label">Срок блокировки (оставьте пустым для бессрочного бана)</label>
+
+                        <div class="space-y-1">
+                            <label class="font-medium text-zinc-300">Срок блокировки (оставьте пустым для бессрочного бана)</label>
                             <input
                                 v-model="form.banned_until"
                                 type="datetime-local"
-                                class="field-input"
+                                class="w-full h-9 px-3 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-zinc-100 focus:outline-none focus:border-violet-500"
                             />
-                            <p v-if="form.errors.banned_until" class="field-error">{{ form.errors.banned_until }}</p>
+                            <p v-if="form.errors.banned_until" class="text-xs text-rose-400">{{ form.errors.banned_until }}</p>
                         </div>
                     </div>
 
-                    <div class="form-actions">
-                        <button type="button" class="btn-cancel" @click="showCreateForm = false">Отмена</button>
-                        <button type="submit" class="btn-submit" :disabled="form.processing">
-                            {{ form.processing ? 'Сохранение...' : (isThirdStrike ? 'Выдать страйк и забанить' : 'Выдать страйк') }}
-                        </button>
+                    <div class="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800">
+                        <AdminButton variant="outline" size="sm" type="button" @click="showCreateForm = false">
+                            Отмена
+                        </AdminButton>
+                        <AdminButton
+                            :variant="isThirdStrike ? 'destructive' : 'primary'"
+                            size="sm"
+                            type="submit"
+                            :loading="form.processing"
+                        >
+                            {{ isThirdStrike ? 'Выдать страйк и забанить' : 'Выдать страйк' }}
+                        </AdminButton>
                     </div>
                 </template>
             </form>
         </div>
 
         <!-- Filter Tabs & Search Bar -->
-        <div class="table-controls">
-            <div class="filter-tabs">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-1.5 overflow-x-auto">
                 <button
-                    class="tab-btn"
-                    :class="{ 'tab-btn--active': currentStatus === 'all' }"
+                    class="px-3 py-1.5 rounded-lg text-xs font-medium border transition flex items-center gap-2"
+                    :class="currentStatus === 'all'
+                        ? 'border-violet-500/50 bg-violet-500/15 text-violet-300'
+                        : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-zinc-200'"
                     @click="setStatus('all')"
                 >
-                    Все страйки
-                    <span class="tab-badge">{{ counts.all }}</span>
+                    <span>Все страйки</span>
+                    <span class="px-1.5 py-0.2 rounded text-[10px] font-mono bg-zinc-800 text-zinc-400">{{ counts.all }}</span>
                 </button>
                 <button
-                    class="tab-btn"
-                    :class="{ 'tab-btn--active': currentStatus === 'active' }"
+                    class="px-3 py-1.5 rounded-lg text-xs font-medium border transition flex items-center gap-2"
+                    :class="currentStatus === 'active'
+                        ? 'border-rose-500/50 bg-rose-500/15 text-rose-300'
+                        : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-zinc-200'"
                     @click="setStatus('active')"
                 >
-                    Активные
-                    <span class="tab-badge tab-badge--danger">{{ counts.active }}</span>
+                    <span>Активные</span>
+                    <span class="px-1.5 py-0.2 rounded text-[10px] font-mono bg-rose-950 text-rose-400">{{ counts.active }}</span>
                 </button>
                 <button
-                    class="tab-btn"
-                    :class="{ 'tab-btn--active': currentStatus === 'expired' }"
+                    class="px-3 py-1.5 rounded-lg text-xs font-medium border transition flex items-center gap-2"
+                    :class="currentStatus === 'expired'
+                        ? 'border-zinc-700 bg-zinc-800 text-zinc-200'
+                        : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-zinc-200'"
                     @click="setStatus('expired')"
                 >
-                    Истекшие
-                    <span class="tab-badge">{{ counts.expired }}</span>
+                    <span>Истекшие</span>
+                    <span class="px-1.5 py-0.2 rounded text-[10px] font-mono bg-zinc-800 text-zinc-500">{{ counts.expired }}</span>
                 </button>
             </div>
 
-            <div class="search-box">
-                <el-icon class="search-icon"><Search /></el-icon>
+            <div class="relative flex-1 max-w-sm">
+                <el-icon class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"><Search /></el-icon>
                 <input
                     v-model="searchQuery"
                     type="text"
-                    placeholder="Поиск по ID, имени, email или причине..."
-                    class="search-input"
+                    placeholder="Поиск по имени, email или причине..."
+                    class="w-full h-9 pl-9 pr-3 rounded-lg border border-zinc-800 bg-zinc-900/80 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
                     @input="onSearchInput"
                 />
             </div>
         </div>
 
-        <!-- Strikes History Table -->
-        <div class="strikes-table-card">
-            <div class="table-wrap">
-                <table class="strikes-table">
+        <!-- Strikes Table -->
+        <div class="rounded-xl border border-zinc-800 bg-zinc-900/60 overflow-hidden backdrop-blur-sm">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
                     <thead>
-                        <tr>
-                            <th class="w-id">#</th>
-                            <th>Пользователь</th>
-                            <th>Выдал</th>
-                            <th class="text-center">Рейтинг</th>
-                            <th>Причина / Комментарий</th>
-                            <th>Истекает</th>
-                            <th>Дата</th>
-                            <th class="text-center">Статус</th>
-                            <th class="text-right"></th>
+                        <tr class="border-b border-zinc-800 bg-zinc-950/40 text-zinc-400">
+                            <th class="py-3 px-4 font-medium">Пользователь</th>
+                            <th class="py-3 px-4 font-medium">Штраф рейтинга</th>
+                            <th class="py-3 px-4 font-medium">Статус</th>
+                            <th class="py-3 px-4 font-medium">Истекает</th>
+                            <th class="py-3 px-4 font-medium">Примечание / Контекст</th>
+                            <th class="py-3 px-4 font-medium">Дата выдачи</th>
+                            <th class="py-3 px-4 font-medium text-right"></th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr v-for="strike in strikes.data" :key="strike.id" :class="{ 'row-expired': !strike.is_active }">
-                            <td class="font-mono text-muted">#{{ strike.id }}</td>
-                            <td>
-                                <div class="user-cell">
-                                    <img v-if="strike.user.avatar_url" :src="strike.user.avatar_url" class="user-avatar" />
-                                    <div v-else class="user-avatar-empty">{{ strike.user.name.charAt(0) }}</div>
-                                    <div class="user-info">
-                                        <Link v-if="strike.user.id" :href="route('admin.users.show', strike.user.id)" class="user-name">
-                                            {{ strike.user.name }}
+                    <tbody class="divide-y divide-zinc-800/60 text-zinc-300">
+                        <tr v-if="!strikes.data?.length">
+                            <td colspan="7" class="py-12 text-center text-zinc-500">
+                                Страйков не найдено
+                            </td>
+                        </tr>
+                        <tr
+                            v-for="strike in strikes.data"
+                            :key="strike.id"
+                            class="hover:bg-zinc-800/30 transition"
+                        >
+                            <!-- User -->
+                            <td class="py-3 px-4">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-7 h-7 rounded-full bg-zinc-800 text-zinc-300 flex items-center justify-center font-bold text-xs border border-zinc-700">
+                                        {{ (strike.user?.name || strike.user?.email || '?')[0].toUpperCase() }}
+                                    </div>
+                                    <div class="min-w-0">
+                                        <Link
+                                            :href="route('admin.users.show', strike.user.id)"
+                                            class="font-semibold text-zinc-200 hover:text-violet-400 transition truncate block max-w-[140px]"
+                                        >
+                                            {{ strike.user?.name || '—' }}
                                         </Link>
-                                        <span v-else class="user-name">{{ strike.user.name }}</span>
-                                        <div class="user-sub">
-                                            <span v-if="strike.user.is_idol" class="badge-idol-mini">Айдол</span>
-                                            <span v-if="strike.user.is_banned" class="badge-banned-mini">Бан</span>
-                                            <span class="user-email">{{ strike.user.email }}</span>
-                                        </div>
+                                        <span class="text-[11px] text-zinc-500 font-mono truncate block max-w-[140px]">{{ strike.user?.email }}</span>
                                     </div>
                                 </div>
                             </td>
-                            <td>
-                                <span class="admin-badge">{{ strike.admin.name }}</span>
-                            </td>
-                            <td class="text-center font-mono font-bold" :class="strike.rating_deducted < 0 ? 'text-danger' : 'text-muted'">
-                                {{ strike.rating_deducted !== 0 ? strike.rating_deducted : '—' }}
-                            </td>
-                            <td>
-                                <div class="strike-note">{{ strike.admin_note }}</div>
-                            </td>
-                            <td class="text-sm">
-                                <span v-if="strike.expires_at" :class="strike.is_active ? 'text-warning' : 'text-muted'">
-                                    {{ strike.expires_at }}
+
+                            <!-- Rating Deducted -->
+                            <td class="py-3 px-4 font-mono font-bold">
+                                <span v-if="strike.rating_deducted" class="text-rose-400">
+                                    {{ strike.rating_deducted }}
                                 </span>
-                                <span v-else class="text-muted">Бессрочно</span>
+                                <span v-else class="text-zinc-500">0</span>
                             </td>
-                            <td class="text-sm text-muted">
-                                {{ strike.created_at }}
+
+                            <!-- Status -->
+                            <td class="py-3 px-4">
+                                <AdminBadge :variant="strike.is_active ? 'danger' : 'neutral'" size="sm" dot>
+                                    {{ strike.is_active ? 'Активен' : 'Истёк' }}
+                                </AdminBadge>
                             </td>
-                            <td class="text-center">
-                                <span v-if="strike.is_active" class="status-pill status-pill--active">
-                                    Активен
-                                </span>
-                                <span v-else class="status-pill status-pill--expired">
-                                    Истек
-                                </span>
+
+                            <!-- Expires At -->
+                            <td class="py-3 px-4 font-mono text-[11px] text-zinc-400 whitespace-nowrap">
+                                {{ formatDate(strike.expires_at) }}
                             </td>
-                            <td class="text-right">
+
+                            <!-- Admin Note -->
+                            <td class="py-3 px-4 max-w-[200px] truncate text-zinc-300" :title="strike.admin_note">
+                                {{ strike.admin_note || '—' }}
+                            </td>
+
+                            <!-- Created At -->
+                            <td class="py-3 px-4 font-mono text-[11px] text-zinc-500 whitespace-nowrap">
+                                {{ formatDate(strike.created_at) }}
+                            </td>
+
+                            <!-- Actions -->
+                            <td class="py-3 px-4 text-right">
                                 <button
-                                    v-if="strike.is_active"
-                                    class="btn-revoke"
-                                    title="Отозвать страйк"
+                                    class="text-rose-400 hover:text-rose-300 font-medium text-xs hover:underline"
                                     @click="revokeStrike(strike)"
                                 >
                                     Отозвать
                                 </button>
                             </td>
                         </tr>
-                        <tr v-if="!strikes.data || strikes.data.length === 0">
-                            <td colspan="9" class="empty-state">
-                                Страйков по выбранным критериям не найдено.
-                            </td>
-                        </tr>
                     </tbody>
                 </table>
             </div>
 
-            <AdminPagination
-                v-if="strikes.links && strikes.links.length > 3"
-                :links="strikes.links"
-                style="margin-top: 1.25rem;"
-            />
+            <!-- Pagination -->
+            <div class="p-4 border-t border-zinc-800">
+                <AdminPagination :pagination="strikes" />
+            </div>
         </div>
 
+        <!-- User Picker Modal -->
         <UserPickerModal
-            v-model="showPicker"
-            title="Выбор нарушителя"
+            v-if="showPicker"
+            :show="showPicker"
+            @close="showPicker = false"
             @select="selectUser"
         />
     </div>
 </template>
-
-<style scoped>
-.strikes-page {
-    padding: 1.5rem;
-}
-
-.btn-toggle-form {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    background: linear-gradient(135deg, #ec4899, #8b5cf6);
-    color: #fff;
-    border: none;
-    font-size: 0.85rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.btn-toggle-form:hover {
-    opacity: 0.9;
-}
-.btn-toggle-form--active {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.8);
-}
-
-.compose-card {
-    background: #18181b;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-}
-.compose-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #f4f4f5;
-    margin: 0 0 1.25rem 0;
-}
-.compose-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-}
-
-.field {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-}
-.field-label {
-    font-size: 0.82rem;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.7);
-}
-.field-input, .field-textarea {
-    background: #09090b;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 8px;
-    padding: 0.6rem 0.85rem;
-    color: #fff;
-    font-size: 0.9rem;
-    font-family: inherit;
-    box-sizing: border-box;
-    width: 100%;
-}
-.field-input:focus, .field-textarea:focus {
-    outline: none;
-    border-color: #ec4899;
-}
-.field-error {
-    color: #f87171;
-    font-size: 0.8rem;
-    margin: 0.2rem 0 0 0;
-}
-
-.btn-pick {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px dashed rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
-    padding: 0.75rem;
-    color: rgba(255, 255, 255, 0.7);
-    cursor: pointer;
-    text-align: center;
-    font-size: 0.88rem;
-    transition: all 0.2s;
-}
-.btn-pick:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: #ec4899;
-    color: #fff;
-}
-
-.user-chip {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 0.6rem 0.85rem;
-}
-.user-chip-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: #8b5cf6;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-}
-.user-chip-info {
-    display: flex;
-    flex-direction: column;
-}
-.user-chip-name {
-    font-weight: 500;
-    color: #fff;
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-}
-.user-chip-email {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.5);
-}
-.strikes-badge {
-    margin-left: auto;
-    font-size: 0.78rem;
-    padding: 0.25rem 0.6rem;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.7);
-}
-.strikes-danger {
-    background: rgba(239, 68, 68, 0.15);
-    color: #f87171;
-    border: 1px solid rgba(239, 68, 68, 0.3);
-}
-.btn-change {
-    background: none;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: rgba(255, 255, 255, 0.7);
-    border-radius: 6px;
-    padding: 0.25rem 0.6rem;
-    font-size: 0.78rem;
-    cursor: pointer;
-}
-
-.ban-warning-block {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    border-radius: 8px;
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.85rem;
-}
-.ban-warning-title {
-    font-weight: 600;
-    color: #f87171;
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-}
-
-.form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
-    margin-top: 0.5rem;
-}
-.btn-cancel {
-    background: rgba(255, 255, 255, 0.05);
-    border: none;
-    color: rgba(255, 255, 255, 0.7);
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    cursor: pointer;
-}
-.btn-submit {
-    background: #ec4899;
-    color: #fff;
-    border: none;
-    padding: 0.5rem 1.25rem;
-    border-radius: 8px;
-    font-weight: 500;
-    cursor: pointer;
-}
-.btn-submit:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* Table Controls */
-.table-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.25rem;
-    flex-wrap: wrap;
-}
-.filter-tabs {
-    display: flex;
-    gap: 0.5rem;
-}
-.tab-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.6);
-    padding: 0.45rem 0.85rem;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.tab-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
-}
-.tab-btn--active {
-    background: rgba(236, 72, 153, 0.15);
-    border-color: rgba(236, 72, 153, 0.4);
-    color: #ec4899;
-    font-weight: 500;
-}
-.tab-badge {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 0.1rem 0.4rem;
-    border-radius: 6px;
-    font-size: 0.75rem;
-}
-.tab-badge--danger {
-    background: rgba(239, 68, 68, 0.25);
-    color: #f87171;
-}
-
-.search-box {
-    position: relative;
-    min-width: 280px;
-}
-.search-icon {
-    position: absolute;
-    left: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: rgba(255, 255, 255, 0.4);
-}
-.search-input {
-    width: 100%;
-    background: #18181b;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 0.45rem 0.85rem 0.45rem 2.2rem;
-    color: #fff;
-    font-size: 0.85rem;
-    box-sizing: border-box;
-}
-.search-input:focus {
-    outline: none;
-    border-color: #8b5cf6;
-}
-
-/* Strikes Table Card */
-.strikes-table-card {
-    background: #18181b;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    padding: 1.25rem;
-}
-.table-wrap {
-    overflow-x: auto;
-}
-.strikes-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.88rem;
-}
-.strikes-table th {
-    text-align: left;
-    padding: 0.65rem 0.75rem;
-    color: rgba(255, 255, 255, 0.5);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    font-weight: 500;
-}
-.strikes-table td {
-    padding: 0.75rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    color: #e4e4e7;
-}
-.row-expired {
-    opacity: 0.65;
-}
-
-.user-cell {
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-}
-.user-avatar, .user-avatar-empty {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-.user-avatar-empty {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 0.85rem;
-}
-.user-name {
-    font-weight: 500;
-    color: #f4f4f5;
-    text-decoration: none;
-}
-.user-name:hover {
-    color: #38bdf8;
-}
-.user-sub {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    margin-top: 0.1rem;
-}
-.user-email {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.4);
-}
-.badge-idol-mini {
-    background: rgba(236, 72, 153, 0.2);
-    color: #f472b6;
-    font-size: 0.68rem;
-    padding: 0.05rem 0.35rem;
-    border-radius: 4px;
-}
-.badge-banned-mini {
-    background: rgba(239, 68, 68, 0.2);
-    color: #f87171;
-    font-size: 0.68rem;
-    padding: 0.05rem 0.35rem;
-    border-radius: 4px;
-}
-.admin-badge {
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 0.78rem;
-    padding: 0.15rem 0.45rem;
-    border-radius: 4px;
-}
-.strike-note {
-    max-width: 320px;
-    line-height: 1.4;
-    font-size: 0.85rem;
-}
-.status-pill {
-    display: inline-block;
-    padding: 0.15rem 0.5rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 500;
-}
-.status-pill--active {
-    background: rgba(239, 68, 68, 0.15);
-    color: #f87171;
-    border: 1px solid rgba(239, 68, 68, 0.3);
-}
-.status-pill--expired {
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.btn-revoke {
-    background: transparent;
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #f87171;
-    padding: 0.25rem 0.65rem;
-    border-radius: 6px;
-    font-size: 0.78rem;
-    cursor: pointer;
-    transition: all 0.15s;
-}
-.btn-revoke:hover {
-    background: rgba(239, 68, 68, 0.15);
-    border-color: #ef4444;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 2.5rem 1rem;
-    color: rgba(255, 255, 255, 0.4);
-    font-style: italic;
-}
-
-.w-id { width: 50px; }
-.text-center { text-align: center; }
-.text-right { text-align: right; }
-.font-mono { font-family: ui-monospace, monospace; }
-.font-bold { font-weight: 600; }
-.text-muted { color: rgba(255, 255, 255, 0.5); }
-.text-danger { color: #f87171; }
-.text-warning { color: #fbbf24; }
-.text-sm { font-size: 0.8rem; }
-</style>

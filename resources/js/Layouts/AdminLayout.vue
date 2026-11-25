@@ -8,29 +8,42 @@ import {
     Picture, User, ChatDotRound, Tickets, ScaleToOriginal,
     Microphone, Headset, Star, Discount, Lock, ChatSquare,
     Document, QuestionFilled, WarningFilled, Monitor,
-    TrendCharts, Setting, RefreshRight, Help, Coin, Search, Money
+    TrendCharts, Setting, Coin, Search, Money, Expand, Fold,
+    ArrowRight, Check, Close, TopRight
 } from '@element-plus/icons-vue';
-
-function logout() {
-    router.post(route('admin.logout'));
-}
 
 const page = usePage();
 const adminUser = computed(() => page.props.auth_admin);
-const pendingCount = computed(() => page.props.pending_applications_count ?? 0);
-const pendingServicesCount = computed(() => page.props.pending_services_count ?? 0);
-const pendingServiceChangesCount = computed(() => page.props.pending_service_changes_count ?? 0);
-const pendingContentPacksCount = computed(() => page.props.pending_content_packs_count ?? 0);
-const pendingContentPackChangesCount = computed(() => page.props.pending_content_pack_changes_count ?? 0);
-const pendingReportsCount = computed(() => page.props.pending_reports_count ?? 0);
-const pendingDisputesCount = computed(() => page.props.pending_disputes_count ?? 0);
-const pendingTraitSuggestionsCount = computed(() => page.props.pending_trait_suggestions_count ?? 0);
+
+// ─── Attention counters ──────────────────────────────────────────────────────
+const pendingCount                  = computed(() => page.props.pending_applications_count ?? 0);
+const pendingServicesCount          = computed(() => page.props.pending_services_count ?? 0);
+const pendingServiceChangesCount    = computed(() => page.props.pending_service_changes_count ?? 0);
+const pendingContentPacksCount      = computed(() => page.props.pending_content_packs_count ?? 0);
+const pendingContentPackChangesCount= computed(() => page.props.pending_content_pack_changes_count ?? 0);
+const pendingReportsCount           = computed(() => page.props.pending_reports_count ?? 0);
+const pendingDisputesCount          = computed(() => page.props.pending_disputes_count ?? 0);
+const pendingTraitSuggestionsCount  = computed(() => page.props.pending_trait_suggestions_count ?? 0);
 const pendingInterestSuggestionsCount = computed(() => page.props.pending_interest_suggestions_count ?? 0);
-const pendingReviewDisputesCount = computed(() => page.props.pending_review_disputes_count ?? 0);
+const pendingReviewDisputesCount    = computed(() => page.props.pending_review_disputes_count ?? 0);
 
-// Global Toast Notifications
+const totalAttentionCount = computed(() => {
+    return (
+        pendingCount.value +
+        pendingServicesCount.value +
+        pendingServiceChangesCount.value +
+        pendingContentPacksCount.value +
+        pendingContentPackChangesCount.value +
+        pendingReportsCount.value +
+        pendingDisputesCount.value +
+        pendingReviewDisputesCount.value +
+        pendingTraitSuggestionsCount.value +
+        pendingInterestSuggestionsCount.value
+    );
+});
+
+// ─── Global Flash & Error Toasts ─────────────────────────────────────────────
 let lastShownFlashKey = null;
-
 watch(
     () => page.props.flash,
     (flash) => {
@@ -38,53 +51,24 @@ watch(
             lastShownFlashKey = null;
             return;
         }
-
         const hasMessage = Boolean(flash.success || flash.error || flash.warning || flash.info);
         if (!hasMessage) {
             lastShownFlashKey = null;
             return;
         }
-
         const flashKey = flash.token || `${flash.success || ''}|${flash.error || ''}|${flash.warning || ''}|${flash.info || ''}`;
-        if (lastShownFlashKey === flashKey) {
-            return;
-        }
+        if (lastShownFlashKey === flashKey) return;
         lastShownFlashKey = flashKey;
 
-        if (flash.success) {
-            ElNotification.success({
-                title: 'Успешно',
-                message: flash.success,
-                duration: 4000,
-            });
-        }
-        if (flash.error) {
-            ElNotification.error({
-                title: 'Ошибка',
-                message: flash.error,
-                duration: 6000,
-            });
-        }
-        if (flash.warning) {
-            ElNotification.warning({
-                title: 'Внимание',
-                message: flash.warning,
-                duration: 5000,
-            });
-        }
-        if (flash.info) {
-            ElNotification.info({
-                title: 'Информация',
-                message: flash.info,
-                duration: 4000,
-            });
-        }
+        if (flash.success) ElNotification.success({ title: 'Успешно', message: flash.success, duration: 4000 });
+        if (flash.error)   ElNotification.error({ title: 'Ошибка', message: flash.error, duration: 6000 });
+        if (flash.warning) ElNotification.warning({ title: 'Внимание', message: flash.warning, duration: 5000 });
+        if (flash.info)    ElNotification.info({ title: 'Информация', message: flash.info, duration: 4000 });
     },
     { deep: true, immediate: true }
 );
 
 let lastShownErrorsKey = null;
-
 watch(
     () => page.props.errors,
     (errors) => {
@@ -108,17 +92,20 @@ watch(
     { deep: true }
 );
 
+// ─── Sidebar state & Icon Rail ───────────────────────────────────────────────
+const isRail = ref(false);
+const mobileOpen = ref(false);
+
 const servicesOpen      = ref(false);
-const traitsOpen        = ref(false);
-const interestsOpen     = ref(false);
 const contentPacksOpen  = ref(false);
 const quizOpen          = ref(false);
-const sidebarOpen       = ref(false);
+const traitsOpen        = ref(false);
+const interestsOpen     = ref(false);
 
-const component = computed(() => page.component);
+const component = computed(() => page.component || '');
 
 const sectionTitle = computed(() => {
-    const c = component.value || '';
+    const c = component.value;
     if (c.startsWith('Admin/Dashboard')) return 'Дашборд';
     if (c.startsWith('Admin/Applications')) return 'Заявки на айдола';
     if (c.startsWith('Admin/Services/Categories')) return 'Категории услуг';
@@ -130,11 +117,12 @@ const sectionTitle = computed(() => {
     if (c.startsWith('Admin/ContentPacks')) return 'Контент-паки';
     if (c.startsWith('Admin/Orders')) return 'Заказы';
     if (c.startsWith('Admin/Transactions')) return 'Транзакции';
+    if (c.startsWith('Admin/Payouts')) return 'Выплаты';
     if (c.startsWith('Admin/Users')) return 'Пользователи';
     if (c.startsWith('Admin/Conversations')) return 'Переписки';
     if (c.startsWith('Admin/Strikes')) return 'Страйки';
     if (c.startsWith('Admin/Disputes')) return 'Споры по заказам';
-    if (c.startsWith('Admin/ReviewDisputes')) return 'Споры по отзывам';
+    if (c.startsWith('Admin/ReviewDisputes') || c.startsWith('Admin/Reviews')) return 'Отзывы и споры';
     if (c.startsWith('Admin/Reports')) return 'Жалобы пользователей';
     if (c.startsWith('Admin/Support')) return 'Техническая поддержка';
     if (c.startsWith('Admin/ChatBlocks')) return 'Блокировки в чате';
@@ -147,68 +135,30 @@ const sectionTitle = computed(() => {
     if (c.startsWith('Admin/Help')) return 'Справочный центр';
     if (c.startsWith('Admin/Messages')) return 'Массовые рассылки';
     if (c.startsWith('Admin/SystemLogs')) return 'Системные логи';
-    if (c.startsWith('Admin/Logs')) return 'Журнал действий администраторов';
+    if (c.startsWith('Admin/Logs')) return 'Журнал аудита действий';
     if (c.startsWith('Admin/RatingLogs')) return 'История рейтинга';
     if (c.startsWith('Admin/Settings')) return 'Настройки платформы';
     return 'Панель управления';
 });
 
-const totalAttentionCount = computed(() => {
-    return (
-        pendingCount.value +
-        pendingServicesCount.value +
-        pendingServiceChangesCount.value +
-        pendingContentPacksCount.value +
-        pendingContentPackChangesCount.value +
-        pendingReportsCount.value +
-        pendingDisputesCount.value +
-        pendingReviewDisputesCount.value +
-        pendingTraitSuggestionsCount.value +
-        pendingInterestSuggestionsCount.value
-    );
-});
-
-function isOnServices() {
-    return component.value?.startsWith('Admin/Services/');
-}
-
-function isOnTraits() {
-    return component.value?.startsWith('Admin/Traits/');
-}
-
-function isOnInterests() {
-    return component.value?.startsWith('Admin/Interests/');
-}
-
-function isOnContentPacks() {
-    return component.value?.startsWith('Admin/ContentPacks/');
-}
-
-function isOnQuiz() {
-    return component.value?.startsWith('Admin/Quiz/');
-}
-
 watch(component, (val) => {
-    if (val?.startsWith('Admin/Services/')) {
-        servicesOpen.value = true;
-    }
-    if (val?.startsWith('Admin/Traits/')) {
-        traitsOpen.value = true;
-    }
-    if (val?.startsWith('Admin/Interests/')) {
-        interestsOpen.value = true;
-    }
-    if (val?.startsWith('Admin/ContentPacks/')) {
-        contentPacksOpen.value = true;
-    }
-    if (val?.startsWith('Admin/Quiz/')) {
-        quizOpen.value = true;
-    }
-    sidebarOpen.value = false;
+    if (val?.startsWith('Admin/Services/')) servicesOpen.value = true;
+    if (val?.startsWith('Admin/ContentPacks/')) contentPacksOpen.value = true;
+    if (val?.startsWith('Admin/Quiz/')) quizOpen.value = true;
+    if (val?.startsWith('Admin/Traits/')) traitsOpen.value = true;
+    if (val?.startsWith('Admin/Interests/')) interestsOpen.value = true;
+    mobileOpen.value = false;
 }, { immediate: true });
 
-function isActive(routeName) {
-    return route().current(routeName);
+function toggleRail() {
+    isRail.value = !isRail.value;
+    try {
+        localStorage.setItem('admin_sidebar_rail', isRail.value ? 'true' : 'false');
+    } catch {}
+}
+
+function logout() {
+    router.post(route('admin.logout'));
 }
 
 // ─── Quick Search (Command Palette) ──────────────────────────────────────────
@@ -234,9 +184,7 @@ const allResultsFlat = computed(() => {
 });
 const selectedIndex = ref(0);
 
-const hasResults = computed(() => {
-    return allResultsFlat.value.length > 0;
-});
+const hasResults = computed(() => allResultsFlat.value.length > 0);
 
 function openQuickSearch() {
     quickSearchOpen.value = true;
@@ -259,7 +207,6 @@ async function performQuickSearch() {
         quickSearchLoading.value = false;
         return;
     }
-
     quickSearchLoading.value = true;
     try {
         const { data } = await axios.get('/admin/quick-search', { params: { q } });
@@ -315,1305 +262,903 @@ function onGlobalKeyDown(e) {
         closeQuickSearch();
         return;
     }
-
     if ((e.metaKey || e.ctrlKey) && (e.key?.toLowerCase() === 'k' || e.code === 'KeyK')) {
         e.preventDefault();
-        if (quickSearchOpen.value) {
-            closeQuickSearch();
-        } else {
-            openQuickSearch();
-        }
+        if (quickSearchOpen.value) closeQuickSearch();
+        else openQuickSearch();
+    }
+    if ((e.metaKey || e.ctrlKey) && (e.key?.toLowerCase() === 'b' || e.code === 'KeyB')) {
+        e.preventDefault();
+        toggleRail();
+    }
+}
+
+// ─── Theme Management ────────────────────────────────────────────────────────
+const themes = [
+    { id: 'violet',  name: 'Midnight Violet', color: '#8b5cf6', bg: '#110d22' },
+    { id: 'ocean',   name: 'Deep Ocean',      color: '#3b82f6', bg: '#0a1426' },
+    { id: 'emerald', name: 'Cyber Emerald',   color: '#10b981', bg: '#081a12' },
+    { id: 'rose',    name: 'Crimson Velvet',  color: '#f43f5e', bg: '#1c0a12' },
+    { id: 'amber',   name: 'Warm Amber',      color: '#f59e0b', bg: '#1a1309' },
+];
+
+const currentTheme = ref(typeof window !== 'undefined' ? (localStorage.getItem('admin_theme') || 'violet') : 'violet');
+const themeMenuOpen = ref(false);
+
+const activeTheme = computed(() => {
+    return themes.find(t => t.id === currentTheme.value) || themes[0];
+});
+
+function selectTheme(themeId) {
+    currentTheme.value = themeId;
+    themeMenuOpen.value = false;
+    try {
+        localStorage.setItem('admin_theme', themeId);
+        document.documentElement.setAttribute('data-admin-theme', themeId);
+    } catch {}
+}
+
+function linkClass(isActive) {
+    if (isRail.value) {
+        return [
+            'w-10 h-10 mx-auto rounded-xl flex items-center justify-center transition-all group relative shrink-0',
+            isActive
+                ? 'bg-admin-primary text-white shadow-sm font-semibold'
+                : 'text-zinc-400 hover:text-zinc-100 hover:bg-admin-card'
+        ];
+    }
+    return [
+        'flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all group relative',
+        isActive
+            ? 'bg-admin-primary text-white shadow-sm'
+            : 'text-zinc-400 hover:text-zinc-100 hover:bg-admin-card'
+    ];
+}
+
+function sublinkClass(isActive) {
+    return [
+        'flex items-center justify-between py-1.5 px-2.5 rounded-lg text-xs font-medium transition-colors',
+        isActive
+            ? 'text-admin-accent bg-admin-primary-light font-semibold'
+            : 'text-zinc-400 hover:text-zinc-200 hover:bg-admin-card/60'
+    ];
+}
+
+function groupBtnClass(isActive) {
+    if (isRail.value) {
+        return [
+            'w-10 h-10 mx-auto rounded-xl flex items-center justify-center transition-all group relative shrink-0',
+            isActive
+                ? 'text-admin-accent bg-admin-primary-light'
+                : 'text-zinc-400 hover:text-zinc-100 hover:bg-admin-card'
+        ];
+    }
+    return [
+        'w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all group',
+        isActive
+            ? 'text-admin-accent bg-admin-primary-light'
+            : 'text-zinc-400 hover:text-zinc-100 hover:bg-admin-card'
+    ];
+}
+
+function onWindowClick(e) {
+    if (themeMenuOpen.value && !e.target.closest('.admin-theme-picker')) {
+        themeMenuOpen.value = false;
     }
 }
 
 onMounted(() => {
+    try {
+        isRail.value = localStorage.getItem('admin_sidebar_rail') === 'true';
+        const savedTheme = localStorage.getItem('admin_theme');
+        if (savedTheme && themes.some(t => t.id === savedTheme)) {
+            currentTheme.value = savedTheme;
+        }
+        document.documentElement.setAttribute('data-admin-theme', currentTheme.value);
+    } catch {}
     window.addEventListener('keydown', onGlobalKeyDown);
+    window.addEventListener('click', onWindowClick);
 });
 
 onUnmounted(() => {
+    try {
+        document.documentElement.removeAttribute('data-admin-theme');
+    } catch {}
     window.removeEventListener('keydown', onGlobalKeyDown);
+    window.removeEventListener('click', onWindowClick);
 });
 </script>
 
 <template>
-    <div class="admin-wrap">
-        <div v-if="sidebarOpen" class="sidebar-backdrop" @click="sidebarOpen = false"></div>
-        <aside class="sidebar" :class="{ 'sidebar--open': sidebarOpen }">
-            <div class="sidebar__logo">
-                <img src="/app-logo-v3.webp" alt="Not Alone" class="sidebar__logo-img" />
-                <span class="logo-sub">Admin</span>
+    <div
+        id="admin-root"
+        :data-admin-theme="currentTheme"
+        class="h-screen w-screen flex overflow-hidden bg-admin-base font-sans text-zinc-100 antialiased selection:bg-admin-primary selection:text-white"
+    >
+        <!-- Mobile Sidebar Backdrop -->
+        <div
+            v-if="mobileOpen"
+            class="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm lg:hidden transition-opacity"
+            @click="mobileOpen = false"
+        />
+
+        <!-- ─── Sidebar ───────────────────────────────────────────────────────────── -->
+        <aside
+            class="fixed inset-y-0 left-0 z-50 flex flex-col bg-admin-surface border-r border-admin-theme transition-all duration-200 select-none lg:static"
+            :class="[
+                isRail ? 'w-16' : 'w-64',
+                mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+            ]"
+        >
+            <!-- Logo Header -->
+            <div
+                class="h-16 flex items-center border-b border-admin-theme shrink-0"
+                :class="isRail ? 'justify-center px-2' : 'justify-between px-4'"
+            >
+                <Link v-if="!isRail" :href="route('admin.dashboard')" class="flex items-center gap-3 overflow-hidden">
+                    <img src="/app-logo-v3.webp" alt="Not Alone" class="h-6 w-auto shrink-0 object-contain" />
+                    <span class="text-xs font-bold uppercase tracking-widest text-admin-accent bg-admin-primary-light border border-admin-primary px-2 py-0.5 rounded-full">
+                        Admin
+                    </span>
+                </Link>
+
+                <button
+                    type="button"
+                    class="hidden lg:flex items-center justify-center rounded-xl text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+                    :class="isRail ? 'w-10 h-10' : 'w-7 h-7'"
+                    :title="isRail ? 'Развернуть меню (Ctrl+B)' : 'Свернуть в иконки (Ctrl+B)'"
+                    @click="toggleRail"
+                >
+                    <el-icon :size="isRail ? 18 : 16">
+                        <component :is="isRail ? Expand : Fold" />
+                    </el-icon>
+                </button>
             </div>
 
-            <nav class="sidebar__nav">
-                <!-- Основное -->
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">Основное</div>
-                    
-                    <Link
-                        :href="route('admin.dashboard')"
-                        class="nav-item"
-                        :class="{ 'nav-item--active': isActive('admin.dashboard') }"
-                    >
-                        <el-icon class="nav-icon"><Odometer /></el-icon>
-                        <span class="nav-text">Дашборд</span>
-                    </Link>
+            <!-- Nav Links Container -->
+            <nav
+                class="flex-1 overflow-y-auto overflow-x-hidden space-y-4"
+                :class="isRail ? 'p-2 admin-rail-scroll' : 'p-3'"
+            >
+                <!-- Группа 1: Операции и Задачи -->
+                <div>
+                    <div v-if="!isRail" class="px-2.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                        Операционный центр
+                    </div>
+                    <div class="space-y-1">
+                        <!-- Дашборд -->
+                        <Link
+                            :href="route('admin.dashboard')"
+                            :class="linkClass(route().current('admin.dashboard'))"
+                            :title="isRail ? 'Дашборд' : undefined"
+                        >
+                            <el-icon :size="18" class="shrink-0"><Odometer /></el-icon>
+                            <span v-if="!isRail" class="truncate">Дашборд</span>
+                        </Link>
 
-                    <Link
-                        :href="route('admin.applications.index')"
-                        class="nav-item"
-                        :class="{ 'nav-item--active': isActive('admin.applications.*') }"
-                    >
-                        <el-icon class="nav-icon"><List /></el-icon>
-                        <span class="nav-text">Заявки</span>
-                        <span v-if="pendingCount > 0" class="nav-badge">{{ pendingCount }}</span>
-                    </Link>
+                        <!-- Заявки -->
+                        <Link
+                            :href="route('admin.applications.index')"
+                            :class="linkClass(route().current('admin.applications.*'))"
+                            :title="isRail ? `Заявки (${pendingCount})` : undefined"
+                        >
+                            <el-icon :size="18" class="shrink-0"><List /></el-icon>
+                            <span v-if="!isRail" class="truncate flex-1">Заявки</span>
+                            <span
+                                v-if="pendingCount > 0"
+                                :class="[
+                                    isRail
+                                        ? 'absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-zinc-900 animate-pulse'
+                                        : (route().current('admin.applications.*') ? 'bg-white/20 text-white border-white/30' : 'bg-admin-primary-light text-admin-accent border border-admin-primary') + ' inline-flex items-center justify-center px-1.5 py-0.5 text-[11px] font-bold rounded-full shrink-0'
+                                ]"
+                            >
+                                <template v-if="!isRail">{{ pendingCount }}</template>
+                            </span>
+                        </Link>
+
+                        <!-- Споры по заказам -->
+                        <Link
+                            :href="route('admin.disputes.index')"
+                            :class="linkClass(route().current('admin.disputes.*'))"
+                            :title="isRail ? `Споры (${pendingDisputesCount})` : undefined"
+                        >
+                            <el-icon :size="18" class="shrink-0"><ScaleToOriginal /></el-icon>
+                            <span v-if="!isRail" class="truncate flex-1">Споры</span>
+                            <span
+                                v-if="pendingDisputesCount > 0"
+                                :class="[
+                                    isRail
+                                        ? 'absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-400 ring-2 ring-zinc-900 animate-pulse'
+                                        : 'inline-flex items-center justify-center px-1.5 py-0.5 text-[11px] font-bold rounded-full bg-rose-950/80 text-rose-300 border border-rose-800/80 shrink-0'
+                                ]"
+                            >
+                                <template v-if="!isRail">{{ pendingDisputesCount }}</template>
+                            </span>
+                        </Link>
+
+                        <!-- Жалобы -->
+                        <Link
+                            :href="route('admin.reports.index')"
+                            :class="linkClass(route().current('admin.reports.*'))"
+                            :title="isRail ? `Жалобы (${pendingReportsCount})` : undefined"
+                        >
+                            <el-icon :size="18" class="shrink-0"><WarningFilled /></el-icon>
+                            <span v-if="!isRail" class="truncate flex-1">Жалобы</span>
+                            <span
+                                v-if="pendingReportsCount > 0"
+                                :class="[
+                                    isRail
+                                        ? 'absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-zinc-900 animate-pulse'
+                                        : 'inline-flex items-center justify-center px-1.5 py-0.5 text-[11px] font-bold rounded-full bg-amber-950/80 text-amber-300 border border-amber-800/80 shrink-0'
+                                ]"
+                            >
+                                <template v-if="!isRail">{{ pendingReportsCount }}</template>
+                            </span>
+                        </Link>
+
+                        <!-- Поддержка -->
+                        <Link
+                            :href="route('admin.support.index')"
+                            :class="linkClass(route().current('admin.support.*'))"
+                            :title="isRail ? 'Поддержка' : undefined"
+                        >
+                            <el-icon :size="18" class="shrink-0"><Headset /></el-icon>
+                            <span v-if="!isRail" class="truncate">Поддержка</span>
+                        </Link>
+                    </div>
                 </div>
 
-                <!-- Коммерция и Контент -->
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">Коммерция и Контент</div>
-
-                    <div class="nav-group">
-                        <button
-                            class="nav-item nav-item--group"
-                            :class="{ 'nav-item--active': isOnServices() }"
-                            @click="servicesOpen = !servicesOpen"
-                        >
-                            <el-icon class="nav-icon"><ShoppingBag /></el-icon>
-                            <span class="nav-text">Услуги</span>
-                            <span class="nav-badge" v-if="(pendingServicesCount + pendingServiceChangesCount) > 0" style="margin-left: auto; margin-right: 0.25rem;">{{ pendingServicesCount + pendingServiceChangesCount }}</span>
-                            <span class="nav-arrow" :class="{ 'nav-arrow--open': servicesOpen }">▾</span>
-                        </button>
-                        <div v-if="servicesOpen" class="nav-sub">
-                            <Link
-                                :href="route('admin.services.categories.index')"
-                                class="nav-item nav-item--sub"
-                                :class="{ 'nav-item--active': isActive('admin.services.categories.index') }"
-                            >Категории</Link>
-                            <Link
-                                :href="route('admin.services.time-units.index')"
-                                class="nav-item nav-item--sub"
-                                :class="{ 'nav-item--active': isActive('admin.services.time-units.index') }"
-                            >Ед. времени</Link>
-                            <Link
-                                :href="route('admin.services.price-limits.index')"
-                                class="nav-item nav-item--sub"
-                                :class="{ 'nav-item--active': isActive('admin.services.price-limits.index') }"
-                            >Лимиты цен</Link>
-                            <Link
-                                :href="route('admin.services.moderation.index')"
-                                class="nav-item nav-item--sub"
-                                :class="{ 'nav-item--active': isActive('admin.services.moderation.index') }"
-                            >
-                                Модерация
-                                <span v-if="pendingServicesCount > 0" class="nav-badge">{{ pendingServicesCount }}</span>
-                            </Link>
-                            <Link
-                                :href="route('admin.services.change-requests.index')"
-                                class="nav-item nav-item--sub"
-                                :class="{ 'nav-item--active': isActive('admin.services.change-requests.*') }"
-                            >
-                                Изменения
-                                <span v-if="pendingServiceChangesCount > 0" class="nav-badge">{{ pendingServiceChangesCount }}</span>
-                            </Link>
-                        </div>
+                <!-- Группа 2: Коммерция и Финансы -->
+                <div>
+                    <div v-if="!isRail" class="px-2.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                        Коммерция & Финансы
                     </div>
-
-                    <div class="nav-group">
-                        <button
-                            class="nav-item nav-item--group"
-                            :class="{ 'nav-item--active': isOnContentPacks() }"
-                            @click="contentPacksOpen = !contentPacksOpen"
+                    <div class="space-y-1">
+                        <!-- Заказы -->
+                        <Link
+                            :href="route('admin.orders.index')"
+                            :class="linkClass(route().current('admin.orders.*'))"
+                            :title="isRail ? 'Заказы' : undefined"
                         >
-                            <el-icon class="nav-icon"><Picture /></el-icon>
-                            <span class="nav-text">Контент-паки</span>
-                            <span class="nav-badge" v-if="(pendingContentPacksCount + pendingContentPackChangesCount) > 0" style="margin-left: auto; margin-right: 0.25rem;">{{ pendingContentPacksCount + pendingContentPackChangesCount }}</span>
-                            <span class="nav-arrow" :class="{ 'nav-arrow--open': contentPacksOpen }">▾</span>
-                        </button>
-                        <div v-if="contentPacksOpen" class="nav-sub">
-                            <Link
-                                :href="route('admin.content-packs.index')"
-                                class="nav-item nav-item--sub"
-                                :class="{ 'nav-item--active': isActive('admin.content-packs.index') || isActive('admin.content-packs.show') }"
-                            >
-                                Модерация
-                                <span v-if="pendingContentPacksCount > 0" class="nav-badge">{{ pendingContentPacksCount }}</span>
-                            </Link>
-                            <Link
-                                :href="route('admin.content-packs.change-requests.index')"
-                                class="nav-item nav-item--sub"
-                                :class="{ 'nav-item--active': isActive('admin.content-packs.change-requests.*') }"
-                            >
-                                Изменения
-                                <span v-if="pendingContentPackChangesCount > 0" class="nav-badge">{{ pendingContentPackChangesCount }}</span>
-                            </Link>
-                        </div>
+                            <el-icon :size="18" class="shrink-0"><Tickets /></el-icon>
+                            <span v-if="!isRail" class="truncate">Заказы</span>
+                        </Link>
+
+                        <!-- Транзакции -->
+                        <Link
+                            :href="route('admin.transactions.index')"
+                            :class="linkClass(route().current('admin.transactions.*'))"
+                            :title="isRail ? 'Транзакции' : undefined"
+                        >
+                            <el-icon :size="18" class="shrink-0"><Coin /></el-icon>
+                            <span v-if="!isRail" class="truncate">Транзакции</span>
+                        </Link>
+
+                        <!-- Выплаты -->
+                        <Link
+                            :href="route('admin.payouts.index')"
+                            :class="linkClass(route().current('admin.payouts.*'))"
+                            :title="isRail ? 'Выплаты' : undefined"
+                        >
+                            <el-icon :size="18" class="shrink-0"><Money /></el-icon>
+                            <span v-if="!isRail" class="truncate">Выплаты</span>
+                        </Link>
                     </div>
-
-                    <Link
-                        :href="route('admin.orders.index')"
-                        class="nav-item"
-                        :class="{ 'nav-item--active': isActive('admin.orders.*') }"
-                    >
-                        <el-icon class="nav-icon"><Tickets /></el-icon>
-                        <span class="nav-text">Заказы</span>
-                    </Link>
-
-                    <Link
-                        :href="route('admin.transactions.index')"
-                        class="nav-item"
-                        :class="{ 'nav-item--active': isActive('admin.transactions.*') }"
-                    >
-                        <el-icon class="nav-icon"><Coin /></el-icon>
-                        <span class="nav-text">Транзакции</span>
-                    </Link>
-
-                    <Link
-                        :href="route('admin.payouts.index')"
-                        class="nav-item"
-                        :class="{ 'nav-item--active': isActive('admin.payouts.*') }"
-                    >
-                        <el-icon class="nav-icon"><Money /></el-icon>
-                        <span class="nav-text">Выплаты</span>
-                    </Link>
                 </div>
 
-                <!-- Пользователи и Модерация -->
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">Пользователи и Модерация</div>
+                <!-- Группа 3: Каталог и Контент -->
+                <div>
+                    <div v-if="!isRail" class="px-2.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                        Каталог & Контент
+                    </div>
+                    <div class="space-y-1">
+                        <!-- Услуги (группа) -->
+                        <div>
+                            <button
+                                type="button"
+                                :class="groupBtnClass(component.startsWith('Admin/Services/'))"
+                                :title="isRail ? 'Услуги' : undefined"
+                                @click="isRail ? (isRail = false, servicesOpen = true) : (servicesOpen = !servicesOpen)"
+                            >
+                                <el-icon :size="18" class="shrink-0"><ShoppingBag /></el-icon>
+                                <span v-if="!isRail" class="truncate flex-1 text-left">Услуги</span>
+                                <span
+                                    v-if="(pendingServicesCount + pendingServiceChangesCount) > 0"
+                                    :class="[
+                                        isRail
+                                            ? 'absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-zinc-900 animate-pulse'
+                                            : 'inline-flex items-center justify-center px-1.5 py-0.5 text-[11px] font-bold rounded-full bg-admin-primary-light text-admin-accent border border-admin-primary shrink-0 mr-1'
+                                    ]"
+                                >
+                                    <template v-if="!isRail">{{ pendingServicesCount + pendingServiceChangesCount }}</template>
+                                </span>
+                                <span v-if="!isRail" class="text-xs text-zinc-500 transition-transform duration-200" :class="{ 'rotate-90': servicesOpen }">
+                                    ▸
+                                </span>
+                            </button>
 
-                    <Link
-                        :href="route('admin.users.index')"
-                        class="nav-item"
-                        :class="{ 'nav-item--active': isActive('admin.users.*') }"
-                    >
-                        <el-icon class="nav-icon"><User /></el-icon>
-                        <span class="nav-text">Пользователи</span>
-                    </Link>
+                            <div v-if="servicesOpen && !isRail" class="mt-1 pl-7 pr-2 space-y-1">
+                                <Link
+                                    :href="route('admin.services.moderation.index')"
+                                    :class="sublinkClass(route().current('admin.services.moderation.index'))"
+                                >
+                                    <span>Модерация</span>
+                                    <span v-if="pendingServicesCount > 0" class="text-[10px] bg-admin-primary text-white px-1.5 rounded-full">{{ pendingServicesCount }}</span>
+                                </Link>
+                                <Link
+                                    :href="route('admin.services.change-requests.index')"
+                                    :class="sublinkClass(route().current('admin.services.change-requests.*'))"
+                                >
+                                    <span>Запросы изменений</span>
+                                    <span v-if="pendingServiceChangesCount > 0" class="text-[10px] bg-admin-primary text-white px-1.5 rounded-full">{{ pendingServiceChangesCount }}</span>
+                                </Link>
+                                <Link
+                                    :href="route('admin.services.categories.index')"
+                                    :class="sublinkClass(route().current('admin.services.categories.index'))"
+                                >
+                                    Категории
+                                </Link>
+                                <Link
+                                    :href="route('admin.services.price-limits.index')"
+                                    :class="sublinkClass(route().current('admin.services.price-limits.index'))"
+                                >
+                                    Лимиты цен
+                                </Link>
+                                <Link
+                                    :href="route('admin.services.time-units.index')"
+                                    :class="sublinkClass(route().current('admin.services.time-units.index'))"
+                                >
+                                    Единицы времени
+                                </Link>
+                            </div>
+                        </div>
 
-                    <Link
-                        :href="route('admin.conversations.index')"
-                        class="nav-item"
-                        :class="{ 'nav-item--active': isActive('admin.conversations.*') }"
-                    >
-                        <el-icon class="nav-icon"><ChatDotRound /></el-icon>
-                        <span class="nav-text">Переписки</span>
-                    </Link>
+                        <!-- Контент-паки (группа) -->
+                        <div>
+                            <button
+                                type="button"
+                                :class="groupBtnClass(component.startsWith('Admin/ContentPacks'))"
+                                :title="isRail ? 'Контент-паки' : undefined"
+                                @click="isRail ? (isRail = false, contentPacksOpen = true) : (contentPacksOpen = !contentPacksOpen)"
+                            >
+                                <el-icon :size="18" class="shrink-0"><Picture /></el-icon>
+                                <span v-if="!isRail" class="truncate flex-1 text-left">Контент-паки</span>
+                                <span
+                                    v-if="(pendingContentPacksCount + pendingContentPackChangesCount) > 0"
+                                    :class="[
+                                        isRail
+                                            ? 'absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-zinc-900 animate-pulse'
+                                            : 'inline-flex items-center justify-center px-1.5 py-0.5 text-[11px] font-bold rounded-full bg-admin-primary-light text-admin-accent border border-admin-primary shrink-0 mr-1'
+                                    ]"
+                                >
+                                    <template v-if="!isRail">{{ pendingContentPacksCount + pendingContentPackChangesCount }}</template>
+                                </span>
+                                <span v-if="!isRail" class="text-xs text-zinc-500 transition-transform duration-200" :class="{ 'rotate-90': contentPacksOpen }">
+                                    ▸
+                                </span>
+                            </button>
 
-                    <Link :href="route('admin.strikes.index')" class="nav-item" :class="{ active: $page.component.startsWith('Admin/Strikes') }">
-                        <el-icon class="nav-icon"><Warning /></el-icon>
-                        <span class="nav-text">Страйки</span>
-                    </Link>
+                            <div v-if="contentPacksOpen && !isRail" class="mt-1 pl-7 pr-2 space-y-1">
+                                <Link
+                                    :href="route('admin.content-packs.index')"
+                                    :class="sublinkClass(route().current('admin.content-packs.index') || route().current('admin.content-packs.show'))"
+                                >
+                                    <span>Модерация</span>
+                                    <span v-if="pendingContentPacksCount > 0" class="text-[10px] bg-admin-primary text-white px-1.5 rounded-full">{{ pendingContentPacksCount }}</span>
+                                </Link>
+                                <Link
+                                    :href="route('admin.content-packs.change-requests.index')"
+                                    :class="sublinkClass(route().current('admin.content-packs.change-requests.*'))"
+                                >
+                                    <span>Запросы изменений</span>
+                                    <span v-if="pendingContentPackChangesCount > 0" class="text-[10px] bg-admin-primary text-white px-1.5 rounded-full">{{ pendingContentPackChangesCount }}</span>
+                                </Link>
+                            </div>
+                        </div>
 
-                    <Link
-                        :href="route('admin.disputes.index')"
-                        class="nav-item"
-                        :class="{ 'nav-item--active': isActive('admin.disputes.*') }"
-                    >
-                        <el-icon class="nav-icon"><ScaleToOriginal /></el-icon>
-                        <span class="nav-text">Споры</span>
-                        <span v-if="pendingDisputesCount > 0" class="nav-badge">{{ pendingDisputesCount }}</span>
-                    </Link>
+                        <!-- Отзывы и споры по отзывам -->
+                        <Link
+                            :href="route('admin.review-disputes.index')"
+                            :class="linkClass(route().current('admin.review-disputes.*'))"
+                            :title="isRail ? `Отзывы (${pendingReviewDisputesCount})` : undefined"
+                        >
+                            <el-icon :size="18" class="shrink-0"><Microphone /></el-icon>
+                            <span v-if="!isRail" class="truncate flex-1">Отзывы</span>
+                            <span
+                                v-if="pendingReviewDisputesCount > 0"
+                                :class="[
+                                    isRail
+                                        ? 'absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-admin-accent ring-2 ring-zinc-900 animate-pulse'
+                                        : 'inline-flex items-center justify-center px-1.5 py-0.5 text-[11px] font-bold rounded-full bg-admin-primary-light text-admin-accent border border-admin-primary shrink-0'
+                                ]"
+                            >
+                                <template v-if="!isRail">{{ pendingReviewDisputesCount }}</template>
+                            </span>
+                        </Link>
 
-                    <Link
-                        :href="route('admin.review-disputes.index')"
-                        class="nav-item"
-                        :class="{ 'nav-item--active': isActive('admin.review-disputes.*') }"
-                    >
-                        <el-icon class="nav-icon"><Microphone /></el-icon>
-                        <span class="nav-text">Отзывы</span>
-                        <span v-if="pendingReviewDisputesCount > 0" class="nav-badge" style="margin-left: auto; margin-right: 0.25rem;">{{ pendingReviewDisputesCount }}</span>
-                    </Link>
-
-                    <Link
-                        :href="route('admin.reports.index')"
-                        class="nav-item"
-                        :class="{ 'nav-item--active': isActive('admin.reports.*') }"
-                    >
-                        <el-icon class="nav-icon"><WarningFilled /></el-icon>
-                        <span class="nav-text">Жалобы</span>
-                        <span v-if="pendingReportsCount > 0" class="nav-badge">{{ pendingReportsCount }}</span>
-                    </Link>
-
-                    <Link
-                        :href="route('admin.support.index')"
-                        class="nav-item"
-                        :class="{ 'nav-item--active': isActive('admin.support.*') }"
-                    >
-                        <el-icon class="nav-icon"><Headset /></el-icon>
-                        <span class="nav-text">Поддержка</span>
-                    </Link>
-
-                    <Link
-                        :href="route('admin.chat-blocks.index')"
-                        class="nav-item"
-                        :class="{ 'nav-item--active': isActive('admin.chat-blocks.index') }"
-                    >
-                        <el-icon class="nav-icon"><Lock /></el-icon>
-                        <span class="nav-text">Блокировки в чате</span>
-                    </Link>
+                        <!-- Рамки аватарок -->
+                        <Link
+                            :href="route('admin.avatar-frames.index')"
+                            :class="linkClass(route().current('admin.avatar-frames.*'))"
+                            :title="isRail ? 'Рамки аватарок' : undefined"
+                        >
+                            <el-icon :size="18" class="shrink-0"><Aim /></el-icon>
+                            <span v-if="!isRail" class="truncate">Рамки аватарок</span>
+                        </Link>
+                    </div>
                 </div>
 
-                <!-- Наполнение -->
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">Наполнение</div>
-
-                    <Link
-                        :href="route('admin.avatar-frames.index')"
-                        class="nav-item"
-                        :class="{ 'nav-item--active': isActive('admin.avatar-frames.*') }"
-                    >
-                        <el-icon class="nav-icon"><Picture /></el-icon>
-                        <span class="nav-text">Рамки аватарок</span>
-                    </Link>
-
-                    <div class="nav-group">
-                        <button
-                            class="nav-item nav-item--group"
-                            :class="{ 'nav-item--active': isOnQuiz() }"
-                            @click="quizOpen = !quizOpen"
-                        >
-                            <el-icon class="nav-icon"><Aim /></el-icon>
-                            <span class="nav-text">Квиз</span>
-                            <span class="nav-arrow" :class="{ 'nav-arrow--open': quizOpen }">▾</span>
-                        </button>
-                        <div v-if="quizOpen" class="nav-sub">
-                            <Link
-                                :href="route('admin.quiz.questions.index')"
-                                class="nav-item nav-item--sub"
-                                :class="{ 'nav-item--active': isActive('admin.quiz.questions.index') }"
-                            >Вопросы</Link>
-                            <Link
-                                :href="route('admin.quiz.article.index')"
-                                class="nav-item nav-item--sub"
-                                :class="{ 'nav-item--active': isActive('admin.quiz.article.index') }"
-                            >Статья о вступлении</Link>
-                        </div>
+                <!-- Группа 4: Пользователи и Модерация -->
+                <div>
+                    <div v-if="!isRail" class="px-2.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                        Пользователи & Модерация
                     </div>
-
-                    <div class="nav-group">
-                        <button
-                            class="nav-item nav-item--group"
-                            :class="{ 'nav-item--active': isOnTraits() }"
-                            @click="traitsOpen = !traitsOpen"
+                    <div class="space-y-1">
+                        <!-- Пользователи -->
+                        <Link
+                            :href="route('admin.users.index')"
+                            :class="linkClass(route().current('admin.users.*'))"
+                            :title="isRail ? 'Пользователи' : undefined"
                         >
-                            <el-icon class="nav-icon"><Star /></el-icon>
-                            <span class="nav-text">Черты характера</span>
-                            <span class="nav-badge" v-if="pendingTraitSuggestionsCount > 0" style="margin-left: auto; margin-right: 0.25rem;">{{ pendingTraitSuggestionsCount }}</span>
-                            <span class="nav-arrow" :class="{ 'nav-arrow--open': traitsOpen }">▾</span>
-                        </button>
-                        <div v-if="traitsOpen" class="nav-sub">
-                            <Link
-                                :href="route('admin.traits.index')"
-                                class="nav-item nav-item--sub"
-                                :class="{ 'nav-item--active': isActive('admin.traits.index') }"
-                            >Список</Link>
-                            <Link
-                                :href="route('admin.traits.suggestions.index')"
-                                class="nav-item nav-item--sub"
-                                :class="{ 'nav-item--active': isActive('admin.traits.suggestions.*') }"
-                            >
-                                Предложения
-                                <span v-if="pendingTraitSuggestionsCount > 0" class="nav-badge">{{ pendingTraitSuggestionsCount }}</span>
-                            </Link>
-                        </div>
-                    </div>
+                            <el-icon :size="18" class="shrink-0"><User /></el-icon>
+                            <span v-if="!isRail" class="truncate">Пользователи</span>
+                        </Link>
 
-                    <div class="nav-group">
-                        <button
-                            class="nav-item nav-item--group"
-                            :class="{ 'nav-item--active': isOnInterests() }"
-                            @click="interestsOpen = !interestsOpen"
+                        <!-- Переписки -->
+                        <Link
+                            :href="route('admin.conversations.index')"
+                            :class="linkClass(route().current('admin.conversations.*'))"
+                            :title="isRail ? 'Переписки' : undefined"
                         >
-                            <el-icon class="nav-icon"><Discount /></el-icon>
-                            <span class="nav-text">Интересы</span>
-                            <span class="nav-badge" v-if="pendingInterestSuggestionsCount > 0" style="margin-left: auto; margin-right: 0.25rem;">{{ pendingInterestSuggestionsCount }}</span>
-                            <span class="nav-arrow" :class="{ 'nav-arrow--open': interestsOpen }">▾</span>
-                        </button>
-                        <div v-if="interestsOpen" class="nav-sub">
-                            <Link
-                                :href="route('admin.interests.index')"
-                                class="nav-item nav-item--sub"
-                                :class="{ 'nav-item--active': isActive('admin.interests.index') }"
-                            >Список</Link>
-                            <Link
-                                :href="route('admin.interests.suggestions.index')"
-                                class="nav-item nav-item--sub"
-                                :class="{ 'nav-item--active': isActive('admin.interests.suggestions.*') }"
-                            >
-                                Предложения
-                                <span v-if="pendingInterestSuggestionsCount > 0" class="nav-badge">{{ pendingInterestSuggestionsCount }}</span>
-                            </Link>
-                        </div>
+                            <el-icon :size="18" class="shrink-0"><ChatDotRound /></el-icon>
+                            <span v-if="!isRail" class="truncate">Переписки</span>
+                        </Link>
+
+                        <!-- Страйки -->
+                        <Link
+                            :href="route('admin.strikes.index')"
+                            :class="linkClass(route().current('admin.strikes.*'))"
+                            :title="isRail ? 'Страйки' : undefined"
+                        >
+                            <el-icon :size="18" class="shrink-0"><Warning /></el-icon>
+                            <span v-if="!isRail" class="truncate">Страйки</span>
+                        </Link>
+
+                        <!-- Блокировки в чате -->
+                        <Link
+                            :href="route('admin.chat-blocks.index')"
+                            :class="linkClass(route().current('admin.chat-blocks.*'))"
+                            :title="isRail ? 'Блокировки чата' : undefined"
+                        >
+                            <el-icon :size="18" class="shrink-0"><Lock /></el-icon>
+                            <span v-if="!isRail" class="truncate">Блокировки чата</span>
+                        </Link>
                     </div>
-
-                    <Link
-                        :href="route('admin.ban-reasons.index')"
-                        class="nav-item"
-                        :class="{ 'nav-item--active': isActive('admin.ban-reasons.index') }"
-                    >
-                        <el-icon class="nav-icon"><Lock /></el-icon>
-                        <span class="nav-text">Причины блокировок</span>
-                    </Link>
-
-                    <Link
-                        :href="route('admin.review-epithets.index')"
-                        class="nav-item"
-                        :class="{ 'nav-item--active': isActive('admin.review-epithets.index') }"
-                    >
-                        <el-icon class="nav-icon"><ChatSquare /></el-icon>
-                        <span class="nav-text">Отзывы — Эпитеты</span>
-                    </Link>
-
-                    <Link
-                        :href="route('admin.help-categories.index')"
-                        class="nav-item"
-                        :class="{ 'nav-item--active': isActive('admin.help-categories.*') }"
-                    >
-                        <el-icon class="nav-icon"><QuestionFilled /></el-icon>
-                        <span class="nav-text">Справка</span>
-                    </Link>
                 </div>
 
-                <!-- Система -->
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">Система</div>
+                <!-- Группа 5: Справочники и Наполнение -->
+                <div>
+                    <div v-if="!isRail" class="px-2.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                        Справочники
+                    </div>
+                    <div class="space-y-1">
+                        <!-- Квиз -->
+                        <div>
+                            <button
+                                type="button"
+                                :class="groupBtnClass(component.startsWith('Admin/Quiz'))"
+                                :title="isRail ? 'Квиз' : undefined"
+                                @click="isRail ? (isRail = false, quizOpen = true) : (quizOpen = !quizOpen)"
+                            >
+                                <el-icon :size="18" class="shrink-0"><Aim /></el-icon>
+                                <span v-if="!isRail" class="truncate flex-1 text-left">Квиз</span>
+                                <span v-if="!isRail" class="text-xs text-zinc-500 transition-transform duration-200" :class="{ 'rotate-90': quizOpen }">
+                                    ▸
+                                </span>
+                            </button>
 
-                    <Link
-                        :href="route('admin.messages.index')"
-                        class="nav-item"
-                        :class="{ 'nav-item--active': isActive('admin.messages.index') }"
-                    >
-                        <el-icon class="nav-icon"><Message /></el-icon>
-                        <span class="nav-text">Рассылки</span>
-                    </Link>
+                            <div v-if="quizOpen && !isRail" class="mt-1 pl-7 pr-2 space-y-1">
+                                <Link
+                                    :href="route('admin.quiz.questions.index')"
+                                    :class="sublinkClass(route().current('admin.quiz.questions.*'))"
+                                >
+                                    Вопросы
+                                </Link>
+                                <Link
+                                    :href="route('admin.quiz.article.index')"
+                                    :class="sublinkClass(route().current('admin.quiz.article.*'))"
+                                >
+                                    Статья вступления
+                                </Link>
+                            </div>
+                        </div>
 
-                    <Link
-                        :href="route('admin.logs.index')"
-                        class="nav-item"
-                        :class="{ 'nav-item--active': isActive('admin.logs.index') }"
-                    >
-                        <el-icon class="nav-icon"><Monitor /></el-icon>
-                        <span class="nav-text">Действия админов</span>
-                    </Link>
+                        <!-- Черты характера -->
+                        <Link
+                            :href="route('admin.traits.index')"
+                            :class="linkClass(route().current('admin.traits.*'))"
+                            :title="isRail ? 'Черты характера' : undefined"
+                        >
+                            <el-icon :size="18" class="shrink-0"><Star /></el-icon>
+                            <span v-if="!isRail" class="truncate flex-1">Черты характера</span>
+                            <span
+                                v-if="pendingTraitSuggestionsCount > 0"
+                                :class="[
+                                    isRail
+                                        ? 'absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-admin-accent ring-2 ring-zinc-900 animate-pulse'
+                                        : 'inline-flex items-center justify-center px-1.5 py-0.5 text-[11px] font-bold rounded-full bg-admin-primary-light text-admin-accent border border-admin-primary shrink-0'
+                                ]"
+                            >
+                                <template v-if="!isRail">{{ pendingTraitSuggestionsCount }}</template>
+                            </span>
+                        </Link>
 
-                    <Link
-                        :href="route('admin.system-logs.index')"
-                        class="nav-item"
-                        :class="{ 'nav-item--active': isActive('admin.system-logs.index') }"
-                    >
-                        <el-icon class="nav-icon"><Document /></el-icon>
-                        <span class="nav-text">Логи системы</span>
-                    </Link>
+                        <!-- Интересы -->
+                        <Link
+                            :href="route('admin.interests.index')"
+                            :class="linkClass(route().current('admin.interests.*'))"
+                            :title="isRail ? 'Интересы' : undefined"
+                        >
+                            <el-icon :size="18" class="shrink-0"><Discount /></el-icon>
+                            <span v-if="!isRail" class="truncate flex-1">Интересы</span>
+                            <span
+                                v-if="pendingInterestSuggestionsCount > 0"
+                                :class="[
+                                    isRail
+                                        ? 'absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-admin-accent ring-2 ring-zinc-900 animate-pulse'
+                                        : 'inline-flex items-center justify-center px-1.5 py-0.5 text-[11px] font-bold rounded-full bg-admin-primary-light text-admin-accent border border-admin-primary shrink-0'
+                                ]"
+                            >
+                                <template v-if="!isRail">{{ pendingInterestSuggestionsCount }}</template>
+                            </span>
+                        </Link>
 
-                    <Link
-                        :href="route('admin.rating-logs.index')"
-                        class="nav-item"
-                        :class="{ 'nav-item--active': isActive('admin.rating-logs.index') }"
-                    >
-                        <el-icon class="nav-icon"><TrendCharts /></el-icon>
-                        <span class="nav-text">Рейтинг айдолов</span>
-                    </Link>
+                        <!-- База знаний / Справка -->
+                        <Link
+                            :href="route('admin.help-categories.index')"
+                            :class="linkClass(route().current('admin.help-categories.*'))"
+                            :title="isRail ? 'База знаний' : undefined"
+                        >
+                            <el-icon :size="18" class="shrink-0"><QuestionFilled /></el-icon>
+                            <span v-if="!isRail" class="truncate">Справка / FAQ</span>
+                        </Link>
+                    </div>
+                </div>
 
-                    <Link
-                        :href="route('admin.settings.index')"
-                        class="nav-item"
-                        :class="{ 'nav-item--active': isActive('admin.settings.index') }"
-                    >
-                        <el-icon class="nav-icon"><Setting /></el-icon>
-                        <span class="nav-text">Настройки</span>
-                    </Link>
+                <!-- Группа 6: Система -->
+                <div>
+                    <div v-if="!isRail" class="px-2.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                        Система & Логи
+                    </div>
+                    <div class="space-y-1">
+                        <!-- Настройки -->
+                        <Link
+                            :href="route('admin.settings.index')"
+                            :class="linkClass(route().current('admin.settings.*'))"
+                            :title="isRail ? 'Настройки' : undefined"
+                        >
+                            <el-icon :size="18" class="shrink-0"><Setting /></el-icon>
+                            <span v-if="!isRail" class="truncate">Настройки</span>
+                        </Link>
+
+                        <!-- Рассылки -->
+                        <Link
+                            :href="route('admin.messages.index')"
+                            :class="linkClass(route().current('admin.messages.*'))"
+                            :title="isRail ? 'Рассылки' : undefined"
+                        >
+                            <el-icon :size="18" class="shrink-0"><Message /></el-icon>
+                            <span v-if="!isRail" class="truncate">Рассылки</span>
+                        </Link>
+
+                        <!-- Аудит админов -->
+                        <Link
+                            :href="route('admin.logs.index')"
+                            :class="linkClass(route().current('admin.logs.*'))"
+                            :title="isRail ? 'Журнал аудита' : undefined"
+                        >
+                            <el-icon :size="18" class="shrink-0"><Monitor /></el-icon>
+                            <span v-if="!isRail" class="truncate">Журнал аудита</span>
+                        </Link>
+
+                        <!-- Системные логи -->
+                        <Link
+                            :href="route('admin.system-logs.index')"
+                            :class="linkClass(route().current('admin.system-logs.*'))"
+                            :title="isRail ? 'Системные логи' : undefined"
+                        >
+                            <el-icon :size="18" class="shrink-0"><Document /></el-icon>
+                            <span v-if="!isRail" class="truncate">Системные логи</span>
+                        </Link>
+
+                        <!-- Рейтинг айдолов -->
+                        <Link
+                            :href="route('admin.rating-logs.index')"
+                            :class="linkClass(route().current('admin.rating-logs.*'))"
+                            :title="isRail ? 'История рейтинга' : undefined"
+                        >
+                            <el-icon :size="18" class="shrink-0"><TrendCharts /></el-icon>
+                            <span v-if="!isRail" class="truncate">Рейтинг айдолов</span>
+                        </Link>
+                    </div>
                 </div>
             </nav>
 
-            <div class="sidebar__footer">
-                <div class="admin-info" v-if="adminUser">
-                    <div class="admin-avatar">{{ adminUser.name?.[0]?.toUpperCase() ?? 'A' }}</div>
-                    <div class="admin-details">
-                        <div class="admin-name">{{ adminUser.name }}</div>
-                        <div class="admin-email">{{ adminUser.email }}</div>
+            <!-- Sidebar Footer (Admin Profile & Collapse) -->
+            <div class="p-3 border-t border-admin-theme bg-admin-surface shrink-0" :class="{ 'px-2': isRail }">
+                <div v-if="adminUser" class="flex items-center" :class="isRail ? 'justify-center' : 'gap-3'">
+                    <div
+                        class="w-8 h-8 rounded-full bg-admin-primary-light border border-admin-primary text-admin-accent flex items-center justify-center font-bold text-xs shrink-0 cursor-pointer"
+                        :title="isRail ? `${adminUser.name} (${adminUser.email})` : undefined"
+                    >
+                        {{ adminUser.name?.[0]?.toUpperCase() ?? 'A' }}
                     </div>
+                    <div v-if="!isRail" class="min-w-0 flex-1">
+                        <div class="text-xs font-semibold text-zinc-200 truncate">{{ adminUser.name }}</div>
+                        <div class="text-[11px] text-zinc-500 truncate">{{ adminUser.email }}</div>
+                    </div>
+                    <button
+                        v-if="!isRail"
+                        type="button"
+                        class="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-zinc-800 transition-colors"
+                        title="Выйти из админки"
+                        @click="logout"
+                    >
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                    </button>
                 </div>
-                <button class="logout-btn" @click="logout">Выйти</button>
             </div>
         </aside>
 
-        <div class="content-wrap">
-            <header class="admin-topbar">
-                <div class="topbar-left">
-                    <button class="hamburger-btn" @click="sidebarOpen = !sidebarOpen" title="Меню">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        <!-- ─── Main Content Wrap ────────────────────────────────────────────────── -->
+        <div class="flex-1 min-w-0 flex flex-col overflow-hidden bg-admin-base">
+            <!-- Topbar -->
+            <header class="h-16 flex items-center justify-between px-4 sm:px-6 bg-admin-surface/80 border-b border-admin-theme backdrop-blur-sm shrink-0 gap-4">
+                <!-- Left: Hamburger (Mobile) & Breadcrumbs -->
+                <div class="flex items-center gap-3 min-w-0">
+                    <button
+                        type="button"
+                        class="lg:hidden p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+                        @click="mobileOpen = !mobileOpen"
+                    >
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
-                    <div class="topbar-breadcrumbs">
-                        <span class="crumb-root">Админ</span>
-                        <span class="crumb-separator">/</span>
-                        <span class="crumb-current">{{ sectionTitle }}</span>
+
+                    <!-- Breadcrumbs -->
+                    <div class="flex items-center gap-2 text-sm truncate">
+                        <span class="text-zinc-500 font-medium hidden sm:inline">Админ</span>
+                        <span class="text-zinc-600 hidden sm:inline">/</span>
+                        <span class="text-zinc-100 font-semibold truncate">{{ sectionTitle }}</span>
                     </div>
                 </div>
 
-                <div class="topbar-center">
-                    <button class="topbar-search-trigger" @click="openQuickSearch" title="Быстрый поиск (Ctrl+K)">
-                        <el-icon class="search-trigger-icon"><Search /></el-icon>
-                        <span class="search-trigger-text">Быстрый поиск...</span>
-                        <kbd class="search-trigger-kbd">Ctrl K</kbd>
+                <!-- Center: Global Quick Search Button -->
+                <div class="flex-1 max-w-md hidden md:block">
+                    <button
+                        type="button"
+                        class="w-full flex items-center justify-between px-3 py-1.5 text-xs text-zinc-400 bg-admin-card border border-admin-subtle hover:border-admin-theme rounded-lg transition-colors group shadow-inner"
+                        @click="openQuickSearch"
+                    >
+                        <span class="flex items-center gap-2">
+                            <el-icon class="text-zinc-500 group-hover:text-admin-accent transition-colors"><Search /></el-icon>
+                            <span>Поиск пользователей, заказов, транзакций...</span>
+                        </span>
+                        <kbd class="px-1.5 py-0.5 text-[10px] font-mono bg-zinc-800 border border-zinc-700 text-zinc-400 rounded">Ctrl K</kbd>
                     </button>
                 </div>
 
-                <div class="topbar-right">
-                    <div v-if="totalAttentionCount > 0" class="attention-pill" title="Ожидают модерации или решения">
-                        <span class="attention-dot"></span>
-                        <span class="attention-text">В очереди: {{ totalAttentionCount }}</span>
+                <!-- Right: Attention Pill, Site Link, Profile -->
+                <div class="flex items-center gap-3 shrink-0">
+                    <!-- Attention Pill -->
+                    <div
+                        v-if="totalAttentionCount > 0"
+                        class="flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-950/60 text-amber-300 border border-amber-800/60 shadow-sm"
+                        title="Требуют модерации или решения"
+                    >
+                        <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                        <span>В очереди: {{ totalAttentionCount }}</span>
                     </div>
 
-                    <a href="/" target="_blank" rel="noopener" class="topbar-site-link">
+                    <!-- External Site Link -->
+                    <a
+                        href="/"
+                        target="_blank"
+                        rel="noopener"
+                        class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-admin-accent hover:text-white bg-admin-primary-light hover:bg-admin-primary/30 border border-admin-primary rounded-lg transition-colors"
+                    >
                         <span>На сайт</span>
-                        <span class="external-icon">↗</span>
+                        <el-icon :size="12"><TopRight /></el-icon>
                     </a>
 
-                    <el-dropdown trigger="click" v-if="adminUser" placement="bottom-end">
-                        <div class="topbar-admin-badge topbar-admin-badge--interactive">
-                            <div class="admin-avatar-mini">{{ adminUser.name?.[0]?.toUpperCase() ?? 'A' }}</div>
-                            <span class="admin-name-mini">{{ adminUser.name }}</span>
-                            <span class="admin-chevron">▾</span>
+                    <!-- Theme Selector Dropdown -->
+                    <div class="relative admin-theme-picker">
+                        <button
+                            type="button"
+                            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-admin-subtle bg-admin-card text-xs text-zinc-300 hover:text-white hover:border-admin-theme transition"
+                            title="Тема оформления админки"
+                            @click="themeMenuOpen = !themeMenuOpen"
+                        >
+                            <span
+                                class="w-2.5 h-2.5 rounded-full shrink-0"
+                                :style="{ backgroundColor: activeTheme?.color || '#8b5cf6' }"
+                            />
+                            <span class="hidden md:inline">{{ activeTheme?.name || 'Тема' }}</span>
+                            <svg class="w-3.5 h-3.5 text-zinc-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+
+                        <!-- Dropdown Menu -->
+                        <div
+                            v-if="themeMenuOpen"
+                            class="absolute right-0 mt-2 w-52 rounded-xl border border-admin-theme bg-admin-card/95 backdrop-blur-md p-1.5 shadow-2xl z-50 text-xs space-y-1"
+                        >
+                            <div class="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+                                Тема оформления
+                            </div>
+                            <button
+                                v-for="t in themes"
+                                :key="t.id"
+                                type="button"
+                                class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors"
+                                :class="currentTheme === t.id ? 'bg-admin-primary-light text-admin-accent font-semibold border border-admin-primary' : 'text-zinc-400 hover:text-zinc-200 hover:bg-admin-surface'"
+                                @click="selectTheme(t.id)"
+                            >
+                                <span class="flex items-center gap-2">
+                                    <span
+                                        class="w-3.5 h-3.5 rounded-full shrink-0 border-2 flex items-center justify-center"
+                                        :style="{ backgroundColor: t.bg, borderColor: t.color }"
+                                    >
+                                        <span class="w-1.5 h-1.5 rounded-full" :style="{ backgroundColor: t.color }" />
+                                    </span>
+                                    <span>{{ t.name }}</span>
+                                </span>
+                                <el-icon v-if="currentTheme === t.id" class="text-admin-accent"><Check /></el-icon>
+                            </button>
                         </div>
-                        <template #dropdown>
-                            <el-dropdown-menu class="admin-topbar-menu">
-                                <div class="admin-menu-header">
-                                    <div class="admin-menu-name">{{ adminUser.name }}</div>
-                                    <div class="admin-menu-email">{{ adminUser.email }}</div>
-                                </div>
-                                <el-dropdown-item @click="router.visit(route('admin.settings.index'))">
-                                    <el-icon><Setting /></el-icon> Настройки платформы
-                                </el-dropdown-item>
-                                <el-dropdown-item @click="router.visit(route('admin.logs.index'))">
-                                    <el-icon><Document /></el-icon> Журнал действий
-                                </el-dropdown-item>
-                                <el-dropdown-item @click="router.visit(route('admin.system-logs.index'))">
-                                    <el-icon><Monitor /></el-icon> Системные логи
-                                </el-dropdown-item>
-                                <el-dropdown-item divided @click="logout" class="menu-logout-item">
-                                    <el-icon><Lock /></el-icon> Выйти из панели
-                                </el-dropdown-item>
-                            </el-dropdown-menu>
-                        </template>
-                    </el-dropdown>
+                    </div>
+
+                    <!-- Profile Dropdown -->
+                    <div v-if="adminUser" class="flex items-center gap-2 pl-2 border-l border-admin-theme">
+                        <Link
+                            :href="route('admin.settings.index')"
+                            class="w-8 h-8 rounded-full bg-admin-primary-light border border-admin-primary text-admin-accent flex items-center justify-center font-bold text-xs hover:border-admin-primary transition-colors"
+                            :title="adminUser.name"
+                        >
+                            {{ adminUser.name?.[0]?.toUpperCase() ?? 'A' }}
+                        </Link>
+                    </div>
                 </div>
             </header>
 
-            <main class="admin-main">
+            <!-- Main Page Viewport -->
+            <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-admin-base">
                 <slot />
             </main>
         </div>
 
-        <!-- Command Palette / Quick Search Modal -->
+        <!-- ─── Command Palette (Ctrl+K Modal) ─────────────────────────────────── -->
         <Teleport to="body">
-            <div v-if="quickSearchOpen" class="cmd-palette-backdrop" @click.self="closeQuickSearch">
-                <div class="cmd-palette">
-                    <div class="cmd-palette__input-wrap">
-                        <el-icon class="cmd-palette__icon"><Search /></el-icon>
+            <div v-if="quickSearchOpen" class="fixed inset-0 z-50 p-4 sm:p-6 md:p-20 flex items-start justify-center">
+                <div class="fixed inset-0 bg-black/75 backdrop-blur-[3px] transition-opacity" @click="closeQuickSearch" />
+
+                <div class="relative w-full max-w-xl bg-admin-card border border-admin-theme rounded-2xl shadow-2xl overflow-hidden text-zinc-100 flex flex-col max-h-[80vh] z-10">
+                    <div class="flex items-center px-4 border-b border-admin-theme bg-admin-surface/80">
+                        <el-icon :size="18" class="text-zinc-500 mr-3"><Search /></el-icon>
                         <input
                             ref="searchInputRef"
                             v-model="quickSearchQuery"
                             type="text"
-                            class="cmd-palette__input"
-                            placeholder="Поиск пользователей, заказов, паков, транзакций..."
+                            class="w-full bg-transparent border-0 text-zinc-100 placeholder-zinc-500 py-3.5 text-sm focus:outline-none focus:ring-0"
+                            placeholder="Поиск по ID, имени, email, телефону..."
                             @input="onQuickSearchInput"
                             @keydown="onSearchKeydown"
                         />
-                        <button class="cmd-palette__close" @click="closeQuickSearch">Esc</button>
+                        <button class="text-xs text-zinc-400 bg-zinc-800 border border-zinc-700 px-2 py-0.5 rounded" @click="closeQuickSearch">Esc</button>
                     </div>
 
-                    <div v-if="quickSearchLoading" class="cmd-palette__loading">
+                    <div v-if="quickSearchLoading" class="p-8 text-center text-xs text-zinc-500">
                         Поиск по платформе...
                     </div>
 
-                    <div v-else-if="quickSearchQuery.length >= 2 && !hasResults" class="cmd-palette__empty">
+                    <div v-else-if="quickSearchQuery.length >= 2 && !hasResults" class="p-8 text-center text-xs text-zinc-500">
                         Ничего не найдено по запросу «{{ quickSearchQuery }}»
                     </div>
 
-                    <div v-else-if="hasResults" class="cmd-palette__results">
+                    <div v-else-if="hasResults" class="overflow-y-auto p-2 space-y-3 flex-1">
                         <!-- Users -->
-                        <div v-if="quickSearchResults.users?.length" class="cmd-palette__group">
-                            <div class="cmd-palette__group-title">Пользователи</div>
+                        <div v-if="quickSearchResults.users?.length">
+                            <div class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Пользователи</div>
                             <div
                                 v-for="item in quickSearchResults.users"
                                 :key="'user-' + item.id"
-                                class="cmd-palette__item"
-                                :class="{ 'cmd-palette__item--selected': allResultsFlat[selectedIndex]?.group === 'users' && allResultsFlat[selectedIndex]?.id === item.id }"
+                                class="flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors"
+                                :class="allResultsFlat[selectedIndex]?.group === 'users' && allResultsFlat[selectedIndex]?.id === item.id ? 'bg-violet-600 text-white' : 'hover:bg-zinc-800 text-zinc-300'"
                                 @click="navigateToItem(item)"
                             >
-                                <div class="item-avatar-mini" v-if="item.avatar_url">
-                                    <img :src="item.avatar_url" alt="" />
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <img v-if="item.avatar_url" :src="item.avatar_url" class="w-6 h-6 rounded-full object-cover shrink-0" alt="" />
+                                    <div v-else class="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px] shrink-0 font-bold">
+                                        {{ item.title?.[0] }}
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="text-xs font-medium truncate">{{ item.title }}</div>
+                                        <div class="text-[10px] opacity-70 truncate">{{ item.subtitle }}</div>
+                                    </div>
                                 </div>
-                                <div class="item-avatar-mini item-avatar-mini--empty" v-else>
-                                    {{ item.title.charAt(0) }}
-                                </div>
-                                <div class="item-info">
-                                    <div class="item-title">{{ item.title }}</div>
-                                    <div class="item-sub">{{ item.subtitle }}</div>
-                                </div>
-                                <span class="item-badge" v-if="item.badge">{{ item.badge }}</span>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded border border-current opacity-80 shrink-0">{{ item.badge }}</span>
                             </div>
                         </div>
 
                         <!-- Orders -->
-                        <div v-if="quickSearchResults.orders?.length" class="cmd-palette__group">
-                            <div class="cmd-palette__group-title">Заказы</div>
+                        <div v-if="quickSearchResults.orders?.length">
+                            <div class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Заказы</div>
                             <div
                                 v-for="item in quickSearchResults.orders"
                                 :key="'order-' + item.id"
-                                class="cmd-palette__item"
-                                :class="{ 'cmd-palette__item--selected': allResultsFlat[selectedIndex]?.group === 'orders' && allResultsFlat[selectedIndex]?.id === item.id }"
+                                class="flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors"
+                                :class="allResultsFlat[selectedIndex]?.group === 'orders' && allResultsFlat[selectedIndex]?.id === item.id ? 'bg-violet-600 text-white' : 'hover:bg-zinc-800 text-zinc-300'"
                                 @click="navigateToItem(item)"
                             >
-                                <div class="item-info">
-                                    <div class="item-title">{{ item.title }}</div>
-                                    <div class="item-sub">{{ item.subtitle }}</div>
+                                <div class="min-w-0">
+                                    <div class="text-xs font-medium truncate">{{ item.title }}</div>
+                                    <div class="text-[10px] opacity-70 truncate">{{ item.subtitle }}</div>
                                 </div>
-                                <span class="item-badge item-badge--order" v-if="item.badge">{{ item.badge }}</span>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded border border-current opacity-80 shrink-0">{{ item.badge }}</span>
                             </div>
                         </div>
 
                         <!-- Packs -->
-                        <div v-if="quickSearchResults.packs?.length" class="cmd-palette__group">
-                            <div class="cmd-palette__group-title">Контент-паки</div>
+                        <div v-if="quickSearchResults.packs?.length">
+                            <div class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Контент-паки</div>
                             <div
                                 v-for="item in quickSearchResults.packs"
                                 :key="'pack-' + item.id"
-                                class="cmd-palette__item"
-                                :class="{ 'cmd-palette__item--selected': allResultsFlat[selectedIndex]?.group === 'packs' && allResultsFlat[selectedIndex]?.id === item.id }"
+                                class="flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors"
+                                :class="allResultsFlat[selectedIndex]?.group === 'packs' && allResultsFlat[selectedIndex]?.id === item.id ? 'bg-violet-600 text-white' : 'hover:bg-zinc-800 text-zinc-300'"
                                 @click="navigateToItem(item)"
                             >
-                                <div class="item-info">
-                                    <div class="item-title">{{ item.title }}</div>
-                                    <div class="item-sub">{{ item.subtitle }}</div>
+                                <div class="min-w-0">
+                                    <div class="text-xs font-medium truncate">{{ item.title }}</div>
+                                    <div class="text-[10px] opacity-70 truncate">{{ item.subtitle }}</div>
                                 </div>
-                                <span class="item-badge" v-if="item.badge">{{ item.badge }}</span>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded border border-current opacity-80 shrink-0">{{ item.badge }}</span>
                             </div>
                         </div>
 
                         <!-- Transactions -->
-                        <div v-if="quickSearchResults.transactions?.length" class="cmd-palette__group">
-                            <div class="cmd-palette__group-title">Транзакции</div>
+                        <div v-if="quickSearchResults.transactions?.length">
+                            <div class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Транзакции</div>
                             <div
                                 v-for="item in quickSearchResults.transactions"
                                 :key="'tx-' + item.id"
-                                class="cmd-palette__item"
-                                :class="{ 'cmd-palette__item--selected': allResultsFlat[selectedIndex]?.group === 'transactions' && allResultsFlat[selectedIndex]?.id === item.id }"
+                                class="flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors"
+                                :class="allResultsFlat[selectedIndex]?.group === 'transactions' && allResultsFlat[selectedIndex]?.id === item.id ? 'bg-violet-600 text-white' : 'hover:bg-zinc-800 text-zinc-300'"
                                 @click="navigateToItem(item)"
                             >
-                                <div class="item-info">
-                                    <div class="item-title">{{ item.title }}</div>
-                                    <div class="item-sub">{{ item.subtitle }}</div>
+                                <div class="min-w-0">
+                                    <div class="text-xs font-medium truncate">{{ item.title }}</div>
+                                    <div class="text-[10px] opacity-70 truncate">{{ item.subtitle }}</div>
                                 </div>
-                                <span class="item-badge" v-if="item.badge">{{ item.badge }}</span>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded border border-current opacity-80 shrink-0">{{ item.badge }}</span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="cmd-palette__footer">
-                        <span>↑↓ Навигация</span>
-                        <span>↵ Выбрать</span>
-                        <span>Esc Закрыть</span>
+                    <div class="px-4 py-2 bg-zinc-950 border-t border-zinc-800 text-[10px] text-zinc-500 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span>↑↓ Выбрать</span>
+                            <span>↵ Перейти</span>
+                            <span>Esc Закрыть</span>
+                        </div>
+                        <div>Not Alone Admin</div>
                     </div>
                 </div>
             </div>
         </Teleport>
     </div>
 </template>
-
-<style scoped>
-.admin-wrap {
-    height: 100vh;
-    background: #07070f;
-    display: flex;
-    overflow: hidden;
-    font-family: 'Rubik', sans-serif;
-}
-
-/* Sidebar */
-.sidebar {
-    width: 220px;
-    flex-shrink: 0;
-    background: #09090f;
-    border-right: 1px solid rgba(155, 110, 232, 0.2);
-    display: flex;
-    flex-direction: column;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    overflow-y: auto;
-}
-
-.sidebar__logo {
-    padding: 1.25rem 1rem 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.sidebar__logo-img {
-    height: 20px;
-    width: auto;
-    object-fit: contain;
-    align-self: flex-start;
-}
-
-.logo-sub {
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.25);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-}
-
-/* Nav */
-
-.sidebar-section {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 0.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-}
-.sidebar-section:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-}
-.sidebar-section-title {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: rgba(255, 255, 255, 0.25);
-    padding: 0.5rem 1rem 0.25rem;
-    font-weight: 600;
-}
-.nav-icon {
-    font-size: 1.05rem;
-    width: 20px;
-    display: flex;
-    justify-content: center;
-    color: rgba(255, 255, 255, 0.4);
-    transition: color 0.15s;
-}
-.nav-text {
-    flex: 1;
-}
-.nav-item--active .nav-icon {
-    color: #9B6EE8;
-}
-.nav-item:hover .nav-icon {
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.sidebar__nav {
-    flex: 1;
-    padding: 0.5rem 0;
-    display: flex;
-    flex-direction: column;
-}
-
-.nav-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.55rem 1rem;
-    color: rgba(255, 255, 255, 0.45);
-    text-decoration: none;
-    font-size: 0.85rem;
-    transition: color 0.15s, background 0.15s;
-    cursor: pointer;
-    background: none;
-    border: none;
-    width: 100%;
-    text-align: left;
-    font-family: inherit;
-    gap: 0.5rem;
-}
-
-.nav-item:hover {
-    color: rgba(255, 255, 255, 0.85);
-    background: rgba(255, 255, 255, 0.04);
-}
-
-.nav-item--active {
-    color: #9B6EE8;
-    background: rgba(155, 110, 232, 0.1);
-}
-
-.nav-item--group {
-    justify-content: space-between;
-}
-
-.nav-arrow {
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.25);
-    transition: transform 0.2s;
-    display: inline-block;
-}
-
-.nav-arrow--open {
-    transform: rotate(180deg);
-}
-
-.nav-sub {
-    display: flex;
-    flex-direction: column;
-}
-
-.nav-item--sub {
-    padding-left: 1.75rem;
-    font-size: 0.82rem;
-    color: rgba(255, 255, 255, 0.35);
-}
-
-.nav-item--sub:hover {
-    color: rgba(255, 255, 255, 0.75);
-}
-
-.nav-item--sub.nav-item--active {
-    color: rgba(190, 145, 255, 0.85);
-    background: rgba(155, 110, 232, 0.08);
-}
-
-.nav-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 0.3rem;
-    background: rgba(155, 110, 232, 0.25);
-    border: 1px solid rgba(155, 110, 232, 0.4);
-    color: #ffb2ef;
-    font-size: 0.68rem;
-    font-weight: 700;
-    border-radius: 99px;
-    margin-left: auto;
-}
-
-/* Footer */
-.sidebar__footer {
-    padding: 0.75rem 1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-}
-
-.admin-info {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    min-width: 0;
-}
-
-.admin-avatar {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: rgba(155, 110, 232, 0.2);
-    border: 1px solid rgba(155, 110, 232, 0.35);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #9B6EE8;
-    flex-shrink: 0;
-}
-
-.admin-details {
-    min-width: 0;
-    flex: 1;
-}
-
-.admin-name {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.7);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.admin-email {
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.25);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.logout-btn {
-    padding: 0.35rem 0.7rem;
-    border: 1px solid rgba(155, 110, 232, 0.25);
-    background: transparent;
-    color: rgba(255, 255, 255, 0.35);
-    font-size: 0.78rem;
-    cursor: pointer;
-    font-family: inherit;
-    text-align: center;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
-}
-
-.logout-btn:hover {
-    border-color: rgba(155, 110, 232, 0.5);
-    color: rgba(255, 255, 255, 0.7);
-    background: rgba(155, 110, 232, 0.07);
-}
-
-/* Content */
-.content-wrap {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-}
-
-.admin-main {
-    flex: 1;
-    padding: 2rem;
-    width: 100%;
-    min-width: 0;
-    overflow-y: auto;
-}
-
-/* ── Topbar ─────────────────────────────────────────────── */
-.admin-topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.85rem 1.75rem;
-    background: #090912;
-    border-bottom: 1px solid rgba(155, 110, 232, 0.15);
-    flex-shrink: 0;
-    gap: 1rem;
-}
-
-.topbar-left {
-    display: flex;
-    align-items: center;
-    gap: 0.85rem;
-}
-
-.topbar-breadcrumbs {
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    font-size: 0.85rem;
-}
-
-.crumb-root {
-    color: rgba(255, 255, 255, 0.35);
-    font-weight: 500;
-}
-
-.crumb-separator {
-    color: rgba(255, 255, 255, 0.2);
-}
-
-.crumb-current {
-    color: #fff;
-    font-weight: 600;
-}
-
-.topbar-right {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.attention-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    padding: 0.3rem 0.7rem;
-    background: rgba(245, 158, 11, 0.12);
-    border: 1px solid rgba(245, 158, 11, 0.3);
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #fbbf24;
-}
-
-.attention-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #fbbf24;
-    box-shadow: 0 0 8px #fbbf24;
-    animation: pulse-dot 2s infinite ease-in-out;
-}
-
-@keyframes pulse-dot {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.4; transform: scale(0.85); }
-}
-
-.topbar-site-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.32rem 0.75rem;
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: rgba(190, 145, 255, 0.8);
-    background: rgba(155, 110, 232, 0.08);
-    border: 1px solid rgba(155, 110, 232, 0.25);
-    text-decoration: none;
-    transition: all 0.15s ease;
-}
-
-.topbar-site-link:hover {
-    color: #fff;
-    background: rgba(155, 110, 232, 0.2);
-    border-color: rgba(155, 110, 232, 0.5);
-}
-
-.external-icon {
-    font-size: 0.85rem;
-}
-
-.topbar-admin-badge {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding-left: 0.5rem;
-    border-left: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.admin-avatar-mini {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background: rgba(155, 110, 232, 0.25);
-    border: 1px solid rgba(155, 110, 232, 0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #c084fc;
-}
-
-.admin-name-mini {
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.75);
-}
-
-.topbar-admin-badge--interactive {
-    cursor: pointer;
-    user-select: none;
-    transition: background 0.15s, border-color 0.15s;
-    padding: 0.25rem 0.6rem 0.25rem 0.4rem;
-    border-radius: 8px;
-    border: 1px solid transparent;
-}
-.topbar-admin-badge--interactive:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-.admin-chevron {
-    font-size: 0.65rem;
-    color: rgba(255, 255, 255, 0.4);
-    margin-left: 2px;
-}
-
-:deep(.admin-topbar-menu) {
-    background: #14131d !important;
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
-    border-radius: 10px !important;
-    padding: 6px 0 !important;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6) !important;
-}
-
-.admin-menu-header {
-    padding: 8px 14px 10px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    margin-bottom: 4px;
-}
-.admin-menu-name {
-    font-size: 0.86rem;
-    font-weight: 600;
-    color: #fff;
-}
-.admin-menu-email {
-    font-size: 0.74rem;
-    color: rgba(255, 255, 255, 0.45);
-    margin-top: 2px;
-}
-:deep(.menu-logout-item) {
-    color: #f87171 !important;
-}
-:deep(.menu-logout-item:hover) {
-    background: rgba(239, 68, 68, 0.15) !important;
-    color: #ef4444 !important;
-}
-
-.hamburger-btn {
-    display: none;
-    align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    border: none;
-    background: transparent;
-    border-radius: 6px;
-    color: rgba(255, 255, 255, 0.65);
-    cursor: pointer;
-    transition: color 0.15s, background 0.15s;
-}
-
-.hamburger-btn:hover {
-    color: rgba(255, 255, 255, 0.95);
-    background: rgba(155, 110, 232, 0.15);
-}
-
-/* ── Mobile responsive ──────────────────────────────────── */
-.sidebar-backdrop {
-    display: none;
-}
-
-@media (max-width: 768px) {
-    .admin-wrap { overflow: visible; height: auto; min-height: 100vh; }
-
-    .hamburger-btn { display: flex; }
-    .crumb-root, .crumb-separator { display: none; }
-    .topbar-admin-badge { display: none; }
-    .admin-topbar { padding: 0.75rem 1rem; }
-
-    .sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        height: 100%;
-        z-index: 1200;
-        transform: translateX(-100%);
-        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .sidebar--open { transform: translateX(0); }
-
-    .sidebar-backdrop {
-        display: block;
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 1199;
-    }
-
-    .content-wrap { flex-direction: column; }
-    .admin-main { padding: 1rem; overflow-y: visible; }
-    .topbar-center { display: none; }
-}
-
-/* ── Command Palette (Quick Search) ─────────────────────── */
-.topbar-center {
-    display: flex;
-    align-items: center;
-    flex: 1;
-    max-width: 380px;
-    margin: 0 1.5rem;
-}
-
-.topbar-search-trigger {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    width: 100%;
-    padding: 0.4rem 0.75rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 0.82rem;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.topbar-search-trigger:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(155, 110, 232, 0.4);
-    color: rgba(255, 255, 255, 0.7);
-}
-.search-trigger-icon {
-    font-size: 0.95rem;
-}
-.search-trigger-text {
-    flex: 1;
-    text-align: left;
-}
-.search-trigger-kbd {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 4px;
-    padding: 0.1rem 0.4rem;
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.6);
-    font-family: inherit;
-}
-
-.cmd-palette-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.75);
-    backdrop-filter: blur(4px);
-    z-index: 9999;
-    display: flex;
-    justify-content: center;
-    padding-top: 10vh;
-}
-
-.cmd-palette {
-    width: 100%;
-    max-width: 620px;
-    max-height: 70vh;
-    background: #111116;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.cmd-palette__input-wrap {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.9rem 1.25rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.cmd-palette__icon {
-    font-size: 1.2rem;
-    color: rgba(255, 255, 255, 0.4);
-}
-
-.cmd-palette__input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: #fff;
-    font-size: 1.05rem;
-    outline: none;
-    font-family: inherit;
-}
-
-.cmd-palette__close {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 4px;
-    color: rgba(255, 255, 255, 0.5);
-    padding: 0.15rem 0.5rem;
-    font-size: 0.72rem;
-    cursor: pointer;
-}
-
-.cmd-palette__loading, .cmd-palette__empty {
-    padding: 2.5rem 1.5rem;
-    text-align: center;
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 0.9rem;
-}
-
-.cmd-palette__results {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0.5rem;
-}
-
-.cmd-palette__group {
-    margin-bottom: 0.75rem;
-}
-
-.cmd-palette__group-title {
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: rgba(255, 255, 255, 0.35);
-    padding: 0.4rem 0.75rem 0.2rem;
-    font-weight: 600;
-}
-
-.cmd-palette__item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.55rem 0.75rem;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-.cmd-palette__item:hover, .cmd-palette__item--selected {
-    background: rgba(155, 110, 232, 0.18);
-}
-
-.item-avatar-mini {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    overflow: hidden;
-    flex-shrink: 0;
-}
-.item-avatar-mini img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-.item-avatar-mini--empty {
-    background: #8b5cf6;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.item-info {
-    flex: 1;
-    min-width: 0;
-}
-.item-title {
-    color: #f4f4f5;
-    font-size: 0.88rem;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.item-sub {
-    color: rgba(255, 255, 255, 0.45);
-    font-size: 0.75rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-top: 0.1rem;
-}
-
-.item-badge {
-    font-size: 0.72rem;
-    padding: 0.15rem 0.45rem;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.7);
-    flex-shrink: 0;
-}
-.item-badge--order {
-    background: rgba(56, 189, 248, 0.15);
-    color: #38bdf8;
-}
-
-.cmd-palette__footer {
-    display: flex;
-    gap: 1rem;
-    padding: 0.6rem 1.25rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(0, 0, 0, 0.2);
-    font-size: 0.72rem;
-    color: rgba(255, 255, 255, 0.4);
-}
-</style>

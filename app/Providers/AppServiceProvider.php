@@ -28,7 +28,13 @@ class AppServiceProvider extends ServiceProvider
             {
                 public function dispatch(array $page, ?\Illuminate\Http\Request $request = null): ?\Inertia\Ssr\Response
                 {
-                    if (! $this->ssrIsEnabled($request ?? request())) {
+                    $currentRequest = $request ?? request();
+
+                    if ($currentRequest && $currentRequest->is('admin*')) {
+                        return null;
+                    }
+
+                    if (! $this->ssrIsEnabled($currentRequest)) {
                         return null;
                     }
 

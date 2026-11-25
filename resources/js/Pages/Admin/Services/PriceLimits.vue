@@ -1,11 +1,16 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
-import { Plus } from '@element-plus/icons-vue';
+import { Plus, Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
-import AppSelect from '@/Components/AppSelect.vue';
-import CreateButton from '@/Components/CreateButton.vue';
+import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
+import AdminTable from '@/Components/Admin/UI/AdminTable.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminInput from '@/Components/Admin/UI/AdminInput.vue';
+import AdminModal from '@/Components/Admin/UI/AdminModal.vue';
+import ServicesNavTabs from '@/Components/Admin/ServicesNavTabs.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
 import { formatMoney } from '@/Utils/money';
 
@@ -20,29 +25,20 @@ const showForm  = ref(false);
 const editingId = ref(null);
 
 const form = useForm({
-    category_id:          null,
+    category_id:          '',
     max_price:            '',
     low_rating_max_price: '',
 });
 
-const categoryOptions = computed(() =>
-    (props.categories || []).map(c => ({
-        value: c.id,
-        label: typeof c.name === 'object' ? (c.name?.ru || c.name?.en || '') : (c.name_ru || c.name || ''),
-    }))
-);
-
 function getCategoryName(cat) {
     if (!cat) return '—';
-    if (typeof cat.name === 'object') {
-        return cat.name?.ru || cat.name?.en || '—';
-    }
+    if (typeof cat.name === 'object') return cat.name?.ru || cat.name?.en || '—';
     return cat.name_ru || cat.name || '—';
 }
 
 function openAdd() {
     editingId.value            = null;
-    form.category_id          = null;
+    form.category_id          = '';
     form.max_price             = '';
     form.low_rating_max_price = '';
     showForm.value             = true;
@@ -77,7 +73,7 @@ function submit() {
     }
 }
 
-function destroy(id) {
+function destroyLimit(id) {
     ElMessageBox.confirm('Удалить этот лимит цены?', 'Удаление лимита', {
         confirmButtonText: 'Удалить',
         cancelButtonText: 'Отмена',
@@ -90,126 +86,124 @@ function destroy(id) {
 </script>
 
 <template>
-    <div>
-        <div class="page-header">
-            <h1 class="page-title">Лимиты цен</h1>
-            <CreateButton @click="openAdd">
-                <template #icon><el-icon><Plus /></el-icon></template>
-                Добавить
-            </CreateButton>
-        </div>
+    <div class="space-y-6 max-w-7xl mx-auto">
+        <!-- Sub-navigation Tabs -->
+        <ServicesNavTabs active="price-limits" />
 
-        <p class="hint">Общий лимит применяется ко всем айдолам. Лимит для низкого рейтинга — к айдолам с рейтингом ниже порога платформы.</p>
+        <!-- Header -->
+        <AdminPageHeader
+            title="Лимиты цен на услуги"
+            subtitle="Ограничения максимальной стоимости услуг по категориям для защиты клиентов и антифрода"
+            :count="limits?.length"
+        >
+            <template #actions>
+                <AdminButton variant="primary" @click="openAdd">
+                    <template #icon><el-icon><Plus /></el-icon></template>
+                    Добавить лимит
+                </AdminButton>
+            </template>
+        </AdminPageHeader>
 
-        <div class="table-wrap">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Категория</th>
-                        <th>Общий лимит</th>
-                        <th>Лимит для низкого рейтинга</th>
-                        <th>Действия</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="limit in limits" :key="limit.id">
-                        <td>{{ getCategoryName(limit.category) }}</td>
-                        <td>
-                            <span v-if="limit.max_price" class="inline-flex items-center gap-1">
-                                <span>{{ formatMoney(limit.max_price) }}</span>
-                                <CoinIcon color="blue" size="xs" />
-                            </span>
-                            <span v-else>—</span>
-                        </td>
-                        <td>
-                            <span v-if="limit.low_rating_max_price" class="inline-flex items-center gap-1">
-                                <span>{{ formatMoney(limit.low_rating_max_price) }}</span>
-                                <CoinIcon color="blue" size="xs" />
-                            </span>
-                            <span v-else>—</span>
-                        </td>
-                        <td>
-                            <div class="actions">
-                                <button class="btn-edit" @click="openEdit(limit)">Изменить</button>
-                                <button class="btn-danger" @click="destroy(limit.id)">Удалить</button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr v-if="!limits.length">
-                        <td colspan="4" class="empty-row">Лимитов нет</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <!-- Table -->
+        <AdminTable :empty="!limits?.length" empty-title="Лимиты цен ещё не настроены">
+            <template #header>
+                <tr>
+                    <th class="py-3 px-4">Категория</th>
+                    <th class="py-3 px-4">Базовый лимит (рейтинг ≥ 30)</th>
+                    <th class="py-3 px-4">Лимит для новичков (рейтинг &lt; 30)</th>
+                    <th class="py-3 px-4 text-right">Действия</th>
+                </tr>
+            </template>
 
-        <Teleport to="body">
-            <div v-if="showForm" class="overlay" @click.self="closeForm">
-                <div class="modal">
-                    <div class="modal__header">
-                        <span>{{ editingId ? 'Редактировать лимит' : 'Новый лимит' }}</span>
-                        <button class="modal__close" @click="closeForm">✕</button>
+            <tr
+                v-for="l in limits"
+                :key="l.id"
+                class="hover:bg-zinc-800/40 transition-colors"
+            >
+                <td class="py-3 px-4 font-semibold text-zinc-100">
+                    {{ getCategoryName(l.category) }}
+                </td>
+
+                <td class="py-3 px-4">
+                    <div class="flex items-center gap-1.5 font-bold text-zinc-100 text-xs">
+                        <span>до {{ formatMoney(l.max_price) }}</span>
+                        <CoinIcon color="blue" size="xs" />
                     </div>
-                    <form @submit.prevent="submit" class="modal__body">
-                        <div class="field">
-                            <label>Категория</label>
-                            <AppSelect
-                                v-model="form.category_id"
-                                :options="categoryOptions"
-                                placeholder="Выберите категорию..."
-                                :error="!!form.errors.category_id"
-                            />
-                            <p v-if="form.errors.category_id" class="err">{{ form.errors.category_id }}</p>
-                        </div>
-                        <div class="field">
-                            <label>Общий лимит</label>
-                            <input v-model.number="form.max_price" type="number" min="1" class="input" :class="{ 'input--err': form.errors.max_price }" placeholder="Не ограничен" />
-                            <p v-if="form.errors.max_price" class="err">{{ form.errors.max_price }}</p>
-                        </div>
-                        <div class="field">
-                            <label>Лимит для низкого рейтинга</label>
-                            <input v-model.number="form.low_rating_max_price" type="number" min="1" class="input" :class="{ 'input--err': form.errors.low_rating_max_price }" placeholder="Не ограничен" />
-                            <p v-if="form.errors.low_rating_max_price" class="err">{{ form.errors.low_rating_max_price }}</p>
-                        </div>
-                        <div class="modal__actions">
-                            <button type="button" class="btn-cancel" @click="closeForm">Отмена</button>
-                            <button type="submit" class="btn-submit" :disabled="form.processing">Сохранить</button>
-                        </div>
-                    </form>
+                </td>
+
+                <td class="py-3 px-4">
+                    <div class="flex items-center gap-1.5 font-bold text-amber-300 text-xs">
+                        <span>до {{ formatMoney(l.low_rating_max_price) }}</span>
+                        <CoinIcon color="blue" size="xs" />
+                    </div>
+                    <div class="text-[10px] text-zinc-500">При рейтинге айдола &lt; 30 баллов</div>
+                </td>
+
+                <td class="py-3 px-4 text-right whitespace-nowrap">
+                    <div class="flex items-center justify-end gap-1.5">
+                        <AdminButton variant="secondary" size="sm" @click="openEdit(l)">
+                            <template #icon><el-icon :size="12"><Edit /></el-icon></template>
+                            Изменить
+                        </AdminButton>
+                        <AdminButton variant="ghost" size="sm" class="text-rose-400 hover:text-rose-300" @click="destroyLimit(l.id)">
+                            <template #icon><el-icon :size="12"><Delete /></el-icon></template>
+                        </AdminButton>
+                    </div>
+                </td>
+            </tr>
+        </AdminTable>
+
+        <!-- Modal -->
+        <AdminModal
+            :show="showForm"
+            :title="editingId ? 'Изменить лимит цены' : 'Добавить лимит цены'"
+            @close="closeForm"
+        >
+            <form @submit.prevent="submit" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-300 mb-1">Категория услуг *</label>
+                    <select
+                        v-model="form.category_id"
+                        class="block w-full bg-zinc-950 border border-zinc-800 text-zinc-100 rounded-lg text-xs py-2.5 px-3 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                        required
+                    >
+                        <option value="" disabled selected>Выберите категорию...</option>
+                        <option v-for="c in categories" :key="c.id" :value="c.id">
+                            {{ getCategoryName(c) }}
+                        </option>
+                    </select>
                 </div>
-            </div>
-        </Teleport>
+
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-300 mb-1">Максимальная цена (монеты 🪙) *</label>
+                    <AdminInput
+                        v-model="form.max_price"
+                        type="number"
+                        placeholder="Например: 5000"
+                        :error="form.errors.max_price"
+                        required
+                    />
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-300 mb-1">Лимит для айдолов с низким рейтингом (&lt; 30 баллов) *</label>
+                    <AdminInput
+                        v-model="form.low_rating_max_price"
+                        type="number"
+                        placeholder="Например: 1500"
+                        :error="form.errors.low_rating_max_price"
+                        required
+                    />
+                    <p class="text-[11px] text-zinc-500 mt-1">Ограничивает прайс для новичков и исполнителей со штрафами.</p>
+                </div>
+            </form>
+
+            <template #footer>
+                <AdminButton variant="ghost" @click="closeForm">Отмена</AdminButton>
+                <AdminButton variant="primary" :loading="form.processing" @click="submit">
+                    {{ editingId ? 'Сохранить изменения' : 'Создать лимит' }}
+                </AdminButton>
+            </template>
+        </AdminModal>
     </div>
 </template>
-
-<style scoped>
-.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
-.page-title  { font-size: 1.4rem; color: #fff; margin: 0; }
-.hint { font-size: 0.82rem; color: rgba(255,255,255,0.35); margin: 0 0 1.25rem; }
-.table-wrap { overflow-x: auto; }
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th { text-align: left; padding: 0.6rem 1rem; font-size: 0.72rem; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.07em; border-bottom: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.025); }
-.data-table td { padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.07); color: rgba(255,255,255,0.8); font-size: 0.88rem; }
-.data-table tr:hover td { background: rgba(255,255,255,0.03); }
-.empty-row { text-align: center; color: rgba(255,255,255,0.25); }
-.actions { display: flex; gap: 0.5rem; }
-.btn-edit, .btn-danger { padding: 0.3rem 0.7rem; border-radius: 3px; font-size: 0.78rem; cursor: pointer; font-family: inherit; transition: background 0.15s; }
-.btn-edit   { border: 1px solid rgba(255,255,255,0.15); background: transparent; color: rgba(255,255,255,0.6); }
-.btn-edit:hover   { background: rgba(255,255,255,0.08); }
-.btn-danger { border: 1px solid rgba(239,68,68,0.3); background: transparent; color: rgba(239,68,68,0.7); }
-.btn-danger:hover { background: rgba(239,68,68,0.1); }
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.modal { background: #0a0a0f; border: 1px solid rgba(255,255,255,0.12); border-radius: 3px; width: 100%; max-width: 380px; margin: 1rem; }
-.modal__header { display: flex; align-items: center; justify-content: space-between; padding: 0.8rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.07); font-size: 0.88rem; color: rgba(255,255,255,0.85); font-weight: 600; }
-.modal__close { background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 1rem; }
-.modal__body { padding: 1rem; display: flex; flex-direction: column; gap: 0.8rem; }
-.field { display: flex; flex-direction: column; gap: 0.3rem; }
-.field label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: rgba(255,255,255,0.35); }
-.input { padding: 0.45rem 0.7rem; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 3px; color: rgba(255,255,255,0.85); font-family: inherit; font-size: 0.88rem; outline: none; transition: border-color 0.15s; box-sizing: border-box; width: 100%; appearance: none; }
-.input:focus { border-color: rgba(190,145,255,0.45); }
-.input--err { border-color: rgba(239,68,68,0.5); }
-.err { font-size: 0.75rem; color: rgba(239,68,68,0.8); margin: 0; }
-.modal__actions { display: flex; justify-content: flex-end; gap: 0.5rem; padding-top: 0.25rem; }
-.btn-cancel { padding: 0.45rem 0.9rem; border: 1px solid rgba(255,255,255,0.12); border-radius: 3px; background: transparent; color: rgba(255,255,255,0.4); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
-.btn-submit { padding: 0.45rem 1rem; border: 1px solid rgba(190,145,255,0.45); border-radius: 3px; background: rgba(190,145,255,0.1); color: rgba(255,255,255,0.9); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
-.btn-submit:disabled { opacity: 0.5; cursor: default; }
-</style>

@@ -52,6 +52,7 @@ class ApplicationController extends Controller
         return Inertia::render('Admin/Applications/Index', [
             'applications' => $applications,
             'filter_status' => $request->status,
+            'pending_count' => IdolApplication::where('status', 'pending')->count(),
         ]);
     }
 

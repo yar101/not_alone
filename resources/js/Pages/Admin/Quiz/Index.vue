@@ -1,8 +1,14 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { useForm, router, Link } from '@inertiajs/vue3';
 import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
+import {
+    Search, Plus, Delete, EditPen, Check, Close,
+    Download, Upload, Document, ArrowRight, ArrowDown
+} from '@element-plus/icons-vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -56,7 +62,6 @@ const totalFilteredCount = computed(() => {
 watch(searchQuery, (newVal) => {
     const query = newVal.trim();
     if (query) {
-        // Auto expand stages that have matching questions
         const newExpanded = new Set();
         for (const [stage, questions] of Object.entries(props.questions_by_stage)) {
             const hasMatch = (questions || []).some(q => {
@@ -70,7 +75,6 @@ watch(searchQuery, (newVal) => {
         }
         expandedStages.value = newExpanded;
     } else {
-        // Restore manual expanded stages
         expandedStages.value = new Set(manualExpandedStages.value);
     }
 });
@@ -181,23 +185,13 @@ function submitImport() {
     });
 }
 
-// ── Drag & Drop ──────────────────────────────────────────
 const isDragging = ref(false);
 
-function onDragOver(e) {
-    e.preventDefault();
-}
-
-function onDragEnter(e) {
-    e.preventDefault();
-    isDragging.value = true;
-}
-
+function onDragOver(e) { e.preventDefault(); }
+function onDragEnter(e) { e.preventDefault(); isDragging.value = true; }
 function onDragLeave(e) {
     e.preventDefault();
-    if (!e.relatedTarget) {
-        isDragging.value = false;
-    }
+    if (!e.relatedTarget) isDragging.value = false;
 }
 
 function onDrop(e) {
@@ -219,726 +213,330 @@ function onDrop(e) {
 
 <template>
     <div
+        class="space-y-6"
         @dragover="onDragOver"
         @dragenter="onDragEnter"
         @dragleave="onDragLeave"
         @drop="onDrop"
-        class="quiz-index-page"
     >
-        <!-- Drag & Drop Overlay -->
-        <div v-if="isDragging" class="drag-drop-overlay" @dragleave="isDragging = false" @dragover.prevent>
-            <div class="drag-drop-content">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="drag-icon">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="17 8 12 3 7 8"/>
-                    <line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-                <p class="drag-text">Перетащите сюда файл .json для импорта вопросов</p>
-                <span class="drag-subtext">Режим импорта: {{ importMode === 'replace' ? 'Замена всех вопросов' : 'Добавление к существующим' }}</span>
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2.5">
+                    <el-icon class="text-violet-400"><Document /></el-icon>
+                    <span>Вопросы онбординг-теста (10 этапов)</span>
+                </h1>
+                <p class="text-xs text-zinc-400 mt-0.5">
+                    Управление этапами и вариантами ответов проверочного квиза кандидатов в айдолы
+                </p>
+            </div>
+            <div class="flex items-center gap-2">
+                <Link
+                    :href="route('admin.quiz.article.index')"
+                    class="px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900 text-xs font-medium text-zinc-300 hover:text-white hover:bg-zinc-800 transition flex items-center gap-1.5"
+                >
+                    <span>Обучающая статья</span>
+                    <el-icon :size="12"><ArrowRight /></el-icon>
+                </Link>
             </div>
         </div>
 
-        <h1 class="page-title">Вопросы теста (по этапам)</h1>
-
-        <!-- ── Import / Export panel ───────────────────────── -->
-        <div class="io-panel">
-            <div class="io-panel__left">
-                <span class="io-label">Импорт / Экспорт вопросов (JSON)</span>
-            </div>
-            <div class="io-panel__right">
-                <select v-model="importMode" class="io-select">
+        <!-- Import / Export Bar -->
+        <div class="p-3.5 rounded-xl border border-zinc-800 bg-zinc-900/60 backdrop-blur-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 text-xs">
+            <div class="flex items-center gap-2">
+                <span class="text-zinc-400 font-medium">Импорт / Экспорт (JSON):</span>
+                <select
+                    v-model="importMode"
+                    class="h-8 px-2.5 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-zinc-200 focus:outline-none focus:border-violet-500"
+                >
                     <option value="append">Добавить к существующим</option>
                     <option value="replace">Заменить все вопросы</option>
                 </select>
+            </div>
+
+            <div class="flex items-center gap-2 flex-wrap">
                 <input
                     ref="importFileInput"
                     type="file"
                     accept=".json"
-                    class="io-file-hidden"
+                    class="hidden"
                     @change="onImportFileChange"
                 />
-                <button class="io-btn io-btn--import" @click="triggerImport">
-                    <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    Импорт
-                </button>
-                <a :href="route('admin.quiz.questions.export')" class="io-btn io-btn--export" download>
-                    <svg viewBox="0 0 24 24" fill="none"><path d="M12 21V9m0 12l-4-4m4 4l4-4M4 7V5a2 2 0 012-2h12a2 2 0 012 2v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <AdminButton variant="outline" size="sm" @click="triggerImport">
+                    <el-icon class="mr-1"><Upload /></el-icon>
+                    Импорт JSON
+                </AdminButton>
+                <a
+                    :href="route('admin.quiz.questions.export')"
+                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-300 hover:text-white text-xs font-medium transition"
+                    download
+                >
+                    <el-icon><Download /></el-icon>
                     Экспорт
                 </a>
-                <a :href="route('admin.quiz.questions.template')" class="io-btn io-btn--template" download>
-                    <svg viewBox="0 0 24 24" fill="none"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <a
+                    :href="route('admin.quiz.questions.template')"
+                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200 text-xs font-medium transition"
+                    download
+                >
                     Шаблон
                 </a>
             </div>
-            <p v-if="importError" class="io-error">{{ importError }}</p>
+        </div>
+        <p v-if="importError" class="text-xs text-rose-400">{{ importError }}</p>
+
+        <!-- Search Bar -->
+        <div class="relative">
+            <el-icon class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"><Search /></el-icon>
+            <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Поиск по тексту вопросов и вариантов ответов..."
+                class="w-full h-9 pl-9 pr-8 rounded-lg border border-zinc-800 bg-zinc-900/80 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
+            />
+            <button
+                v-if="searchQuery"
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 text-xs"
+                @click="searchQuery = ''"
+            >
+                ✕
+            </button>
         </div>
 
-        <!-- ── Search Bar ──────────────────────────────────── -->
-        <div class="search-panel">
-            <div class="search-input-wrapper">
-                <svg class="search-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="1.8"/>
-                    <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                </svg>
-                <input
-                    v-model="searchQuery"
-                    type="text"
-                    placeholder="Поиск по тексту вопросов и ответов..."
-                    class="search-input"
-                />
+        <!-- 10 Stages Accordion -->
+        <div class="space-y-3">
+            <div
+                v-for="stage in stages"
+                :key="stage"
+                class="rounded-xl border border-zinc-800 bg-zinc-900/60 overflow-hidden backdrop-blur-sm"
+            >
+                <!-- Stage Header -->
                 <button
-                    v-if="searchQuery"
-                    @click="searchQuery = ''"
-                    class="search-clear-btn"
-                    title="Очистить"
+                    type="button"
+                    class="w-full p-4 flex items-center justify-between text-left transition hover:bg-zinc-800/40"
+                    :class="{ 'border-b border-zinc-800 bg-zinc-900/40': expandedStages.has(stage) }"
+                    @click="toggleStage(stage)"
                 >
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                </button>
-            </div>
-            <div v-if="searchQuery" class="search-results-info">
-                Найдено вопросов: {{ totalFilteredCount }}
-            </div>
-        </div>
+                    <div class="flex items-center gap-3">
+                        <span class="w-7 h-7 rounded-lg bg-violet-950/60 border border-violet-800/40 text-violet-300 font-mono font-bold text-xs flex items-center justify-center">
+                            {{ String(stage).padStart(2, '0') }}
+                        </span>
+                        <span class="font-semibold text-xs text-zinc-100">Этап {{ stage }}</span>
+                        <AdminBadge variant="neutral" size="sm">
+                            <template v-if="searchQuery.trim()">
+                                {{ (filteredQuestionsByStage[stage] || []).length }} / {{ (questions_by_stage[stage] || []).length }}
+                            </template>
+                            <template v-else>
+                                {{ (questions_by_stage[stage] || []).length }} вопросов
+                            </template>
+                        </AdminBadge>
+                    </div>
 
-        <div class="stages-list">
-            <div v-for="stage in stages" :key="stage" class="stage-card">
-                <button class="stage-header" @click="toggleStage(stage)" :class="{ 'is-open': expandedStages.has(stage) }">
-                    <span class="stage-badge">{{ String(stage).padStart(2, '0') }}</span>
-                    <span class="stage-title">Этап {{ stage }}</span>
-                    <span class="stage-count-pill">
-                        <template v-if="searchQuery.trim()">
-                            {{ (filteredQuestionsByStage[stage] || []).length }} / {{ (questions_by_stage[stage] || []).length }}
-                        </template>
-                        <template v-else>
-                            {{ (questions_by_stage[stage] || []).length }}
-                        </template>
-                    </span>
-                    <svg class="stage-chevron" :class="{ 'is-open': expandedStages.has(stage) }" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
+                    <el-icon class="text-zinc-500 transition-transform duration-200" :class="{ 'rotate-180': expandedStages.has(stage) }">
+                        <ArrowDown />
+                    </el-icon>
                 </button>
 
-                <div v-if="expandedStages.has(stage)" class="stage-body">
-                        <!-- Existing questions -->
-                        <div v-if="(filteredQuestionsByStage[stage] || []).length === 0" class="empty-state">
-                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
-                                <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                            </svg>
-                            <span v-if="searchQuery.trim()">Нет совпадений для этого этапа</span>
-                            <span v-else>Нет вопросов в этом этапе</span>
-                        </div>
+                <!-- Stage Body -->
+                <div v-if="expandedStages.has(stage)" class="p-4 space-y-4 text-xs">
+                    <!-- Questions List -->
+                    <div v-if="!filteredQuestionsByStage[stage]?.length" class="py-6 text-center text-zinc-500">
+                        {{ searchQuery.trim() ? 'Нет совпадений для этого этапа' : 'В этом этапе пока нет вопросов' }}
+                    </div>
 
-                        <div v-for="(q, qIndex) in (filteredQuestionsByStage[stage] || [])" :key="q.id" class="question-item">
-                            <div v-if="editingId === q.id" class="question-edit-form">
-                                <div class="edit-form-header">
-                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                    <span>Редактирование вопроса #{{ qIndex + 1 }}</span>
-                                </div>
-                                <input v-model="editForm.question" class="q-input" placeholder="Текст вопроса" />
-                                <div v-for="(opt, i) in editForm.options" :key="i" class="option-row">
-                                    <label class="option-label-wrap">
+                    <div class="space-y-3">
+                        <div
+                            v-for="(q, qIndex) in (filteredQuestionsByStage[stage] || [])"
+                            :key="q.id"
+                            class="p-4 rounded-xl border border-zinc-800/80 bg-zinc-950/60 space-y-3"
+                        >
+                            <!-- Edit Mode -->
+                            <div v-if="editingId === q.id" class="space-y-3">
+                                <div class="font-semibold text-violet-300">Редактирование вопроса #{{ qIndex + 1 }}</div>
+                                <input
+                                    v-model="editForm.question"
+                                    type="text"
+                                    class="w-full h-9 px-3 rounded-lg border border-zinc-800 bg-zinc-900 text-xs text-zinc-100 focus:outline-none focus:border-violet-500"
+                                    placeholder="Текст вопроса"
+                                />
+
+                                <div class="space-y-2">
+                                    <div
+                                        v-for="(opt, i) in editForm.options"
+                                        :key="i"
+                                        class="flex items-center gap-2"
+                                    >
+                                        <label class="flex items-center gap-1.5 cursor-pointer text-xs font-mono">
+                                            <input
+                                                type="radio"
+                                                :name="`edit-correct-${q.id}`"
+                                                :value="i"
+                                                v-model="editForm.correct_option_index"
+                                                class="text-violet-500 focus:ring-0"
+                                            />
+                                            <span class="font-bold" :class="i === editForm.correct_option_index ? 'text-emerald-400' : 'text-zinc-500'">
+                                                {{ 'ABCDEF'[i] }}
+                                            </span>
+                                        </label>
                                         <input
-                                            type="radio"
-                                            :name="`edit-correct-${q.id}`"
-                                            :value="i"
-                                            v-model="editForm.correct_option_index"
-                                            class="radio-correct"
+                                            v-model="editForm.options[i]"
+                                            type="text"
+                                            class="flex-1 h-8 px-2.5 rounded-lg border border-zinc-800 bg-zinc-900 text-xs text-zinc-100 focus:outline-none focus:border-violet-500"
+                                            :placeholder="`Вариант ${i+1}`"
                                         />
-                                        <span class="opt-letter" :class="{ 'is-correct': i === editForm.correct_option_index }">{{ 'ABCDEF'[i] }}</span>
-                                    </label>
-                                    <input v-model="editForm.options[i]" class="q-input opt-input" :placeholder="`Вариант ${i+1}`" />
-                                    <button @click="removeOption(editForm, i)" class="btn-remove-opt" title="Удалить вариант">
-                                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                        </svg>
-                                    </button>
+                                        <button
+                                            type="button"
+                                            class="p-1 text-zinc-500 hover:text-rose-400"
+                                            title="Удалить вариант"
+                                            @click="removeOption(editForm, i)"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
                                 </div>
-                                <button @click="addOption(editForm)" class="btn-add-opt" v-if="editForm.options.length < 6">+ Вариант</button>
-                                <div class="edit-actions">
-                                    <button @click="submitEdit(q.id)" class="btn-save" :disabled="editForm.processing">Сохранить</button>
-                                    <button @click="cancelEdit" class="btn-cancel">Отмена</button>
+
+                                <div class="flex items-center justify-between pt-1">
+                                    <button
+                                        v-if="editForm.options.length < 6"
+                                        type="button"
+                                        class="text-xs text-violet-400 hover:underline"
+                                        @click="addOption(editForm)"
+                                    >
+                                        + Добавить вариант
+                                    </button>
+                                    <div class="flex items-center gap-2">
+                                        <AdminButton variant="outline" size="sm" type="button" @click="cancelEdit">
+                                            Отмена
+                                        </AdminButton>
+                                        <AdminButton variant="primary" size="sm" type="button" :loading="editForm.processing" @click="submitEdit(q.id)">
+                                            Сохранить
+                                        </AdminButton>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div v-else class="question-view">
-                                <span class="q-index">#{{ qIndex + 1 }}</span>
-                                <p class="q-text">{{ q.question }}</p>
-                                <ul class="q-options">
-                                    <li v-for="(opt, i) in q.options" :key="i" :class="{ 'q-option--correct': i === q.correct_option_index }">
-                                        <span class="opt-letter" :class="{ 'is-correct': i === q.correct_option_index }">{{ 'ABCDEF'[i] }}</span>
-                                        <span class="opt-text">{{ opt }}</span>
-                                        <span v-if="i === q.correct_option_index" class="correct-badge">✓ верный</span>
-                                    </li>
-                                </ul>
-                                <div class="q-actions">
-                                    <button @click="startEdit(q)" class="btn-edit" title="Редактировать">
-                                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                        </svg>
-                                    </button>
-                                    <button @click="deleteQuestion(q.id)" class="btn-delete" title="Удалить">
-                                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                            <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                            <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                                            <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                        </svg>
-                                    </button>
+                            <!-- View Mode -->
+                            <div v-else class="space-y-2">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div class="flex items-start gap-2">
+                                        <span class="font-mono text-zinc-500 shrink-0 font-semibold">#{{ qIndex + 1 }}</span>
+                                        <p class="font-medium text-zinc-100 text-xs leading-relaxed">{{ q.question }}</p>
+                                    </div>
+                                    <div class="flex items-center gap-1 shrink-0">
+                                        <button
+                                            type="button"
+                                            class="p-1 rounded text-zinc-500 hover:text-zinc-200"
+                                            title="Редактировать"
+                                            @click="startEdit(q)"
+                                        >
+                                            <el-icon><EditPen /></el-icon>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="p-1 rounded text-zinc-500 hover:text-rose-400"
+                                            title="Удалить"
+                                            @click="deleteQuestion(q.id)"
+                                        >
+                                            <el-icon><Delete /></el-icon>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                                    <div
+                                        v-for="(opt, i) in q.options"
+                                        :key="i"
+                                        class="p-2 rounded-lg border flex items-center justify-between text-xs"
+                                        :class="i === q.correct_option_index
+                                            ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-300 font-medium'
+                                            : 'border-zinc-800/80 bg-zinc-900/60 text-zinc-300'"
+                                    >
+                                        <div class="flex items-center gap-2 min-w-0">
+                                            <span class="font-mono font-bold" :class="i === q.correct_option_index ? 'text-emerald-400' : 'text-zinc-500'">
+                                                {{ 'ABCDEF'[i] }}
+                                            </span>
+                                            <span class="truncate">{{ opt }}</span>
+                                        </div>
+                                        <span v-if="i === q.correct_option_index" class="text-[10px] text-emerald-400 font-mono shrink-0">
+                                            ✓ верный
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Add new question form -->
-                        <div class="new-question-separator">
-                            <span>Новый вопрос</span>
+                    <!-- Add New Question to Stage Form -->
+                    <div class="p-4 rounded-xl border border-dashed border-zinc-800 bg-zinc-950/40 space-y-3 pt-3">
+                        <div class="font-semibold text-xs text-zinc-300 flex items-center gap-1.5">
+                            <el-icon class="text-violet-400"><Plus /></el-icon>
+                            <span>Добавить вопрос в этап {{ stage }}</span>
                         </div>
-                        <div class="new-question-form">
-                            <div class="new-form-header">
-                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
-                                    <path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                                </svg>
-                                <span>Добавить вопрос для этапа {{ stage }}</span>
-                            </div>
-                            <input v-model="newForms[stage].question" class="q-input" placeholder="Текст вопроса" />
-                            <div v-for="(opt, i) in newForms[stage].options" :key="i" class="option-row">
-                                <label class="option-label-wrap">
+
+                        <input
+                            v-model="newForms[stage].question"
+                            type="text"
+                            placeholder="Текст нового вопроса..."
+                            class="w-full h-9 px-3 rounded-lg border border-zinc-800 bg-zinc-900 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
+                        />
+
+                        <div class="space-y-2">
+                            <div
+                                v-for="(opt, i) in newForms[stage].options"
+                                :key="i"
+                                class="flex items-center gap-2"
+                            >
+                                <label class="flex items-center gap-1.5 cursor-pointer text-xs font-mono">
                                     <input
                                         type="radio"
                                         :name="`new-correct-${stage}`"
                                         :value="i"
                                         v-model="newForms[stage].correct_option_index"
-                                        class="radio-correct"
+                                        class="text-violet-500 focus:ring-0"
                                     />
-                                    <span class="opt-letter" :class="{ 'is-correct': i === newForms[stage].correct_option_index }">{{ 'ABCDEF'[i] }}</span>
+                                    <span class="font-bold" :class="i === newForms[stage].correct_option_index ? 'text-emerald-400' : 'text-zinc-500'">
+                                        {{ 'ABCDEF'[i] }}
+                                    </span>
                                 </label>
-                                <input v-model="newForms[stage].options[i]" class="q-input opt-input" :placeholder="`Вариант ${i+1}`" />
-                                <button @click="removeOption(newForms[stage], i)" class="btn-remove-opt" v-if="newForms[stage].options.length > 2" title="Удалить вариант">
-                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                    </svg>
+                                <input
+                                    v-model="newForms[stage].options[i]"
+                                    type="text"
+                                    class="flex-1 h-8 px-2.5 rounded-lg border border-zinc-800 bg-zinc-900 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
+                                    :placeholder="`Вариант ответа ${i+1}`"
+                                />
+                                <button
+                                    type="button"
+                                    class="p-1 text-zinc-500 hover:text-rose-400"
+                                    title="Удалить вариант"
+                                    @click="removeOption(newForms[stage], i)"
+                                >
+                                    ✕
                                 </button>
                             </div>
-                            <button @click="addOption(newForms[stage])" class="btn-add-opt" v-if="newForms[stage].options.length < 6">+ Вариант</button>
-                            <button @click="submitNew(stage)" class="btn-add-question" :disabled="newForms[stage].processing">
-                                Добавить вопрос
+                        </div>
+
+                        <div class="flex items-center justify-between pt-1">
+                            <button
+                                v-if="newForms[stage].options.length < 6"
+                                type="button"
+                                class="text-xs text-violet-400 hover:underline"
+                                @click="addOption(newForms[stage])"
+                            >
+                                + Вариант
                             </button>
+                            <AdminButton
+                                variant="primary"
+                                size="sm"
+                                :disabled="!newForms[stage].question.trim()"
+                                :loading="newForms[stage].processing"
+                                @click="submitNew(stage)"
+                            >
+                                Добавить вопрос
+                            </AdminButton>
                         </div>
                     </div>
+                </div>
             </div>
         </div>
     </div>
 </template>
-
-<style scoped>
-/* ─── Page ────────────────────────────────────────────────────────── */
-.page-title { font-size: 1.4rem; color: #fff; margin: 0 0 1.5rem; }
-
-/* ─── Import / Export ────────────────────────────────────────────── */
-.io-panel {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 6px;
-    padding: 1rem;
-    margin-bottom: 1.5rem;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-}
-
-.io-panel__left {
-    display: flex;
-    align-items: center;
-}
-
-.io-label {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.85);
-}
-
-.io-panel__right {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-}
-
-.io-select {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: #fff;
-    padding: 0.45rem 2rem 0.45rem 0.7rem;
-    font-size: 0.85rem;
-    outline: none;
-    font-family: inherit;
-    border-radius: 4px;
-    cursor: pointer;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 0.5rem center;
-    background-repeat: no-repeat;
-    background-size: 1.25em 1.25em;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-}
-.io-select option {
-    background: #1a1625;
-    color: #fff;
-}
-.io-select:focus {
-    border-color: rgba(155, 110, 232, 0.55);
-}
-
-.io-file-hidden {
-    display: none !important;
-}
-
-.io-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.45rem 0.9rem;
-    font-size: 0.85rem;
-    font-weight: 500;
-    border-radius: 4px;
-    cursor: pointer;
-    font-family: inherit;
-    text-decoration: none;
-    transition: all 0.2s ease;
-}
-
-.io-btn svg {
-    width: 1rem;
-    height: 1rem;
-    flex-shrink: 0;
-}
-
-.io-btn--import {
-    background: rgba(155, 110, 232, 0.1);
-    border: 1px solid rgba(155, 110, 232, 0.4);
-    color: #c084fc;
-}
-.io-btn--import:hover {
-    background: rgba(155, 110, 232, 0.2);
-    border-color: rgba(155, 110, 232, 0.6);
-}
-
-.io-btn--export {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: rgba(255, 255, 255, 0.8);
-}
-.io-btn--export:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.25);
-    color: #fff;
-}
-
-.io-btn--template {
-    background: rgba(56, 189, 248, 0.1);
-    border: 1px solid rgba(56, 189, 248, 0.4);
-    color: #38bdf8;
-}
-.io-btn--template:hover {
-    background: rgba(56, 189, 248, 0.2);
-    border-color: rgba(56, 189, 248, 0.6);
-}
-
-.io-error {
-    width: 100%;
-    margin: 0;
-    font-size: 0.8rem;
-    color: #ff6b6b;
-    border-top: 1px solid rgba(255, 80, 80, 0.15);
-    padding-top: 0.5rem;
-}
-
-/* ─── Stages list ─────────────────────────────────────────────────── */
-.stages-list { display: flex; flex-direction: column; gap: 2px; }
-
-.stage-card {
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.1);
-    overflow: hidden;
-}
-
-/* ─── Stage header ────────────────────────────────────────────────── */
-.stage-header {
-    width: 100%; display: flex; align-items: center; gap: 0.9rem;
-    padding: 0.75rem 1rem;
-    background: transparent; border: none;
-    color: #fff; cursor: pointer;
-}
-.stage-header:hover,
-.stage-header.is-open { background: rgba(155,110,232,0.08); }
-
-.stage-badge {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 1.9rem; height: 1.9rem; flex-shrink: 0;
-    font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em;
-    background: rgba(155,110,232,0.6);
-    color: #fff;
-}
-
-.stage-title { font-weight: 600; font-size: 0.92rem; }
-
-.stage-count-pill {
-    display: inline-flex; align-items: center; justify-content: center;
-    min-width: 1.4rem; height: 1.25rem; padding: 0 0.4rem;
-    font-size: 0.72rem; font-weight: 600;
-    background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5);
-    border: 1px solid rgba(255,255,255,0.1);
-}
-
-.stage-chevron {
-    width: 1rem; height: 1rem;
-    margin-left: auto; color: rgba(255,255,255,0.3);
-    flex-shrink: 0;
-}
-.stage-chevron.is-open { transform: rotate(180deg); }
-
-.stage-body {
-    padding: 0 1rem 1rem;
-    display: flex; flex-direction: column; gap: 0.5rem;
-    border-top: 1px solid rgba(255,255,255,0.07);
-}
-
-/* ─── Empty state ─────────────────────────────────────────────────── */
-.empty-state {
-    display: flex; align-items: center; gap: 0.6rem;
-    padding: 0.75rem 0.85rem;
-    background: rgba(255,255,255,0.02);
-    border: 1px dashed rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.3); font-size: 0.82rem;
-}
-.empty-state svg { width: 1rem; height: 1rem; flex-shrink: 0; }
-
-/* ─── Question item ───────────────────────────────────────────────── */
-.question-item {
-    background: rgba(255,255,255,0.025);
-    border: 1px solid rgba(255,255,255,0.08);
-    padding: 0.85rem;
-    position: relative;
-}
-.question-item:hover { border-color: rgba(255,255,255,0.15); }
-.question-item:hover .q-actions { opacity: 1; }
-
-/* ─── Question view ───────────────────────────────────────────────── */
-.question-view { position: relative; }
-
-.q-index {
-    position: absolute; top: 0; right: 0;
-    font-size: 0.7rem; color: rgba(255,255,255,0.2);
-    font-weight: 600; letter-spacing: 0.05em;
-}
-
-.q-text {
-    color: rgba(255,255,255,0.9); font-size: 0.9rem;
-    margin: 0 0 0.6rem; padding-right: 2rem; line-height: 1.5;
-}
-
-.q-options {
-    list-style: none; padding: 0; margin: 0 0 0.65rem;
-    display: flex; flex-direction: column; gap: 2px;
-}
-.q-options li {
-    display: flex; align-items: center; gap: 0.5rem;
-    font-size: 0.82rem; color: rgba(255,255,255,0.45);
-    padding: 0.28rem 0.55rem 0.28rem 0.35rem;
-    background: rgba(255,255,255,0.02); border: 1px solid transparent;
-}
-.q-option--correct {
-    color: rgba(255,255,255,0.85);
-    background: rgba(76,222,143,0.07);
-    border-color: rgba(76,222,143,0.2);
-}
-
-.opt-letter {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 1.25rem; height: 1.25rem; flex-shrink: 0;
-    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.03em;
-    background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.35);
-    border: 1px solid rgba(255,255,255,0.1);
-}
-.opt-letter.is-correct {
-    background: rgba(76,222,143,0.18); color: #4cde8f;
-    border-color: rgba(76,222,143,0.35);
-}
-
-.opt-text { flex: 1; }
-
-.correct-badge {
-    margin-left: auto; font-size: 0.65rem; font-weight: 700;
-    color: #4cde8f; letter-spacing: 0.04em; text-transform: uppercase;
-    background: rgba(76,222,143,0.1); border: 1px solid rgba(76,222,143,0.25);
-    padding: 0.08rem 0.4rem;
-    white-space: nowrap;
-}
-
-/* ─── Question actions ────────────────────────────────────────────── */
-.q-actions {
-    display: flex; gap: 0.35rem; justify-content: flex-end;
-    opacity: 0;
-}
-.btn-edit, .btn-delete {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 1.8rem; height: 1.8rem;
-    background: transparent; border: 1px solid transparent; cursor: pointer;
-}
-.btn-edit svg, .btn-delete svg { width: 0.85rem; height: 0.85rem; }
-
-.btn-edit { color: #9B6EE8; border-color: rgba(155,110,232,0.3); }
-.btn-edit:hover { background: rgba(155,110,232,0.14); border-color: rgba(155,110,232,0.5); }
-
-.btn-delete { color: #ff6b6b; border-color: rgba(255,80,80,0.25); }
-.btn-delete:hover { background: rgba(255,80,80,0.12); border-color: rgba(255,80,80,0.45); }
-
-/* ─── Edit form ───────────────────────────────────────────────────── */
-.question-edit-form {
-    display: flex; flex-direction: column; gap: 0.6rem;
-    border: 1px solid rgba(108,99,255,0.4);
-    background: rgba(108,99,255,0.04);
-    padding: 0.85rem;
-    margin: -0.85rem;
-}
-
-.edit-form-header {
-    display: flex; align-items: center; gap: 0.5rem;
-    font-size: 0.8rem; font-weight: 600; color: rgba(150,140,255,0.9);
-    margin-bottom: 0.1rem;
-}
-.edit-form-header svg { width: 0.85rem; height: 0.85rem; flex-shrink: 0; }
-
-/* ─── New question separator + form ──────────────────────────────── */
-.new-question-separator {
-    display: flex; align-items: center; gap: 0.75rem;
-    margin-top: 0.25rem; color: rgba(255,255,255,0.18); font-size: 0.75rem; font-weight: 600;
-}
-.new-question-separator::before,
-.new-question-separator::after {
-    content: ''; flex: 1; height: 1px;
-    background: repeating-linear-gradient(90deg, rgba(155,110,232,0.25) 0, rgba(155,110,232,0.25) 4px, transparent 4px, transparent 8px);
-}
-.new-question-separator span { color: #9B6EE8; white-space: nowrap; }
-
-.new-question-form {
-    display: flex; flex-direction: column; gap: 0.6rem;
-    background: rgba(155,110,232,0.03);
-    border: 1px solid rgba(155,110,232,0.18);
-    padding: 0.85rem;
-}
-
-.new-form-header {
-    display: flex; align-items: center; gap: 0.5rem;
-    font-size: 0.8rem; font-weight: 600; color: #9B6EE8;
-    margin-bottom: 0.1rem;
-}
-.new-form-header svg { width: 0.85rem; height: 0.85rem; flex-shrink: 0; }
-
-/* ─── Shared form elements ────────────────────────────────────────── */
-.q-input {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.12);
-    color: #fff;
-    padding: 0.45rem 0.7rem; font-size: 0.87rem;
-    outline: none; font-family: inherit;
-}
-.q-input:focus { border-color: rgba(155,110,232,0.55); }
-.opt-input { flex: 1; }
-
-.option-row { display: flex; align-items: center; gap: 0.5rem; }
-.option-label-wrap { display: flex; align-items: center; gap: 0.35rem; flex-shrink: 0; cursor: pointer; }
-.radio-correct { display: none; }
-
-.btn-remove-opt {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 1.5rem; height: 1.5rem; flex-shrink: 0;
-    background: transparent; border: none; color: rgba(255,80,80,0.45); cursor: pointer;
-}
-.btn-remove-opt:hover { color: #ff6b6b; }
-.btn-remove-opt svg { width: 0.75rem; height: 0.75rem; }
-
-.btn-add-opt {
-    align-self: flex-start; padding: 0.22rem 0.6rem; font-size: 0.77rem;
-    border: 1px dashed rgba(255,255,255,0.2); color: rgba(255,255,255,0.35); background: transparent; cursor: pointer;
-    font-family: inherit;
-}
-.btn-add-opt:hover { border-color: rgba(255,255,255,0.38); color: rgba(255,255,255,0.65); }
-
-.edit-actions { display: flex; gap: 0.4rem; }
-
-.btn-save {
-    padding: 0.38rem 0.85rem; font-size: 0.82rem;
-    background: rgba(76,222,143,0.1); border: 1px solid rgba(76,222,143,0.4); color: #4cde8f; cursor: pointer;
-    font-family: inherit;
-}
-.btn-save:hover { background: rgba(76,222,143,0.2); }
-.btn-save:disabled { opacity: 0.4; cursor: default; }
-
-.btn-cancel {
-    padding: 0.38rem 0.85rem; font-size: 0.82rem;
-    background: transparent; border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.4); cursor: pointer;
-    font-family: inherit;
-}
-.btn-cancel:hover { background: rgba(255,255,255,0.05); }
-
-.btn-add-question {
-    align-self: flex-start; padding: 0.4rem 0.95rem; font-size: 0.84rem; font-weight: 500;
-    background: rgba(155,110,232,0.1); border: 1px solid rgba(155,110,232,0.4); color: #9B6EE8; cursor: pointer;
-    font-family: inherit;
-}
-.btn-add-question:hover { background: rgba(155,110,232,0.2); border-color: rgba(155,110,232,0.6); }
-.btn-add-question:disabled { opacity: 0.4; cursor: default; }
-
-/* ─── Drag & Drop Overlay ────────────────────────────────────────── */
-.drag-drop-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(8, 8, 18, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    pointer-events: auto;
-}
-
-.drag-drop-content {
-    width: min(500px, 100%);
-    border: 2px dashed rgba(155, 110, 232, 0.5);
-    background: rgba(155, 110, 232, 0.04);
-    border-radius: 16px;
-    padding: 3rem 2rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    pointer-events: none;
-    transition: border-color 0.2s ease, background-color 0.2s ease;
-}
-
-.drag-icon {
-    width: 3.5rem;
-    height: 3.5rem;
-    color: #c084fc;
-    margin-bottom: 1.5rem;
-    animation: dragPulse 2s infinite ease-in-out;
-}
-
-.drag-text {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #fff;
-    margin: 0 0 0.5rem 0;
-}
-
-.drag-subtext {
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.5);
-}
-
-@keyframes dragPulse {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
-}
-
-/* ─── Search Bar ─────────────────────────────────────────────────── */
-.search-panel {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 6px;
-    padding: 1rem;
-    margin-bottom: 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    flex-wrap: wrap;
-}
-
-.search-input-wrapper {
-    position: relative;
-    flex: 1;
-    min-width: 280px;
-    display: flex;
-    align-items: center;
-}
-
-.search-icon {
-    position: absolute;
-    left: 0.75rem;
-    width: 1.1rem;
-    height: 1.1rem;
-    color: rgba(255, 255, 255, 0.4);
-    pointer-events: none;
-}
-
-.search-input {
-    width: 100%;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: #fff;
-    padding: 0.55rem 2.5rem 0.55rem 2.3rem;
-    font-size: 0.9rem;
-    outline: none;
-    font-family: inherit;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-}
-
-.search-input:focus {
-    border-color: rgba(155, 110, 232, 0.55);
-    background: rgba(255, 255, 255, 0.07);
-    box-shadow: 0 0 0 3px rgba(155, 110, 232, 0.15);
-}
-
-.search-clear-btn {
-    position: absolute;
-    right: 0.75rem;
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.4);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    width: 1.25rem;
-    height: 1.25rem;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-}
-
-.search-clear-btn:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.search-clear-btn svg {
-    width: 0.85rem;
-    height: 0.85rem;
-}
-
-.search-results-info {
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.5);
-    font-weight: 500;
-}
-</style>

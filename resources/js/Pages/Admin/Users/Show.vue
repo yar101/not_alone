@@ -3,9 +3,15 @@ import { ref, computed } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
 import IdolBadge from '@/Components/IdolBadge.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
 import { formatMoney } from '@/Utils/money';
+import {
+    ArrowLeft, User, Warning, Check, Close, Wallet, TopRight,
+    Document, Star, EditPen, Lock, Unlock, SwitchButton
+} from '@element-plus/icons-vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -15,19 +21,19 @@ const props = defineProps({
 
 function formatDate(dt) {
     if (!dt) return '—';
-    return new Date(dt).toLocaleString('ru', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+    return new Date(dt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
 function ratingDeltaColor(delta) {
-    if (delta > 0) return 'rgba(74,222,128,0.85)';
-    if (delta < 0) return 'rgba(239,68,68,0.85)';
-    return 'rgba(255,255,255,0.35)';
+    if (delta > 0) return 'text-emerald-400';
+    if (delta < 0) return 'text-rose-400';
+    return 'text-zinc-500';
 }
 
 const appStatusLabel = {
-    pending:  { text: 'На рассмотрении', cls: 'status--pending' },
-    approved: { text: 'Одобрена', cls: 'status--approved' },
-    rejected: { text: 'Отклонена', cls: 'status--rejected' },
+    pending:  { text: 'На рассмотрении', variant: 'warning' },
+    approved: { text: 'Одобрена', variant: 'success' },
+    rejected: { text: 'Отклонена', variant: 'danger' },
 };
 
 const ratingEventLabels = {
@@ -38,41 +44,6 @@ const ratingEventLabels = {
     manual_adjust: 'Ручная корректировка',
     review_positive: 'Положительный отзыв',
     review_negative: 'Отрицательный отзыв',
-};
-
-const transactionTypeLabels = {
-    deposit: 'Пополнение',
-    withdrawal: 'Вывод средств',
-    order_hold: 'Заморозка (заказ)',
-    order_payout: 'Оплата за заказ',
-    order_refund: 'Возврат средств',
-    pack_purchase: 'Покупка пака',
-    pack_sale: 'Продажа пака',
-    platform_fee: 'Комиссия платформы',
-    admin_adjustment: 'Корректировка администратором',
-    order_clawback: 'Списание по спору',
-    order_hold_release: 'Завершение заказа',
-    order_hold_cancelled: 'Отмена холда',
-};
-
-const orderStatusLabels = {
-    pending: 'Ожидает оплаты',
-    paid: 'Оплачен',
-    in_progress: 'В работе',
-    completed: 'Выполнен',
-    cancelled: 'Отменен',
-    disputed: 'В споре',
-    refunded: 'Возврат',
-};
-
-const adminActionLabels = {
-    ban_user: 'Блокировка',
-    unban_user: 'Разблокировка',
-    cooldown_update: 'Изменение кулдауна',
-    cooldown_clear: 'Сброс кулдауна',
-    rating_adjust: 'Корректировка рейтинга',
-    admin_adjustment: 'Корректировка баланса',
-    strike_create: 'Вынесение страйка',
 };
 
 // Ban inline form
@@ -132,7 +103,6 @@ function impersonateUser() {
             confirmButtonText: 'Войти',
             cancelButtonText: 'Отмена',
             type: 'warning',
-            customClass: 'dark-message-box',
         }
     ).then(() => {
         router.post(route('admin.users.impersonate', props.user.id));
@@ -148,16 +118,15 @@ const ratingErrors = ref({});
 const projectedRating = computed(() => {
     const current = Number(props.user.rating ?? 20);
     const delta = Number(ratingDelta.value || 0);
-    
+
     if (delta === 0) return current;
-    
+
     let finalDelta = delta;
     if (delta > 0) {
-        // Apply system dampening logic for positive deltas
-        // Formula from IdolRatingService.php: delta * (100 - oldRating) / 80
+        // Apply system dampening formula: delta * (100 - oldRating) / 80
         finalDelta = Math.max(0.01, (delta * (100 - current)) / 80);
     }
-    
+
     return Math.max(0, Math.min(100, Number((current + finalDelta).toFixed(2))));
 });
 
@@ -179,497 +148,345 @@ function submitRating() {
 </script>
 
 <template>
-    <div>
-        <!-- Header -->
-        <div class="page-top">
-            <Link :href="route('admin.users.index')" class="back-link">← Пользователи</Link>
-            <div class="user-header">
-                <div class="user-avatar-wrap">
-                    <img v-if="user.avatar_url" :src="user.avatar_url" class="avatar" alt="" />
-                    <div v-else class="avatar avatar--initials">{{ user.name[0] }}</div>
+    <div class="space-y-6">
+        <!-- Top Navigation & User Header -->
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-800 pb-5">
+            <div class="flex items-center gap-3">
+                <Link
+                    :href="route('admin.users.index')"
+                    class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition"
+                    title="Назад к пользователям"
+                >
+                    <el-icon :size="16"><ArrowLeft /></el-icon>
+                </Link>
+                <div class="flex items-center gap-3">
+                    <img
+                        v-if="user.avatar_url"
+                        :src="user.avatar_url"
+                        class="w-11 h-11 rounded-full object-cover border border-zinc-700"
+                    />
+                    <div
+                        v-else
+                        class="w-11 h-11 rounded-full flex items-center justify-center font-bold text-base"
+                        :class="user.is_idol ? 'bg-pink-900/40 text-pink-300 border border-pink-500/40' : 'bg-zinc-800 text-zinc-300 border border-zinc-700'"
+                    >
+                        {{ user.name?.charAt(0).toUpperCase() }}
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2.5">
+                            <h1 class="text-xl font-bold text-zinc-100 tracking-tight">{{ user.name }}</h1>
+                            <IdolBadge v-if="user.is_idol" />
+                            <AdminBadge v-else variant="neutral" size="sm">Клиент</AdminBadge>
+                            <AdminBadge v-if="user.is_banned" variant="danger" size="sm">Заблокирован</AdminBadge>
+                        </div>
+                        <p class="text-xs text-zinc-400 font-mono mt-0.5">
+                            {{ user.email }} • ID: #{{ user.id }} • Зарегистрирован {{ formatDate(user.created_at) }}
+                        </p>
+                    </div>
                 </div>
-                <div class="user-info">
-                    <h1 class="user-name">{{ user.name }}</h1>
-                    <div class="user-meta">{{ user.email }}</div>
-                    <div class="user-meta">
-                        <IdolBadge v-if="user.is_idol" />
-                        <span v-else class="badge badge--user">Пользователь</span>
-                        <span v-if="user.is_banned" class="badge badge--banned">Заблокирован</span>
-                    </div>
-                    <div class="rating-display">
-                        Рейтинг: <strong>{{ user.rating ?? 20 }}</strong>
-                    </div>
-                    <div class="user-links" style="display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap;">
-                        <a :href="route('profile.show', user.id)" class="btn-profile-link" target="_blank" rel="noopener">
-                            Страница пользователя ↗
-                        </a>
-                        <Link :href="route('admin.transactions.index', { user_id: user.id })" class="btn-profile-link">
-                            Транзакции кошелька →
-                        </Link>
-                        <button type="button" class="btn-profile-link btn-impersonate" @click="impersonateUser">
-                            Войти под пользователем 👤
-                        </button>
-                    </div>
-                </div>
+            </div>
+
+            <div class="flex items-center gap-2 flex-wrap">
+                <a
+                    :href="route('profile.show', user.id)"
+                    target="_blank"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900 text-xs font-medium text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800 transition"
+                >
+                    <span>Профиль на сайте</span>
+                    <el-icon :size="12"><TopRight /></el-icon>
+                </a>
+                <Link
+                    :href="route('admin.transactions.index', { user_id: user.id })"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900 text-xs font-medium text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800 transition"
+                >
+                    <el-icon><Wallet /></el-icon>
+                    Транзакции кошелька
+                </Link>
+                <AdminButton variant="outline" size="sm" @click="impersonateUser">
+                    <el-icon class="mr-1.5"><SwitchButton /></el-icon>
+                    Войти под пользователем
+                </AdminButton>
             </div>
         </div>
 
-        <div class="sections">
-            <!-- Rating Management -->
-            <div class="section">
-                <h2 class="section-title">Управление рейтингом</h2>
-                <div v-if="!showRatingForm">
-                    <button class="btn-action" @click="showRatingForm = true">Изменить рейтинг вручную</button>
-                </div>
-                <form v-else @submit.prevent="submitRating" class="rating-form">
-                    <div class="field">
-                        <label>Изменение (Delta) *</label>
-                        <div class="delta-input-wrap">
-                            <input
-                                v-model.number="ratingDelta"
-                                type="number"
-                                class="input"
-                                min="-100"
-                                max="100"
-                                required
-                                :class="{ 'input--err': ratingErrors.delta }"
-                            />
-                            <div class="projected-info">
-                                <span class="muted-small">Итоговый рейтинг:</span>
-                                <strong :class="['projected-value', projectedRating > user.rating ? 'text-success' : projectedRating < user.rating ? 'text-danger' : '']">
+        <!-- 2-Column Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Main Column (2 cols) -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Idol Rating Management -->
+                <div v-if="user.is_idol" class="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+                        <div class="flex items-center gap-2">
+                            <el-icon class="text-amber-400"><Star /></el-icon>
+                            <h2 class="text-sm font-semibold text-zinc-100">Рейтинг айдола</h2>
+                            <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-zinc-800 text-amber-300">
+                                {{ user.rating ?? 20 }} / 100
+                            </span>
+                        </div>
+                        <AdminButton v-if="!showRatingForm" variant="outline" size="sm" @click="showRatingForm = true">
+                            <el-icon class="mr-1.5"><EditPen /></el-icon>
+                            Изменить вручную
+                        </AdminButton>
+                    </div>
+
+                    <!-- Rating Form -->
+                    <form v-if="showRatingForm" @submit.prevent="submitRating" class="space-y-4 text-xs pt-1">
+                        <div class="p-3 rounded-lg border border-violet-800/40 bg-violet-950/20 text-zinc-300">
+                            Формула демпфирования: при положительной дельте действует затухание <code>delta * (100 - rating) / 80</code>, чтобы рейтинг приближался к 100 без скачков.
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="space-y-1.5">
+                                <label class="font-medium text-zinc-300">Изменение рейтинга (Delta от -100 до +100)</label>
+                                <input
+                                    v-model.number="ratingDelta"
+                                    type="number"
+                                    step="0.1"
+                                    min="-100"
+                                    max="100"
+                                    required
+                                    class="w-full h-9 px-3 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-zinc-100 font-mono focus:outline-none focus:border-violet-500"
+                                />
+                                <p v-if="ratingErrors.delta" class="text-xs text-rose-400">{{ ratingErrors.delta }}</p>
+                            </div>
+                            <div class="p-3 rounded-lg border border-zinc-800 bg-zinc-950/60 flex items-center justify-between">
+                                <span class="text-zinc-400">Итоговый прогноз:</span>
+                                <div class="text-base font-bold font-mono" :class="projectedRating > (user.rating ?? 20) ? 'text-emerald-400' : 'text-rose-400'">
                                     {{ projectedRating }}
-                                </strong>
+                                </div>
                             </div>
                         </div>
-                        <p v-if="ratingErrors.delta" class="err">{{ ratingErrors.delta }}</p>
-                    </div>
-                    <div class="field">
-                        <label>Заметка (опционально)</label>
-                        <textarea
-                            v-model="ratingNote"
-                            class="input input--textarea"
-                            rows="2"
-                            maxlength="255"
-                            placeholder="Причина изменения..."
-                            :class="{ 'input--err': ratingErrors.note }"
-                        />
-                        <p v-if="ratingErrors.note" class="err">{{ ratingErrors.note }}</p>
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn-cancel" @click="showRatingForm = false">Отмена</button>
-                        <button type="submit" class="btn-primary">Обновить рейтинг</button>
-                    </div>
-                </form>
-            </div>
 
-            <!-- Ban status -->
-            <div class="section">
-                <h2 class="section-title">Блокировка</h2>
-
-                <div v-if="user.is_banned" class="ban-card">
-                    <div class="ban-info">
-                        <div class="ban-row">
-                            <span class="ban-label">Причина:</span>
-                            <span>{{ user.ban_reason ?? '—' }}</span>
-                        </div>
-                        <div class="ban-row">
-                            <span class="ban-label">До:</span>
-                            <span>{{ user.banned_until ? formatDate(user.banned_until) : 'навсегда' }}</span>
-                        </div>
-                        <div class="ban-row" v-if="user.banned_by">
-                            <span class="ban-label">Заблокировал:</span>
-                            <span>{{ user.banned_by.name }}</span>
-                        </div>
-                    </div>
-                    <button class="btn-clear" @click="unban">Разбанить</button>
-                </div>
-
-                <div v-else>
-                    <div v-if="!showBanForm">
-                        <button class="btn-danger" @click="showBanForm = true">Заблокировать</button>
-                    </div>
-                    <form v-else @submit.prevent="submitBan" class="ban-form">
-                        <div class="field">
-                            <label>Причина *</label>
-                            <div v-if="$page.props.user_ban_reasons?.length" class="ban-reason-presets">
-                                <button
-                                    v-for="r in $page.props.user_ban_reasons"
-                                    :key="r"
-                                    type="button"
-                                    class="preset-tag"
-                                    :class="{ 'preset-tag--active': banReason === r }"
-                                    @click="banReason = r"
-                                >{{ r }}</button>
-                            </div>
-                            <textarea
-                                v-model="banReason"
-                                class="input input--textarea"
-                                rows="2"
-                                maxlength="500"
-                                required
-                                :class="{ 'input--err': banErrors.reason }"
+                        <div class="space-y-1.5">
+                            <label class="font-medium text-zinc-300">Заметка к изменению (для аудита)</label>
+                            <input
+                                v-model="ratingNote"
+                                type="text"
+                                placeholder="Укажите причину корректировки..."
+                                class="w-full h-9 px-3 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
                             />
-                            <p v-if="banErrors.reason" class="err">{{ banErrors.reason }}</p>
                         </div>
-                        <div class="field">
-                            <label>Длительность</label>
-                            <div class="presets">
-                                <button
-                                    v-for="p in banPresets"
-                                    :key="p.label"
-                                    type="button"
-                                    class="preset-btn"
-                                    :class="{ 'preset-btn--active': banDuration === p.minutes }"
-                                    @click="banDuration = p.minutes"
-                                >{{ p.label }}</button>
-                            </div>
-                            <p v-if="banErrors.banned_until" class="err">{{ banErrors.banned_until }}</p>
-                        </div>
-                        <div class="form-actions">
-                            <button type="button" class="btn-cancel" @click="showBanForm = false">Отмена</button>
-                            <button type="submit" class="btn-danger">Заблокировать</button>
+
+                        <div class="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800">
+                            <AdminButton variant="outline" size="sm" type="button" @click="showRatingForm = false">
+                                Отмена
+                            </AdminButton>
+                            <AdminButton variant="primary" size="sm" type="submit">
+                                Применить рейтинг
+                            </AdminButton>
                         </div>
                     </form>
-                </div>
-            </div>
 
-            <!-- Application -->
-            <div class="section" v-if="user.application">
-                <h2 class="section-title">Заявка на айдола</h2>
-                <div class="app-row">
-                    <span :class="['status-badge', appStatusLabel[user.application.status]?.cls]">
-                        {{ appStatusLabel[user.application.status]?.text ?? user.application.status }}
-                    </span>
-                    <span class="muted">{{ formatDate(user.application.created_at) }}</span>
-                </div>
-                <div v-if="user.application.rejection_reason" class="rejection-reason">
-                    Причина отказа: {{ user.application.rejection_reason }}
-                </div>
-            </div>
-
-            <!-- Services -->
-            <div class="section" v-if="user.services?.length">
-                <h2 class="section-title">Услуги</h2>
-                <div class="table-wrap">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Название</th>
-                                <th>Категория</th>
-                                <th>Ед. времени</th>
-                                <th>Цена</th>
-                                <th>Активна</th>
-                                <th>Статус</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="s in user.services" :key="s.id">
-                                <td>{{ s.name }}</td>
-                                <td class="muted">{{ s.category ?? '—' }}</td>
-                                <td class="muted">{{ s.time_unit ?? '—' }}</td>
-                                <td>
-                                    <span class="inline-flex items-center gap-1">
-                                        <span>{{ formatMoney(s.price) }}</span>
-                                        <CoinIcon color="blue" size="xs" />
-                                    </span>
-                                </td>
-                                <td>
-                                    <span :class="['badge-sm', s.is_active ? 'badge-sm--on' : 'badge-sm--off']">
-                                        {{ s.is_active ? 'Да' : 'Нет' }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span :class="['badge-sm', s.status === 'approved' ? 'badge-sm--on' : s.status === 'rejected' ? 'badge-sm--off' : 'badge-sm--pending']">
-                                        {{ s.status === 'approved' ? 'Одобрена' : s.status === 'rejected' ? 'Отклонена' : 'На рассмотрении' }}
-                                    </span>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Rating logs -->
-            <div class="section" v-if="user.rating_logs?.length">
-                <h2 class="section-title">История рейтинга</h2>
-                <div class="table-wrap">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Изменение</th>
-                                <th>Событие</th>
-                                <th>Заметка</th>
-                                <th>Дата</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="(log, i) in user.rating_logs" :key="i">
-                                <td>
-                                    <span class="delta" :style="{ color: ratingDeltaColor(log.delta) }">
-                                        {{ log.delta > 0 ? '+' : '' }}{{ log.delta }}
-                                    </span>
-                                </td>
-                                <td class="muted">{{ ratingEventLabels[log.event] || log.event }}</td>
-                                <td class="muted">{{ log.note ?? '—' }}</td>
-                                <td class="muted">{{ formatDate(log.created_at) }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Finance and Wallet -->
-            <div class="section" v-if="user.wallet">
-                <div class="section-header-flex">
-                    <h2 class="section-title">Финансы и кошелек</h2>
-                    <Link :href="route('admin.transactions.index', { user_id: user.id })" class="btn-profile-link">
-                        Все транзакции пользователя →
-                    </Link>
-                </div>
-
-                <div class="wallet-overview">
-                    <div class="wallet-stat">
-                        <span class="stat-label">Текущий баланс</span>
-                        <strong class="stat-value text-success inline-flex items-center gap-1">
-                            <span>{{ formatMoney(user.wallet.balance) }}</span>
-                            <CoinIcon color="blue" size="xs" />
-                        </strong>
-                    </div>
-                    <div class="wallet-stat">
-                        <span class="stat-label">Заморожено (холд)</span>
-                        <strong class="stat-value text-warning inline-flex items-center gap-1">
-                            <span>{{ formatMoney(user.wallet.held_balance) }}</span>
-                            <CoinIcon color="blue" size="xs" />
-                        </strong>
-                    </div>
-                    <div v-if="user.is_idol && user.wallet.pink_balance !== undefined" class="wallet-stat">
-                        <span class="stat-label">Розовые монеты</span>
-                        <strong class="stat-value text-pink-400 inline-flex items-center gap-1">
-                            <span>{{ formatMoney(user.wallet.pink_balance) }}</span>
-                            <CoinIcon color="pink" size="xs" />
-                        </strong>
-                    </div>
-                    <div class="wallet-stat">
-                        <span class="stat-label">Статус кошелька</span>
-                        <span :class="['badge-sm', user.wallet.is_active ? 'badge-sm--on' : 'badge-sm--off']">
-                            {{ user.wallet.is_active ? 'Активен' : 'Заблокирован' }}
-                        </span>
+                    <!-- Rating Logs Table -->
+                    <div v-if="user.rating_logs?.length" class="space-y-2 pt-2">
+                        <div class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">История изменений рейтинга</div>
+                        <div class="rounded-lg border border-zinc-800 overflow-hidden">
+                            <table class="w-full text-left text-xs">
+                                <thead>
+                                    <tr class="bg-zinc-950 border-b border-zinc-800 text-zinc-400">
+                                        <th class="py-2 px-3">Дельта</th>
+                                        <th class="py-2 px-3">Событие</th>
+                                        <th class="py-2 px-3">Заметка</th>
+                                        <th class="py-2 px-3">Дата</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-zinc-800/60 text-zinc-300">
+                                    <tr v-for="(log, i) in user.rating_logs" :key="i">
+                                        <td class="py-2 px-3 font-mono font-bold" :class="ratingDeltaColor(log.delta)">
+                                            {{ log.delta > 0 ? '+' : '' }}{{ log.delta }}
+                                        </td>
+                                        <td class="py-2 px-3">{{ ratingEventLabels[log.event] || log.event }}</td>
+                                        <td class="py-2 px-3 text-zinc-400">{{ log.note || '—' }}</td>
+                                        <td class="py-2 px-3 font-mono text-[11px] text-zinc-500">{{ formatDate(log.created_at) }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
-                <div v-if="user.transactions?.length" class="table-wrap" style="margin-top: 1rem;">
-                    <div class="subsection-title">Последние 10 транзакций:</div>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Тип</th>
-                                <th>Сумма</th>
-                                <th>Баланс после</th>
-                                <th>Статус</th>
-                                <th>Описание</th>
-                                <th>Дата</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="t in user.transactions" :key="t.id">
-                                <td>
-                                    <Link :href="route('admin.transactions.index', { search: t.id })" class="target-link">#{{ t.id }}</Link>
-                                </td>
-                                <td>{{ transactionTypeLabels[t.type] || t.type }}</td>
-                                <td>
-                                    <strong class="inline-flex items-center gap-1">
-                                        <span>{{ formatMoney(t.amount) }}</span>
-                                        <CoinIcon :color="t.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
-                                    </strong>
-                                </td>
-                                <td class="muted">
-                                    <span class="inline-flex items-center gap-1">
-                                        <span>{{ formatMoney(t.balance_after) }}</span>
-                                        <CoinIcon :color="t.currency === 'pink' ? 'pink' : 'blue'" size="xs" />
-                                    </span>
-                                </td>
-                                <td>
-                                    <span :class="['badge-sm', t.status === 'completed' ? 'badge-sm--on' : t.status === 'failed' ? 'badge-sm--off' : 'badge-sm--pending']">
-                                        {{ t.status === 'completed' ? 'Успешно' : t.status === 'failed' ? 'Ошибка' : t.status }}
-                                    </span>
-                                </td>
-                                <td class="muted" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ t.description || '—' }}</td>
-                                <td class="muted">{{ formatDate(t.created_at) }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <!-- Services List (if idol) -->
+                <div v-if="user.services?.length" class="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur-sm space-y-3">
+                    <div class="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+                        <h2 class="text-sm font-semibold text-zinc-100 flex items-center gap-2">
+                            <span>Услуги айдола</span>
+                            <span class="text-xs font-normal text-zinc-500">({{ user.services.length }})</span>
+                        </h2>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead>
+                                <tr class="text-zinc-400 border-b border-zinc-800 pb-2">
+                                    <th class="py-2 font-medium">Услуга</th>
+                                    <th class="py-2 font-medium">Категория</th>
+                                    <th class="py-2 font-medium">Ед. времени</th>
+                                    <th class="py-2 font-medium text-right">Цена</th>
+                                    <th class="py-2 font-medium text-center">Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-zinc-800/60 text-zinc-300">
+                                <tr v-for="s in user.services" :key="s.id">
+                                    <td class="py-2.5 font-medium text-zinc-200">{{ s.name }}</td>
+                                    <td class="py-2.5 text-zinc-400">{{ s.category || '—' }}</td>
+                                    <td class="py-2.5 text-zinc-400">{{ s.time_unit || '—' }}</td>
+                                    <td class="py-2.5 text-right font-mono">
+                                        <span class="inline-flex items-center gap-1 justify-end">
+                                            <span>{{ formatMoney(s.price) }}</span>
+                                            <CoinIcon color="blue" size="xs" />
+                                        </span>
+                                    </td>
+                                    <td class="py-2.5 text-center">
+                                        <AdminBadge :variant="s.status === 'approved' ? 'success' : (s.status === 'rejected' ? 'danger' : 'warning')" size="sm">
+                                            {{ s.status === 'approved' ? 'Одобрена' : (s.status === 'rejected' ? 'Отклонена' : 'На проверке') }}
+                                        </AdminBadge>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Idol Application Card -->
+                <div v-if="user.application" class="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur-sm space-y-3">
+                    <div class="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+                        <h2 class="text-sm font-semibold text-zinc-100">Заявка на статус айдола</h2>
+                        <AdminBadge :variant="appStatusLabel[user.application.status]?.variant || 'neutral'" size="sm">
+                            {{ appStatusLabel[user.application.status]?.text || user.application.status }}
+                        </AdminBadge>
+                    </div>
+
+                    <div class="text-xs space-y-2 text-zinc-300">
+                        <div class="flex items-center justify-between text-zinc-400">
+                            <span>Подана:</span>
+                            <span class="font-mono text-zinc-200">{{ formatDate(user.application.created_at) }}</span>
+                        </div>
+                        <div v-if="user.application.rejection_reason" class="p-3 rounded-lg border border-rose-900/40 bg-rose-950/20 text-rose-300">
+                            <strong>Причина отклонения:</strong> {{ user.application.rejection_reason }}
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Recent Orders -->
-            <div class="section" v-if="user.recent_orders?.length">
-                <div class="section-header-flex">
-                    <h2 class="section-title">Недавние заказы</h2>
-                    <Link :href="route('admin.orders.index', { search: user.id })" class="btn-profile-link">
-                        Все заказы пользователя →
-                    </Link>
-                </div>
-                <div class="table-wrap">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Роль</th>
-                                <th>Контрагент</th>
-                                <th>Статус</th>
-                                <th>Дата</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="o in user.recent_orders" :key="o.id">
-                                <td>
-                                    <Link :href="route('admin.orders.show', o.id)" class="target-link">#{{ o.id }}</Link>
-                                </td>
-                                <td>
-                                    <span :class="['badge-sm', o.role === 'idol' ? 'badge-sm--idol' : 'badge-sm--user']">
-                                        {{ o.role === 'idol' ? 'Айдол' : 'Клиент' }}
-                                    </span>
-                                </td>
-                                <td>{{ o.role === 'idol' ? o.customer_name : o.idol_name }}</td>
-                                <td>
-                                    <span class="badge-sm badge-sm--status">
-                                        {{ orderStatusLabels[o.status] || o.status }}
-                                    </span>
-                                </td>
-                                <td class="muted">{{ formatDate(o.created_at) }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <!-- Right Side Column (1 col) -->
+            <div class="space-y-6">
+                <!-- Wallet & Balances Card -->
+                <div class="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-zinc-400">Финансы и кошелёк</h3>
+                        <Link
+                            :href="route('admin.transactions.index', { user_id: user.id })"
+                            class="text-xs text-violet-400 hover:text-violet-300 hover:underline"
+                        >
+                            Проводки →
+                        </Link>
+                    </div>
 
-            <!-- Admin Logs Audit -->
-            <div class="section" v-if="user.admin_logs?.length">
-                <h2 class="section-title">История действий администраторов</h2>
-                <div class="table-wrap">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Администратор</th>
-                                <th>Действие</th>
-                                <th>Детали</th>
-                                <th>Дата</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="alog in user.admin_logs" :key="alog.id">
-                                <td><strong>{{ alog.admin_name }}</strong></td>
-                                <td style="color: #c084fc;">{{ adminActionLabels[alog.action] || alog.action }}</td>
-                                <td class="muted" style="font-family: monospace; font-size: 0.78rem;">
-                                    {{ typeof alog.details === 'object' ? JSON.stringify(alog.details) : (alog.details || '—') }}
-                                </td>
-                                <td class="muted">{{ formatDate(alog.created_at) }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div v-if="user.wallet" class="space-y-3">
+                        <div class="p-3 rounded-lg border border-zinc-800 bg-zinc-950">
+                            <div class="text-[11px] text-zinc-400 mb-1">Синий баланс (потребительский)</div>
+                            <div class="flex items-baseline gap-1.5 text-lg font-bold font-mono text-zinc-100">
+                                <span>{{ formatMoney(user.wallet.balance) }}</span>
+                                <CoinIcon color="blue" size="xs" />
+                            </div>
+                        </div>
+
+                        <div v-if="user.wallet.held_balance > 0" class="p-3 rounded-lg border border-amber-900/40 bg-amber-950/20">
+                            <div class="text-[11px] text-amber-400 mb-1">Заморожено в эскроу (холд)</div>
+                            <div class="flex items-baseline gap-1.5 text-lg font-bold font-mono text-amber-300">
+                                <span>{{ formatMoney(user.wallet.held_balance) }}</span>
+                                <CoinIcon color="blue" size="xs" />
+                            </div>
+                        </div>
+
+                        <div v-if="user.is_idol && user.wallet.pink_balance !== undefined" class="p-3 rounded-lg border border-pink-900/40 bg-pink-950/20">
+                            <div class="text-[11px] text-pink-400 mb-1">Розовый баланс (заработок)</div>
+                            <div class="flex items-baseline gap-1.5 text-lg font-bold font-mono text-pink-300">
+                                <span>{{ formatMoney(user.wallet.pink_balance) }}</span>
+                                <CoinIcon color="pink" size="xs" />
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="text-xs text-zinc-500">Кошелек пока не инициализирован</div>
+                </div>
+
+                <!-- Ban / Account Security Card -->
+                <div class="rounded-xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur-sm space-y-4">
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-zinc-400">Безопасность и блокировка</h3>
+
+                    <div v-if="user.is_banned" class="p-3 rounded-lg border border-rose-900/40 bg-rose-950/20 space-y-2 text-xs">
+                        <div class="flex items-center gap-2 font-semibold text-rose-300">
+                            <el-icon><Lock /></el-icon>
+                            <span>Пользователь заблокирован</span>
+                        </div>
+                        <div class="text-zinc-300">
+                            <span class="text-zinc-500">Причина:</span> {{ user.ban_reason || 'Не указана' }}
+                        </div>
+                        <div class="text-zinc-300">
+                            <span class="text-zinc-500">Срок:</span> {{ user.banned_until ? formatDate(user.banned_until) : 'Бессрочно' }}
+                        </div>
+                        <div v-if="user.banned_by" class="text-zinc-400 text-[11px]">
+                            Заблокировал: {{ user.banned_by.name }}
+                        </div>
+                        <div class="pt-2">
+                            <AdminButton variant="outline" size="sm" class="w-full" @click="unban">
+                                <el-icon class="mr-1"><Unlock /></el-icon>
+                                Разблокировать аккаунт
+                            </AdminButton>
+                        </div>
+                    </div>
+
+                    <div v-else>
+                        <div v-if="!showBanForm">
+                            <AdminButton variant="destructive" size="sm" class="w-full" @click="showBanForm = true">
+                                <el-icon class="mr-1.5"><Lock /></el-icon>
+                                Заблокировать пользователя
+                            </AdminButton>
+                        </div>
+
+                        <form v-else @submit.prevent="submitBan" class="space-y-3 text-xs">
+                            <div class="space-y-1">
+                                <label class="font-medium text-zinc-300">Причина блокировки *</label>
+                                <textarea
+                                    v-model="banReason"
+                                    rows="2"
+                                    required
+                                    class="w-full px-3 py-2 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
+                                    placeholder="Укажите причину блокировки..."
+                                ></textarea>
+                                <p v-if="banErrors.reason" class="text-rose-400 text-[11px]">{{ banErrors.reason }}</p>
+                            </div>
+
+                            <div class="space-y-1">
+                                <label class="font-medium text-zinc-300">Срок блокировки</label>
+                                <div class="grid grid-cols-4 gap-1">
+                                    <button
+                                        v-for="p in banPresets"
+                                        :key="p.label"
+                                        type="button"
+                                        class="px-2 py-1 rounded border text-[10px] font-medium transition"
+                                        :class="banDuration === p.minutes
+                                            ? 'border-rose-500/50 bg-rose-500/20 text-rose-300'
+                                            : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-zinc-200'"
+                                        @click="banDuration = p.minutes"
+                                    >
+                                        {{ p.label }}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800">
+                                <AdminButton variant="outline" size="sm" type="button" @click="showBanForm = false">
+                                    Отмена
+                                </AdminButton>
+                                <AdminButton variant="destructive" size="sm" type="submit">
+                                    Забанить
+                                </AdminButton>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </template>
-
-<style scoped>
-.page-top { margin-bottom: 2rem; }
-.back-link { font-size: 0.83rem; color: rgba(155,110,232,0.7); text-decoration: none; display: inline-block; margin-bottom: 1.25rem; }
-.back-link:hover { color: #9B6EE8; }
-
-.user-header { display: flex; align-items: center; gap: 1.25rem; }
-.avatar { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; background: rgba(155,110,232,0.15); flex-shrink: 0; }
-.avatar--initials { display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 700; color: #9B6EE8; border: 2px solid rgba(155,110,232,0.3); }
-.user-info { display: flex; flex-direction: column; gap: 0.35rem; }
-.user-name { font-size: 1.5rem; color: #fff; margin: 0; }
-.user-meta { font-size: 0.83rem; color: rgba(255,255,255,0.4); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-.rating-display { font-size: 0.88rem; color: rgba(255,255,255,0.6); margin-top: 0.15rem; }
-.btn-profile-link { display: inline-block; margin-top: 0.5rem; font-size: 0.8rem; color: rgba(190,145,255,0.7); text-decoration: none; border: 1px solid rgba(190,145,255,0.25); padding: 0.25rem 0.6rem; transition: all 0.15s; }
-.btn-profile-link:hover { color: #ffb2ef; border-color: rgba(190,145,255,0.55); background: rgba(190,145,255,0.06); }
-
-.badge { padding: 0.15rem 0.5rem; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
-.badge--user   { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.12); }
-.badge--banned { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
-
-.sections { display: flex; flex-direction: column; gap: 1.5rem; }
-.section { background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.08); padding: 1.25rem; }
-.section-title { font-size: 0.9rem; color: rgba(255,255,255,0.6); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; margin: 0 0 1rem; }
-
-.ban-card { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.2); padding: 0.85rem 1rem; }
-.ban-info { display: flex; flex-direction: column; gap: 0.4rem; }
-.ban-row { display: flex; gap: 0.5rem; font-size: 0.85rem; color: rgba(255,255,255,0.7); }
-.ban-label { color: rgba(255,255,255,0.35); min-width: 90px; }
-
-.ban-form { display: flex; flex-direction: column; gap: 0.75rem; max-width: 480px; }
-.field { display: flex; flex-direction: column; gap: 0.3rem; }
-.field label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: rgba(255,255,255,0.35); }
-.input { padding: 0.45rem 0.7rem; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.85); font-family: inherit; font-size: 0.88rem; outline: none; transition: border-color 0.15s; box-sizing: border-box; width: 100%; }
-.input:focus { border-color: rgba(190,145,255,0.45); }
-.input--err { border-color: rgba(239,68,68,0.5); }
-.input--textarea { resize: vertical; min-height: 60px; }
-.err { font-size: 0.75rem; color: rgba(239,68,68,0.8); margin: 0; }
-.form-actions { display: flex; gap: 0.5rem; }
-
-.btn-danger { padding: 0.38rem 0.85rem; border: 1px solid rgba(239,68,68,0.45); background: rgba(239,68,68,0.1); color: rgba(239,68,68,0.9); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
-.btn-danger:hover { background: rgba(239,68,68,0.2); }
-.btn-primary { padding: 0.38rem 0.85rem; border: 1px solid rgba(155,110,232,0.45); background: rgba(155,110,232,0.15); color: #fff; font-family: inherit; font-size: 0.82rem; cursor: pointer; transition: all 0.15s; }
-.btn-primary:hover { background: rgba(155,110,232,0.25); border-color: rgba(155,110,232,0.6); }
-.btn-action { padding: 0.4rem 0.9rem; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.8); font-family: inherit; font-size: 0.85rem; cursor: pointer; transition: all 0.15s; }
-.btn-action:hover { border-color: rgba(155,110,232,0.4); background: rgba(155,110,232,0.1); }
-.btn-cancel { padding: 0.38rem 0.85rem; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: rgba(255,255,255,0.4); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
-
-.rating-form { display: flex; flex-direction: column; gap: 0.75rem; max-width: 480px; }
-.delta-input-wrap { display: flex; align-items: center; gap: 1.5rem; }
-.projected-info { display: flex; flex-direction: column; gap: 0.1rem; }
-.projected-value { font-size: 1.1rem; }
-.text-success { color: #4ade80; }
-.text-danger { color: #f87171; }
-.muted-small { font-size: 0.75rem; color: rgba(255,255,255,0.3); }
-
-.ban-reason-presets { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.4rem; }
-.preset-tag { padding: 0.22rem 0.6rem; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.5); font-family: inherit; font-size: 0.78rem; cursor: pointer; transition: all 0.15s; }
-.preset-tag:hover { border-color: rgba(155,110,232,0.4); color: rgba(255,255,255,0.8); }
-.preset-tag--active { border-color: rgba(239,68,68,0.5); background: rgba(239,68,68,0.1); color: #f87171; }
-.presets { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-.preset-btn { padding: 0.3rem 0.65rem; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.55); font-family: inherit; font-size: 0.8rem; cursor: pointer; transition: all 0.15s; }
-.preset-btn:hover { border-color: rgba(155,110,232,0.4); color: rgba(255,255,255,0.8); }
-.preset-btn--active { border-color: rgba(239,68,68,0.6); background: rgba(239,68,68,0.12); color: #f87171; }
-.btn-clear { padding: 0.38rem 0.85rem; border: 1px solid rgba(76,222,143,0.4); background: rgba(76,222,143,0.07); color: #4cde8f; font-family: inherit; font-size: 0.82rem; cursor: pointer; }
-.btn-clear:hover { background: rgba(76,222,143,0.18); }
-
-.app-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
-.status-badge { font-size: 0.68rem; padding: 0.12rem 0.45rem; font-weight: 700; white-space: nowrap; letter-spacing: 0.03em; text-transform: uppercase; }
-.status--pending  { background: rgba(251,183,64,0.1); color: #fbb740; border: 1px solid rgba(251,183,64,0.25); }
-.status--approved { background: rgba(74,222,128,0.1); color: #4ade80; border: 1px solid rgba(74,222,128,0.25); }
-.status--rejected { background: rgba(239,68,68,0.1);  color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
-.rejection-reason { font-size: 0.83rem; color: rgba(255,255,255,0.45); border-left: 2px solid rgba(239,68,68,0.3); padding-left: 0.75rem; }
-
-.table-wrap { overflow-x: auto; }
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th { text-align: left; padding: 0.75rem 1.25rem; font-size: 0.82rem; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.07em; border-bottom: 1px solid rgba(255,255,255,0.08); }
-.data-table td { padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.93rem; color: rgba(255,255,255,0.75); }
-
-.badge-sm { padding: 0.12rem 0.4rem; font-size: 0.68rem; font-weight: 600; }
-.badge-sm--on      { background: rgba(74,222,128,0.1); color: rgba(74,222,128,0.8); }
-.badge-sm--off     { background: rgba(239,68,68,0.1);  color: rgba(239,68,68,0.7); }
-.badge-sm--pending { background: rgba(251,183,64,0.1); color: #fbb740; }
-
-.delta { font-weight: 700; font-size: 0.95rem; font-variant-numeric: tabular-nums; }
-.muted { color: rgba(255,255,255,0.35); }
-
-.section-header-flex { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
-.section-header-flex .section-title { margin-bottom: 0; }
-.wallet-overview { display: flex; gap: 1.5rem; flex-wrap: wrap; padding: 1rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); }
-.wallet-stat { display: flex; flex-direction: column; gap: 0.35rem; }
-.stat-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.4); }
-.stat-value { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; }
-.text-warning { color: #fbbf24; }
-.subsection-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.4); margin-bottom: 0.5rem; }
-.target-link { color: #38bdf8; text-decoration: none; font-weight: 600; border-bottom: 1px dashed rgba(56, 189, 248, 0.5); }
-.target-link:hover { color: #7dd3fc; }
-.badge-sm--idol { background: rgba(192, 132, 252, 0.15); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.3); }
-.badge-sm--user { background: rgba(255, 255, 255, 0.06); color: rgba(255, 255, 255, 0.6); }
-.badge-sm--status { background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.75); }
-</style>

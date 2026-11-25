@@ -1,13 +1,16 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import AppSelect from '@/Components/AppSelect.vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import UserPickerModal from '@/Components/Admin/UserPickerModal.vue';
-import AdminModal from '@/Components/Admin/AdminModal.vue';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
 import AdminPagination from '@/Components/Admin/AdminPagination.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
+import AdminModal from '@/Components/Admin/UI/AdminModal.vue';
+import AdminInput from '@/Components/Admin/UI/AdminInput.vue';
 import { useTranslations } from '@/composables/useTranslations';
+import { ElMessage } from 'element-plus';
 
 const { transChoice } = useTranslations();
 
@@ -34,7 +37,7 @@ const activeLang = ref('ru');
 const targetOptions = [
     { value: 'all',      label: 'Все пользователи' },
     { value: 'user',     label: 'Конкретный пользователь' },
-    { value: 'filtered', label: 'По фильтру' },
+    { value: 'filtered', label: 'По фильтру аудитории' },
 ];
 
 function submit() {
@@ -43,22 +46,28 @@ function submit() {
             form.reset();
             selectedUser.value = null;
             selectedFilteredCount.value = null;
+            ElMessage.success('Рассылка успешно отправлена');
         },
+        onError: () => {
+            ElMessage.error('Пожалуйста, заполните обязательные поля');
+        }
     });
 }
 
-// ─── Detail modal ──────────────────────────────────────────────────────────
+// ── Detail modal ──────────────────────────────────────────────────────────
 const detailBroadcast = ref(null);
 
 function formatDate(str) {
+    if (!str) return '—';
     return new Date(str).toLocaleString('ru', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 function formatDateShort(str) {
+    if (!str) return '—';
     return new Date(str).toLocaleDateString('ru', { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 
-// ─── Picker state ──────────────────────────────────────────────────────────
+// ── Picker state ──────────────────────────────────────────────────────────
 const showPicker = ref(false);
 const showFilteredPicker = ref(false);
 const selectedUser = ref(null);
@@ -100,7 +109,7 @@ function filterLabel(key, value) {
 }
 
 function targetLabel(b) {
-    if (b.target === 'all') return 'Все';
+    if (b.target === 'all') return 'Все пользователи';
     if (b.target === 'user') {
         return b.target_user
             ? (b.target_user.name || b.target_user.email)
@@ -116,223 +125,306 @@ function targetLabel(b) {
 </script>
 
 <template>
-    <div>
+    <div class="space-y-6">
+        <!-- Header -->
         <AdminPageHeader
-            title="Рассылки платформы"
-            description="Массовые и целевые системные уведомления для пользователей платформы"
+            title="Системные рассылки"
+            subtitle="Массовые и таргетированные системные уведомления для пользователей и айдолов"
         />
 
-        <!-- Create form -->
-        <div class="compose-card">
-            <h2 class="compose-title">Новая рассылка</h2>
+        <!-- 2-Column Split: Compose Form (Left 5 cols) + History (Right 7 cols) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-            <div class="lang-switcher">
-                <button type="button" class="lang-tab" :class="{ active: activeLang === 'ru' }" @click="activeLang = 'ru'">RU</button>
-                <button type="button" class="lang-tab" :class="{ active: activeLang === 'en' }" @click="activeLang = 'en'">EN</button>
-            </div>
+            <!-- Left: Compose Form -->
+            <div class="lg:col-span-5 bg-zinc-900/60 border border-zinc-800 rounded-xl p-5 shadow-sm space-y-4">
+                <div class="border-b border-zinc-800 pb-3 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm font-semibold text-zinc-100 uppercase tracking-wider">Новая рассылка</h3>
+                        <p class="text-xs text-zinc-500 mt-0.5">Отправка системного пуша и уведомления</p>
+                    </div>
 
-            <form @submit.prevent="submit" class="compose-form">
-                <div v-show="activeLang === 'ru'" class="lang-section">
-                    <div class="field">
-                        <label class="field-label">Заголовок (RU)</label>
-                        <input v-model="form.title.ru" class="field-input" placeholder="Заголовок на русском" :required="activeLang === 'ru'" />
-                        <p v-if="form.errors['title.ru']" class="field-error">{{ form.errors['title.ru'] }}</p>
-                    </div>
-                    <div class="field">
-                        <label class="field-label">Сообщение (RU)</label>
-                        <textarea v-model="form.body.ru" class="field-textarea" rows="5" placeholder="Текст на русском..." :required="activeLang === 'ru'" />
-                        <p v-if="form.errors['body.ru']" class="field-error">{{ form.errors['body.ru'] }}</p>
-                    </div>
-                </div>
-
-                <div v-show="activeLang === 'en'" class="lang-section">
-                    <div class="field">
-                        <label class="field-label">Заголовок (EN)</label>
-                        <input v-model="form.title.en" class="field-input" placeholder="Title in English" :required="activeLang === 'en'" />
-                        <p v-if="form.errors['title.en']" class="field-error">{{ form.errors['title.en'] }}</p>
-                    </div>
-                    <div class="field">
-                        <label class="field-label">Сообщение (EN)</label>
-                        <textarea v-model="form.body.en" class="field-textarea" rows="5" placeholder="Message in English..." :required="activeLang === 'en'" />
-                        <p v-if="form.errors['body.en']" class="field-error">{{ form.errors['body.en'] }}</p>
+                    <!-- Lang switcher -->
+                    <div class="flex items-center gap-1 bg-zinc-950 p-1 rounded-lg border border-zinc-800">
+                        <button
+                            type="button"
+                            class="px-2.5 py-1 rounded text-xs font-semibold transition-colors"
+                            :class="activeLang === 'ru' ? 'bg-violet-600 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-200'"
+                            @click="activeLang = 'ru'"
+                        >
+                            RU
+                        </button>
+                        <button
+                            type="button"
+                            class="px-2.5 py-1 rounded text-xs font-semibold transition-colors"
+                            :class="activeLang === 'en' ? 'bg-violet-600 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-200'"
+                            @click="activeLang === 'en'"
+                        >
+                            EN
+                        </button>
                     </div>
                 </div>
 
-                <div class="field">
-                    <label class="field-label">Получатели</label>
-                    <AppSelect
-                        v-model="form.target"
-                        :options="targetOptions"
-                        @change="clearSelection"
-                    />
-                </div>
-
-                <!-- Конкретный пользователь -->
-                <div class="field" v-if="form.target === 'user'">
-                    <label class="field-label">Пользователь</label>
-                    <div v-if="selectedUser" class="user-chip">
-                        <span class="user-chip-avatar">{{ (selectedUser.name || selectedUser.email || '?')[0].toUpperCase() }}</span>
-                        <span class="user-chip-info">
-                            <span class="user-chip-name">{{ selectedUser.name || '—' }}</span>
-                            <span class="user-chip-email">{{ selectedUser.email }}</span>
-                        </span>
-                        <button type="button" class="btn-change" @click="showPicker = true">Изменить</button>
+                <form @submit.prevent="submit" class="space-y-4">
+                    <!-- RU Fields -->
+                    <div v-show="activeLang === 'ru'" class="space-y-4">
+                        <AdminInput
+                            v-model="form.title.ru"
+                            label="Заголовок (RU)"
+                            placeholder="Важное системное уведомление..."
+                            :error="form.errors['title.ru']"
+                            :required="activeLang === 'ru'"
+                        />
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-zinc-400 mb-1.5">Текст сообщения (RU)</label>
+                            <textarea
+                                v-model="form.body.ru"
+                                rows="5"
+                                placeholder="Текст уведомления для пользователей..."
+                                class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-200 outline-none focus:border-violet-500 resize-none leading-relaxed"
+                                :required="activeLang === 'ru'"
+                            ></textarea>
+                            <p v-if="form.errors['body.ru']" class="text-xs text-rose-400 mt-1">{{ form.errors['body.ru'] }}</p>
+                        </div>
                     </div>
-                    <button v-else type="button" class="btn-pick" @click="showPicker = true">Выбрать пользователя</button>
-                    <p v-if="form.errors.target_user_id" class="field-error">{{ form.errors.target_user_id }}</p>
-                </div>
 
-                <!-- По фильтру -->
-                <div class="field" v-if="form.target === 'filtered'">
-                    <label class="field-label">Аудитория</label>
-                    <div v-if="selectedFilteredCount !== null" class="filtered-chip">
-                        <div class="filtered-chip-main">
-                            <span class="filtered-count">{{ selectedFilteredCount.toLocaleString('ru') }} пользователей</span>
-                            <div v-if="form.target_filters && Object.keys(form.target_filters).length" class="filter-tags">
+                    <!-- EN Fields -->
+                    <div v-show="activeLang === 'en'" class="space-y-4">
+                        <AdminInput
+                            v-model="form.title.en"
+                            label="Заголовок (EN)"
+                            placeholder="Important system update..."
+                            :error="form.errors['title.en']"
+                            :required="activeLang === 'en'"
+                        />
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-zinc-400 mb-1.5">Текст сообщения (EN)</label>
+                            <textarea
+                                v-model="form.body.en"
+                                rows="5"
+                                placeholder="Notification message in English..."
+                                class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-200 outline-none focus:border-violet-500 resize-none leading-relaxed"
+                                :required="activeLang === 'en'"
+                            ></textarea>
+                            <p v-if="form.errors['body.en']" class="text-xs text-rose-400 mt-1">{{ form.errors['body.en'] }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Audience select -->
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-zinc-400 mb-1.5">Целевая аудитория</label>
+                        <select
+                            v-model="form.target"
+                            @change="clearSelection"
+                            class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 outline-none focus:border-violet-500"
+                        >
+                            <option v-for="opt in targetOptions" :key="opt.value" :value="opt.value">
+                                {{ opt.label }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- Single user picker -->
+                    <div v-if="form.target === 'user'" class="p-3 bg-zinc-950/60 border border-zinc-800 rounded-lg">
+                        <div v-if="selectedUser" class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-full bg-violet-500/20 text-violet-300 font-bold flex items-center justify-center text-xs">
+                                    {{ (selectedUser.name || selectedUser.email || '?')[0].toUpperCase() }}
+                                </div>
+                                <div class="text-xs">
+                                    <div class="font-medium text-zinc-200">{{ selectedUser.name || '—' }}</div>
+                                    <div class="text-zinc-500 text-[11px]">{{ selectedUser.email }}</div>
+                                </div>
+                            </div>
+                            <button type="button" @click="showPicker = true" class="text-xs text-violet-400 hover:text-violet-300 font-medium">
+                                Изменить
+                            </button>
+                        </div>
+                        <div v-else>
+                            <AdminButton type="button" variant="outline" size="sm" class="w-full" @click="showPicker = true">
+                                Выбрать пользователя...
+                            </AdminButton>
+                        </div>
+                        <p v-if="form.errors.target_user_id" class="text-xs text-rose-400 mt-1">{{ form.errors.target_user_id }}</p>
+                    </div>
+
+                    <!-- Filtered audience picker -->
+                    <div v-if="form.target === 'filtered'" class="p-3 bg-zinc-950/60 border border-zinc-800 rounded-lg">
+                        <div v-if="selectedFilteredCount !== null" class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-semibold text-emerald-400">{{ selectedFilteredCount.toLocaleString('ru') }} получателей</span>
+                                <button type="button" @click="showFilteredPicker = true" class="text-xs text-violet-400 hover:text-violet-300 font-medium">
+                                    Настроить фильтры
+                                </button>
+                            </div>
+                            <div v-if="form.target_filters && Object.keys(form.target_filters).length" class="flex flex-wrap gap-1">
                                 <span
                                     v-for="(val, key) in form.target_filters"
                                     :key="key"
-                                    class="filter-tag"
-                                >{{ filterLabel(key, val) }}</span>
+                                    class="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700"
+                                >
+                                    {{ filterLabel(key, val) }}
+                                </span>
                             </div>
-                            <span v-else class="filtered-hint">без фильтров — все пользователи</span>
+                            <div v-else class="text-[11px] text-zinc-500 italic">Фильтры не выбраны — все пользователи</div>
                         </div>
-                        <button type="button" class="btn-change" @click="showFilteredPicker = true">Изменить</button>
+                        <div v-else>
+                            <AdminButton type="button" variant="outline" size="sm" class="w-full" @click="showFilteredPicker = true">
+                                Настроить фильтры аудитории...
+                            </AdminButton>
+                        </div>
+                        <p v-if="form.errors.target_filters" class="text-xs text-rose-400 mt-1">{{ form.errors.target_filters }}</p>
                     </div>
-                    <button v-else type="button" class="btn-pick" @click="showFilteredPicker = true">Настроить фильтры</button>
-                    <p v-if="form.errors.target_filters" class="field-error">{{ form.errors.target_filters }}</p>
-                </div>
 
-                <button type="submit" class="btn-send" :disabled="form.processing">
-                    {{ form.processing ? 'Отправка...' : 'Отправить рассылку' }}
-                </button>
-            </form>
-        </div>
-
-        <!-- Sent list -->
-        <div class="sent-section">
-            <h2 class="sent-title">Отправленные рассылки</h2>
-            <div v-if="broadcastList.length === 0" class="sent-empty">Рассылок пока нет</div>
-            <div v-else class="broadcasts-table-wrap">
-                <table class="broadcasts-table">
-                    <thead>
-                        <tr>
-                            <th class="col-num">#</th>
-                            <th class="col-date">Дата</th>
-                            <th class="col-title">Заголовок</th>
-                            <th class="col-target">Получатели</th>
-                            <th class="col-admin">Отправил</th>
-                            <th class="col-action"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="b in broadcastList" :key="b.id" class="bcast-row">
-                            <td class="col-num bcast-id">{{ b.id }}</td>
-                            <td class="col-date bcast-date">{{ formatDateShort(b.created_at) }}</td>
-                            <td class="col-title bcast-title">
-                                <div class="bcast-title-langs">
-                                    <span class="bcast-title-ru">{{ b.title.ru }}</span>
-                                    <span class="bcast-title-en">{{ b.title.en }}</span>
-                                </div>
-                            </td>
-                            <td class="col-target">
-                                <span class="sent-target" :class="{
-                                    'target--all': b.target === 'all',
-                                    'target--user': b.target === 'user',
-                                    'target--filtered': b.target === 'filtered',
-                                }">{{ targetLabel(b) }}</span>
-                            </td>
-                            <td class="col-admin bcast-admin">{{ b.admin.name }}</td>
-                            <td class="col-action">
-                                <button class="btn-detail" @click="detailBroadcast = b" title="Детали">→</button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                    <!-- Send button -->
+                    <AdminButton
+                        type="submit"
+                        variant="primary"
+                        size="md"
+                        class="w-full"
+                        :loading="form.processing"
+                    >
+                        <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                        </svg>
+                        Отправить рассылку
+                    </AdminButton>
+                </form>
             </div>
 
-            <AdminPagination v-if="broadcasts?.links" :links="broadcasts.links" style="margin-top: 1rem;" />
+            <!-- Right: Broadcasts History (7 cols) -->
+            <div class="lg:col-span-7 bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden shadow-sm">
+                <div class="px-5 py-3.5 border-b border-zinc-800 bg-zinc-950/40 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wider text-zinc-300">История рассылок</h3>
+                        <p class="text-[11px] text-zinc-500">Ранее отправленные сообщения</p>
+                    </div>
+                    <span class="text-xs text-zinc-500 font-medium">Всего: {{ broadcastList.length }}</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead class="bg-zinc-950/60 text-zinc-400 font-semibold uppercase tracking-wider border-b border-zinc-800">
+                            <tr>
+                                <th class="px-4 py-3 w-12">#</th>
+                                <th class="px-4 py-3 w-28">Дата</th>
+                                <th class="px-4 py-3">Заголовок</th>
+                                <th class="px-4 py-3">Аудитория</th>
+                                <th class="px-4 py-3">Отправил</th>
+                                <th class="px-4 py-3 text-right w-16"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-800/60">
+                            <tr
+                                v-for="b in broadcastList"
+                                :key="b.id"
+                                class="hover:bg-zinc-800/20 transition-colors cursor-pointer"
+                                @click="detailBroadcast = b"
+                            >
+                                <td class="px-4 py-3 font-mono text-zinc-500">{{ b.id }}</td>
+
+                                <td class="px-4 py-3 font-mono text-zinc-400 whitespace-nowrap">
+                                    {{ formatDateShort(b.created_at) }}
+                                </td>
+
+                                <td class="px-4 py-3 max-w-xs">
+                                    <div class="font-medium text-zinc-200 truncate">{{ b.title.ru }}</div>
+                                    <div v-if="b.title.en" class="text-[11px] text-zinc-500 truncate mt-0.5">{{ b.title.en }}</div>
+                                </td>
+
+                                <td class="px-4 py-3">
+                                    <AdminBadge
+                                        :variant="b.target === 'all' ? 'info' : (b.target === 'user' ? 'warning' : 'secondary')"
+                                        size="sm"
+                                    >
+                                        {{ targetLabel(b) }}
+                                    </AdminBadge>
+                                </td>
+
+                                <td class="px-4 py-3 text-zinc-400 font-medium">
+                                    {{ b.admin?.name ?? '—' }}
+                                </td>
+
+                                <td class="px-4 py-3 text-right">
+                                    <button
+                                        class="p-1 rounded text-zinc-500 hover:text-zinc-200 transition-colors"
+                                        title="Просмотреть детали"
+                                    >
+                                        →
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <tr v-if="!broadcastList.length">
+                                <td colspan="6" class="px-4 py-12 text-center text-xs text-zinc-500 italic">
+                                    Рассылок пока нет.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div v-if="broadcasts?.links" class="p-3 border-t border-zinc-800">
+                    <AdminPagination :pagination="broadcasts" />
+                </div>
+            </div>
         </div>
 
         <!-- Detail Modal -->
         <AdminModal
-            :show="!!detailBroadcast"
-            :title="detailBroadcast ? `Рассылка #${detailBroadcast.id}` : ''"
+            :open="Boolean(detailBroadcast)"
+            :title="`Рассылка #${detailBroadcast?.id}`"
+            description="Подробные параметры и содержимое отправленного сообщения"
+            size="xl"
             @close="detailBroadcast = null"
-            :max-width="'800px'"
-            :no-padding="true"
         >
-            <div class="detail-body" v-if="detailBroadcast">
-                <div class="detail-langs">
-                    <div class="detail-lang-col">
-                        <div class="detail-section">
-                            <p class="detail-label">Заголовок (RU)</p>
-                            <p class="detail-value detail-headline">{{ detailBroadcast.title.ru }}</p>
-                        </div>
-                        <div class="detail-section">
-                            <p class="detail-label">Текст (RU)</p>
-                            <p class="detail-value detail-text">{{ detailBroadcast.body.ru }}</p>
-                        </div>
+            <div v-if="detailBroadcast" class="space-y-4 py-2">
+                <!-- 2-column language content -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-4 bg-zinc-950/60 border border-zinc-800 rounded-xl space-y-2">
+                        <div class="text-[10px] font-semibold uppercase text-violet-400 font-mono">Русская версия (RU)</div>
+                        <h4 class="text-sm font-semibold text-zinc-100">{{ detailBroadcast.title.ru }}</h4>
+                        <p class="text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap">{{ detailBroadcast.body.ru }}</p>
                     </div>
-                    <div class="detail-lang-divider"></div>
-                    <div class="detail-lang-col">
-                        <div class="detail-section">
-                            <p class="detail-label">Заголовок (EN)</p>
-                            <p class="detail-value detail-headline">{{ detailBroadcast.title.en }}</p>
-                        </div>
-                        <div class="detail-section">
-                            <p class="detail-label">Текст (EN)</p>
-                            <p class="detail-value detail-text">{{ detailBroadcast.body.en }}</p>
-                        </div>
+
+                    <div class="p-4 bg-zinc-950/60 border border-zinc-800 rounded-xl space-y-2">
+                        <div class="text-[10px] font-semibold uppercase text-violet-400 font-mono">English Version (EN)</div>
+                        <h4 class="text-sm font-semibold text-zinc-100">{{ detailBroadcast.title.en || '—' }}</h4>
+                        <p class="text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap">{{ detailBroadcast.body.en || '—' }}</p>
                     </div>
                 </div>
 
-                <div class="detail-section">
-                    <p class="detail-label">Получатели</p>
-                    <div class="detail-value">
-                        <template v-if="detailBroadcast.target === 'all'">
-                            <span class="sent-target target--all">Все пользователи</span>
-                        </template>
-                        <template v-else-if="detailBroadcast.target === 'user'">
-                            <div v-if="detailBroadcast.target_user" class="detail-user">
-                                <span class="detail-user-name">{{ detailBroadcast.target_user.name || '—' }}</span>
-                                <span class="detail-user-email">{{ detailBroadcast.target_user.email }}</span>
-                            </div>
-                            <span v-else class="sent-target target--user">#{{ detailBroadcast.target_user_id }}</span>
-                        </template>
-                        <template v-else-if="detailBroadcast.target === 'filtered'">
-                            <div v-if="detailBroadcast.target_filters && Object.keys(detailBroadcast.target_filters).length" class="filter-tags">
-                                <span
-                                    v-for="(val, key) in detailBroadcast.target_filters"
-                                    :key="key"
-                                    class="filter-tag"
-                                >{{ filterLabel(key, val) }}</span>
-                            </div>
-                            <span v-else class="detail-muted">без фильтров — все пользователи</span>
-                        </template>
-                    </div>
-                </div>
-                <div class="detail-section detail-meta-row">
+                <!-- Meta info -->
+                <div class="p-3 bg-zinc-950/40 border border-zinc-800 rounded-lg grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                     <div>
-                        <p class="detail-label">Отправил</p>
-                        <p class="detail-value">{{ detailBroadcast.admin.name }}</p>
+                        <span class="text-zinc-500 block">Получатели:</span>
+                        <span class="font-medium text-zinc-200">{{ targetLabel(detailBroadcast) }}</span>
                     </div>
                     <div>
-                        <p class="detail-label">Дата отправки</p>
-                        <p class="detail-value">{{ formatDate(detailBroadcast.created_at) }}</p>
+                        <span class="text-zinc-500 block">Отправитель:</span>
+                        <span class="font-medium text-zinc-200">{{ detailBroadcast.admin?.name ?? '—' }}</span>
+                    </div>
+                    <div>
+                        <span class="text-zinc-500 block">Дата отправки:</span>
+                        <span class="font-mono text-zinc-400">{{ formatDate(detailBroadcast.created_at) }}</span>
                     </div>
                 </div>
             </div>
+
+            <template #footer>
+                <div class="flex justify-end">
+                    <AdminButton variant="outline" size="sm" @click="detailBroadcast = null">Закрыть</AdminButton>
+                </div>
+            </template>
         </AdminModal>
 
-        <!-- Пикер: конкретный пользователь -->
+        <!-- User Picker: Single user -->
         <UserPickerModal
             v-model="showPicker"
             title="Выбор пользователя"
             @select="selectUser"
         />
 
-        <!-- Пикер: по фильтру -->
+        <!-- User Picker: Filtered audience -->
         <UserPickerModal
             v-model="showFilteredPicker"
             title="Выбор аудитории"
@@ -342,205 +434,3 @@ function targetLabel(b) {
         />
     </div>
 </template>
-
-<style scoped>
-.page-title { font-size: 1.4rem; color: #fff; margin: 0 0 1.5rem; }
-
-.compose-card {
-    background: rgba(255,255,255,0.025);
-    border: 1px solid rgba(155,110,232,0.3);
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    max-width: 600px;
-}
-.compose-title { font-size: 1rem; color: rgba(255,255,255,0.8); margin: 0 0 1.25rem; font-weight: 600; }
-
-.lang-switcher { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; }
-.lang-tab {
-    padding: 0.35rem 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.4); font-size: 0.75rem; font-weight: 700; cursor: pointer; border-radius: 4px;
-}
-.lang-tab.active { background: rgba(155,110,232,0.15); border-color: rgba(155,110,232,0.4); color: #9B6EE8; }
-
-.lang-section { display: flex; flex-direction: column; gap: 1rem; }
-
-.compose-form { display: flex; flex-direction: column; gap: 1rem; }
-.field { display: flex; flex-direction: column; gap: 0.3rem; }
-.field-label { font-size: 0.78rem; color: rgba(255,255,255,0.4); letter-spacing: 0.04em; text-transform: uppercase; }
-.field-input, .field-textarea {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.12);
-    color: #fff;
-    padding: 0.55rem 0.75rem; font-size: 0.88rem;
-    outline: none; width: 100%; box-sizing: border-box;
-    font-family: inherit;
-}
-.field-input:focus, .field-textarea:focus { border-color: rgba(155,110,232,0.6); }
-.field-textarea { resize: vertical; }
-.field-error { font-size: 0.78rem; color: #ff6b6b; margin: 0; }
-
-.btn-send {
-    align-self: flex-start;
-    padding: 0.5rem 1.2rem;
-    background: rgba(155,110,232,0.15); border: 1px solid rgba(155,110,232,0.45);
-    color: #9B6EE8; font-size: 0.88rem; cursor: pointer; font-family: inherit;
-}
-.btn-send:hover { background: rgba(155,110,232,0.28); }
-.btn-send:disabled { opacity: 0.5; }
-
-/* User chip */
-.user-chip {
-    display: flex; align-items: center; gap: 0.75rem;
-    background: rgba(155,110,232,0.08);
-    border: 1px solid rgba(155,110,232,0.3);
-    padding: 0.55rem 0.75rem;
-}
-.user-chip-avatar {
-    width: 34px; height: 34px; border-radius: 50%;
-    background: rgba(155,110,232,0.3);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.85rem; font-weight: 600; color: #fff; flex-shrink: 0;
-}
-.user-chip-info { display: flex; flex-direction: column; gap: 0.1rem; flex: 1; min-width: 0; }
-.user-chip-name { font-size: 0.88rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.user-chip-email { font-size: 0.75rem; color: rgba(255,255,255,0.4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-/* Filtered chip */
-.filtered-chip {
-    display: flex; align-items: flex-start; gap: 0.75rem;
-    background: rgba(155,110,232,0.08);
-    border: 1px solid rgba(155,110,232,0.3);
-    padding: 0.65rem 0.75rem;
-}
-.filtered-chip-main { display: flex; flex-direction: column; gap: 0.35rem; flex: 1; min-width: 0; }
-.filtered-count { font-size: 0.9rem; color: #fff; font-weight: 500; }
-.filtered-hint { font-size: 0.78rem; color: rgba(255,255,255,0.35); }
-.filter-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; }
-.filter-tag {
-    font-size: 0.72rem; padding: 0.12rem 0.45rem;
-    background: rgba(155,110,232,0.15); color: #9B6EE8;
-    border: 1px solid rgba(155,110,232,0.35);
-}
-
-.btn-change {
-    padding: 0.28rem 0.65rem;
-    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
-    color: rgba(255,255,255,0.6); font-size: 0.78rem; cursor: pointer; white-space: nowrap; flex-shrink: 0;
-    font-family: inherit;
-}
-.btn-change:hover { background: rgba(255,255,255,0.12); }
-
-.btn-pick {
-    align-self: flex-start;
-    padding: 0.45rem 0.95rem;
-    background: rgba(155,110,232,0.1); border: 1px solid rgba(155,110,232,0.35);
-    color: #9B6EE8; font-size: 0.85rem; cursor: pointer; font-family: inherit;
-}
-.btn-pick:hover { background: rgba(155,110,232,0.22); }
-
-/* Sent section */
-.sent-section { max-width: 1000px; }
-.sent-title { font-size: 1rem; color: rgba(255,255,255,0.6); margin: 0 0 1rem; }
-.sent-empty { color: rgba(255,255,255,0.3); font-size: 0.85rem; }
-
-/* Broadcasts table */
-.broadcasts-table-wrap { overflow-x: auto; border: 1px solid rgba(255,255,255,0.1); }
-.broadcasts-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-.broadcasts-table thead tr { background: rgba(255,255,255,0.03); }
-.broadcasts-table th {
-    padding: 0.55rem 0.9rem; text-align: left;
-    color: rgba(255,255,255,0.35); font-weight: 600; font-size: 0.72rem;
-    border-bottom: 1px solid rgba(255,255,255,0.1); white-space: nowrap;
-    text-transform: uppercase; letter-spacing: 0.06em;
-}
-.bcast-row { border-bottom: 1px solid rgba(255,255,255,0.06); }
-.bcast-row:last-child { border-bottom: none; }
-.bcast-row:hover { background: rgba(155,110,232,0.06); }
-.broadcasts-table td { padding: 0.6rem 0.9rem; color: rgba(255,255,255,0.75); vertical-align: middle; }
-.col-num { width: 48px; }
-.col-date { width: 90px; white-space: nowrap; }
-.col-title { max-width: 300px; }
-.col-target { width: 140px; }
-.col-admin { width: 120px; white-space: nowrap; }
-.col-action { width: 48px; text-align: center; }
-.bcast-id { color: rgba(255,255,255,0.25); font-size: 0.78rem; }
-.bcast-date { color: rgba(255,255,255,0.35); font-size: 0.78rem; }
-.bcast-title-langs { display: flex; flex-direction: column; gap: 0.2rem; }
-.bcast-title-ru { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bcast-title-en { display: block; font-size: 0.75rem; color: rgba(255,255,255,0.35); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bcast-admin { color: rgba(255,255,255,0.4); font-size: 0.8rem; }
-
-.sent-target { font-size: 0.72rem; padding: 0.12rem 0.5rem; white-space: nowrap; display: inline-block; font-weight: 600; letter-spacing: 0.03em; }
-.target--all { background: rgba(76,222,143,0.1); color: #4cde8f; border: 1px solid rgba(76,222,143,0.22); }
-.target--user { background: rgba(155,110,232,0.1); color: #9B6EE8; border: 1px solid rgba(155,110,232,0.22); }
-.target--filtered { background: rgba(139,92,246,0.1); color: #a78bfa; border: 1px solid rgba(139,92,246,0.22); }
-
-.btn-detail {
-    background: none; border: 1px solid rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.4);
-    width: 28px; height: 28px; cursor: pointer;
-    font-size: 0.9rem; line-height: 1;
-    display: inline-flex; align-items: center; justify-content: center;
-}
-.btn-detail:hover { background: rgba(155,110,232,0.15); border-color: rgba(155,110,232,0.45); color: #9B6EE8; }
-
-/* Detail Modal Content */
-.detail-body {
-    padding: 1.5rem;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-.detail-langs { display: flex; gap: 2rem; }
-.detail-lang-col { flex: 1; display: flex; flex-direction: column; gap: 1.25rem; }
-.detail-lang-divider { width: 1px; background: rgba(255, 255, 255, 0.08); }
-
-.detail-section { display: flex; flex-direction: column; gap: 0.35rem; }
-.detail-label { 
-    font-size: 0.72rem; 
-    color: rgba(255, 255, 255, 0.35); 
-    margin: 0; 
-    text-transform: uppercase; 
-    letter-spacing: 0.06em; 
-    font-weight: 600;
-}
-.detail-value { font-size: 0.92rem; color: rgba(255, 255, 255, 0.85); margin: 0; }
-.detail-headline { 
-    font-weight: 700; 
-    font-size: 1.05rem; 
-    color: #fff;
-    line-height: 1.4;
-}
-.detail-text { 
-    white-space: pre-wrap; 
-    line-height: 1.6; 
-    color: rgba(255, 255, 255, 0.7); 
-    font-size: 0.88rem;
-    background: rgba(255, 255, 255, 0.03);
-    padding: 0.75rem 1rem;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-}
-.detail-meta-row { 
-    display: flex;
-    flex-direction: row; 
-    gap: 2.5rem; 
-    border-top: 1px solid rgba(255, 255, 255, 0.08); 
-    padding-top: 1.25rem; 
-    margin-top: 0.5rem;
-}
-.detail-muted { font-size: 0.82rem; color: rgba(255, 255, 255, 0.3); }
-.detail-user { display: flex; flex-direction: column; gap: 0.15rem; }
-.detail-user-name { font-size: 0.92rem; color: #fff; font-weight: 600; }
-.detail-user-email { font-size: 0.8rem; color: rgba(255, 255, 255, 0.4); }
-
-@media (max-width: 640px) {
-    .detail-langs { flex-direction: column; gap: 1.5rem; }
-    .detail-lang-divider { height: 1px; width: 100%; }
-    .detail-body { padding: 1rem; }
-    .detail-meta-row { gap: 1.5rem; flex-wrap: wrap; }
-}
-
-</style>
-

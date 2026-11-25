@@ -3,8 +3,15 @@ import { ref, reactive, computed } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
 import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminModal from '@/Components/Admin/UI/AdminModal.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
 import { formatMoney } from '@/Utils/money';
+import {
+    ArrowLeft, Check, Close, Warning, ArrowRight, User
+} from '@element-plus/icons-vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -12,7 +19,6 @@ const props = defineProps({
     service: Object,
 });
 
-// ── Flag state ──────────────────────────────────────────
 const FIELDS = ['name_ru', 'name_en', 'price', 'category_id', 'time_unit_id'];
 const FIELD_LABELS = {
     name_ru:      'Название (RU)',
@@ -38,7 +44,7 @@ const PRESETS = {
     ],
     price: [
         'Некорректная стоимость услуги',
-        'Цена не соответствует правилам платформы',
+        'Цена превышает установленный лимит',
     ],
     category_id: [
         'Выбрана неподходящая категория',
@@ -46,25 +52,22 @@ const PRESETS = {
     time_unit_id: [
         'Некорректная единица времени',
     ],
-    rejection: [
-        'Услуга нарушает правила платформы',
-        'Спам / Дубликат существующей услуги',
-    ],
 };
 
 const isApproved  = ref(false);
 const submitting  = ref(false);
 const errors      = ref({});
 const rejectionReason = ref('');
-const showReject  = ref(false);
+const showRejectModal = ref(false);
 
-const hasAnyFlag = computed(() => {
-    const flagged = Object.values(flaggedFields).some(v => v);
-    // if (flagged) isApproved.value = false; removed to allow approve with remarks
-    return flagged;
-});
+const hasAnyFlag = computed(() => Object.values(flaggedFields).some(v => v));
+const canSubmit  = computed(() => isApproved.value || hasAnyFlag.value);
 
-const canSubmit = computed(() => isApproved.value || hasAnyFlag.value);
+function onToggleFlag(field) {
+    if (flaggedFields[field]) {
+        isApproved.value = false;
+    }
+}
 
 const STATUS_LABELS = {
     pending:     'На рассмотрении',
@@ -73,7 +76,14 @@ const STATUS_LABELS = {
     rejected:    'Отклонена',
 };
 
-function submit() {
+const statusVariant = {
+    pending:     'warning',
+    approved:    'success',
+    has_remarks: 'info',
+    rejected:    'danger',
+};
+
+function submitDecision() {
     if (!canSubmit.value) return;
     errors.value = {};
 
@@ -94,507 +104,284 @@ function submit() {
 }
 
 function reject() {
-    if (!rejectionReason.value.trim()) { showReject.value = true; return; }
-    ElMessageBox.confirm(
-        'Полностью отклонить услугу? Айдол получит уведомление.',
-        'Отклонение услуги',
-        {
-            confirmButtonText: 'Отклонить',
-            cancelButtonText: 'Отмена',
-            type: 'warning',
-            confirmButtonClass: 'el-button--danger',
-        }
-    ).then(() => {
-        submitting.value = true;
-        router.post(route('admin.services.moderation.decide', props.service.id), {
-            decision: 'rejected',
-            rejection_reason: rejectionReason.value,
-        }, {
-            preserveScroll: true,
-            onError: (errs) => { errors.value = errs; submitting.value = false; },
-            onFinish: () => { submitting.value = false; },
-        });
-    }).catch(() => {});
-}
-
-// ── History Details Modal ───────────────────────────────
-const historyModalItem = ref(null);
-
-function formatDate(dateStr) {
-    return new Date(dateStr).toLocaleDateString('ru-RU');
-}
-
-function getDecisionLabel(decision) {
-    return {
-        approved: 'Одобрено',
-        rejected: 'Отклонено',
-        has_remarks: 'Замечания',
-    }[decision] || decision;
-}
-
-function hasDetails(item) {
-    return (item.flagged_fields && item.flagged_fields.length > 0) || !!item.admin_comment;
-}
-
-function showDetails(item) {
-    historyModalItem.value = item;
-}
-
-function closeHistoryModal() {
-    historyModalItem.value = null;
+    if (!rejectionReason.value.trim()) return;
+    submitting.value = true;
+    router.post(route('admin.services.moderation.decide', props.service.id), {
+        decision:         'rejected',
+        rejection_reason: rejectionReason.value,
+    }, {
+        preserveScroll: true,
+        onFinish: () => {
+            submitting.value = false;
+            showRejectModal.value = false;
+        },
+    });
 }
 </script>
 
 <template>
-    <div class="sps-wrap">
-        <Link :href="route('admin.services.moderation.index')" class="sps-back">← К списку</Link>
+    <div class="space-y-6 max-w-5xl mx-auto">
+        <!-- Back Link -->
+        <div>
+            <Link
+                :href="route('admin.services.moderation.index')"
+                class="inline-flex items-center gap-2 text-xs font-medium text-zinc-400 hover:text-zinc-100 transition-colors"
+            >
+                <el-icon :size="12"><ArrowLeft /></el-icon>
+                <span>Назад к модерации услуг</span>
+            </Link>
+        </div>
 
-        <div class="sps-layout">
-            <!-- LEFT: Service info + history -->
-            <div class="sps-left">
+        <!-- Header -->
+        <AdminPageHeader
+            :title="service.name"
+            :subtitle="`ID услуги #${service.id} • Создана ${new Date(service.created_at).toLocaleString('ru')}`"
+        >
+            <template #badge>
+                <AdminBadge :variant="statusVariant[service.status] || 'neutral'" dot size="md">
+                    {{ STATUS_LABELS[service.status] ?? service.status }}
+                </AdminBadge>
+            </template>
+        </AdminPageHeader>
 
-                <!-- Idol info -->
-                <div class="sps-card">
-                    <h2 class="sps-card__title">Айдол</h2>
-                    <a :href="route('profile.show', service.user.id)" target="_blank" class="sps-idol-link">
-                        <div class="sps-idol">
-                            <img v-if="service.user.avatar_url" :src="service.user.avatar_url" class="sps-idol__avatar" alt="" />
-                            <div v-else class="sps-idol__avatar sps-idol__avatar--empty">{{ service.user.name?.charAt(0) }}</div>
-                            <div style="min-width: 0; flex: 1;">
-                                <div class="sps-idol__name" :title="service.user.name">{{ service.user.name }}</div>
-                                <div class="sps-idol__email" :title="service.user.email">{{ service.user.email }}</div>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-
-                <!-- Service metadata -->
-                <div class="sps-card">
-                    <h2 class="sps-card__title">Услуга #{{ service.id }}</h2>
-                    <div class="sps-meta">
-                        <div class="sps-meta__row">
-                            <span class="sps-meta__label">Статус</span>
-                            <span class="sps-status" :class="'sps-status--' + service.status">
-                                {{ STATUS_LABELS[service.status] || service.status }}
-                            </span>
-                        </div>
-                        <div class="sps-meta__row">
-                            <span class="sps-meta__label">Название (RU)</span>
-                            <span>{{ service.name_ru }}</span>
-                        </div>
-                        <div class="sps-meta__row" v-if="service.name_en">
-                            <span class="sps-meta__label">Название (EN)</span>
-                            <span>{{ service.name_en }}</span>
-                        </div>
-                        <div class="sps-meta__row">
-                            <span class="sps-meta__label">Цена</span>
-                            <span class="inline-flex items-center gap-1">
-                                <span>{{ formatMoney(service.price) }}</span>
-                                <CoinIcon color="blue" size="xs" />
-                            </span>
-                        </div>
-                        <div class="sps-meta__row" v-if="service.category">
-                            <span class="sps-meta__label">Категория</span>
-                            <span>{{ service.category }}</span>
-                        </div>
-                        <div class="sps-meta__row" v-if="service.time_unit">
-                            <span class="sps-meta__label">Ед. времени</span>
-                            <span>{{ service.time_unit }}</span>
-                        </div>
-                        <div class="sps-meta__row">
-                            <span class="sps-meta__label">Создана</span>
-                            <span>{{ new Date(service.created_at).toLocaleDateString('ru-RU') }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Review history -->
-                <div v-if="service.history?.length" class="sps-card">
-                    <h2 class="sps-card__title">История проверок</h2>
-                    <div v-for="item in service.history" :key="item.id" class="sps-review-item">
-                        <div class="sps-review-item__header">
-                            <span :class="['sps-dec-badge', 'sps-dec-badge--' + item.decision]">
-                                {{ item.decision === 'approved' ? '✓ Одобрено' : item.decision === 'rejected' ? '✗ Отклонено' : '⚑ Замечания' }}
-                            </span>
-                            <span class="sps-review-item__type">
-                                {{ item.type === 'initial' ? '(Модерация)' : '(Изменения)' }}
-                            </span>
-                            <span class="sps-review-item__date">
-                                {{ new Date(item.created_at).toLocaleDateString('ru-RU') }}
-                            </span>
-                            <span v-if="item.admin" class="sps-review-item__admin">
-                                {{ item.admin.name }}
-                            </span>
-                        </div>
-
-                        <!-- Flagged fields -->
-                        <div v-if="item.flagged_fields?.length" class="sps-review-item__detail">
-                            <span class="sps-review-item__detail-label">Помечено:</span>
-                            {{ item.flagged_fields.map(f => FIELD_LABELS[f] || f).join(', ') }}
-                        </div>
-
-                        <!-- Field comments -->
-                        <div v-if="item.field_comments && Object.keys(item.field_comments).length" class="sps-review-item__comments">
-                            <div v-for="(comment, field) in item.field_comments" :key="field" class="sps-review-item__comment">
-                                <span class="sps-review-item__comment-field">{{ FIELD_LABELS[field] || field }}:</span>
-                                {{ comment }}
-                            </div>
-                        </div>
-
-                        <!-- Rejection comment -->
-                        <div v-if="item.admin_comment" class="sps-review-item__comment sps-review-item__comment--rejection">
-                            <span class="sps-review-item__comment-field">Причина:</span>
-                            {{ item.admin_comment }}
-                        </div>
+        <!-- Service & Idol Overview Card -->
+        <div class="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex items-center justify-between flex-wrap gap-4">
+            <div class="flex items-center gap-3">
+                <img
+                    v-if="service.user?.avatar_url"
+                    :src="service.user.avatar_url"
+                    class="w-12 h-12 rounded-full object-cover border border-zinc-700 shrink-0"
+                    alt=""
+                />
+                <div class="min-w-0">
+                    <div class="text-sm font-bold text-zinc-100">{{ service.user?.name }}</div>
+                    <div class="text-xs text-zinc-400">{{ service.user?.email }}</div>
+                    <div class="mt-1 flex items-center gap-3 text-xs text-zinc-500">
+                        <span>Айдол ID: #{{ service.user?.id }}</span>
+                        <span>•</span>
+                        <Link :href="route('admin.users.show', service.user?.id)" class="text-violet-400 hover:underline">
+                            Открыть профиль ↗
+                        </Link>
                     </div>
                 </div>
             </div>
 
-            <!-- RIGHT: Decision form -->
-            <div class="sps-right">
+            <div class="flex items-center gap-6">
+                <div class="text-right">
+                    <span class="text-[11px] uppercase tracking-wider text-zinc-500 block">Стоимость</span>
+                    <div class="flex items-center gap-1.5 font-bold text-base text-zinc-100">
+                        <span>{{ formatMoney(service.price) }}</span>
+                        <CoinIcon color="blue" size="xs" />
+                        <span class="text-xs text-zinc-400 font-normal">/ {{ service.time_unit?.name || 'ед.' }}</span>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="text-[11px] uppercase tracking-wider text-zinc-500 block">Категория</span>
+                    <span class="text-xs font-semibold text-zinc-200">{{ service.category?.name || '—' }}</span>
+                </div>
+            </div>
+        </div>
 
-                <!-- Field flags -->
-                <div class="sps-card">
-                    <h2 class="sps-card__title">Поля</h2>
-                    <div v-for="field in FIELDS" :key="field" class="sps-flag-row" :class="{ 'sps-flag-row--flagged': flaggedFields[field] }">
-                        <div class="sps-flag-header">
-                            <label class="sps-flag-label">
-                                <input type="checkbox" v-model="flaggedFields[field]" class="sps-checkbox" />
-                                <span class="sps-flag-name" :class="{ 'sps-flag-name--flagged': flaggedFields[field] }">
-                                    {{ FIELD_LABELS[field] }}
-                                </span>
-                                <svg v-if="flaggedFields[field]" class="sps-warn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff7b7b" stroke-width="2.5">
-                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                                    <line x1="12" y1="9" x2="12" y2="13"/>
-                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
-                                </svg>
-                            </label>
-                            <span class="sps-flag-value">
-                                <template v-if="field === 'name_ru'">{{ service.name_ru || '—' }}</template>
-                                <template v-else-if="field === 'name_en'">{{ service.name_en || '—' }}</template>
-                                <template v-else-if="field === 'price'">
-                                    <span class="inline-flex items-center gap-1">
-                                        <span>{{ formatMoney(service.price) }}</span>
-                                        <CoinIcon color="blue" size="xs" />
-                                    </span>
-                                </template>
-                                <template v-else-if="field === 'category_id'">{{ service.category || '—' }}</template>
-                                <template v-else-if="field === 'time_unit_id'">{{ service.time_unit || '—' }}</template>
-                            </span>
-                        </div>
-                        <div v-if="flaggedFields[field]" class="sps-comment-wrapper">
-                            <textarea
-                                v-model="fieldComments[field]"
-                                class="sps-comment"
-                                rows="2"
-                                placeholder="Комментарий к замечанию..."
+        <!-- Service Parameters Review Grid -->
+        <div class="space-y-4">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                Параметры услуги для проверки
+            </h3>
+
+            <div class="space-y-3">
+                <!-- Name RU -->
+                <div class="p-4 rounded-xl border bg-zinc-900/40 border-zinc-800 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-zinc-400">Название (RU)</span>
+                        <label v-if="service.status === 'pending'" class="inline-flex items-center gap-2 text-xs text-zinc-400 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                v-model="flaggedFields.name_ru"
+                                class="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-amber-500 focus:ring-amber-500"
+                                @change="onToggleFlag('name_ru')"
                             />
-                            <div class="sps-presets">
-                                <button v-for="preset in PRESETS[field]" :key="preset" type="button" class="sps-preset-btn" @click="fieldComments[field] = preset">
-                                    + {{ preset }}
-                                </button>
-                            </div>
+                            <span :class="{ 'text-amber-400 font-semibold': flaggedFields.name_ru }">Есть замечание</span>
+                        </label>
+                    </div>
+                    <div class="text-sm font-semibold text-zinc-100">{{ service.name_ru || service.name }}</div>
+
+                    <div v-if="flaggedFields.name_ru" class="mt-3 pt-3 border-t border-zinc-800 space-y-2">
+                        <div class="flex flex-wrap gap-1">
+                            <button
+                                v-for="p in PRESETS.name_ru"
+                                :key="p"
+                                type="button"
+                                class="text-[11px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 hover:text-white"
+                                @click="fieldComments.name_ru = p"
+                            >
+                                {{ p }}
+                            </button>
                         </div>
+                        <input
+                            v-model="fieldComments.name_ru"
+                            type="text"
+                            class="w-full bg-zinc-950 border border-amber-900/60 rounded-lg p-2 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none"
+                            placeholder="Пояснение к замечанию..."
+                        />
                     </div>
                 </div>
 
-                <!-- Decision -->
-                <div class="sps-card sps-card--sticky">
-                    <h2 class="sps-card__title">Решение</h2>
-
-                    <label class="sps-approved-label">
-                        <input type="checkbox" v-model="isApproved" class="sps-checkbox" />
-                        <span>Одобрить услугу</span>
-                    </label>
-
-                    <p v-if="isApproved" class="sps-decision-hint sps-decision-hint--ok">
-                        Услуга будет одобрена и появится в профиле айдола. <span v-if="hasAnyFlag">При этом айдолу придут ваши замечания.</span>
-                    </p>
-                    <p v-else-if="hasAnyFlag" class="sps-decision-hint">
-                        Есть пометки, но галочка "Одобрить" не стоит — услуга вернется на доработку («Есть замечания»).
-                    </p>
-
-                    <div v-if="errors._" class="sps-err">{{ errors._ }}</div>
-
-                    <div class="sps-actions">
-                        <button
-                            class="sps-submit"
-                            :disabled="!canSubmit || submitting"
-                            @click="submit"
-                        >
-                            {{ submitting ? 'Отправка…' : 'Отправить решение' }}
-                        </button>
-
-                        <!-- Rejection section -->
-                        <div v-if="showReject" class="sps-reject-form">
-                            <textarea
-                                v-model="rejectionReason"
-                                class="sps-comment"
-                                rows="3"
-                                placeholder="Причина отклонения (увидит пользователь)..."
+                <!-- Price -->
+                <div class="p-4 rounded-xl border bg-zinc-900/40 border-zinc-800 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-zinc-400">Цена</span>
+                        <label v-if="service.status === 'pending'" class="inline-flex items-center gap-2 text-xs text-zinc-400 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                v-model="flaggedFields.price"
+                                class="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-amber-500 focus:ring-amber-500"
+                                @change="onToggleFlag('price')"
                             />
-                            <div class="sps-presets sps-presets--block">
-                                <button v-for="preset in PRESETS.rejection" :key="preset" type="button" class="sps-preset-btn" @click="rejectionReason = preset">
-                                    + {{ preset }}
-                                </button>
-                            </div>
-                        </div>
+                            <span :class="{ 'text-amber-400 font-semibold': flaggedFields.price }">Есть замечание</span>
+                        </label>
+                    </div>
+                    <div class="text-sm font-bold text-zinc-100 flex items-center gap-1.5">
+                        <span>{{ formatMoney(service.price) }}</span>
+                        <CoinIcon color="blue" size="xs" />
+                    </div>
 
-                        <button
-                            class="sps-reject"
-                            :disabled="submitting"
-                            @click="showReject ? reject() : (showReject = true)"
-                        >
-                            {{ showReject ? 'Подтвердить отклонение' : 'Отклонить полностью' }}
-                        </button>
-                        <button v-if="showReject" type="button" class="sps-cancel" @click="showReject = false; rejectionReason = ''">
-                            Отмена
-                        </button>
+                    <div v-if="flaggedFields.price" class="mt-3 pt-3 border-t border-zinc-800 space-y-2">
+                        <input
+                            v-model="fieldComments.price"
+                            type="text"
+                            class="w-full bg-zinc-950 border border-amber-900/60 rounded-lg p-2 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none"
+                            placeholder="Пояснение к замечанию по цене..."
+                        />
+                    </div>
+                </div>
+
+                <!-- Category -->
+                <div class="p-4 rounded-xl border bg-zinc-900/40 border-zinc-800 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-zinc-400">Категория</span>
+                        <label v-if="service.status === 'pending'" class="inline-flex items-center gap-2 text-xs text-zinc-400 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                v-model="flaggedFields.category_id"
+                                class="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-amber-500 focus:ring-amber-500"
+                                @change="onToggleFlag('category_id')"
+                            />
+                            <span :class="{ 'text-amber-400 font-semibold': flaggedFields.category_id }">Есть замечание</span>
+                        </label>
+                    </div>
+                    <div class="text-sm text-zinc-200">{{ service.category?.name || '—' }}</div>
+
+                    <div v-if="flaggedFields.category_id" class="mt-3 pt-3 border-t border-zinc-800 space-y-2">
+                        <input
+                            v-model="fieldComments.category_id"
+                            type="text"
+                            class="w-full bg-zinc-950 border border-amber-900/60 rounded-lg p-2 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none"
+                            placeholder="Пояснение по категории..."
+                        />
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Decision Box (Pending Mode) -->
+        <div v-if="service.status === 'pending'" class="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-4">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                Решение по услуге
+            </h3>
+
+            <div class="space-y-3">
+                <label
+                    class="flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all"
+                    :class="[
+                        isApproved
+                            ? 'bg-emerald-950/20 border-emerald-600/80 text-emerald-300'
+                            : 'bg-zinc-900/40 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                    ]"
+                >
+                    <input
+                        type="radio"
+                        :value="true"
+                        v-model="isApproved"
+                        class="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
+                        @change="Object.keys(flaggedFields).forEach(f => flaggedFields[f] = false)"
+                    />
+                    <div>
+                        <div class="font-bold text-xs text-zinc-100">Одобрить услугу</div>
+                        <div class="text-[11px] text-zinc-400">Услуга станет доступна клиентам в каталоге платформы</div>
+                    </div>
+                </label>
+
+                <label
+                    class="flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all"
+                    :class="[
+                        hasAnyFlag && !isApproved
+                            ? 'bg-amber-950/20 border-amber-600/80 text-amber-300'
+                            : 'bg-zinc-900/40 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                    ]"
+                >
+                    <input
+                        type="radio"
+                        :value="false"
+                        v-model="isApproved"
+                        class="w-4 h-4 text-amber-500 focus:ring-amber-500"
+                    />
+                    <div>
+                        <div class="font-bold text-xs text-zinc-100">Вернуть на доработку с замечаниями</div>
+                        <div class="text-[11px] text-zinc-400">Айдол получит замечания и сможет исправить услугу без потери позиции</div>
+                    </div>
+                </label>
+            </div>
+
+            <div class="flex items-center justify-between pt-3 border-t border-zinc-800">
+                <AdminButton
+                    variant="destructive"
+                    size="sm"
+                    @click="showRejectModal = true"
+                >
+                    Полностью отклонить
+                </AdminButton>
+
+                <AdminButton
+                    :variant="isApproved ? 'success' : 'warning'"
+                    size="md"
+                    :disabled="!canSubmit || submitting"
+                    :loading="submitting"
+                    @click="submitDecision"
+                >
+                    {{ isApproved ? 'Одобрить услугу' : 'Отправить замечания айдолу' }}
+                </AdminButton>
+            </div>
+        </div>
+
+        <!-- Reject Modal -->
+        <AdminModal
+            :show="showRejectModal"
+            title="Отклонить услугу?"
+            subtitle="Услуга будет окончательно отклонена, айдол получит уведомление"
+            @close="showRejectModal = false"
+        >
+            <div class="space-y-3">
+                <label class="text-xs font-semibold text-zinc-300">Причина отклонения:</label>
+                <textarea
+                    v-model="rejectionReason"
+                    rows="3"
+                    class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-rose-500"
+                    placeholder="Укажите подробную причину отклонения..."
+                    required
+                />
+            </div>
+
+            <template #footer>
+                <AdminButton variant="ghost" @click="showRejectModal = false">Отмена</AdminButton>
+                <AdminButton
+                    variant="destructive"
+                    :loading="submitting"
+                    :disabled="!rejectionReason.trim()"
+                    @click="reject"
+                >
+                    Подтвердить отклонение
+                </AdminButton>
+            </template>
+        </AdminModal>
     </div>
-
 </template>
-
-<style scoped>
-.sps-wrap { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
-
-.sps-back { color: rgba(255, 178, 239, 0.7); text-decoration: none; font-size: 0.88rem; display: inline-block; margin-bottom: 1.25rem; transition: color 0.15s; }
-.sps-back:hover { color: #ffb2ef; }
-
-.sps-warn-icon {
-    display: inline-block;
-    vertical-align: middle;
-    margin-left: 0.4rem;
-}
-
-.sps-layout { display: grid; grid-template-columns: 320px 1fr; gap: 1.25rem; }
-@media (max-width: 900px) { .sps-layout { grid-template-columns: 1fr; } }
-
-.sps-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 10px;
-    padding: 0.9rem 1rem;
-    margin-bottom: 1rem;
-}
-
-.sps-card__title { font-size: 0.9rem; font-weight: 600; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.85rem; }
-
-.sps-idol-link {
-    text-decoration: none;
-    display: block;
-}
-.sps-idol-link:hover .sps-idol__name {
-    color: #ffb2ef;
-}
-
-.sps-idol { display: flex; align-items: center; gap: 0.75rem; }
-.sps-idol__avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-.sps-idol__avatar--empty { background: rgba(255,178,239,0.15); display: flex; align-items: center; justify-content: center; color: rgba(255,178,239,0.7); font-weight: 600; }
-.sps-idol__name  { font-size: 0.95rem; font-weight: 600; color: rgba(255,255,255,0.85); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sps-idol__email { font-size: 0.8rem; color: rgba(255,255,255,0.4); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-.sps-meta { display: flex; flex-direction: column; gap: 0.55rem; }
-.sps-meta__row { display: flex; gap: 0.75rem; font-size: 0.88rem; align-items: baseline; }
-.sps-meta__label { color: rgba(255,255,255,0.35); flex-shrink: 0; width: 110px; }
-
-.sps-status { padding: 2px 8px; border-radius: 10px; font-size: 0.78rem; font-weight: 500; }
-.sps-status--pending     { background: rgba(255,178,239,0.15); color: #ffb2ef; }
-.sps-status--approved    { background: rgba(100,210,160,0.15); color: #64d2a0; }
-.sps-status--has_remarks { background: rgba(255,123,123,0.15); color: #ff7b7b; }
-.sps-status--rejected    { background: rgba(239,68,68,0.15); color: #ef4444; }
-
-.sps-review-item { padding: 0.6rem 0; border-top: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
-.sps-review-item:first-child { border-top: none; }
-.sps-review-item__header { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-.sps-review-item__date { color: rgba(255,255,255,0.3); font-size: 0.8rem; }
-.sps-review-item__admin { color: rgba(255,255,255,0.35); font-size: 0.8rem; margin-left: auto; }
-.sps-review-item__detail { margin-top: 0.3rem; color: rgba(255,255,255,0.4); font-size: 0.8rem; }
-.sps-review-item__comments { margin-top: 0.35rem; display: flex; flex-direction: column; gap: 0.2rem; }
-.sps-review-item__comment { font-size: 0.8rem; color: rgba(255,255,255,0.45); }
-.sps-review-item__comment-field { color: rgba(255,178,239,0.6); font-weight: 600; margin-right: 0.3rem; }
-.sps-review-item__type { color: rgba(255,255,255,0.25); font-size: 0.78rem; font-weight: 500; }
-.sps-dec--ok     { color: #64d2a0; }
-.sps-dec--bad    { color: #ff7b7b; }
-.sps-dec--reject { color: #ef4444; }
-
-.sps-flag-row { margin-bottom: 0.75rem; }
-.sps-flag-header { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
-.sps-flag-label { display: flex; align-items: center; gap: 0.4rem; cursor: pointer; }
-.sps-flag-name { font-size: 0.88rem; color: rgba(255,255,255,0.65); font-weight: 500; transition: color 0.15s; }
-.sps-flag-name--flagged { color: #ff7b7b; }
-.sps-flag-value { font-size: 0.83rem; color: rgba(255,255,255,0.35); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-.sps-checkbox { accent-color: #ffb2ef; width: 15px; height: 15px; cursor: pointer; }
-
-.sps-comment {
-    width: 100%;
-    box-sizing: border-box;
-    margin-top: 0.5rem;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,100,100,0.25);
-    border-radius: 6px;
-    color: rgba(255,255,255,0.8);
-    font-size: 0.85rem;
-    font-family: inherit;
-    padding: 0.45rem 0.65rem;
-    resize: vertical;
-    outline: none;
-}
-.sps-comment:focus { border-color: rgba(255,100,100,0.5); }
-.sps-comment::placeholder { color: rgba(255,255,255,0.25); }
-
-.sps-approved-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.92rem; color: rgba(255,255,255,0.7); }
-.sps-approved-label--disabled { opacity: 0.35; cursor: not-allowed; }
-.sps-decision-hint { font-size: 0.83rem; color: rgba(255,123,123,0.8); margin: 0.5rem 0 0; }
-.sps-decision-hint--ok { color: rgba(100,210,160,0.8); }
-
-.sps-err { font-size: 0.83rem; color: #ff7b7b; margin-top: 0.4rem; }
-
-.sps-actions { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
-
-.sps-submit {
-    width: 100%;
-    padding: 0.65rem;
-    border-radius: 8px;
-    background: rgba(255, 178, 239, 0.12);
-    border: 1px solid rgba(255, 178, 239, 0.35);
-    color: #ffb2ef;
-    font-size: 0.95rem;
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-.sps-submit:hover:not(:disabled) { background: rgba(255, 178, 239, 0.22); }
-.sps-submit:disabled { opacity: 0.4; cursor: not-allowed; }
-
-.sps-reject-form { margin-top: 0.25rem; }
-
-.sps-reject {
-    width: 100%;
-    padding: 0.55rem;
-    border-radius: 8px;
-    background: rgba(180,50,50,0.1);
-    border: 1px solid rgba(200,60,60,0.3);
-    color: rgba(255,110,110,0.8);
-    font-size: 0.88rem;
-    font-weight: 500;
-    font-family: inherit;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-.sps-reject:hover:not(:disabled) { background: rgba(180,50,50,0.2); }
-.sps-reject:disabled { opacity: 0.4; cursor: not-allowed; }
-
-.sps-cancel {
-    width: 100%;
-    padding: 0.45rem;
-    border-radius: 8px;
-    background: transparent;
-    border: 1px solid rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.45);
-    font-size: 0.85rem;
-    font-family: inherit;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-.sps-cancel:hover { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.65); }
-
-/* ── Enhanced UI/UX Styles ── */
-.sps-flag-row {
-    border: 1px solid transparent;
-    border-radius: 8px;
-    padding: 0.5rem;
-    transition: all 0.2s ease;
-}
-.sps-flag-row--flagged {
-    border-color: rgba(255,100,100,0.15);
-    background: rgba(255,100,100,0.02);
-}
-.sps-indicator {
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 2px 6px;
-    border-radius: 4px;
-}
-.sps-indicator--ok {
-    color: #64d2a0;
-    background: rgba(100,210,160,0.1);
-}
-.sps-indicator--flagged {
-    color: #ff7b7b;
-    background: rgba(255,123,123,0.1);
-}
-.sps-presets {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-top: 0.35rem;
-}
-.sps-presets--block {
-    margin-bottom: 0.75rem;
-    margin-top: 0.5rem;
-}
-.sps-preset-btn {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    color: rgba(255,255,255,0.5);
-    font-size: 0.72rem;
-    padding: 3px 8px;
-    cursor: pointer;
-    transition: all 0.15s;
-}
-.sps-preset-btn:hover {
-    background: rgba(255, 178, 239, 0.1);
-    color: #ffb2ef;
-    border-color: rgba(255, 178, 239, 0.25);
-}
-.sps-card--sticky {
-    position: sticky;
-    bottom: 1rem;
-    z-index: 100;
-    background: rgba(30, 30, 42, 0.96) !important;
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 178, 239, 0.25) !important;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-}
-
-/* ── Decision Badges ── */
-.sps-dec-badge {
-    display: inline-block;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.72rem;
-    font-weight: 600;
-}
-.sps-dec-badge--approved {
-    background: rgba(100,210,160,0.12);
-    color: #64d2a0;
-}
-.sps-dec-badge--rejected {
-    background: rgba(239,68,68,0.12);
-    color: #ef4444;
-}
-.sps-dec-badge--has_remarks {
-    background: rgba(255,123,123,0.12);
-    color: #ff7b7b;
-}
-
-.sps-review-item__detail-label {
-    color: rgba(255,255,255,0.3);
-    font-weight: 600;
-    margin-right: 0.25rem;
-}
-.sps-review-item__comment--rejection {
-    background: rgba(239,68,68,0.04);
-    border: 1px solid rgba(239,68,68,0.15);
-    border-radius: 6px;
-    padding: 0.5rem 0.75rem;
-    margin-top: 0.5rem;
-}
-</style>

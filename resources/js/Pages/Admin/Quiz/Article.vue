@@ -1,7 +1,12 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref } from 'vue';
 import { useForm, router, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
+import AdminModal from '@/Components/Admin/UI/AdminModal.vue';
+import AdminInput from '@/Components/Admin/UI/AdminInput.vue';
 import HtmlEditor from '@/Components/Admin/HtmlEditor.vue';
 import axios from 'axios';
 import { ElNotification, ElMessageBox, ElMessage } from 'element-plus';
@@ -10,7 +15,7 @@ defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
     active_version: Object,   // { id, html, label, created_at }
-    versions: Array,           // [{ id, label, is_active, created_at }]
+    versions: { type: Array, default: () => [] }, // [{ id, label, is_active, created_at }]
 });
 
 // ── Editor state ──────────────────────────────────────────
@@ -33,8 +38,6 @@ function closeSaveModal() {
 const saveForm = useForm({ html: '', label: '' });
 const importForm = useForm({ file: null });
 
-const page = usePage();
-
 function saveVersion() {
     savePending.value = true;
     saveForm.html  = editorHtml.value;
@@ -44,6 +47,7 @@ function saveVersion() {
         onSuccess: () => {
             showSaveModal.value = false;
             saveLabel.value = '';
+            ElMessage.success('Версия успешно сохранена');
         },
         onFinish: () => { savePending.value = false; },
     });
@@ -57,6 +61,9 @@ function saveActiveDirectly() {
     activeUpdateForm.html = editorHtml.value;
     activeUpdateForm.patch(route('admin.quiz.article.active.update'), {
         preserveScroll: true,
+        onSuccess: () => {
+            ElMessage.success('Активная статья обновлена');
+        },
         onFinish: () => { saveActivePending.value = false; }
     });
 }
@@ -71,16 +78,17 @@ function askActivate(version) {
 }
 
 function confirmActivate() {
+    if (!activateTarget.value) return;
     router.patch(
         route('admin.quiz.article.versions.activate', activateTarget.value.id),
         {},
         {
             preserveScroll: true,
             onSuccess: (page) => {
-                // Load the activated HTML into editor
                 editorHtml.value = page.props.active_version?.html ?? '';
                 showActivateModal.value = false;
                 activateTarget.value = null;
+                ElMessage.success('Версия успешно активирована');
             },
         }
     );
@@ -114,6 +122,7 @@ function askDelete(version) {
 }
 
 function confirmDelete() {
+    if (!deleteTarget.value) return;
     router.delete(
         route('admin.quiz.article.versions.destroy', deleteTarget.value.id),
         {
@@ -121,6 +130,7 @@ function confirmDelete() {
             onSuccess: () => {
                 showDeleteModal.value = false;
                 deleteTarget.value = null;
+                ElMessage.success('Версия удалена');
             },
         }
     );
@@ -146,7 +156,6 @@ function openDiffModal() {
     } else if (props.versions && props.versions.length === 1) {
         diffVersionB.value = props.versions[0].id;
         diffVersionA.value = null;
-        // Fetch only B
         diffLoading.value = true;
         axios.get(route('admin.quiz.article.versions.show', diffVersionB.value))
             .then(resB => { htmlB.value = resB.data.html ?? ''; })
@@ -166,8 +175,6 @@ function runCompare() {
     }
 
     diffLoading.value = true;
-
-    // Load both version contents in parallel
     Promise.all([
         axios.get(route('admin.quiz.article.versions.show', diffVersionA.value)),
         axios.get(route('admin.quiz.article.versions.show', diffVersionB.value))
@@ -194,14 +201,13 @@ const importInput    = ref(null);
 const importPending  = ref(false);
 
 function triggerImport() {
-    importInput.value.click();
+    importInput.value?.click();
 }
 
 function onImportFile(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Read file locally to load into the editor instantly
     const reader = new FileReader();
     reader.onload = (evt) => {
         editorHtml.value = evt.target.result;
@@ -215,7 +221,8 @@ function onImportFile(e) {
         preserveScroll: true,
         onFinish: () => {
             importPending.value = false;
-            if (e && e.target) e.target.value = '';
+            if (e?.target) e.target.value = '';
+            ElMessage.success('Статья импортирована как новая версия');
         },
     });
 }
@@ -223,20 +230,11 @@ function onImportFile(e) {
 // ── Drag & Drop ──────────────────────────────────────────
 const isDragging = ref(false);
 
-function onDragOver(e) {
-    e.preventDefault();
-}
-
-function onDragEnter(e) {
-    e.preventDefault();
-    isDragging.value = true;
-}
-
+function onDragOver(e) { e.preventDefault(); }
+function onDragEnter(e) { e.preventDefault(); isDragging.value = true; }
 function onDragLeave(e) {
     e.preventDefault();
-    if (!e.relatedTarget) {
-        isDragging.value = false;
-    }
+    if (!e.relatedTarget) isDragging.value = false;
 }
 
 function onDrop(e) {
@@ -255,7 +253,6 @@ function onDrop(e) {
             return;
         }
 
-        // Read file locally to load into the editor instantly
         const reader = new FileReader();
         reader.onload = (evt) => {
             editorHtml.value = evt.target.result;
@@ -269,6 +266,7 @@ function onDrop(e) {
             preserveScroll: true,
             onFinish: () => {
                 importPending.value = false;
+                ElMessage.success('Статья импортирована');
             },
         });
     }
@@ -276,6 +274,7 @@ function onDrop(e) {
 
 // ── Helpers ───────────────────────────────────────────────
 function fmtDate(d) {
+    if (!d) return '—';
     return new Date(d).toLocaleString('ru-RU', {
         day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit',
@@ -289,1078 +288,333 @@ function fmtDate(d) {
         @dragenter="onDragEnter"
         @dragleave="onDragLeave"
         @drop="onDrop"
-        class="article-page"
+        class="space-y-6 relative min-h-[calc(100vh-8rem)]"
     >
         <!-- Drag & Drop Overlay -->
-        <div v-if="isDragging" class="drag-drop-overlay" @dragleave="isDragging = false" @dragover.prevent>
-            <div class="drag-drop-content">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="drag-icon">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="17 8 12 3 7 8"/>
-                    <line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-                <p class="drag-text">Перетащите сюда файл .html для импорта статьи</p>
-                <span class="drag-subtext">Файл будет загружен как новая версия</span>
+        <div
+            v-if="isDragging"
+            class="fixed inset-0 z-50 bg-zinc-950/80 backdrop-blur-sm flex items-center justify-center p-6 border-2 border-dashed border-violet-500 m-4 rounded-2xl"
+            @dragleave="isDragging = false"
+            @dragover.prevent
+        >
+            <div class="text-center">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
+                    <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-semibold text-zinc-100">Перетащите сюда .html файл</h3>
+                <p class="text-sm text-zinc-400 mt-1">Файл будет автоматически импортирован как новая версия статьи</p>
             </div>
         </div>
 
-        <!-- ── Header ── -->
-        <div class="ap-header">
-            <div>
-                <h1 class="ap-title">Статья для вступления в Айдолы</h1>
-                <p class="ap-sub">Текст, который пользователь читает перед тестом. Активная версия отображается на <code>/idol/apply</code>.</p>
-            </div>
-            <div class="ap-header-actions">
-                <button class="btn-ghost btn-sm" @click="triggerImport" :disabled="importPending">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    {{ importPending ? 'Импорт...' : 'Импорт' }}
-                </button>
-                <button class="btn-ghost btn-sm" @click="exportArticle">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    Экспорт
-                </button>
-                <button class="btn-ghost btn-sm" @click="openDiffModal" :disabled="versions.length < 2">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                    Сравнить версии
-                </button>
-                <button class="btn-success" @click="saveActiveDirectly" :disabled="saveActivePending">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                    {{ saveActivePending ? 'Сохранение...' : 'Сохранить изменения' }}
-                </button>
-                <button class="btn-primary" @click="openSaveModal">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                    Сохранить как версию
-                </button>
-            </div>
-            <input ref="importInput" type="file" accept=".html,.htm" style="display:none" @change="onImportFile" />
-        </div>
+        <!-- ── Page Header ── -->
+        <AdminPageHeader
+            title="Обучающая статья Айдола"
+            subtitle="Текст регламента и стандартов, который кандидат обязан изучить перед прохождением квиза (/idol/apply)"
+        >
+            <template #actions>
+                <div class="flex flex-wrap items-center gap-2">
+                    <AdminButton variant="outline" size="sm" @click="triggerImport" :disabled="importPending">
+                        <svg class="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        {{ importPending ? 'Импорт...' : 'Импорт .html' }}
+                    </AdminButton>
 
-        <!-- ── Top: horizontal version history ── -->
-        <div class="ap-versions-top">
-            <div class="versions-pane-horizontal">
-                <div class="vph-head">
-                    <span class="vph-title">История версий</span>
-                    <span class="vph-count">{{ versions.length }}</span>
+                    <AdminButton variant="outline" size="sm" @click="exportArticle">
+                        <svg class="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Экспорт
+                    </AdminButton>
+
+                    <AdminButton variant="outline" size="sm" @click="openDiffModal" :disabled="versions.length < 2">
+                        <svg class="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+                        </svg>
+                        Сравнить версии
+                    </AdminButton>
+
+                    <AdminButton variant="primary" size="sm" @click="saveActiveDirectly" :disabled="saveActivePending">
+                        <svg class="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+                        </svg>
+                        {{ saveActivePending ? 'Сохранение...' : 'Сохранить изменения' }}
+                    </AdminButton>
+
+                    <AdminButton variant="secondary" size="sm" @click="openSaveModal">
+                        <svg class="w-4 h-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+                        </svg>
+                        Сохранить как версию
+                    </AdminButton>
                 </div>
-                <div class="versions-list-horizontal">
-                    <div v-if="!versions.length" class="versions-empty-horizontal">
-                        Нет сохранённых версий
-                    </div>
-                    <div
-                        v-for="v in versions"
-                        :key="v.id"
-                        class="version-card-horizontal"
-                        :class="{ 'version-card-horizontal--active': v.is_active }"
-                    >
-                        <div class="vch-top">
-                            <span v-if="v.is_active" class="vc-active-badge">● Активна</span>
-                            <span class="vc-date">{{ fmtDate(v.created_at) }}</span>
+            </template>
+        </AdminPageHeader>
+
+        <!-- Hidden input for file selection -->
+        <input ref="importInput" type="file" accept=".html,.htm" class="hidden" @change="onImportFile" />
+
+        <!-- ── Horizontal Version History Ribbon ── -->
+        <div class="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <span class="text-xs font-semibold uppercase tracking-wider text-zinc-300">История сохранённых версий</span>
+                </div>
+                <span class="text-xs font-medium text-zinc-500">Всего: {{ versions.length }}</span>
+            </div>
+
+            <div class="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-zinc-700">
+                <div v-if="!versions.length" class="text-xs text-zinc-500 italic py-2">
+                    Нет сохранённых версий
+                </div>
+
+                <div
+                    v-for="v in versions"
+                    :key="v.id"
+                    class="flex-shrink-0 w-64 bg-zinc-950/70 border rounded-lg p-3 transition-colors flex flex-col justify-between"
+                    :class="v.is_active ? 'border-violet-500/50 bg-violet-950/10 ring-1 ring-violet-500/30' : 'border-zinc-800 hover:border-zinc-700'"
+                >
+                    <div>
+                        <div class="flex items-center justify-between gap-1 mb-1.5">
+                            <AdminBadge v-if="v.is_active" variant="success" size="sm">● Активна</AdminBadge>
+                            <span v-else class="text-[10px] text-zinc-500 font-mono">ID #{{ v.id }}</span>
+                            <span class="text-[11px] text-zinc-400 font-mono">{{ fmtDate(v.created_at) }}</span>
                         </div>
-                        <div class="vch-label" :title="v.label">
-                            {{ v.label || '— автоматическая версия —' }}
-                        </div>
-                        <div class="vc-actions">
-                            <button
-                                v-if="!v.is_active"
-                                class="vc-btn vc-btn--activate"
-                                @click="askActivate(v)"
-                                title="Активировать эту версию"
-                            >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                                Активировать
-                            </button>
-                            <button
-                                class="vc-btn vc-btn--load"
-                                @click="loadVersion(v)"
-                                title="Загрузить эту версию в редактор"
-                            >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-                                Загрузить
-                            </button>
-                            <button
-                                v-if="!v.is_active"
-                                class="vc-btn vc-btn--delete"
-                                @click="askDelete(v)"
-                                title="Удалить версию"
-                            >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                            </button>
+                        <div class="text-xs text-zinc-200 font-medium truncate mb-2" :title="v.label">
+                            {{ v.label || '— автоверсия —' }}
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- ── Main layout: editor + preview ── -->
-        <div class="ap-layout">
-
-            <!-- Left: editor -->
-            <div class="ap-editor-col">
-                <div class="ap-pane">
-                    <div class="pane-head">
-                        <span class="pane-label">Редактор</span>
-                        <span class="pane-tag">Tiptap · HTML</span>
-                    </div>
-                    <div class="pane-body editor-body">
-                        <HtmlEditor v-model="editorHtml" />
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right: preview -->
-            <div class="ap-preview-col">
-                <div class="ap-pane ap-pane--preview">
-                    <div class="pane-head">
-                        <span class="pane-label">Предпросмотр</span>
-                        <span class="pane-tag pane-tag--pink">Живой вид · /idol/apply</span>
-                    </div>
-                    <div class="pane-body preview-body">
-                        <div class="preview-article">
-                            <div
-                                class="article-body-preview"
-                                v-html="editorHtml || '<p class=\'empty-preview\'>Начните вводить текст в редакторе выше...</p>'"
-                            ></div>
-                            <div class="preview-cta">
-                                <button class="btn-preview-cta" disabled>Начать тест</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- ════════════════════════════════════════════════════════
-             MODALS
-        ════════════════════════════════════════════════════════ -->
-
-        <!-- Save version modal -->
-        <Teleport to="body">
-            <div v-if="showSaveModal" class="modal-overlay" @click.self="closeSaveModal">
-                <div class="modal">
-                    <div class="modal-head">
-                        <span>Сохранить как версию</span>
-                        <button class="modal-close" @click="closeSaveModal">✕</button>
-                    </div>
-                    <div class="modal-body">
-                        <label class="field-label">Комментарий <span class="field-optional">(необязательно)</span></label>
-                        <input
-                            v-model="saveLabel"
-                            class="field-input"
-                            type="text"
-                            maxlength="120"
-                            placeholder="Например: правки после ревью, обновил требования..."
-                            @keydown.enter="saveVersion"
-                        />
-                        <p class="field-hint">Если оставить пустым — версия будет автоматической (хранятся последние 10).</p>
-                    </div>
-                    <div class="modal-foot">
-                        <button class="btn-ghost" @click="closeSaveModal">Отмена</button>
-                        <button class="btn-primary" @click="saveVersion" :disabled="savePending">
-                            {{ savePending ? 'Сохранение...' : 'Сохранить версию' }}
+                    <div class="flex items-center gap-1.5 pt-2 border-t border-zinc-800/80">
+                        <button
+                            v-if="!v.is_active"
+                            @click="askActivate(v)"
+                            class="text-[11px] px-2 py-0.5 rounded bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 transition-colors font-medium"
+                            title="Сделать публичной активной версией"
+                        >
+                            Активировать
+                        </button>
+                        <button
+                            @click="loadVersion(v)"
+                            class="text-[11px] px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors font-medium ml-auto"
+                            title="Загрузить в редактор"
+                        >
+                            Загрузить
+                        </button>
+                        <button
+                            v-if="!v.is_active"
+                            @click="askDelete(v)"
+                            class="text-[11px] p-1 rounded hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 transition-colors"
+                            title="Удалить версию"
+                        >
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                            </svg>
                         </button>
                     </div>
                 </div>
             </div>
-        </Teleport>
+        </div>
 
-        <!-- Activate confirm modal -->
-        <Teleport to="body">
-            <div v-if="showActivateModal" class="modal-overlay" @click.self="showActivateModal = false">
-                <div class="modal modal--warn">
-                    <div class="modal-head">
-                        <span>Активировать версию?</span>
-                        <button class="modal-close" @click="showActivateModal = false">✕</button>
+        <!-- ── Main 2-Column Split: Editor + Live Preview ── -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <!-- Left Column: Rich Tiptap Editor -->
+            <div class="bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden shadow-sm">
+                <div class="flex items-center justify-between px-4 py-3 border-b border-zinc-800 bg-zinc-950/40">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                        </svg>
+                        <span class="text-xs font-semibold uppercase tracking-wider text-zinc-300">Редактор регламента</span>
                     </div>
-                    <div class="modal-body">
-                        <div class="warn-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                        </div>
-                        <p class="modal-warn-text">
-                            Версия <strong>«{{ activateTarget?.label || fmtDate(activateTarget?.created_at) }}»</strong> станет активной и будет показываться всем пользователям на <code>/idol/apply</code>.
-                        </p>
-                        <p class="modal-warn-sub">Несохранённые изменения в редакторе будут потеряны. Сохраните их как версию, если нужно.</p>
+                    <span class="text-[11px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 font-mono">Tiptap · HTML</span>
+                </div>
+                <div class="p-4 bg-zinc-950/20 min-h-[500px]">
+                    <HtmlEditor v-model="editorHtml" />
+                </div>
+            </div>
+
+            <!-- Right Column: Live Candidate Preview -->
+            <div class="bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden shadow-sm">
+                <div class="flex items-center justify-between px-4 py-3 border-b border-zinc-800 bg-zinc-950/40">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-pink-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        <span class="text-xs font-semibold uppercase tracking-wider text-zinc-300">Предпросмотр на странице подачи</span>
                     </div>
-                    <div class="modal-foot">
-                        <button class="btn-ghost" @click="showActivateModal = false">Отмена</button>
-                        <button class="btn-danger" @click="confirmActivate">Активировать</button>
+                    <span class="text-[11px] px-2 py-0.5 rounded bg-pink-500/10 text-pink-400 border border-pink-500/20 font-mono">Живой вид · /idol/apply</span>
+                </div>
+
+                <div class="p-6 bg-zinc-950/40 min-h-[500px] flex flex-col justify-between">
+                    <div
+                        class="prose prose-invert prose-zinc max-w-none prose-headings:text-zinc-100 prose-p:text-zinc-300 prose-a:text-pink-400 text-sm leading-relaxed"
+                        v-html="editorHtml || '<p class=\'text-zinc-500 italic\'>Текст статьи пока пуст. Начните редактирование слева...</p>'"
+                    ></div>
+
+                    <div class="mt-8 pt-4 border-t border-zinc-800/80 flex justify-center">
+                        <button disabled class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-pink-500/40 to-violet-500/40 text-white/50 text-sm font-semibold cursor-not-allowed">
+                            Перейти к квизу (демо)
+                        </button>
                     </div>
                 </div>
             </div>
-        </Teleport>
+        </div>
 
-        <!-- Delete confirm modal -->
-        <Teleport to="body">
-            <div v-if="showDeleteModal" class="modal-overlay" @click.self="showDeleteModal = false">
-                <div class="modal modal--warn">
-                    <div class="modal-head">
-                        <span>Удалить версию?</span>
-                        <button class="modal-close" @click="showDeleteModal = false">✕</button>
+        <!-- ── Modals ── -->
+
+        <!-- Save Version Modal -->
+        <AdminModal
+            :open="showSaveModal"
+            title="Сохранить как именованную версию"
+            description="Сохраните текущее состояние статьи с меткой, чтобы к ней можно было вернуться в любой момент"
+            @close="closeSaveModal"
+        >
+            <div class="space-y-4 py-2">
+                <AdminInput
+                    v-model="saveLabel"
+                    label="Комментарий к версии"
+                    placeholder="Например: Добавлены требования по верификации СБП"
+                    hint="Если оставить пустым, версия сохранится как автоматическая"
+                    maxlength="120"
+                    @keydown.enter="saveVersion"
+                />
+            </div>
+            <template #footer>
+                <div class="flex items-center justify-end gap-2">
+                    <AdminButton variant="outline" size="sm" @click="closeSaveModal">Отмена</AdminButton>
+                    <AdminButton variant="primary" size="sm" :loading="savePending" @click="saveVersion">
+                        Сохранить версию
+                    </AdminButton>
+                </div>
+            </template>
+        </AdminModal>
+
+        <!-- Activate Version Confirm Modal -->
+        <AdminModal
+            :open="showActivateModal"
+            title="Активировать эту версию?"
+            description="Указанная версия станет публичной для всех новых кандидатов в айдолы"
+            variant="warning"
+            @close="showActivateModal = false"
+        >
+            <div class="py-2 text-sm text-zinc-300 space-y-2">
+                <p>
+                    Версия <strong class="text-white">«{{ activateTarget?.label || fmtDate(activateTarget?.created_at) }}»</strong> будет активирована.
+                </p>
+                <p class="text-xs text-zinc-400">
+                    Несохранённые правки в редакторе будут заменены содержимым активируемой версии.
+                </p>
+            </div>
+            <template #footer>
+                <div class="flex items-center justify-end gap-2">
+                    <AdminButton variant="outline" size="sm" @click="showActivateModal = false">Отмена</AdminButton>
+                    <AdminButton variant="danger" size="sm" @click="confirmActivate">
+                        Активировать
+                    </AdminButton>
+                </div>
+            </template>
+        </AdminModal>
+
+        <!-- Delete Version Confirm Modal -->
+        <AdminModal
+            :open="showDeleteModal"
+            title="Удалить сохранённую версию?"
+            description="Это действие необратимо удалит данную версию статьи из истории"
+            variant="danger"
+            @close="showDeleteModal = false"
+        >
+            <div class="py-2 text-sm text-zinc-300">
+                Вы действительно хотите удалить версию <strong class="text-white">«{{ deleteTarget?.label || fmtDate(deleteTarget?.created_at) }}»</strong>?
+            </div>
+            <template #footer>
+                <div class="flex items-center justify-end gap-2">
+                    <AdminButton variant="outline" size="sm" @click="showDeleteModal = false">Отмена</AdminButton>
+                    <AdminButton variant="danger" size="sm" @click="confirmDelete">
+                        Удалить
+                    </AdminButton>
+                </div>
+            </template>
+        </AdminModal>
+
+        <!-- Diff Modal -->
+        <AdminModal
+            :open="showDiffModal"
+            title="Сравнение версий статьи"
+            description="Сравните текст двух любых версий для анализа внесенных правок"
+            size="2xl"
+            @close="showDiffModal = false"
+        >
+            <div class="space-y-4 py-2">
+                <!-- Selectors -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-zinc-400 mb-1.5">Старая версия (Было)</label>
+                        <select
+                            v-model="diffVersionA"
+                            @change="runCompare"
+                            class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 outline-none focus:border-violet-500"
+                        >
+                            <option v-for="v in versions" :key="v.id" :value="v.id">
+                                {{ v.label || '— автоверсия —' }} ({{ fmtDate(v.created_at) }})
+                            </option>
+                        </select>
                     </div>
-                    <div class="modal-body">
-                        <p class="modal-warn-text">
-                            Версия <strong>«{{ deleteTarget?.label || fmtDate(deleteTarget?.created_at) }}»</strong> будет удалена безвозвратно.
-                        </p>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-zinc-400 mb-1.5">Новая версия (Стало)</label>
+                        <select
+                            v-model="diffVersionB"
+                            @change="runCompare"
+                            class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-200 outline-none focus:border-violet-500"
+                        >
+                            <option v-for="v in versions" :key="v.id" :value="v.id">
+                                {{ v.label || '— автоверсия —' }} ({{ fmtDate(v.created_at) }})
+                            </option>
+                        </select>
                     </div>
-                    <div class="modal-foot">
-                        <button class="btn-ghost" @click="showDeleteModal = false">Отмена</button>
-                        <button class="btn-danger" @click="confirmDelete">Удалить</button>
+                </div>
+
+                <!-- Comparison Panes -->
+                <div v-if="diffLoading" class="text-center py-12 text-zinc-500 text-xs font-medium">
+                    Загрузка содержимого версий...
+                </div>
+                <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pt-2">
+                    <div class="bg-zinc-950/60 border border-zinc-800/80 rounded-xl p-4">
+                        <div class="text-[11px] font-semibold uppercase text-rose-400 mb-3 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                            Было
+                        </div>
+                        <div
+                            class="prose prose-invert prose-zinc max-w-none text-xs leading-relaxed"
+                            v-html="htmlA || '<p class=\'text-zinc-600 italic\'>Нет содержимого</p>'"
+                        ></div>
+                    </div>
+
+                    <div class="bg-zinc-950/60 border border-zinc-800/80 rounded-xl p-4">
+                        <div class="text-[11px] font-semibold uppercase text-emerald-400 mb-3 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            Стало
+                        </div>
+                        <div
+                            class="prose prose-invert prose-zinc max-w-none text-xs leading-relaxed"
+                            v-html="htmlB || '<p class=\'text-zinc-600 italic\'>Нет содержимого</p>'"
+                        ></div>
                     </div>
                 </div>
             </div>
-        </Teleport>
-
-        <!-- Diff modal -->
-        <Teleport to="body">
-            <div v-if="showDiffModal" class="modal-overlay" @click.self="showDiffModal = false">
-                <div class="modal modal--diff">
-                    <div class="modal-head">
-                        <span>Сравнение версий</span>
-                        <button class="modal-close" @click="showDiffModal = false">✕</button>
-                    </div>
-                    <div class="modal-body modal-body--diff">
-                        <!-- Version Selection Header -->
-                        <div class="diff-selectors">
-                            <div class="diff-sel-group">
-                                <label class="diff-sel-label">Было (Старая версия)</label>
-                                <select v-model="diffVersionA" @change="runCompare" class="diff-select">
-                                    <option v-for="v in versions" :key="v.id" :value="v.id">
-                                        {{ v.label || '— автоматическая версия —' }} ({{ fmtDate(v.created_at) }})
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="diff-sel-arrow">→</div>
-                            <div class="diff-sel-group">
-                                <label class="diff-sel-label">Стало (Новая версия)</label>
-                                <select v-model="diffVersionB" @change="runCompare" class="diff-select">
-                                    <option v-for="v in versions" :key="v.id" :value="v.id">
-                                        {{ v.label || '— автоматическая версия —' }} ({{ fmtDate(v.created_at) }})
-                                    </option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Diff Output: Side-by-side text/HTML -->
-                        <div v-if="diffLoading" class="diff-loading">Загружаем содержимое версий...</div>
-                        <div v-else class="diff-side-by-side">
-                            <div class="diff-column">
-                                <div class="diff-column-head">Было (Старая версия)</div>
-                                <div class="diff-column-body" v-html="htmlA || '<p class=\'empty-column\'>Нет содержимого</p>'"></div>
-                            </div>
-                            <div class="diff-column">
-                                <div class="diff-column-head">Стало (Новая версия)</div>
-                                <div class="diff-column-body" v-html="htmlB || '<p class=\'empty-column\'>Нет содержимого</p>'"></div>
-                            </div>
-                        </div>
-                    </div>
+            <template #footer>
+                <div class="flex justify-end">
+                    <AdminButton variant="outline" size="sm" @click="showDiffModal = false">Закрыть</AdminButton>
                 </div>
-            </div>
-        </Teleport>
+            </template>
+        </AdminModal>
     </div>
 </template>
-
-<style scoped>
-/* ═══════════════════════════════════════════════════════
-   Page shell
-   ═══════════════════════════════════════════════════════ */
-.article-page {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-    height: calc(100vh - 110px);
-    font-family: 'Rubik', sans-serif;
-    min-height: 0;
-}
-
-/* ── Header ── */
-.ap-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-    flex-wrap: wrap;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    flex-shrink: 0;
-}
-
-.ap-title {
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: rgba(255,255,255,0.9);
-    margin: 0 0 0.2rem;
-}
-
-.ap-sub {
-    font-size: 0.8rem;
-    color: rgba(255,255,255,0.38);
-    margin: 0;
-}
-
-.ap-sub code {
-    font-size: 0.78rem;
-    background: rgba(255,178,239,0.08);
-    border: 1px solid rgba(255,178,239,0.18);
-    border-radius: 3px;
-    padding: 0.05em 0.3em;
-    color: #ffb2ef;
-}
-
-.ap-header-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    flex-shrink: 0;
-}
-
-/* ── Main layout ── */
-.ap-layout {
-    display: flex;
-    gap: 1.25rem;
-    flex: 1;
-    min-height: 0;
-}
-
-.ap-editor-col,
-.ap-preview-col {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-}
-
-/* ── Pane ── */
-.ap-pane {
-    display: flex;
-    flex-direction: column;
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 8px;
-    overflow: hidden;
-    flex: 1;
-    min-height: 0;
-}
-
-.ap-pane--preview {
-    flex: 1;
-    min-height: 0;
-}
-
-.pane-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.65rem 1rem;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    background: rgba(255,255,255,0.01);
-    flex-shrink: 0;
-}
-
-.pane-label {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: rgba(255,255,255,0.7);
-}
-
-.pane-tag {
-    font-size: 0.68rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    color: rgba(255,255,255,0.35);
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 3px;
-    padding: 0.18rem 0.5rem;
-}
-
-.pane-tag--pink {
-    color: rgba(255,178,239,0.7);
-    background: rgba(255,178,239,0.06);
-    border-color: rgba(255,178,239,0.18);
-}
-
-.pane-body { padding: 0; }
-
-.editor-body {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-}
-
-/* ── Preview ── */
-.preview-body {
-    padding: 1.25rem 1.5rem;
-    flex: 1;
-    overflow-y: auto;
-    min-height: 0;
-}
-
-.preview-article {
-    font-family: 'Rubik', sans-serif;
-    max-width: 640px;
-}
-
-.article-body-preview {
-    color: rgba(255,255,255,0.52);
-    line-height: 1.85;
-    font-size: 0.88rem;
-}
-.article-body-preview :deep(h1) { font-size: 1.5rem; font-weight: 700; color: rgba(255,255,255,0.88); margin: 0 0 0.85rem; }
-.article-body-preview :deep(h2) { font-size: 1.2rem; font-weight: 700; color: rgba(255,255,255,0.82); margin: 2rem 0 0.75rem; }
-.article-body-preview :deep(h2:first-child), .article-body-preview :deep(h1:first-child) { margin-top: 0; }
-.article-body-preview :deep(h3) { font-size: 0.97rem; font-weight: 600; color: rgba(255,178,239,0.8); margin: 1.5rem 0 0.5rem; }
-.article-body-preview :deep(p)  { margin: 0 0 1rem; color: rgba(255,255,255,0.52); }
-.article-body-preview :deep(ul), .article-body-preview :deep(ol) { margin: 0 0 1rem; padding-left: 0; list-style: none; }
-.article-body-preview :deep(li) { position: relative; padding-left: 1.4rem; margin-bottom: 0.6rem; color: rgba(255,255,255,0.52); }
-.article-body-preview :deep(ul li::before) { content: ''; position: absolute; left: 0.25rem; top: 0.55em; width: 5px; height: 5px; border-radius: 50%; background: rgba(255,178,239,0.6); }
-.article-body-preview :deep(li strong), .article-body-preview :deep(strong) { color: rgba(255,255,255,0.8); font-weight: 600; }
-.article-body-preview :deep(blockquote) { border-left: 2px solid rgba(255,178,239,0.35); padding: 0.5em 0.9em; margin: 1em 0; background: rgba(255,178,239,0.03); color: rgba(255,255,255,0.42); font-style: italic; border-radius: 0 4px 4px 0; }
-.article-body-preview :deep(code) { font-size: 0.82em; background: rgba(255,178,239,0.08); border: 1px solid rgba(255,178,239,0.18); border-radius: 3px; padding: 0.1em 0.3em; color: #ffb2ef; }
-.article-body-preview :deep(hr) { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 1.5em 0; }
-
-:global(.empty-preview) { font-style: italic; color: rgba(255,255,255,0.2) !important; text-align: center; padding: 2rem 0; }
-
-.preview-cta {
-    display: flex;
-    justify-content: center;
-    margin-top: 2rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid rgba(255,255,255,0.07);
-}
-
-.btn-preview-cta {
-    padding: 0.65rem 1.8rem;
-    background: transparent;
-    border: 1px solid rgba(255,178,239,0.22);
-    border-radius: 6px;
-    color: rgba(255,178,239,0.5);
-    font-size: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    cursor: not-allowed;
-    font-family: inherit;
-    opacity: 0.7;
-}
-
-/* ── Versions list (Horizontal) ── */
-.ap-versions-top {
-    flex-shrink: 0;
-}
-
-.versions-pane-horizontal {
-    display: flex;
-    align-items: center;
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 8px;
-    padding: 0.5rem 0.75rem;
-    gap: 0.75rem;
-    overflow: hidden;
-}
-
-.vph-head {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-    flex-shrink: 0;
-    border-right: 1px solid rgba(255,255,255,0.06);
-    padding-right: 0.75rem;
-}
-
-.vph-title {
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: rgba(255,255,255,0.70);
-}
-
-.vph-count {
-    font-size: 0.65rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.35);
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 3px;
-    padding: 0.05rem 0.3rem;
-    width: fit-content;
-}
-
-.versions-list-horizontal {
-    display: flex;
-    gap: 0.6rem;
-    overflow-x: auto;
-    flex: 1;
-    min-width: 0;
-    padding: 0.35rem 0.2rem;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
-}
-
-.versions-list-horizontal::-webkit-scrollbar {
-    height: 4px;
-}
-
-.versions-list-horizontal::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 2px;
-}
-
-.versions-empty-horizontal {
-    color: rgba(255,255,255,0.25);
-    font-size: 0.78rem;
-    padding: 0.5rem 0;
-}
-
-.version-card-horizontal {
-    flex: 0 0 280px;
-    padding: 0.5rem 0.65rem;
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    transition: all 0.15s;
-}
-
-.version-card-horizontal:hover {
-    border-color: rgba(255,255,255,0.12);
-    background: rgba(255,255,255,0.03);
-}
-
-.version-card-horizontal--active {
-    border-color: rgba(255,178,239,0.3);
-    background: rgba(255,178,239,0.04);
-}
-
-.vch-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 0.68rem;
-}
-
-.vc-active-badge {
-    font-size: 0.68rem;
-    font-weight: 700;
-    color: #ffb2ef;
-    letter-spacing: 0.04em;
-}
-
-.vc-date {
-    font-size: 0.70rem;
-    color: rgba(255,255,255,0.3);
-}
-
-.vch-label {
-    font-size: 0.72rem;
-    color: rgba(255,255,255,0.65);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.version-card-horizontal--active .vch-label {
-    color: rgba(255,255,255,0.78);
-}
-
-.vc-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    margin-top: 0.15rem;
-}
-
-.vc-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.2rem;
-    padding: 0.25rem 0.45rem;
-    font-size: 0.68rem;
-    font-weight: 600;
-    border-radius: 4px;
-    cursor: pointer;
-    font-family: inherit;
-    border: 1px solid transparent;
-    transition: all 0.12s;
-    background: transparent;
-}
-
-.vc-btn svg { width: 10px; height: 10px; }
-
-.vc-btn--activate {
-    color: #4ade80;
-    border-color: rgba(74,222,128,0.25);
-}
-.vc-btn--activate:hover {
-    background: rgba(74,222,128,0.08);
-    border-color: rgba(74,222,128,0.45);
-}
-
-.vc-btn--load {
-    color: #38bdf8;
-    border-color: rgba(56,189,248,0.25);
-}
-.vc-btn--load:hover {
-    background: rgba(56,189,248,0.08);
-    border-color: rgba(56,189,248,0.45);
-}
-
-.vc-btn--diff {
-    color: rgba(255,255,255,0.4);
-    border-color: rgba(255,255,255,0.1);
-}
-.vc-btn--diff:hover {
-    color: rgba(255,255,255,0.75);
-    border-color: rgba(255,255,255,0.22);
-    background: rgba(255,255,255,0.04);
-}
-
-.vc-btn--delete {
-    color: rgba(255,100,100,0.55);
-    border-color: rgba(255,100,100,0.15);
-    padding: 0.25rem 0.35rem;
-    margin-left: auto;
-}
-.vc-btn--delete:hover {
-    color: #ff6b6b;
-    border-color: rgba(255,80,80,0.35);
-    background: rgba(255,80,80,0.06);
-}
-
-/* ═══════════════════════════════════════════════════════
-   Buttons
-   ═══════════════════════════════════════════════════════ */
-.btn-primary {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    padding: 0.55rem 1.1rem;
-    font-size: 0.82rem;
-    font-weight: 600;
-    font-family: inherit;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    background: linear-gradient(135deg, #9b6ee8, #a03466);
-    color: #fff;
-    box-shadow: 0 4px 14px rgba(155,110,232,0.22);
-    transition: opacity 0.15s, transform 0.1s;
-}
-.btn-primary svg { width: 14px; height: 14px; }
-.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
-
-.btn-success {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    padding: 0.55rem 1.1rem;
-    font-size: 0.82rem;
-    font-weight: 600;
-    font-family: inherit;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    background: linear-gradient(135deg, #10b981, #047857);
-    color: #fff;
-    box-shadow: 0 4px 14px rgba(16,185,129,0.22);
-    transition: opacity 0.15s, transform 0.1s;
-}
-.btn-success svg { width: 14px; height: 14px; }
-.btn-success:hover { opacity: 0.9; transform: translateY(-1px); }
-.btn-success:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
-
-.btn-ghost {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.52rem 0.9rem;
-    font-size: 0.8rem;
-    font-weight: 500;
-    font-family: inherit;
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 6px;
-    cursor: pointer;
-    background: rgba(255,255,255,0.03);
-    color: rgba(255,255,255,0.55);
-    transition: all 0.14s;
-}
-.btn-ghost svg { width: 13px; height: 13px; }
-.btn-ghost:hover { border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.06); }
-.btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
-
-.btn-sm { padding: 0.42rem 0.8rem; font-size: 0.76rem; }
-
-.btn-danger {
-    padding: 0.55rem 1.1rem;
-    font-size: 0.82rem;
-    font-weight: 600;
-    font-family: inherit;
-    border: 1px solid rgba(255,80,80,0.35);
-    border-radius: 6px;
-    cursor: pointer;
-    background: rgba(255,80,80,0.08);
-    color: #ff6b6b;
-    transition: all 0.14s;
-}
-.btn-danger:hover { background: rgba(255,80,80,0.15); border-color: rgba(255,80,80,0.6); }
-
-/* ═══════════════════════════════════════════════════════
-   Modals
-   ═══════════════════════════════════════════════════════ */
-.modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.65);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 1rem;
-}
-
-.modal {
-    background: #0f0f18;
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 10px;
-    width: 100%;
-    max-width: 460px;
-    box-shadow: 0 24px 60px rgba(0,0,0,0.7);
-    overflow: hidden;
-    animation: modal-in 0.18s ease-out;
-}
-
-.modal--warn { max-width: 420px; }
-
-.modal--diff {
-    max-width: 1200px;
-    width: 92%;
-    height: 85vh;
-    max-height: 85vh;
-    display: flex;
-    flex-direction: column;
-}
-
-@keyframes modal-in {
-    from { opacity: 0; transform: scale(0.96) translateY(8px); }
-    to   { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-.modal-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.9rem 1.25rem;
-    border-bottom: 1px solid rgba(255,255,255,0.07);
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: rgba(255,255,255,0.85);
-}
-
-.modal-close {
-    background: transparent;
-    border: none;
-    color: rgba(255,255,255,0.35);
-    cursor: pointer;
-    font-size: 1rem;
-    padding: 0.15rem 0.3rem;
-    border-radius: 3px;
-    transition: color 0.12s;
-}
-.modal-close:hover { color: rgba(255,255,255,0.75); }
-
-.modal-body {
-    padding: 1.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.modal-body--diff {
-    overflow: hidden;
-    flex: 1;
-    min-height: 0;
-    padding: 0;
-}
-
-.modal-foot {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.6rem;
-    padding: 0.9rem 1.25rem;
-    border-top: 1px solid rgba(255,255,255,0.07);
-}
-
-/* Form fields */
-.field-label {
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: rgba(255,255,255,0.55);
-}
-
-.field-optional {
-    font-weight: 400;
-    color: rgba(255,255,255,0.3);
-}
-
-.field-input {
-    width: 100%;
-    padding: 0.6rem 0.8rem;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 6px;
-    color: rgba(255,255,255,0.85);
-    font-family: inherit;
-    font-size: 0.88rem;
-    outline: none;
-    transition: border-color 0.14s;
-    box-sizing: border-box;
-}
-.field-input:focus { border-color: rgba(255,178,239,0.45); }
-
-.field-hint {
-    font-size: 0.74rem;
-    color: rgba(255,255,255,0.28);
-    margin: 0;
-    line-height: 1.45;
-}
-
-/* Warn modal */
-.warn-icon {
-    display: flex;
-    justify-content: center;
-}
-.warn-icon svg {
-    width: 2.2rem;
-    height: 2.2rem;
-    color: #fbb740;
-}
-.modal-warn-text {
-    font-size: 0.88rem;
-    color: rgba(255,255,255,0.7);
-    text-align: center;
-    margin: 0;
-    line-height: 1.5;
-}
-.modal-warn-text strong { color: rgba(255,255,255,0.9); }
-.modal-warn-text code {
-    font-size: 0.82em;
-    background: rgba(255,178,239,0.08);
-    border: 1px solid rgba(255,178,239,0.18);
-    border-radius: 3px;
-    padding: 0.05em 0.3em;
-    color: #ffb2ef;
-}
-.modal-warn-sub {
-    font-size: 0.78rem;
-    color: rgba(255,255,255,0.3);
-    text-align: center;
-    margin: 0;
-}
-
-/* Diff modal */
-.diff-loading {
-    padding: 2rem;
-    text-align: center;
-    color: rgba(255,255,255,0.3);
-    font-size: 0.88rem;
-}
-
-.diff-selectors {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.9rem 1.25rem;
-    border-bottom: 1px solid rgba(255,255,255,0.07);
-    background: rgba(255,255,255,0.01);
-}
-
-.diff-sel-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    flex: 1;
-    min-width: 0;
-}
-
-.diff-sel-label {
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: rgba(255,255,255,0.35);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.diff-select {
-    width: 100%;
-    background: rgba(0,0,0,0.25);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 6px;
-    padding: 0.4rem 0.6rem;
-    font-size: 0.76rem;
-    color: rgba(255,255,255,0.8);
-    font-family: inherit;
-    outline: none;
-    transition: all 0.15s;
-    cursor: pointer;
-}
-
-.diff-select:focus {
-    border-color: rgba(255,178,239,0.35);
-    box-shadow: 0 0 0 2px rgba(255,178,239,0.08);
-}
-
-.diff-select option {
-    background: #111;
-    color: #fff;
-}
-
-.diff-sel-arrow {
-    color: rgba(255,255,255,0.15);
-    font-size: 1rem;
-    margin-top: 1rem;
-    user-select: none;
-}
-
-.diff-empty-state {
-    padding: 3rem;
-    text-align: center;
-    color: rgba(255,255,255,0.2);
-    font-size: 0.82rem;
-    font-style: italic;
-}
-
-.diff-side-by-side {
-    display: flex;
-    flex: 1;
-    min-height: 0;
-    border-top: 1px solid rgba(255,255,255,0.06);
-    background: rgba(0,0,0,0.15);
-}
-
-.diff-column {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-
-.diff-column:first-child {
-    border-right: 1px solid rgba(255,255,255,0.06);
-}
-
-.diff-column-head {
-    padding: 0.5rem 1rem;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: rgba(255,255,255,0.38);
-    background: rgba(255,255,255,0.01);
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-}
-
-.diff-column-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 1.5rem;
-    color: rgba(255,255,255,0.52);
-    line-height: 1.85;
-    font-size: 0.88rem;
-}
-
-.diff-column-body :deep(h1) { font-size: 1.5rem; font-weight: 700; color: rgba(255,255,255,0.88); margin: 0 0 0.85rem; }
-.diff-column-body :deep(h2) { font-size: 1.2rem; font-weight: 700; color: rgba(255,255,255,0.82); margin: 2rem 0 0.75rem; }
-.diff-column-body :deep(h2:first-child), .diff-column-body :deep(h1:first-child) { margin-top: 0; }
-.diff-column-body :deep(h3) { font-size: 0.97rem; font-weight: 600; color: rgba(255,178,239,0.8); margin: 1.5rem 0 0.5rem; }
-.diff-column-body :deep(p)  { margin: 0 0 1rem; color: rgba(255,255,255,0.52); }
-.diff-column-body :deep(ul), .diff-column-body :deep(ol) { margin: 0 0 1rem; padding-left: 0; list-style: none; }
-.diff-column-body :deep(li) { position: relative; padding-left: 1.4rem; margin-bottom: 0.6rem; color: rgba(255,255,255,0.52); }
-.diff-column-body :deep(ul li::before) { content: ''; position: absolute; left: 0.25rem; top: 0.55em; width: 5px; height: 5px; border-radius: 50%; background: rgba(255,178,239,0.6); }
-.diff-column-body :deep(li strong), .diff-column-body :deep(strong) { color: rgba(255,255,255,0.8); font-weight: 600; }
-.diff-column-body :deep(blockquote) { border-left: 2px solid rgba(255,178,239,0.35); padding: 0.5em 0.9em; margin: 1em 0; background: rgba(255,178,239,0.03); color: rgba(255,255,255,0.42); font-style: italic; border-radius: 0 4px 4px 0; }
-.diff-column-body :deep(code) { font-size: 0.82em; background: rgba(255,178,239,0.08); border: 1px solid rgba(255,178,239,0.18); border-radius: 3px; padding: 0.1em 0.3em; color: #ffb2ef; }
-.diff-column-body :deep(hr) { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 1.5em 0; }
-
-.empty-column {
-    font-style: italic;
-    color: rgba(255,255,255,0.2) !important;
-    text-align: center;
-    padding: 2rem 0;
-}
-
-/* ═══════════════════════════════════════════════════════
-   Responsive
-   ═══════════════════════════════════════════════════════ */
-@media (max-width: 960px) {
-    .article-page { height: auto; }
-    .ap-layout { flex-direction: column; }
-    .ap-versions-col { width: 100%; }
-    .versions-pane { max-height: 300px; }
-}
-
-/* ─── Drag & Drop Overlay ────────────────────────────────────────── */
-.drag-drop-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(8, 8, 18, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    pointer-events: auto;
-}
-
-.drag-drop-content {
-    width: min(500px, 100%);
-    border: 2px dashed rgba(155, 110, 232, 0.5);
-    background: rgba(155, 110, 232, 0.04);
-    border-radius: 16px;
-    padding: 3rem 2rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    pointer-events: none;
-    transition: border-color 0.2s ease, background-color 0.2s ease;
-}
-
-.drag-icon {
-    width: 3.5rem;
-    height: 3.5rem;
-    color: #c084fc;
-    margin-bottom: 1.5rem;
-    animation: dragPulse 2s infinite ease-in-out;
-}
-
-.drag-text {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #fff;
-    margin: 0 0 0.5rem 0;
-}
-
-.drag-subtext {
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.5);
-}
-
-@keyframes dragPulse {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
-}
-</style>

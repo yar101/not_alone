@@ -13,7 +13,7 @@ class ServiceTimeUnitController extends Controller
 {
     public function index(): Response
     {
-        return Inertia::render('Admin/Services/Index', [
+        return Inertia::render('Admin/Services/TimeUnits', [
             'timeUnits' => ServiceTimeUnit::orderBy('sort_order')->get()->map(fn ($u) => [
                 'id' => $u->id,
                 'name_ru' => $u->getTranslation('name', 'ru'),

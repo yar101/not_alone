@@ -3,9 +3,16 @@ import { ref, computed, nextTick } from 'vue';
 import axios from 'axios';
 import { router, Link } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
-import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
+import AdminDrawer from '@/Components/Admin/UI/AdminDrawer.vue';
 import AdminPagination from '@/Components/Admin/AdminPagination.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
+import { formatMoney } from '@/Utils/money';
+import {
+    Warning, Check, Close, ChatDotRound, User, TopRight,
+    Document, InfoFilled, Loading
+} from '@element-plus/icons-vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -16,13 +23,12 @@ const props = defineProps({
 });
 
 const selected    = ref(null);
-const detailsBox  = ref(null);
-const noteBox     = ref(null);
+const isDrawerOpen = ref(false);
 const decision    = ref('');
 const adminNote   = ref('');
 const submitting  = ref(false);
 
-// Chat panel
+// Chat panel inside drawer
 const chatMessages = ref([]);
 const chatLoading  = ref(false);
 const chatHasMore  = ref(false);
@@ -30,7 +36,7 @@ const chatOpen     = ref(false);
 const chatConvId   = ref(null);
 const resolveError = ref('');
 
-function openModal(dispute) {
+function openDrawer(dispute) {
     selected.value     = dispute;
     decision.value     = '';
     adminNote.value    = '';
@@ -38,23 +44,14 @@ function openModal(dispute) {
     chatOpen.value     = false;
     chatMessages.value = [];
     chatConvId.value   = null;
-
-    nextTick(() => {
-        autoGrow(detailsBox.value);
-        autoGrow(noteBox.value);
-    });
+    isDrawerOpen.value = true;
 }
 
-function autoGrow(el) {
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = (el.scrollHeight + el.offsetHeight - el.clientHeight) + 'px';
-}
-
-function closeModal() {
-    selected.value = null;
+function closeDrawer() {
+    isDrawerOpen.value = false;
+    selected.value     = null;
     resolveError.value = '';
-    chatOpen.value = false;
+    chatOpen.value     = false;
     chatMessages.value = [];
 }
 
@@ -71,7 +68,7 @@ function submitResolve() {
         { decision: decision.value, admin_note: adminNote.value },
         {
             onFinish:  () => { submitting.value = false; },
-            onSuccess: () => { closeModal(); },
+            onSuccess: () => { closeDrawer(); },
             onError:   (errors) => {
                 resolveError.value = Object.values(errors).flat()[0] || 'Произошла ошибка при сохранении решения';
             },
@@ -110,66 +107,55 @@ async function loadMore() {
     }
 }
 
-function isSystem(msg) {
-    return !msg.sender_id || (msg.type && msg.type !== 'user');
-}
-
-// Сообщение от заказчика → выравниваем вправо
 function isCustomer(msg) {
     return selected.value && msg.sender_id === selected.value.order.customer.id;
 }
 
+function isSystem(msg) {
+    return !msg.sender_id || (msg.type && msg.type !== 'user');
+}
+
 function fmtTime(iso) {
     if (!iso) return '';
-    const d = new Date(iso);
-    return d.toLocaleString('ru-RU', {
+    return new Date(iso).toLocaleString('ru-RU', {
         day: '2-digit', month: '2-digit', year: '2-digit',
         hour: '2-digit', minute: '2-digit',
     });
 }
 
-function truncate(str, len = 80) {
-    if (!str) return '';
-    return str.length > len ? str.slice(0, len) + '…' : str;
+function getDisputeBadgeVariant(status) {
+    switch (status) {
+        case 'open':
+            return 'warning';
+        case 'approved':
+            return 'success';
+        case 'rejected':
+            return 'danger';
+        default:
+            return 'neutral';
+    }
 }
 
 const STATUS_LABELS = { open: 'Открыт', approved: 'Удовлетворён', rejected: 'Отклонён' };
-const STATUS_CLASS  = { open: 'badge--open', approved: 'badge--approved', rejected: 'badge--rejected' };
-
-function systemLabel(msg) {
-    const event = msg.metadata?.event ?? msg.type;
-    const m     = msg.metadata ?? {};
-    switch (event) {
-        case 'order_accepted':
-            return `Айдол готов выполнить заказ`;
-        case 'order_paid':
-            return m.by_admin ? 'Оплата подтверждена администратором' : 'Заказ оплачен заказчиком';
-        case 'order_cancelled':
-            if (m.by_admin) return `Заказ отменён администратором` + (m.cancel_reason ? `: ${m.cancel_reason}` : '');
-            return `Заказ отменён` + (m.cancel_reason ? `: ${m.cancel_reason}` : '');
-        case 'order_completed':
-            return m.by_admin ? 'Заказ завершён администратором' : 'Заказ завершён';
-        case 'order_auto_completed':
-            return 'Заказ завершён автоматически (72ч без ответа)';
-        case 'order_disputed':
-            return 'Открыт спор';
-        case 'order_refunded':
-            return 'Средства возвращены заказчику';
-        default:
-            return event ?? 'Системное событие';
-    }
-}
 </script>
 
 <template>
-    <div class="page-wrap">
-        <AdminPageHeader
-            title="Споры"
-            :subtitle="`${counts.all ?? (counts.open + counts.approved + counts.rejected)} споров зарегистрировано в системе`"
-        />
+    <div class="space-y-6">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2.5">
+                    <el-icon class="text-amber-400"><Warning /></el-icon>
+                    <span>Арбитраж и споры по заказам</span>
+                </h1>
+                <p class="text-xs text-zinc-400 mt-0.5">
+                    Разрешение финансовых претензий клиентов и айдолов до закрытия сделки (ст. 720 ГК РФ)
+                </p>
+            </div>
+        </div>
 
-        <!-- Фильтр по статусу -->
-        <div class="filter-tabs">
+        <!-- Filter Tabs -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
             <button
                 v-for="tab in [
                     { key: 'open',     label: 'Открытые',        count: counts.open },
@@ -178,653 +164,304 @@ function systemLabel(msg) {
                     { key: 'all',      label: 'Все',             count: counts.all ?? (counts.open + counts.approved + counts.rejected) },
                 ]"
                 :key="tab.key"
-                class="filter-tab"
-                :class="{ 'filter-tab--active': status_filter === tab.key }"
+                class="px-3 py-1.5 rounded-lg border text-xs font-medium transition flex items-center gap-2"
+                :class="(status_filter || 'open') === tab.key
+                    ? 'border-violet-500/50 bg-violet-500/15 text-violet-300'
+                    : 'border-zinc-800 bg-zinc-900/60 text-zinc-400 hover:text-zinc-200'"
                 @click="setFilter(tab.key)"
             >
-                {{ tab.label }}
-                <span class="filter-tab__count">{{ tab.count }}</span>
+                <span>{{ tab.label }}</span>
+                <span
+                    class="px-1.5 py-0.2 rounded text-[10px] font-mono"
+                    :class="(status_filter || 'open') === tab.key ? 'bg-violet-500/30 text-violet-200' : 'bg-zinc-800 text-zinc-500'"
+                >
+                    {{ tab.count }}
+                </span>
             </button>
         </div>
 
-        <div class="table-wrap">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Заказчик</th>
-                        <th>Айдол</th>
-                        <th>Причина</th>
-                        <th>Статус</th>
-                        <th>Сумма</th>
-                        <th>Подан</th>
-                        <th>Решение</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr
-                        v-for="d in disputes.data"
-                        :key="d.id"
-                        class="data-row"
-                        @click="openModal(d)"
-                    >
-                        <td class="cell-id">
-                            <Link :href="route('admin.orders.show', d.order_id)" @click.stop class="order-id-link">
-                                #{{ d.order_id }}
-                            </Link>
-                        </td>
-                        <td class="cell-user">
-                            <div class="cell-user-inner">
-                                <img v-if="d.order.customer.avatar" :src="d.order.customer.avatar" class="user-avatar" />
-                                <span>{{ d.order.customer.name }}</span>
-                            </div>
-                        </td>
-                        <td class="cell-user">
-                            <div class="cell-user-inner">
-                                <img v-if="d.order.idol.avatar" :src="d.order.idol.avatar" class="user-avatar" />
-                                <span>{{ d.order.idol.name }}</span>
-                            </div>
-                        </td>
-                        <td class="cell-reason">{{ d.reason }}</td>
-                        <td>
-                            <span class="badge" :class="STATUS_CLASS[d.status]">
-                                {{ STATUS_LABELS[d.status] }}
-                            </span>
-                        </td>
-                        <td class="cell-amount">
-                            <span class="inline-flex items-center gap-1">
-                                <span>{{ d.order.total }}</span>
-                                <CoinIcon color="blue" size="xs" />
-                            </span>
-                        </td>
-                        <td class="cell-date">{{ d.created_at }}</td>
-                        <td class="cell-date">{{ d.resolved_at ?? '—' }}</td>
-                    </tr>
-                    <tr v-if="disputes.data.length === 0">
-                        <td colspan="8" class="cell-empty">Споров нет</td>
-                    </tr>
-                </tbody>
-            </table>
+        <!-- Disputes Table -->
+        <div class="rounded-xl border border-zinc-800 bg-zinc-900/60 overflow-hidden backdrop-blur-sm">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="border-b border-zinc-800 bg-zinc-950/40 text-zinc-400">
+                            <th class="py-3 px-4 font-medium">Заказ</th>
+                            <th class="py-3 px-4 font-medium">Заказчик</th>
+                            <th class="py-3 px-4 font-medium">Айдол</th>
+                            <th class="py-3 px-4 font-medium">Причина спора</th>
+                            <th class="py-3 px-4 font-medium">Статус</th>
+                            <th class="py-3 px-4 font-medium text-right">Сумма</th>
+                            <th class="py-3 px-4 font-medium">Дата создания</th>
+                            <th class="py-3 px-4 font-medium">Решение</th>
+                            <th class="py-3 px-4 font-medium text-right"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-800/60 text-zinc-300">
+                        <tr v-if="!disputes.data?.length">
+                            <td colspan="9" class="py-12 text-center text-zinc-500">
+                                Споров в выбранном статусе нет
+                            </td>
+                        </tr>
+                        <tr
+                            v-for="d in disputes.data"
+                            :key="d.id"
+                            class="hover:bg-zinc-800/30 transition cursor-pointer"
+                            @click="openDrawer(d)"
+                        >
+                            <!-- Order Link -->
+                            <td class="py-3 px-4 font-mono font-medium text-violet-400" @click.stop>
+                                <Link :href="route('admin.orders.show', d.order_id)" class="hover:underline">
+                                    #{{ d.order_id }}
+                                </Link>
+                            </td>
+
+                            <!-- Customer -->
+                            <td class="py-3 px-4">
+                                <div class="flex items-center gap-2">
+                                    <img
+                                        v-if="d.order.customer.avatar"
+                                        :src="d.order.customer.avatar"
+                                        class="w-6 h-6 rounded-full object-cover border border-zinc-700"
+                                    />
+                                    <div v-else class="w-6 h-6 rounded-full bg-zinc-800 text-zinc-400 flex items-center justify-center font-bold text-[10px]">
+                                        {{ d.order.customer.name?.charAt(0).toUpperCase() }}
+                                    </div>
+                                    <span class="text-zinc-200 font-medium truncate max-w-[120px]">{{ d.order.customer.name }}</span>
+                                </div>
+                            </td>
+
+                            <!-- Idol -->
+                            <td class="py-3 px-4">
+                                <div class="flex items-center gap-2">
+                                    <img
+                                        v-if="d.order.idol.avatar"
+                                        :src="d.order.idol.avatar"
+                                        class="w-6 h-6 rounded-full object-cover border border-pink-500/40"
+                                    />
+                                    <div v-else class="w-6 h-6 rounded-full bg-pink-900/40 text-pink-300 flex items-center justify-center font-bold text-[10px]">
+                                        {{ d.order.idol.name?.charAt(0).toUpperCase() }}
+                                    </div>
+                                    <span class="text-zinc-200 font-medium truncate max-w-[120px]">{{ d.order.idol.name }}</span>
+                                </div>
+                            </td>
+
+                            <!-- Reason -->
+                            <td class="py-3 px-4 max-w-[180px] truncate text-zinc-300" :title="d.reason">
+                                {{ d.reason }}
+                            </td>
+
+                            <!-- Status -->
+                            <td class="py-3 px-4">
+                                <AdminBadge :variant="getDisputeBadgeVariant(d.status)" size="sm">
+                                    {{ STATUS_LABELS[d.status] || d.status }}
+                                </AdminBadge>
+                            </td>
+
+                            <!-- Amount -->
+                            <td class="py-3 px-4 text-right font-mono font-bold text-zinc-100 whitespace-nowrap">
+                                <span class="inline-flex items-center gap-1 justify-end">
+                                    <span>{{ formatMoney(d.order.total) }}</span>
+                                    <CoinIcon color="blue" size="xs" />
+                                </span>
+                            </td>
+
+                            <!-- Dates -->
+                            <td class="py-3 px-4 font-mono text-[11px] text-zinc-500 whitespace-nowrap">
+                                {{ d.created_at }}
+                            </td>
+                            <td class="py-3 px-4 font-mono text-[11px] text-zinc-500 whitespace-nowrap">
+                                {{ d.resolved_at || '—' }}
+                            </td>
+
+                            <!-- Action -->
+                            <td class="py-3 px-4 text-right" @click.stop>
+                                <button
+                                    class="text-violet-400 hover:text-violet-300 font-medium text-xs hover:underline"
+                                    @click="openDrawer(d)"
+                                >
+                                    {{ d.status === 'open' ? 'Рассмотреть' : 'Детали' }}
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="p-4 border-t border-zinc-800">
+                <AdminPagination :pagination="disputes" />
+            </div>
         </div>
 
-        <AdminPagination :pagination="disputes" />
-    </div>
+        <!-- ════════════ DRAWER: DISPUTE DETAILS & RESOLUTION ════════════ -->
+        <AdminDrawer
+            :show="isDrawerOpen"
+            :title="`Спор по заказу #${selected?.order_id || ''}`"
+            :subtitle="selected ? `Подан ${selected.created_at}` : ''"
+            width="640px"
+            @close="closeDrawer"
+        >
+            <div v-if="selected" class="space-y-5 text-xs">
+                <!-- Summary Card -->
+                <div class="p-4 rounded-xl border border-zinc-800 bg-zinc-950/60 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-zinc-400">Статус арбитража:</span>
+                        <AdminBadge :variant="getDisputeBadgeVariant(selected.status)" size="md">
+                            {{ STATUS_LABELS[selected.status] || selected.status }}
+                        </AdminBadge>
+                    </div>
 
-    <!-- Оверлей -->
-    <div v-if="selected" class="modal-overlay" @click.self="closeModal">
-        <div class="modal-wrap" :class="{ 'modal-wrap--with-chat': chatOpen }">
-
-            <!-- Модалка спора -->
-            <div class="modal-box">
-                <button class="modal-close" @click="closeModal">×</button>
-                <h2 class="modal-title">
-                    Спор по заказу
-                    <Link :href="route('admin.orders.show', selected.order_id)" target="_blank" class="order-title-link">
-                        #{{ selected.order_id }} ↗
-                    </Link>
-                    <span class="badge" :class="STATUS_CLASS[selected.status]" style="margin-left:0.5rem;font-size:0.8rem;">
-                        {{ STATUS_LABELS[selected.status] }}
-                    </span>
-                </h2>
-
-                <div class="modal-grid">
-                    <div class="modal-section">
-                        <div class="section-label">Заказчик</div>
-                        <div class="user-row">
-                            <img v-if="selected.order.customer.avatar" :src="selected.order.customer.avatar" class="user-avatar" />
-                            <span>{{ selected.order.customer.name }}</span>
+                    <div class="grid grid-cols-2 gap-3 pt-3 border-t border-zinc-800">
+                        <div>
+                            <span class="text-zinc-500 text-[11px]">Заказчик (Клиент):</span>
+                            <div class="font-semibold text-zinc-200 mt-0.5">{{ selected.order.customer.name }}</div>
+                        </div>
+                        <div>
+                            <span class="text-zinc-500 text-[11px]">Исполнитель (Айдол):</span>
+                            <div class="font-semibold text-pink-300 mt-0.5">{{ selected.order.idol.name }}</div>
                         </div>
                     </div>
-                    <div class="modal-section">
-                        <div class="section-label">Айдол</div>
-                        <div class="user-row">
-                            <img v-if="selected.order.idol.avatar" :src="selected.order.idol.avatar" class="user-avatar" />
-                            <span>{{ selected.order.idol.name }}</span>
-                        </div>
-                    </div>
-                    <div class="modal-section">
-                        <div class="section-label">Статус заказа</div>
-                        <span>{{ selected.order.status_label }}</span>
-                    </div>
-                    <div class="modal-section">
-                        <div class="section-label">Сумма</div>
-                        <span class="inline-flex items-center gap-1">
-                            <span>{{ selected.order.total }}</span>
+
+                    <div class="flex items-baseline justify-between pt-3 border-t border-zinc-800">
+                        <span class="text-zinc-400">Сумма в эскроу:</span>
+                        <div class="text-base font-bold font-mono text-zinc-100 flex items-center gap-1.5">
+                            <span>{{ formatMoney(selected.order.total) }}</span>
                             <CoinIcon color="blue" size="xs" />
-                        </span>
+                            <span class="text-xs font-normal text-zinc-500">({{ formatMoney(selected.order.total) }} ₽)</span>
+                        </div>
                     </div>
-                    <div class="modal-section">
-                        <div class="section-label">Оплачен</div>
-                        <span>{{ selected.order.paid_at ?? '—' }}</span>
-                    </div>
-                    <div class="modal-section">
-                        <div class="section-label">Завершён</div>
-                        <span>{{ selected.order.completed_at ?? '—' }}</span>
-                    </div>
-                    <div class="modal-section modal-section--full">
-                        <div class="section-label">Причина</div>
-                        <span>{{ selected.reason }}</span>
-                    </div>
-                    <div class="modal-section modal-section--full">
-                        <div class="section-label">Детали</div>
-                        <textarea
-                            ref="detailsBox"
-                            class="details-textarea"
-                            :value="selected.details ?? ''"
-                            readonly
-                            rows="3"
-                        ></textarea>
-                    </div>
+                </div>
 
-                    <div v-if="selected.status !== 'open'" class="modal-section modal-section--full">
-                        <div class="section-label">Заметка администратора</div>
-                        <textarea
-                            ref="noteBox"
-                            class="details-textarea"
-                            :value="selected.admin_note ?? ''"
-                            placeholder="—"
-                            readonly
-                            rows="3"
-                        ></textarea>
+                <!-- Claim Details -->
+                <div class="p-4 rounded-xl border border-amber-900/40 bg-amber-950/20 space-y-2">
+                    <div class="text-amber-400 font-semibold text-xs flex items-center gap-1.5">
+                        <el-icon><Warning /></el-icon>
+                        <span>Претензия заказчика</span>
                     </div>
+                    <div class="text-zinc-200 font-medium">
+                        Причина: <span class="text-white">{{ selected.reason }}</span>
+                    </div>
+                    <div v-if="selected.details" class="p-3 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-300 leading-relaxed">
+                        {{ selected.details }}
+                    </div>
+                </div>
 
-                    <div v-if="selected.order.conversation_id" class="modal-section modal-section--full">
+                <!-- Chat Toggle & Inline Messages -->
+                <div v-if="selected.order.conversation_id" class="space-y-3">
+                    <AdminButton
+                        variant="outline"
+                        size="sm"
+                        class="w-full"
+                        @click="chatOpen ? (chatOpen = false) : openChat(selected.order.conversation_id)"
+                    >
+                        <el-icon class="mr-1.5"><ChatDotRound /></el-icon>
+                        <span>{{ chatOpen ? 'Скрыть переписку по заказу' : 'Посмотреть переписку между клиентом и айдолом' }}</span>
+                    </AdminButton>
+
+                    <div v-if="chatOpen" class="rounded-xl border border-zinc-800 bg-zinc-950 p-3 space-y-2">
+                        <div v-if="chatLoading && !chatMessages.length" class="py-6 text-center text-zinc-500">
+                            <el-icon class="animate-spin"><Loading /></el-icon>
+                            <span class="ml-2">Загрузка сообщений...</span>
+                        </div>
+                        <div v-else class="space-y-2 max-h-64 overflow-y-auto pr-1 text-xs">
+                            <button
+                                v-if="chatHasMore"
+                                type="button"
+                                class="w-full py-1 text-center text-[11px] text-violet-400 hover:underline"
+                                @click="loadMore"
+                            >
+                                Загрузить более ранние сообщения
+                            </button>
+
+                            <div
+                                v-for="msg in chatMessages"
+                                :key="msg.id"
+                                class="flex flex-col"
+                                :class="isCustomer(msg) ? 'items-end' : 'items-start'"
+                            >
+                                <div
+                                    class="max-w-[80%] rounded-lg p-2.5 space-y-1"
+                                    :class="isCustomer(msg) ? 'bg-violet-600/30 border border-violet-500/40 text-violet-100' : 'bg-zinc-900 border border-zinc-800 text-zinc-200'"
+                                >
+                                    <div class="text-[10px] text-zinc-400 flex items-center justify-between gap-3">
+                                        <span>{{ msg.sender_name || (isCustomer(msg) ? selected.order.customer.name : selected.order.idol.name) }}</span>
+                                        <span>{{ fmtTime(msg.created_at) }}</span>
+                                    </div>
+                                    <div class="leading-relaxed">{{ msg.body }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Existing Decision Note if not open -->
+                <div v-if="selected.status !== 'open' && selected.admin_note" class="p-4 rounded-xl border border-zinc-800 bg-zinc-950/60 space-y-1.5">
+                    <div class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Решение арбитража</div>
+                    <p class="text-zinc-200 leading-relaxed">{{ selected.admin_note }}</p>
+                </div>
+
+                <!-- Resolution Panel (if status === 'open') -->
+                <div v-if="selected.status === 'open'" class="p-4 rounded-xl border border-violet-800/40 bg-violet-950/20 space-y-4">
+                    <div class="text-xs font-semibold text-violet-300">Вынесение вердикта арбитража</div>
+
+                    <div class="grid grid-cols-2 gap-3">
                         <button
-                            class="chat-toggle-btn"
-                            :class="{ 'chat-toggle-btn--active': chatOpen }"
-                            @click="chatOpen ? (chatOpen = false) : openChat(selected.order.conversation_id)"
+                            type="button"
+                            class="p-3 rounded-lg border text-left transition"
+                            :class="decision === 'approved'
+                                ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300'
+                                : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-zinc-200'"
+                            @click="decision = 'approved'"
                         >
-                            {{ chatOpen ? '← Скрыть чат' : 'История чата →' }}
+                            <div class="font-semibold text-xs">Удовлетворить спор</div>
+                            <div class="text-[10px] text-zinc-500 mt-1">100% возврат клиенту (услуги + сбор 5%), штраф айдолу -10 баллов</div>
+                        </button>
+
+                        <button
+                            type="button"
+                            class="p-3 rounded-lg border text-left transition"
+                            :class="decision === 'rejected'
+                                ? 'border-rose-500 bg-rose-500/20 text-rose-300'
+                                : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-zinc-200'"
+                            @click="decision = 'rejected'"
+                        >
+                            <div class="font-semibold text-xs">Отклонить спор</div>
+                            <div class="text-[10px] text-zinc-500 mt-1">Сделка закрывается (Closed), выплата 88% айдолу, чек в ФНС</div>
                         </button>
                     </div>
 
-                    <template v-if="selected.status === 'open'">
-                        <div class="modal-section modal-section--full resolve-section">
-                            <div class="section-label">Решение</div>
-                            <div class="decision-btns">
-                                <button
-                                    class="decision-btn decision-btn--approve"
-                                    :class="{ 'decision-btn--active': decision === 'approved' }"
-                                    @click="decision = 'approved'"
-                                >Удовлетворить → Аннулирован</button>
-                                <button
-                                    class="decision-btn decision-btn--reject"
-                                    :class="{ 'decision-btn--active': decision === 'rejected' }"
-                                    @click="decision = 'rejected'"
-                                >Отклонить → Завершён</button>
-                            </div>
+                    <div class="space-y-1.5">
+                        <label class="block font-medium text-zinc-300">Мотивировочная часть решения (для обеих сторон) *</label>
+                        <textarea
+                            v-model="adminNote"
+                            rows="3"
+                            class="w-full px-3 py-2 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
+                            placeholder="Опишите основания принятого решения..."
+                        ></textarea>
+                    </div>
 
-                            <div class="section-label" style="margin-top:0.75rem;">Заметка (необязательно)</div>
-                            <textarea
-                                v-model="adminNote"
-                                class="resolve-textarea"
-                                placeholder="Комментарий к решению…"
-                                rows="3"
-                                maxlength="2000"
-                            ></textarea>
-
-                            <div v-if="resolveError" class="resolve-error">{{ resolveError }}</div>
-
-                            <div class="resolve-footer">
-                                <button class="resolve-cancel" @click="closeModal">Отмена</button>
-                                <button
-                                    class="resolve-submit"
-                                    :disabled="!decision || submitting"
-                                    @click="submitResolve"
-                                >{{ submitting ? 'Сохраняем…' : 'Сохранить решение' }}</button>
-                            </div>
-                        </div>
-                    </template>
+                    <p v-if="resolveError" class="text-xs text-rose-400">{{ resolveError }}</p>
                 </div>
             </div>
 
-            <!-- Панель истории чата -->
-            <div v-if="chatOpen" class="chat-panel">
-                <div class="chat-panel__header">
-                    <div class="chat-panel__header-inner">
-                        <span class="chat-panel__title">История чата</span>
-                        <div class="chat-legend">
-                            <div class="chat-legend__user">
-                                <span class="chat-legend__dot chat-legend__dot--idol"></span>
-                                <span class="chat-legend__role">Айдол</span>
-                                <span class="chat-legend__name chat-legend__name--idol">{{ selected.order.idol.name }}</span>
-                            </div>
-                            <span class="chat-legend__sep">·</span>
-                            <div class="chat-legend__user">
-                                <span class="chat-legend__dot chat-legend__dot--customer"></span>
-                                <span class="chat-legend__role">Заказчик</span>
-                                <span class="chat-legend__name chat-legend__name--customer">{{ selected.order.customer.name }}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <button class="chat-panel__close" @click="chatOpen = false">×</button>
+            <template #footer>
+                <div class="flex items-center justify-end gap-2">
+                    <AdminButton variant="outline" size="sm" @click="closeDrawer">
+                        Закрыть
+                    </AdminButton>
+                    <AdminButton
+                        v-if="selected?.status === 'open'"
+                        :variant="decision === 'approved' ? 'success' : 'destructive'"
+                        size="sm"
+                        :disabled="!decision || submitting"
+                        :loading="submitting"
+                        @click="submitResolve"
+                    >
+                        Зафиксировать решение
+                    </AdminButton>
                 </div>
-
-                <div class="chat-panel__body">
-                    <div v-if="chatLoading && chatMessages.length === 0" class="chat-empty">Загрузка…</div>
-
-                    <button v-if="chatHasMore && !chatLoading" class="load-more-btn" @click="loadMore">
-                        ↑ Загрузить раньше
-                    </button>
-                    <div v-if="chatLoading && chatMessages.length > 0" class="chat-empty chat-empty--sm">Загрузка…</div>
-
-                    <template v-for="msg in chatMessages" :key="msg.id">
-
-                        <!-- Системное событие -->
-                        <div v-if="isSystem(msg)" class="sys-event">
-                            <div class="sys-event__line"></div>
-                            <div class="sys-event__content">
-                                <span class="sys-event__label">{{ systemLabel(msg) }}</span>
-                                <span class="sys-event__time">{{ fmtTime(msg.created_at) }}</span>
-                            </div>
-                            <div class="sys-event__line"></div>
-                        </div>
-
-                        <!-- Сообщение пользователя -->
-                        <div
-                            v-else
-                            class="chat-bubble-wrap"
-                            :class="isCustomer(msg) ? 'chat-bubble-wrap--right' : 'chat-bubble-wrap--left'"
-                        >
-                            <!-- Аватар слева для айдола -->
-                            <div v-if="!isCustomer(msg)" class="bubble-avatar">
-                                <img v-if="msg.sender_avatar" :src="msg.sender_avatar" class="bubble-avatar__img" />
-                                <span v-else class="bubble-avatar__initials">{{ msg.sender_name?.charAt(0)?.toUpperCase() ?? '?' }}</span>
-                            </div>
-
-                            <div class="bubble-body">
-                                <div class="bubble-meta" :class="isCustomer(msg) ? 'bubble-meta--right' : ''">
-                                    <span class="bubble-meta__name" :class="isCustomer(msg) ? 'bubble-meta__name--customer' : 'bubble-meta__name--idol'">
-                                        {{ msg.sender_name }}
-                                    </span>
-                                    <span class="bubble-meta__time">{{ fmtTime(msg.created_at) }}</span>
-                                </div>
-                                <div class="bubble" :class="isCustomer(msg) ? 'bubble--customer' : 'bubble--idol'">
-                                    {{ msg.body }}
-                                </div>
-                            </div>
-
-                            <!-- Аватар справа для заказчика -->
-                            <div v-if="isCustomer(msg)" class="bubble-avatar">
-                                <img v-if="msg.sender_avatar" :src="msg.sender_avatar" class="bubble-avatar__img" />
-                                <span v-else class="bubble-avatar__initials bubble-avatar__initials--customer">{{ msg.sender_name?.charAt(0)?.toUpperCase() ?? '?' }}</span>
-                            </div>
-                        </div>
-
-                    </template>
-
-                    <div v-if="!chatLoading && chatMessages.length === 0" class="chat-empty">
-                        Сообщений нет
-                    </div>
-                </div>
-            </div>
-
-        </div>
+            </template>
+        </AdminDrawer>
     </div>
 </template>
-
-<style scoped>
-.page-wrap { padding: 2rem; }
-
-.page-header { display: flex; align-items: baseline; gap: 1rem; margin-bottom: 1.25rem; }
-.page-title { font-size: 1.35rem; font-weight: 700; color: rgba(255,255,255,0.9); margin: 0; }
-.page-count { color: rgba(255,255,255,0.3); font-size: 0.88rem; }
-
-/* Filter tabs */
-.filter-tabs { display: flex; gap: 0; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08); }
-.filter-tab {
-    display: flex; align-items: center; gap: 0.4rem;
-    padding: 0.45rem 1rem;
-    background: none; border: none; border-bottom: 2px solid transparent;
-    color: rgba(255,255,255,0.4); font-size: 0.84rem; cursor: pointer;
-    font-family: inherit; margin-bottom: -1px; transition: color 0.15s;
-}
-.filter-tab:hover { color: rgba(255,255,255,0.7); }
-.filter-tab--active { color: #9B6EE8; border-bottom-color: #9B6EE8; }
-.filter-tab__count {
-    display: inline-flex; align-items: center; justify-content: center;
-    min-width: 18px; height: 18px; padding: 0 0.3rem;
-    background: rgba(255,255,255,0.07); border-radius: 99px;
-    font-size: 0.7rem; color: rgba(255,255,255,0.45);
-}
-
-/* Badge */
-.badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.72rem; font-weight: 600; }
-.badge--open     { background: rgba(251,191,36,0.12);  color: rgba(251,191,36,0.9); }
-.badge--approved { background: rgba(74,222,128,0.1);   color: rgba(74,222,128,0.85); }
-.badge--rejected { background: rgba(239,68,68,0.1);    color: rgba(239,68,68,0.8); }
-
-/* Table */
-.table-wrap { overflow-x: auto; }
-.data-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
-.data-table th {
-    padding: 0.55rem 0.75rem; text-align: left;
-    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em;
-    color: rgba(255,255,255,0.3); border-bottom: 1px solid rgba(255,255,255,0.07);
-    white-space: nowrap;
-}
-.data-row { cursor: pointer; }
-.data-row:hover td { background: rgba(255,255,255,0.02); }
-.data-row td {
-    padding: 0.65rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.04);
-    vertical-align: middle; color: rgba(255,255,255,0.75);
-}
-.cell-id     { color: rgba(255,255,255,0.3); font-size: 0.78rem; white-space: nowrap; width: 40px; }
-.order-id-link {
-    color: #a78bfa;
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.15s;
-}
-.order-id-link:hover {
-    color: #c4b5fd;
-    text-decoration: underline;
-}
-.order-title-link {
-    color: #a78bfa;
-    text-decoration: none;
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin: 0 0.5rem;
-    transition: color 0.15s;
-}
-.order-title-link:hover {
-    color: #c4b5fd;
-    text-decoration: underline;
-}
-.cell-user        { min-width: 140px; }
-.cell-user-inner  { display: flex; align-items: center; gap: 0.5rem; }
-.user-avatar      { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-.cell-reason { max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: rgba(255,255,255,0.6); }
-.cell-amount { font-weight: 600; white-space: nowrap; color: rgba(255,255,255,0.85); }
-.cell-date   { white-space: nowrap; color: rgba(255,255,255,0.3); font-size: 0.78rem; }
-.cell-empty  { text-align: center; color: rgba(255,255,255,0.2); padding: 2rem; font-size: 0.88rem; }
-
-.pagination { display: flex; gap: 0.25rem; margin-top: 1.5rem; flex-wrap: wrap; }
-.page-link { padding: 0.28rem 0.6rem; border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); font-size: 0.8rem; text-decoration: none; }
-.page-link--active { border-color: rgba(155,110,232,0.6); color: #9B6EE8; background: rgba(155,110,232,0.1); }
-
-/* ── Overlay ─────────────────────────────────────────────── */
-.modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.75);
-    z-index: 1000;
-    display: flex; align-items: center; justify-content: center;
-    padding: 1rem;
-}
-
-.modal-wrap {
-    display: flex; align-items: flex-start; gap: 0.75rem;
-    max-height: 90vh;
-    width: 100%;
-    max-width: 620px;
-    transition: max-width 0.2s;
-}
-.modal-wrap--with-chat { max-width: 1140px; }
-
-/* ── Modal box ───────────────────────────────────────────── */
-.modal-box {
-    background: #0f0f1a;
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 6px;
-    padding: 1.5rem;
-    width: 100%;
-    max-width: 560px;
-    max-height: 90vh;
-    overflow-y: auto;
-    position: relative;
-    flex-shrink: 0;
-}
-.modal-wrap--with-chat .modal-box { max-width: 500px; }
-
-.modal-close {
-    position: absolute; top: 0.9rem; right: 1rem;
-    background: none; border: none; font-size: 1.3rem;
-    cursor: pointer; color: rgba(255,255,255,0.3); line-height: 1;
-}
-.modal-close:hover { color: rgba(255,255,255,0.7); }
-
-.modal-title {
-    font-size: 1rem; font-weight: 600; margin: 0 0 1.25rem;
-    display: flex; align-items: center; flex-wrap: wrap;
-    color: rgba(255,255,255,0.9);
-}
-
-.modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-.modal-section { display: flex; flex-direction: column; gap: 0.25rem; }
-.modal-section--full { grid-column: 1 / -1; }
-
-.section-label {
-    font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
-    letter-spacing: 0.07em; color: rgba(255,255,255,0.25);
-}
-.modal-section > span,
-.modal-section > p { color: rgba(255,255,255,0.75); font-size: 0.88rem; }
-
-.user-row { display: flex; align-items: center; gap: 0.5rem; color: rgba(255,255,255,0.8); font-size: 0.88rem; }
-
-.role-tag {
-    font-size: 0.65rem; font-weight: 600; padding: 0.1rem 0.45rem;
-    border-radius: 99px; text-transform: uppercase; letter-spacing: 0.06em;
-}
-.role-tag--customer { background: rgba(99,179,237,0.12); color: rgba(99,179,237,0.8); }
-.role-tag--idol     { background: rgba(155,110,232,0.12); color: rgba(155,110,232,0.8); }
-
-/* Chat toggle */
-.chat-toggle-btn {
-    display: inline-flex; align-items: center; gap: 0.35rem;
-    padding: 0.4rem 1rem;
-    border: 1px solid rgba(155,110,232,0.4); border-radius: 4px;
-    background: transparent; color: rgba(155,110,232,0.85);
-    font-size: 0.82rem; font-family: inherit; cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
-}
-.chat-toggle-btn:hover,
-.chat-toggle-btn--active { background: rgba(155,110,232,0.1); border-color: rgba(155,110,232,0.7); }
-
-/* Resolve section */
-.resolve-section { border-top: 1px solid rgba(255,255,255,0.07); padding-top: 1rem; margin-top: 0.25rem; }
-.decision-btns { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.4rem; }
-.decision-btn {
-    padding: 0.45rem 1rem; border-radius: 3px; border: 1px solid transparent;
-    font-size: 0.82rem; font-weight: 600; cursor: pointer; font-family: inherit;
-    transition: all 0.15s; background: transparent;
-}
-.decision-btn--approve { border-color: rgba(74,222,128,0.3); color: rgba(74,222,128,0.8); }
-.decision-btn--approve:hover,
-.decision-btn--approve.decision-btn--active { background: rgba(74,222,128,0.1); border-color: rgba(74,222,128,0.6); color: rgba(74,222,128,1); }
-.decision-btn--reject { border-color: rgba(239,68,68,0.3); color: rgba(239,68,68,0.7); }
-.decision-btn--reject:hover,
-.decision-btn--reject.decision-btn--active { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.55); color: rgba(239,68,68,0.9); }
-
-.resolve-textarea {
-    width: 100%; margin-top: 0.4rem; padding: 0.45rem 0.7rem;
-    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 3px; color: rgba(255,255,255,0.85); font-size: 0.85rem;
-    font-family: inherit; resize: vertical; outline: none; box-sizing: border-box;
-}
-.resolve-textarea:focus { border-color: rgba(190,145,255,0.45); }
-.resolve-textarea::placeholder { color: rgba(255,255,255,0.2); }
-
-/* Read-only display textareas (Детали / Заметка администратора) */
-.details-textarea {
-    width: 100%; box-sizing: border-box;
-    margin: 0; padding: 0.45rem 0.7rem;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 3px;
-    color: rgba(255,255,255,0.65);
-    font-family: inherit; font-size: 0.88rem; line-height: 1.5;
-    resize: none; outline: none;
-    overflow-y: auto; max-height: 40vh;
-}
-.details-textarea:focus { border-color: rgba(190,145,255,0.45); }
-.details-textarea::placeholder { color: rgba(255,255,255,0.2); }
-
-.resolve-footer { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.75rem; }
-.resolve-cancel {
-    padding: 0.45rem 0.9rem; border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 3px; background: transparent; color: rgba(255,255,255,0.4);
-    font-family: inherit; font-size: 0.82rem; cursor: pointer;
-}
-.resolve-cancel:hover { background: rgba(255,255,255,0.04); }
-.resolve-submit {
-    padding: 0.45rem 1rem; border: 1px solid rgba(190,145,255,0.45);
-    border-radius: 3px; background: rgba(190,145,255,0.1);
-    color: rgba(255,255,255,0.9); font-family: inherit; font-size: 0.82rem;
-    font-weight: 600; cursor: pointer; transition: background 0.15s;
-}
-.resolve-submit:hover:not(:disabled) { background: rgba(190,145,255,0.18); }
-.resolve-submit:disabled { opacity: 0.4; cursor: default; }
-
-/* ── Chat panel ──────────────────────────────────────────── */
-.chat-panel {
-    display: flex; flex-direction: column;
-    width: 560px; flex-shrink: 0;
-    max-height: 90vh;
-    background: #0f0f1a;
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 6px;
-    overflow: hidden;
-}
-
-.chat-panel__header {
-    display: flex; align-items: flex-start; justify-content: space-between;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    flex-shrink: 0;
-    gap: 0.5rem;
-}
-.chat-panel__header-inner { display: flex; flex-direction: column; gap: 0.3rem; }
-.chat-panel__title { font-size: 0.88rem; font-weight: 600; color: rgba(255,255,255,0.75); }
-.chat-panel__close {
-    background: none; border: none; font-size: 1.1rem;
-    cursor: pointer; color: rgba(255,255,255,0.3);
-    line-height: 1; padding: 0; flex-shrink: 0;
-}
-.chat-panel__close:hover { color: rgba(255,255,255,0.7); }
-
-/* Legend */
-.chat-legend {
-    display: flex; align-items: center; gap: 0.6rem;
-    margin-top: 0.35rem;
-}
-.chat-legend__user { display: flex; align-items: center; gap: 0.3rem; }
-.chat-legend__dot {
-    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
-}
-.chat-legend__dot--idol     { background: rgba(155,110,232,0.7); }
-.chat-legend__dot--customer { background: rgba(99,179,237,0.7); }
-.chat-legend__role {
-    font-size: 0.65rem; font-weight: 600; text-transform: uppercase;
-    letter-spacing: 0.06em; color: rgba(255,255,255,0.25);
-}
-.chat-legend__name { font-size: 0.72rem; font-weight: 500; }
-.chat-legend__name--idol     { color: rgba(155,110,232,0.85); }
-.chat-legend__name--customer { color: rgba(99,179,237,0.85); }
-.chat-legend__sep { color: rgba(255,255,255,0.15); font-size: 0.8rem; }
-
-/* Messages area */
-.chat-panel__body {
-    flex: 1; overflow-y: auto;
-    padding: 0.75rem 1rem;
-    display: flex; flex-direction: column; gap: 0.35rem;
-}
-
-.chat-empty { text-align: center; color: rgba(255,255,255,0.2); font-size: 0.82rem; padding: 1rem 0; }
-.chat-empty--sm { padding: 0.25rem 0 0.5rem; }
-
-.load-more-btn {
-    display: block; width: 100%;
-    padding: 0.3rem;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07); border-radius: 3px;
-    color: rgba(255,255,255,0.3); font-size: 0.75rem; font-family: inherit;
-    cursor: pointer; margin-bottom: 0.5rem; transition: background 0.15s;
-}
-.load-more-btn:hover { background: rgba(255,255,255,0.06); }
-
-/* ── System event ────────────────────────────────────────── */
-.sys-event {
-    display: flex; align-items: center; gap: 0.6rem;
-    margin: 0.5rem 0;
-}
-.sys-event__line {
-    flex: 1; height: 1px;
-    background: rgba(255,255,255,0.06);
-}
-.sys-event__content {
-    display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
-    flex-shrink: 0;
-}
-.sys-event__label {
-    font-size: 0.72rem; font-weight: 600;
-    color: rgba(155,110,232,0.75);
-    white-space: nowrap;
-}
-.sys-event__time {
-    font-size: 0.65rem;
-    color: rgba(255,255,255,0.2);
-    white-space: nowrap;
-}
-
-/* ── Chat bubbles ────────────────────────────────────────── */
-.chat-bubble-wrap {
-    display: flex; align-items: flex-end; gap: 0.5rem;
-    max-width: 88%;
-}
-.chat-bubble-wrap--left  { align-self: flex-start; flex-direction: row; }
-.chat-bubble-wrap--right { align-self: flex-end;   flex-direction: row-reverse; }
-
-.bubble-avatar {
-    width: 28px; height: 28px; border-radius: 50%;
-    overflow: hidden; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-    background: rgba(155,110,232,0.15);
-}
-.bubble-avatar__img { width: 100%; height: 100%; object-fit: cover; }
-.bubble-avatar__initials {
-    font-size: 0.7rem; font-weight: 700;
-    color: rgba(155,110,232,0.9);
-}
-.bubble-avatar__initials--customer { color: rgba(99,179,237,0.9); }
-
-.bubble-body { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
-
-.bubble-meta { display: flex; align-items: baseline; gap: 0.45rem; }
-.bubble-meta--right { flex-direction: row-reverse; }
-.bubble-meta__name { font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
-.bubble-meta__name--idol     { color: rgba(155,110,232,0.7); }
-.bubble-meta__name--customer { color: rgba(99,179,237,0.7); }
-.bubble-meta__time { font-size: 0.65rem; color: rgba(255,255,255,0.2); white-space: nowrap; }
-
-.bubble {
-    padding: 0.5rem 0.75rem;
-    border-radius: 10px;
-    font-size: 0.85rem;
-    line-height: 1.45;
-    color: rgba(255,255,255,0.85);
-    word-break: break-word;
-    white-space: pre-wrap;
-}
-.bubble--idol {
-    background: rgba(155,110,232,0.12);
-    border: 1px solid rgba(155,110,232,0.18);
-    border-bottom-left-radius: 3px;
-}
-.bubble--customer {
-    background: rgba(99,179,237,0.1);
-    border: 1px solid rgba(99,179,237,0.18);
-    border-bottom-right-radius: 3px;
-}
-.resolve-error {
-    margin-top: 0.75rem;
-    padding: 0.6rem 0.8rem;
-    background: rgba(248, 113, 113, 0.12);
-    border: 1px solid rgba(248, 113, 113, 0.3);
-    border-radius: 8px;
-    color: #f87171;
-    font-size: 0.85rem;
-    line-height: 1.4;
-}
-</style>

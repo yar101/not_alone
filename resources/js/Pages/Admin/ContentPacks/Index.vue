@@ -5,7 +5,16 @@ import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
 import AdminPagination from '@/Components/Admin/AdminPagination.vue';
+import AdminTable from '@/Components/Admin/UI/AdminTable.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminInput from '@/Components/Admin/UI/AdminInput.vue';
+import ContentPacksNavTabs from '@/Components/Admin/ContentPacksNavTabs.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
+import { formatMoney } from '@/Utils/money';
+import {
+    Check, Close, Search, View, Picture, ArrowRight
+} from '@element-plus/icons-vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -17,13 +26,13 @@ const props = defineProps({
 
 const filterStatus = ref(props.filters?.status ?? 'pending_review');
 const filterSearch = ref(props.filters?.search ?? '');
-let searchDebounce = null;
+let searchTimer = null;
 
 function applyFilters() {
     router.get(route('admin.content-packs.index'), {
         status: filterStatus.value,
         search: filterSearch.value || undefined,
-    }, { preserveState: true, preserveScroll: true });
+    }, { preserveState: true, preserveScroll: true, replace: true });
 }
 
 function switchStatus(status) {
@@ -31,18 +40,32 @@ function switchStatus(status) {
     applyFilters();
 }
 
-function onSearchInput() {
-    clearTimeout(searchDebounce);
-    searchDebounce = setTimeout(applyFilters, 300);
+function onSearchInput(val) {
+    filterSearch.value = val;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(applyFilters, 300);
 }
 
-// ─── Bulk selection ──────────────────────────────────────────────────────────
+// ─── Multi-select / Bulk ─────────────────────────────────────────────────────
 const selectedIds = ref(new Set());
+
+const allPageIds = computed(() =>
+    (props.packs?.data ?? []).map(p => p.id)
+);
 
 const allSelected = computed(() => {
     const list = props.packs?.data ?? [];
     return list.length > 0 && list.every(p => selectedIds.value.has(p.id));
 });
+
+function toggleSelectAll(checked) {
+    if (checked) {
+        allPageIds.value.forEach(id => selectedIds.value.add(id));
+    } else {
+        selectedIds.value.clear();
+    }
+    selectedIds.value = new Set(selectedIds.value);
+}
 
 function toggleRow(id) {
     const next = new Set(selectedIds.value);
@@ -51,17 +74,8 @@ function toggleRow(id) {
     selectedIds.value = next;
 }
 
-function toggleSelectAll() {
-    const list = props.packs?.data ?? [];
-    if (allSelected.value) {
-        selectedIds.value = new Set();
-    } else {
-        selectedIds.value = new Set(list.map(p => p.id));
-    }
-}
-
 function bulkApprove() {
-    ElMessageBox.confirm(`Одобрить выбранные контент-паки (${selectedIds.value.size} шт.)?`, 'Массовое одобрение', {
+    ElMessageBox.confirm(`Одобрить выбранные контент-паки (${selectedIds.value.size} шт.)?`, 'Одобрение', {
         confirmButtonText: 'Одобрить',
         cancelButtonText: 'Отмена',
         type: 'success',
@@ -76,7 +90,7 @@ function bulkApprove() {
 }
 
 function bulkReject() {
-    ElMessageBox.confirm(`Отклонить и удалить файлы выбранных контент-паков (${selectedIds.value.size} шт.)?`, 'Массовое отклонение', {
+    ElMessageBox.confirm(`Отклонить выбранные контент-паки (${selectedIds.value.size} шт.)?`, 'Отклонение', {
         confirmButtonText: 'Отклонить',
         cancelButtonText: 'Отмена',
         type: 'warning',
@@ -91,17 +105,18 @@ function bulkReject() {
     }).catch(() => {});
 }
 
-const TAB_ITEMS = [
-    { key: 'pending_review', label: 'На рассмотрении' },
-    { key: 'resubmitted',    label: 'Переподано' },
-    { key: 'has_remarks',    label: 'Есть замечания' },
-    { key: 'approved',       label: 'Одобрен' },
-    { key: 'published',      label: 'Опубликован' },
-    { key: 'all',            label: 'Все' },
-];
+const statusVariant = {
+    pending_review: 'warning',
+    resubmitted:    'warning',
+    has_remarks:    'info',
+    approved:       'success',
+    published:      'success',
+    rejected:       'danger',
+};
 
 const STATUS_LABELS = {
     pending_review: 'На рассмотрении',
+    resubmitted:    'Переподано',
     has_remarks:    'Есть замечания',
     approved:       'Одобрен',
     published:      'Опубликован',
@@ -115,361 +130,217 @@ function formatDate(iso) {
 </script>
 
 <template>
-    <div class="cp-index">
+    <div class="space-y-6 max-w-7xl mx-auto">
+        <!-- Sub-navigation Tabs -->
+        <ContentPacksNavTabs active="moderation" />
+
+        <!-- Header -->
         <AdminPageHeader
-            title="Контент-паки"
-            subtitle="Модерация приватных фото- и контент-паков айдолов"
-            :count="packs.total ?? packs.data?.length"
+            title="Модерация контент-паков"
+            subtitle="Проверка авторских фотографий, аудиофайлов и цен перед публикацией в каталоге"
+            :count="packs?.total"
         />
 
-        <!-- Status tabs -->
-        <div class="cp-tabs">
+        <!-- Status Filter Tabs -->
+        <div class="flex items-center gap-2 border-b border-zinc-800 pb-3 overflow-x-auto">
             <button
-                v-for="tab in TAB_ITEMS"
-                :key="tab.key"
-                class="cp-tab"
-                :class="{ 'cp-tab--active': filterStatus === tab.key }"
-                @click="switchStatus(tab.key)"
+                type="button"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-2 shrink-0"
+                :class="[filterStatus === 'pending_review' ? 'bg-violet-600 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60']"
+                @click="switchStatus('pending_review')"
             >
-                {{ tab.label }}
-                <span
-                    v-if="counts[tab.key] && tab.key !== 'all'"
-                    class="cp-tab__badge"
-                    :class="{ 'cp-tab__badge--resubmit': tab.key === 'resubmitted' }"
-                >
-                    {{ counts[tab.key] }}
-                </span>
+                <span>На рассмотрении</span>
+                <span v-if="(counts?.pending_review ?? 0) > 0" class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                <span v-if="counts?.pending_review > 0" class="text-[11px] font-bold">({{ counts.pending_review }})</span>
+            </button>
+            <button
+                type="button"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0"
+                :class="[filterStatus === 'resubmitted' ? 'bg-violet-600 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60']"
+                @click="switchStatus('resubmitted')"
+            >
+                Переподано ({{ counts?.resubmitted ?? 0 }})
+            </button>
+            <button
+                type="button"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0"
+                :class="[filterStatus === 'has_remarks' ? 'bg-violet-600 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60']"
+                @click="switchStatus('has_remarks')"
+            >
+                С замечаниями ({{ counts?.has_remarks ?? 0 }})
+            </button>
+            <button
+                type="button"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0"
+                :class="[filterStatus === 'approved' ? 'bg-violet-600 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60']"
+                @click="switchStatus('approved')"
+            >
+                Одобрены ({{ counts?.approved ?? 0 }})
+            </button>
+            <button
+                type="button"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0"
+                :class="[filterStatus === 'all' ? 'bg-violet-600 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60']"
+                @click="switchStatus('all')"
+            >
+                Все ({{ counts?.all ?? 0 }})
             </button>
         </div>
 
-        <!-- Search & Bulk bar -->
-        <div class="cp-toolbar">
-            <input
-                v-model="filterSearch"
-                class="cp-search"
-                type="text"
-                placeholder="Поиск по названию или айдолу..."
-                @input="onSearchInput"
-            />
+        <!-- Filter Toolbar -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div class="w-full sm:w-80">
+                <AdminInput
+                    :model-value="filterSearch"
+                    placeholder="Поиск по названию или айдолу..."
+                    size="md"
+                    @update:model-value="onSearchInput"
+                >
+                    <template #prefix>
+                        <el-icon><Search /></el-icon>
+                    </template>
+                </AdminInput>
+            </div>
 
-            <!-- Bulk actions panel -->
-            <transition name="fade">
-                <div v-if="selectedIds.size > 0" class="cp-bulk-actions">
-                    <span class="cp-bulk-count">Выбрано: {{ selectedIds.size }}</span>
-                    <button class="cp-btn cp-btn--approve" @click="bulkApprove">
-                        Одобрить выбранные
-                    </button>
-                    <button class="cp-btn cp-btn--reject" @click="bulkReject">
-                        Отклонить выбранные
-                    </button>
-                </div>
-            </transition>
+            <!-- Bulk actions if selected -->
+            <div v-if="selectedIds.size > 0" class="flex items-center gap-2 p-1.5 px-3 bg-violet-950/60 border border-violet-800/70 rounded-xl text-xs">
+                <span class="text-violet-300 font-semibold">Выбрано: {{ selectedIds.size }}</span>
+                <AdminButton variant="success" size="sm" @click="bulkApprove">
+                    <template #icon><el-icon><Check /></el-icon></template>
+                    Одобрить
+                </AdminButton>
+                <AdminButton variant="destructive" size="sm" @click="bulkReject">
+                    <template #icon><el-icon><Close /></el-icon></template>
+                    Отклонить
+                </AdminButton>
+            </div>
         </div>
 
-        <!-- Table -->
-        <div class="cp-table-wrap">
-            <table class="cp-table">
-                <thead>
-                    <tr>
-                        <th style="width: 36px;">
-                            <label class="mod-cb">
-                                <input
-                                    type="checkbox"
-                                    class="mod-cb__input"
-                                    :checked="allSelected"
-                                    :indeterminate="selectedIds.size > 0 && !allSelected"
-                                    @change="toggleSelectAll"
-                                />
-                                <span class="mod-cb__box">
-                                    <svg v-if="allSelected" class="mod-cb__check" viewBox="0 0 10 8" fill="none">
-                                        <path d="M1 4l3 3 5-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                    <svg v-else-if="selectedIds.size > 0" class="mod-cb__minus" viewBox="0 0 10 2" fill="none">
-                                        <path d="M1 1h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                                    </svg>
-                                </span>
-                            </label>
-                        </th>
-                        <th>Обложка</th>
-                        <th>Айдол</th>
-                        <th>Название</th>
-                        <th>Цена</th>
-                        <th>Статус</th>
-                        <th>Создан</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr
-                        v-for="pack in packs.data"
-                        :key="pack.id"
-                        :class="{ 'cp-tr--selected': selectedIds.has(pack.id) }"
-                    >
-                        <td>
-                            <label class="mod-cb">
-                                <input
-                                    type="checkbox"
-                                    class="mod-cb__input"
-                                    :checked="selectedIds.has(pack.id)"
-                                    @change="toggleRow(pack.id)"
-                                />
-                                <span class="mod-cb__box">
-                                    <svg v-if="selectedIds.has(pack.id)" class="mod-cb__check" viewBox="0 0 10 8" fill="none">
-                                        <path d="M1 4l3 3 5-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                </span>
-                            </label>
-                        </td>
-                        <td class="cp-td-cover">
-                            <img v-if="pack.cover_url" :src="pack.cover_url" alt="" class="cp-cover-thumb" />
-                            <div v-else class="cp-cover-empty">—</div>
-                        </td>
-                        <td class="cp-td-idol">
-                            <div class="cp-idol-info">
-                                <img v-if="pack.user?.avatar_url" :src="pack.user.avatar_url" class="cp-idol-avatar" alt="" />
-                                <div v-else class="cp-idol-avatar cp-idol-avatar--empty">
-                                    {{ pack.user?.name?.charAt(0)?.toUpperCase() }}
-                                </div>
-                                <span>{{ pack.user?.name ?? '—' }}</span>
-                            </div>
-                        </td>
-                        <td class="cp-td-title">
-                            {{ pack.title }}
-                            <span v-if="pack.resubmitted_at" class="cp-resubmit-badge" :title="'Исправлено: ' + formatDate(pack.resubmitted_at)">
-                                Исправлено
-                            </span>
-                        </td>
-                        <td>
-                            <span class="inline-flex items-center gap-1">
-                                <span>{{ pack.price }}</span>
-                                <CoinIcon color="blue" size="xs" />
-                            </span>
-                        </td>
-                        <td>
-                            <span class="cp-status" :class="'cp-status--' + pack.status">
-                                {{ STATUS_LABELS[pack.status] || pack.status }}
-                            </span>
-                        </td>
-                        <td>{{ formatDate(pack.created_at) }}</td>
-                        <td>
-                            <Link :href="route('admin.content-packs.show', pack.id)" class="cp-link">
-                                Рассмотреть →
+        <!-- Data Table -->
+        <AdminTable :empty="!packs.data?.length" empty-title="Контент-паков не найдено">
+            <template #header>
+                <tr>
+                    <th class="py-3 px-4 w-10">
+                        <input
+                            type="checkbox"
+                            :checked="allSelected"
+                            class="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-violet-600 focus:ring-violet-500"
+                            @change="toggleSelectAll($event.target.checked)"
+                        />
+                    </th>
+                    <th class="py-3 px-4 w-16">Обложка</th>
+                    <th class="py-3 px-4">Пак</th>
+                    <th class="py-3 px-4">Айдол</th>
+                    <th class="py-3 px-4">Медиа</th>
+                    <th class="py-3 px-4">Стоимость</th>
+                    <th class="py-3 px-4">Статус</th>
+                    <th class="py-3 px-4">Дата</th>
+                    <th class="py-3 px-4 text-right">Действия</th>
+                </tr>
+            </template>
+
+            <tr
+                v-for="pack in packs.data"
+                :key="pack.id"
+                class="hover:bg-zinc-800/40 transition-colors cursor-pointer group"
+                @click="router.visit(route('admin.content-packs.show', pack.id))"
+            >
+                <!-- Checkbox -->
+                <td class="py-3 px-4" @click.stop>
+                    <input
+                        type="checkbox"
+                        :checked="selectedIds.has(pack.id)"
+                        class="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-violet-600 focus:ring-violet-500"
+                        @change="toggleRow(pack.id)"
+                    />
+                </td>
+
+                <!-- Cover Thumbnail -->
+                <td class="py-3 px-4">
+                    <img
+                        v-if="pack.cover_photo?.url || pack.first_photo?.url"
+                        :src="pack.cover_photo?.url || pack.first_photo?.url"
+                        class="w-11 h-11 rounded-lg object-cover border border-zinc-700 shrink-0"
+                        alt=""
+                    />
+                    <div v-else class="w-11 h-11 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-500">
+                        <el-icon :size="16"><Picture /></el-icon>
+                    </div>
+                </td>
+
+                <!-- Pack Info -->
+                <td class="py-3 px-4">
+                    <div class="font-semibold text-zinc-100 group-hover:text-violet-300 transition-colors">
+                        {{ pack.title }}
+                    </div>
+                    <div class="text-[11px] text-zinc-500">ID: #{{ pack.id }}</div>
+                </td>
+
+                <!-- Idol -->
+                <td class="py-3 px-4" @click.stop>
+                    <div class="flex items-center gap-2.5" v-if="pack.user">
+                        <img
+                            v-if="pack.user.avatar_url"
+                            :src="pack.user.avatar_url"
+                            class="w-7 h-7 rounded-full object-cover shrink-0 border border-zinc-700/60"
+                            alt=""
+                        />
+                        <div
+                            v-else
+                            class="w-7 h-7 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-[10px] text-zinc-300 shrink-0"
+                        >
+                            {{ pack.user.name?.[0] }}
+                        </div>
+                        <div class="min-w-0">
+                            <Link :href="route('admin.users.show', pack.user.id)" class="text-xs font-medium text-zinc-300 hover:text-violet-400 truncate block">
+                                {{ pack.user.name }}
                             </Link>
-                        </td>
-                    </tr>
-                    <tr v-if="!packs.data?.length">
-                        <td colspan="8" class="cp-empty">Нет паков</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+                        </div>
+                    </div>
+                    <span v-else class="text-zinc-500 text-xs">—</span>
+                </td>
 
-        <!-- Pagination -->
-        <AdminPagination :pagination="packs" />
+                <!-- Media count -->
+                <td class="py-3 px-4 text-xs text-zinc-400">
+                    {{ pack.photos_count ?? pack.photos?.length ?? 0 }} фото
+                </td>
+
+                <!-- Price -->
+                <td class="py-3 px-4 whitespace-nowrap">
+                    <div class="flex items-center gap-1.5 font-bold text-zinc-100 text-xs">
+                        <span>{{ formatMoney(pack.price) }}</span>
+                        <CoinIcon color="blue" size="xs" />
+                    </div>
+                </td>
+
+                <!-- Status -->
+                <td class="py-3 px-4">
+                    <AdminBadge :variant="statusVariant[pack.status] || 'neutral'" dot size="sm">
+                        {{ STATUS_LABELS[pack.status] ?? pack.status }}
+                    </AdminBadge>
+                </td>
+
+                <!-- Date -->
+                <td class="py-3 px-4 text-xs text-zinc-400 whitespace-nowrap">
+                    {{ formatDate(pack.created_at) }}
+                </td>
+
+                <!-- Actions -->
+                <td class="py-3 px-4 text-right whitespace-nowrap" @click.stop>
+                    <AdminButton
+                        variant="secondary"
+                        size="sm"
+                        @click="router.visit(route('admin.content-packs.show', pack.id))"
+                    >
+                        <template #icon><el-icon><View /></el-icon></template>
+                        Рассмотреть
+                    </AdminButton>
+                </td>
+            </tr>
+
+            <template #footer>
+                <AdminPagination :pagination="packs" />
+            </template>
+        </AdminTable>
     </div>
 </template>
-
-<style scoped>
-.cp-index { padding: 1.5rem; }
-
-.cp-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
-
-.cp-tab {
-    padding: 0.4rem 0.85rem;
-    border-radius: 6px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    color: rgba(255,255,255,0.5);
-    font-size: 0.85rem;
-    cursor: pointer;
-    font-family: inherit;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-.cp-tab:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.8); }
-.cp-tab--active { background: rgba(255, 178, 239,0.15); border-color: rgba(255, 178, 239,0.4); color: rgba(200,200,255,0.9); }
-.cp-tab__badge { background: rgba(255,100,100,0.25); color: #ff9a9a; border-radius: 10px; padding: 1px 7px; font-size: 0.78rem; }
-
-.cp-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
-}
-
-.cp-search {
-    width: 100%;
-    max-width: 360px;
-    padding: 0.5rem 0.8rem;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 7px;
-    color: rgba(255,255,255,0.85);
-    font-size: 0.9rem;
-    font-family: inherit;
-    outline: none;
-}
-.cp-search:focus {
-    border-color: rgba(155, 110, 232, 0.5);
-}
-
-.cp-bulk-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    background: rgba(155, 110, 232, 0.08);
-    border: 1px solid rgba(155, 110, 232, 0.2);
-    padding: 0.35rem 0.75rem;
-    border-radius: 8px;
-}
-
-.cp-bulk-count {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #c49eff;
-}
-
-.cp-btn {
-    padding: 0.4rem 0.85rem;
-    border-radius: 6px;
-    font-size: 0.82rem;
-    font-weight: 500;
-    cursor: pointer;
-    border: none;
-    transition: all 0.15s;
-    font-family: inherit;
-}
-
-.cp-btn--approve {
-    background: #10b981;
-    color: #fff;
-}
-.cp-btn--approve:hover {
-    background: #059669;
-}
-
-.cp-btn--reject {
-    background: rgba(239, 68, 68, 0.15);
-    color: #f87171;
-    border: 1px solid rgba(239, 68, 68, 0.3);
-}
-.cp-btn--reject:hover {
-    background: rgba(239, 68, 68, 0.25);
-}
-
-.cp-table-wrap { overflow-x: auto; margin-bottom: 1.25rem; }
-
-.cp-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.88rem;
-}
-
-.cp-table th {
-    text-align: left;
-    padding: 0.6rem 0.75rem;
-    color: rgba(255,255,255,0.35);
-    font-weight: 500;
-    border-bottom: 1px solid rgba(255,255,255,0.07);
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-
-.cp-table td {
-    padding: 0.7rem 0.75rem;
-    vertical-align: middle;
-    color: rgba(255,255,255,0.75);
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-
-.cp-tr--selected {
-    background: rgba(155, 110, 232, 0.08);
-}
-
-/* Checkbox */
-.mod-cb {
-    display: inline-flex;
-    align-items: center;
-    cursor: pointer;
-    user-select: none;
-}
-.mod-cb__input {
-    position: absolute;
-    opacity: 0;
-    width: 0;
-    height: 0;
-    pointer-events: none;
-}
-.mod-cb__box {
-    width: 15px;
-    height: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 3px;
-    background: rgba(255, 255, 255, 0.04);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    transition: border-color 0.15s, background 0.15s;
-    color: #9B6EE8;
-}
-.mod-cb:hover .mod-cb__box {
-    border-color: rgba(155, 110, 232, 0.5);
-    background: rgba(155, 110, 232, 0.06);
-}
-.mod-cb__input:checked ~ .mod-cb__box,
-.mod-cb__input:indeterminate ~ .mod-cb__box {
-    border-color: rgba(155, 110, 232, 0.7);
-    background: rgba(155, 110, 232, 0.15);
-}
-.mod-cb__check,
-.mod-cb__minus {
-    width: 10px;
-    height: 10px;
-}
-
-.cp-td-cover { width: 64px; }
-.cp-cover-thumb { width: 48px; height: 64px; object-fit: cover; border-radius: 4px; display: block; }
-.cp-cover-empty { width: 48px; height: 64px; background: rgba(255,255,255,0.04); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.2); font-size: 0.75rem; }
-
-.cp-idol-info { display: flex; align-items: center; gap: 0.5rem; }
-.cp-idol-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-.cp-idol-avatar--empty { background: rgba(255, 178, 239,0.15); display: flex; align-items: center; justify-content: center; font-size: 0.85rem; color: rgba(255, 178, 239,0.7); }
-
-.cp-td-title { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-.cp-status { padding: 2px 8px; border-radius: 10px; font-size: 0.78rem; font-weight: 500; }
-.cp-status--pending_review { background: rgba(255, 178, 239,0.15); color: #ffb2ef; }
-.cp-status--approved       { background: rgba(100,210,160,0.15); color: #64d2a0; }
-.cp-status--published      { background: rgba(100,210,255,0.15); color: #64d2ff; }
-.cp-status--has_remarks    { background: rgba(255,123,123,0.15); color: #ff7b7b; }
-.cp-status--rejected       { background: rgba(180,50,50,0.15); color: #ff6060; }
-
-.cp-resubmit-badge {
-    display: inline-block;
-    margin-left: 0.4rem;
-    padding: 1px 6px;
-    border-radius: 8px;
-    background: rgba(100,210,160,0.15);
-    color: #64d2a0;
-    font-size: 0.72rem;
-    font-weight: 600;
-    vertical-align: middle;
-    white-space: nowrap;
-}
-
-.cp-tab__badge--resubmit {
-    background: rgba(100,210,160,0.2);
-    color: #64d2a0;
-}
-
-.cp-link { color: rgba(255, 178, 239,0.8); font-size: 0.85rem; text-decoration: none; white-space: nowrap; }
-.cp-link:hover { color: #ffb2ef; }
-
-.cp-empty { text-align: center; color: rgba(255,255,255,0.25); padding: 2rem; }
-</style>

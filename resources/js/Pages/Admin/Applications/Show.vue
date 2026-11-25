@@ -1,192 +1,308 @@
 <script setup>
 import { ref } from 'vue';
-import { Link, useForm } from '@inertiajs/vue3';
-import { ElMessageBox } from 'element-plus';
+import { Link, useForm, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminModal from '@/Components/Admin/UI/AdminModal.vue';
+import {
+    Check, Close, ZoomIn, ArrowLeft, Warning,
+    User, Calendar, Clock, Star
+} from '@element-plus/icons-vue';
 
 defineOptions({ layout: AdminLayout });
 
-const props = defineProps({ application: Object });
+const props = defineProps({
+    application: Object,
+});
 
 const lightboxOpen = ref(false);
-const rejectForm = useForm({ rejection_reason: '', reset_quiz: false });
+const showApproveConfirm = ref(false);
 const showRejectForm = ref(false);
+const rejectForm = useForm({
+    rejection_reason: '',
+    reset_quiz: false,
+});
+
+const rejectChips = [
+    'Не видно лица',
+    'Плохое качество фото',
+    'Фото не вашего лица',
+    'Нарушение правил сервиса',
+    'Несоответствие возрасту',
+];
 
 function approve() {
-    ElMessageBox.confirm('Одобрить заявку на статус айдола?', 'Подтверждение', {
-        confirmButtonText: 'Одобрить',
-        cancelButtonText: 'Отмена',
-        type: 'success',
-    }).then(() => {
-        useForm({}).patch(route('admin.applications.approve', props.application.id));
-    }).catch(() => {});
+    router.patch(route('admin.applications.approve', props.application.id), {}, {
+        onSuccess: () => {
+            showApproveConfirm.value = false;
+        },
+    });
 }
 
 function submitReject() {
     rejectForm.patch(route('admin.applications.reject', props.application.id), {
-        onSuccess: () => { showRejectForm.value = false; },
+        onSuccess: () => {
+            showRejectForm.value = false;
+        },
     });
 }
 
-const statusLabel = { pending: 'На рассмотрении', approved: 'Одобрена', rejected: 'Отклонена' };
-const statusClass = { pending: 'badge--pending', approved: 'badge--approved', rejected: 'badge--rejected' };
+const statusVariant = {
+    pending: 'warning',
+    approved: 'success',
+    rejected: 'danger',
+};
+
+const statusLabel = {
+    pending: 'На рассмотрении',
+    approved: 'Одобрена',
+    rejected: 'Отклонена',
+};
 </script>
 
 <template>
-    <div class="show-wrap">
-        <Link :href="route('admin.applications.index')" class="back-link">← Назад к заявкам</Link>
+    <div class="space-y-6 max-w-5xl mx-auto">
+        <!-- Back Link -->
+        <div>
+            <Link
+                :href="route('admin.applications.index')"
+                class="inline-flex items-center gap-2 text-xs font-medium text-zinc-400 hover:text-zinc-100 transition-colors"
+            >
+                <el-icon :size="12"><ArrowLeft /></el-icon>
+                <span>Назад ко всем заявкам</span>
+            </Link>
+        </div>
 
-        <div class="show-grid">
-            <!-- Photo -->
-            <div class="photo-section">
-                <img
-                    :src="application.face_photo_url"
-                    class="face-photo"
-                    alt="Фото лица"
+        <!-- Header -->
+        <AdminPageHeader
+            :title="`Заявка: ${application.user?.name}`"
+            :subtitle="`Подана ${new Date(application.created_at).toLocaleString('ru')}`"
+        >
+            <template #badge>
+                <AdminBadge :variant="statusVariant[application.status] || 'neutral'" dot size="md">
+                    {{ statusLabel[application.status] ?? application.status }}
+                </AdminBadge>
+            </template>
+        </AdminPageHeader>
+
+        <!-- Main Card Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+            <!-- Left: Photo Section -->
+            <div class="md:col-span-5 space-y-3">
+                <div class="text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center justify-between">
+                    <span>Верификационное фото</span>
+                    <span class="text-[11px] text-zinc-500">Клик для зума</span>
+                </div>
+
+                <div
+                    class="relative rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-900 cursor-zoom-in group shadow-lg"
                     @click="lightboxOpen = true"
-                />
-                <p class="photo-hint">Нажмите для увеличения</p>
+                >
+                    <img
+                        :src="application.face_photo_url"
+                        class="w-full h-auto object-cover max-h-[460px]"
+                        alt="Фото лица"
+                    />
+                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white gap-2 font-medium text-xs">
+                        <el-icon :size="18"><ZoomIn /></el-icon>
+                        <span>Увеличить фото</span>
+                    </div>
+                </div>
             </div>
 
-            <!-- Info -->
-            <div class="info-section">
-                <div class="info-header">
-                    <img v-if="application.user.avatar_url" :src="application.user.avatar_url" class="user-avatar" alt="" />
-                    <div v-else class="user-avatar user-avatar--init">{{ application.user.name[0] }}</div>
-                    <div>
-                        <div class="user-name">{{ application.user.name }}</div>
-                        <div class="user-email">{{ application.user.email }}</div>
+            <!-- Right: Candidate Info & Review Section -->
+            <div class="md:col-span-7 space-y-6">
+                <!-- User Profile Summary -->
+                <div class="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-4">
+                    <div class="flex items-center gap-4">
+                        <img
+                            v-if="application.user?.avatar_url"
+                            :src="application.user.avatar_url"
+                            class="w-14 h-14 rounded-full object-cover border border-zinc-700 shrink-0"
+                            alt=""
+                        />
+                        <div
+                            v-else
+                            class="w-14 h-14 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-lg text-zinc-300 shrink-0"
+                        >
+                            {{ application.user?.name?.[0] ?? 'U' }}
+                        </div>
+
+                        <div class="min-w-0 flex-1">
+                            <h2 class="text-base font-bold text-zinc-100">{{ application.user?.name }}</h2>
+                            <p class="text-xs text-zinc-400">{{ application.user?.email }}</p>
+                            <div class="mt-2 flex items-center gap-4 text-xs text-zinc-500">
+                                <span>ID: <strong class="text-zinc-400 font-mono">{{ application.user?.id }}</strong></span>
+                                <span>•</span>
+                                <Link
+                                    :href="route('admin.users.show', application.user?.id)"
+                                    class="text-violet-400 hover:underline"
+                                >
+                                    Открыть профиль пользователя ↗
+                                </Link>
+                            </div>
+                        </div>
                     </div>
-                    <span :class="['badge', statusClass[application.status]]">{{ statusLabel[application.status] }}</span>
+
+                    <!-- Meta Details Table -->
+                    <div class="pt-4 border-t border-zinc-800 space-y-2 text-xs">
+                        <div class="flex items-center justify-between text-zinc-400">
+                            <span>Заявка отправлена:</span>
+                            <span class="text-zinc-200 font-mono">{{ new Date(application.created_at).toLocaleString('ru') }}</span>
+                        </div>
+                        <div v-if="application.reviewed_at" class="flex items-center justify-between text-zinc-400">
+                            <span>Дата рассмотрения:</span>
+                            <span class="text-zinc-200 font-mono">{{ new Date(application.reviewed_at).toLocaleString('ru') }}</span>
+                        </div>
+                        <div v-if="application.reviewer" class="flex items-center justify-between text-zinc-400">
+                            <span>Модератор:</span>
+                            <span class="text-zinc-200 font-medium">{{ application.reviewer.name }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Rejection Reason if any -->
+                    <div v-if="application.rejection_reason" class="p-3.5 rounded-xl bg-rose-950/20 border border-rose-900/40 text-xs">
+                        <span class="font-semibold text-rose-400 block mb-1">Причина отказа:</span>
+                        <p class="text-rose-200 italic">{{ application.rejection_reason }}</p>
+                    </div>
                 </div>
 
-                <div class="meta-row">
-                    <span class="meta-label">Заявка подана:</span>
-                    <span class="meta-value">{{ new Date(application.created_at).toLocaleString('ru') }}</span>
-                </div>
-                <div class="meta-row" v-if="application.reviewed_at">
-                    <span class="meta-label">Проверена:</span>
-                    <span class="meta-value">{{ new Date(application.reviewed_at).toLocaleString('ru') }} ({{ application.reviewer?.name }})</span>
-                </div>
-                <div class="meta-row" v-if="application.rejection_reason">
-                    <span class="meta-label">Причина отказа:</span>
-                    <span class="meta-value meta-value--reason">{{ application.rejection_reason }}</span>
-                </div>
+                <!-- Review Actions Section (when status === 'pending') -->
+                <div v-if="application.status === 'pending'" class="p-5 rounded-2xl bg-zinc-900/40 border border-zinc-800 space-y-4">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                        Решение модератора
+                    </h3>
 
-                <div v-if="application.status === 'pending'" class="action-section">
-                    <button @click="approve" class="btn-approve">Одобрить заявку</button>
-                    <button @click="showRejectForm = !showRejectForm" class="btn-reject-toggle">
-                        {{ showRejectForm ? 'Отмена' : 'Отклонить' }}
-                    </button>
-                    <form v-if="showRejectForm" @submit.prevent="submitReject" class="reject-form">
-                        <div class="reason-chips">
+                    <div class="flex items-center gap-3" v-if="!showRejectForm">
+                        <AdminButton
+                            variant="success"
+                            size="md"
+                            class="flex-1"
+                            @click="showApproveConfirm = true"
+                        >
+                            <template #icon><el-icon><Check /></el-icon></template>
+                            Одобрить статус айдола
+                        </AdminButton>
+
+                        <AdminButton
+                            variant="destructive"
+                            size="md"
+                            class="flex-1"
+                            @click="showRejectForm = true"
+                        >
+                            <template #icon><el-icon><Close /></el-icon></template>
+                            Отклонить заявку
+                        </AdminButton>
+                    </div>
+
+                    <!-- Reject Form Expansion -->
+                    <div v-else class="space-y-4 p-4 rounded-xl bg-rose-950/20 border border-rose-900/40">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+                                <el-icon><Warning /></el-icon>
+                                Выберите или введите причину отклонения
+                            </span>
                             <button
                                 type="button"
-                                v-for="chip in ['Не видно лица', 'Плохое качество фото', 'Фото не вашего лица', 'Нарушение правил']"
-                                :key="chip"
-                                class="reason-chip"
-                                :class="{ 'reason-chip--active': rejectForm.rejection_reason === chip }"
-                                @click="rejectForm.rejection_reason = chip"
-                            >{{ chip }}</button>
+                                class="text-xs text-zinc-400 hover:text-zinc-200"
+                                @click="showRejectForm = false"
+                            >
+                                Отмена
+                            </button>
                         </div>
+
+                        <div class="flex flex-wrap gap-1.5">
+                            <button
+                                v-for="chip in rejectChips"
+                                :key="chip"
+                                type="button"
+                                class="px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors"
+                                :class="[
+                                    rejectForm.rejection_reason === chip
+                                        ? 'bg-rose-600 border-rose-500 text-white'
+                                        : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
+                                ]"
+                                @click="rejectForm.rejection_reason = chip"
+                            >
+                                {{ chip }}
+                            </button>
+                        </div>
+
                         <textarea
                             v-model="rejectForm.rejection_reason"
-                            class="reject-textarea"
                             rows="3"
-                            placeholder="Или введите свою причину..."
+                            class="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500/30"
+                            placeholder="Или введите подробный комментарий..."
                             required
                         />
-                        <label class="reset-quiz-label">
-                            <input type="checkbox" v-model="rejectForm.reset_quiz" />
-                            Сбросить результаты теста (пользователь пересдаёт с нуля)
+
+                        <label class="flex items-center gap-2 cursor-pointer select-none text-xs text-zinc-300">
+                            <input
+                                type="checkbox"
+                                v-model="rejectForm.reset_quiz"
+                                class="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-rose-600 focus:ring-rose-500"
+                            />
+                            <span>Сбросить результаты теста (пользователь пересдаёт с нуля)</span>
                         </label>
-                        <button type="submit" class="btn-reject-confirm" :disabled="rejectForm.processing">
-                            Отклонить заявку
-                        </button>
-                    </form>
+
+                        <AdminButton
+                            variant="destructive"
+                            class="w-full"
+                            :loading="rejectForm.processing"
+                            :disabled="!rejectForm.rejection_reason.trim()"
+                            @click="submitReject"
+                        >
+                            Подтвердить отклонение
+                        </AdminButton>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Lightbox -->
-        <div v-if="lightboxOpen" class="lightbox" @click="lightboxOpen = false">
-            <img :src="application.face_photo_url" class="lightbox-img" alt="Фото" />
-        </div>
+        <!-- ─── Confirmation Modal for Approval ──────────────────────────────── -->
+        <AdminModal
+            :show="showApproveConfirm"
+            title="Одобрить статус айдола?"
+            subtitle="Пользователь получит статус айдола, возможность создавать платные услуги и продавать контент-паки"
+            @close="showApproveConfirm = false"
+        >
+            <div class="text-sm text-zinc-300 space-y-2">
+                <p>Кандидат: <strong class="text-white">{{ application.user?.name }}</strong> ({{ application.user?.email }})</p>
+                <p class="text-xs text-zinc-500">После одобрения пользователю будет отправлено системное уведомление и активирован заработанный счёт в розовых монетах.</p>
+            </div>
+
+            <template #footer>
+                <AdminButton variant="ghost" @click="showApproveConfirm = false">
+                    Отмена
+                </AdminButton>
+                <AdminButton variant="success" @click="approve">
+                    Да, одобрить
+                </AdminButton>
+            </template>
+        </AdminModal>
+
+        <!-- ─── Lightbox Modal ──────────────────────────────────────────────── -->
+        <Teleport to="body">
+            <div
+                v-if="lightboxOpen"
+                class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out select-none"
+                @click="lightboxOpen = false"
+            >
+                <img
+                    :src="application.face_photo_url"
+                    class="max-w-full max-h-[90vh] object-contain rounded-xl shadow-2xl border border-zinc-800"
+                    alt="Увеличенное фото"
+                />
+                <button
+                    type="button"
+                    class="absolute top-6 right-6 p-2 rounded-full bg-zinc-900/80 text-white hover:bg-zinc-800 transition-colors"
+                    @click="lightboxOpen = false"
+                >
+                    <el-icon :size="20"><Close /></el-icon>
+                </button>
+            </div>
+        </Teleport>
     </div>
 </template>
-
-<style scoped>
-.show-wrap { max-width: 900px; }
-.back-link { color: rgba(255,255,255,0.4); text-decoration: none; font-size: 0.85rem; display: inline-block; margin-bottom: 1.5rem; }
-.back-link:hover { color: rgba(255,255,255,0.7); }
-
-.show-grid { display: grid; grid-template-columns: 280px 1fr; gap: 2rem; }
-@media (max-width: 640px) { .show-grid { grid-template-columns: 1fr; } }
-
-.photo-section { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
-.face-photo { width: 100%; border-radius: 12px; cursor: zoom-in; border: 1px solid rgba(155,110,232,0.2); }
-.photo-hint { font-size: 0.75rem; color: rgba(255,255,255,0.3); }
-
-.info-section { display: flex; flex-direction: column; gap: 1rem; }
-.info-header { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
-.user-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background: rgba(155,110,232,0.15); }
-.user-avatar--init { display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 600; color: #9B6EE8; border: 1px solid rgba(155,110,232,0.3); }
-.user-name { font-size: 1rem; color: #fff; font-weight: 600; }
-.user-email { font-size: 0.82rem; color: rgba(255,255,255,0.4); }
-
-.badge { padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 500; }
-.badge--pending { background: rgba(255,180,0,0.12); color: #fbb740; }
-.badge--approved { background: rgba(0,200,100,0.12); color: #4cde8f; }
-.badge--rejected { background: rgba(255,80,80,0.12); color: #ff6b6b; }
-
-.meta-row { display: flex; gap: 0.75rem; align-items: flex-start; }
-.meta-label { font-size: 0.8rem; color: rgba(255,255,255,0.35); white-space: nowrap; min-width: 120px; }
-.meta-value { font-size: 0.85rem; color: rgba(255,255,255,0.7); }
-.meta-value--reason { color: #ff6b6b; font-style: italic; }
-
-.action-section { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem; }
-.btn-approve {
-    padding: 0.6rem 1.25rem; border-radius: 8px;
-    background: rgba(76,222,143,0.12); border: 1px solid rgba(76,222,143,0.4);
-    color: #4cde8f; font-size: 0.9rem; cursor: pointer; transition: all 0.15s; align-self: flex-start;
-}
-.btn-approve:hover { background: rgba(76,222,143,0.2); }
-.btn-reject-toggle {
-    padding: 0.5rem 1rem; border-radius: 8px;
-    background: transparent; border: 1px solid rgba(255,80,80,0.3);
-    color: #ff6b6b; font-size: 0.85rem; cursor: pointer; align-self: flex-start;
-}
-.reject-form { display: flex; flex-direction: column; gap: 0.75rem; }
-.reject-textarea {
-    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 8px; color: #fff; padding: 0.7rem; font-size: 0.9rem; resize: vertical; outline: none;
-}
-.reject-textarea:focus { border-color: rgba(155,110,232,0.5); }
-.btn-reject-confirm {
-    padding: 0.55rem 1.1rem; border-radius: 7px; align-self: flex-start;
-    background: rgba(255,80,80,0.15); border: 1px solid rgba(255,80,80,0.4);
-    color: #ff6b6b; cursor: pointer;
-}
-.btn-reject-confirm:disabled { opacity: 0.5; }
-
-.reason-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-.reason-chip {
-    padding: 0.25rem 0.65rem; border-radius: 20px; font-size: 0.78rem; cursor: pointer;
-    border: 1px solid rgba(255,107,107,0.3); background: rgba(255,107,107,0.06); color: rgba(255,107,107,0.75);
-    transition: all 0.12s;
-}
-.reason-chip:hover, .reason-chip--active {
-    border-color: rgba(255,107,107,0.6); background: rgba(255,107,107,0.15); color: #ff6b6b;
-}
-.reset-quiz-label {
-    display: flex; align-items: center; gap: 0.5rem;
-    font-size: 0.82rem; color: rgba(255,255,255,0.55); cursor: pointer;
-}
-.reset-quiz-label input { accent-color: #9B6EE8; }
-
-.lightbox {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.9);
-    display: flex; align-items: center; justify-content: center; z-index: 9999; cursor: zoom-out;
-}
-.lightbox-img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
-</style>

@@ -2,10 +2,12 @@
 import { ref } from 'vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
-import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
+import AdminModal from '@/Components/Admin/UI/AdminModal.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Delete, Edit, Plus } from '@element-plus/icons-vue';
+import { Delete, EditPen, Plus, Picture, Check, Close } from '@element-plus/icons-vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -109,7 +111,9 @@ const saveFrame = () => {
 
 const deleteFrame = (frame) => {
     ElMessageBox.confirm('Удалить эту рамку навсегда?', 'Внимание', {
-        type: 'warning'
+        type: 'warning',
+        confirmButtonText: 'Удалить',
+        cancelButtonText: 'Отмена',
     }).then(() => {
         router.delete(route('admin.avatar-frames.destroy', frame.id), {
             onSuccess: () => ElMessage.success('Рамка удалена')
@@ -124,251 +128,231 @@ const generateTest = () => {
         onSuccess: () => ElMessage.success('Тестовая рамка создана'),
     });
 };
+
+function getFrameBadgeVariant(type) {
+    switch (type) {
+        case 'free': return 'neutral';
+        case 'paid': return 'success';
+        case 'achievement': return 'warning';
+        case 'promo': return 'primary';
+        default: return 'neutral';
+    }
+}
 </script>
 
 <template>
     <Head title="Рамки аватарок" />
 
-    <div class="frames-page">
-            <AdminPageHeader
-                title="Управление рамками аватарок"
-                subtitle="Каталог рамок, условий получения за достижения и платных рамок профиля"
-                :count="frames.length"
-            >
-                <template #actions>
-                    <el-button @click="generateTest" :loading="generating">
-                        🎲 Тест-рамка
-                    </el-button>
-                    <el-button type="primary" :icon="Plus" @click="openCreateDialog">
-                        Добавить рамку
-                    </el-button>
-                </template>
-            </AdminPageHeader>
-
-            <el-table :data="frames" border class="frames-table">
-                <el-table-column label="Картинка" width="120" align="center">
-                    <template #default="{ row }">
-                        <div class="frame-preview">
-                            <!-- Имитируем аватарку для наглядности -->
-                            <div class="mock-avatar"></div>
-                            <img :src="row.image_url" alt="" class="frame-img" />
-                        </div>
-                    </template>
-                </el-table-column>
-                
-                <el-table-column prop="name" label="Название" />
-                <el-table-column prop="type" label="Тип" width="150">
-                    <template #default="{ row }">
-                        <el-tag v-if="row.type === 'free'" type="info">Базовая</el-tag>
-                        <el-tag v-else-if="row.type === 'paid'" type="success">Платная</el-tag>
-                        <el-tag v-else-if="row.type === 'achievement'" type="warning">Ачивка</el-tag>
-                        <el-tag v-else>Промо</el-tag>
-                    </template>
-                </el-table-column>
-                <el-table-column label="Условие / Цена">
-                    <template #default="{ row }">
-                        <span v-if="row.type === 'paid'" class="inline-flex items-center gap-1">
-                            <span>{{ row.price }}</span>
-                            <CoinIcon color="blue" size="xs" />
-                        </span>
-                        <span v-else-if="row.type === 'achievement'">
-                            {{ conditions.find(c => c.key === row.condition_class)?.description || row.condition_class }}
-                        </span>
-                        <span v-else>—</span>
-                    </template>
-                </el-table-column>
-                <el-table-column label="Статус" width="120" align="center">
-                    <template #default="{ row }">
-                        <el-tag :type="row.is_active ? 'success' : 'danger'">
-                            {{ row.is_active ? 'Активна' : 'Отключена' }}
-                        </el-tag>
-                    </template>
-                </el-table-column>
-
-                <el-table-column label="Действия" width="120" align="center">
-                    <template #default="{ row }">
-                        <el-button-group>
-                            <el-button type="primary" size="small" :icon="Edit" @click="openEditDialog(row)" />
-                            <el-button type="danger" size="small" :icon="Delete" @click="deleteFrame(row)" />
-                        </el-button-group>
-                    </template>
-                </el-table-column>
-            </el-table>
-
-            <el-dialog
-                v-if="isDialogVisible"
-                v-model="isDialogVisible"
-                :title="editingFrame ? 'Редактировать рамку' : 'Новая рамка'"
-                width="500px"
-                destroy-on-close
-                append-to-body
-            >
-                <el-form :model="form" label-position="top">
-                    <el-form-item label="Название" required>
-                        <el-input v-model="form.name" />
-                        <div v-if="form.errors.name" class="el-form-item__error">{{ form.errors.name }}</div>
-                    </el-form-item>
-
-                    <el-form-item label="Тип получения" required>
-                        <el-select v-model="form.type" style="width: 100%;">
-                            <el-option label="Базовая (Доступна всем)" value="free" />
-                            <el-option label="Платная" value="paid" />
-                            <el-option label="За достижение" value="achievement" />
-                            <el-option label="Промо-код" value="promo" />
-                        </el-select>
-                    </el-form-item>
-
-                    <el-form-item v-if="form.type === 'paid'" label="Цена">
-                        <el-input-number v-model="form.price" :min="0" />
-                    </el-form-item>
-
-                    <el-form-item v-if="form.type === 'achievement'" label="Условие получения (Класс)">
-                        <el-select v-model="form.condition_class" style="width: 100%;">
-                            <el-option v-for="c in conditions" :key="c.key" :label="c.description" :value="c.key" />
-                        </el-select>
-                        <div v-if="form.errors.condition_class" class="el-form-item__error">{{ form.errors.condition_class }}</div>
-                    </el-form-item>
-
-                    <el-form-item label="Изображение рамки (PNG, прозрачный центр)" required>
-                        <div
-                            class="frame-uploader"
-                            role="button"
-                            tabindex="0"
-                            title="Нажмите или перетащите PNG файл"
-                            @click="triggerFileInput"
-                            @keydown.enter.prevent="triggerFileInput"
-                            @keydown.space.prevent="triggerFileInput"
-                            @dragover.prevent
-                            @drop.prevent="handleFileDrop"
-                        >
-                            <template v-if="imagePreview">
-                                <img :src="imagePreview" class="uploaded-preview" alt="Превью рамки" />
-                                <div class="uploader-overlay">
-                                    <el-icon class="uploader-icon-edit"><Edit /></el-icon>
-                                </div>
-                            </template>
-                            <el-icon v-else class="uploader-icon"><Plus /></el-icon>
-                        </div>
-                        <input
-                            ref="fileInput"
-                            type="file"
-                            accept="image/png,.png"
-                            style="display: none"
-                            @change="handleFileChange"
-                        />
-                        <div v-if="form.errors.image" class="el-form-item__error">{{ form.errors.image }}</div>
-                    </el-form-item>
-
-                    <el-form-item label="Активность">
-                        <el-switch v-model="form.is_active" active-text="Доступна для надевания" />
-                    </el-form-item>
-                </el-form>
-
-                <template #footer>
-                    <el-button @click="isDialogVisible = false">Отмена</el-button>
-                    <el-button type="primary" :loading="form.processing" @click="saveFrame">
-                        Сохранить
-                    </el-button>
-                </template>
-            </el-dialog>
+    <div class="space-y-6">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2.5">
+                    <el-icon class="text-violet-400"><Picture /></el-icon>
+                    <span>Рамки аватарок</span>
+                </h1>
+                <p class="text-xs text-zinc-400 mt-0.5">
+                    Каталог рамок, условия получения за достижения и платные рамки профиля. Всего: {{ frames.length }}
+                </p>
+            </div>
+            <div class="flex items-center gap-2">
+                <AdminButton variant="outline" size="sm" :loading="generating" @click="generateTest">
+                    🎲 Тест-рамка
+                </AdminButton>
+                <AdminButton variant="primary" size="sm" @click="openCreateDialog">
+                    <el-icon class="mr-1.5"><Plus /></el-icon>
+                    Добавить рамку
+                </AdminButton>
+            </div>
         </div>
+
+        <!-- Table -->
+        <div class="rounded-xl border border-zinc-800 bg-zinc-900/60 overflow-hidden backdrop-blur-sm">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="border-b border-zinc-800 bg-zinc-950/40 text-zinc-400">
+                            <th class="py-3 px-4 font-medium w-24 text-center">Превью</th>
+                            <th class="py-3 px-4 font-medium">Название рамки</th>
+                            <th class="py-3 px-4 font-medium">Тип получения</th>
+                            <th class="py-3 px-4 font-medium">Условие / Цена</th>
+                            <th class="py-3 px-4 font-medium text-center">Статус</th>
+                            <th class="py-3 px-4 font-medium text-right"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-800/60 text-zinc-300">
+                        <tr v-if="!frames.length">
+                            <td colspan="6" class="py-12 text-center text-zinc-500">
+                                Рамок аватарок пока нет
+                            </td>
+                        </tr>
+                        <tr
+                            v-for="frame in frames"
+                            :key="frame.id"
+                            class="hover:bg-zinc-800/30 transition"
+                        >
+                            <!-- Frame on Avatar Preview -->
+                            <td class="py-3 px-4 text-center">
+                                <div class="relative w-12 h-12 mx-auto flex items-center justify-center">
+                                    <div class="w-9 h-9 rounded-full bg-zinc-800 border border-zinc-700"></div>
+                                    <img :src="frame.image_url" class="absolute inset-0 w-full h-full object-contain pointer-events-none" />
+                                </div>
+                            </td>
+
+                            <td class="py-3 px-4">
+                                <div class="font-semibold text-zinc-100">{{ frame.name }}</div>
+                                <div v-if="frame.description" class="text-[11px] text-zinc-400 mt-0.5">{{ frame.description }}</div>
+                            </td>
+
+                            <td class="py-3 px-4">
+                                <AdminBadge :variant="getFrameBadgeVariant(frame.type)" size="sm">
+                                    {{ frame.type === 'free' ? 'Базовая' : (frame.type === 'paid' ? 'Платная' : (frame.type === 'achievement' ? 'Ачивка' : 'Промо')) }}
+                                </AdminBadge>
+                            </td>
+
+                            <td class="py-3 px-4">
+                                <span v-if="frame.type === 'paid'" class="inline-flex items-center gap-1 font-mono font-bold text-zinc-200">
+                                    <span>{{ frame.price }}</span>
+                                    <CoinIcon color="blue" size="xs" />
+                                </span>
+                                <span v-else-if="frame.type === 'achievement'" class="text-zinc-300">
+                                    {{ conditions.find(c => c.key === frame.condition_class)?.description || frame.condition_class }}
+                                </span>
+                                <span v-else class="text-zinc-500">—</span>
+                            </td>
+
+                            <td class="py-3 px-4 text-center">
+                                <AdminBadge :variant="frame.is_active ? 'success' : 'neutral'" size="sm" dot>
+                                    {{ frame.is_active ? 'Активна' : 'Отключена' }}
+                                </AdminBadge>
+                            </td>
+
+                            <td class="py-3 px-4 text-right">
+                                <div class="flex items-center justify-end gap-1.5">
+                                    <button
+                                        type="button"
+                                        class="p-1.5 rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition"
+                                        title="Редактировать"
+                                        @click="openEditDialog(frame)"
+                                    >
+                                        <el-icon><EditPen /></el-icon>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="p-1.5 rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-rose-400 hover:bg-zinc-800 transition"
+                                        title="Удалить"
+                                        @click="deleteFrame(frame)"
+                                    >
+                                        <el-icon><Delete /></el-icon>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Create/Edit Modal -->
+        <AdminModal
+            :show="isDialogVisible"
+            :title="editingFrame ? 'Редактировать рамку' : 'Новая рамка аватарки'"
+            @close="isDialogVisible = false"
+        >
+            <form @submit.prevent="saveFrame" class="space-y-4 text-xs">
+                <div class="space-y-1.5">
+                    <label class="font-medium text-zinc-300">Название рамки <span class="text-rose-400">*</span></label>
+                    <input
+                        v-model="form.name"
+                        type="text"
+                        required
+                        class="w-full h-9 px-3 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
+                    />
+                    <p v-if="form.errors.name" class="text-rose-400 text-[11px]">{{ form.errors.name }}</p>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="font-medium text-zinc-300">Тип получения <span class="text-rose-400">*</span></label>
+                    <select
+                        v-model="form.type"
+                        class="w-full h-9 px-3 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-zinc-100 focus:outline-none focus:border-violet-500"
+                    >
+                        <option value="free">Базовая (доступна всем)</option>
+                        <option value="paid">Платная</option>
+                        <option value="achievement">За достижение</option>
+                        <option value="promo">Промо-код</option>
+                    </select>
+                </div>
+
+                <div v-if="form.type === 'paid'" class="space-y-1.5">
+                    <label class="font-medium text-zinc-300">Цена (монет)</label>
+                    <input
+                        v-model.number="form.price"
+                        type="number"
+                        min="0"
+                        class="w-full h-9 px-3 rounded-lg border border-zinc-800 bg-zinc-950 text-xs font-mono text-zinc-100 focus:outline-none focus:border-violet-500"
+                    />
+                </div>
+
+                <div v-if="form.type === 'achievement'" class="space-y-1.5">
+                    <label class="font-medium text-zinc-300">Условие получения (Класс)</label>
+                    <select
+                        v-model="form.condition_class"
+                        class="w-full h-9 px-3 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-zinc-100 focus:outline-none focus:border-violet-500"
+                    >
+                        <option v-for="c in conditions" :key="c.key" :value="c.key">
+                            {{ c.description }}
+                        </option>
+                    </select>
+                    <p v-if="form.errors.condition_class" class="text-rose-400 text-[11px]">{{ form.errors.condition_class }}</p>
+                </div>
+
+                <!-- Image Uploader -->
+                <div class="space-y-1.5">
+                    <label class="font-medium text-zinc-300">Изображение рамки (PNG, прозрачный центр)</label>
+                    <input
+                        ref="fileInput"
+                        type="file"
+                        accept="image/png"
+                        class="hidden"
+                        @change="handleFileChange"
+                    />
+                    <div
+                        class="p-4 rounded-xl border border-dashed border-zinc-800 hover:border-violet-500 bg-zinc-950/60 cursor-pointer text-center transition flex flex-col items-center justify-center gap-2"
+                        @click="triggerFileInput"
+                        @dragover.prevent
+                        @drop.prevent="handleFileDrop"
+                    >
+                        <div v-if="imagePreview" class="relative w-16 h-16 flex items-center justify-center">
+                            <div class="w-12 h-12 rounded-full bg-zinc-800 border border-zinc-700"></div>
+                            <img :src="imagePreview" class="absolute inset-0 w-full h-full object-contain" />
+                        </div>
+                        <div v-else class="text-zinc-500">
+                            <el-icon :size="24" class="mx-auto mb-1"><Picture /></el-icon>
+                            <span>Нажмите или перетащите PNG файл</span>
+                        </div>
+                    </div>
+                    <p v-if="form.errors.image" class="text-rose-400 text-[11px]">{{ form.errors.image }}</p>
+                </div>
+
+                <label class="flex items-center gap-2 pt-1 cursor-pointer">
+                    <input
+                        v-model="form.is_active"
+                        type="checkbox"
+                        class="rounded border-zinc-700 bg-zinc-900 text-violet-500 focus:ring-0"
+                    />
+                    <span class="text-zinc-300">Рамка активна в каталоге</span>
+                </label>
+
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
+                    <AdminButton variant="outline" size="sm" type="button" @click="isDialogVisible = false">
+                        Отмена
+                    </AdminButton>
+                    <AdminButton variant="primary" size="sm" type="submit" :loading="form.processing">
+                        Сохранить
+                    </AdminButton>
+                </div>
+            </form>
+        </AdminModal>
+    </div>
 </template>
-
-<style scoped>
-.frames-page {
-    width: 100%;
-}
-.frames-table {
-    width: 100%;
-    --el-table-bg-color: rgba(255, 255, 255, 0.02);
-    --el-table-tr-bg-color: transparent;
-    --el-table-header-bg-color: rgba(255, 255, 255, 0.04);
-    --el-table-border-color: rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-}
-.frame-preview {
-    width: 60px;
-    height: 60px;
-    margin: 0 auto;
-    position: relative;
-    border-radius: 50%; /* Для аватарки внутри */
-}
-.mock-avatar {
-    position: absolute;
-    top: 5px;
-    left: 5px;
-    right: 5px;
-    bottom: 5px;
-    background: #333;
-    border-radius: 50%;
-    z-index: 1;
-}
-.frame-img {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    z-index: 2;
-    pointer-events: none;
-}
-
-.frame-uploader {
-    border: 1px dashed var(--el-border-color);
-    border-radius: 6px;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-    transition: var(--el-transition-duration-fast);
-    width: 120px;
-    height: 120px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #111;
-    user-select: none;
-}
-
-.frame-uploader:hover,
-.frame-uploader:focus-visible {
-    border-color: var(--el-color-primary);
-    outline: none;
-}
-
-.uploader-icon {
-    font-size: 28px;
-    color: #8c939d;
-    pointer-events: none;
-}
-
-.uploaded-preview {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    display: block;
-}
-
-.uploader-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    pointer-events: none;
-}
-
-.frame-uploader:hover .uploader-overlay {
-    opacity: 1;
-}
-
-.uploader-icon-edit {
-    font-size: 24px;
-    color: #fff;
-}
-</style>

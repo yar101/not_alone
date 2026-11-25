@@ -1,19 +1,22 @@
 <script setup>
 import { Link, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
-import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
 import AdminPagination from '@/Components/Admin/AdminPagination.vue';
+import { ChatDotRound, Lock, User, Warning } from '@element-plus/icons-vue';
 
 defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
     blocks:      Object,
+    total_count: { type: Number, default: 0 },
     top_blocked: Array,
 });
 
 function formatDate(dt) {
-    if (!dt) return 'Навсегда';
-    return new Date(dt).toLocaleString('ru', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    if (!dt) return 'Бессрочно';
+    return new Date(dt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
 function goToBan(userId) {
@@ -22,280 +25,139 @@ function goToBan(userId) {
 </script>
 
 <template>
-    <div>
-        <AdminPageHeader
-            title="Блокировки в чате"
-            subtitle="Мониторинг персональных и взаимных блокировок между пользователями платформы"
-            :count="blocks.total"
-        />
+    <div class="space-y-6">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2.5">
+                    <el-icon class="text-rose-400"><ChatDotRound /></el-icon>
+                    <span>Блокировки в чате</span>
+                </h1>
+                <p class="text-xs text-zinc-400 mt-0.5">
+                    Мониторинг персональных и взаимных блокировок между пользователями платформы. Всего записей: <span class="font-mono text-zinc-200">{{ (blocks?.total ?? total_count ?? 0).toLocaleString() }}</span>
+                </p>
+            </div>
+        </div>
 
-        <!-- Топ блокируемых -->
-        <section class="section">
-            <h2 class="section-title">Топ блокируемых</h2>
-            <div v-if="top_blocked.length === 0" class="empty-state">Нет данных</div>
-            <div v-else class="top-list">
-                <div v-for="(row, i) in top_blocked" :key="row.user.id" class="top-item">
-                    <span class="top-rank">#{{ i + 1 }}</span>
-                    <div class="top-avatar">
-                        <img v-if="row.user.avatar_url" :src="row.user.avatar_url" alt="" />
-                        <span v-else>{{ row.user.name?.charAt(0) ?? '?' }}</span>
+        <!-- Top Blocked Users Leaderboard -->
+        <div class="p-5 rounded-xl border border-zinc-800 bg-zinc-900/60 backdrop-blur-sm space-y-3">
+            <h2 class="text-sm font-semibold text-zinc-100 flex items-center gap-2">
+                <el-icon class="text-amber-400"><Warning /></el-icon>
+                <span>Топ часто блокируемых пользователей (кандидаты на проверку/бан)</span>
+            </h2>
+
+            <div v-if="!top_blocked || top_blocked.length === 0" class="py-4 text-xs text-zinc-500">
+                Нет пользователей с частыми блокировками.
+            </div>
+            <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div
+                    v-for="(row, i) in top_blocked"
+                    :key="row.user.id"
+                    class="p-3 rounded-lg border border-zinc-800/80 bg-zinc-950/60 flex items-center justify-between"
+                >
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <span class="text-xs font-mono font-bold text-zinc-500">#{{ i + 1 }}</span>
+                        <img
+                            v-if="row.user.avatar_url"
+                            :src="row.user.avatar_url"
+                            class="w-7 h-7 rounded-full object-cover border border-zinc-700"
+                        />
+                        <div v-else class="w-7 h-7 rounded-full bg-zinc-800 text-zinc-300 font-bold flex items-center justify-center text-xs">
+                            {{ row.user.name?.charAt(0) ?? '?' }}
+                        </div>
+                        <div class="min-w-0">
+                            <Link
+                                :href="route('admin.users.show', row.user.id)"
+                                class="text-xs font-semibold text-zinc-200 hover:text-violet-400 truncate block max-w-[120px]"
+                            >
+                                {{ row.user.name }}
+                            </Link>
+                            <span class="text-[11px] font-mono text-rose-400 font-semibold">{{ row.block_count }} блокировок</span>
+                        </div>
                     </div>
-                    <div class="top-info">
-                        <Link :href="route('admin.users.show', row.user.id)" class="top-name">{{ row.user.name }}</Link>
-                        <span class="top-count">{{ row.block_count }} блок.</span>
-                    </div>
-                    <button class="ban-btn" @click="goToBan(row.user.id)">Забанить</button>
+
+                    <AdminButton variant="outline" size="sm" @click="goToBan(row.user.id)">
+                        Профиль
+                    </AdminButton>
                 </div>
             </div>
-        </section>
+        </div>
 
-        <!-- Таблица блокировок -->
-        <section class="section">
-            <h2 class="section-title">Активные блокировки</h2>
-            <div v-if="blocks.data.length === 0" class="empty-state">Нет активных блокировок</div>
-            <div v-else class="table-wrap">
-                <table class="blocks-table">
+        <!-- Blocks Table -->
+        <div class="rounded-xl border border-zinc-800 bg-zinc-900/60 overflow-hidden backdrop-blur-sm">
+            <div class="p-4 border-b border-zinc-800 flex items-center justify-between">
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-zinc-400">Активные блокировки пользователей</h3>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
                     <thead>
-                        <tr>
-                            <th>Заблокировал</th>
-                            <th>Заблокировал кого</th>
-                            <th>Причина</th>
-                            <th>До</th>
-                            <th>Когда</th>
+                        <tr class="border-b border-zinc-800 bg-zinc-950/40 text-zinc-400">
+                            <th class="py-3 px-4 font-medium">Кто заблокировал</th>
+                            <th class="py-3 px-4 font-medium">Кого заблокировал</th>
+                            <th class="py-3 px-4 font-medium">Причина</th>
+                            <th class="py-3 px-4 font-medium">Срок блокировки</th>
+                            <th class="py-3 px-4 font-medium">Дата создания</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr v-for="block in blocks.data" :key="block.id">
-                            <td>
-                                <div class="user-cell">
-                                    <div class="cell-avatar">
-                                        <img v-if="block.blocker?.avatar_url" :src="block.blocker.avatar_url" alt="" />
-                                        <span v-else>{{ block.blocker?.name?.charAt(0) ?? '?' }}</span>
-                                    </div>
-                                    <Link :href="route('admin.users.show', block.blocker_id)" class="cell-name">
-                                        {{ block.blocker?.name ?? '—' }}
-                                    </Link>
-                                </div>
+                    <tbody class="divide-y divide-zinc-800/60 text-zinc-300">
+                        <tr v-if="!blocks.data.length">
+                            <td colspan="5" class="py-12 text-center text-zinc-500">
+                                Активных блокировок в чате нет
                             </td>
-                            <td>
-                                <div class="user-cell">
-                                    <div class="cell-avatar">
-                                        <img v-if="block.blocked?.avatar_url" :src="block.blocked.avatar_url" alt="" />
-                                        <span v-else>{{ block.blocked?.name?.charAt(0) ?? '?' }}</span>
-                                    </div>
-                                    <Link :href="route('admin.users.show', block.blocked_id)" class="cell-name">
-                                        {{ block.blocked?.name ?? '—' }}
-                                    </Link>
-                                </div>
+                        </tr>
+                        <tr
+                            v-for="block in blocks.data"
+                            :key="block.id"
+                            class="hover:bg-zinc-800/30 transition"
+                        >
+                            <!-- Blocker -->
+                            <td class="py-3 px-4">
+                                <Link
+                                    v-if="block.blocker"
+                                    :href="route('admin.users.show', block.blocker_id)"
+                                    class="text-zinc-200 hover:text-violet-400 font-medium"
+                                >
+                                    {{ block.blocker.name }}
+                                </Link>
+                                <span v-else class="text-zinc-600">—</span>
                             </td>
-                            <td class="reason-cell">{{ block.reason }}</td>
-                            <td class="until-cell">{{ formatDate(block.blocked_until) }}</td>
-                            <td class="date-cell">{{ formatDate(block.created_at) }}</td>
+
+                            <!-- Blocked -->
+                            <td class="py-3 px-4">
+                                <Link
+                                    v-if="block.blocked"
+                                    :href="route('admin.users.show', block.blocked_id)"
+                                    class="text-zinc-200 hover:text-violet-400 font-medium"
+                                >
+                                    {{ block.blocked.name }}
+                                </Link>
+                                <span v-else class="text-zinc-600">—</span>
+                            </td>
+
+                            <!-- Reason -->
+                            <td class="py-3 px-4 text-zinc-300">
+                                {{ block.reason || '—' }}
+                            </td>
+
+                            <!-- Until -->
+                            <td class="py-3 px-4 font-mono text-[11px] text-zinc-400">
+                                {{ formatDate(block.blocked_until) }}
+                            </td>
+
+                            <!-- Created At -->
+                            <td class="py-3 px-4 font-mono text-[11px] text-zinc-500">
+                                {{ formatDate(block.created_at) }}
+                            </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- Пагинация -->
-            <AdminPagination :pagination="blocks" />
-        </section>
+            <!-- Pagination -->
+            <div class="p-4 border-t border-zinc-800">
+                <AdminPagination :pagination="blocks" />
+            </div>
+        </div>
     </div>
 </template>
-
-<style scoped>
-.page-header {
-    margin-bottom: 2rem;
-}
-.page-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.88);
-    margin: 0;
-}
-
-.section {
-    margin-bottom: 2.5rem;
-}
-.section-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.6);
-    margin: 0 0 1rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    font-size: 0.8rem;
-}
-
-.empty-state {
-    color: rgba(255, 255, 255, 0.28);
-    font-size: 0.9rem;
-    padding: 1.5rem 0;
-}
-
-/* Top list */
-.top-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    max-width: 520px;
-}
-.top-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 10px;
-    padding: 0.65rem 1rem;
-}
-.top-rank {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.25);
-    width: 22px;
-    text-align: right;
-    flex-shrink: 0;
-}
-.top-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: rgba(255, 178, 239, 0.15);
-    border: 1.5px solid rgba(255, 178, 239, 0.25);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    color: #ffb2ef;
-    font-weight: 700;
-    font-size: 0.95rem;
-    flex-shrink: 0;
-}
-.top-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.top-info {
-    flex: 1;
-    min-width: 0;
-}
-.top-name {
-    display: block;
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.82);
-    text-decoration: none;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.top-name:hover { color: #ffb2ef; }
-.top-count {
-    font-size: 0.78rem;
-    color: rgba(255, 140, 80, 0.8);
-}
-.ban-btn {
-    background: rgba(220, 50, 80, 0.15);
-    border: 1px solid rgba(220, 80, 100, 0.35);
-    color: rgba(255, 120, 140, 0.85);
-    font-size: 0.8rem;
-    padding: 0.25rem 0.65rem;
-    border-radius: 6px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: background 0.15s, border-color 0.15s;
-    flex-shrink: 0;
-}
-.ban-btn:hover {
-    background: rgba(220, 50, 80, 0.3);
-    border-color: rgba(220, 80, 100, 0.6);
-}
-
-/* Table */
-.table-wrap {
-    overflow-x: auto;
-}
-.blocks-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.88rem;
-}
-.blocks-table th {
-    text-align: left;
-    padding: 0.6rem 0.85rem;
-    color: rgba(255, 255, 255, 0.35);
-    font-weight: 600;
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-    white-space: nowrap;
-}
-.blocks-table td {
-    padding: 0.7rem 0.85rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    color: rgba(255, 255, 255, 0.75);
-    vertical-align: middle;
-}
-.blocks-table tr:last-child td { border-bottom: none; }
-.blocks-table tr:hover td { background: rgba(255, 255, 255, 0.02); }
-
-.user-cell {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-}
-.cell-avatar {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: rgba(255, 178, 239, 0.15);
-    border: 1px solid rgba(255, 178, 239, 0.2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    color: #ffb2ef;
-    font-weight: 700;
-    font-size: 0.8rem;
-    flex-shrink: 0;
-}
-.cell-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.cell-name {
-    text-decoration: none;
-    color: rgba(255, 255, 255, 0.78);
-    font-size: 0.88rem;
-    white-space: nowrap;
-}
-.cell-name:hover { color: #ffb2ef; }
-
-.reason-cell { color: rgba(255, 200, 120, 0.85); }
-.until-cell  { color: rgba(255, 255, 255, 0.45); white-space: nowrap; }
-.date-cell   { color: rgba(255, 255, 255, 0.3);  white-space: nowrap; }
-
-/* Pagination */
-.pagination {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-    margin-top: 1.5rem;
-}
-.page-link {
-    padding: 0.3rem 0.65rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    color: rgba(255, 255, 255, 0.45);
-    text-decoration: none;
-    font-size: 0.82rem;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
-}
-.page-link:hover:not(.page-link--disabled):not(.page-link--active) {
-    border-color: rgba(155, 110, 232, 0.4);
-    color: rgba(255, 255, 255, 0.75);
-}
-.page-link--active {
-    border-color: rgba(155, 110, 232, 0.6);
-    background: rgba(155, 110, 232, 0.15);
-    color: #ffb2ef;
-}
-.page-link--disabled {
-    opacity: 0.3;
-    cursor: default;
-    pointer-events: none;
-}
-</style>

@@ -1,9 +1,16 @@
 <script setup>
 import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue';
+import { Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
 import UserPickerModal from '@/Components/Admin/UserPickerModal.vue';
+import {
+    ChatDotRound, Plus, Search, Paperclip, Check, Close,
+    Lock, Unlock, User, TopRight, Picture, Loading
+} from '@element-plus/icons-vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -19,7 +26,7 @@ const loadingConvs   = ref(false);
 const convPage       = ref(1);
 const convSearch     = ref('');
 const convStatus     = ref('all'); // 'all' | 'open' | 'closed'
-const convListEl     = ref(null);  // sidebar list element
+const convListEl     = ref(null);
 let convObserver     = null;
 let searchTimer      = null;
 
@@ -54,7 +61,6 @@ async function loadMoreConvs() {
     }
 }
 
-// ── Reload conversations (search / filter changed) ────────────────────────
 async function reloadConvs() {
     loadingConvs.value = true;
     convPage.value = 1;
@@ -76,7 +82,6 @@ function onSearchInput() {
 
 watch(convStatus, reloadConvs);
 
-// IntersectionObserver sentinel at bottom of conv list
 function setupConvObserver() {
     const sentinel = document.getElementById('conv-sentinel');
     if (!sentinel) return;
@@ -85,6 +90,7 @@ function setupConvObserver() {
     }, { threshold: 0.1 });
     convObserver.observe(sentinel);
 }
+
 function teardownConvObserver() {
     convObserver?.disconnect();
     convObserver = null;
@@ -140,12 +146,9 @@ async function openConversation(conv) {
             });
     }
 
-    // Subscribe to ALL support channels via global Echo to catch messages
-    // on non-active conversations (for unread badges)
     subscribeGlobalEcho();
 }
 
-// ── Global Echo: badge updates for non-active convs ───────────────────────
 const globalEchoChannels = new Map();
 
 function subscribeGlobalEcho() {
@@ -155,7 +158,7 @@ function subscribeGlobalEcho() {
         if (!window.Echo) return;
         const ch = window.Echo.private('admin.support.' + conv.id)
             .listen('.message.sent', (data) => {
-                if (data.sender_id !== null) { // user message
+                if (data.sender_id !== null) {
                     updateConvInList(conv.id, {
                         unread: true,
                         last_message: { body: data.type === 'image' ? '[фото]' : data.body, created_at: data.created_at },
@@ -191,7 +194,6 @@ function handleEnter(e) {
     if (!e.shiftKey) { e.preventDefault(); sendMessage(); }
 }
 
-// ── Upload photo ──────────────────────────────────────────────────────────
 function triggerFileInput() { fileInput.value?.click(); }
 
 async function onFileSelected(e) {
@@ -224,7 +226,6 @@ function updateLastMessage(convId, body) {
     }
 }
 
-// ── Load older messages (scroll up) ──────────────────────────────────────
 async function onMessagesScroll(e) {
     if (e.target.scrollTop === 0 && hasMore.value && !loadingMsgs.value) loadOlder();
 }
@@ -246,7 +247,6 @@ async function loadOlder() {
     }
 }
 
-// ── Close / Open ──────────────────────────────────────────────────────────
 async function closeChat() {
     if (!activeConv.value) return;
     const res = await axios.post(route('admin.support.close', activeConv.value.id));
@@ -261,15 +261,18 @@ async function openChat() {
     updateConvInList(activeConv.value.id, { closed_at: null });
 }
 
-// ── New chat ──────────────────────────────────────────────────────────────
 async function startChatWith(user) {
-    const res = await axios.post(route('admin.support.store'), { user_id: user.id });
-    const existing = conversations.value.find(c => c.id === res.data.id);
-    if (!existing) conversations.value.unshift(res.data);
-    openConversation(existing ?? res.data);
+    try {
+        const res = await axios.post(route('admin.support.store'), { user_id: user.id });
+        const existing = conversations.value.find(c => c.id === res.data.id);
+        if (!existing) conversations.value.unshift(res.data);
+        openConversation(existing ?? res.data);
+        showNewChat.value = false;
+    } catch (err) {
+        ElMessage.error(err.response?.data?.message || 'Не удалось открыть диалог с пользователем');
+    }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────
 function scrollToBottom() {
     messagesEnd.value?.scrollIntoView({ behavior: 'smooth' });
 }
@@ -284,8 +287,8 @@ function isAdminMsg(msg) {
 }
 
 const SYSTEM_LABELS = {
-    chat_closed:    'Чат закрыт',
-    chat_opened:    'Чат открыт',
+    chat_closed:    'Тикет закрыт',
+    chat_opened:    'Тикет открыт',
     order_paid:     'Заказ оплачен',
     order_completed:'Заказ завершён',
     order_disputed: 'Открыт спор',
@@ -295,487 +298,273 @@ const SYSTEM_LABELS = {
 </script>
 
 <template>
-    <div class="support-layout">
-
-        <!-- ── Sidebar: conversation list ── -->
-        <aside class="support-sidebar">
-            <div class="support-sidebar__header">
-                <span class="support-sidebar__title">Поддержка</span>
-                <button class="new-chat-btn" @click="showNewChat = true" title="Новый чат">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
+    <div class="h-[calc(100vh-8rem)] flex rounded-xl border border-zinc-800 bg-zinc-950 overflow-hidden shadow-2xl">
+        <!-- ── Left Sidebar: Conversations List ── -->
+        <aside class="w-80 md:w-88 border-r border-zinc-800 flex flex-col bg-zinc-900/50">
+            <!-- Header -->
+            <div class="p-3.5 border-b border-zinc-800 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <el-icon class="text-violet-400"><ChatDotRound /></el-icon>
+                    <span class="font-bold text-sm text-zinc-100">Тикеты поддержки</span>
+                </div>
+                <button
+                    type="button"
+                    class="w-7 h-7 rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-300 hover:text-white hover:bg-zinc-800 transition flex items-center justify-center"
+                    title="Создать тикет с пользователем"
+                    @click="showNewChat = true"
+                >
+                    <el-icon :size="14"><Plus /></el-icon>
                 </button>
             </div>
 
-            <div class="sidebar-filters">
-                <input
-                    v-model="convSearch"
-                    @input="onSearchInput"
-                    placeholder="Поиск…"
-                    class="conv-search"
-                />
-                <div class="status-tabs">
-                    <button :class="['status-tab', convStatus === 'all' && 'status-tab--active']" @click="convStatus = 'all'">Все</button>
-                    <button :class="['status-tab', convStatus === 'open' && 'status-tab--active']" @click="convStatus = 'open'">Открытые</button>
-                    <button :class="['status-tab', convStatus === 'closed' && 'status-tab--active']" @click="convStatus = 'closed'">Закрытые</button>
+            <!-- Search & Filter Tabs -->
+            <div class="p-2.5 border-b border-zinc-800 space-y-2">
+                <div class="relative">
+                    <el-icon class="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500"><Search /></el-icon>
+                    <input
+                        v-model="convSearch"
+                        type="text"
+                        placeholder="Поиск по имени или email..."
+                        class="w-full h-8 pl-8 pr-3 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
+                        @input="onSearchInput"
+                    />
+                </div>
+
+                <div class="grid grid-cols-3 gap-1 text-[11px]">
+                    <button
+                        type="button"
+                        class="py-1 rounded-md text-center font-medium transition"
+                        :class="convStatus === 'all' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-zinc-200'"
+                        @click="convStatus = 'all'"
+                    >
+                        Все
+                    </button>
+                    <button
+                        type="button"
+                        class="py-1 rounded-md text-center font-medium transition"
+                        :class="convStatus === 'open' ? 'bg-zinc-800 text-emerald-400' : 'text-zinc-400 hover:text-zinc-200'"
+                        @click="convStatus = 'open'"
+                    >
+                        Открытые
+                    </button>
+                    <button
+                        type="button"
+                        class="py-1 rounded-md text-center font-medium transition"
+                        :class="convStatus === 'closed' ? 'bg-zinc-800 text-zinc-400' : 'text-zinc-500 hover:text-zinc-200'"
+                        @click="convStatus = 'closed'"
+                    >
+                        Закрытые
+                    </button>
                 </div>
             </div>
 
-            <div class="support-sidebar__list" ref="convListEl">
+            <!-- Conversations Scrollable Feed -->
+            <div class="flex-1 overflow-y-auto divide-y divide-zinc-800/60" ref="convListEl">
                 <div
                     v-for="conv in conversations"
                     :key="conv.id"
-                    class="conv-item"
-                    :class="{ 'conv-item--active': activeConv?.id === conv.id, 'conv-item--closed': conv.closed_at }"
+                    class="p-3 cursor-pointer transition flex items-start gap-3"
+                    :class="activeConv?.id === conv.id ? 'bg-violet-950/20 border-l-2 border-violet-500' : 'hover:bg-zinc-800/40'"
                     @click="openConversation(conv)"
                 >
-                    <div class="conv-item__avatar">
-                        <img v-if="conv.user?.avatar" :src="conv.user.avatar" alt="" />
-                        <span v-else class="conv-item__avatar-placeholder">{{ conv.user?.name?.charAt(0) ?? '?' }}</span>
+                    <div class="relative shrink-0">
+                        <img
+                            v-if="conv.user?.avatar"
+                            :src="conv.user.avatar"
+                            class="w-9 h-9 rounded-full object-cover border border-zinc-700"
+                        />
+                        <div
+                            v-else
+                            class="w-9 h-9 rounded-full bg-zinc-800 text-zinc-300 font-bold flex items-center justify-center text-xs border border-zinc-700"
+                        >
+                            {{ conv.user?.name?.charAt(0) ?? '?' }}
+                        </div>
+                        <span
+                            v-if="conv.unread"
+                            class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-violet-500 ring-2 ring-zinc-950"
+                        ></span>
                     </div>
-                    <div class="conv-item__info">
-                        <div class="conv-item__name">{{ conv.user?.name ?? 'Неизвестный' }}</div>
-                        <div class="conv-item__last">{{ conv.last_message?.body ?? 'Нет сообщений' }}</div>
+
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between mb-0.5">
+                            <span class="text-xs font-semibold text-zinc-200 truncate">{{ conv.user?.name ?? 'Пользователь' }}</span>
+                            <span class="text-[10px] font-mono text-zinc-500 shrink-0">{{ fmtTime(conv.last_message?.created_at ?? conv.updated_at) }}</span>
+                        </div>
+                        <p class="text-[11px] text-zinc-400 truncate">
+                            {{ conv.last_message?.body ?? 'Нет сообщений' }}
+                        </p>
                     </div>
-                    <div class="conv-item__meta">
-                        <span class="conv-item__time">{{ fmtTime(conv.last_message?.created_at ?? conv.updated_at) }}</span>
-                        <span v-if="conv.unread" class="conv-item__unread"></span>
-                        <span v-else-if="conv.closed_at" class="conv-item__closed-badge">🔒</span>
+
+                    <div v-if="conv.closed_at" class="text-zinc-500 shrink-0 pt-0.5" title="Тикет закрыт">
+                        <el-icon :size="12"><Lock /></el-icon>
                     </div>
                 </div>
 
-                <div v-if="conversations.length === 0 && !loadingConvs" class="conv-empty">Нет чатов</div>
-                <div v-if="loadingConvs" class="conv-loading">Загрузка…</div>
-                <div id="conv-sentinel" style="height:1px" />
+                <div v-if="!conversations.length && !loadingConvs" class="py-12 text-center text-xs text-zinc-500">
+                    Тикетов не найдено
+                </div>
+                <div v-if="loadingConvs" class="py-4 text-center text-xs text-zinc-500">
+                    Загрузка тикетов...
+                </div>
+                <div id="conv-sentinel" class="h-1"></div>
             </div>
         </aside>
 
-        <!-- ── Chat area ── -->
-        <main class="support-chat">
-
+        <!-- ── Right Main Chat Pane ── -->
+        <main class="flex-1 flex flex-col bg-zinc-950">
             <template v-if="activeConv">
-                <!-- Header -->
-                <div class="chat-header">
-                    <div class="chat-header__user">
-                        <div class="chat-header__avatar">
-                            <img v-if="activeConv.user?.avatar" :src="activeConv.user.avatar" alt="" />
-                            <span v-else>{{ activeConv.user?.name?.charAt(0) ?? '?' }}</span>
+                <!-- Chat Header -->
+                <div class="p-3.5 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/30">
+                    <div class="flex items-center gap-3">
+                        <img
+                            v-if="activeConv.user?.avatar"
+                            :src="activeConv.user.avatar"
+                            class="w-8 h-8 rounded-full object-cover border border-zinc-700"
+                        />
+                        <div v-else class="w-8 h-8 rounded-full bg-zinc-800 text-zinc-300 font-bold flex items-center justify-center text-xs">
+                            {{ activeConv.user?.name?.charAt(0) ?? '?' }}
                         </div>
-                        <span class="chat-header__name">{{ activeConv.user?.name ?? 'Неизвестный' }}</span>
-                        <span v-if="activeConv.closed_at" class="chat-header__closed-tag">Закрыт</span>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-xs text-zinc-100">{{ activeConv.user?.name }}</span>
+                                <AdminBadge v-if="activeConv.closed_at" variant="neutral" size="sm">Закрыт</AdminBadge>
+                                <AdminBadge v-else variant="success" size="sm" dot>Открыт</AdminBadge>
+                            </div>
+                            <span class="text-[11px] text-zinc-500 font-mono">{{ activeConv.user?.email }}</span>
+                        </div>
                     </div>
-                    <div class="chat-header__actions">
-                        <button v-if="!activeConv.closed_at" class="chat-action-btn chat-action-btn--close" @click="closeChat">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M18 6L6 18M6 6l12 12"/>
-                            </svg>
-                            Закрыть чат
-                        </button>
-                        <button v-else class="chat-action-btn chat-action-btn--open" @click="openChat">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 5v14M5 12l7 7 7-7"/>
-                            </svg>
-                            Открыть чат
-                        </button>
+
+                    <div class="flex items-center gap-2">
+                        <Link
+                            v-if="activeConv.user?.id"
+                            :href="route('admin.users.show', activeConv.user.id)"
+                            target="_blank"
+                            class="px-2.5 py-1 rounded-lg border border-zinc-800 bg-zinc-900 text-[11px] font-medium text-zinc-300 hover:text-white transition flex items-center gap-1"
+                        >
+                            <span>Профиль</span>
+                            <el-icon :size="10"><TopRight /></el-icon>
+                        </Link>
+                        <AdminButton
+                            v-if="!activeConv.closed_at"
+                            variant="outline"
+                            size="sm"
+                            @click="closeChat"
+                        >
+                            <el-icon class="mr-1"><Lock /></el-icon>
+                            Закрыть тикет
+                        </AdminButton>
+                        <AdminButton
+                            v-else
+                            variant="outline"
+                            size="sm"
+                            @click="openChat"
+                        >
+                            <el-icon class="mr-1"><Unlock /></el-icon>
+                            Открыть заново
+                        </AdminButton>
                     </div>
                 </div>
 
-                <!-- Messages -->
-                <div class="chat-messages" ref="messagesEl" @scroll="onMessagesScroll">
-                    <div v-if="hasMore" class="load-more">
-                        <button @click="loadOlder" :disabled="loadingMsgs" class="load-more-btn">
-                            {{ loadingMsgs ? 'Загрузка…' : 'Загрузить ещё' }}
+                <!-- Messages Feed -->
+                <div
+                    ref="messagesEl"
+                    class="flex-1 overflow-y-auto p-4 space-y-3"
+                    @scroll="onMessagesScroll"
+                >
+                    <div v-if="hasMore" class="text-center py-2">
+                        <button type="button" class="text-xs text-violet-400 hover:underline" @click="loadOlder">
+                            Загрузить более ранние сообщения
                         </button>
                     </div>
 
-                    <template v-for="msg in messages" :key="msg.id">
-                        <!-- System event -->
-                        <div v-if="msg.type === 'system'" class="sys-event">
-                            <span class="sys-event__label">{{ SYSTEM_LABELS[msg.metadata?.event] ?? msg.metadata?.event }}</span>
+                    <div
+                        v-for="msg in messages"
+                        :key="msg.id"
+                        class="flex flex-col"
+                        :class="isAdminMsg(msg) ? 'items-end' : (msg.type === 'system' ? 'items-center' : 'items-start')"
+                    >
+                        <!-- System notice -->
+                        <div
+                            v-if="msg.type === 'system'"
+                            class="px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-[11px] text-zinc-400 my-1"
+                        >
+                            {{ SYSTEM_LABELS[msg.metadata?.event] || msg.body }}
                         </div>
 
-                        <!-- Image message -->
-                        <div v-else-if="msg.type === 'image'" class="bubble-wrap" :class="isAdminMsg(msg) ? 'bubble-wrap--right' : 'bubble-wrap--left'">
-                            <div class="bubble bubble--image" :class="isAdminMsg(msg) ? 'bubble--admin' : 'bubble--user'">
-                                <a :href="msg.metadata?.image_url" target="_blank">
-                                    <img :src="msg.metadata?.image_url" class="chat-image" alt="фото" />
-                                </a>
-                                <span class="bubble-meta">{{ fmtTime(msg.created_at) }}</span>
+                        <!-- Chat bubble -->
+                        <div
+                            v-else
+                            class="max-w-[70%] rounded-xl p-3 text-xs space-y-1.5 shadow-sm"
+                            :class="isAdminMsg(msg)
+                                ? 'bg-violet-600 text-white rounded-br-none'
+                                : 'bg-zinc-900 border border-zinc-800 text-zinc-200 rounded-bl-none'"
+                        >
+                            <div class="text-[10px] opacity-75 flex items-center justify-between gap-4 font-mono">
+                                <span>{{ isAdminMsg(msg) ? 'Служба поддержки' : activeConv.user?.name }}</span>
+                                <span>{{ fmtTime(msg.created_at) }}</span>
                             </div>
-                        </div>
 
-                        <!-- Text message -->
-                        <div v-else class="bubble-wrap" :class="isAdminMsg(msg) ? 'bubble-wrap--right' : 'bubble-wrap--left'">
-                            <div class="bubble" :class="isAdminMsg(msg) ? 'bubble--admin' : 'bubble--user'">
-                                <span v-if="!isAdminMsg(msg)" class="bubble-sender">{{ msg.sender_name }}</span>
-                                <p class="bubble-body">{{ msg.body }}</p>
-                                <span class="bubble-meta">{{ fmtTime(msg.created_at) }}</span>
+                            <div v-if="msg.type === 'image'" class="pt-1">
+                                <img :src="msg.metadata?.image_url" class="rounded-lg max-h-64 object-cover" />
                             </div>
+                            <div v-else class="leading-relaxed whitespace-pre-wrap">{{ msg.body }}</div>
                         </div>
-                    </template>
+                    </div>
 
-                    <div ref="messagesEnd" />
+                    <div ref="messagesEnd"></div>
                 </div>
 
-                <!-- Input -->
-                <div class="chat-input-area">
-                    <input ref="fileInput" type="file" accept="image/*" class="file-input-hidden" @change="onFileSelected" />
+                <!-- Input Footer -->
+                <div class="p-3 border-t border-zinc-800 bg-zinc-900/30">
+                    <form @submit.prevent="sendMessage" class="flex items-center gap-2">
+                        <input
+                            ref="fileInput"
+                            type="file"
+                            accept="image/*"
+                            class="hidden"
+                            @change="onFileSelected"
+                        />
+                        <button
+                            type="button"
+                            class="p-2 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition"
+                            title="Прикрепить изображение"
+                            :disabled="uploading"
+                            @click="triggerFileInput"
+                        >
+                            <el-icon v-if="uploading" class="animate-spin"><Loading /></el-icon>
+                            <el-icon v-else><Picture /></el-icon>
+                        </button>
 
-                    <button class="attach-btn" @click="triggerFileInput" :disabled="uploading" title="Прикрепить фото">
-                        <svg v-if="!uploading" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
-                        </svg>
-                        <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spin">
-                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-                        </svg>
-                    </button>
+                        <input
+                            v-model="newMessage"
+                            type="text"
+                            placeholder="Напишите ответ пользователю (Enter для отправки)..."
+                            class="flex-1 h-9 px-3 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
+                            :disabled="sending"
+                            @keydown.enter="handleEnter"
+                        />
 
-                    <textarea
-                        v-model="newMessage"
-                        class="chat-textarea"
-                        placeholder="Написать сообщение…"
-                        rows="1"
-                        @keydown.enter="handleEnter"
-                    />
-
-                    <button class="send-btn" @click="sendMessage" :disabled="!newMessage.trim() || sending">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                        </svg>
-                    </button>
+                        <AdminButton variant="primary" size="sm" type="submit" :loading="sending" :disabled="!newMessage.trim()">
+                            Отправить
+                        </AdminButton>
+                    </form>
                 </div>
             </template>
 
-            <div v-else class="chat-empty">
-                <p>Выберите чат или создайте новый</p>
+            <!-- Empty State -->
+            <div v-else class="flex-1 flex flex-col items-center justify-center text-center p-8 text-zinc-500">
+                <el-icon :size="48" class="text-zinc-700 mb-3"><ChatDotRound /></el-icon>
+                <h3 class="text-sm font-semibold text-zinc-300">Выберите тикет для общения</h3>
+                <p class="text-xs text-zinc-500 mt-1 max-w-sm">
+                    Слева представлен список обращений пользователей в службу поддержки платформы
+                </p>
             </div>
         </main>
 
-        <!-- ── New chat modal ── -->
+        <!-- User Picker Modal for starting new support chat -->
         <UserPickerModal
             v-model="showNewChat"
-            title="Новый чат — выбор пользователя"
             @select="startChatWith"
         />
-
     </div>
 </template>
-
-<style scoped>
-/* ── Layout ───────────────────────────────────────────────── */
-.support-layout {
-    display: flex;
-    /* вырваться из padding: 2rem в admin-main и занять всю высоту */
-    margin: -2rem;
-    height: calc(100% + 4rem);
-    overflow: hidden;
-    background: #07070f;
-    color: #fff;
-}
-
-/* ── Sidebar ─────────────────────────────────────────────── */
-.support-sidebar {
-    width: 280px;
-    flex-shrink: 0;
-    border-right: 1px solid rgba(255, 178, 239,0.14);
-    display: flex;
-    flex-direction: column;
-    background: #09090f;
-}
-
-.support-sidebar__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1rem 1rem 0.75rem;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-
-.support-sidebar__title {
-    font-size: 0.82rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.4);
-}
-
-.new-chat-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 178, 239,0.3);
-    background: rgba(255, 178, 239,0.08);
-    color: rgba(255, 178, 239,0.9);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.15s;
-}
-.new-chat-btn:hover { background: rgba(255, 178, 239,0.18); }
-
-.support-sidebar__list {
-    flex: 1;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255,255,255,0.06) transparent;
-}
-
-.conv-item {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.7rem 0.85rem;
-    cursor: pointer;
-    border-bottom: 1px solid rgba(255,255,255,0.03);
-    transition: background 0.15s;
-}
-.conv-item:hover { background: rgba(255, 178, 239,0.06); }
-.conv-item--active { background: rgba(255, 178, 239,0.12); }
-.conv-item--closed { opacity: 0.6; }
-
-.conv-item__avatar {
-    width: 36px;
-    height: 36px;
-    flex-shrink: 0;
-    border-radius: 50%;
-    overflow: hidden;
-    background: rgba(255, 178, 239,0.2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.conv-item__avatar img { width: 100%; height: 100%; object-fit: cover; }
-.conv-item__avatar-placeholder { font-size: 0.85rem; color: rgba(255,255,255,0.7); font-weight: 600; }
-
-.conv-item__info { flex: 1; min-width: 0; }
-.conv-item__name { font-size: 0.82rem; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.conv-item__last { font-size: 0.72rem; color: rgba(255,255,255,0.35); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 0.1rem; }
-
-.conv-item__meta { display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem; flex-shrink: 0; }
-.conv-item__time { font-size: 0.68rem; color: rgba(255,255,255,0.25); }
-.conv-item__closed-badge { font-size: 0.72rem; }
-
-.conv-empty  { text-align: center; color: rgba(255,255,255,0.2); padding: 2rem 1rem; font-size: 0.82rem; }
-.conv-loading { text-align: center; color: rgba(255,255,255,0.18); padding: 0.75rem 1rem; font-size: 0.75rem; }
-
-/* ── Sidebar filters ─────────────────────────────────────── */
-.sidebar-filters {
-    padding: 0.6rem 0.85rem 0.5rem;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    display: flex;
-    flex-direction: column;
-    gap: 0.45rem;
-}
-
-.conv-search {
-    width: 100%;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255, 178, 239,0.2);
-    border-radius: 6px;
-    color: rgba(255,255,255,0.8);
-    font-size: 0.78rem;
-    padding: 0.38rem 0.65rem;
-    outline: none;
-    font-family: inherit;
-    box-sizing: border-box;
-}
-.conv-search::placeholder { color: rgba(255,255,255,0.25); }
-.conv-search:focus { border-color: rgba(255, 178, 239,0.45); }
-
-.status-tabs { display: flex; gap: 0.3rem; }
-.status-tab {
-    flex: 1;
-    padding: 0.3rem 0;
-    background: transparent;
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 5px;
-    color: rgba(255,255,255,0.35);
-    font-size: 0.72rem;
-    cursor: pointer;
-    font-family: inherit;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-.status-tab:hover { background: rgba(255, 178, 239,0.07); color: rgba(255,255,255,0.6); }
-.status-tab--active {
-    background: rgba(255, 178, 239,0.15);
-    border-color: rgba(255, 178, 239,0.4);
-    color: rgba(160,150,255,0.9);
-}
-
-/* ── Unread badge ────────────────────────────────────────── */
-.conv-item__unread {
-    min-width: 18px;
-    height: 18px;
-    border-radius: 9px;
-    background: #9B6EE8;
-    color: #fff;
-    font-size: 0.65rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 4px;
-}
-
-/* ── Chat area ───────────────────────────────────────────── */
-.support-chat {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.chat-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.75rem 1.25rem;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    background: rgba(0,0,0,0.2);
-    flex-shrink: 0;
-}
-
-.chat-header__user { display: flex; align-items: center; gap: 0.65rem; }
-.chat-header__avatar {
-    width: 32px; height: 32px; border-radius: 50%; overflow: hidden;
-    background: rgba(255, 178, 239,0.2); display: flex; align-items: center; justify-content: center;
-    font-size: 0.85rem; color: rgba(255,255,255,0.7); font-weight: 600;
-}
-.chat-header__avatar img { width: 100%; height: 100%; object-fit: cover; }
-.chat-header__name { font-size: 0.9rem; color: rgba(255,255,255,0.85); font-weight: 500; }
-.chat-header__closed-tag {
-    font-size: 0.68rem; padding: 0.15rem 0.5rem; border-radius: 3px;
-    background: rgba(255,110,110,0.12); border: 1px solid rgba(255,110,110,0.3);
-    color: rgba(255,130,130,0.85);
-}
-
-.chat-header__actions { display: flex; gap: 0.5rem; }
-.chat-action-btn {
-    display: flex; align-items: center; gap: 0.4rem;
-    padding: 0.4rem 0.75rem; border-radius: 4px; font-size: 0.78rem;
-    cursor: pointer; transition: background 0.15s, border-color 0.15s; font-family: inherit;
-}
-.chat-action-btn--close {
-    background: rgba(255,110,110,0.07); border: 1px solid rgba(255,110,110,0.25); color: rgba(255,130,130,0.85);
-}
-.chat-action-btn--close:hover { background: rgba(255,110,110,0.14); border-color: rgba(255,110,110,0.45); }
-.chat-action-btn--open {
-    background: rgba(80,240,160,0.07); border: 1px solid rgba(80,240,160,0.25); color: rgba(80,240,160,0.85);
-}
-.chat-action-btn--open:hover { background: rgba(80,240,160,0.14); border-color: rgba(80,240,160,0.45); }
-
-/* ── Messages ────────────────────────────────────────────── */
-.chat-messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 1rem 1.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255,255,255,0.06) transparent;
-}
-
-.load-more { text-align: center; margin-bottom: 0.5rem; }
-.load-more-btn {
-    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-    color: rgba(255,255,255,0.4); font-size: 0.75rem; padding: 0.3rem 0.9rem;
-    border-radius: 4px; cursor: pointer; font-family: inherit;
-}
-.load-more-btn:hover { background: rgba(255,255,255,0.08); }
-
-.sys-event {
-    text-align: center; margin: 0.5rem 0;
-    display: flex; align-items: center; gap: 0.75rem;
-}
-.sys-event::before, .sys-event::after {
-    content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.07);
-}
-.sys-event__label { font-size: 0.7rem; color: rgba(255,255,255,0.25); white-space: nowrap; }
-
-.bubble-wrap { display: flex; }
-.bubble-wrap--right { justify-content: flex-end; }
-.bubble-wrap--left  { justify-content: flex-start; }
-
-.bubble {
-    max-width: 65%;
-    padding: 0.55rem 0.75rem;
-    border-radius: 10px;
-    position: relative;
-}
-.bubble--admin {
-    background: linear-gradient(135deg, rgba(255, 178, 239,0.22), rgba(180, 80, 150,0.16));
-    border: 1px solid rgba(255, 178, 239,0.2);
-    border-bottom-right-radius: 2px;
-}
-.bubble--user {
-    background: linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04));
-    border: 1px solid rgba(255,255,255,0.08);
-    border-bottom-left-radius: 2px;
-}
-.bubble--image { padding: 0.35rem; }
-
-.bubble-sender { display: block; font-size: 0.75rem; color: rgba(255,255,255,0.35); margin-bottom: 0.2rem; }
-.bubble-body { font-size: 1rem; color: rgba(255,255,255,0.9); line-height: 1.55; margin: 0; white-space: pre-wrap; }
-.bubble-meta { display: block; font-size: 0.72rem; color: rgba(255,255,255,0.3); text-align: right; margin-top: 0.3rem; }
-
-.chat-image { max-width: 240px; max-height: 320px; border-radius: 6px; display: block; cursor: pointer; }
-
-.chat-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.2); font-size: 0.88rem; }
-
-/* ── Input ───────────────────────────────────────────────── */
-.chat-input-area {
-    display: flex;
-    align-items: flex-end;
-    gap: 0.5rem;
-    padding: 0.75rem 1.25rem;
-    border-top: 1px solid rgba(255,255,255,0.06);
-    background: rgba(0,0,0,0.15);
-    flex-shrink: 0;
-}
-
-.file-input-hidden { display: none; }
-
-.attach-btn {
-    width: 36px; height: 36px; flex-shrink: 0;
-    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 8px; color: rgba(255,255,255,0.4); cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: background 0.15s, color 0.15s;
-}
-.attach-btn:hover:not(:disabled) { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.75); }
-.attach-btn:disabled { opacity: 0.5; cursor: default; }
-
-.chat-textarea {
-    flex: 1;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255, 178, 239,0.2);
-    border-radius: 8px;
-    color: rgba(255,255,255,0.85);
-    font-size: 0.84rem;
-    padding: 0.55rem 0.75rem;
-    outline: none;
-    font-family: inherit;
-    resize: none;
-    max-height: 120px;
-    overflow-y: auto;
-    line-height: 1.5;
-}
-.chat-textarea:focus { border-color: rgba(255, 178, 239,0.45); }
-
-.send-btn {
-    width: 36px; height: 36px; flex-shrink: 0;
-    background: rgba(255, 178, 239,0.15); border: 1px solid rgba(255, 178, 239,0.35);
-    border-radius: 8px; color: rgba(160,150,255,0.9); cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: background 0.15s;
-}
-.send-btn:hover:not(:disabled) { background: rgba(255, 178, 239,0.25); }
-.send-btn:disabled { opacity: 0.35; cursor: default; }
-
-.spin { animation: spin 1s linear infinite; }
-@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-</style>

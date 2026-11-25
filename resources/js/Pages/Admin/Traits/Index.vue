@@ -1,10 +1,12 @@
 <script setup>
 import { ref } from 'vue';
-import { useForm, router } from '@inertiajs/vue3';
-import { Plus } from '@element-plus/icons-vue';
+import { useForm, router, Link } from '@inertiajs/vue3';
+import { Plus, EditPen, Delete } from '@element-plus/icons-vue';
 import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
-import CreateButton from '@/Components/CreateButton.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
+import AdminModal from '@/Components/Admin/UI/AdminModal.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -69,103 +71,126 @@ function destroy(id) {
 </script>
 
 <template>
-    <div>
-        <div class="page-header">
-            <h1 class="page-title">Черты характера</h1>
-            <CreateButton @click="openAdd">
-                <template #icon><el-icon><Plus /></el-icon></template>
-                Добавить
-            </CreateButton>
-        </div>
-
-        <div class="table-wrap">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Название</th>
-                        <th>Пользователей</th>
-                        <th>Действия</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="trait in traits" :key="trait.id">
-                        <td>{{ trait.name_ru }}</td>
-                        <td>{{ trait.users_count }}</td>
-                        <td>
-                            <div class="actions">
-                                <button class="btn-edit" @click="openEdit(trait)">Изменить</button>
-                                <button class="btn-danger" @click="destroy(trait.id)">Удалить</button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr v-if="!traits.length">
-                        <td colspan="3" class="empty-row">Черт нет</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <Teleport to="body">
-            <div v-if="showForm" class="overlay" @click.self="closeForm">
-                <div class="modal">
-                    <div class="modal__header">
-                        <span>{{ editingId ? 'Редактировать черту' : 'Новая черта' }}</span>
-                        <button class="modal__close" @click="closeForm">✕</button>
-                    </div>
-                    <form @submit.prevent="submit" class="modal__body">
-                        <div class="field">
-                            <label>Название (RU)</label>
-                            <input v-model="form.name_ru" class="input" :class="{ 'input--err': form.errors.name_ru }" placeholder="Добрый" />
-                            <p v-if="form.errors.name_ru" class="err">{{ form.errors.name_ru }}</p>
-                        </div>
-                        <div class="field">
-                            <label>Название (EN)</label>
-                            <input v-model="form.name_en" class="input" :class="{ 'input--err': form.errors.name_en }" placeholder="Kind" />
-                            <p v-if="form.errors.name_en" class="err">{{ form.errors.name_en }}</p>
-                        </div>
-                        <div class="field">
-                            <label>Порядок сортировки</label>
-                            <input v-model.number="form.sort_order" type="number" min="0" class="input" />
-                        </div>
-                        <div class="modal__actions">
-                            <button type="button" class="btn-cancel" @click="closeForm">Отмена</button>
-                            <button type="submit" class="btn-submit" :disabled="form.processing">Сохранить</button>
-                        </div>
-                    </form>
-                </div>
+    <div class="space-y-6">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-zinc-100">Черты характера</h1>
+                <p class="text-xs text-zinc-400 mt-0.5">
+                    Справочник черт характера для анкет айдолов и алгоритма матчинга. Всего: {{ traits.length }}
+                </p>
             </div>
-        </Teleport>
+            <div class="flex items-center gap-2">
+                <Link
+                    :href="route('admin.traits.suggestions.index')"
+                    class="px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900 text-xs font-medium text-zinc-300 hover:text-white hover:bg-zinc-800 transition"
+                >
+                    Предложения пользователей →
+                </Link>
+                <AdminButton variant="primary" size="sm" @click="openAdd">
+                    <el-icon class="mr-1.5"><Plus /></el-icon>
+                    Добавить черту
+                </AdminButton>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="rounded-xl border border-zinc-800 bg-zinc-900/60 overflow-hidden backdrop-blur-sm">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="border-b border-zinc-800 bg-zinc-950/40 text-zinc-400">
+                            <th class="py-3 px-4 font-medium w-16">Порядок</th>
+                            <th class="py-3 px-4 font-medium">Название (RU)</th>
+                            <th class="py-3 px-4 font-medium">Название (EN)</th>
+                            <th class="py-3 px-4 font-medium text-right"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-800/60 text-zinc-300">
+                        <tr v-if="!traits.length">
+                            <td colspan="4" class="py-12 text-center text-zinc-500">
+                                Черты характера пока не добавлены
+                            </td>
+                        </tr>
+                        <tr
+                            v-for="t in traits"
+                            :key="t.id"
+                            class="hover:bg-zinc-800/30 transition"
+                        >
+                            <td class="py-3 px-4 font-mono text-zinc-500">{{ t.sort_order }}</td>
+                            <td class="py-3 px-4 font-medium text-zinc-100">{{ t.name_ru }}</td>
+                            <td class="py-3 px-4 text-zinc-400">{{ t.name_en || '—' }}</td>
+                            <td class="py-3 px-4 text-right">
+                                <div class="flex items-center justify-end gap-1.5">
+                                    <button
+                                        type="button"
+                                        class="p-1.5 rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition"
+                                        title="Редактировать"
+                                        @click="openEdit(t)"
+                                    >
+                                        <el-icon><EditPen /></el-icon>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="p-1.5 rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-rose-400 hover:bg-zinc-800 transition"
+                                        title="Удалить"
+                                        @click="destroy(t.id)"
+                                    >
+                                        <el-icon><Delete /></el-icon>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Add / Edit Modal -->
+        <AdminModal
+            :show="showForm"
+            :title="editingId ? 'Редактировать черту' : 'Новая черта характера'"
+            @close="closeForm"
+        >
+            <form @submit.prevent="submit" class="space-y-4 text-xs">
+                <div class="space-y-1.5">
+                    <label class="font-medium text-zinc-300">Название на русском <span class="text-rose-400">*</span></label>
+                    <input
+                        v-model="form.name_ru"
+                        type="text"
+                        required
+                        class="w-full h-9 px-3 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
+                    />
+                    <p v-if="form.errors.name_ru" class="text-rose-400 text-[11px]">{{ form.errors.name_ru }}</p>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="font-medium text-zinc-300">Название на английском</label>
+                    <input
+                        v-model="form.name_en"
+                        type="text"
+                        class="w-full h-9 px-3 rounded-lg border border-zinc-800 bg-zinc-950 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-violet-500"
+                    />
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="font-medium text-zinc-300">Порядок сортировки</label>
+                    <input
+                        v-model.number="form.sort_order"
+                        type="number"
+                        class="w-full h-9 px-3 rounded-lg border border-zinc-800 bg-zinc-950 text-xs font-mono text-zinc-100 focus:outline-none focus:border-violet-500"
+                    />
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
+                    <AdminButton variant="outline" size="sm" type="button" @click="closeForm">
+                        Отмена
+                    </AdminButton>
+                    <AdminButton variant="primary" size="sm" type="submit" :loading="form.processing">
+                        Сохранить
+                    </AdminButton>
+                </div>
+            </form>
+        </AdminModal>
     </div>
 </template>
-
-<style scoped>
-.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
-.page-title  { font-size: 1.4rem; color: #fff; margin: 0; }
-.table-wrap { overflow-x: auto; }
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th { text-align: left; padding: 0.6rem 1rem; font-size: 0.72rem; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.07em; border-bottom: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.025); }
-.data-table td { padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.07); color: rgba(255,255,255,0.8); font-size: 0.88rem; }
-.data-table tr:hover td { background: rgba(255,255,255,0.03); }
-.empty-row { text-align: center; color: rgba(255,255,255,0.25); }
-.actions { display: flex; gap: 0.5rem; }
-.btn-edit, .btn-danger { padding: 0.3rem 0.7rem; border-radius: 3px; font-size: 0.78rem; cursor: pointer; font-family: inherit; transition: background 0.15s; }
-.btn-edit   { border: 1px solid rgba(255,255,255,0.15); background: transparent; color: rgba(255,255,255,0.6); }
-.btn-edit:hover   { background: rgba(255,255,255,0.08); }
-.btn-danger { border: 1px solid rgba(239,68,68,0.3); background: transparent; color: rgba(239,68,68,0.7); }
-.btn-danger:hover { background: rgba(239,68,68,0.1); }
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.modal { background: #0a0a0f; border: 1px solid rgba(255,255,255,0.12); border-radius: 3px; width: 100%; max-width: 380px; margin: 1rem; }
-.modal__header { display: flex; align-items: center; justify-content: space-between; padding: 0.8rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.07); font-size: 0.88rem; color: rgba(255,255,255,0.85); font-weight: 600; }
-.modal__close { background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 1rem; }
-.modal__body { padding: 1rem; display: flex; flex-direction: column; gap: 0.8rem; }
-.field { display: flex; flex-direction: column; gap: 0.3rem; }
-.field label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: rgba(255,255,255,0.35); }
-.input { padding: 0.45rem 0.7rem; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 3px; color: rgba(255,255,255,0.85); font-family: inherit; font-size: 0.88rem; outline: none; transition: border-color 0.15s; box-sizing: border-box; width: 100%; }
-.input:focus { border-color: rgba(190,145,255,0.45); }
-.input--err { border-color: rgba(239,68,68,0.5); }
-.err { font-size: 0.75rem; color: rgba(239,68,68,0.8); margin: 0; }
-.modal__actions { display: flex; justify-content: flex-end; gap: 0.5rem; padding-top: 0.25rem; }
-.btn-cancel { padding: 0.45rem 0.9rem; border: 1px solid rgba(255,255,255,0.12); border-radius: 3px; background: transparent; color: rgba(255,255,255,0.4); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
-.btn-submit { padding: 0.45rem 1rem; border: 1px solid rgba(190,145,255,0.45); border-radius: 3px; background: rgba(190,145,255,0.1); color: rgba(255,255,255,0.9); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
-.btn-submit:disabled { opacity: 0.5; cursor: default; }
-</style>

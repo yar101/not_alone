@@ -26,8 +26,8 @@ class OrderController extends Controller
     public function index(Request $request): Response
     {
         $query = Order::with([
-            'customer:id,name,email',
-            'idol:id,name,email',
+            'customer:id,name,email,avatar_path',
+            'idol:id,name,email,avatar_path',
             'items.service.category',
         ])->latest();
 
@@ -76,24 +76,38 @@ class OrderController extends Controller
             'closed' => (int) ($rawCounts[OrderStatus::Closed->value] ?? 0),
         ];
 
+        $statusTransitions = collect(OrderStatus::cases())->mapWithKeys(fn (OrderStatus $s) => [
+            $s->value => collect(OrderStatus::cases())
+                ->filter(fn (OrderStatus $target) => $s->canTransitionTo($target))
+                ->map(fn (OrderStatus $target) => [
+                    'value' => $target->value,
+                    'label' => $target->label(),
+                ])
+                ->values(),
+        ]);
+
         return Inertia::render('Admin/Orders/Index', [
             'orders' => $query->latest('id')->cursorPaginate(30)->withQueryString()->through(fn (Order $o) => [
                 'id' => $o->id,
-                'customer' => ['id' => $o->customer_id, 'name' => $o->customer?->name ?? '—', 'email' => $o->customer?->email ?? '—'],
-                'idol' => ['id' => $o->idol_id,     'name' => $o->idol?->name ?? '—',     'email' => $o->idol?->email ?? '—'],
+                'customer' => ['id' => $o->customer_id, 'name' => $o->customer?->name ?? '—', 'email' => $o->customer?->email ?? '—', 'avatar_url' => $o->customer?->avatar_url],
+                'idol' => ['id' => $o->idol_id,     'name' => $o->idol?->name ?? '—',     'email' => $o->idol?->email ?? '—', 'avatar_url' => $o->idol?->avatar_url],
                 'categories' => $o->items->map(fn ($i) => $i->service?->category?->name)->filter()->unique()->values(),
+                'services_summary' => $o->items->map(fn ($i) => $i->service?->name)->filter()->join(', '),
                 'items_count' => $o->items->count(),
-                'total' => $o->items->sum(fn ($i) => ($i->price ?? $i->service?->price ?? 0) * ($i->quantity ?? 1)),
+                'total' => (float) $o->items->sum(fn ($i) => ($i->price ?? $i->service?->price ?? 0) * ($i->quantity ?? 1)),
+                'total_amount' => (float) $o->items->sum(fn ($i) => ($i->price ?? $i->service?->price ?? 0) * ($i->quantity ?? 1)),
                 'status' => $o->status->value,
                 'status_label' => $o->status->label(),
                 'status_color' => $o->status->color(),
                 'cancel_reason' => $o->cancel_reason,
-                'created_at' => $o->created_at->format('d.m.Y H:i'),
+                'created_at' => $o->created_at->toISOString(),
+                'created_at_formatted' => $o->created_at->format('d.m.Y H:i'),
             ]),
             'counts' => $counts,
             'filters' => $request->only(['search', 'status', 'idol_id', 'customer_id', 'category_id', 'date_from', 'date_to']),
             'categories' => ServiceCategory::orderBy('name')->get(['id', 'name']),
             'statuses' => collect(OrderStatus::cases())->map(fn ($s) => ['value' => $s->value, 'label' => $s->label()]),
+            'status_transitions' => $statusTransitions,
         ]);
     }
 
@@ -155,7 +169,12 @@ class OrderController extends Controller
                 'from' => $fromEnum ? $fromEnum->label() : $h->from_status,
                 'to' => $toEnum ? $toEnum->label() : $h->to_status,
                 'to_color' => $toEnum ? $toEnum->color() : 'gray',
-                'actor_type' => $h->actor_type,
+                'actor_type' => match ($h->actor_type) {
+                    'admin' => 'Администратор',
+                    'client', 'customer' => 'Клиент',
+                    'idol' => 'Айдол',
+                    default => 'Система',
+                },
                 'actor_id' => $h->actor_id,
                 'note' => $h->note,
                 'created_at' => $h->created_at->format('d.m.Y H:i'),
@@ -212,6 +231,15 @@ class OrderController extends Controller
                 'disputes' => $disputes,
             ],
             'statuses' => collect(OrderStatus::cases())->map(fn ($s) => ['value' => $s->value, 'label' => $s->label()]),
+            'status_transitions' => collect(OrderStatus::cases())->mapWithKeys(fn (OrderStatus $s) => [
+                $s->value => collect(OrderStatus::cases())
+                    ->filter(fn (OrderStatus $target) => $s->canTransitionTo($target))
+                    ->map(fn (OrderStatus $target) => [
+                        'value' => $target->value,
+                        'label' => $target->label(),
+                    ])
+                    ->values(),
+            ]),
         ]);
     }
 
@@ -247,13 +275,22 @@ class OrderController extends Controller
     {
         return response()->json(
             $order->statusHistory->map(fn ($h) => [
-                'from' => $h->from_status ? OrderStatus::from($h->from_status)->label() : null,
-                'to' => OrderStatus::from($h->to_status)->label(),
-                'to_color' => OrderStatus::from($h->to_status)->color(),
-                'actor_type' => $h->actor_type,
+                'id' => $h->id,
+                'from' => $h->from_status ? (OrderStatus::tryFrom($h->from_status)?->label() ?? $h->from_status) : null,
+                'from_status' => $h->from_status,
+                'to' => OrderStatus::tryFrom($h->to_status)?->label() ?? $h->to_status,
+                'to_status' => $h->to_status,
+                'to_color' => OrderStatus::tryFrom($h->to_status)?->color(),
+                'actor_type' => match ($h->actor_type) {
+                    'admin' => 'Администратор',
+                    'client', 'customer' => 'Клиент',
+                    'idol' => 'Айдол',
+                    default => 'Система',
+                },
                 'actor_id' => $h->actor_id,
                 'note' => $h->note,
                 'created_at' => $h->created_at->format('d.m.Y H:i'),
+                'created_at_iso' => $h->created_at->toISOString(),
             ])
         );
     }

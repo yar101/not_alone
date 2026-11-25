@@ -49,6 +49,7 @@ class ChatBlockController extends Controller
 
         return Inertia::render('Admin/ChatBlocks/Index', [
             'blocks' => $blocks,
+            'total_count' => ChatBlock::active()->count(),
             'top_blocked' => $topBlocked,
         ]);
     }

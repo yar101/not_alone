@@ -1,10 +1,16 @@
 <script setup>
 import { ref } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
-import { Plus } from '@element-plus/icons-vue';
+import { Plus, Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
-import CreateButton from '@/Components/CreateButton.vue';
+import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
+import AdminTable from '@/Components/Admin/UI/AdminTable.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminInput from '@/Components/Admin/UI/AdminInput.vue';
+import AdminModal from '@/Components/Admin/UI/AdminModal.vue';
+import ServicesNavTabs from '@/Components/Admin/ServicesNavTabs.vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -33,8 +39,8 @@ function openEdit(unit) {
     editingId.value = unit.id;
     form.name_ru    = unit.name_ru ?? '';
     form.name_en    = unit.name_en ?? '';
-    form.sort_order = unit.sort_order;
-    form.is_active  = unit.is_active;
+    form.sort_order = unit.sort_order ?? 0;
+    form.is_active  = Boolean(unit.is_active);
     showForm.value  = true;
 }
 
@@ -59,8 +65,8 @@ function submit() {
     }
 }
 
-function destroy(id) {
-    ElMessageBox.confirm('Удалить эту единицу времени?', 'Удаление единицы времени', {
+function destroyUnit(id) {
+    ElMessageBox.confirm('Удалить эту единицу времени?', 'Удаление', {
         confirmButtonText: 'Удалить',
         cancelButtonText: 'Отмена',
         type: 'warning',
@@ -72,113 +78,126 @@ function destroy(id) {
 </script>
 
 <template>
-    <div>
-        <div class="page-header">
-            <h1 class="page-title">Единицы времени</h1>
-            <CreateButton @click="openAdd">
-                <template #icon><el-icon><Plus /></el-icon></template>
-                Добавить
-            </CreateButton>
-        </div>
+    <div class="space-y-6 max-w-7xl mx-auto">
+        <!-- Sub-navigation Tabs -->
+        <ServicesNavTabs active="time-units" />
 
-        <div class="table-wrap">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Порядок</th>
-                        <th>Название</th>
-                        <th>Активна</th>
-                        <th>Действия</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="unit in timeUnits" :key="unit.id">
-                        <td>{{ unit.sort_order }}</td>
-                        <td>{{ unit.name_ru }}<span v-if="unit.name_en" style="color:#888;font-size:0.82em"> / {{ unit.name_en }}</span></td>
-                        <td><span :class="['badge', unit.is_active ? 'badge--on' : 'badge--off']">{{ unit.is_active ? 'Да' : 'Нет' }}</span></td>
-                        <td>
-                            <div class="actions">
-                                <button class="btn-edit" @click="openEdit(unit)">Изменить</button>
-                                <button class="btn-danger" @click="destroy(unit.id)">Удалить</button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr v-if="!timeUnits.length">
-                        <td colspan="4" class="empty-row">Единиц нет</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <!-- Header -->
+        <AdminPageHeader
+            title="Единицы времени"
+            subtitle="Справочник единиц тарификации услуг (минута, час, день, катка)"
+            :count="timeUnits?.length"
+        >
+            <template #actions>
+                <AdminButton variant="primary" @click="openAdd">
+                    <template #icon><el-icon><Plus /></el-icon></template>
+                    Добавить единицу
+                </AdminButton>
+            </template>
+        </AdminPageHeader>
 
-        <Teleport to="body">
-            <div v-if="showForm" class="overlay" @click.self="closeForm">
-                <div class="modal">
-                    <div class="modal__header">
-                        <span>{{ editingId ? 'Редактировать' : 'Новая единица' }}</span>
-                        <button class="modal__close" @click="closeForm">✕</button>
+        <!-- Table -->
+        <AdminTable :empty="!timeUnits?.length" empty-title="Единиц времени пока нет">
+            <template #header>
+                <tr>
+                    <th class="py-3 px-4 w-20">Порядок</th>
+                    <th class="py-3 px-4">Название (RU)</th>
+                    <th class="py-3 px-4">Название (EN)</th>
+                    <th class="py-3 px-4">Статус</th>
+                    <th class="py-3 px-4 text-right">Действия</th>
+                </tr>
+            </template>
+
+            <tr
+                v-for="unit in timeUnits"
+                :key="unit.id"
+                class="hover:bg-zinc-800/40 transition-colors"
+            >
+                <td class="py-3 px-4 text-xs font-mono text-zinc-500">
+                    {{ unit.sort_order }}
+                </td>
+
+                <td class="py-3 px-4 font-semibold text-zinc-100">
+                    {{ unit.name_ru }}
+                </td>
+
+                <td class="py-3 px-4 text-xs text-zinc-400">
+                    {{ unit.name_en || '—' }}
+                </td>
+
+                <td class="py-3 px-4">
+                    <AdminBadge :variant="unit.is_active ? 'success' : 'neutral'" size="sm">
+                        {{ unit.is_active ? 'Активна' : 'Скрыта' }}
+                    </AdminBadge>
+                </td>
+
+                <td class="py-3 px-4 text-right whitespace-nowrap">
+                    <div class="flex items-center justify-end gap-1.5">
+                        <AdminButton variant="secondary" size="sm" @click="openEdit(unit)">
+                            <template #icon><el-icon :size="12"><Edit /></el-icon></template>
+                            Изменить
+                        </AdminButton>
+                        <AdminButton variant="ghost" size="sm" class="text-rose-400 hover:text-rose-300" @click="destroyUnit(unit.id)">
+                            <template #icon><el-icon :size="12"><Delete /></el-icon></template>
+                        </AdminButton>
                     </div>
-                    <form @submit.prevent="submit" class="modal__body">
-                        <div class="field">
-                            <label>Название (RU)</label>
-                            <input v-model="form.name_ru" class="input" :class="{ 'input--err': form.errors.name_ru }" placeholder="15 минут" />
-                            <p v-if="form.errors.name_ru" class="err">{{ form.errors.name_ru }}</p>
-                        </div>
-                        <div class="field">
-                            <label>Название (EN)</label>
-                            <input v-model="form.name_en" class="input" :class="{ 'input--err': form.errors.name_en }" placeholder="15 minutes" />
-                            <p v-if="form.errors.name_en" class="err">{{ form.errors.name_en }}</p>
-                        </div>
-                        <div class="field">
-                            <label>Порядок сортировки</label>
-                            <input v-model.number="form.sort_order" type="number" min="0" class="input" />
-                        </div>
-                        <div class="field field--row">
-                            <label>Активна</label>
-                            <input v-model="form.is_active" type="checkbox" />
-                        </div>
-                        <div class="modal__actions">
-                            <button type="button" class="btn-cancel" @click="closeForm">Отмена</button>
-                            <button type="submit" class="btn-submit" :disabled="form.processing">Сохранить</button>
-                        </div>
-                    </form>
+                </td>
+            </tr>
+        </AdminTable>
+
+        <!-- Modal -->
+        <AdminModal
+            :show="showForm"
+            :title="editingId ? 'Изменить единицу времени' : 'Добавить единицу времени'"
+            @close="closeForm"
+        >
+            <form @submit.prevent="submit" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-300 mb-1">Название (RU) *</label>
+                    <AdminInput
+                        v-model="form.name_ru"
+                        placeholder="Например: 1 час, 30 минут, 1 игра..."
+                        :error="form.errors.name_ru"
+                        required
+                    />
                 </div>
-            </div>
-        </Teleport>
+
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-300 mb-1">Название (EN)</label>
+                    <AdminInput
+                        v-model="form.name_en"
+                        placeholder="Например: 1 hour, 30 mins, 1 match..."
+                        :error="form.errors.name_en"
+                    />
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-zinc-300 mb-1">Порядок сортировки</label>
+                    <AdminInput
+                        v-model="form.sort_order"
+                        type="number"
+                        placeholder="0"
+                    />
+                </div>
+
+                <div>
+                    <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer select-none">
+                        <input
+                            type="checkbox"
+                            v-model="form.is_active"
+                            class="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-violet-600 focus:ring-violet-500"
+                        />
+                        <span>Единица времени активна</span>
+                    </label>
+                </div>
+            </form>
+
+            <template #footer>
+                <AdminButton variant="ghost" @click="closeForm">Отмена</AdminButton>
+                <AdminButton variant="primary" :loading="form.processing" @click="submit">
+                    {{ editingId ? 'Сохранить изменения' : 'Создать' }}
+                </AdminButton>
+            </template>
+        </AdminModal>
     </div>
 </template>
-
-<style scoped>
-.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
-.page-title  { font-size: 1.4rem; color: #fff; margin: 0; }
-.table-wrap { overflow-x: auto; }
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th { text-align: left; padding: 0.6rem 1rem; font-size: 0.72rem; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.07em; border-bottom: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.025); }
-.data-table td { padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.07); color: rgba(255,255,255,0.8); font-size: 0.88rem; }
-.data-table tr:hover td { background: rgba(255,255,255,0.03); }
-.empty-row { text-align: center; color: rgba(255,255,255,0.25); }
-.badge { padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.72rem; font-weight: 600; }
-.badge--on  { background: rgba(74,222,128,0.1); color: rgba(74,222,128,0.8); }
-.badge--off { background: rgba(239,68,68,0.1);  color: rgba(239,68,68,0.7); }
-.actions { display: flex; gap: 0.5rem; }
-.btn-edit, .btn-danger { padding: 0.3rem 0.7rem; border-radius: 3px; font-size: 0.78rem; cursor: pointer; font-family: inherit; transition: background 0.15s; }
-.btn-edit   { border: 1px solid rgba(255,255,255,0.15); background: transparent; color: rgba(255,255,255,0.6); }
-.btn-edit:hover   { background: rgba(255,255,255,0.08); }
-.btn-danger { border: 1px solid rgba(239,68,68,0.3); background: transparent; color: rgba(239,68,68,0.7); }
-.btn-danger:hover { background: rgba(239,68,68,0.1); }
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.modal { background: #0a0a0f; border: 1px solid rgba(255,255,255,0.12); border-radius: 3px; width: 100%; max-width: 380px; margin: 1rem; }
-.modal__header { display: flex; align-items: center; justify-content: space-between; padding: 0.8rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.07); font-size: 0.88rem; color: rgba(255,255,255,0.85); font-weight: 600; }
-.modal__close { background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 1rem; }
-.modal__body { padding: 1rem; display: flex; flex-direction: column; gap: 0.8rem; }
-.field { display: flex; flex-direction: column; gap: 0.3rem; }
-.field--row { flex-direction: row; align-items: center; gap: 0.5rem; }
-.field label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: rgba(255,255,255,0.35); }
-.input { padding: 0.45rem 0.7rem; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 3px; color: rgba(255,255,255,0.85); font-family: inherit; font-size: 0.88rem; outline: none; transition: border-color 0.15s; box-sizing: border-box; width: 100%; }
-.input:focus { border-color: rgba(190,145,255,0.45); }
-.input--err { border-color: rgba(239,68,68,0.5); }
-.err { font-size: 0.75rem; color: rgba(239,68,68,0.8); margin: 0; }
-.modal__actions { display: flex; justify-content: flex-end; gap: 0.5rem; padding-top: 0.25rem; }
-.btn-cancel { padding: 0.45rem 0.9rem; border: 1px solid rgba(255,255,255,0.12); border-radius: 3px; background: transparent; color: rgba(255,255,255,0.4); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
-.btn-submit { padding: 0.45rem 1rem; border: 1px solid rgba(190,145,255,0.45); border-radius: 3px; background: rgba(190,145,255,0.1); color: rgba(255,255,255,0.9); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
-.btn-submit:disabled { opacity: 0.5; cursor: default; }
-</style>

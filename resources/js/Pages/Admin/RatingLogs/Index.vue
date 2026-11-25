@@ -4,12 +4,14 @@ import { Link, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
 import AdminPagination from '@/Components/Admin/AdminPagination.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
 
 defineOptions({ layout: AdminLayout });
 
 const props = defineProps({
     logs:   Object,
-    idols:  Array,
+    idols:  { type: Array, default: () => [] },
     filter: Object,
 });
 
@@ -48,102 +50,128 @@ function resetFilter() {
 
 function formatDate(dt) {
     if (!dt) return '—';
-    return new Date(dt).toLocaleString('ru', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+    return new Date(dt).toLocaleString('ru', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+    });
 }
 </script>
 
 <template>
-    <div>
+    <div class="space-y-6">
+        <!-- Header -->
         <AdminPageHeader
-            title="Логи рейтинга айдолов"
-            subtitle="История изменения рейтинга айдолов по заказам, отзывам и штрафам"
+            title="Журнал рейтинга айдолов"
+            subtitle="Детальная история начислений и штрафных списаний рейтинга по выполненным заказам, отзывам и спорам"
             :count="logs.total"
         />
 
-        <!-- Filters -->
-        <div class="filters">
-            <select v-model="idolId" class="input input--select">
-                <option value="">Все айдолы</option>
-                <option v-for="idol in idols" :key="idol.id" :value="idol.id">{{ idol.name }}</option>
-            </select>
+        <!-- Filters Bar -->
+        <div class="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4 shadow-sm">
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+                <div>
+                    <label class="block text-[11px] font-semibold uppercase text-zinc-400 mb-1">Айдол</label>
+                    <select
+                        v-model="idolId"
+                        class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 outline-none focus:border-violet-500"
+                        @change="applyFilter"
+                    >
+                        <option value="">Все айдолы</option>
+                        <option v-for="idol in idols" :key="idol.id" :value="idol.id">{{ idol.name }}</option>
+                    </select>
+                </div>
 
-            <input v-model="dateFrom" type="date" class="input" placeholder="От" />
-            <input v-model="dateTo"   type="date" class="input" placeholder="До" />
+                <div>
+                    <label class="block text-[11px] font-semibold uppercase text-zinc-400 mb-1">Дата от</label>
+                    <input
+                        v-model="dateFrom"
+                        type="date"
+                        class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 outline-none focus:border-violet-500"
+                        @change="applyFilter"
+                    />
+                </div>
 
-            <button class="btn-apply" @click="applyFilter">Применить</button>
-            <button class="btn-reset" @click="resetFilter">Сбросить</button>
+                <div>
+                    <label class="block text-[11px] font-semibold uppercase text-zinc-400 mb-1">Дата до</label>
+                    <input
+                        v-model="dateTo"
+                        type="date"
+                        class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 outline-none focus:border-violet-500"
+                        @change="applyFilter"
+                    />
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <AdminButton variant="primary" size="sm" class="flex-1" @click="applyFilter">
+                        Применить
+                    </AdminButton>
+                    <AdminButton variant="outline" size="sm" @click="resetFilter">
+                        Сбросить
+                    </AdminButton>
+                </div>
+            </div>
         </div>
 
-        <div class="table-wrap">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Айдол</th>
-                        <th>Событие</th>
-                        <th>Дельта</th>
-                        <th>Примечание</th>
-                        <th>Дата</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="log in logs.data" :key="log.id">
-                        <td>
-                            <Link v-if="log.idol" :href="route('admin.users.show', log.idol.id)" class="user-link">
-                                {{ log.idol.name }}
-                            </Link>
-                            <span v-else class="muted">—</span>
-                        </td>
-                        <td class="event-cell">{{ EVENT_LABELS[log.event] ?? log.event }}</td>
-                        <td>
-                            <span :class="['delta-badge', log.delta > 0 ? 'delta--pos' : 'delta--neg']">
-                                {{ log.delta > 0 ? '+' : '' }}{{ log.delta }}
-                            </span>
-                        </td>
-                        <td class="note-cell">{{ log.note ?? '—' }}</td>
-                        <td class="muted">{{ formatDate(log.created_at) }}</td>
-                    </tr>
-                    <tr v-if="!logs.data.length">
-                        <td colspan="5" class="empty-row">Записей нет</td>
-                    </tr>
-                </tbody>
-            </table>
+        <!-- Table -->
+        <div class="bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden shadow-sm">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead class="bg-zinc-950/60 text-zinc-400 font-semibold uppercase tracking-wider border-b border-zinc-800">
+                        <tr>
+                            <th class="px-4 py-3">Айдол</th>
+                            <th class="px-4 py-3">Событие</th>
+                            <th class="px-4 py-3">Дельта</th>
+                            <th class="px-4 py-3">Примечание</th>
+                            <th class="px-4 py-3 text-right">Дата</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-800/60">
+                        <tr v-for="log in logs.data" :key="log.id" class="hover:bg-zinc-800/20 transition-colors">
+                            <td class="px-4 py-3">
+                                <Link
+                                    v-if="log.idol"
+                                    :href="route('admin.users.show', log.idol.id)"
+                                    class="font-medium text-zinc-200 hover:text-violet-400 transition-colors"
+                                >
+                                    {{ log.idol.name }}
+                                </Link>
+                                <span v-else class="text-zinc-500">—</span>
+                            </td>
+
+                            <td class="px-4 py-3 text-zinc-300">
+                                {{ EVENT_LABELS[log.event] ?? log.event }}
+                            </td>
+
+                            <td class="px-4 py-3 font-mono font-bold">
+                                <span
+                                    class="inline-flex items-center px-2 py-0.5 rounded text-xs"
+                                    :class="log.delta > 0
+                                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                        : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'"
+                                >
+                                    {{ log.delta > 0 ? '+' : '' }}{{ log.delta }}
+                                </span>
+                            </td>
+
+                            <td class="px-4 py-3 text-zinc-400 max-w-sm truncate" :title="log.note ?? ''">
+                                {{ log.note ?? '—' }}
+                            </td>
+
+                            <td class="px-4 py-3 text-right font-mono text-zinc-500 whitespace-nowrap">
+                                {{ formatDate(log.created_at) }}
+                            </td>
+                        </tr>
+
+                        <tr v-if="!logs.data.length">
+                            <td colspan="5" class="px-4 py-12 text-center text-xs text-zinc-500 italic">
+                                Записей изменения рейтинга не найдено.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <AdminPagination :pagination="logs" />
     </div>
 </template>
-
-<style scoped>
-.page-title { font-size: 1.4rem; color: #fff; margin: 0 0 1.25rem; }
-
-.filters { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1.5rem; align-items: center; }
-.input { padding: 0.4rem 0.7rem; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.85); font-family: inherit; font-size: 0.88rem; outline: none; }
-.input--select { min-width: 180px; }
-.input:focus { border-color: rgba(190,145,255,0.45); }
-.btn-apply { padding: 0.4rem 0.9rem; border: 1px solid rgba(190,145,255,0.45); background: rgba(190,145,255,0.1); color: rgba(255,255,255,0.9); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
-.btn-apply:hover { background: rgba(190,145,255,0.2); }
-.btn-reset { padding: 0.4rem 0.9rem; border: 1px solid rgba(255,255,255,0.12); background: transparent; color: rgba(255,255,255,0.4); font-family: inherit; font-size: 0.82rem; cursor: pointer; }
-.btn-reset:hover { color: rgba(255,255,255,0.7); }
-
-.table-wrap { overflow-x: auto; }
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th { text-align: left; padding: 0.75rem 1.25rem; font-size: 0.82rem; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.07em; border-bottom: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.025); }
-.data-table td { padding: 0.9rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.07); font-size: 0.93rem; color: rgba(255,255,255,0.75); vertical-align: middle; }
-.data-table tr:hover td { background: rgba(255,255,255,0.03); }
-
-.user-link { color: rgba(255,255,255,0.85); text-decoration: none; font-size: 0.88rem; }
-.user-link:hover { color: #9B6EE8; }
-.event-cell { color: rgba(255,255,255,0.55); font-size: 0.88rem; }
-.note-cell { color: rgba(255,255,255,0.4); font-size: 0.82rem; max-width: 260px; }
-.muted { color: rgba(255,255,255,0.35); font-size: 0.78rem; }
-.empty-row { text-align: center; color: rgba(255,255,255,0.25); padding: 2.5rem; }
-
-.delta-badge { font-size: 0.82rem; font-weight: 700; padding: 0.1rem 0.4rem; }
-.delta--pos { color: #4ade80; background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.2); }
-.delta--neg { color: #f87171; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); }
-
-.pagination { display: flex; gap: 0.25rem; margin-top: 1.5rem; flex-wrap: wrap; }
-.page-link { padding: 0.28rem 0.6rem; border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); font-size: 0.8rem; text-decoration: none; cursor: pointer; }
-.page-link--active   { border-color: rgba(155,110,232,0.6); color: #9B6EE8; background: rgba(155,110,232,0.1); }
-.page-link--disabled { opacity: 0.3; pointer-events: none; }
-</style>

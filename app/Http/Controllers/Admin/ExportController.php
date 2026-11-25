@@ -88,8 +88,8 @@ class ExportController extends Controller
                             $order->customer?->email ?? '—',
                             $order->idol?->name ?? '—',
                             $order->idol?->email ?? '—',
-                            $order->status?->value ?? $order->status,
-                            $order->total_price,
+                            $order->status?->value ?? (string) $order->status,
+                            number_format((float) $order->total_price, 2, '.', ''),
                             $order->created_at?->format('d.m.Y H:i') ?? '',
                             $order->completed_at?->format('d.m.Y H:i') ?? '',
                         ];

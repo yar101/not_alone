@@ -1,7 +1,13 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
 import AdminPagination from '@/Components/Admin/AdminPagination.vue';
+import AdminTable from '@/Components/Admin/UI/AdminTable.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import ContentPacksNavTabs from '@/Components/Admin/ContentPacksNavTabs.vue';
+import { View, ArrowRight } from '@element-plus/icons-vue';
 
 defineOptions({ layout: AdminLayout });
 
@@ -22,131 +28,104 @@ function formatDate(iso) {
 </script>
 
 <template>
-    <div class="cr-index">
-        <h1 class="cr-heading">Изменения в паках</h1>
+    <div class="space-y-6 max-w-7xl mx-auto">
+        <!-- Sub-navigation Tabs -->
+        <ContentPacksNavTabs active="change-requests" />
 
-        <div class="cr-table-wrap">
-            <table class="cr-table">
-                <thead>
-                    <tr>
-                        <th>Айдол</th>
-                        <th>Пак</th>
-                        <th>Изменяемые поля</th>
-                        <th>Дата запроса</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="req in requests.data" :key="req.id">
-                        <td>
-                            <div class="cr-idol-info">
-                                <img v-if="req.content_pack?.user?.avatar_url" :src="req.content_pack.user.avatar_url" class="cr-avatar" alt="" />
-                                <div v-else class="cr-avatar cr-avatar--empty">
-                                    {{ req.content_pack?.user?.name?.charAt(0)?.toUpperCase() }}
-                                </div>
-                                <span>{{ req.content_pack?.user?.name ?? '—' }}</span>
+        <!-- Header -->
+        <AdminPageHeader
+            title="Запросы на изменение контент-паков"
+            subtitle="Модерация правок названий, описаний, цен и состава медиафайлов в опубликованных паках"
+            :count="requests?.total"
+        />
+
+        <!-- Data Table -->
+        <AdminTable :empty="!requests.data?.length" empty-title="Ожидающих запросов нет">
+            <template #header>
+                <tr>
+                    <th class="py-3 px-4">Айдол</th>
+                    <th class="py-3 px-4">Контент-пак</th>
+                    <th class="py-3 px-4">Изменяемые поля</th>
+                    <th class="py-3 px-4">Дата запроса</th>
+                    <th class="py-3 px-4 text-right">Действия</th>
+                </tr>
+            </template>
+
+            <tr
+                v-for="req in requests.data"
+                :key="req.id"
+                class="hover:bg-zinc-800/40 transition-colors cursor-pointer group"
+                @click="router.visit(route('admin.content-packs.change-requests.show', req.id))"
+            >
+                <!-- Idol -->
+                <td class="py-3 px-4">
+                    <div class="flex items-center gap-2.5" v-if="req.content_pack?.user">
+                        <img
+                            v-if="req.content_pack.user.avatar_url"
+                            :src="req.content_pack.user.avatar_url"
+                            class="w-8 h-8 rounded-full object-cover shrink-0 border border-zinc-700/60"
+                            alt=""
+                        />
+                        <div
+                            v-else
+                            class="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-xs text-zinc-300 shrink-0"
+                        >
+                            {{ req.content_pack.user.name?.[0] }}
+                        </div>
+                        <div class="min-w-0">
+                            <div class="font-semibold text-zinc-100 group-hover:text-violet-300 transition-colors">
+                                {{ req.content_pack.user.name }}
                             </div>
-                        </td>
-                        <td class="cr-td-title">{{ req.content_pack?.title ?? '—' }}</td>
-                        <td>
-                            <span
-                                v-for="field in req.changed_fields"
-                                :key="field"
-                                class="cr-field-chip"
-                            >{{ FIELD_LABELS[field] ?? field }}</span>
-                        </td>
-                        <td>{{ formatDate(req.created_at) }}</td>
-                        <td>
-                            <Link :href="route('admin.content-packs.change-requests.show', req.id)" class="cr-link">
-                                Рассмотреть →
-                            </Link>
-                        </td>
-                    </tr>
-                    <tr v-if="!requests.data?.length">
-                        <td colspan="5" class="cr-empty">Нет ожидающих запросов</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+                            <div class="text-xs text-zinc-400 truncate">
+                                {{ req.content_pack.user.email }}
+                            </div>
+                        </div>
+                    </div>
+                    <span v-else class="text-zinc-500">—</span>
+                </td>
 
-        <AdminPagination :pagination="requests" />
+                <!-- Pack -->
+                <td class="py-3 px-4">
+                    <div class="font-medium text-zinc-200">
+                        {{ req.content_pack?.title ?? '—' }}
+                    </div>
+                    <div class="text-[11px] text-zinc-500">ID пака: #{{ req.content_pack?.id }}</div>
+                </td>
+
+                <!-- Changed Fields -->
+                <td class="py-3 px-4">
+                    <div class="flex flex-wrap gap-1.5">
+                        <span
+                            v-for="field in req.changed_fields"
+                            :key="field"
+                            class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono bg-violet-950/60 border border-violet-800/60 text-violet-300"
+                        >
+                            {{ FIELD_LABELS[field] ?? field }}
+                        </span>
+                    </div>
+                </td>
+
+                <!-- Date -->
+                <td class="py-3 px-4 text-xs text-zinc-400 whitespace-nowrap">
+                    {{ formatDate(req.created_at) }}
+                </td>
+
+                <!-- Actions -->
+                <td class="py-3 px-4 text-right whitespace-nowrap" @click.stop>
+                    <AdminButton
+                        variant="secondary"
+                        size="sm"
+                        @click="router.visit(route('admin.content-packs.change-requests.show', req.id))"
+                    >
+                        <template #icon><el-icon><View /></el-icon></template>
+                        Рассмотреть
+                    </AdminButton>
+                </td>
+            </tr>
+
+            <template #footer>
+                <AdminPagination :pagination="requests" />
+            </template>
+        </AdminTable>
     </div>
 </template>
-
-<style scoped>
-.cr-index { padding: 1.5rem; }
-
-.cr-heading { font-size: 1.4rem; font-weight: 700; color: rgba(255,255,255,0.9); margin: 0 0 1.25rem; }
-
-.cr-table-wrap { overflow-x: auto; }
-
-.cr-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.88rem;
-}
-.cr-table th {
-    text-align: left;
-    padding: 0.6rem 0.75rem;
-    color: rgba(255,255,255,0.35);
-    font-weight: 500;
-    border-bottom: 1px solid rgba(255,255,255,0.07);
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-.cr-table td {
-    padding: 0.7rem 0.75rem;
-    vertical-align: middle;
-    color: rgba(255,255,255,0.75);
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-
-.cr-idol-info { display: flex; align-items: center; gap: 0.5rem; }
-.cr-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-.cr-avatar--empty {
-    background: rgba(255, 178, 239,0.15);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.85rem;
-    color: rgba(255, 178, 239,0.7);
-}
-
-.cr-td-title { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-.cr-field-chip {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 0.78rem;
-    font-weight: 500;
-    background: rgba(255,200,80,0.15);
-    color: #ffc850;
-    margin-right: 0.3rem;
-}
-
-.cr-link {
-    color: rgba(255, 178, 239,0.8);
-    text-decoration: none;
-    font-size: 0.85rem;
-    white-space: nowrap;
-}
-.cr-link:hover { color: rgba(200,200,255,0.95); }
-
-.cr-empty { text-align: center; color: rgba(255,255,255,0.3); padding: 2rem 0; }
-
-.cr-pagination { display: flex; gap: 0.35rem; margin-top: 1rem; flex-wrap: wrap; }
-.cr-page-btn {
-    padding: 0.3rem 0.65rem;
-    border-radius: 5px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.08);
-    color: rgba(255,255,255,0.5);
-    font-size: 0.82rem;
-    text-decoration: none;
-    transition: background 0.15s;
-}
-.cr-page-btn:hover { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.8); }
-.cr-page-btn--active { background: rgba(255, 178, 239,0.15); border-color: rgba(255, 178, 239,0.4); color: rgba(200,200,255,0.9); }
-</style>

@@ -30,14 +30,14 @@
   docker exec not_alone_app ./vendor/bin/pint
   ```
 
-* **Чтение, поиск и работа с файлами (read_file, grep, find, git), а также сборка фронтенда (`npm run build`) выполняются ЛОКАЛЬНО на хост-машине.** Не нужно выполнять чтение или поиск файлов через `docker exec`.
+* **Чтение, поиск и работа с файлами (read_file, grep, find, git), а также сборка фронтенда (`npm run build`, включая `--ssr`) выполняются ЛОКАЛЬНО на хост-машине.** Не нужно выполнять чтение или поиск файлов через `docker exec`.
 
 ### 1.2. Технологический стек
 
 * **Бэкенд:** PHP 8.4.x, Laravel 11 (`v11.48+`).
 * **База данных:** PostgreSQL 16 Alpine (порт хоста `5433`, внутри `5432`).
 * **Кэш, Сессии, Очереди:** Redis Alpine (`SESSION_DRIVER=redis`, `QUEUE_CONNECTION=redis`, `CACHE_STORE=redis`, выделенная платёжная очередь `payments`).
-* **Фронтенд:** Vue 3 (Composition API), Inertia.js v3 (`@inertiajs/vue3`), Vite 6, Tailwind CSS 3, Element Plus.
+* **Фронтенд и SSR:** Vue 3 (Composition API), Inertia.js v3 (`@inertiajs/vue3`), Inertia SSR (`resources/js/ssr.js` → `bootstrap/ssr/ssr.js`), Vite 6, Tailwind CSS 3, Element Plus.
 * **WebSockets / Realtime:** Laravel Reverb (порт `8080`).
 * **S3 / Хранилище медиа и документов:** MinIO (S3 API `9000`, консоль `8900`, bucket `not-alone`, сервера строго в РФ по 152-ФЗ).
 * **Платёжный провайдер / BaaS:** Финтех-платформа Mandarin (mandarin.io) — **BaaS (Banking-as-a-Service)** на базе **Номинального счёта (ст. 860.1 ГК РФ)**, выплаты по СБП (B2C), автоматическая фискализация в ФНС РФ «Мой налог» (422-ФЗ) и онлайн-касса (54-ФЗ).
@@ -49,6 +49,17 @@
 * Состояние страницы снимается через **ariaSnapshot / observe** (accessibility-дерево / наблюдение за состоянием DOM). **Скриншоты не используются** как способ проверки.
 * Все ожидания — с явным таймаутом **3–5 с** (не дефолтные 20–30 с): проверяемое состояние должно наблюдаться за это время, иначе проверка падает сразу.
 * Критерий успеха — наблюдаемое состояние UI (видимые строки таблицы, значения полей, состояния элементов), а не отсутствие ошибок сборки.
+
+### 1.4. Серверный рендеринг (Inertia SSR)
+
+* **Процесс SSR:** В контейнере `not_alone_app` под управлением `docker/supervisord.conf` (`[program:inertia-ssr]`) постоянно запущен Node-сервер `php artisan inertia:start-ssr` (порт `13714`, конфиг `config/inertia.php`).
+* **Область действия (`app/Providers/AppServiceProvider.php`):**
+  * Публичные страницы рендерятся через SSR (`http://127.0.0.1:13714/render`), включая dev-окружение.
+  * Маршруты админки (`admin*`) **исключены из SSR** (возвращают `null` и работают как клиентский SPA), так как они защищены авторизацией `admin`, не требуют SEO и используют клиентское состояние (`localStorage` для тем и сайдбара).
+* **Предотвращение FOUC и стили:** В `vite.config.js` и `resources/views/app.blade.php` файл `resources/css/app.css` подключён как явный entry point, чтобы Vite отдавал `<link rel="stylesheet">` в `<head>` (в том числе в dev-режиме при SSR), а не подгружал стили асинхронно после JS.
+* **Сборка и совместимость:**
+  * Команда `npm run build` выполняет `vite build && vite build --ssr` (генерирует `public/build/` и `bootstrap/ssr/ssr.js`). При изменении публичных страниц или layout необходимо пересобирать и SSR-бандл.
+  * В публичных Vue-компонентах запрещено обращаться к `window`, `document` или `localStorage` на верхнем уровне `<script setup>` — используйте `onMounted()` или проверку `typeof window !== 'undefined'`.
 
 ---
 

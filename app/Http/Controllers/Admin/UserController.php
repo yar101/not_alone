@@ -62,6 +62,7 @@ class UserController extends Controller
 
         return Inertia::render('Admin/Users/Index', [
             'users' => $users,
+            'total_count' => User::count(),
             'filter' => $request->only(['q', 'is_idol', 'is_banned', 'gender', 'registered_from', 'registered_to']),
         ]);
     }
@@ -113,8 +114,8 @@ class UserController extends Controller
             });
         }
 
-        if ($request->filled('is_idol')) {
-            $query->where('is_idol', (bool) $request->is_idol);
+        if ($request->has('is_idol') && $request->input('is_idol') !== null && $request->input('is_idol') !== '') {
+            $query->where('is_idol', filter_var($request->input('is_idol'), FILTER_VALIDATE_BOOLEAN));
         }
 
         if ($gender = $request->gender) {
@@ -137,9 +138,14 @@ class UserController extends Controller
             $query->whereDate('created_at', '<=', $request->registered_to);
         }
 
+        $total = null;
+        if (! $request->filled('cursor')) {
+            $total = (clone $query)->count();
+        }
+
         $paginator = $query->orderByDesc('id')->cursorPaginate(20);
 
-        $data = $paginator->map(fn (User $u) => [
+        $paginator->through(fn (User $u) => [
             'id' => $u->id,
             'name' => $u->name,
             'email' => $u->email,
@@ -148,16 +154,23 @@ class UserController extends Controller
             'age' => $u->age,
             'avatar_url' => $u->avatar_url,
             'balance' => (float) ($u->wallet?->balance ?? 0),
+            'pink_balance' => (float) ($u->wallet?->pink_balance ?? 0),
             'created_at' => $u->created_at,
         ]);
 
+        $meta = [
+            'next_cursor' => $paginator->nextCursor()?->encode(),
+            'prev_cursor' => $paginator->previousCursor()?->encode(),
+            'has_more' => $paginator->hasMorePages(),
+        ];
+
+        if ($total !== null) {
+            $meta['total'] = $total;
+        }
+
         return response()->json([
-            'data' => $data,
-            'meta' => [
-                'current_page' => $paginator->currentPage(),
-                'last_page' => $paginator->lastPage(),
-                'total' => $paginator->total(),
-            ],
+            'data' => $paginator->items(),
+            'meta' => $meta,
         ]);
     }
 

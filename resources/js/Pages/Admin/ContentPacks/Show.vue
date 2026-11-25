@@ -1,10 +1,15 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
-import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
+import { ArrowLeft, ArrowRight, Check, Close, Warning, ZoomIn } from '@element-plus/icons-vue';
 import { ElMessageBox } from 'element-plus';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import AdminPageHeader from '@/Components/Admin/AdminPageHeader.vue';
+import AdminBadge from '@/Components/Admin/UI/AdminBadge.vue';
+import AdminButton from '@/Components/Admin/UI/AdminButton.vue';
+import AdminModal from '@/Components/Admin/UI/AdminModal.vue';
 import CoinIcon from '@/Components/Common/CoinIcon.vue';
+import { formatMoney } from '@/Utils/money';
 
 defineOptions({ layout: AdminLayout });
 
@@ -19,8 +24,8 @@ const flaggedFields  = reactive({
     price:       false,
 });
 const fieldComments  = reactive({ title: '', description: '', price: '' });
-const flaggedPhotos  = reactive({}); // { [photo_id]: boolean }
-const photoComments  = reactive({}); // { [photo_id]: string }
+const flaggedPhotos  = reactive({});
+const photoComments  = reactive({});
 
 const PRESETS = {
     title: [
@@ -45,7 +50,6 @@ const PRESETS = {
     ],
 };
 
-// Initialize photo flags
 if (props.pack?.photos) {
     props.pack.photos.forEach(p => {
         flaggedPhotos[p.id]  = false;
@@ -59,17 +63,27 @@ const submitting  = ref(false);
 const errors      = ref({});
 
 const hasAnyFlag = computed(() => {
-    const flagged = Object.values(flaggedFields).some(v => v) ||
-                    Object.values(flaggedPhotos).some(v => v);
-    if (flagged) isApproved.value = false;
-    return flagged;
+    return Object.values(flaggedFields).some(v => v) ||
+           Object.values(flaggedPhotos).some(v => v);
 });
 
 const canSubmit = computed(() => isApproved.value || hasAnyFlag.value);
 
+function onToggleFieldFlag(field) {
+    if (flaggedFields[field]) {
+        isApproved.value = false;
+    }
+}
+
+function onTogglePhotoFlag(id) {
+    if (flaggedPhotos[id]) {
+        isApproved.value = false;
+    }
+}
+
 function reject() {
     ElMessageBox.confirm(
-        'Полностью отклонить пак? Все фотографии будут удалены, айдол получит уведомление.',
+        'Полностью отклонить пак? Айдол получит уведомление.',
         'Отклонение контент-пака',
         {
             confirmButtonText: 'Отклонить',
@@ -122,12 +136,17 @@ function submit() {
 
 // ── Lightbox ─────────────────────────────────────────────
 const lightboxIndex = ref(null);
-const photos = computed(() => props.pack?.photos ?? []);
+const lightboxPhotos = computed(() => {
+    const list = [];
+    if (props.pack?.cover_url) list.push({ id: 'cover', url: props.pack.cover_url });
+    if (props.pack?.photos) list.push(...props.pack.photos);
+    return list;
+});
 
 function openLightbox(idx) { lightboxIndex.value = idx; }
 function closeLightbox()   { lightboxIndex.value = null; }
-function prevPhoto() { lightboxIndex.value = (lightboxIndex.value - 1 + photos.value.length) % photos.value.length; }
-function nextPhoto() { lightboxIndex.value = (lightboxIndex.value + 1) % photos.value.length; }
+function prevPhoto() { lightboxIndex.value = (lightboxIndex.value - 1 + lightboxPhotos.value.length) % lightboxPhotos.value.length; }
+function nextPhoto() { lightboxIndex.value = (lightboxIndex.value + 1) % lightboxPhotos.value.length; }
 
 function handleLbKey(e) {
     if (lightboxIndex.value === null) return;
@@ -137,507 +156,269 @@ function handleLbKey(e) {
 }
 onMounted(() => window.addEventListener('keydown', handleLbKey));
 onUnmounted(() => window.removeEventListener('keydown', handleLbKey));
-
-const STATUS_LABELS = {
-    pending_review: 'На рассмотрении',
-    approved:       'Одобрен',
-    published:      'Опубликован',
-    has_remarks:    'Есть замечания',
-    rejected:       'Отклонён',
-};
-
-function formatDate(iso) {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
 </script>
 
 <template>
-    <div class="cps-wrap">
-        <!-- Back link -->
-        <Link :href="route('admin.content-packs.index')" class="cps-back">← К списку</Link>
+    <div class="space-y-6 max-w-5xl mx-auto">
+        <!-- Back Link -->
+        <div>
+            <Link
+                :href="route('admin.content-packs.index')"
+                class="inline-flex items-center gap-2 text-xs font-medium text-zinc-400 hover:text-zinc-100 transition-colors"
+            >
+                <el-icon :size="12"><ArrowLeft /></el-icon>
+                <span>Назад ко всем контент-пакам</span>
+            </Link>
+        </div>
 
-        <div class="cps-layout">
-            <!-- LEFT: Idol info + Pack metadata + Photos -->
-            <div class="cps-left">
+        <!-- Header -->
+        <AdminPageHeader
+            :title="`Контент-пак: ${pack.title}`"
+            :subtitle="`ID #${pack.id} • Подан ${new Date(pack.created_at).toLocaleString('ru')}`"
+        />
 
-                <!-- Idol info -->
-                <div class="cps-card">
-                    <h2 class="cps-card__title">Айдол</h2>
-                    <a :href="route('profile.show', pack.user.id)" target="_blank" class="cps-idol-link">
-                        <div class="cps-idol">
-                            <img v-if="pack.user.avatar_url" :src="pack.user.avatar_url" class="cps-idol__avatar" alt="" />
-                            <div v-else class="cps-idol__avatar cps-idol__avatar--empty">{{ pack.user.name?.charAt(0) }}</div>
-                            <div>
-                                <div class="cps-idol__name">{{ pack.user.name }}</div>
-                                <div class="cps-idol__email">{{ pack.user.email }}</div>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-
-                <!-- Pack metadata -->
-                <div class="cps-card">
-                    <h2 class="cps-card__title">Пак</h2>
-                    <div class="cps-meta">
-                        <div class="cps-meta__row">
-                            <span class="cps-meta__label">Статус</span>
-                            <span class="cps-status" :class="'cps-status--' + pack.status">
-                                {{ STATUS_LABELS[pack.status] || pack.status }}
-                            </span>
-                        </div>
-                        <div class="cps-meta__row">
-                            <span class="cps-meta__label">Название</span>
-                            <span>{{ pack.title }}</span>
-                        </div>
-                        <div class="cps-meta__row" v-if="pack.description">
-                            <span class="cps-meta__label">Описание</span>
-                            <span class="cps-meta__desc">{{ pack.description }}</span>
-                        </div>
-                        <div class="cps-meta__row">
-                            <span class="cps-meta__label">Цена</span>
-                            <span class="inline-flex items-center gap-1">
-                                <span>{{ pack.price }}</span>
-                                <CoinIcon color="blue" size="xs" />
-                            </span>
-                        </div>
-                        <div class="cps-meta__row">
-                            <span class="cps-meta__label">Фото</span>
-                            <span>{{ pack.photos?.length ?? 0 }} шт.</span>
-                        </div>
-                        <div class="cps-meta__row" v-if="pack.resubmitted_at">
-                            <span class="cps-meta__label">Переподан</span>
-                            <span class="cps-resubmit-badge">Исправлено {{ formatDate(pack.resubmitted_at) }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Review history -->
-                <div v-if="pack.reviews?.length" class="cps-card">
-                    <h2 class="cps-card__title">История проверок</h2>
-                    <div v-for="r in pack.reviews" :key="r.id" class="cps-review-item">
-                        <div class="cps-review-item__header">
-                            <span :class="r.decision === 'approved' ? 'cps-dec--ok' : 'cps-dec--bad'">
-                                {{ r.decision === 'approved' ? '✓ Одобрено' : '✗ Замечания' }}
-                            </span>
-                            <span class="cps-review-item__date">
-                                {{ new Date(r.created_at).toLocaleDateString('ru-RU') }}
-                            </span>
-                            <span v-if="r.admin" class="cps-review-item__admin">{{ r.admin.name }}</span>
-                        </div>
-                        <div v-if="r.flagged_fields?.length" class="cps-review-item__detail">
-                            Помечено: {{ r.flagged_fields.join(', ') }}
-                        </div>
+        <!-- Overview Card -->
+        <div class="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex items-center justify-between flex-wrap gap-4">
+            <div class="flex items-center gap-3">
+                <img
+                    v-if="pack.user?.avatar_url"
+                    :src="pack.user.avatar_url"
+                    class="w-12 h-12 rounded-full object-cover border border-zinc-700 shrink-0"
+                    alt=""
+                />
+                <div class="min-w-0">
+                    <div class="text-sm font-bold text-zinc-100">{{ pack.user?.name }}</div>
+                    <div class="text-xs text-zinc-400">{{ pack.user?.email }}</div>
+                    <div class="mt-1 flex items-center gap-3 text-xs text-zinc-500">
+                        <span>Айдол ID: #{{ pack.user?.id }}</span>
+                        <span>•</span>
+                        <Link :href="route('admin.users.show', pack.user?.id)" class="text-violet-400 hover:underline">
+                            Открыть профиль ↗
+                        </Link>
                     </div>
                 </div>
             </div>
 
-            <!-- RIGHT: Review form -->
-            <div class="cps-right">
+            <div class="text-right">
+                <span class="text-[11px] uppercase tracking-wider text-zinc-500 block">Стоимость пака</span>
+                <div class="flex items-center gap-1.5 font-bold text-base text-zinc-100">
+                    <span>{{ formatMoney(pack.price) }}</span>
+                    <CoinIcon color="blue" size="xs" />
+                </div>
+            </div>
+        </div>
 
-                <!-- Field flags -->
-                <div class="cps-card">
-                    <h2 class="cps-card__title">Поля</h2>
-                    <div v-for="field in ['title','description','price']" :key="field" class="cps-flag-row" :class="{ 'cps-flag-row--flagged': flaggedFields[field] }">
-                        <div class="cps-flag-header">
-                            <label class="cps-flag-label">
-                                <input type="checkbox" v-model="flaggedFields[field]" class="cps-checkbox" />
-                                <span class="cps-flag-name" :class="{ 'cps-flag-name--flagged': flaggedFields[field] }">
-                                    {{ { title: 'Название', description: 'Описание', price: 'Цена' }[field] }}
-                                </span>
-                                <svg v-if="flaggedFields[field]" class="cps-warn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff7b7b" stroke-width="2.5">
-                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                                    <line x1="12" y1="9" x2="12" y2="13"/>
-                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
-                                </svg>
-                            </label>
-                            <span class="cps-flag-value">
-                                <template v-if="field === 'title'">{{ pack.title }}</template>
-                                <template v-else-if="field === 'price'">
-                                    <span class="inline-flex items-center gap-1">
-                                        <span>{{ pack.price }}</span>
-                                        <CoinIcon color="blue" size="xs" />
-                                    </span>
-                                </template>
-                                <template v-else-if="field === 'description'">
-                                    {{ pack.description ? pack.description.slice(0, 60) + (pack.description.length > 60 ? '…' : '') : '—' }}
-                                </template>
-                            </span>
+        <!-- Media Photos Grid with individual flags -->
+        <div class="space-y-3">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                    Фотографии в паке ({{ pack.photos?.length ?? 0 }})
+                </h3>
+                <span class="text-xs text-zinc-500">Кликните на фото для зума или отметьте замечание к кадру</span>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <div
+                    v-for="(photo, idx) in pack.photos"
+                    :key="photo.id"
+                    class="p-2.5 rounded-xl border bg-zinc-900/50 space-y-2 transition-all"
+                    :class="[
+                        flaggedPhotos[photo.id]
+                            ? 'border-amber-600/80 bg-amber-950/20'
+                            : 'border-zinc-800 hover:border-zinc-700'
+                    ]"
+                >
+                    <div
+                        class="relative rounded-lg overflow-hidden border border-zinc-700/80 cursor-zoom-in group aspect-square flex items-center justify-center bg-black"
+                        @click="openLightbox(idx)"
+                    >
+                        <img :src="photo.url" class="w-full h-full object-cover" alt="" />
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs gap-1">
+                            <el-icon><ZoomIn /></el-icon>
+                            <span>Увеличить</span>
                         </div>
-                        <div v-if="flaggedFields[field]" class="cps-comment-wrapper">
-                            <textarea
-                                v-model="fieldComments[field]"
-                                class="cps-comment"
-                                rows="2"
-                                placeholder="Комментарий к замечанию..."
+                    </div>
+
+                    <div class="pt-1 flex items-center justify-between">
+                        <span class="text-[11px] text-zinc-500 font-mono">#{{ idx + 1 }}</span>
+                        <label class="inline-flex items-center gap-1.5 text-[11px] text-zinc-400 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                v-model="flaggedPhotos[photo.id]"
+                                class="w-3.5 h-3.5 rounded border-zinc-700 bg-zinc-900 text-amber-500 focus:ring-amber-500"
+                                @change="onTogglePhotoFlag(photo.id)"
                             />
-                            <div class="cps-presets">
-                                <button v-for="preset in PRESETS[field]" :key="preset" type="button" class="cps-preset-btn" @click="fieldComments[field] = preset">
-                                    + {{ preset }}
-                                </button>
-                            </div>
-                        </div>
+                            <span :class="{ 'text-amber-400 font-semibold': flaggedPhotos[photo.id] }">Замечание</span>
+                        </label>
                     </div>
-                </div>
 
-                <!-- Photos -->
-                <div class="cps-card">
-                    <h2 class="cps-card__title">Фотографии</h2>
-                    <div class="cps-photos">
-                        <div v-for="(photo, idx) in pack.photos" :key="photo.id" class="cps-photo" :class="{ 'cps-photo--flagged': flaggedPhotos[photo.id] }">
-                            <div class="cps-photo-img-wrapper">
-                                <img :src="photo.url" class="cps-photo__img" alt="" @click="openLightbox(idx)" />
-                                <span v-if="flaggedPhotos[photo.id]" class="cps-photo-badge cps-photo-badge--flagged">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                                        <line x1="12" y1="9" x2="12" y2="13"/>
-                                        <line x1="12" y1="17" x2="12.01" y2="17"/>
-                                    </svg>
-                                </span>
-                            </div>
-                            <div class="cps-photo__controls">
-                                <label class="cps-photo__flag">
-                                    <input type="checkbox" v-model="flaggedPhotos[photo.id]" />
-                                    <span :class="{ 'cps-photo__flag--flagged': flaggedPhotos[photo.id] }">Пометить</span>
-                                </label>
-                            </div>
-                            <div v-if="flaggedPhotos[photo.id]" class="cps-comment-wrapper">
-                                <textarea
-                                    v-model="photoComments[photo.id]"
-                                    class="cps-comment"
-                                    rows="2"
-                                    placeholder="Что не так с этим фото..."
-                                />
-                                <div class="cps-presets">
-                                    <button v-for="preset in PRESETS.photo" :key="preset" type="button" class="cps-preset-btn" @click="photoComments[photo.id] = preset">
-                                        + {{ preset }}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Decision -->
-                <div class="cps-card cps-card--sticky">
-                    <h2 class="cps-card__title">Решение</h2>
-
-                    <label class="cps-approved-label" :class="{ 'cps-approved-label--disabled': hasAnyFlag }">
-                        <input type="checkbox" v-model="isApproved" :disabled="hasAnyFlag" class="cps-checkbox" />
-                        <span>Одобрено</span>
-                    </label>
-
-                    <p v-if="hasAnyFlag" class="cps-decision-hint">
-                        Есть пометки — будет отправлено решение «Есть замечания».
-                    </p>
-                    <p v-else-if="isApproved" class="cps-decision-hint cps-decision-hint--ok">
-                        Пак будет одобрен и айдол сможет опубликовать его.
-                    </p>
-
-                    <div v-if="errors._" class="cps-err">{{ errors._ }}</div>
-
-                    <div class="cps-actions">
-                        <button
-                            class="cps-submit"
-                            :disabled="!canSubmit || submitting"
-                            @click="submit"
-                        >
-                            {{ submitting ? 'Отправка…' : 'Отправить решение' }}
-                        </button>
-                        <button
-                            class="cps-reject"
-                            :disabled="submitting"
-                            @click="reject"
-                        >
-                            Отклонить полностью
-                        </button>
+                    <div v-if="flaggedPhotos[photo.id]" class="pt-2 border-t border-zinc-800 space-y-1">
+                        <input
+                            v-model="photoComments[photo.id]"
+                            type="text"
+                            class="w-full bg-zinc-950 border border-amber-900/60 rounded p-1.5 text-[11px] text-zinc-100 placeholder-zinc-500 focus:outline-none"
+                            placeholder="Причина (размыто, 18+...)"
+                        />
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Lightbox -->
-    <Teleport to="body">
-        <Transition name="lb">
-            <div v-if="lightboxIndex !== null" class="lb-overlay" @click.self="closeLightbox">
-                <button class="lb-close" @click="closeLightbox">✕</button>
-                <button class="lb-arrow lb-arrow--prev" @click="prevPhoto"><el-icon><ArrowLeft /></el-icon></button>
-                <div class="lb-img-wrap">
-                    <img :src="photos[lightboxIndex]?.url" alt="" class="lb-img" />
+        <!-- Text Fields Review -->
+        <div class="space-y-4">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                Текстовые параметры пака
+            </h3>
+
+            <div class="space-y-3">
+                <!-- Title -->
+                <div class="p-4 rounded-xl border bg-zinc-900/40 border-zinc-800 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-zinc-400">Название пака</span>
+                        <label class="inline-flex items-center gap-2 text-xs text-zinc-400 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                v-model="flaggedFields.title"
+                                class="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-amber-500 focus:ring-amber-500"
+                                @change="onToggleFieldFlag('title')"
+                            />
+                            <span :class="{ 'text-amber-400 font-semibold': flaggedFields.title }">Замечание</span>
+                        </label>
+                    </div>
+                    <div class="text-sm font-semibold text-zinc-100">{{ pack.title }}</div>
+                    <div v-if="flaggedFields.title" class="mt-3 pt-3 border-t border-zinc-800 space-y-2">
+                        <input
+                            v-model="fieldComments.title"
+                            type="text"
+                            class="w-full bg-zinc-950 border border-amber-900/60 rounded-lg p-2 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none"
+                            placeholder="Пояснение к замечанию по названию..."
+                        />
+                    </div>
                 </div>
-                <button class="lb-arrow lb-arrow--next" @click="nextPhoto"><el-icon><ArrowRight /></el-icon></button>
-                <div class="lb-counter">{{ lightboxIndex + 1 }} / {{ photos.length }}</div>
+
+                <!-- Description -->
+                <div class="p-4 rounded-xl border bg-zinc-900/40 border-zinc-800 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-zinc-400">Описание</span>
+                        <label class="inline-flex items-center gap-2 text-xs text-zinc-400 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                v-model="flaggedFields.description"
+                                class="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-amber-500 focus:ring-amber-500"
+                                @change="onToggleFieldFlag('description')"
+                            />
+                            <span :class="{ 'text-amber-400 font-semibold': flaggedFields.description }">Замечание</span>
+                        </label>
+                    </div>
+                    <div class="text-xs text-zinc-300 whitespace-pre-wrap">{{ pack.description || '—' }}</div>
+                    <div v-if="flaggedFields.description" class="mt-3 pt-3 border-t border-zinc-800 space-y-2">
+                        <input
+                            v-model="fieldComments.description"
+                            type="text"
+                            class="w-full bg-zinc-950 border border-amber-900/60 rounded-lg p-2 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none"
+                            placeholder="Пояснение по описанию..."
+                        />
+                    </div>
+                </div>
             </div>
-        </Transition>
-    </Teleport>
+        </div>
+
+        <!-- Decision Box -->
+        <div class="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-4">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                Решение по паку
+            </h3>
+
+            <div class="space-y-3">
+                <label
+                    class="flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all"
+                    :class="[
+                        isApproved
+                            ? 'bg-emerald-950/20 border-emerald-600/80 text-emerald-300'
+                            : 'bg-zinc-900/40 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                    ]"
+                >
+                    <input
+                        type="radio"
+                        :value="true"
+                        v-model="isApproved"
+                        class="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
+                        @change="Object.keys(flaggedFields).forEach(f => flaggedFields[f] = false); Object.keys(flaggedPhotos).forEach(id => flaggedPhotos[id] = false)"
+                    />
+                    <div>
+                        <div class="font-bold text-xs text-zinc-100">Одобрить контент-пак</div>
+                        <div class="text-[11px] text-zinc-400">Пак будет опубликован в галерее и доступен для покупки</div>
+                    </div>
+                </label>
+
+                <label
+                    class="flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all"
+                    :class="[
+                        hasAnyFlag && !isApproved
+                            ? 'bg-amber-950/20 border-amber-600/80 text-amber-300'
+                            : 'bg-zinc-900/40 border-zinc-800 text-zinc-400 hover:border-zinc-700'
+                    ]"
+                >
+                    <input
+                        type="radio"
+                        :value="false"
+                        v-model="isApproved"
+                        class="w-4 h-4 text-amber-500 focus:ring-amber-500"
+                    />
+                    <div>
+                        <div class="font-bold text-xs text-zinc-100">Вернуть на доработку с замечаниями</div>
+                        <div class="text-[11px] text-zinc-400">Айдол получит замечания по отмеченным фото и полям</div>
+                    </div>
+                </label>
+            </div>
+
+            <div class="flex items-center justify-between pt-3 border-t border-zinc-800">
+                <AdminButton variant="destructive" size="sm" @click="reject">
+                    Полностью отклонить
+                </AdminButton>
+                <AdminButton
+                    :variant="isApproved ? 'success' : 'warning'"
+                    size="md"
+                    :disabled="!canSubmit || submitting"
+                    :loading="submitting"
+                    @click="submit"
+                >
+                    {{ isApproved ? 'Одобрить пак' : 'Отправить замечания' }}
+                </AdminButton>
+            </div>
+        </div>
+
+        <!-- Lightbox -->
+        <Teleport to="body">
+            <div
+                v-if="lightboxIndex !== null"
+                class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out select-none"
+                @click="closeLightbox"
+            >
+                <button
+                    v-if="lightboxPhotos.length > 1"
+                    type="button"
+                    class="absolute left-6 p-3 rounded-full bg-zinc-900/80 text-white hover:bg-zinc-800"
+                    @click.stop="prevPhoto"
+                >
+                    <el-icon :size="20"><ArrowLeft /></el-icon>
+                </button>
+
+                <img
+                    :src="lightboxPhotos[lightboxIndex]?.url"
+                    class="max-w-full max-h-[90vh] object-contain rounded-xl border border-zinc-800"
+                    alt=""
+                />
+
+                <button
+                    v-if="lightboxPhotos.length > 1"
+                    type="button"
+                    class="absolute right-6 p-3 rounded-full bg-zinc-900/80 text-white hover:bg-zinc-800"
+                    @click.stop="nextPhoto"
+                >
+                    <el-icon :size="20"><ArrowRight /></el-icon>
+                </button>
+            </div>
+        </Teleport>
+    </div>
 </template>
-
-<style scoped>
-.cps-wrap { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
-
-.cps-back { color: rgba(255, 178, 239,0.7); text-decoration: none; font-size: 0.88rem; display: inline-block; margin-bottom: 1.25rem; }
-.cps-back:hover { color: #ffb2ef; }
-
-.cps-warn-icon {
-    display: inline-block;
-    vertical-align: middle;
-    margin-left: 0.4rem;
-}
-
-.cps-idol-link {
-    text-decoration: none;
-    display: block;
-}
-.cps-idol-link:hover .cps-idol__name {
-    color: #ffb2ef;
-}
-
-.cps-layout { display: grid; grid-template-columns: 320px 1fr; gap: 1.25rem; }
-@media (max-width: 900px) { .cps-layout { grid-template-columns: 1fr; } }
-
-.cps-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 10px;
-    padding: 1.1rem;
-    margin-bottom: 1rem;
-}
-
-.cps-card__title { font-size: 0.9rem; font-weight: 600; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.85rem; }
-.cps-card__hint  { font-size: 0.83rem; color: rgba(255,255,255,0.35); margin: 0 0 0.75rem; }
-
-.cps-idol { display: flex; align-items: center; gap: 0.75rem; }
-.cps-idol__avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-.cps-idol__avatar--empty { background: rgba(255, 178, 239,0.15); display: flex; align-items: center; justify-content: center; color: rgba(255, 178, 239,0.7); font-weight: 600; }
-.cps-idol__name  { font-size: 0.95rem; font-weight: 600; color: rgba(255,255,255,0.85); }
-.cps-idol__email { font-size: 0.8rem; color: rgba(255,255,255,0.4); margin-top: 2px; }
-
-.cps-meta { display: flex; flex-direction: column; gap: 0.55rem; }
-.cps-meta__row { display: flex; gap: 0.75rem; font-size: 0.88rem; }
-.cps-meta__label { color: rgba(255,255,255,0.35); flex-shrink: 0; width: 80px; }
-.cps-meta__desc { color: rgba(255,255,255,0.65); white-space: pre-wrap; line-height: 1.4; }
-
-.cps-status { padding: 2px 8px; border-radius: 10px; font-size: 0.78rem; font-weight: 500; }
-.cps-status--pending_review { background: rgba(255, 178, 239,0.15); color: #ffb2ef; }
-.cps-status--approved       { background: rgba(100,210,160,0.15); color: #64d2a0; }
-.cps-status--published      { background: rgba(100,210,255,0.15); color: #64d2ff; }
-.cps-status--has_remarks    { background: rgba(255,123,123,0.15); color: #ff7b7b; }
-.cps-status--rejected       { background: rgba(180,50,50,0.15); color: #ff6060; }
-
-.cps-resubmit-badge {
-    padding: 2px 8px;
-    border-radius: 8px;
-    background: rgba(100,210,160,0.15);
-    color: #64d2a0;
-    font-size: 0.78rem;
-    font-weight: 600;
-}
-
-.cps-review-item { padding: 0.6rem 0; border-top: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
-.cps-review-item:first-child { border-top: none; }
-.cps-review-item__header { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-.cps-review-item__date { color: rgba(255,255,255,0.3); font-size: 0.8rem; }
-.cps-review-item__admin { color: rgba(255,255,255,0.35); font-size: 0.8rem; }
-.cps-review-item__detail { margin-top: 0.3rem; color: rgba(255,255,255,0.4); font-size: 0.8rem; }
-.cps-dec--ok  { color: #64d2a0; }
-.cps-dec--bad { color: #ff7b7b; }
-
-.cps-flag-row { margin-bottom: 0.75rem; }
-.cps-flag-header { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
-.cps-flag-label { display: flex; align-items: center; gap: 0.4rem; cursor: pointer; }
-.cps-flag-name { font-size: 0.88rem; color: rgba(255,255,255,0.65); font-weight: 500; transition: color 0.15s; }
-.cps-flag-name--flagged { color: #ff7b7b; }
-.cps-flag-value { font-size: 0.83rem; color: rgba(255,255,255,0.35); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-.cps-checkbox { accent-color: #ffb2ef; width: 15px; height: 15px; }
-
-.cps-comment {
-    width: 100%;
-    box-sizing: border-box;
-    margin-top: 0.5rem;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,100,100,0.25);
-    border-radius: 6px;
-    color: rgba(255,255,255,0.8);
-    font-size: 0.85rem;
-    font-family: inherit;
-    padding: 0.45rem 0.65rem;
-    resize: vertical;
-    outline: none;
-}
-
-.cps-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.6rem; }
-
-.cps-photo { display: flex; flex-direction: column; gap: 0.35rem; }
-.cps-photo__img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 6px; display: block; border: 1px solid rgba(255,255,255,0.08); cursor: pointer; transition: opacity 0.15s; }
-.cps-photo__img:hover { opacity: 0.85; }
-.cps-photo__controls { display: flex; gap: 0.4rem; font-size: 0.78rem; flex-wrap: wrap; }
-.cps-photo__flag { display: flex; align-items: center; gap: 3px; cursor: pointer; }
-.cps-photo__flag--flagged { color: #ff7b7b !important; }
-.cps-photo__flag span { color: rgba(255,255,255,0.45); }
-
-.cps-approved-label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.92rem; color: rgba(255,255,255,0.7); }
-.cps-approved-label--disabled { opacity: 0.35; cursor: not-allowed; }
-.cps-decision-hint { font-size: 0.83rem; color: rgba(255,123,123,0.8); margin: 0.5rem 0 0; }
-.cps-decision-hint--ok { color: rgba(100,210,160,0.8); }
-
-.cps-err { font-size: 0.83rem; color: #ff7b7b; margin-top: 0.4rem; }
-
-.cps-actions { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
-
-.cps-submit {
-    width: 100%;
-    padding: 0.65rem;
-    border-radius: 8px;
-    background: rgba(255, 178, 239,0.12);
-    border: 1px solid rgba(255, 178, 239,0.35);
-    color: #ffb2ef;
-    font-size: 0.95rem;
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-.cps-submit:hover:not(:disabled) { background: rgba(255, 178, 239,0.22); }
-.cps-submit:disabled { opacity: 0.4; cursor: not-allowed; }
-
-.cps-reject {
-    width: 100%;
-    padding: 0.55rem;
-    border-radius: 8px;
-    background: rgba(180,50,50,0.1);
-    border: 1px solid rgba(200,60,60,0.3);
-    color: rgba(255,110,110,0.8);
-    font-size: 0.88rem;
-    font-weight: 500;
-    font-family: inherit;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-.cps-reject:hover:not(:disabled) { background: rgba(180,50,50,0.2); }
-.cps-reject:disabled { opacity: 0.4; cursor: not-allowed; }
-
-/* ── Lightbox ── */
-.lb-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    background: rgba(0,0,0,0.92);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.lb-img-wrap { max-width: 90vw; max-height: 90vh; display: flex; align-items: center; justify-content: center; }
-.lb-img { max-width: 90vw; max-height: 90vh; object-fit: contain; display: block; border-radius: 4px; box-shadow: 0 8px 60px rgba(0,0,0,0.8); }
-.lb-close {
-    position: absolute; top: 18px; right: 22px;
-    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
-    color: rgba(255,255,255,0.7); width: 36px; height: 36px; border-radius: 50%;
-    font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 1;
-}
-.lb-close:hover { background: rgba(255,255,255,0.15); color: #fff; }
-.lb-arrow {
-    position: absolute; top: 50%; transform: translateY(-50%);
-    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.7); width: 46px; height: 46px; border-radius: 50%;
-    font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
-    transition: background 0.15s; z-index: 1;
-}
-.lb-arrow:hover { background: rgba(255,255,255,0.15); color: #fff; }
-.lb-arrow--prev { left: 18px; }
-.lb-arrow--next { right: 18px; }
-.lb-counter {
-    position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
-    background: rgba(0,0,0,0.5); backdrop-filter: blur(6px);
-    color: rgba(255,255,255,0.7); font-size: 0.85rem; padding: 4px 14px; border-radius: 20px;
-}
-.lb-enter-active, .lb-leave-active { transition: opacity 0.18s; }
-.lb-enter-from, .lb-leave-to { opacity: 0; }
-
-/* ── Enhanced UI/UX Styles ── */
-.cps-flag-row {
-    border: 1px solid transparent;
-    border-radius: 8px;
-    padding: 0.5rem;
-    transition: all 0.2s ease;
-}
-.cps-flag-row--flagged {
-    border-color: rgba(255,100,100,0.15);
-    background: rgba(255,100,100,0.02);
-}
-.cps-indicator {
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 2px 6px;
-    border-radius: 4px;
-}
-.cps-indicator--ok {
-    color: #64d2a0;
-    background: rgba(100,210,160,0.1);
-}
-.cps-indicator--flagged {
-    color: #ff7b7b;
-    background: rgba(255,123,123,0.1);
-}
-.cps-presets {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-top: 0.35rem;
-}
-.cps-preset-btn {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    color: rgba(255,255,255,0.5);
-    font-size: 0.72rem;
-    padding: 3px 8px;
-    cursor: pointer;
-    transition: all 0.15s;
-}
-.cps-preset-btn:hover {
-    background: rgba(255, 178, 239, 0.1);
-    color: #ffb2ef;
-    border-color: rgba(255, 178, 239, 0.25);
-}
-.cps-photo-img-wrapper {
-    position: relative;
-    border-radius: 6px;
-    overflow: hidden;
-}
-.cps-photo-badge {
-    position: absolute;
-    top: 6px;
-    left: 6px;
-    font-size: 0.68rem;
-    font-weight: 600;
-    padding: 2px 5px;
-    border-radius: 4px;
-    backdrop-filter: blur(4px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-}
-.cps-photo-badge--ok {
-    background: rgba(80, 210, 140, 0.85);
-    color: #fff;
-}
-.cps-photo-badge--flagged {
-    background: rgba(220, 60, 60, 0.85);
-    color: #fff;
-}
-.cps-photo--flagged {
-    border: 1px solid rgba(255, 100, 100, 0.25);
-    border-radius: 8px;
-    padding: 0.4rem;
-    background: rgba(255,100,100,0.01);
-}
-.cps-card--sticky {
-    position: sticky;
-    bottom: 1rem;
-    z-index: 100;
-    background: rgba(30, 30, 42, 0.96) !important;
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 178, 239, 0.25) !important;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-}
-</style>
