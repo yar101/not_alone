@@ -486,6 +486,7 @@
     "chat.offer.selected": "Selected :count/2:",
     "chat.offer.remove": "Remove",
     "chat.offer.send": "Offer →",
+    "chat.offer.error": "Failed to send service offer",
     "chat.repeat.error": "Failed to create order",
     "chat.repeat.warn.partial": "Some services are unavailable and won't be included in the order",
     "chat.repeat.warn.all": "All services in this order are unavailable",

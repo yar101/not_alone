@@ -486,6 +486,7 @@
     "chat.offer.selected": "Выбрано :count/2:",
     "chat.offer.remove": "Убрать",
     "chat.offer.send": "Предложить →",
+    "chat.offer.error": "Не удалось отправить предложение услуг",
     "chat.repeat.error": "Не удалось создать заказ",
     "chat.repeat.warn.partial": "Часть услуг недоступна и не войдёт в заказ",
     "chat.repeat.warn.all": "Все услуги из этого заказа недоступны",

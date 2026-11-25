@@ -39,7 +39,7 @@ test('admin can view price limits page with categories and limits', function () 
         ->get(route('admin.services.price-limits.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('Admin/Services/Index')
+            ->component('Admin/Services/PriceLimits')
             ->where('active_tab', 'price-limits')
             ->has('limits', 1)
             ->where('limits.0.category_id', $category->id)

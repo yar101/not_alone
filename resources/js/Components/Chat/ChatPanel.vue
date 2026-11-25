@@ -339,9 +339,10 @@ async function payOrder() {
         return;
     orderAction.value = "pay";
     try {
+        const shouldCover = orderNominalPrice.value > 0 && orderFeeCovered.value;
         await axios.patch(route("orders.pay", activeOrderData.value.id), {
-            fee_covered_platform: orderFeeCovered.value,
-            fee_covered_withdrawal: orderFeeCovered.value,
+            fee_covered_platform: shouldCover,
+            fee_covered_withdrawal: shouldCover,
         });
         payModal.value = false;
     } catch (e) {
@@ -4114,7 +4115,7 @@ function formatDate(iso) {
             </div>
 
             <!-- Toggle for idol fee coverage -->
-            <div class="pay-modal-toggles">
+            <div v-if="orderNominalPrice > 0" class="pay-modal-toggles">
                 <div class="pay-modal-toggle">
                     <div class="pay-modal-toggle__meta">
                         <span class="pay-modal-toggle__title">Айдол получит 100%</span>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Conversation;
 use App\Models\IdolCategoryDescription;
 use App\Models\PlatformSetting;
 use App\Models\Service;
@@ -9,6 +10,7 @@ use App\Models\ServiceCategory;
 use App\Models\ServiceChangeRequest;
 use App\Models\ServicePriceLimit;
 use App\Models\User;
+use App\Models\UserIdolTrial;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -123,9 +125,29 @@ class ServiceController extends Controller
     {
         $user = $request->user();
 
+        $excludeTrial = false;
+        if ($conversationId = $request->query('conversation_id')) {
+            $conversation = Conversation::where('id', $conversationId)
+                ->whereHas('participants', fn ($q) => $q->where('user_id', $user->id))
+                ->with('participants')
+                ->first();
+
+            if ($conversation) {
+                if ($conversation->order_id !== null) {
+                    $excludeTrial = true;
+                } else {
+                    $targetUserId = $conversation->participants->firstWhere('user_id', '!=', $user->id)?->user_id;
+                    if ($targetUserId && UserIdolTrial::where('user_id', $targetUserId)->where('idol_id', $user->id)->exists()) {
+                        $excludeTrial = true;
+                    }
+                }
+            }
+        }
+
         $services = Service::where('user_id', $user->id)
             ->where('is_active', true)
             ->where('status', 'approved')
+            ->when($excludeTrial, fn ($q) => $q->where('is_trial', false))
             ->with(['category:id,name', 'timeUnit:id,name'])
             ->get();
 
@@ -146,6 +168,7 @@ class ServiceController extends Controller
                     'name_ru' => $s->getTranslation('name', 'ru'),
                     'name_en' => $s->getTranslation('name', 'en', false) ?: null,
                     'price' => $s->price,
+                    'is_trial' => (bool) $s->is_trial,
                     'time_unit_ru' => $s->timeUnit?->getTranslation('name', 'ru'),
                     'time_unit_en' => $s->timeUnit?->getTranslation('name', 'en', false) ?: null,
                 ])->values(),

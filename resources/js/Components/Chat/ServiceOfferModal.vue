@@ -1,6 +1,8 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
+import { ElNotification } from 'element-plus';
+import { extractErrorMessage } from '@/Utils/error';
 import { formatMoney } from '@/Utils/money';
 import SiteModal from '@/Components/Site/SiteModal.vue';
 import AppCheckbox from '@/Components/AppCheckbox.vue';
@@ -77,7 +79,11 @@ function removeSelected(id) {
 async function loadCategories() {
     loading.value = true;
     try {
-        const res = await axios.get(route('profile.services.for-offer'));
+        const params = {};
+        if (props.conversationId && props.conversationId !== 'draft') {
+            params.conversation_id = props.conversationId;
+        }
+        const res = await axios.get(route('profile.services.for-offer'), { params });
         categories.value = res.data;
         if (categories.value.length) {
             activeCategory.value = categories.value[0].category.id;
@@ -99,6 +105,12 @@ async function submit() {
         close();
     } catch (e) {
         console.error('Failed to send service offer', e);
+        ElNotification({
+            title: __('common.error') || 'Ошибка',
+            message: extractErrorMessage(e, __('chat.offer.error') || 'Не удалось отправить предложение услуг'),
+            type: 'error',
+            duration: 5000,
+        });
     } finally {
         sending.value = false;
     }

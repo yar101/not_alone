@@ -259,6 +259,20 @@ class WalletAndTrialOrderIntegrityTest extends TestCase
             ['id' => $regularService->id, 'quantity' => 1],
         ]);
 
+        // When conversation_id is provided for an order conversation, for-offer excludes trial services
+        $forOfferRes = $this->actingAs($idol)->getJson(route('profile.services.for-offer', ['conversation_id' => $conv->id]));
+        $forOfferRes->assertOk();
+        $offeredServiceIds = collect($forOfferRes->json())->pluck('services')->flatten(1)->pluck('id')->all();
+        $this->assertContains($regularService->id, $offeredServiceIds);
+        $this->assertNotContains($trialService->id, $offeredServiceIds);
+
+        // When conversation_id is NOT provided, trial services are included
+        $allOfferRes = $this->actingAs($idol)->getJson(route('profile.services.for-offer'));
+        $allOfferRes->assertOk();
+        $allServiceIds = collect($allOfferRes->json())->pluck('services')->flatten(1)->pluck('id')->all();
+        $this->assertContains($regularService->id, $allServiceIds);
+        $this->assertContains($trialService->id, $allServiceIds);
+
         // Attempting to offer trial service in existing order chat is rejected with 422
         $response = $this->actingAs($idol)->postJson("/conversations/{$conv->id}/offer-services", [
             'services' => [$trialService->id],
